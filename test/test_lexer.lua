@@ -15,3 +15,30 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local node = require "dromozoa.lexer.node"
+local dumper = require "dromozoa.commons.dumper"
+
+local p = node.range "ac"
+local p = node.set "ac"
+local p = node.pattern "a" + "b" + "c"
+-- local p = node.pattern "a" * "b" * "c"
+-- local p = node.pattern "ab" * "c"
+-- local p = node.pattern "abc"
+-- local p = node.pattern "ab" + "c"
+-- local p = node.pattern "ab" + 1
+local p = - (- node.set "abc" + "c")
+local p = (node.set "abc" ^ "?") ^ "+"
+local p = node.pattern "abc"
+local p = node.pattern "a" * "b" * "c"
+local p = node.pattern "a"^-3
+local p = node.pattern "a"^3
+
+print(dumper.encode(p, { pretty = true, stable = true }))
+
+-- local p1 = node.literal "foo"
+
+-- print(dumper.encode(node.range "ba", { pretty = true, stable = true }))
+
+
+
+
