@@ -23,8 +23,8 @@ end
 local class = {}
 local metatable = { __index = class }
 
-local function new(name, ...)
-  return setmetatable({ [0] = name, ... }, metatable)
+local function new(code, ...)
+  return setmetatable({ [0] = code, ... }, metatable)
 end
 
 local function clone(self)
