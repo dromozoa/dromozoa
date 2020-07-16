@@ -78,11 +78,6 @@ function class.set(that)
   return new("[", set)
 end
 
-function class:clone()
-
-  local code = self[0]
-end
-
 function metatable:__add(that)
   local self = class.pattern(self)
   local that = class.pattern(that)
