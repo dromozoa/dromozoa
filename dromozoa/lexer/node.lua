@@ -18,7 +18,7 @@
 local class = {}
 local metatable = { __index = class }
 
-function class.new(code, a, b)
+local function new(code, a, b)
   return setmetatable({ [0] = code, a, b }, metatable)
 end
 
@@ -26,26 +26,28 @@ local any = {}
 for byte = 0x00, 0xFF do
   any[byte] = true
 end
-class.any = class.new("[", any)
+local any = new("[", any)
 
-function class.pattern(that)
+local function pattern(that)
   local t = type(that)
   if t == "number" then
-    local result = class.any
+    local result = any
     for i = 2, that do
-      result = result * class.any
+      result = new(".", result, any)
     end
     return result
   elseif t == "string" then
-    local result = class.new("[", { [that:byte()] = true })
+    local result = new("[", { [that:byte()] = true })
     for i = 2, #that do
-      result = result * class.new("[", { [that:byte(i)] = true })
+      result = new(".", result, new("[", { [that:byte(i)] = true }))
     end
     return result
   else
     return that
   end
 end
+
+class.pattern = pattern
 
 function class.range(that)
   local set = {}
@@ -55,7 +57,7 @@ function class.range(that)
       set[byte] = true
     end
   end
-  return class.new("[", set)
+  return new("[", set)
 end
 
 function class.set(that)
@@ -63,12 +65,12 @@ function class.set(that)
   for i = 1, #that do
     set[that:byte(i)] = true
   end
-  return class.new("[", set)
+  return new("[", set)
 end
 
 function metatable:__add(that)
-  local self = class.pattern(self)
-  local that = class.pattern(that)
+  local self = pattern(self)
+  local that = pattern(that)
   if self[0] == "[" and that[0] == "[" then
     local set = {}
     for byte in pairs(self[1]) do
@@ -77,58 +79,67 @@ function metatable:__add(that)
     for byte in pairs(that[1]) do
       set[byte] = true
     end
-    return class.new("[", set)
+    return new("[", set)
   else
-    return class.new("|", self, that)
+    return new("|", self, that)
   end
 end
 
 function metatable:__mul(that)
-  local self = class.pattern(self)
-  local that = class.pattern(that)
-  return class.new(".", self, that)
+  local self = pattern(self)
+  local that = pattern(that)
+  return new(".", self, that)
 end
 
 function metatable:__pow(that)
-  if that == 0 or that == "*" then
-    return class.new("*", self)
-  elseif that == 1 or that == "+" then
-    return self * self^0
-  elseif that == -1 or that == "?" then
-    return class.new("?", self)
-  else
-    if type(that) == "number" then
-      if that < 0 then
-        local result = self^-1
-        for i = 2, -that do
-          result = result * self^-1
-        end
-        return result
-      else
-        local result = self
-        for i = 2, that do
-          result = result * self
-        end
-        return result * self^0
+  local t = type(that)
+  if t == "table" then
+    local m = that[1]
+    local n = that[2]
+    if not n then
+      n = m
+    end
+    if m == 0 then
+      local result = new("?", self)
+      for i = 2, n do
+        result = new(".", result, new("?", self))
       end
+      return result
     else
-      local min = self[1]
-      local max = self[2]
-      if not max then
-        max = min
+      local result = self
+      for i = 2, m do
+        result = new(".", result, self)
       end
-      if min == 0 then -- {0,3}
-        return self^-max
-      else
-        local result = self
-        for i = 2, min do
-          result = result * self
-        end
-        for i = min + 1, max do
-          result = result * self^-1
-        end
-        return result
+      for i = m + 1, n do
+        result = new(".", result, new("?", self))
       end
+      return result
+    end
+  else
+    if t == "string" then
+      if that == "*" then
+        that = 0
+      elseif that == "+" then
+        that = 1
+      elseif that == "?" then
+        that = -1
+      end
+    end
+
+    if that == 0 then
+      return new("*", self)
+    elseif that > 0 then
+      local result = self
+      for i = 2, that do
+        result = new(".", result, self)
+      end
+      return new(".", result, new("*", self))
+    else
+      local result = new("?", self)
+      for i = 2, -that do
+        result = new(".", result, new("?", self))
+      end
+      return result
     end
   end
 end
@@ -142,7 +153,9 @@ function metatable:__unm()
         neg[byte] = true
       end
     end
-    return class.new("[", neg)
+    return new("[", neg)
+  else
+    error "negative lookahead not supported"
   end
 end
 

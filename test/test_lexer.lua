@@ -27,12 +27,14 @@ local p = node.pattern "a" + "b" + "c"
 -- local p = node.pattern "ab" + "c"
 -- local p = node.pattern "ab" + 1
 local p = - (- node.set "abc" + "c")
-local p = (node.set "abc" ^ "?") ^ "+"
-local p = node.pattern "abc"
-local p = node.pattern "a" * "b" * "c"
-local p = node.pattern "a"^-3
-local p = node.pattern "a"^3
-local p = node.pattern(3)
+-- local p = (node.set "abc" ^ "?") ^ "+"
+-- local p = node.pattern "abc"
+-- local p = node.pattern "a" * "b" * "c"
+-- local p = node.pattern "a"^-3
+-- local p = node.pattern "a"^3
+-- local p = node.pattern(3)
+-- local p = node.pattern "a"^{3}
+local p = node.pattern "a"^{0,4}
 
 print(dumper.encode(p, { pretty = true, stable = true }))
 
