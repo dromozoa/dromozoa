@@ -23,35 +23,22 @@ end
 local class = {}
 local metatable = { __index = class }
 
-local function new(code, ...)
-  return setmetatable({ [0] = code, ... }, metatable)
-end
-
-local function clone(self)
-  local name = self[0]
-  if name == "[" then
-    return new(name, self[1])
-  else
-    local that = { [0] = name }
-    for i = 1, #self do
-      that[i] = clone(self[i])
-    end
-    return setmetatable(that, metatable)
-  end
+function class.new(code, a, b)
+  return setmetatable({ [0] = code, a, b }, metatable)
 end
 
 function class.pattern(that)
   local t = type(that)
   if t == "number" then
-    local result = new("[", any)
+    local result = class.new("[", any)
     for i = 2, that do
-      result = result * new("[", any)
+      result = result * class.new("[", any)
     end
     return result
   elseif t == "string" then
-    local result = new("[", { [that:byte(1)] = true })
+    local result = class.new("[", { [that:byte()] = true })
     for i = 2, #that do
-      result = result * new("[", { [that:byte(i)] = true })
+      result = result * class.new("[", { [that:byte(i)] = true })
     end
     return result
   else
@@ -67,7 +54,7 @@ function class.range(that)
       set[byte] = true
     end
   end
-  return new("[", set)
+  return class.new("[", set)
 end
 
 function class.set(that)
@@ -75,7 +62,7 @@ function class.set(that)
   for i = 1, #that do
     set[that:byte(i)] = true
   end
-  return new("[", set)
+  return class.new("[", set)
 end
 
 function metatable:__add(that)
@@ -89,42 +76,58 @@ function metatable:__add(that)
     for byte in pairs(that[1]) do
       set[byte] = true
     end
-    return new("[", set)
+    return class.new("[", set)
   else
-    return new("|", self, that)
+    return class.new("|", self, that)
   end
 end
 
 function metatable:__mul(that)
   local self = class.pattern(self)
   local that = class.pattern(that)
-  return new(".", self, that)
+  return class.new(".", self, that)
 end
 
 function metatable:__pow(that)
   if that == 0 or that == "*" then
-    return new("*", self)
+    return class.new("*", self)
   elseif that == 1 or that == "+" then
-    return self * clone(self)^0
+    return self * self^0
   elseif that == -1 or that == "?" then
-    return new("?", self)
+    return class.new("?", self)
   else
     if type(that) == "number" then
       if that < 0 then
         local result = self^-1
         for i = 2, -that do
-          result = result * clone(self)^-1
+          result = result * self^-1
         end
         return result
       else
         local result = self
         for i = 2, that do
-          result = result * clone(self)
+          result = result * self
         end
-        return result * clone(self)^0
+        return result * self^0
       end
     else
-
+      local min = self[1]
+      local max = self[2]
+      if not max then
+        max = min
+      end
+      if min == 0 then -- {0,3}
+        return self^-max
+      else
+        local result = self
+        for i = 2, min do
+          result = result * self
+        end
+        for i = min + 1, max do
+          result = result * self^-1
+        end
+        return result
+      end
     end
   end
 end
@@ -138,7 +141,7 @@ function metatable:__unm()
         neg[byte] = true
       end
     end
-    return new("[", neg)
+    return class.new("[", neg)
   end
 end
 

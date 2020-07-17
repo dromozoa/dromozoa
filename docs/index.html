@@ -29,24 +29,51 @@
 
 <h1>dromozoa</h1>
 
-<pre>
-set s : charcter_class
-range s : charcter_class
-literal s : charcter_class | pattern
-
-* 0,0
-rep m,n
+<h2>正規表現の抽象構文木</h2>
 
 
 
-pat+ = pat pat* = pat{1,1} pat*
-pat* = pat{0,0} pat*
-pat? = pat{0,1}
 
-pat{m,} = pat{m,m} pat*
-pat{m}  = pat{m,m}
-pat{m,n}
-</pre>
+
+
+
+<table>
+  <tr>
+    <th>operator</th>
+    <th>#operands</th>
+    <th>description</th>
+  </tr>
+  <tr>
+    <td><code>[</code></td>
+    <td>1</td>
+    <td>character class</td>
+  </tr>
+  <tr>
+    <td><code>|</code></td>
+    <td>2</td>
+    <td>union</td>
+  </tr>
+  <tr>
+    <td><code>.</code></td>
+    <td>2</td>
+    <td>concatenation</td>
+  </tr>
+  <tr>
+    <td><code>*</code></td>
+    <td>1</td>
+    <td>0 or more repetition</td>
+  </tr>
+  <tr>
+    <td><code>?</code></td>
+    <td>1</td>
+    <td>optional</td>
+  </tr>
+  <tr>
+    <td><code>-</code></td>
+    <td>2</td>
+    <td>difference</td>
+  </tr>
+</table>
 
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.js"></script>
