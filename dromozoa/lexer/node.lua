@@ -15,11 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local any = {}
-for byte = 0x00, 0xFF do
-  any[byte] = true
-end
-
 local class = {}
 local metatable = { __index = class }
 
@@ -27,12 +22,18 @@ function class.new(code, a, b)
   return setmetatable({ [0] = code, a, b }, metatable)
 end
 
+local any = {}
+for byte = 0x00, 0xFF do
+  any[byte] = true
+end
+class.any = class.new("[", any)
+
 function class.pattern(that)
   local t = type(that)
   if t == "number" then
-    local result = class.new("[", any)
+    local result = class.any
     for i = 2, that do
-      result = result * class.new("[", any)
+      result = result * class.any
     end
     return result
   elseif t == "string" then

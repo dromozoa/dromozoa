@@ -32,6 +32,7 @@ local p = node.pattern "abc"
 local p = node.pattern "a" * "b" * "c"
 local p = node.pattern "a"^-3
 local p = node.pattern "a"^3
+local p = node.pattern(3)
 
 print(dumper.encode(p, { pretty = true, stable = true }))
 
