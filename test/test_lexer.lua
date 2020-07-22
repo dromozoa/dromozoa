@@ -55,7 +55,3 @@ assert((P"abc"^"*"):encode() == "(abc)*")
 -- local p1 = node.literal "foo"
 
 -- print(dumper.encode(node.range "ba", { pretty = true, stable = true }))
-
-
-
-
