@@ -37,8 +37,12 @@ local p = - (- node.set "abc" + "c")
 local p = node.pattern "a"^{0,4}
 local p = node.pattern "abc" - node.set "b"
 local p = node.set "abc" * node.set "def"
+local p = node.set "abc\\]" * node.range " z"
+-- local p = node.pattern(1)
+-- local p = -node.set "a"
 
-print(dumper.encode(p, { pretty = true, stable = true }))
+-- print(dumper.encode(p, { pretty = true, stable = true }))
+p:encode()
 
 -- local p1 = node.literal "foo"
 

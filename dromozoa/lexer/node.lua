@@ -172,4 +172,91 @@ function metatable:__unm()
   end
 end
 
+local encode_byte = {}
+for byte = 0x00, 0xFF do
+  encode_byte[byte] = ("\\x%02X"):format(byte)
+end
+-- for byte = 0x20, 0x7E do
+--   encode_byte[byte] = string.char(byte)
+-- end
+-- encode_byte[0x5C] = "\\\\"
+-- encode_byte[0x5D] = "\\]"
+
+local function encode(self)
+  local code = self[0]
+  if code == "[" then
+    local set = self[1]
+
+    local n = 0
+    for byte in pairs(set) do
+      n = n + 1
+    end
+
+    if n == 256 then
+      return "."
+    end
+
+    local a = {}
+    local b = {}
+    local i = 0
+
+    local neg = n > 127
+    if neg then
+      for byte = 0x00, 0xFF do
+        if not set[byte] then
+          if b[i] == byte - 1 then
+            b[i] = byte
+          else
+            i = i + 1
+            a[i] = byte
+            b[i] = byte
+          end
+        end
+      end
+    else
+      for byte = 0x00, 0xFF do
+        if set[byte] then
+          if b[i] == byte - 1 then
+            b[i] = byte
+          else
+            i = i + 1
+            a[i] = byte
+            b[i] = byte
+          end
+        end
+      end
+    end
+
+    local buffer = {}
+    for i = 1, #a do
+      local a = a[i]
+      local b = b[i]
+      if a == b then
+        buffer[i] = encode_byte[a]
+      elseif a == b - 1 then
+        buffer[i] = encode_byte[a] .. encode_byte[b]
+      else
+        buffer[i] = encode_byte[a] .. "-" .. encode_byte[b]
+      end
+    end
+
+    if neg then
+      print("[^" .. table.concat(buffer) .. "]")
+      return "[^" .. table.concat(buffer) .. "]"
+    else
+      print("[" .. table.concat(buffer) .. "]")
+      return "[" .. table.concat(buffer) .. "]"
+    end
+  else
+    for i = 1, #self do
+      encode(self[i])
+    end
+  end
+end
+
+function class:encode()
+  local result = encode(self)
+  return result
+end
+
 return class
