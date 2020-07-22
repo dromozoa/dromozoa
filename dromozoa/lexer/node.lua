@@ -176,11 +176,18 @@ local encode_byte = {}
 for byte = 0x00, 0xFF do
   encode_byte[byte] = ("\\x%02X"):format(byte)
 end
--- for byte = 0x20, 0x7E do
---   encode_byte[byte] = string.char(byte)
--- end
--- encode_byte[0x5C] = "\\\\"
--- encode_byte[0x5D] = "\\]"
+local a, b = ("09"):byte(1, 2)
+for byte = a, b do
+  encode_byte[byte] = string.char(byte)
+end
+local a, b = ("AZ"):byte(1, 2)
+for byte = a, b do
+  encode_byte[byte] = string.char(byte)
+end
+local a, b = ("az"):byte(1, 2)
+for byte = a, b do
+  encode_byte[byte] = string.char(byte)
+end
 
 local function encode(self)
   local code = self[0]
@@ -193,7 +200,13 @@ local function encode(self)
     end
 
     if n == 256 then
-      return "."
+      return ".", 1
+    end
+
+    if n == 1 then
+      for byte in pairs(set) do
+        return encode_byte[byte], 1
+      end
     end
 
     local a = {}
@@ -241,22 +254,37 @@ local function encode(self)
     end
 
     if neg then
-      print("[^" .. table.concat(buffer) .. "]")
-      return "[^" .. table.concat(buffer) .. "]"
+      return "[^" .. table.concat(buffer) .. "]", 1
     else
-      print("[" .. table.concat(buffer) .. "]")
-      return "[" .. table.concat(buffer) .. "]"
+      return "[" .. table.concat(buffer) .. "]", 1
     end
+  elseif code == "?" or code == "*" then
+    local pattern, prec = encode(self[1])
+    if prec >= 2 then
+      pattern = "(" .. pattern .. ")"
+    end
+    return pattern .. code, 2
+  elseif code == "." then
+    local a_pattern, a_prec = encode(self[1])
+    local b_pattern, b_prec = encode(self[2])
+    if a_prec > 3 then
+      a_pattern = "(" .. a_pattern .. ")"
+    end
+    if b_prec > 3 then
+      b_pattern = "(" .. b_pattern .. ")"
+    end
+    return a_pattern .. b_pattern, 3
+  elseif code == "|" then
+    local a_pattern, a_prec = encode(self[1])
+    local b_pattern, b_prec = encode(self[2])
+    return a_pattern .. "|" .. b_pattern, 4
   else
-    for i = 1, #self do
-      encode(self[i])
-    end
+    error "..."
   end
 end
 
 function class:encode()
-  local result = encode(self)
-  return result
+  return (encode(self))
 end
 
 return class

@@ -31,46 +31,53 @@
 
 <h2>正規表現の抽象構文木</h2>
 
-
-
-
-
-
-
 <table>
   <tr>
     <th>operator</th>
     <th>#operands</th>
+    <th>precedence</th>
     <th>description</th>
   </tr>
   <tr>
     <td><code>[</code></td>
     <td>1</td>
+    <td>1</td>
     <td>character class</td>
   </tr>
   <tr>
-    <td><code>|</code></td>
-    <td>2</td>
-    <td>union</td>
-  </tr>
-  <tr>
-    <td><code>.</code></td>
-    <td>2</td>
-    <td>concatenation</td>
+    <td><code>{</code></td>
+    <td>1</td>
+    <td>N/A</td>
+    <td>action</td>
   </tr>
   <tr>
     <td><code>*</code></td>
     <td>1</td>
+    <td>2</td>
     <td>0 or more repetition</td>
   </tr>
   <tr>
     <td><code>?</code></td>
     <td>1</td>
+    <td>2</td>
     <td>optional</td>
+  </tr>
+  <tr>
+    <td><code>.</code></td>
+    <td>2</td>
+    <td>3</td>
+    <td>concatenation</td>
+  </tr>
+  <tr>
+    <td><code>|</code></td>
+    <td>2</td>
+    <td>4</td>
+    <td>union</td>
   </tr>
   <tr>
     <td><code>-</code></td>
     <td>2</td>
+    <td>N/A</td>
     <td>difference</td>
   </tr>
 </table>
