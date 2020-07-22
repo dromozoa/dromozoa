@@ -35,6 +35,8 @@ local p = - (- node.set "abc" + "c")
 -- local p = node.pattern(3)
 -- local p = node.pattern "a"^{3}
 local p = node.pattern "a"^{0,4}
+local p = node.pattern "abc" - node.set "b"
+local p = node.set "abc" * node.set "def"
 
 print(dumper.encode(p, { pretty = true, stable = true }))
 
