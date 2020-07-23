@@ -176,16 +176,13 @@ local encode_byte = {}
 for byte = 0x00, 0xFF do
   encode_byte[byte] = ("\\x%02X"):format(byte)
 end
-local a, b = ("09"):byte(1, 2)
-for byte = a, b do
+for byte = 0x30, 0x39 do -- [0-9]
   encode_byte[byte] = string.char(byte)
 end
-local a, b = ("AZ"):byte(1, 2)
-for byte = a, b do
+for byte = 0x41, 0x5A do -- [A-Z]
   encode_byte[byte] = string.char(byte)
 end
-local a, b = ("az"):byte(1, 2)
-for byte = a, b do
+for byte = 0x61, 0x7A do -- [a-z]
   encode_byte[byte] = string.char(byte)
 end
 
@@ -198,25 +195,22 @@ local function encode(self)
     for byte in pairs(set) do
       n = n + 1
     end
-
-    if n == 256 then
-      return ".", 1
-    end
-
     if n == 1 then
       for byte in pairs(set) do
         return encode_byte[byte], 1
       end
+    elseif n == 256 then
+      return ".", 1
     end
+    local neg = n > 127
 
     local a = {}
     local b = {}
     local i = 0
 
-    local neg = n > 127
-    if neg then
+    if not neg then
       for byte = 0x00, 0xFF do
-        if not set[byte] then
+        if set[byte] then
           if b[i] == byte - 1 then
             b[i] = byte
           else
@@ -228,7 +222,7 @@ local function encode(self)
       end
     else
       for byte = 0x00, 0xFF do
-        if set[byte] then
+        if not set[byte] then
           if b[i] == byte - 1 then
             b[i] = byte
           else
@@ -241,23 +235,31 @@ local function encode(self)
     end
 
     local buffer = {}
+    local n = 0
+
+    if not neg then
+      n = n + 1; buffer[n] = "["
+    else
+      n = n + 1; buffer[n] = "[^"
+    end
+
     for i = 1, #a do
       local a = a[i]
       local b = b[i]
       if a == b then
-        buffer[i] = encode_byte[a]
+        n = n + 1; buffer[n] = encode_byte[a]
       elseif a == b - 1 then
-        buffer[i] = encode_byte[a] .. encode_byte[b]
+        n = n + 1; buffer[n] = encode_byte[a]
+        n = n + 1; buffer[n] = encode_byte[b]
       else
-        buffer[i] = encode_byte[a] .. "-" .. encode_byte[b]
+        n = n + 1; buffer[n] = encode_byte[a]
+        n = n + 1; buffer[n] = "-"
+        n = n + 1; buffer[n] = encode_byte[b]
       end
     end
 
-    if neg then
-      return "[^" .. table.concat(buffer) .. "]", 1
-    else
-      return "[" .. table.concat(buffer) .. "]", 1
-    end
+    n = n + 1; buffer[n] = "]"
+    return table.concat(buffer), 1
   elseif code == "?" or code == "*" then
     local pattern, prec = encode(self[1])
     if prec > 2 then
