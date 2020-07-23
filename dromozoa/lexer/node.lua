@@ -260,7 +260,7 @@ local function encode(self)
     end
   elseif code == "?" or code == "*" then
     local pattern, prec = encode(self[1])
-    if prec >= 2 then
+    if prec > 2 then
       pattern = "(" .. pattern .. ")"
     end
     return pattern .. code, 2

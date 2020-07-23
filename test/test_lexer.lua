@@ -45,6 +45,7 @@ local p = node.pattern "a" * "b" * "c"
 -- local p = node.pattern "あいうえお"
 -- local p = (node.pattern "abc" ^"*")^"?"
 local p = (node.pattern "abc" + "def") * "ghi"
+local p = (node.pattern "a" ^"?") ^"*"
 
 -- print(dumper.encode(p, { pretty = true, stable = true }))
 print(p:encode())
@@ -53,5 +54,6 @@ local P = node.pattern
 assert((P"abc"^"*"):encode() == "(abc)*")
 
 -- local p1 = node.literal "foo"
+
 
 -- print(dumper.encode(node.range "ba", { pretty = true, stable = true }))
