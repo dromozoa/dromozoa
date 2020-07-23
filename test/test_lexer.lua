@@ -58,4 +58,6 @@ assert((S"abc"^"*"):unparse() == "[a-c]*")
 
 -- local p1 = node.literal "foo"
 
-
+local p = P"abc"^"?"
+print(p:unparse())
+print(dumper.encode(p:to_nfa()))
