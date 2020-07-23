@@ -172,21 +172,29 @@ function metatable:__unm()
   end
 end
 
-local encode_byte = {}
+local byte_encoder = {}
 for byte = 0x00, 0xFF do
-  encode_byte[byte] = ("\\x%02X"):format(byte)
+  byte_encoder[byte] = ("\\x%02X"):format(byte)
 end
 for byte = 0x30, 0x39 do -- [0-9]
-  encode_byte[byte] = string.char(byte)
+  byte_encoder[byte] = string.char(byte)
 end
 for byte = 0x41, 0x5A do -- [A-Z]
-  encode_byte[byte] = string.char(byte)
+  byte_encoder[byte] = string.char(byte)
 end
 for byte = 0x61, 0x7A do -- [a-z]
-  encode_byte[byte] = string.char(byte)
+  byte_encoder[byte] = string.char(byte)
 end
 
-local function encode(self)
+local prec_table = {
+  ["["] = 1;
+  ["*"] = 2; ["?"] = 2;
+  ["."] = 3;
+  ["|"] = 4;
+}
+local prec_start = 5
+
+local function unparse(self, parent_prec)
   local code = self[0]
   if code == "[" then
     local set = self[1]
@@ -197,7 +205,7 @@ local function encode(self)
     end
     if n == 1 then
       for byte in pairs(set) do
-        return encode_byte[byte], 1
+        return byte_encoder[byte], 1
       end
     elseif n == 256 then
       return ".", 1
@@ -247,46 +255,51 @@ local function encode(self)
       local a = a[i]
       local b = b[i]
       if a == b then
-        n = n + 1; buffer[n] = encode_byte[a]
+        n = n + 1; buffer[n] = byte_encoder[a]
       elseif a == b - 1 then
-        n = n + 1; buffer[n] = encode_byte[a]
-        n = n + 1; buffer[n] = encode_byte[b]
+        n = n + 1; buffer[n] = byte_encoder[a]
+        n = n + 1; buffer[n] = byte_encoder[b]
       else
-        n = n + 1; buffer[n] = encode_byte[a]
+        n = n + 1; buffer[n] = byte_encoder[a]
         n = n + 1; buffer[n] = "-"
-        n = n + 1; buffer[n] = encode_byte[b]
+        n = n + 1; buffer[n] = byte_encoder[b]
       end
     end
 
     n = n + 1; buffer[n] = "]"
-    return table.concat(buffer), 1
-  elseif code == "?" or code == "*" then
-    local pattern, prec = encode(self[1])
-    if prec > 2 then
-      pattern = "(" .. pattern .. ")"
-    end
-    return pattern .. code, 2
-  elseif code == "." then
-    local a_pattern, a_prec = encode(self[1])
-    local b_pattern, b_prec = encode(self[2])
-    if a_prec > 3 then
-      a_pattern = "(" .. a_pattern .. ")"
-    end
-    if b_prec > 3 then
-      b_pattern = "(" .. b_pattern .. ")"
-    end
-    return a_pattern .. b_pattern, 3
-  elseif code == "|" then
-    local a_pattern, a_prec = encode(self[1])
-    local b_pattern, b_prec = encode(self[2])
-    return a_pattern .. "|" .. b_pattern, 4
+    return table.concat(buffer)
   else
-    error "..."
+    local prec = prec_table[code]
+    local group = prec > parent_prec
+
+    local buffer = {}
+    local n = 0
+
+    if group then
+      n = n + 1; buffer[n] = "("
+    end
+
+    n = n + 1; buffer[n] = unparse(self[1], prec)
+
+    if code ~= "." then
+      n = n + 1; buffer[n] = code
+    end
+
+    local b = self[2]
+    if b then
+      n = n + 1; buffer[n] = unparse(b, prec)
+    end
+
+    if group then
+      n = n + 1; buffer[n] = ")"
+    end
+
+    return table.concat(buffer)
   end
 end
 
-function class:encode()
-  return (encode(self))
+function class:unparse()
+  return unparse(self, prec_start)
 end
 
 return class

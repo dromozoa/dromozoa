@@ -39,7 +39,7 @@ local p = node.pattern "a" * "b" * "c"
 -- local p = node.set "abc" * node.set "def"
 -- local p = node.set "abc\\]" * node.range " z"
 -- local p = node.pattern(1)
-local p = -node.set "a"
+-- local p = -node.set "a"
 -- local p = node.pattern "abc" + (node.pattern "def" + node.pattern "ghi" ^ "+") ^ "?"
 -- local p = node.pattern "abc" ^{3}
 -- local p = node.pattern "あいうえお"
@@ -47,17 +47,15 @@ local p = -node.set "a"
 -- local p = (node.pattern "abc" + "def") * "ghi"
 -- local p = (node.pattern "a" ^"?") ^"*"
 
--- print(dumper.encode(p, { pretty = true, stable = true }))
-print(p:encode())
+print(p:unparse())
 
 local P = node.pattern
 local R = node.range
 local S = node.set
 
-assert((P"abc"^"*"):encode() == "(abc)*")
-assert((S"abc"^"*"):encode() == "[a-c]*")
+assert((P"abc"^"*"):unparse() == "(abc)*")
+assert((S"abc"^"*"):unparse() == "[a-c]*")
 
 -- local p1 = node.literal "foo"
 
 
--- print(dumper.encode(node.range "ba", { pretty = true, stable = true }))
