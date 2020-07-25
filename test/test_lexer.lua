@@ -47,15 +47,17 @@ local p = node.pattern "a" * "b" * "c"
 -- local p = (node.pattern "abc" + "def") * "ghi"
 -- local p = (node.pattern "a" ^"?") ^"*"
 
-print(p:unparse())
+print(p:to_pattern())
 
 local P = node.pattern
 local R = node.range
 local S = node.set
 
-assert((P"abc"^"*"):unparse() == "(abc)*")
-assert((S"abc"^"*"):unparse() == "[a-c]*")
+assert((P"abc"^"*"):to_pattern() == "(abc)*")
+assert((S"abc"^"*"):to_pattern() == "[a-c]*")
 
 -- local p1 = node.literal "foo"
 
-
+local p = P"abc"^"?"
+print(p:to_pattern())
+print(dumper.encode(p:to_nfa()))
