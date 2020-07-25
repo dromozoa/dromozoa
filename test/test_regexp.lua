@@ -16,14 +16,14 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local node = require "dromozoa.regexp.node"
-local node_to_pattern = require "dromozoa.regexp.node_to_pattern"
+local to_pattern = require "dromozoa.regexp.node.to_pattern"
 local automaton = require "dromozoa.regexp.automaton"
-local write_graphviz = require "dromozoa.regexp.write_graphviz"
+local write_graphviz = require "dromozoa.regexp.automaton.write_graphviz"
 
 local P = node.pattern
 local R = node.range
 local S = node.set
 
 local p = (R"ac" * "abc") ^"*"
-print(node_to_pattern(p))
+print(to_pattern(p))
 write_graphviz(p:to_nfa(automaton.nfa(), 1), io.open("test.dot", "w")):close()
