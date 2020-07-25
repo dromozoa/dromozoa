@@ -172,4 +172,53 @@ function metatable:__unm()
   end
 end
 
+local function to_nfa(self, that, accept)
+  local code = self[0]
+  if code == "[" then
+    local u = that:new_state()
+    local v = that:new_state()
+    that:new_transition(u, v, self[1])
+    return u, v
+  elseif code == "*" then
+    local au, av = to_nfa(self[1], that, accept)
+    local u = that:new_state()
+    local v = that:new_state()
+    that:new_transition(u, au)
+    that:new_transition(u, v)
+    that:new_transition(av, v)
+    that:new_transition(av, au)
+    return u, v
+  elseif code == "?" then
+    local au, av = to_nfa(self[1], that, accept)
+    local u = that:new_state()
+    local v = that:new_state()
+    that:new_transition(u, au)
+    that:new_transition(u, v)
+    that:new_transition(av, v)
+    return u, v
+  elseif code == "." then
+    local au, av = to_nfa(self[1], that, accept)
+    local bu, bv = to_nfa(self[2], that, accept)
+    that:new_transition(av, bu)
+    return au, bv
+  elseif code == "|" then
+    local au, av = to_nfa(self[1], that, accept)
+    local bu, bv = to_nfa(self[2], that, accept)
+    local u = that:new_state()
+    local v = that:new_state()
+    that:new_transition(u, au)
+    that:new_transition(u, bu)
+    that:new_transition(av, v)
+    that:new_transition(bv, v)
+    return u, v
+  end
+end
+
+function class:to_nfa(that, accept)
+  local u, v = to_nfa(self, that, accept)
+  that.start_state = u
+  that.accept_states[v] = accept
+  return that
+end
+
 return class
