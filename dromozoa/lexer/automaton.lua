@@ -15,6 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local encode_char_class = require "dromozoa.lexer.encode_char_class"
+
 local class = {}
 local metatable = { __index = class }
 
@@ -59,12 +61,14 @@ function class:write_graphviz(out)
   local epsilons2 = self.epsilons2
   local transitions = self.transitions
 
+  out:write "digraph { graph[rankdir=LR];\n"
+
   for u = 1, self.max_state do
     local v = epsilons1[u]
     if v then
       out:write(u, "->", v, ";\n")
     end
-    local v = epsilons1[v]
+    local v = epsilons2[u]
     if v then
       out:write(u, "->", v, ";\n")
     end
@@ -81,9 +85,12 @@ function class:write_graphviz(out)
       end
     end
     for v, set in pairs(set_table) do
-      out:write(u, "->", v, ";\n")
+      out:write(u, "->", v, "[label=\"", encode_char_class(set), "\"];\n")
     end
   end
+
+  out:write "}\n"
+
   return out
 end
 
