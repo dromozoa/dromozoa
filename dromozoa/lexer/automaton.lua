@@ -54,4 +54,7 @@ function class:new_transition(u, v, set)
   end
 end
 
+function class:write_graph()
+end
+
 return class

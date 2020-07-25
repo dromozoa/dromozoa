@@ -196,7 +196,7 @@ local prec_table = {
 }
 local prec_start = 5
 
-local function unparse(self, parent_prec)
+local function to_pattern(self, parent_prec)
   local code = self[0]
   if code == "[" then
     local set = self[1]
@@ -281,7 +281,7 @@ local function unparse(self, parent_prec)
       n = n + 1; buffer[n] = "("
     end
 
-    n = n + 1; buffer[n] = unparse(self[1], prec)
+    n = n + 1; buffer[n] = to_pattern(self[1], prec)
 
     if code ~= "." then
       n = n + 1; buffer[n] = code
@@ -289,7 +289,7 @@ local function unparse(self, parent_prec)
 
     local b = self[2]
     if b then
-      n = n + 1; buffer[n] = unparse(b, prec)
+      n = n + 1; buffer[n] = to_pattern(b, prec)
     end
 
     if group then
@@ -300,8 +300,8 @@ local function unparse(self, parent_prec)
   end
 end
 
-function class:unparse()
-  return unparse(self, prec_start)
+function class:to_pattern()
+  return to_pattern(self, prec_start)
 end
 
 local function to_nfa(self, that, accept)
