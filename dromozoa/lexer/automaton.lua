@@ -54,7 +54,8 @@ function class:new_transition(u, v, set)
   end
 end
 
-function class:write_graph()
+function class:write_graphviz(out)
+  return out
 end
 
 return class
