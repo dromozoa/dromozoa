@@ -53,19 +53,19 @@ graph[rankdir=LR];
     if v then
       out:write(u, "->", v, ";\n")
     end
-    local set_table = {}
+    local vsets = {}
     for byte = 0x00, 0xFF do
       local v = transitions[byte][u]
       if v then
-        local set = set_table[v]
+        local set = vsets[v]
         if set then
           set[byte] = true
         else
-          set_table[v] = { [byte] = true }
+          vsets[v] = { [byte] = true }
         end
       end
     end
-    for v, set in pairs(set_table) do
+    for v, set in pairs(vsets) do
       out:write(u, "->", v, "[label=\"", encode_set(set), "\"];\n")
     end
   end

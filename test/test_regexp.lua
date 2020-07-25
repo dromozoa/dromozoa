@@ -19,14 +19,16 @@ local node = require "dromozoa.regexp.node"
 local to_pattern = require "dromozoa.regexp.node.to_pattern"
 local automaton = require "dromozoa.regexp.automaton"
 local write_graphviz = require "dromozoa.regexp.automaton.write_graphviz"
+local dumper = require "dromozoa.commons.dumper"
 
 local P = node.pattern
 local R = node.range
 local S = node.set
 
-local p = (R"ac" * "abc") ^"*"
-print(to_pattern(p))
-write_graphviz(p:to_nfa(automaton.nfa(), 1), io.open("test.dot", "w")):close()
-
 assert(to_pattern(P"abc"^"*") == "(abc)*")
 assert(to_pattern(S"abc"^"*") == "[a-c]*")
+
+local p = (R"ac" * "abc") ^"*"
+print(to_pattern(p))
+local nfa = p:to_nfa(automaton.nfa(), 1)
+write_graphviz(nfa, io.open("test.dot", "w")):close()

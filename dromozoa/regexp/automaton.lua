@@ -18,19 +18,24 @@
 local class = {}
 local metatable = { __index = class }
 
-function class.nfa()
+local function new()
   local transitions = {}
   for byte = 0x00, 0xFF do
     transitions[byte] = {}
   end
   return setmetatable({
     max_state = 0;
-    epsilons1 = {};
-    epsilons2 = {};
     transitions = transitions;
     start_state = nil;
     accept_states = {};
   }, metatable)
+end
+
+function class.nfa()
+  local self = new()
+  self.epsilons1 = {}
+  self.epsilons2 = {}
+  return self
 end
 
 function class:new_state()
@@ -52,6 +57,38 @@ function class:new_transition(u, v, set)
     end
     epsilons[u] = v
   end
+end
+
+local function epsilon_closure_impl(epsilons1, epsilons2, epsilon_closure, u)
+  local v = epsilons1[u]
+  if v then
+    if not epsilon_closure[v] then
+      epsilon_closure[v] = true
+      epsilon_closure_impl(epsilons1, epsilons2, epsilon_closure, v)
+    end
+    local v = epsilons2[u]
+    if v and not epsilon_closure[v] then
+      epsilon_closure[v] = true
+      epsilon_closure_impl(epsilons1, epsilons2, epsilon_closure, v)
+    end
+  end
+end
+
+local function epsilon_closure(self, epsilon_closures, u)
+  local epsilon_closure = epsilon_closures[u]
+  if epsilon_closure then
+    return epsilon_closure
+  else
+    local epsilon_closure = { [u] = true }
+    epsilon_closures[u] = epsilon_closure
+    epsilon_closure_impl(self.epsilons1, self.epsilons2, epsilon_closure, u)
+    return epsilon_closure
+  end
+end
+
+function class:to_dfa()
+  local that = new()
+  return that
 end
 
 return class
