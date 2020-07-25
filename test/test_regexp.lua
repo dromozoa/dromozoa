@@ -27,3 +27,6 @@ local S = node.set
 local p = (R"ac" * "abc") ^"*"
 print(to_pattern(p))
 write_graphviz(p:to_nfa(automaton.nfa(), 1), io.open("test.dot", "w")):close()
+
+assert(to_pattern(P"abc"^"*") == "(abc)*")
+assert(to_pattern(S"abc"^"*") == "[a-c]*")
