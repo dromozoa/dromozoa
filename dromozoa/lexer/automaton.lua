@@ -55,6 +55,35 @@ function class:new_transition(u, v, set)
 end
 
 function class:write_graphviz(out)
+  local epsilons1 = self.epsilons1
+  local epsilons2 = self.epsilons2
+  local transitions = self.transitions
+
+  for u = 1, self.max_state do
+    local v = epsilons1[u]
+    if v then
+      out:write(u, "->", v, ";\n")
+    end
+    local v = epsilons1[v]
+    if v then
+      out:write(u, "->", v, ";\n")
+    end
+    local set_table = {}
+    for byte = 0x00, 0xFF do
+      local v = transitions[byte][u]
+      if v then
+        local set = set_table[v]
+        if set then
+          set[byte] = true
+        else
+          set_table[v] = { [byte] = true }
+        end
+      end
+    end
+    for v, set in pairs(set_table) do
+      out:write(u, "->", v, ";\n")
+    end
+  end
   return out
 end
 
