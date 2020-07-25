@@ -16,6 +16,7 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local automaton = require "dromozoa.lexer.automaton"
+local encode_char_class = require "dromozoa.lexer.encode_char_class"
 
 local class = {}
 local metatable = { __index = class }
@@ -174,20 +175,6 @@ function metatable:__unm()
   end
 end
 
-local byte_encoder = {}
-for byte = 0x00, 0xFF do
-  byte_encoder[byte] = ("\\x%02X"):format(byte)
-end
-for byte = 0x30, 0x39 do -- [0-9]
-  byte_encoder[byte] = string.char(byte)
-end
-for byte = 0x41, 0x5A do -- [A-Z]
-  byte_encoder[byte] = string.char(byte)
-end
-for byte = 0x61, 0x7A do -- [a-z]
-  byte_encoder[byte] = string.char(byte)
-end
-
 local prec_table = {
   ["["] = 1;
   ["*"] = 2; ["?"] = 2;
@@ -199,77 +186,7 @@ local prec_start = 5
 local function to_pattern(self, parent_prec)
   local code = self[0]
   if code == "[" then
-    local set = self[1]
-
-    local n = 0
-    for byte in pairs(set) do
-      n = n + 1
-    end
-    if n == 1 then
-      for byte in pairs(set) do
-        return byte_encoder[byte], 1
-      end
-    elseif n == 256 then
-      return ".", 1
-    end
-    local neg = n > 127
-
-    local a = {}
-    local b = {}
-    local i = 0
-
-    if not neg then
-      for byte = 0x00, 0xFF do
-        if set[byte] then
-          if b[i] == byte - 1 then
-            b[i] = byte
-          else
-            i = i + 1
-            a[i] = byte
-            b[i] = byte
-          end
-        end
-      end
-    else
-      for byte = 0x00, 0xFF do
-        if not set[byte] then
-          if b[i] == byte - 1 then
-            b[i] = byte
-          else
-            i = i + 1
-            a[i] = byte
-            b[i] = byte
-          end
-        end
-      end
-    end
-
-    local buffer = {}
-    local n = 0
-
-    if not neg then
-      n = n + 1; buffer[n] = "["
-    else
-      n = n + 1; buffer[n] = "[^"
-    end
-
-    for i = 1, #a do
-      local a = a[i]
-      local b = b[i]
-      if a == b then
-        n = n + 1; buffer[n] = byte_encoder[a]
-      elseif a == b - 1 then
-        n = n + 1; buffer[n] = byte_encoder[a]
-        n = n + 1; buffer[n] = byte_encoder[b]
-      else
-        n = n + 1; buffer[n] = byte_encoder[a]
-        n = n + 1; buffer[n] = "-"
-        n = n + 1; buffer[n] = byte_encoder[b]
-      end
-    end
-
-    n = n + 1; buffer[n] = "]"
-    return table.concat(buffer)
+    return encode_char_class(self[1])
   else
     local prec = prec_table[code]
     local group = prec > parent_prec

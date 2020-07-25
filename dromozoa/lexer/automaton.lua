@@ -15,6 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local encode_char_class = require "dromozoa.lexer.encode_char_class"
+
 local class = {}
 local metatable = { __index = class }
 
@@ -54,7 +56,62 @@ function class:new_transition(u, v, set)
   end
 end
 
-function class:write_graph()
+function class:write_graphviz(out)
+  local epsilons1 = self.epsilons1
+  local epsilons2 = self.epsilons2
+  local transitions = self.transitions
+  local start_state = self.start_state
+  local accept_states = self.accept_states
+
+  out:write [[
+digraph {
+graph[rankdir=LR];
+]]
+
+  local u = start_state
+  out:write(u, "[style=filled,fillcolor=black,fontcolor=white")
+  local accept = accept_states[u]
+  if accept then
+    out:write(",peripheries=2,label=\"", u, "/", accept, "\"")
+  end
+  out:write "];\n"
+
+  for u = 1, self.max_state do
+    if u ~= start_state then
+      local accept = accept_states[u]
+      if accept then
+        out:write(u, "[peripheries=2,label=\"", u, "/", accept, "\"];\n")
+      end
+    end
+
+    local v = epsilons1[u]
+    if v then
+      out:write(u, "->", v, ";\n")
+    end
+    local v = epsilons2[u]
+    if v then
+      out:write(u, "->", v, ";\n")
+    end
+    local set_table = {}
+    for byte = 0x00, 0xFF do
+      local v = transitions[byte][u]
+      if v then
+        local set = set_table[v]
+        if set then
+          set[byte] = true
+        else
+          set_table[v] = { [byte] = true }
+        end
+      end
+    end
+    for v, set in pairs(set_table) do
+      out:write(u, "->", v, "[label=\"", encode_char_class(set), "\"];\n")
+    end
+  end
+
+  out:write "}\n"
+
+  return out
 end
 
 return class
