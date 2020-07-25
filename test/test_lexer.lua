@@ -58,7 +58,8 @@ assert((S"abc"^"*"):to_pattern() == "[a-c]*")
 
 -- local p1 = node.literal "foo"
 
-local p = P"abc"^"+"
+local p = P"abc"^"*"
+-- local p = P"a"^"?"
 -- print(p:to_pattern())
 -- print(dumper.encode(p:to_nfa()))
 p:to_nfa():write_graphviz(io.open("test.dot", "w")):close()

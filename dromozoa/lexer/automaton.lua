@@ -60,10 +60,30 @@ function class:write_graphviz(out)
   local epsilons1 = self.epsilons1
   local epsilons2 = self.epsilons2
   local transitions = self.transitions
+  local start_state = self.start_state
+  local accept_states = self.accept_states
 
-  out:write "digraph { graph[rankdir=LR];\n"
+  out:write [[
+digraph {
+graph[rankdir=LR];
+]]
+
+  local u = start_state
+  out:write(u, "[style=filled,fillcolor=black,fontcolor=white")
+  local accept = accept_states[u]
+  if accept then
+    out:write(",peripheries=2,label=\"", u, "/", accept, "\"")
+  end
+  out:write "];\n"
 
   for u = 1, self.max_state do
+    if u ~= start_state then
+      local accept = accept_states[u]
+      if accept then
+        out:write(u, "[peripheries=2,label=\"", u, "/", accept, "\"];\n")
+      end
+    end
+
     local v = epsilons1[u]
     if v then
       out:write(u, "->", v, ";\n")
