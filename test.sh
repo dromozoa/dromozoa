@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-LUA_PATH="?.lua;;"
+LUA_PATH="?.lua;ext/?.lua;;"
 export LUA_PATH
 
 for i in test/test*.lua

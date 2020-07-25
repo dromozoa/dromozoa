@@ -47,7 +47,7 @@ local p = node.pattern "a" * "b" * "c"
 -- local p = (node.pattern "abc" + "def") * "ghi"
 -- local p = (node.pattern "a" ^"?") ^"*"
 
-print(p:to_pattern())
+-- print(p:to_pattern())
 
 local P = node.pattern
 local R = node.range
