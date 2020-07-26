@@ -45,14 +45,20 @@ graph[rankdir=LR];
       end
     end
 
-    local v = epsilons1[u]
-    if v then
-      out:write(u, "->", v, ";\n")
+    if epsilons1 then
+      local v = epsilons1[u]
+      if v then
+        out:write(u, "->", v, ";\n")
+      end
     end
-    local v = epsilons2[u]
-    if v then
-      out:write(u, "->", v, ";\n")
+
+    if epsilons2 then
+      local v = epsilons2[u]
+      if v then
+        out:write(u, "->", v, ";\n")
+      end
     end
+
     local vsets = {}
     for byte = 0x00, 0xFF do
       local v = transitions[byte][u]

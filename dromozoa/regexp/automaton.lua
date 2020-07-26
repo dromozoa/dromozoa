@@ -86,8 +86,105 @@ local function epsilon_closure(self, epsilon_closures, u)
   end
 end
 
+local function set_to_seq(set)
+  local seq = {}
+  local n = 0
+  for u in pairs(set) do
+    n = n + 1; seq[n] = u
+  end
+  table.sort(seq)
+  return seq
+end
+
+--[[
+  key = { a, b, c, d }
+  maps[4][a][b][c][d] = value
+  TODO: 文字列連結より効率的であることを確認する
+]]
+local function insert(that, maps, key)
+  local n = #key
+  local map = maps[n]
+  if not map then
+    map = {}
+    maps[n] = map
+  end
+  for i = 1, n - 1 do
+    local k = key[i]
+    local m = map[k]
+    if not m then
+      m = {}
+      map[k] = m
+    end
+    map = m
+  end
+  local k = key[n]
+  local v = map[k]
+  if v then
+    return v, false
+  else
+    local v = that:new_state()
+    map[k] = v
+    return v, true
+  end
+end
+
+local function merge_accept_state(accept_states, set)
+  local result
+  for u in pairs(set) do
+    local accept = accept_states[u]
+    if accept and (not result or result > accept) then
+      result = accept
+    end
+  end
+  return result
+end
+
+local function to_dfa(self, that, epsilon_closures, maps, useq, u)
+  local transitions = self.transitions
+  local accept_states = self.accept_states
+  local new_transitions = that.transitions
+  local new_accept_states = that.accept_states
+
+  for byte = 0x00, 0xFF do
+    local vset
+    for i = 1, #useq do
+      local x = transitions[byte][useq[i]]
+      if x then
+        for y in pairs(epsilon_closure(self, epsilon_closures, x)) do
+          if vset then
+            vset[y] = true
+          else
+            vset = { [y] = true }
+          end
+        end
+      end
+    end
+    if vset then
+      local vseq = set_to_seq(vset)
+      local v, inserted = insert(that, maps, vseq)
+      new_transitions[byte][u] = v
+      if inserted then
+        new_accept_states[v] = merge_accept_state(accept_states, vset)
+        to_dfa(self, that, epsilon_closures, maps, vseq, v)
+      end
+    end
+  end
+end
+
 function class:to_dfa()
+  local epsilon_closures = {}
+  local maps = {}
+  local uset = epsilon_closure(self, epsilon_closures, self.start_state)
+  local useq = set_to_seq(uset)
   local that = new()
+  local u = insert(that, maps, useq)
+
+  to_dfa(self, that, epsilon_closures, maps, useq, u)
+
+  that.start_state = u
+  -- that.accept_states[?] = ?
+  that.accept_states[u] = merge_accept_state(self.accept_states, uset)
+
   return that
 end
 

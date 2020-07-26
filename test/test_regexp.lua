@@ -32,3 +32,6 @@ local p = (R"ac" * "abc") ^"*"
 print(to_pattern(p))
 local nfa = p:to_nfa(automaton.nfa(), 1)
 write_graphviz(nfa, io.open("test.dot", "w")):close()
+
+local dfa = nfa:to_dfa()
+write_graphviz(dfa, io.open("test.dot", "w")):close()
