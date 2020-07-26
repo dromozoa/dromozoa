@@ -15,48 +15,9 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local encode_char_class = require "dromozoa.lexer.encode_char_class"
+local encode_set = require "dromozoa.regexp.encode_set"
 
-local class = {}
-local metatable = { __index = class }
-
-function class.nfa()
-  local transitions = {}
-  for byte = 0x00, 0xFF do
-    transitions[byte] = {}
-  end
-  return setmetatable({
-    max_state = 0;
-    epsilons1 = {};
-    epsilons2 = {};
-    transitions = transitions;
-    start_state = nil;
-    accept_states = {};
-  }, metatable)
-end
-
-function class:new_state()
-  local max_state = self.max_state + 1
-  self.max_state = max_state
-  return max_state
-end
-
-function class:new_transition(u, v, set)
-  if set then
-    local transitions = self.transitions
-    for byte in pairs(set) do
-      transitions[byte][u] = v
-    end
-  else
-    local epsilons = self.epsilons1
-    if epsilons[u] then
-      epsilons = self.epsilons2
-    end
-    epsilons[u] = v
-  end
-end
-
-function class:write_graphviz(out)
+return function(self, out)
   local epsilons1 = self.epsilons1
   local epsilons2 = self.epsilons2
   local transitions = self.transitions
@@ -84,28 +45,34 @@ graph[rankdir=LR];
       end
     end
 
-    local v = epsilons1[u]
-    if v then
-      out:write(u, "->", v, ";\n")
+    if epsilons1 then
+      local v = epsilons1[u]
+      if v then
+        out:write(u, "->", v, ";\n")
+      end
     end
-    local v = epsilons2[u]
-    if v then
-      out:write(u, "->", v, ";\n")
+
+    if epsilons2 then
+      local v = epsilons2[u]
+      if v then
+        out:write(u, "->", v, ";\n")
+      end
     end
-    local set_table = {}
+
+    local vsets = {}
     for byte = 0x00, 0xFF do
       local v = transitions[byte][u]
       if v then
-        local set = set_table[v]
+        local set = vsets[v]
         if set then
           set[byte] = true
         else
-          set_table[v] = { [byte] = true }
+          vsets[v] = { [byte] = true }
         end
       end
     end
-    for v, set in pairs(set_table) do
-      out:write(u, "->", v, "[label=\"", encode_char_class(set), "\"];\n")
+    for v, set in pairs(vsets) do
+      out:write(u, "->", v, "[label=\"", encode_set(set), "\"];\n")
     end
   end
 
@@ -113,5 +80,3 @@ graph[rankdir=LR];
 
   return out
 end
-
-return class

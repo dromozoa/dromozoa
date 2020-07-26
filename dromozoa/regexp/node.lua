@@ -15,9 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local automaton = require "dromozoa.lexer.automaton"
-local encode_char_class = require "dromozoa.lexer.encode_char_class"
-
 local class = {}
 local metatable = { __index = class }
 
@@ -175,52 +172,6 @@ function metatable:__unm()
   end
 end
 
-local prec_table = {
-  ["["] = 1;
-  ["*"] = 2; ["?"] = 2;
-  ["."] = 3;
-  ["|"] = 4;
-}
-local prec_start = 5
-
-local function to_pattern(self, parent_prec)
-  local code = self[0]
-  if code == "[" then
-    return encode_char_class(self[1])
-  else
-    local prec = prec_table[code]
-    local group = prec > parent_prec
-
-    local buffer = {}
-    local n = 0
-
-    if group then
-      n = n + 1; buffer[n] = "("
-    end
-
-    n = n + 1; buffer[n] = to_pattern(self[1], prec)
-
-    if code ~= "." then
-      n = n + 1; buffer[n] = code
-    end
-
-    local b = self[2]
-    if b then
-      n = n + 1; buffer[n] = to_pattern(b, prec)
-    end
-
-    if group then
-      n = n + 1; buffer[n] = ")"
-    end
-
-    return table.concat(buffer)
-  end
-end
-
-function class:to_pattern()
-  return to_pattern(self, prec_start)
-end
-
 local function to_nfa(self, that, accept)
   local code = self[0]
   if code == "[" then
@@ -263,16 +214,10 @@ local function to_nfa(self, that, accept)
   end
 end
 
-function class:to_nfa(accept)
-  if not accept then
-    accept = 1
-  end
-
-  local that = automaton.nfa()
+function class:to_nfa(that, accept)
   local u, v = to_nfa(self, that, accept)
   that.start_state = u
   that.accept_states[v] = accept
-
   return that
 end
 
