@@ -97,8 +97,6 @@ local function set_to_seq(set)
 end
 
 --[[
-  key = { a, b, c, d }
-  maps[4][a][b][c][d] = value
   TODO: 文字列連結より効率的であることを確認する
 ]]
 local function insert(that, maps, key)
@@ -291,7 +289,7 @@ function class:minimize()
         for j = 1, i - 1 do
           local y = partition[j]
           local same_partition = true
-          for byte = 0, 255 do
+          for byte = 0x00, 0xFF do
             if partition_table[transitions[byte][x]] ~= partition_table[transitions[byte][y]] then
               same_partition = false
               break
@@ -334,7 +332,7 @@ function class:minimize()
 
   local max_state = #partitions
   local new_transitions = {}
-  for byte = 0, 255 do
+  for byte = 0x00, 0xFF do
     new_transitions[byte] = {}
   end
   local new_accept_states = {}
@@ -342,7 +340,7 @@ function class:minimize()
   for i = 1, max_state do
     local partition = partitions[i]
     local u = partition[1]
-    for byte = 0, 255 do
+    for byte = 0x00, 0xFF do
       local v = transitions[byte][u]
       if v then
         new_transitions[byte][i] = partition_table[v]
