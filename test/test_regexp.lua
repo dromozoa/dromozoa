@@ -35,3 +35,11 @@ write_graphviz(nfa, io.open("test.dot", "w")):close()
 
 local dfa = nfa:to_dfa()
 write_graphviz(dfa, io.open("test.dot", "w")):close()
+
+local p = P"if" + "else" + "elseif"
+local nfa = p:to_nfa(automaton.nfa(), 1)
+print(to_pattern(p))
+local dfa = nfa:to_dfa()
+write_graphviz(dfa, io.open("test.dot", "w")):close()
+local dfa = dfa:minimize()
+write_graphviz(dfa, io.open("test.dot", "w")):close()
