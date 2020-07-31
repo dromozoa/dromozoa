@@ -331,11 +331,9 @@ function class:minimize()
   end
 
   local max_state = #partitions
-  local new_transitions = {}
-  for byte = 0x00, 0xFF do
-    new_transitions[byte] = {}
-  end
-  local new_accept_states = {}
+  local that = new()
+  local new_transitions = that.transitions
+  local new_accept_states = that.accept_states
 
   for i = 1, max_state do
     local partition = partitions[i]
@@ -349,11 +347,8 @@ function class:minimize()
     new_accept_states[i] = accept_states[u]
   end
 
-  local that = new()
   that.max_state = max_state
-  that.transitions = new_transitions
   that.start_state = partition_table[start_state]
-  that.accept_states = new_accept_states
   return that
 end
 
