@@ -409,10 +409,6 @@ function class:difference(that)
 end
 
 do
-  -- a: self/this
-  -- b: that
-  -- c: dest/new/result
-
   local function build_reachable_states(transitions, reachable_states, result, u)
     reachable_states[u] = result:new_state()
     for byte = 0x00, 0xFF do
