@@ -413,12 +413,12 @@ do
   -- b: that
   -- c: dest/new/result
 
-  local function build_reachable_states(transitions, reachable_states, u)
-    reachable_states[u] = true
+  local function build_reachable_states(transitions, reachable_states, result, u)
+    reachable_states[u] = result:new_state()
     for byte = 0x00, 0xFF do
       local v = transitions[byte][u]
       if v and u ~= v and not reachable_states[v] then
-        build_reachable_states(transitions, reachable_states, v)
+        build_reachable_states(transitions, reachable_states, result, v)
       end
     end
   end
@@ -429,42 +429,33 @@ do
     local start_state = self.start_state
     local accept_states = self.accept_states
 
+    local result = new()
+    local result_transitions = result.transitions
+    local result_accept_states = result.accept_states
+
     local reachable_states = {}
-    build_reachable_states(transitions, reachable_states, start_state)
-
-    local new_max_state = 0
     local map = {}
-    for u = 1, max_state do
-      if reachable_states[u] then
-        new_max_state = new_max_state + 1
-        map[u] = new_max_state
-      end
-    end
-
-    local dest = new()
-    local new_transitions = dest.transitions
-    local new_accept_states = dest.accept_states
+    build_reachable_states(transitions, reachable_states, result, start_state)
 
     for u = 1, max_state do
-      local U = map[u]
+      local U = reachable_states[u]
       if U then
         for byte = 0x00, 0xFF do
           local v = transitions[byte][u]
           if v then
-            local V = map[v]
+            local V = reachable_states[v]
             if V then
-              new_transitions[byte][U] = V
+              result_transitions[byte][U] = V
             end
           end
         end
-        new_accept_states[U] = accept_states[u]
+        result_accept_states[U] = accept_states[u]
       end
     end
 
-    dest.max_state = new_max_state
-    dest.start_state = map[start_state]
+    result.start_state = reachable_states[start_state]
 
-    return dest
+    return result
   end
 end
 
