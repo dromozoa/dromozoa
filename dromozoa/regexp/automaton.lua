@@ -59,7 +59,6 @@ function class:new_transition(u, v, set)
   end
 end
 
--- to_dfa
 do
   local function epsilon_closure_impl(epsilons1, epsilons2, epsilon_closure, u)
     local v = epsilons1[u]
@@ -359,16 +358,17 @@ end
 
 function class:difference(that)
   local self_max_state = self.max_state
-  local that_max_state = that.max_state
   local self_transitions = self.transitions
+
+  local that_max_state = that.max_state
   local that_transitions = that.transitions
   local that_accept_states = that.accept_states
 
   local n = self_max_state + 1
 
   local result = new()
-  local new_transitions = result.transitions
-  local new_accept_states = result.accept_states
+  local result_transitions = result.transitions
+  local result_accept_states = result.accept_states
 
   for i = 0, self_max_state do
     for j = 0, that_max_state do
@@ -385,7 +385,7 @@ function class:difference(that)
           end
           local v = x + n * y
           if v ~= 0 then
-            new_transitions[byte][u] = v
+            result_transitions[byte][u] = v
           end
         end
       end
@@ -393,11 +393,11 @@ function class:difference(that)
   end
 
   for i, accept in pairs(self.accept_states) do
-    new_accept_states[i] = accept
+    result_accept_states[i] = accept
     for j = 1, that_max_state do
       if not that_accept_states[j] then
         local u = i + n * j
-        new_accept_states[u] = accept
+        result_accept_states[u] = accept
       end
     end
   end
