@@ -430,7 +430,6 @@ do
     local result_accept_states = result.accept_states
 
     local reachable_states = {}
-    local map = {}
     build_reachable_states(transitions, reachable_states, result, start_state)
 
     for u = 1, max_state do
