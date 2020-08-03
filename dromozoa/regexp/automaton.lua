@@ -409,7 +409,9 @@ function class:difference(that)
 end
 
 do
-  local function build_reachable_states(transitions, accept_states, reachable_states, result, u)
+  local function visit(self, result, reachable_states, u)
+    local transitions = self.transitions
+
     local U = result:new_state()
     reachable_states[u] = U
     for byte = 0x00, 0xFF do
@@ -417,27 +419,20 @@ do
       if v then
         local V = reachable_states[v]
         if not V then
-          V = build_reachable_states(transitions, accept_states, reachable_states, result, v)
+          V = visit(self, result, reachable_states, v)
         end
         result.transitions[byte][U] = V
       end
     end
-    result.accept_states[U] = accept_states[u]
+    result.accept_states[U] = self.accept_states[u]
+
     return U
   end
 
   function class:remove_unreachable_states()
-    local max_state = self.max_state
-    local transitions = self.transitions
-    local start_state = self.start_state
-    local accept_states = self.accept_states
-
     local result = new()
-
     local reachable_states = {}
-    build_reachable_states(transitions, accept_states, reachable_states, result, start_state)
-
-    result.start_state = reachable_states[start_state]
+    result.start_state = visit(self, result, reachable_states, self.start_state)
 
     return result
   end
