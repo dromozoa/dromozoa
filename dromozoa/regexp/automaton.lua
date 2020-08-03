@@ -411,6 +411,7 @@ end
 do
   local function visit(self, result, reachable_states, u)
     local transitions = self.transitions
+    local result_transitions = result.transitions
 
     local U = result:new_state()
     reachable_states[u] = U
@@ -421,7 +422,7 @@ do
         if not V then
           V = visit(self, result, reachable_states, v)
         end
-        result.transitions[byte][U] = V
+        result_transitions[byte][U] = V
       end
     end
     result.accept_states[U] = self.accept_states[u]
@@ -431,9 +432,7 @@ do
 
   function class:remove_unreachable_states()
     local result = new()
-    local reachable_states = {}
-    result.start_state = visit(self, result, reachable_states, self.start_state)
-
+    result.start_state = visit(self, result, {}, self.start_state)
     return result
   end
 end
