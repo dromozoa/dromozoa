@@ -409,14 +409,21 @@ function class:difference(that)
 end
 
 do
-  local function build_reachable_states(transitions, reachable_states, result, u)
-    reachable_states[u] = result:new_state()
+  local function build_reachable_states(transitions, accept_states, reachable_states, result, u)
+    local U = result:new_state()
+    reachable_states[u] = U
     for byte = 0x00, 0xFF do
       local v = transitions[byte][u]
-      if v and u ~= v and not reachable_states[v] then
-        build_reachable_states(transitions, reachable_states, result, v)
+      if v then
+        local V = reachable_states[v]
+        if not V then
+          V = build_reachable_states(transitions, accept_states, reachable_states, result, v)
+        end
+        result.transitions[byte][U] = V
       end
     end
+    result.accept_states[U] = accept_states[u]
+    return U
   end
 
   function class:remove_unreachable_states()
@@ -426,27 +433,9 @@ do
     local accept_states = self.accept_states
 
     local result = new()
-    local result_transitions = result.transitions
-    local result_accept_states = result.accept_states
 
     local reachable_states = {}
-    build_reachable_states(transitions, reachable_states, result, start_state)
-
-    for u = 1, max_state do
-      local U = reachable_states[u]
-      if U then
-        for byte = 0x00, 0xFF do
-          local v = transitions[byte][u]
-          if v then
-            local V = reachable_states[v]
-            if V then
-              result_transitions[byte][U] = V
-            end
-          end
-        end
-        result_accept_states[U] = accept_states[u]
-      end
-    end
+    build_reachable_states(transitions, accept_states, reachable_states, result, start_state)
 
     result.start_state = reachable_states[start_state]
 
