@@ -68,6 +68,10 @@ function class.set(that)
   return new("[", set)
 end
 
+function class.action(that)
+  return new("{", that)
+end
+
 function metatable:__add(that)
   local self = pattern(self)
   local that = pattern(that)
@@ -179,6 +183,9 @@ local function to_nfa(self, that, accept)
     local v = that:new_state()
     that:new_transition(u, v, self[1])
     return u, v
+  elseif code == "{" then
+    local u = that:new_state(self[1])
+    return u, u
   elseif code == "*" then
     local au, av = to_nfa(self[1], that, accept)
     local u = that:new_state()

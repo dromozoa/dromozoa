@@ -54,3 +54,10 @@ local dfa3 = dfa1:difference(dfa2)
 write_graphviz(dfa3, io.open("test3.dot", "w")):close()
 local dfa4 = dfa3:remove_unreachable_states():minimize()
 write_graphviz(dfa4, io.open("test4.dot", "w")):close()
+
+local A = node.action
+
+local p = P"a" * A"A" * P"b" * (P"c" * A"B")^"+"
+local nfa = p:to_nfa(automaton.nfa(), 1)
+write_graphviz(nfa, io.open("test.dot", "w")):close()
+

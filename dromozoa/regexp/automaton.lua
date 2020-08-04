@@ -28,6 +28,7 @@ local function new()
     transitions = transitions;
     start_state = nil;
     accept_states = {};
+    actions = {};
   }, metatable)
 end
 
@@ -38,9 +39,10 @@ function class.nfa()
   return self
 end
 
-function class:new_state()
+function class:new_state(action)
   local max_state = self.max_state + 1
   self.max_state = max_state
+  self.actions[max_state] = action
   return max_state
 end
 
