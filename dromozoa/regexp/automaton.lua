@@ -418,7 +418,7 @@ do
 end
 
 do
-  local function visit(this, result, reachable_states, u)
+  local function remove_unreachable_states(this, result, reachable_states, u)
     local transitions = this.transitions
     local result_transitions = result.transitions
 
@@ -429,7 +429,7 @@ do
       if v then
         local V = reachable_states[v]
         if not V then
-          V = visit(this, result, reachable_states, v)
+          V = remove_unreachable_states(this, result, reachable_states, v)
         end
         result_transitions[byte][U] = V
       end
@@ -441,7 +441,7 @@ do
 
   function class.remove_unreachable_states(this)
     local result = new()
-    result.start_state = visit(this, result, {}, this.start_state)
+    result.start_state = remove_unreachable_states(this, result, {}, this.start_state)
     return result
   end
 end
