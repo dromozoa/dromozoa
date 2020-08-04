@@ -59,7 +59,6 @@ function class:new_transition(u, v, set)
   end
 end
 
--- to_dfa
 do
   local function epsilon_closure_impl(epsilons1, epsilons2, epsilon_closure, u)
     local v = epsilons1[u]
@@ -357,114 +356,93 @@ do
   end
 end
 
-function class:difference(that)
-  local self_max_state = self.max_state
-  local that_max_state = that.max_state
-  local self_transitions = self.transitions
-  local that_transitions = that.transitions
-  local that_accept_states = that.accept_states
-
-  local n = self_max_state + 1
-
-  local result = new()
-  local new_transitions = result.transitions
-  local new_accept_states = result.accept_states
-
-  for i = 0, self_max_state do
-    for j = 0, that_max_state do
-      local u = i + n * j
-      if u ~= 0 then
-        for byte = 0x00, 0xFF do
-          local x = self_transitions[byte][i]
-          local y = that_transitions[byte][j]
-          if not x then
-            x = 0
-          end
-          if not y then
-            y = 0
-          end
-          local v = x + n * y
-          if v ~= 0 then
-            new_transitions[byte][u] = v
-          end
-        end
-      end
-    end
-  end
-
-  for i, accept in pairs(self.accept_states) do
-    new_accept_states[i] = accept
-    for j = 1, that_max_state do
-      if not that_accept_states[j] then
-        local u = i + n * j
-        new_accept_states[u] = accept
-      end
-    end
-  end
-
-  result.max_state = self_max_state + n * that_max_state;
-  result.start_state = self.start_state + n * self.start_state;
-
-  return result
-end
-
 do
-  -- a: self/this
-  -- b: that
-  -- c: dest/new/result
+  local function set_product(this, that)
+    local this_max_state = this.max_state
+    local this_transitions = this.transitions
+    local that_max_state = that.max_state
+    local that_transitions = that.transitions
+    local n = this_max_state + 1
 
-  local function build_reachable_states(transitions, reachable_states, u)
-    reachable_states[u] = true
-    for byte = 0x00, 0xFF do
-      local v = transitions[byte][u]
-      if v and u ~= v and not reachable_states[v] then
-        build_reachable_states(transitions, reachable_states, v)
-      end
-    end
-  end
+    local result = new()
+    local result_transitions = result.transitions
 
-  function class:remove_unreachable_states()
-    local max_state = self.max_state
-    local transitions = self.transitions
-    local start_state = self.start_state
-    local accept_states = self.accept_states
-
-    local reachable_states = {}
-    build_reachable_states(transitions, reachable_states, start_state)
-
-    local new_max_state = 0
-    local map = {}
-    for u = 1, max_state do
-      if reachable_states[u] then
-        new_max_state = new_max_state + 1
-        map[u] = new_max_state
-      end
-    end
-
-    local dest = new()
-    local new_transitions = dest.transitions
-    local new_accept_states = dest.accept_states
-
-    for u = 1, max_state do
-      local U = map[u]
-      if U then
-        for byte = 0x00, 0xFF do
-          local v = transitions[byte][u]
-          if v then
-            local V = map[v]
-            if V then
-              new_transitions[byte][U] = V
+    for i = 0, this_max_state do
+      for j = 0, that_max_state do
+        local u = i + n * j
+        if u ~= 0 then
+          for byte = 0x00, 0xFF do
+            local x = this_transitions[byte][i]
+            local y = that_transitions[byte][j]
+            if not x then
+              x = 0
+            end
+            if not y then
+              y = 0
+            end
+            local v = x + n * y
+            if v ~= 0 then
+              result_transitions[byte][u] = v
             end
           end
         end
-        new_accept_states[U] = accept_states[u]
       end
     end
 
-    dest.max_state = new_max_state
-    dest.start_state = map[start_state]
+    result.max_state = this_max_state + n * that_max_state
+    result.start_state = this.start_state + n * this.start_state
+    return result
+  end
 
-    return dest
+  function class.set_difference(this, that)
+    local result = set_product(this, that)
+
+    local this_max_state = this.max_state
+    local n = this_max_state + 1
+    local that_max_state = that.max_state
+    local that_accept_states = that.accept_states
+    local result_accept_states = result.accept_states
+
+    for i, accept in pairs(this.accept_states) do
+      result_accept_states[i] = accept
+      for j = 1, that_max_state do
+        if not that_accept_states[j] then
+          local u = i + n * j
+          result_accept_states[u] = accept
+        end
+      end
+    end
+
+    return result
+  end
+end
+
+do
+  local function visit(this, result, reachable_states, u)
+    local transitions = this.transitions
+    local result_transitions = result.transitions
+
+    local U = result:new_state()
+    reachable_states[u] = U
+    for byte = 0x00, 0xFF do
+      local v = transitions[byte][u]
+      if v then
+        local V = reachable_states[v]
+        if not V then
+          V = visit(this, result, reachable_states, v)
+        end
+        result_transitions[byte][U] = V
+      end
+    end
+    result.accept_states[U] = this.accept_states[u]
+
+    return U
+  end
+
+  function class.remove_unreachable_states(this)
+    local result = new()
+    result.start_state = visit(this, result, {}, this.start_state)
+    return result
   end
 end
 
