@@ -45,12 +45,6 @@
     <td>character class</td>
   </tr>
   <tr>
-    <td><code>{</code></td>
-    <td>1</td>
-    <td>N/A</td>
-    <td>action</td>
-  </tr>
-  <tr>
     <td><code>*</code></td>
     <td>1</td>
     <td>2</td>
@@ -82,7 +76,50 @@
   </tr>
 </table>
 
-<h2>オートマトンのレイアウト</h2>
+<h2>アクション</h2>
+
+<pre>
+# Ragel
+
+&gt; start action
+&lt; any state except the start state
+$ all states
+% final states
+@ any except final states
+&gt;&lt; any except start and final (middle)
+</pre>
+
+<pre>
+a {A} b
+a {B} a
+
+1 -a- 2{A} -b- (3)
+4 -a- 5{B} -a- (6)
+
+--- 1 -a- 2 --- 3{A} --- 4 -b- 5 --- (6)
+--- 7 -a- 8 --- 9{B} ---10 -a-11 ---(12)
+
+-a- 2{A}{B} -b- (3)
+            -c- (4)
+
+
+
+
+</pre>
+
+<ul>
+  <li>entering action</li>
+  <li>leaving action</li>
+</ul>
+
+<table>
+  <tr>
+    <td><code>{</code></td>
+    <td>1</td>
+    <td>N/A</td>
+    <td>action</td>
+  </tr>
+</table>
 
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.js"></script>
