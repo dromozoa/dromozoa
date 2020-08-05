@@ -140,11 +140,24 @@ do
     return result
   end
 
+  local function merge_action(actions, set)
+    local result = {}
+    for u in pairs(set) do
+      result[#result + 1] = actions[u]
+    end
+    if #result > 0 then
+      table.sort(result)
+      return table.concat(result, "|")
+    end
+  end
+
   local function to_dfa(self, that, epsilon_closures, maps, useq, u)
     local transitions = self.transitions
     local accept_states = self.accept_states
+    local actions = self.actions
     local new_transitions = that.transitions
     local new_accept_states = that.accept_states
+    local new_actions = that.actions
 
     for byte = 0x00, 0xFF do
       local vset
@@ -166,6 +179,7 @@ do
         new_transitions[byte][u] = v
         if inserted then
           new_accept_states[v] = merge_accept_state(accept_states, vset)
+          new_actions[v] = merge_action(actions, vset)
           to_dfa(self, that, epsilon_closures, maps, vseq, v)
         end
       end

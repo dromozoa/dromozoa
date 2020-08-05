@@ -57,7 +57,12 @@ write_graphviz(dfa4, io.open("test4.dot", "w")):close()
 
 local A = node.action
 
-local p = P"a" * A"A" * P"b" * (P"c" * A"B")^"+"
+-- local p = (P"a" * A"A" * P"b" + R"ac" * A"C" * R"ac") * (P"c" * A"B")^"+"
+-- local p = (P"0x" * A"A" * (R"09AFaf" * A"C")^"+" * A"B" * P"end")
+local p = (P"i" * A"A" * "f") + (P"elsei" * A"B" * "f")
 local nfa = p:to_nfa(automaton.nfa(), 1)
-write_graphviz(nfa, io.open("test.dot", "w")):close()
-
+write_graphviz(nfa, io.open("test1.dot", "w")):close()
+local dfa = nfa:to_dfa()
+write_graphviz(dfa, io.open("test2.dot", "w")):close()
+local dfa = dfa:minimize()
+write_graphviz(dfa, io.open("test3.dot", "w")):close()
