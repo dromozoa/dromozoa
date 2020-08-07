@@ -17,27 +17,12 @@
 
 local encode_set = require "dromozoa.regexp.encode_set"
 
-local function make_label(u, accept, action)
-  if accept then
-    if action then
-      return ([[label="%d/%d/{%s}"]]):format(u, accept, action)
-    else
-      return ([[label="%d/%d"]]):format(u, accept)
-    end
-  else
-    if action then
-      return ([[label="%d/{%s}"]]):format(u, action)
-    end
-  end
-end
-
 return function(self, out)
   local epsilons1 = self.epsilons1
   local epsilons2 = self.epsilons2
   local transitions = self.transitions
   local start_state = self.start_state
   local accept_states = self.accept_states
-  local actions = self.actions
 
   out:write [[
 digraph {
@@ -48,18 +33,15 @@ graph[rankdir=LR];
   out:write(u, "[style=filled,fillcolor=black,fontcolor=white")
   local accept = accept_states[u]
   if accept then
-    out:write(",peripheries=2,", make_label(u, accept, actions[u]))
+    out:write(",peripheries=2,label=\"", u, "/", accept, "\"")
   end
   out:write "];\n"
 
   for u = 1, self.max_state do
     if u ~= start_state then
       local accept = accept_states[u]
-      local label = make_label(u, accept, actions[u])
       if accept then
-        out:write(u, "[peripheries=2,", label, "];\n")
-      elseif label then
-        out:write(u, "[", label, "];\n")
+        out:write(u, "[peripheries=2,label=\"", u, "/", accept, "\"];\n")
       end
     end
 
