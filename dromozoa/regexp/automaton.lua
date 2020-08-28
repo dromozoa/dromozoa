@@ -61,11 +61,9 @@ do
   local function epsilon_closure_impl(t, epsilon_closure, u)
     for i = 256, #t do
       local v = t[i][u]
-      if v then
-        if not epsilon_closure[v] then
-          epsilon_closure[v] = true
-          epsilon_closure_impl(t, epsilon_closure, v)
-        end
+      if v and not epsilon_closure[v] then
+        epsilon_closure[v] = true
+        epsilon_closure_impl(t, epsilon_closure, v)
       end
     end
   end
@@ -92,7 +90,7 @@ do
     return seq
   end
 
-  local function insert(that, maps, key)
+  local function insert(self, maps, key)
     local n = #key
     local map = maps[n]
     if not map then
@@ -113,7 +111,7 @@ do
     if v then
       return v, false
     else
-      local v = that:new_state()
+      local v = self:new_state()
       map[k] = v
       return v, true
     end
@@ -162,6 +160,7 @@ do
     end
   end
 
+  -- new_start_state, new_accept_states
   function class:to_dfa()
     local epsilon_closures = {}
     local maps = {}
