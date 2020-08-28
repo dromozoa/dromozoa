@@ -18,6 +18,7 @@
 local class = {}
 local metatable = { __index = class }
 
+-- (transitions, start_state, accept_states)
 function class.new()
   local transitions = {}
   for i = 0, 257 do
