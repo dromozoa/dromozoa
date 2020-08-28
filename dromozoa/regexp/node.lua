@@ -211,10 +211,21 @@ local function to_nfa(self, that, accept)
     that:new_transition(av, v)
     that:new_transition(bv, v)
     return u, v
+--[[
+  elseif code == "-" then
+    -- aとbは現在のNFA内に作成されている
+    local au, av = to_nfa(self[1], that, accept)
+    local bu, bv = to_nfa(self[2], that, accept)
+
+    local a = dfa():to_dfa(that, au, av, accept) -- minimize
+    local b = dfa():to_dfa(that, bu, bv, accept) -- minimize
+    local c = dfa():difference(a, b) -- remove_unreachable_states
+    -- merge c into that
+]]
   end
 end
 
--- TODO start_stateとaccept_stateを返すべきなのでは？
+-- TODO start_stateとfinal_stateを返すべきなのでは？
 function class:to_nfa(that, accept)
   local u, v = to_nfa(self, that, accept)
   that.start_state = u

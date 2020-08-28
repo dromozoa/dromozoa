@@ -18,10 +18,12 @@
 local class = {}
 local metatable = { __index = class }
 
+-- 用語としてfinalを導入する
+
 local function new()
   local transitions = {}
-  for byte = 0x00, 0xFF do
-    transitions[byte] = {}
+  for i = 0, 257 do
+    transitions[i] = {}
   end
   return setmetatable({
     max_state = 0;
@@ -32,13 +34,6 @@ local function new()
 end
 
 class.dfa = new
-
-function class.nfa()
-  local self = new()
-  self.epsilons1 = {}
-  self.epsilons2 = {}
-  return self
-end
 
 function class:new_state()
   local max_state = self.max_state + 1
@@ -53,11 +48,15 @@ function class:new_transition(u, v, set)
       transitions[byte][u] = v
     end
   else
-    local epsilons = self.epsilons1
-    if epsilons[u] then
-      epsilons = self.epsilons2
+    local transitions = self.transitions
+    for i = 256, #transitions do
+      local epsilons = transitions[i]
+      if not epsilons[u] then
+        epsilons[u] = v
+        return
+      end
     end
-    epsilons[u] = v
+    -- error
   end
 end
 
@@ -84,7 +83,7 @@ do
     else
       local epsilon_closure = { [u] = true }
       epsilon_closures[u] = epsilon_closure
-      epsilon_closure_impl(self.epsilons1, self.epsilons2, epsilon_closure, u)
+      epsilon_closure_impl(self.transitions[256], self.transitions[257], epsilon_closure, u)
       return epsilon_closure
     end
   end
@@ -183,6 +182,40 @@ do
     that.accept_states[u] = merge_accept_state(self.accept_states, uset)
 
     return that
+  end
+end
+
+do
+  local function epsilon_closure_impl(t, epsilon_closure, u)
+    for byte = 256, #t do
+      local v = t[byte][u]
+      if v then
+        if not epsilon_closure[v] then
+          epsilon_closure[v] = true
+          epsilon_closure_impl(t, epsilon_closure, v)
+        end
+      end
+    end
+  end
+
+  local function epsilon_closure(t, epsilon_closures, u)
+    local epsilon_closure = epsilon_closures[u]
+    if epsilon_closure then
+      return epsilon_closure
+    else
+      local epsilon_closure = { [u] = true }
+      epsilon_closures[u] = epsilon_closure
+      epsilon_closure_impl(t, epsilon_closure, u)
+      return epsilon_closure
+    end
+  end
+
+  -- t: transitions
+  -- u: start state
+  -- v: final state
+  function class:dfa__(t, u, v)
+    local uset = epsilon_closure(t, epsilon_closures, u)
+
   end
 end
 
@@ -438,6 +471,9 @@ do
   --   result.start_state = remove_unreachable_states(this, result, {}, this.start_state)
   --   return result
   -- end
+end
+
+do
 end
 
 return class
