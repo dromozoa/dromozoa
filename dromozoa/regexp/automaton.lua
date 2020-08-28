@@ -18,13 +18,12 @@
 local class = {}
 local metatable = { __index = class }
 
--- 用語としてfinalを導入する
-
-local function new()
+function class.new()
   local transitions = {}
   for i = 0, 257 do
     transitions[i] = {}
   end
+  -- TODO start_state, final_stateをオブジェクトの外においだす
   return setmetatable({
     max_state = 0;
     transitions = transitions;
@@ -32,8 +31,6 @@ local function new()
     accept_states = {};
   }, metatable)
 end
-
-class.dfa = new
 
 function class:new_state()
   local max_state = self.max_state + 1
@@ -44,8 +41,8 @@ end
 function class:new_transition(u, v, set)
   if set then
     local transitions = self.transitions
-    for byte in pairs(set) do
-      transitions[byte][u] = v
+    for i in pairs(set) do
+      transitions[i][u] = v
     end
   else
     local transitions = self.transitions
@@ -56,34 +53,31 @@ function class:new_transition(u, v, set)
         return
       end
     end
-    -- error
+    -- TODO raise error
   end
 end
 
 do
-  local function epsilon_closure_impl(epsilons1, epsilons2, epsilon_closure, u)
-    local v = epsilons1[u]
-    if v then
-      if not epsilon_closure[v] then
-        epsilon_closure[v] = true
-        epsilon_closure_impl(epsilons1, epsilons2, epsilon_closure, v)
-      end
-      local v = epsilons2[u]
-      if v and not epsilon_closure[v] then
-        epsilon_closure[v] = true
-        epsilon_closure_impl(epsilons1, epsilons2, epsilon_closure, v)
+  local function epsilon_closure_impl(t, epsilon_closure, u)
+    for i = 256, #t do
+      local v = t[i][u]
+      if v then
+        if not epsilon_closure[v] then
+          epsilon_closure[v] = true
+          epsilon_closure_impl(t, epsilon_closure, v)
+        end
       end
     end
   end
 
-  local function epsilon_closure(self, epsilon_closures, u)
+  local function epsilon_closure(t, epsilon_closures, u)
     local epsilon_closure = epsilon_closures[u]
     if epsilon_closure then
       return epsilon_closure
     else
       local epsilon_closure = { [u] = true }
       epsilon_closures[u] = epsilon_closure
-      epsilon_closure_impl(self.transitions[256], self.transitions[257], epsilon_closure, u)
+      epsilon_closure_impl(t, epsilon_closure, u)
       return epsilon_closure
     end
   end
@@ -142,12 +136,12 @@ do
     local new_transitions = that.transitions
     local new_accept_states = that.accept_states
 
-    for byte = 0x00, 0xFF do
+    for i = 0, 255 do
       local vset
-      for i = 1, #useq do
-        local x = transitions[byte][useq[i]]
+      for j = 1, #useq do
+        local x = transitions[i][useq[j]]
         if x then
-          for y in pairs(epsilon_closure(self, epsilon_closures, x)) do
+          for y in pairs(epsilon_closure(transitions, epsilon_closures, x)) do
             if vset then
               vset[y] = true
             else
@@ -159,7 +153,7 @@ do
       if vset then
         local vseq = set_to_seq(vset)
         local v, inserted = insert(that, maps, vseq)
-        new_transitions[byte][u] = v
+        new_transitions[i][u] = v
         if inserted then
           new_accept_states[v] = merge_accept_state(accept_states, vset)
           to_dfa(self, that, epsilon_closures, maps, vseq, v)
@@ -171,9 +165,9 @@ do
   function class:to_dfa()
     local epsilon_closures = {}
     local maps = {}
-    local uset = epsilon_closure(self, epsilon_closures, self.start_state)
+    local uset = epsilon_closure(self.transitions, epsilon_closures, self.start_state)
     local useq = set_to_seq(uset)
-    local that = new()
+    local that = class.new()
     local u = insert(that, maps, useq)
 
     to_dfa(self, that, epsilon_closures, maps, useq, u)
@@ -366,7 +360,7 @@ do
     end
 
     local max_state = #partitions
-    local that = new()
+    local that = class.new()
     local new_transitions = that.transitions
     local new_accept_states = that.accept_states
 
@@ -397,7 +391,7 @@ function class.difference(this, that)
 
   local n = this_max_state + 1
 
-  local result = new()
+  local result = class.new()
   local result_transitions = result.transitions
   local result_accept_states = result.accept_states
 

@@ -30,14 +30,14 @@ assert(to_pattern(S"abc"^"*") == "[a-c]*")
 
 local p = (R"ac" * "abc") ^"*"
 print(to_pattern(p))
-local nfa = p:to_nfa(automaton.dfa(), 1)
+local nfa = p:to_nfa(automaton.new(), 1)
 write_graphviz(nfa, io.open("test.dot", "w")):close()
 
 local dfa = nfa:to_dfa()
 write_graphviz(dfa, io.open("test.dot", "w")):close()
 
 local p = P"if" + "else" + "elseif"
-local nfa = p:to_nfa(automaton.dfa(), 1)
+local nfa = p:to_nfa(automaton.new(), 1)
 print(to_pattern(p))
 local dfa = nfa:to_dfa()
 write_graphviz(dfa, io.open("test.dot", "w")):close()
@@ -46,13 +46,13 @@ write_graphviz(dfa, io.open("test.dot", "w")):close()
 
 local p1 = R"ac"^"+"
 local p2 = P"abc"
-local dfa1 = p1:to_nfa(automaton.dfa(), 1):to_dfa():minimize()
-local dfa2 = p2:to_nfa(automaton.dfa(), 1):to_dfa():minimize()
+local dfa1 = p1:to_nfa(automaton.new(), 1):to_dfa():minimize()
+local dfa2 = p2:to_nfa(automaton.new(), 1):to_dfa():minimize()
 write_graphviz(dfa1, io.open("test1.dot", "w")):close()
 write_graphviz(dfa2, io.open("test2.dot", "w")):close()
 local dfa3 = dfa1:difference(dfa2)
 write_graphviz(dfa3, io.open("test3.dot", "w")):close()
 
-local dfa4 = automaton.dfa():remove_unreachable_states(dfa3):minimize()
+local dfa4 = automaton.new():remove_unreachable_states(dfa3):minimize()
 -- local dfa4 = dfa3:remove_unreachable_states():minimize()
 write_graphviz(dfa4, io.open("test4.dot", "w")):close()
