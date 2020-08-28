@@ -52,5 +52,7 @@ write_graphviz(dfa1, io.open("test1.dot", "w")):close()
 write_graphviz(dfa2, io.open("test2.dot", "w")):close()
 local dfa3 = dfa1:difference(dfa2)
 write_graphviz(dfa3, io.open("test3.dot", "w")):close()
-local dfa4 = dfa3:remove_unreachable_states():minimize()
+
+local dfa4 = automaton.dfa():remove_unreachable_states(dfa3):minimize()
+-- local dfa4 = dfa3:remove_unreachable_states():minimize()
 write_graphviz(dfa4, io.open("test4.dot", "w")):close()

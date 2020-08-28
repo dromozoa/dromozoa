@@ -214,6 +214,7 @@ local function to_nfa(self, that, accept)
   end
 end
 
+-- TODO start_stateとaccept_stateを返すべきなのでは？
 function class:to_nfa(that, accept)
   local u, v = to_nfa(self, that, accept)
   that.start_state = u

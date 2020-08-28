@@ -31,6 +31,8 @@ local function new()
   }, metatable)
 end
 
+class.dfa = new
+
 function class.nfa()
   local self = new()
   self.epsilons1 = {}
@@ -426,11 +428,16 @@ do
     return U
   end
 
-  function class.remove_unreachable_states(this)
-    local result = new()
-    result.start_state = remove_unreachable_states(this, result, {}, this.start_state)
-    return result
+  function class.remove_unreachable_states(a, b)
+    a.start_state = remove_unreachable_states(b, a, {}, b.start_state)
+    return a
   end
+
+  -- function class.remove_unreachable_states(this)
+  --   local result = new()
+  --   result.start_state = remove_unreachable_states(this, result, {}, this.start_state)
+  --   return result
+  -- end
 end
 
 return class
