@@ -21,6 +21,9 @@ local automaton = require "dromozoa.regexp.automaton"
 local write_graphviz = require "dromozoa.regexp.automaton.write_graphviz"
 local dumper = require "dromozoa.commons.dumper"
 
+local matrix = require "dromozoa.regexp.matrix"
+local tree_to_nfa = require "dromozoa.regexp.tree_to_nfa"
+
 local P = node.pattern
 local R = node.range
 local S = node.set
@@ -30,8 +33,19 @@ assert(to_pattern(S"abc"^"*") == "[a-c]*")
 
 local p = (R"ac" * "abc") ^"*"
 print(to_pattern(p))
-local nfa = p:to_nfa(automaton.new(), 1)
+
+local transitions = matrix.new()
+local start_state, accept_states = tree_to_nfa(p, transitions, 1)
+local nfa = automaton.new()
+nfa.max_state = transitions.max_state
+nfa.transitions = transitions
+nfa.start_state = start_state
+nfa.accept_states = accept_states
+
+-- local nfa = p:to_nfa(automaton.new(), 1)
 write_graphviz(nfa, io.open("test.dot", "w")):close()
+
+os.exit()
 
 local dfa = nfa:to_dfa()
 write_graphviz(dfa, io.open("test.dot", "w")):close()

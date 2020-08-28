@@ -40,8 +40,8 @@ end
 
 function class:add_epsilon_transition(u, v)
   for i = 256, #self do
-    if not self[u] then
-      self[u] = v
+    if not self[i][u] then
+      self[i][u] = v
       return
     end
   end
