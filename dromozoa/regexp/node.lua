@@ -23,8 +23,8 @@ local function new(code, a, b)
 end
 
 local set = {}
-for byte = 0x00, 0xFF do
-  set[byte] = true
+for i = 0, 255 do
+  set[i] = true
 end
 local any = new("[", set)
 
@@ -73,11 +73,11 @@ function metatable:__add(that)
   local that = pattern(that)
   if self[0] == "[" and that[0] == "[" then
     local set = {}
-    for byte in pairs(self[1]) do
-      set[byte] = true
+    for i in pairs(self[1]) do
+      set[i] = true
     end
-    for byte in pairs(that[1]) do
-      set[byte] = true
+    for i in pairs(that[1]) do
+      set[i] = true
     end
     return new("[", set)
   else
@@ -90,11 +90,11 @@ function metatable:__sub(that)
   local that = pattern(that)
   if self[0] == "[" and that[0] == "[" then
     local set = {}
-    for byte in pairs(self[1]) do
-      set[byte] = true
+    for i in pairs(self[1]) do
+      set[i] = true
     end
-    for byte in pairs(that[1]) do
-      set[byte] = nil
+    for i in pairs(that[1]) do
+      set[i] = nil
     end
     return new("[", set)
   else
@@ -163,9 +163,9 @@ function metatable:__unm()
   if self[0] == "[" then
     local set = self[1]
     local neg = {}
-    for byte = 0x00, 0xFF do
-      if not set[byte] then
-        neg[byte] = true
+    for i = 0, 255 do
+      if not set[i] then
+        neg[i] = true
       end
     end
     return new("[", neg)
