@@ -28,6 +28,12 @@ local P = node.pattern
 local R = node.range
 local S = node.set
 
+local p = (R"ac" / "A")
+local p = (P"abc" / "A")
+print(dumper.encode(p, { pretty = true, stable = true }))
+
+os.exit()
+
 assert(to_pattern(P"abc"^"*") == "(abc)*")
 assert(to_pattern(S"abc"^"*") == "[a-c]*")
 
@@ -44,8 +50,6 @@ nfa.accept_states = accept_states
 
 -- local nfa = p:to_nfa(automaton.new(), 1)
 write_graphviz(nfa, io.open("test.dot", "w")):close()
-
-os.exit()
 
 local dfa = nfa:to_dfa()
 write_graphviz(dfa, io.open("test.dot", "w")):close()

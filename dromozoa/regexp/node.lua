@@ -108,6 +108,20 @@ function metatable:__mul(that)
   return new(".", self, that)
 end
 
+function metatable:__div(that)
+  local code = self[0]
+  if code == "[" then
+    return new("/", self, that)
+  elseif code == "." then
+    local a = self[1]
+    local b = self[2]
+    if b[0] == "[" then
+      return new(".", a, new("/", b, that))
+    end
+  end
+  error "not supported"
+end
+
 function metatable:__pow(that)
   local t = type(that)
   if t == "number" then
@@ -169,9 +183,8 @@ function metatable:__unm()
       end
     end
     return new("[", neg)
-  else
-    error "negative lookahead not supported"
   end
+  error "not supported"
 end
 
 -- TODO start_stateとfinal_stateを返すべきなのでは？
