@@ -18,9 +18,9 @@
 local class = {}
 local metatable = { __index = class }
 
-function class.new()
+function class.new(n)
   local self = { max_state = 0 }
-  for i = 0, 257 do
+  for i = 0, 255 + n do
     self[i] = {}
   end
   return setmetatable(self, metatable)

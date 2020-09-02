@@ -34,7 +34,7 @@ assert(to_pattern(S"abc"^"*") == "[a-c]*")
 local p = (R"ac" * "abc") ^"*"
 print(to_pattern(p))
 
-local transitions = matrix.new()
+local transitions = matrix.new(2)
 local start_state, accept_states = tree_to_nfa(p, transitions, 1)
 local nfa = automaton.new()
 nfa.max_state = transitions.max_state
