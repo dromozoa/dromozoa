@@ -23,8 +23,8 @@ local function new(code, a, b)
 end
 
 local set = {}
-for byte = 0x00, 0xFF do
-  set[byte] = true
+for i = 0, 255 do
+  set[i] = true
 end
 local any = new("[", set)
 
@@ -73,11 +73,11 @@ function metatable:__add(that)
   local that = pattern(that)
   if self[0] == "[" and that[0] == "[" then
     local set = {}
-    for byte in pairs(self[1]) do
-      set[byte] = true
+    for i in pairs(self[1]) do
+      set[i] = true
     end
-    for byte in pairs(that[1]) do
-      set[byte] = true
+    for i in pairs(that[1]) do
+      set[i] = true
     end
     return new("[", set)
   else
@@ -90,11 +90,11 @@ function metatable:__sub(that)
   local that = pattern(that)
   if self[0] == "[" and that[0] == "[" then
     local set = {}
-    for byte in pairs(self[1]) do
-      set[byte] = true
+    for i in pairs(self[1]) do
+      set[i] = true
     end
-    for byte in pairs(that[1]) do
-      set[byte] = nil
+    for i in pairs(that[1]) do
+      set[i] = nil
     end
     return new("[", set)
   else
@@ -163,9 +163,9 @@ function metatable:__unm()
   if self[0] == "[" then
     local set = self[1]
     local neg = {}
-    for byte = 0x00, 0xFF do
-      if not set[byte] then
-        neg[byte] = true
+    for i = 0, 255 do
+      if not set[i] then
+        neg[i] = true
       end
     end
     return new("[", neg)
@@ -211,9 +211,21 @@ local function to_nfa(self, that, accept)
     that:new_transition(av, v)
     that:new_transition(bv, v)
     return u, v
+--[[
+  elseif code == "-" then
+    -- aとbは現在のNFA内に作成されている
+    local au, av = to_nfa(self[1], that, accept)
+    local bu, bv = to_nfa(self[2], that, accept)
+
+    local a = dfa():to_dfa(that, au, av, accept) -- minimize
+    local b = dfa():to_dfa(that, bu, bv, accept) -- minimize
+    local c = dfa():difference(a, b) -- remove_unreachable_states
+    -- merge c into that
+]]
   end
 end
 
+-- TODO start_stateとfinal_stateを返すべきなのでは？
 function class:to_nfa(that, accept)
   local u, v = to_nfa(self, that, accept)
   that.start_state = u

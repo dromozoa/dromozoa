@@ -18,8 +18,8 @@
 local encode_set = require "dromozoa.regexp.encode_set"
 
 return function(self, out)
-  local epsilons1 = self.epsilons1
-  local epsilons2 = self.epsilons2
+  local epsilons1 = self.epsilons1 or self.transitions[256]
+  local epsilons2 = self.epsilons2 or self.transitions[257]
   local transitions = self.transitions
   local start_state = self.start_state
   local accept_states = self.accept_states

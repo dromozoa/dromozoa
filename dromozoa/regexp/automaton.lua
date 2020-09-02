@@ -18,24 +18,19 @@
 local class = {}
 local metatable = { __index = class }
 
-local function new()
+-- (transitions, start_state, accept_states)
+function class.new()
   local transitions = {}
-  for byte = 0x00, 0xFF do
-    transitions[byte] = {}
+  for i = 0, 257 do
+    transitions[i] = {}
   end
+  -- TODO start_state, final_stateをオブジェクトの外においだす
   return setmetatable({
     max_state = 0;
     transitions = transitions;
     start_state = nil;
     accept_states = {};
   }, metatable)
-end
-
-function class.nfa()
-  local self = new()
-  self.epsilons1 = {}
-  self.epsilons2 = {}
-  return self
 end
 
 function class:new_state()
@@ -47,42 +42,41 @@ end
 function class:new_transition(u, v, set)
   if set then
     local transitions = self.transitions
-    for byte in pairs(set) do
-      transitions[byte][u] = v
+    for i in pairs(set) do
+      transitions[i][u] = v
     end
   else
-    local epsilons = self.epsilons1
-    if epsilons[u] then
-      epsilons = self.epsilons2
+    local transitions = self.transitions
+    for i = 256, #transitions do
+      local epsilons = transitions[i]
+      if not epsilons[u] then
+        epsilons[u] = v
+        return
+      end
     end
-    epsilons[u] = v
+    -- TODO raise error
   end
 end
 
 do
-  local function epsilon_closure_impl(epsilons1, epsilons2, epsilon_closure, u)
-    local v = epsilons1[u]
-    if v then
-      if not epsilon_closure[v] then
-        epsilon_closure[v] = true
-        epsilon_closure_impl(epsilons1, epsilons2, epsilon_closure, v)
-      end
-      local v = epsilons2[u]
+  local function epsilon_closure_impl(t, epsilon_closure, u)
+    for i = 256, #t do
+      local v = t[i][u]
       if v and not epsilon_closure[v] then
         epsilon_closure[v] = true
-        epsilon_closure_impl(epsilons1, epsilons2, epsilon_closure, v)
+        epsilon_closure_impl(t, epsilon_closure, v)
       end
     end
   end
 
-  local function epsilon_closure(self, epsilon_closures, u)
+  local function epsilon_closure(t, epsilon_closures, u)
     local epsilon_closure = epsilon_closures[u]
     if epsilon_closure then
       return epsilon_closure
     else
       local epsilon_closure = { [u] = true }
       epsilon_closures[u] = epsilon_closure
-      epsilon_closure_impl(self.epsilons1, self.epsilons2, epsilon_closure, u)
+      epsilon_closure_impl(t, epsilon_closure, u)
       return epsilon_closure
     end
   end
@@ -97,10 +91,7 @@ do
     return seq
   end
 
-  --[[
-    TODO: 文字列連結より効率的であることを確認する
-  ]]
-  local function insert(that, maps, key)
+  local function insert(self, maps, key)
     local n = #key
     local map = maps[n]
     if not map then
@@ -121,7 +112,7 @@ do
     if v then
       return v, false
     else
-      local v = that:new_state()
+      local v = self:new_state()
       map[k] = v
       return v, true
     end
@@ -144,12 +135,12 @@ do
     local new_transitions = that.transitions
     local new_accept_states = that.accept_states
 
-    for byte = 0x00, 0xFF do
+    for i = 0, 255 do
       local vset
-      for i = 1, #useq do
-        local x = transitions[byte][useq[i]]
+      for j = 1, #useq do
+        local x = transitions[i][useq[j]]
         if x then
-          for y in pairs(epsilon_closure(self, epsilon_closures, x)) do
+          for y in pairs(epsilon_closure(transitions, epsilon_closures, x)) do
             if vset then
               vset[y] = true
             else
@@ -161,7 +152,7 @@ do
       if vset then
         local vseq = set_to_seq(vset)
         local v, inserted = insert(that, maps, vseq)
-        new_transitions[byte][u] = v
+        new_transitions[i][u] = v
         if inserted then
           new_accept_states[v] = merge_accept_state(accept_states, vset)
           to_dfa(self, that, epsilon_closures, maps, vseq, v)
@@ -170,12 +161,13 @@ do
     end
   end
 
+  -- new_start_state, new_accept_states
   function class:to_dfa()
     local epsilon_closures = {}
     local maps = {}
-    local uset = epsilon_closure(self, epsilon_closures, self.start_state)
+    local uset = epsilon_closure(self.transitions, epsilon_closures, self.start_state)
     local useq = set_to_seq(uset)
-    local that = new()
+    local that = class.new()
     local u = insert(that, maps, useq)
 
     to_dfa(self, that, epsilon_closures, maps, useq, u)
@@ -184,6 +176,40 @@ do
     that.accept_states[u] = merge_accept_state(self.accept_states, uset)
 
     return that
+  end
+end
+
+do
+  local function epsilon_closure_impl(t, epsilon_closure, u)
+    for byte = 256, #t do
+      local v = t[byte][u]
+      if v then
+        if not epsilon_closure[v] then
+          epsilon_closure[v] = true
+          epsilon_closure_impl(t, epsilon_closure, v)
+        end
+      end
+    end
+  end
+
+  local function epsilon_closure(t, epsilon_closures, u)
+    local epsilon_closure = epsilon_closures[u]
+    if epsilon_closure then
+      return epsilon_closure
+    else
+      local epsilon_closure = { [u] = true }
+      epsilon_closures[u] = epsilon_closure
+      epsilon_closure_impl(t, epsilon_closure, u)
+      return epsilon_closure
+    end
+  end
+
+  -- t: transitions
+  -- u: start state
+  -- v: final state
+  function class:dfa__(t, u, v)
+    local uset = epsilon_closure(t, epsilon_closures, u)
+
   end
 end
 
@@ -334,7 +360,7 @@ do
     end
 
     local max_state = #partitions
-    local that = new()
+    local that = class.new()
     local new_transitions = that.transitions
     local new_accept_states = that.accept_states
 
@@ -356,65 +382,55 @@ do
   end
 end
 
-do
-  local function set_product(this, that)
-    local this_max_state = this.max_state
-    local this_transitions = this.transitions
-    local that_max_state = that.max_state
-    local that_transitions = that.transitions
-    local n = this_max_state + 1
+function class.difference(this, that)
+  local this_max_state = this.max_state
+  local this_transitions = this.transitions
+  local that_max_state = that.max_state
+  local that_transitions = that.transitions
+  local that_accept_states = that.accept_states
 
-    local result = new()
-    local result_transitions = result.transitions
+  local n = this_max_state + 1
 
-    for i = 0, this_max_state do
-      for j = 0, that_max_state do
-        local u = i + n * j
-        if u ~= 0 then
-          for byte = 0x00, 0xFF do
-            local x = this_transitions[byte][i]
-            local y = that_transitions[byte][j]
-            if not x then
-              x = 0
-            end
-            if not y then
-              y = 0
-            end
-            local v = x + n * y
-            if v ~= 0 then
-              result_transitions[byte][u] = v
-            end
+  local result = class.new()
+  local result_transitions = result.transitions
+  local result_accept_states = result.accept_states
+
+  for i = 0, this_max_state do
+    for j = 0, that_max_state do
+      local u = i + n * j
+      if u ~= 0 then
+        for byte = 0x00, 0xFF do
+          local x = this_transitions[byte][i]
+          local y = that_transitions[byte][j]
+          if not x then
+            x = 0
+          end
+          if not y then
+            y = 0
+          end
+          local v = x + n * y
+          if v ~= 0 then
+            result_transitions[byte][u] = v
           end
         end
       end
     end
-
-    result.max_state = this_max_state + n * that_max_state
-    result.start_state = this.start_state + n * this.start_state
-    return result
   end
 
-  function class.set_difference(this, that)
-    local result = set_product(this, that)
-
-    local this_max_state = this.max_state
-    local n = this_max_state + 1
-    local that_max_state = that.max_state
-    local that_accept_states = that.accept_states
-    local result_accept_states = result.accept_states
-
-    for i, accept in pairs(this.accept_states) do
-      result_accept_states[i] = accept
-      for j = 1, that_max_state do
-        if not that_accept_states[j] then
-          local u = i + n * j
-          result_accept_states[u] = accept
-        end
+  for i, accept in pairs(this.accept_states) do
+    result_accept_states[i] = accept
+    for j = 1, that_max_state do
+      if not that_accept_states[j] then
+        local u = i + n * j
+        result_accept_states[u] = accept
       end
     end
-
-    return result
   end
+
+  result.max_state = this_max_state + n * that_max_state
+  result.start_state = this.start_state + n * this.start_state
+
+  return result
 end
 
 do
@@ -439,11 +455,19 @@ do
     return U
   end
 
-  function class.remove_unreachable_states(this)
-    local result = new()
-    result.start_state = remove_unreachable_states(this, result, {}, this.start_state)
-    return result
+  function class.remove_unreachable_states(a, b)
+    a.start_state = remove_unreachable_states(b, a, {}, b.start_state)
+    return a
   end
+
+  -- function class.remove_unreachable_states(this)
+  --   local result = new()
+  --   result.start_state = remove_unreachable_states(this, result, {}, this.start_state)
+  --   return result
+  -- end
+end
+
+do
 end
 
 return class
