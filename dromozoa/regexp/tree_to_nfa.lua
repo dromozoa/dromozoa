@@ -54,6 +54,10 @@ local function tree_to_nfa(node, transitions)
     transitions:add_epsilon_transition(av, v)
     transitions:add_epsilon_transition(bv, v)
     return u, v
+  elseif code == "-" then
+    error "not impl"
+  elseif code == "/" then
+    error "not impl"
   end
 end
 

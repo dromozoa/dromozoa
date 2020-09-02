@@ -32,7 +32,9 @@ local p = R"ac" / "A"
 local p = P"abc" / "A"
 local p = P"abc" * "def" / "A"
 local p = (P"abc" / "A" * ("abc" * S"def") / "B")^"?"
-print(dumper.encode(p, { pretty = true, stable = true }))
+-- print(dumper.encode(p, { pretty = true, stable = true }))
+
+-- local start_state, final_states = tree_to_nfa(p, transitions, actions, 1)
 
 os.exit()
 
