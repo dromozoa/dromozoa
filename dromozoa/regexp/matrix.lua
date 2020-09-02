@@ -47,4 +47,5 @@ function class:add_epsilon_transition(u, v)
   end
 end
 
+-- TODO rename to transition table
 return class

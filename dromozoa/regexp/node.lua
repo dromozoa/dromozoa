@@ -169,59 +169,8 @@ function metatable:__unm()
       end
     end
     return new("[", neg)
-  end
-end
-
-local function to_nfa(self, that, accept)
-  local code = self[0]
-  if code == "[" then
-    local u = that:new_state()
-    local v = that:new_state()
-    that:new_transition(u, v, self[1])
-    return u, v
-  elseif code == "*" then
-    local au, av = to_nfa(self[1], that, accept)
-    local u = that:new_state()
-    local v = that:new_state()
-    that:new_transition(u, au)
-    that:new_transition(u, v)
-    that:new_transition(av, v)
-    that:new_transition(av, au)
-    return u, v
-  elseif code == "?" then
-    local au, av = to_nfa(self[1], that, accept)
-    local u = that:new_state()
-    local v = that:new_state()
-    that:new_transition(u, au)
-    that:new_transition(u, v)
-    that:new_transition(av, v)
-    return u, v
-  elseif code == "." then
-    local au, av = to_nfa(self[1], that, accept)
-    local bu, bv = to_nfa(self[2], that, accept)
-    that:new_transition(av, bu)
-    return au, bv
-  elseif code == "|" then
-    local au, av = to_nfa(self[1], that, accept)
-    local bu, bv = to_nfa(self[2], that, accept)
-    local u = that:new_state()
-    local v = that:new_state()
-    that:new_transition(u, au)
-    that:new_transition(u, bu)
-    that:new_transition(av, v)
-    that:new_transition(bv, v)
-    return u, v
---[[
-  elseif code == "-" then
-    -- aとbは現在のNFA内に作成されている
-    local au, av = to_nfa(self[1], that, accept)
-    local bu, bv = to_nfa(self[2], that, accept)
-
-    local a = dfa():to_dfa(that, au, av, accept) -- minimize
-    local b = dfa():to_dfa(that, bu, bv, accept) -- minimize
-    local c = dfa():difference(a, b) -- remove_unreachable_states
-    -- merge c into that
-]]
+  else
+    error "negative lookahead not supported"
   end
 end
 
