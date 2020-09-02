@@ -187,12 +187,4 @@ function metatable:__unm()
   error "not supported"
 end
 
--- TODO start_stateとfinal_stateを返すべきなのでは？
-function class:to_nfa(that, accept)
-  local u, v = to_nfa(self, that, accept)
-  that.start_state = u
-  that.accept_states[v] = accept
-  return that
-end
-
 return class
