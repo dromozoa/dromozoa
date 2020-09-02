@@ -28,8 +28,10 @@ local P = node.pattern
 local R = node.range
 local S = node.set
 
-local p = (R"ac" / "A")
-local p = (P"abc" / "A")
+local p = R"ac" / "A"
+local p = P"abc" / "A"
+local p = P"abc" * "def" / "A"
+local p = (P"abc" / "A" * ("abc" * S"def") / "B")^"?"
 print(dumper.encode(p, { pretty = true, stable = true }))
 
 os.exit()
