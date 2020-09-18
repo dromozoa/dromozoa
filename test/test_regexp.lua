@@ -28,11 +28,10 @@ local P = node.pattern
 local R = node.range
 local S = node.set
 
-local p = R"ac" / 1
+local p = P"ab" / 1 * "cd"
 local p = P"abc" / 1
 local p = P"abc" * "def" / 1
 local p = (P"abc" / 1 * ("abc" * S"def") / 2)^"?"
-local p = (P"abc" * ("abc" * S"def"))^"?"
 -- print(dumper.encode(p, { pretty = true, stable = true }))
 
 local transitions = transition_table.new()
