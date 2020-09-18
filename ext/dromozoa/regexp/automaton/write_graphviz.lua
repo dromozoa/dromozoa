@@ -17,12 +17,9 @@
 
 local encode_set = require "dromozoa.regexp.encode_set"
 
-return function(self, out)
-  local epsilons1 = self.epsilons1 or self.transitions[256]
-  local epsilons2 = self.epsilons2 or self.transitions[257]
-  local transitions = self.transitions
-  local start_state = self.start_state
-  local accept_states = self.accept_states
+return function(transitions, start_state, action_states, final_states, out)
+  local epsilons1 = transitions[256]
+  local epsilons2 = transitions[257]
 
   out:write [[
 digraph {
@@ -31,15 +28,15 @@ graph[rankdir=LR];
 
   local u = start_state
   out:write(u, "[style=filled,fillcolor=black,fontcolor=white")
-  local accept = accept_states[u]
+  local accept = final_states[u]
   if accept then
     out:write(",peripheries=2,label=\"", u, "/", accept, "\"")
   end
   out:write "];\n"
 
-  for u = 1, self.max_state do
+  for u = 1, transitions.max_state do
     if u ~= start_state then
-      local accept = accept_states[u]
+      local accept = final_states[u]
       if accept then
         out:write(u, "[peripheries=2,label=\"", u, "/", accept, "\"];\n")
       end

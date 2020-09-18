@@ -21,20 +21,26 @@ local automaton = require "dromozoa.regexp.automaton"
 local write_graphviz = require "dromozoa.regexp.automaton.write_graphviz"
 local dumper = require "dromozoa.commons.dumper"
 
-local matrix = require "dromozoa.regexp.matrix"
+local transition_table = require "dromozoa.regexp.transition_table"
 local tree_to_nfa = require "dromozoa.regexp.tree_to_nfa"
 
 local P = node.pattern
 local R = node.range
 local S = node.set
 
-local p = R"ac" / "A"
-local p = P"abc" / "A"
-local p = P"abc" * "def" / "A"
-local p = (P"abc" / "A" * ("abc" * S"def") / "B")^"?"
-print(dumper.encode(p, { pretty = true, stable = true }))
+local p = R"ac" / 1
+local p = P"abc" / 1
+local p = P"abc" * "def" / 1
+local p = (P"abc" / 1 * ("abc" * S"def") / 2)^"?"
+local p = (P"abc" * ("abc" * S"def"))^"?"
+-- print(dumper.encode(p, { pretty = true, stable = true }))
 
--- local start_state, final_states = tree_to_nfa(p, transitions, actions, 1)
+local transitions = transition_table.new()
+local start_state, action_states, final_states = tree_to_nfa(p, transitions, 1)
+
+local out = assert(io.open("test.dot", "w"))
+write_graphviz(transitions, start_state, action_states, final_states, out)
+out:close()
 
 os.exit()
 
