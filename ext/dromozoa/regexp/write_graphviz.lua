@@ -17,7 +17,7 @@
 
 local encode_set = require "dromozoa.regexp.encode_set"
 
-return function(transitions, start_state, action_states, final_states, out)
+return function(transitions, start_state, action_states, accept_states, out)
   out:write [[
 digraph {
 graph[rankdir=LR];
@@ -27,7 +27,7 @@ graph[rankdir=LR];
     local attr = {}
     local name = { u }
     local action = action_states[u]
-    local accept = final_states[u]
+    local accept = accept_states[u]
 
     if u == start_state then
       attr[#attr + 1] = "style=filled,fillcolor=black,fontcolor=white"

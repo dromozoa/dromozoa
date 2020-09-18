@@ -16,9 +16,12 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local function epsilon_closure_impl(transitions, u, epsilon_closure)
-  for i = 256, #t do
-    local v = transitions[i][u]
-    if v and not epsilon_closure[v] then
+  for ev = 256, #transitions do
+    local v = transitions[ev][u]
+    if not v then
+      break
+    end
+    if not epsilon_closure[v] then
       epsilon_closure[v] = true
       epsilon_closure_impl(transitions, v, epsilon_closure)
     end
@@ -104,9 +107,8 @@ local function to_dfa(transitions, epsilon_closures, maps, useq, u)
 
 end
 
-return function (this, transitions)
+return function (transitions, start_state, action_states, accept_states)
   local epsilon_closures = {}
-  local maps = {}
   local uset = epsilon_closure(this.transitions, this.start_state, epsilon_closures)
   local useq = set_to_seq(uset)
   local u = insert(transitions, maps, useq)

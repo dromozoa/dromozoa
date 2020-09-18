@@ -18,11 +18,13 @@
 local node = require "dromozoa.regexp.node"
 local to_pattern = require "dromozoa.regexp.node.to_pattern"
 local automaton = require "dromozoa.regexp.automaton"
-local write_graphviz = require "dromozoa.regexp.automaton.write_graphviz"
 local dumper = require "dromozoa.commons.dumper"
 
 local transition_table = require "dromozoa.regexp.transition_table"
 local tree_to_nfa = require "dromozoa.regexp.tree_to_nfa"
+
+-- ext
+local write_graphviz = require "dromozoa.regexp.write_graphviz"
 
 local P = node.pattern
 local R = node.range
