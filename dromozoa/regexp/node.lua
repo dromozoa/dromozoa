@@ -182,8 +182,9 @@ function metatable:__unm()
       end
     end
     return new("[", neg)
+  else
+    error "not supported"
   end
-  error "not supported"
 end
 
 return class
