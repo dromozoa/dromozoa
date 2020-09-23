@@ -41,7 +41,12 @@ local transitions = transition_table.new(2)
 local start_state, action_states, accept_states = tree_to_nfa(p, transitions, 1)
 
 local out = assert(io.open("test.dot", "w"))
-write_graphviz(transitions, start_state, action_states, accept_states, out)
+write_graphviz({
+  transitions = transitions;
+  start_state = start_state;
+  action_states = action_states;
+  accept_states = accept_states;
+}, out)
 out:close()
 
 nfa_to_dfa(transitions, start_state, action_states, accept_states)

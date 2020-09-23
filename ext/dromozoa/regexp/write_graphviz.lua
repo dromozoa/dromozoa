@@ -17,7 +17,12 @@
 
 local encode_set = require "dromozoa.regexp.encode_set"
 
-return function(transitions, start_state, action_states, accept_states, out)
+return function (this, out)
+  local transitions = this.transitions
+  local start_state = this.start_state
+  local action_states = this.action_states
+  local accept_states = this.accept_states
+
   out:write [[
 digraph {
 graph[rankdir=LR];
