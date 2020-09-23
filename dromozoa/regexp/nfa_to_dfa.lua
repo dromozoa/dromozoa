@@ -109,8 +109,8 @@ end
 
 return function (transitions, start_state, action_states, accept_states)
   local epsilon_closures = {}
-  local uset = epsilon_closure(this.transitions, this.start_state, epsilon_closures)
+  local uset = epsilon_closure(transitions, start_state, epsilon_closures)
   local useq = set_to_seq(uset)
-  local u = insert(transitions, maps, useq)
+  -- local u = insert(transitions, maps, useq)
 
 end
