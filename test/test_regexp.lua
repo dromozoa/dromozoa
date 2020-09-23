@@ -22,6 +22,7 @@ local dumper = require "dromozoa.commons.dumper"
 
 local transition_table = require "dromozoa.regexp.transition_table"
 local tree_to_nfa = require "dromozoa.regexp.tree_to_nfa"
+local nfa_to_dfa = require "dromozoa.regexp.nfa_to_dfa"
 
 -- ext
 local write_graphviz = require "dromozoa.regexp.write_graphviz"
@@ -36,12 +37,14 @@ local p = P"abc" * "def" / 1
 local p = (P"abc" / 1 * ("abc" * S"def") / 2)^"?"
 -- print(dumper.encode(p, { pretty = true, stable = true }))
 
-local transitions = transition_table.new()
-local start_state, action_states, final_states = tree_to_nfa(p, transitions, 1)
+local transitions = transition_table.new(2)
+local start_state, action_states, accept_states = tree_to_nfa(p, transitions, 1)
 
 local out = assert(io.open("test.dot", "w"))
-write_graphviz(transitions, start_state, action_states, final_states, out)
+write_graphviz(transitions, start_state, action_states, accept_states, out)
 out:close()
+
+nfa_to_dfa(transitions, start_state, action_states, accept_states)
 
 os.exit()
 
