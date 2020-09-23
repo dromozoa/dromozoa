@@ -20,8 +20,8 @@ local metatable = { __index = class }
 
 function class.new(n)
   local self = { max_state = 0 }
-  for i = 0, 255 + n do
-    self[i] = {}
+  for ev = 0, 255 + n do
+    self[ev] = {}
   end
   return setmetatable(self, metatable)
 end
@@ -32,19 +32,24 @@ function class:add_state()
   return max_state
 end
 
-function class:add_transition(u, v, set)
-  for i in pairs(set) do
-    self[i][u] = v
+function class:set_transition(u, v, ev)
+  self[ev][u] = v
+end
+
+function class:set_transitions(u, v, set)
+  for ev in pairs(set) do
+    self[ev][u] = v
   end
 end
 
-function class:add_epsilon_transition(u, v)
-  for i = 256, #self do
-    if not self[i][u] then
-      self[i][u] = v
+function class:set_epsilon_transition(u, v)
+  for ev = 256, #self do
+    if not self[ev][u] then
+      self[ev][u] = v
       return
     end
   end
+  error "out of range"
 end
 
 return class

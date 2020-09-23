@@ -23,8 +23,8 @@ local function new(code, a, b)
 end
 
 local set = {}
-for i = 0, 255 do
-  set[i] = true
+for ev = 0, 255 do
+  set[ev] = true
 end
 local any = new("[", set)
 
@@ -53,8 +53,8 @@ function class.range(that)
   local set = {}
   for i = 1, #that, 2 do
     local a, b = that:byte(i, i + 1)
-    for byte = a, b do
-      set[byte] = true
+    for ev = a, b do
+      set[ev] = true
     end
   end
   return new("[", set)
@@ -73,11 +73,11 @@ function metatable:__add(that)
   local that = pattern(that)
   if self[0] == "[" and that[0] == "[" then
     local set = {}
-    for i in pairs(self[1]) do
-      set[i] = true
+    for ev in pairs(self[1]) do
+      set[ev] = true
     end
-    for i in pairs(that[1]) do
-      set[i] = true
+    for ev in pairs(that[1]) do
+      set[ev] = true
     end
     return new("[", set)
   else
@@ -90,11 +90,11 @@ function metatable:__sub(that)
   local that = pattern(that)
   if self[0] == "[" and that[0] == "[" then
     local set = {}
-    for i in pairs(self[1]) do
-      set[i] = true
+    for ev in pairs(self[1]) do
+      set[ev] = true
     end
-    for i in pairs(that[1]) do
-      set[i] = nil
+    for ev in pairs(that[1]) do
+      set[ev] = nil
     end
     return new("[", set)
   else
@@ -107,6 +107,19 @@ function metatable:__mul(that)
   local that = pattern(that)
   return new(".", self, that)
 end
+
+local function action(self, that)
+  local code = self[0]
+  if code == "[" then
+    return new("/", self, that)
+  elseif code == "." then
+    return new(".", self[1], action(self[2], that))
+  else
+    error "not supported"
+  end
+end
+
+metatable.__div = action
 
 function metatable:__pow(that)
   local t = type(that)
@@ -163,74 +176,15 @@ function metatable:__unm()
   if self[0] == "[" then
     local set = self[1]
     local neg = {}
-    for i = 0, 255 do
-      if not set[i] then
-        neg[i] = true
+    for ev = 0, 255 do
+      if not set[ev] then
+        neg[ev] = true
       end
     end
     return new("[", neg)
+  else
+    error "not supported"
   end
-end
-
-local function to_nfa(self, that, accept)
-  local code = self[0]
-  if code == "[" then
-    local u = that:new_state()
-    local v = that:new_state()
-    that:new_transition(u, v, self[1])
-    return u, v
-  elseif code == "*" then
-    local au, av = to_nfa(self[1], that, accept)
-    local u = that:new_state()
-    local v = that:new_state()
-    that:new_transition(u, au)
-    that:new_transition(u, v)
-    that:new_transition(av, v)
-    that:new_transition(av, au)
-    return u, v
-  elseif code == "?" then
-    local au, av = to_nfa(self[1], that, accept)
-    local u = that:new_state()
-    local v = that:new_state()
-    that:new_transition(u, au)
-    that:new_transition(u, v)
-    that:new_transition(av, v)
-    return u, v
-  elseif code == "." then
-    local au, av = to_nfa(self[1], that, accept)
-    local bu, bv = to_nfa(self[2], that, accept)
-    that:new_transition(av, bu)
-    return au, bv
-  elseif code == "|" then
-    local au, av = to_nfa(self[1], that, accept)
-    local bu, bv = to_nfa(self[2], that, accept)
-    local u = that:new_state()
-    local v = that:new_state()
-    that:new_transition(u, au)
-    that:new_transition(u, bu)
-    that:new_transition(av, v)
-    that:new_transition(bv, v)
-    return u, v
---[[
-  elseif code == "-" then
-    -- aとbは現在のNFA内に作成されている
-    local au, av = to_nfa(self[1], that, accept)
-    local bu, bv = to_nfa(self[2], that, accept)
-
-    local a = dfa():to_dfa(that, au, av, accept) -- minimize
-    local b = dfa():to_dfa(that, bu, bv, accept) -- minimize
-    local c = dfa():difference(a, b) -- remove_unreachable_states
-    -- merge c into that
-]]
-  end
-end
-
--- TODO start_stateとfinal_stateを返すべきなのでは？
-function class:to_nfa(that, accept)
-  local u, v = to_nfa(self, that, accept)
-  that.start_state = u
-  that.accept_states[v] = accept
-  return that
 end
 
 return class
