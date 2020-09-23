@@ -23,8 +23,8 @@ local function new(code, a, b)
 end
 
 local set = {}
-for i = 0, 255 do
-  set[i] = true
+for ev = 0, 255 do
+  set[ev] = true
 end
 local any = new("[", set)
 
@@ -53,8 +53,8 @@ function class.range(that)
   local set = {}
   for i = 1, #that, 2 do
     local a, b = that:byte(i, i + 1)
-    for byte = a, b do
-      set[byte] = true
+    for ev = a, b do
+      set[ev] = true
     end
   end
   return new("[", set)
@@ -73,11 +73,11 @@ function metatable:__add(that)
   local that = pattern(that)
   if self[0] == "[" and that[0] == "[" then
     local set = {}
-    for i in pairs(self[1]) do
-      set[i] = true
+    for ev in pairs(self[1]) do
+      set[ev] = true
     end
-    for i in pairs(that[1]) do
-      set[i] = true
+    for ev in pairs(that[1]) do
+      set[ev] = true
     end
     return new("[", set)
   else
@@ -90,11 +90,11 @@ function metatable:__sub(that)
   local that = pattern(that)
   if self[0] == "[" and that[0] == "[" then
     local set = {}
-    for i in pairs(self[1]) do
-      set[i] = true
+    for ev in pairs(self[1]) do
+      set[ev] = true
     end
-    for i in pairs(that[1]) do
-      set[i] = nil
+    for ev in pairs(that[1]) do
+      set[ev] = nil
     end
     return new("[", set)
   else
@@ -176,9 +176,9 @@ function metatable:__unm()
   if self[0] == "[" then
     local set = self[1]
     local neg = {}
-    for i = 0, 255 do
-      if not set[i] then
-        neg[i] = true
+    for ev = 0, 255 do
+      if not set[ev] then
+        neg[ev] = true
       end
     end
     return new("[", neg)
