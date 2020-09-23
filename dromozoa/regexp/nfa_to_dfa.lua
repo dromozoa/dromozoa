@@ -107,9 +107,14 @@ local function to_dfa(transitions, epsilon_closures, maps, useq, u)
 
 end
 
-return function (transitions, start_state, action_states, accept_states)
+return function (this, transitions)
+  local this_transitions = this.transitions
+  local this_start_state = this.start_state
+  local this_action_states = this.action_states
+  local this_accept_states = this.accept_states
+
   local epsilon_closures = {}
-  local uset = epsilon_closure(transitions, start_state, epsilon_closures)
+  local uset = epsilon_closure(this_transitions, this_start_state, epsilon_closures)
   local useq = set_to_seq(uset)
   -- local u = insert(transitions, maps, useq)
 
