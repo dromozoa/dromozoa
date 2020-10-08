@@ -51,9 +51,9 @@ local out = assert(io.open("test.dot", "w"))
 write_graphviz(nfa, out)
 out:close()
 
-local start_state, action_states, accept_states = nfa_to_dfa(nfa, transition_table.new(0))
-
 os.exit()
+
+local start_state, action_states, accept_states = nfa_to_dfa(nfa, transition_table.new(0))
 
 assert(to_pattern(P"abc"^"*") == "(abc)*")
 assert(to_pattern(S"abc"^"*") == "[a-c]*")
