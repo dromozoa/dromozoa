@@ -78,7 +78,17 @@ local function insert(transitions, maps, key)
   end
 end
 
-local function to_dfa(this, transitions, action_states, accept_states, epsilon_closures, maps, useq, u)
+local function dump(seq)
+  for i = 1, #seq do
+    if i > 1 then
+      io.write ", "
+    end
+    io.write(seq[i])
+  end
+  io.write "\n"
+end
+
+local function to_dfa(this, that, epsilon_closures, maps, useq, u)
   local this_transitions = this.transitions
   local this_start_state = this.start_state
   local this_action_states = this.action_states
@@ -89,27 +99,7 @@ local function to_dfa(this, transitions, action_states, accept_states, epsilon_c
     for i = 1, #useq do
       local x = this_transitions[ev][useq[i]]
       if x then
-        for y in pairs(epsilon_closure(this_transitions, epsilon_closures, x)) do
-          if vset then
-            vset[y] = true
-          else
-            vset = { [y] = true }
-          end
-        end
-      end
-    end
-  end
-
-
-
-
-
-  for i = 0, 255 do
-    local vset
-    for j = 1, #useq do
-      local x = transitions[i][useq[j]]
-      if x then
-        for y in pairs(epsilon_closure(transitions, x, epsilon_closures)) do
+        for y in pairs(epsilon_closure(this_transitions, x, epsilon_closures)) do
           if vset then
             vset[y] = true
           else
@@ -120,27 +110,24 @@ local function to_dfa(this, transitions, action_states, accept_states, epsilon_c
     end
     if vset then
       local vseq = set_to_seq(vset)
-      local v, inserted = insert(dest_transitions, maps, vseq)
-      -- dest_transitions:set_transition(i, u, v)
+      local v, inserted = insert(transitions, maps, vseq)
       if inserted then
-        dest_accept_states[v] = merge_accept_state(accept_states, vset)
-        -- to_dfa(...)
       end
     end
   end
-
 end
 
 return function (this, transitions)
-  local this_transitions = this.transitions
-  local this_start_state = this.start_state
-  local this_action_states = this.action_states
-  local this_accept_states = this.accept_states
+  local that = {
+    transitions = transitions;
+    action_states = {};
+    accept_states = {};
+  }
 
   local epsilon_closures = {}
   local maps = {}
 
-  local uset = epsilon_closure(this_transitions, this_start_state, epsilon_closures)
+  local uset = epsilon_closure(this.transitions, this.start_state, epsilon_closures)
   local useq = set_to_seq(uset)
   local u = insert(transitions, maps, useq)
 

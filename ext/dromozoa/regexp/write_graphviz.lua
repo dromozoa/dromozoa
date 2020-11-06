@@ -38,14 +38,14 @@ graph[rankdir=LR];
       attr[#attr + 1] = "style=filled,fillcolor=black,fontcolor=white"
     end
     if action then
-      name[#name + 1] = "{" .. action .. "}"
+      name[#name + 1] = "@" .. action
     end
     if accept then
       attr[#attr + 1] = "peripheries=2"
-      name[#name + 1] = accept
+      name[#name + 1] = "/" .. accept
     end
 
-    attr[#attr + 1] = "label=\"" .. table.concat(name, "/") .. "\""
+    attr[#attr + 1] = "label=\"" .. table.concat(name) .. "\""
     out:write(u, "[", table.concat(attr, ","), "];\n")
 
     local vsets = {}
