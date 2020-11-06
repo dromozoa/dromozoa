@@ -56,7 +56,7 @@ local function tree_to_nfa(node, transitions, action_states)
     return u, v
   elseif code == "-" then
     error "not impl"
-  elseif code == "/" then
+  elseif code == "@" then
     local u, v = tree_to_nfa(node[1], transitions, action_states)
     action_states[v] = node[2]
     return u, v
@@ -66,5 +66,10 @@ end
 return function (tree, transitions, accept)
   local action_states = {}
   local u, v = tree_to_nfa(tree, transitions, action_states)
-  return u, action_states, { [v] = accept }
+  return {
+    transitions = transitions;
+    start_state = u;
+    action_states = action_states;
+    accept_states = { [v] = accept };
+  }
 end

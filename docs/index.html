@@ -75,53 +75,18 @@
     <td>difference</td>
   </tr>
   <tr>
-    <td><code>/</code></td>
+    <td><code>@</code></td>
     <td>2</td>
     <td>N/A</td>
     <td>transition action</td>
   </tr>
 </table>
 
-<h2>正規表現のアクション</h2>
+<h2>正規表現の遷移アクション</h2>
 
-<ul>
-  <li>受理状態にいたった場合のアクション</li>
-  <li>文字クラスに関連づけられた遷移アクション</li>
-</ul>
-
-<pre>
-0x@A([0-9]@B|[A-F]@C|[a-f]@D)+ %E
-action A {
-  RV = 0
-}
-action B {
-  RV *= 16
-  RV += R - '0'
-}
-action C {
-  RV *= 16
-  RV += R - 'A' + 10
-}
-action D {
-  RV *= 16
-  RV += R - 'a' + 10
-}
-action E {
-  save(RV)
-}
-</pre>
-
-<pre>
-[abc]@A+
-[def]@B+
-.@C+
-
-[abc]@{A,C}+
-[def]@{B,C}+
-[^a-f]@C+
-</pre>
-
-
+<p>
+文字クラスに関連づけられたアクションを遷移アクションと呼ぶ。
+</p>
 
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.js"></script>

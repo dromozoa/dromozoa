@@ -111,7 +111,7 @@ end
 local function action(self, that)
   local code = self[0]
   if code == "[" then
-    return new("/", self, that)
+    return new("@", self, that)
   elseif code == "." then
     return new(".", self[1], action(self[2], that))
   else
