@@ -37,6 +37,8 @@ local p = P"abc" * "def" / 1
 local p = (P"abc" / 1 * ("abc" * S"def") / 2)^"?"
 -- print(dumper.encode(p, { pretty = true, stable = true }))
 
+os.exit()
+
 local transitions = transition_table.new(2)
 local nfa = tree_to_nfa(p, transitions, 1)
 
@@ -45,8 +47,6 @@ write_graphviz(nfa, out)
 out:close()
 
 local dfa = nfa_to_dfa(nfa, transition_table.new(0))
-
-os.exit()
 
 assert(to_pattern(P"abc"^"*") == "(abc)*")
 assert(to_pattern(S"abc"^"*") == "[a-c]*")
