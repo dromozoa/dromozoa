@@ -37,10 +37,12 @@ local p = P"abc" * "def" / 1
 local p = (P"abc" / 1 * ("abc" * S"def") / 2)^"?"
 -- print(dumper.encode(p, { pretty = true, stable = true }))
 
-os.exit()
-
 local transitions = transition_table.new(2)
 local nfa = tree_to_nfa(p, transitions, 1)
+
+-- print(dumper.encode(nfa, { pretty = true, stable = true }))
+
+os.exit()
 
 local out = assert(io.open("test.dot", "w"))
 write_graphviz(nfa, out)

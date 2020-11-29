@@ -108,6 +108,7 @@ function metatable:__mul(that)
   return new(".", self, that)
 end
 
+-- TODO 厳密な定義にする
 local function action(self, that)
   local code = self[0]
   if code == "[" then
