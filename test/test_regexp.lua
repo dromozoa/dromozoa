@@ -16,6 +16,8 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local node = require "dromozoa.regexp.node"
+local tree_to_nfa = require "dromozoa.regexp.tree_to_nfa"
+local transition_table = require "dromozoa.regexp.transition_table"
 
 local dumper = require "dromozoa.commons.dumper"
 
@@ -23,9 +25,11 @@ local P = node.pattern
 local R = node.range
 local S = node.set
 
-local p = P"ab" * (P"c" / "transition action")^"+"
+local p = P"ab" * (P"c" / 1)^"+"
+local transitions = transition_table.new(2)
+local nfa = tree_to_nfa(p, transitions, 1)
 
-print(dumper.encode(p, { pretty = true, stable = true }))
+print(dumper.encode(nfa, { pretty = true, stable = true }))
 
 os.exit()
 

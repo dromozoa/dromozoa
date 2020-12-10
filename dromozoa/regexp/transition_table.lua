@@ -26,7 +26,7 @@ function class.new(n)
   return setmetatable(self, metatable)
 end
 
-function class:add_state()
+function class:new_state()
   local max_state = self.max_state + 1
   self.max_state = max_state
   return max_state
