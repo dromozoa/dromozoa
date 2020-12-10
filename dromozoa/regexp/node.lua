@@ -108,19 +108,14 @@ function metatable:__mul(that)
   return new(".", self, that)
 end
 
--- TODO 厳密な定義にする
-local function action(self, that)
+function metatable:__div(that)
   local code = self[0]
   if code == "[" then
     return new("@", self, that)
-  elseif code == "." then
-    return new(".", self[1], action(self[2], that))
   else
     error "not supported"
   end
 end
-
-metatable.__div = action
 
 function metatable:__pow(that)
   local t = type(that)
