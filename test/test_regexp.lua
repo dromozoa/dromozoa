@@ -1,4 +1,4 @@
--- Copyright (C) 2020 Tomoyuki Fujimori <moyu@dromozoa.com>
+-- Copyright (C) 2020,2021 Tomoyuki Fujimori <moyu@dromozoa.com>
 --
 -- This file is part of dromozoa.
 --
@@ -15,7 +15,99 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local node = require "dromozoa.regexp.node"
+-- local node = require "dromozoa.regexp.node"
+
+local dumper = require "dromozoa.commons.dumper"
+
+local function character_class_range(that)
+  local set = {}
+  for i = 1, #that, 2 do
+    local a, b = that:byte(i, i + 1)
+    for ev = a, b do
+      set[ev] = true
+    end
+  end
+  return set
+end
+
+local function character_class_set(that)
+  local set = {}
+  for i = 1, #that do
+    set[that:byte(i)] = true
+  end
+  return set
+end
+
+-- local x = character_class_range "AD"
+-- print(dumper.encode(x, { pretty = true }))
+
+
+-- まずは、最低限の演算子でNFAを構築することを考える
+-- グラフで使う名詞としては、edgeとvertexでいく
+
+
+
+
+--[[
+
+[abc]
+a*
+a?
+a . b
+(a|b)
+
+regexp - regexp
+
+{
+  
+}
+
+
+構文木を自分で書く
+
+{
+  [0] = "[";
+  [1] = {
+    [0x65] = true;
+    [0x66] = true;
+    [0x67] = true;
+  };
+}
+
+{
+  [0] = "*";
+  [1] = ...;
+}
+
+{
+  [0] = "?";
+  [1] = ...;
+}
+
+{
+  [0] = ".";
+  [1] = ...;
+  [2] = ...;
+}
+
+{
+  [0] = "|";
+  [1] = ...;
+  [2] = ...;
+}
+
+automaton_state {
+}
+
+automaton_transition {
+}
+
+]]
+
+
+
+
+--[[
 local tree_to_nfa = require "dromozoa.regexp.tree_to_nfa"
 local transition_table = require "dromozoa.regexp.transition_table"
 
@@ -106,3 +198,4 @@ write_graphviz(dfa3, io.open("test3.dot", "w")):close()
 local dfa4 = automaton.new():remove_unreachable_states(dfa3):minimize()
 -- local dfa4 = dfa3:remove_unreachable_states():minimize()
 write_graphviz(dfa4, io.open("test4.dot", "w")):close()
+]]
