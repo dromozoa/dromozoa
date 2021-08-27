@@ -17,26 +17,7 @@
 
 -- local node = require "dromozoa.regexp.node"
 
-local dumper = require "dromozoa.commons.dumper"
-
-local function character_class_range(that)
-  local set = {}
-  for i = 1, #that, 2 do
-    local a, b = that:byte(i, i + 1)
-    for ev = a, b do
-      set[ev] = true
-    end
-  end
-  return set
-end
-
-local function character_class_set(that)
-  local set = {}
-  for i = 1, #that do
-    set[that:byte(i)] = true
-  end
-  return set
-end
+local graph = require "dromozoa.regexp.graph"
 
 -- local x = character_class_range "AD"
 -- print(dumper.encode(x, { pretty = true }))
@@ -45,7 +26,16 @@ end
 -- まずは、最低限の演算子でNFAを構築することを考える
 -- グラフで使う名詞としては、edgeとvertexでいく
 
+-- 単方向のグラフで、削除はcopy gc的に行う
+-- 構造としてはadjacency list
+-- グラフ構造はそれなりに実装する
+-- DFAでも使う
+-- 正規化というか、制約条件はあとづけでなんとかする
+--   同一の遷移の判定条件とか
 
+-- metatableは、staticな__indexと__callだけ許可
+
+local g = graph()
 
 
 --[[
