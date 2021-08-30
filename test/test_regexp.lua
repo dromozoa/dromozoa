@@ -42,12 +42,17 @@ local graph = require "dromozoa.regexp.graph"
 -- 抽象化という意味では、new_TYPE { ... } は使えるかな？
 -- Boost.Graphみたいなproperties実装もありえる
 
+-- proxy objectを作るとpropertiesもいいかんじに作れるけど
+-- 遅くなるという問題があるよね
+
+-- vertex / stateはあまりpropertiesは持たない
+
 local nfa = graph()
 
-local u = nfa:new_vertex()
-local v = nfa:new_vertex()
-local e = nfa:new_edge(u, v)
-print(u, v, e)
+local uid = nfa:new_vertex()
+local vid = nfa:new_vertex()
+local eid = nfa:new_edge(u, v)
+print(uid, vid, eid)
 
 --[[
 
