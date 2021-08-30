@@ -35,8 +35,19 @@ local graph = require "dromozoa.regexp.graph"
 
 -- metatableは、staticな__indexと__callだけ許可
 
-local g = graph()
+-- edge / vertex|node
+-- transition / state
 
+-- グラフというよりも、ポインタ構造をどのように構築するか
+-- 抽象化という意味では、new_TYPE { ... } は使えるかな？
+-- Boost.Graphみたいなproperties実装もありえる
+
+local nfa = graph()
+
+local u = nfa:new_vertex()
+local v = nfa:new_vertex()
+local e = nfa:new_edge(u, v)
+print(u, v, e)
 
 --[[
 

@@ -18,32 +18,12 @@
 local class = {}
 local metatable = { __index = class }
 
-local function new()
-  local self = {
-    uid = 0;
-    eid = 0;
+function class:new_edge(eid, uid, vid)
 
-    u = {};
-    e = {};
-    uv = {};
-  }
-  return self
-end
-
-function class:new_vertex()
-  local uid = self.uid + 1
-  self.uid = uid
-  return uid
-end
-
-function class:new_edge(u, v)
-  local eid = self.eid + 1
-  self.eid = eid
-  return eid
 end
 
 return setmetatable(class, {
   __call = function ()
-    return setmetatable(new(), metatable)
+    return 
   end;
 })
