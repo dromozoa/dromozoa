@@ -36,6 +36,8 @@
 -- まずはなにかを出力する実行可能ファイルを作ってみる
 -- リンカを作ること？
 
+-- libbfdは？
+
 local path = ...
 
 local handle = assert(io.open(path, "rb"))
