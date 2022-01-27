@@ -26,8 +26,10 @@
 
 #include <sys/mman.h>
 
+#ifdef __APPLE__
 // https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man3/sys_icache_invalidate.3.html
 #include <libkern/OSCacheControl.h>
+#endif
 
 #include <iostream>
 
@@ -86,7 +88,9 @@ int main(int ac, char* av[]) {
     return 1;
   }
 
+#ifdef __APPLE__
   sys_icache_invalidate(memory, ptr - memory);
+#endif
 
   using function1_t = int64_t (*)();
   using function2_t = int64_t (*)(int64_t, int64_t);
