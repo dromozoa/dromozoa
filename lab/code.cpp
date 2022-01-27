@@ -20,6 +20,7 @@
 
   objdump -d code.o
 
+return 42
 0000000000000000 <__Z1fv>:
        0: 55                            pushq   %rbp
        1: 48 89 e5                      movq    %rsp, %rbp
@@ -27,12 +28,20 @@
        9: 5d                            popq    %rbp
        a: c3                            retq
 
+return a + b
+0000000000000000 <__Z1fxx>:
+       0: 55                            pushq   %rbp
+       1: 48 89 e5                      movq    %rsp, %rbp
+       4: 48 8d 04 37                   leaq    (%rdi,%rsi), %rax
+       8: 5d                            popq    %rbp
+       9: c3                            retq
+
   https://docs.microsoft.com/ja-jp/cpp/build/x64-calling-convention?view=msvc-170
 
  */
 
 #include <stdint.h>
 
-int64_t f() {
-  return 42;
+int64_t f(int64_t a, int64_t b) {
+  return a + b;
 }

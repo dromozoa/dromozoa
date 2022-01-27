@@ -44,12 +44,37 @@ int main(int ac, char* av[]) {
 
   char* ptr = memory;
 
+  //
+  // return 42
+  //
+  char* f1 = ptr;
+
   // pushq %rbp
   *ptr++ = 0x55;
   // movq %rsp, %rbp
   *ptr++ = 0x48; *ptr++ = 0x89; *ptr++ = 0xE5;
   // movl $42, %eax
   *ptr++ = 0xB8; *ptr++ = 0x2A; *ptr++ = 0x00; *ptr++ = 0x00; *ptr++ = 0x00;
+  // popq %rbp
+  *ptr++ = 0x5D;
+  // retq
+  *ptr++ = 0xC3;
+
+  // 11バイトなので5バイトたしとく？
+  // ptr += 5;
+
+  //
+  // return a + b
+  //
+
+  char* f2 = ptr;
+
+  // pushq %rbp
+  *ptr++ = 0x55;
+  // movq %rsp, %rbp
+  *ptr++ = 0x48; *ptr++ = 0x89; *ptr++ = 0xE5;
+  // leaq (%rdi,%rsi), %rax
+  *ptr++ = 0x48; *ptr++ = 0x8D; *ptr++ = 0x04; *ptr++ = 0x37;
   // popq %rbp
   *ptr++ = 0x5D;
   // retq
@@ -63,9 +88,12 @@ int main(int ac, char* av[]) {
 
   sys_icache_invalidate(memory, ptr - memory);
 
-  using function_t = int64_t (*)();
-  function_t f = reinterpret_cast<function_t>(memory);
-  std::cout << "result " << f() << "\n";
+  using function1_t = int64_t (*)();
+  using function2_t = int64_t (*)(int64_t, int64_t);
+  function1_t f1p = reinterpret_cast<function1_t>(f1);
+  function2_t f2p = reinterpret_cast<function2_t>(f2);
+  std::cout << "X:" << f1p() << "\n";
+  std::cout << "Y:" << f2p(69, 111) << "\n";
 
   munmap(memory, mmap_size);
   return 0;
