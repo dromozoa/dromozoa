@@ -1,4 +1,4 @@
--- Copyright (C) 2020 Tomoyuki Fujimori <moyu@dromozoa.com>
+-- Copyright (C) 2021 Tomoyuki Fujimori <moyu@dromozoa.com>
 --
 -- This file is part of dromozoa.
 --
@@ -18,38 +18,32 @@
 local class = {}
 local metatable = { __index = class }
 
-function class.new(n)
-  local self = { max_state = 0 }
-  for ev = 0, 255 + n do
-    self[ev] = {}
-  end
-  return setmetatable(self, metatable)
+local function new()
+  local self = {
+    uid = 0;
+    eid = 0;
+
+    u = {};
+    e = {};
+    uv = {};
+  }
+  return self
 end
 
-function class:add_state()
-  local max_state = self.max_state + 1
-  self.max_state = max_state
-  return max_state
+function class:new_vertex()
+  local uid = self.uid + 1
+  self.uid = uid
+  return uid
 end
 
-function class:set_transition(u, v, ev)
-  self[ev][u] = v
+function class:new_edge(u, v)
+  local eid = self.eid + 1
+  self.eid = eid
+  return eid
 end
 
-function class:set_transitions(u, v, set)
-  for ev in pairs(set) do
-    self[ev][u] = v
-  end
-end
-
-function class:set_epsilon_transition(u, v)
-  for ev = 256, #self do
-    if not self[ev][u] then
-      self[ev][u] = v
-      return
-    end
-  end
-  error "out of range"
-end
-
-return class
+return setmetatable(class, {
+  __call = function ()
+    return setmetatable(new(), metatable)
+  end;
+})

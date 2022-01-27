@@ -1,4 +1,4 @@
--- Copyright (C) 2020 Tomoyuki Fujimori <moyu@dromozoa.com>
+-- Copyright (C) 2021 Tomoyuki Fujimori <moyu@dromozoa.com>
 --
 -- This file is part of dromozoa.
 --
@@ -18,14 +18,14 @@
 local function tree_to_nfa(node, transitions, action_states)
   local code = node[0]
   if code == "[" then
-    local u = transitions:add_state()
-    local v = transitions:add_state()
+    local u = transitions:new_state()
+    local v = transitions:new_state()
     transitions:set_transitions(u, v, node[1])
     return u, v
   elseif code == "*" then
     local au, av = tree_to_nfa(node[1], transitions, action_states)
-    local u = transitions:add_state()
-    local v = transitions:add_state()
+    local u = transitions:new_state()
+    local v = transitions:new_state()
     transitions:set_epsilon_transition(u, au)
     transitions:set_epsilon_transition(u, v)
     transitions:set_epsilon_transition(av, v)
@@ -33,8 +33,8 @@ local function tree_to_nfa(node, transitions, action_states)
     return u, v
   elseif code == "?" then
     local au, av = tree_to_nfa(node[1], transitions, action_states)
-    local u = transitions:add_state()
-    local v = transitions:add_state()
+    local u = transitions:new_state()
+    local v = transitions:new_state()
     transitions:set_epsilon_transition(u, au)
     transitions:set_epsilon_transition(u, v)
     transitions:set_epsilon_transition(av, v)
@@ -47,8 +47,8 @@ local function tree_to_nfa(node, transitions, action_states)
   elseif code == "|" then
     local au, av = tree_to_nfa(node[1], transitions, action_states)
     local bu, bv = tree_to_nfa(node[2], transitions, action_states)
-    local u = transitions:add_state()
-    local v = transitions:add_state()
+    local u = transitions:new_state()
+    local v = transitions:new_state()
     transitions:set_epsilon_transition(u, au)
     transitions:set_epsilon_transition(u, bu)
     transitions:set_epsilon_transition(av, v)

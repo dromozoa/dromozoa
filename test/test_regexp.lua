@@ -1,4 +1,4 @@
--- Copyright (C) 2020 Tomoyuki Fujimori <moyu@dromozoa.com>
+-- Copyright (C) 2020,2021 Tomoyuki Fujimori <moyu@dromozoa.com>
 --
 -- This file is part of dromozoa.
 --
@@ -14,6 +14,122 @@
 --
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
+
+-- local node = require "dromozoa.regexp.node"
+
+local graph = require "dromozoa.regexp.graph"
+
+-- local x = character_class_range "AD"
+-- print(dumper.encode(x, { pretty = true }))
+
+
+-- まずは、最低限の演算子でNFAを構築することを考える
+-- グラフで使う名詞としては、edgeとvertexでいく
+
+-- 単方向のグラフで、削除はcopy gc的に行う
+-- 構造としてはadjacency list
+-- グラフ構造はそれなりに実装する
+-- DFAでも使う
+-- 正規化というか、制約条件はあとづけでなんとかする
+--   同一の遷移の判定条件とか
+
+-- metatableは、staticな__indexと__callだけ許可
+
+-- edge / vertex|node
+-- transition / state
+
+-- グラフというよりも、ポインタ構造をどのように構築するか
+-- 抽象化という意味では、new_TYPE { ... } は使えるかな？
+-- Boost.Graphみたいなproperties実装もありえる
+
+-- proxy objectを作るとpropertiesもいいかんじに作れるけど
+-- 遅くなるという問題があるよね
+
+-- vertex / stateはあまりpropertiesは持たない
+
+local nfa = graph()
+
+local uid = nfa:new_vertex()
+local vid = nfa:new_vertex()
+local eid = nfa:new_edge(u, v)
+print(uid, vid, eid)
+
+--[[
+
+[abc]
+a*
+a?
+a . b
+(a|b)
+
+regexp - regexp
+
+{
+  
+}
+
+
+構文木を自分で書く
+
+{
+  [0] = "[";
+  [1] = {
+    [0x65] = true;
+    [0x66] = true;
+    [0x67] = true;
+  };
+}
+
+{
+  [0] = "*";
+  [1] = ...;
+}
+
+{
+  [0] = "?";
+  [1] = ...;
+}
+
+{
+  [0] = ".";
+  [1] = ...;
+  [2] = ...;
+}
+
+{
+  [0] = "|";
+  [1] = ...;
+  [2] = ...;
+}
+
+automaton_state {
+}
+
+automaton_transition {
+}
+
+]]
+
+
+
+
+--[[
+local tree_to_nfa = require "dromozoa.regexp.tree_to_nfa"
+local transition_table = require "dromozoa.regexp.transition_table"
+
+local dumper = require "dromozoa.commons.dumper"
+
+local P = node.pattern
+local R = node.range
+local S = node.set
+
+local p = P"ab" * (P"c" / 1)^"+"
+local transitions = transition_table.new(2)
+local nfa = tree_to_nfa(p, transitions, 1)
+
+print(dumper.encode(nfa, { pretty = true, stable = true }))
+
+os.exit()
 
 local node = require "dromozoa.regexp.node"
 local to_pattern = require "dromozoa.regexp.node.to_pattern"
@@ -40,13 +156,13 @@ local p = (P"abc" / 1 * ("abc" * S"def") / 2)^"?"
 local transitions = transition_table.new(2)
 local nfa = tree_to_nfa(p, transitions, 1)
 
+-- print(dumper.encode(nfa, { pretty = true, stable = true }))
+
 local out = assert(io.open("test.dot", "w"))
 write_graphviz(nfa, out)
 out:close()
 
 local dfa = nfa_to_dfa(nfa, transition_table.new(0))
-
-os.exit()
 
 assert(to_pattern(P"abc"^"*") == "(abc)*")
 assert(to_pattern(S"abc"^"*") == "[a-c]*")
@@ -88,3 +204,4 @@ write_graphviz(dfa3, io.open("test3.dot", "w")):close()
 local dfa4 = automaton.new():remove_unreachable_states(dfa3):minimize()
 -- local dfa4 = dfa3:remove_unreachable_states():minimize()
 write_graphviz(dfa4, io.open("test4.dot", "w")):close()
+]]

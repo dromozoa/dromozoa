@@ -1,4 +1,4 @@
--- Copyright (C) 2020 Tomoyuki Fujimori <moyu@dromozoa.com>
+-- Copyright (C) 2021 Tomoyuki Fujimori <moyu@dromozoa.com>
 --
 -- This file is part of dromozoa.
 --
@@ -108,18 +108,14 @@ function metatable:__mul(that)
   return new(".", self, that)
 end
 
-local function action(self, that)
+function metatable:__div(that)
   local code = self[0]
   if code == "[" then
     return new("@", self, that)
-  elseif code == "." then
-    return new(".", self[1], action(self[2], that))
   else
     error "not supported"
   end
 end
-
-metatable.__div = action
 
 function metatable:__pow(that)
   local t = type(that)

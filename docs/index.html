@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>dromozoa</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/4.0.0/github-markdown.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.13/katex.min.css">
 <style>
 .markdown-body {
   box-sizing: border-box;
@@ -19,15 +19,18 @@
     padding: 15px;
   }
 }
-.prettyprint > ol.linenums > li {
-  list-style-type: decimal;
-}
 </style>
 </head>
 <body>
 <div class="markdown-body">
 
 <h1>dromozoa</h1>
+
+<h2>目次</h2>
+
+<ul>
+  <li><a href="strtod.html">strtod</a></li>
+</ul>
 
 <h2>正規表現の抽象構文木</h2>
 
@@ -80,17 +83,31 @@
     <td>N/A</td>
     <td>transition action</td>
   </tr>
+  <tr>
+    <td><code>%</code></td>
+    <td>2</td>
+    <td>N/A</td>
+    <td>final action</td>
+  </tr>
 </table>
 
 <h2>正規表現の遷移アクション</h2>
 
-<p>
-文字クラスに関連づけられたアクションを遷移アクションと呼ぶ。
-</p>
+<ul>
+  <li>文字クラスに関連づけられたアクションを遷移アクション (transition action) と呼ぶ。</li>
+  <li>複数の遷移アクションは並列に実行される？</li>
+</ul>
+
+<h2>正規表現の受容アクション</h2>
+
+<ul>
+  <li>正規表現が受容された場合のアクションを受容アクション (accept action) と呼ぶ。</li>
+  <li>終了状態は優先度を持つので、優先度が高い受容アクションだけが実行される。</li>
+</ul>
 
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/contrib/auto-render.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.13/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.13/contrib/auto-render.min.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   renderMathInElement(document.body);
