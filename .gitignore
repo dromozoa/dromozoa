@@ -1,2 +1,4 @@
 .*.swp
+/lab/*.o
+/lab/mmap
 /test.dot
