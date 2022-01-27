@@ -1,5 +1,5 @@
 CPPFLAGS =
-CXXFLAGS = -g -O2 -Wall
+CXXFLAGS = -g -O2 -Wall -W -std=c++11
 LDFLAGS =
 
 TARGET = mmap
