@@ -22,6 +22,8 @@
 -- #include <mach-o/fat.h>
 -- #include <mach-o/loader.h>
 
+-- https://stackoverflow.com/questions/32453849/minimal-mach-o-64-binary/32659692
+
 -- int main(int ac, char* av[]) {
 --   char* data = nullptr;
 --   return 0;
