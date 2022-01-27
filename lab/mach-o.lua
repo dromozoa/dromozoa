@@ -18,7 +18,7 @@
 -- https://github.com/aidansteele/osx-abi-macho-file-format-reference
 -- https://developers.wonderpla.net/entry/2021/03/19/105503
 
--- #include <stdio.h>
+-- otool使えばよいのでは？
 -- #include <mach-o/fat.h>
 -- #include <mach-o/loader.h>
 
@@ -32,8 +32,4 @@ local path = ...
 local handle = assert(io.open(path, "rb"))
 local data = handle:read "*a"
 handle:close()
-
-
-
-
 
