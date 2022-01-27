@@ -44,6 +44,17 @@ int main(int ac, char* av[]) {
 
   char* ptr = memory;
 
+  // pushq %rbp
+  *ptr++ = 0x55;
+  // movq %rsp, %rbp
+  *ptr++ = 0x48; *ptr++ = 0x89; *ptr++ = 0xE5;
+  // movl $42, %eax
+  *ptr++ = 0xB8; *ptr++ = 0x2A; *ptr++ = 0x00; *ptr++ = 0x00; *ptr++ = 0x00;
+  // popq %rbp
+  *ptr++ = 0x5D;
+  // retq
+  *ptr++ = 0xC3;
+
   int result = mprotect(memory, mmap_size, PROT_READ | PROT_EXEC);
   if (result != 0) {
     std::cerr << "mprotect error\n";
@@ -51,6 +62,10 @@ int main(int ac, char* av[]) {
   }
 
   sys_icache_invalidate(memory, ptr - memory);
+
+  using function_t = int64_t (*)();
+  function_t f = reinterpret_cast<function_t>(memory);
+  std::cout << "result " << f() << "\n";
 
   munmap(memory, mmap_size);
   return 0;
