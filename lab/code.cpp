@@ -18,6 +18,8 @@
 /*
   コンパイルしてobjdumpで見てみる。
 
+  objdump -d code.o
+
 0000000000000000 <__Z1fv>:
        0: 55                            pushq   %rbp
        1: 48 89 e5                      movq    %rsp, %rbp
