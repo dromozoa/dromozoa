@@ -64,6 +64,10 @@ Disassembly of section __TEXT,__eh_frame:
 
 #include <stdint.h>
 
-int64_t f(int64_t a, int64_t b) {
+int64_t add64(int64_t a, int64_t b) {
+  return a + b;
+}
+
+int32_t add32(int32_t a, int32_t b) {
   return a + b;
 }
