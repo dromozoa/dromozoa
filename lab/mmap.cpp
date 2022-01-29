@@ -61,9 +61,8 @@ int main(int ac, char* av[]) {
   *ptr++ = 0x5D;
   // retq
   *ptr++ = 0xC3;
-
-  // 11バイトなので5バイトたしとく？
-  // ptr += 5;
+  // nopw (%rax,%rax)
+  *ptr++ = 0x0F; *ptr++ = 0x1F; *ptr++ = 0x44; *ptr++ = 0x00; *ptr++ = 0x00;
 
   //
   // return a + b

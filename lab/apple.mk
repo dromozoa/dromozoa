@@ -3,7 +3,7 @@ CFLAGS = -O2 -Wall -W -fno-asynchronous-unwind-tables
 CXXFLAGS = -O2 -Wall -W -std=c++11
 LDFLAGS =
 
-TARGET = mmap code.s code.o
+TARGET = mmap code1.s code1.o
 
 all: $(TARGET)
 
