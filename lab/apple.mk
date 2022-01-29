@@ -1,9 +1,9 @@
 CPPFLAGS =
-CFLAGS = -O2 -Wall -W
+CFLAGS = -O2 -Wall -W -fno-asynchronous-unwind-tables
 CXXFLAGS = -O2 -Wall -W -std=c++11
 LDFLAGS =
 
-TARGET = mmap code.o
+TARGET = mmap code.s code.o
 
 all: $(TARGET)
 
@@ -12,6 +12,9 @@ clean:
 
 mmap: mmap.o
 	$(CXX) $(CPPFLAGS) $(LDFLAGS) $^ -o $@
+
+.c.s:
+	$(CC) $(CPPFLAGS) $(CFLAGS) -S $<
 
 .c.o:
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $<

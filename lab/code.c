@@ -40,6 +40,26 @@ return a + b
 
   https://docs.microsoft.com/ja-jp/cpp/build/x64-calling-convention?view=msvc-170
 
+  -fomit-frame-pointerを使うかどうか？
+
+  objdump -D code.o
+
+Disassembly of section __TEXT,__text:
+0000000000000000 <_f>:
+
+Disassembly of section __LD,__compact_unwind:
+0000000000000010 <__compact_unwind>:
+
+Disassembly of section __TEXT,__eh_frame:
+0000000000000030 <__eh_frame>:
+
+  https://terukusu.hatenablog.com/entry/20100301/1267467273
+
+  -fno-asynchronous-unwind-tables
+  巻き戻し情報を生成しなくなるらしい。
+
+
+
  */
 
 #include <stdint.h>
