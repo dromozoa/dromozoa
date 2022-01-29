@@ -18,7 +18,7 @@
 -- https://github.com/aidansteele/osx-abi-macho-file-format-reference
 -- https://developers.wonderpla.net/entry/2021/03/19/105503
 
--- otool使えばよいのでは？
+-- 読みたいんだったら、otool使えばよいのでは？
 -- #include <mach-o/fat.h>
 -- #include <mach-o/loader.h>
 
@@ -29,9 +29,17 @@
 --   return 0;
 -- }
 
+-- 目的はバイナリを作成すること？
+-- 実行可能ファイル？
+-- 共有リンクファイル？
+
+-- まずはなにかを出力する実行可能ファイルを作ってみる
+-- リンカを作ること？
+
+-- libbfdは？
+
 local path = ...
 
 local handle = assert(io.open(path, "rb"))
 local data = handle:read "*a"
 handle:close()
-

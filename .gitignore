@@ -1,4 +1,5 @@
 .*.swp
 /lab/*.o
+/lab/code.s
 /lab/mmap
 /test.dot
