@@ -17,21 +17,12 @@
   along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
   https://github.com/jstrieb/small-elf
-
 */
 
-#include <stdint.h>
-
-int32_t add(int32_t, int32_t);
-int32_t sub(int32_t, int32_t);
-int32_t mul(int32_t, int32_t);
-int32_t div(int32_t, int32_t);
-int32_t mod(int32_t, int32_t);
-void print(int32_t);
+#include <unistd.h>
 
 int main(int ac, char* av[]) {
-  int32_t u = add(42, 69);
-  int32_t v = div(u, 3);
-  print(v); /* 37 */
+  char buffer[] = "42\n";
+  write(1, buffer, 3);
   return 0;
 }
