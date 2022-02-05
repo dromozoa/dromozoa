@@ -58,8 +58,6 @@ Disassembly of section __TEXT,__eh_frame:
   -fno-asynchronous-unwind-tables
   巻き戻し情報を生成しなくなるらしい。
 
-
-
  */
 
 #include <stdint.h>
