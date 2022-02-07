@@ -32,3 +32,7 @@
 local regexp = require "dromozoa.regexp"
 
 regexp(_ENV)
+
+print(R)
+print(S)
+

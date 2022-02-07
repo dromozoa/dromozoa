@@ -18,4 +18,13 @@
 -- https://github.com/aidansteele/osx-abi-macho-file-format-reference
 -- https://developers.wonderpla.net/entry/2021/03/19/105503
 
-return function () end
+local function set()
+end
+
+local function range()
+end
+
+return function (env)
+  env.S = set
+  env.R = range
+end
