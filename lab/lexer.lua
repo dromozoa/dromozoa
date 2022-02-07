@@ -18,8 +18,14 @@
 -- https://github.com/aidansteele/osx-abi-macho-file-format-reference
 -- https://developers.wonderpla.net/entry/2021/03/19/105503
 
--- 正規表現 (DFA) レキサ
+--[[
+  正規表現 (DFA) レキサ
 
+  正規表現でないレキサは後で実装する
+  レキサの生成自体はFull Luaで実装してよい
+  生成されたコードはTiny Luaで実装する
+
+]]
 
 
 
