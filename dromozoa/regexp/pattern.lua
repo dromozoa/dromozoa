@@ -14,21 +14,27 @@
 --
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
---
--- https://github.com/aidansteele/osx-abi-macho-file-format-reference
--- https://developers.wonderpla.net/entry/2021/03/19/105503
 
-local pattern = require "dromozoa.regexp.pattern"
+local class = {}
+local metatable = { __index = class }
 
-local function range(...)
-  return pattern.range(...)
+function class.range(that)
+  local set = {}
+  for i = 1, #that, 2 do
+    local a, b = that:byte(i, i + 1)
+    for j = a, b do
+      set[j] = true
+    end
+  end
+  return setmetatable({ "[", set }, metatable)
 end
 
-local function set(...)
-  return pattern.set(...)
+function class.set(that)
+  local set = {}
+  for i = 1, #that do
+    set[that:byte(i)] = true
+  end
+  return setmetatable({ "[", set }, metatable)
 end
 
-return function (env)
-  env.S = set
-  env.R = range
-end
+return class
