@@ -37,4 +37,7 @@ function class.set(that)
   return setmetatable({ "[", set }, metatable)
 end
 
+function class.pattern(that)
+end
+
 return class

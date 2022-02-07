@@ -31,4 +31,5 @@ end
 return function (env)
   env.S = set
   env.R = range
+  env.P = pattern
 end
