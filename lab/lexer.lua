@@ -18,28 +18,21 @@
 -- https://github.com/aidansteele/osx-abi-macho-file-format-reference
 -- https://developers.wonderpla.net/entry/2021/03/19/105503
 
--- 読みたいんだったら、otool使えばよいのでは？
--- #include <mach-o/fat.h>
--- #include <mach-o/loader.h>
+--[[
+  正規表現 (DFA) レキサ
 
--- https://stackoverflow.com/questions/32453849/minimal-mach-o-64-binary/32659692
+  正規表現でないレキサは後で実装する
+  レキサの生成自体はFull Luaで実装してよい
+  生成されたコードはTiny Luaで実装する
+]]
 
--- int main(int ac, char* av[]) {
---   char* data = nullptr;
---   return 0;
--- }
+-- set "abc" -- [abc]
+-- range "az" -- [a-z]
 
--- 目的はバイナリを作成すること？
--- 実行可能ファイル？
--- 共有リンクファイル？
+local regexp = require "dromozoa.regexp"
 
--- まずはなにかを出力する実行可能ファイルを作ってみる
--- リンカを作ること？
+regexp(_ENV)
 
--- libbfdは？
+print(R)
+print(S)
 
-local path = ...
-
-local handle = assert(io.open(path, "rb"))
-local data = handle:read "*a"
-handle:close()

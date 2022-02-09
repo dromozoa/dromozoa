@@ -3,7 +3,7 @@ CFLAGS = -O2 -Wall -W -fno-asynchronous-unwind-tables
 CXXFLAGS = -O2 -Wall -W -std=c++11
 LDFLAGS =
 
-TARGET = mmap code1.s code1.o code2a.s code2b.s code2c.s code2
+TARGET = mmap code1.s code1.o code2a.s code2b.s code2c.s code2 code3.s code3 code4a.s code4b.s code4c.s code4
 
 all: $(TARGET)
 
@@ -14,6 +14,12 @@ mmap: mmap.o
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $^ -o $@
 
 code2: code2a.o code2b.o code2c.o
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $^ -o $@
+
+code3: code3.o
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $^ -o $@
+
+code4: code4a.o code4b.o code4c.o
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $^ -o $@
 
 .c.s:
