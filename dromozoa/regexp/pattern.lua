@@ -18,6 +18,30 @@
 local class = {}
 local metatable = { __index = class }
 
+local function construct(...)
+  return setmetatable({...}, metatable)
+end
+
+local set = {}
+for byte = 0x00, 0xFF do
+  set[byte] = true
+end
+local any = construct("[", set)
+
+function class.pattern(that)
+  local t = type(that)
+  if t == "number" then
+    if that == 1 then
+      return any
+    else
+    end
+
+  elseif t == "string" then
+  else
+    return that
+  end
+end
+
 function class.range(that)
   local set = {}
   for i = 1, #that, 2 do
@@ -37,7 +61,11 @@ function class.set(that)
   return setmetatable({ "[", set }, metatable)
 end
 
-function class.pattern(that)
+function metatable:__mul(that)
+  local self = class(self)
+  local that = class(that)
+  return setmetatable({ ".", self, that }, metatable)
 end
 
-return class
+return setmetatable(class, {
+})
