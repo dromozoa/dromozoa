@@ -14,7 +14,9 @@
 --
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
---
+
+-- ここからのコメントはmach-oについてのもの
+
 -- https://github.com/aidansteele/osx-abi-macho-file-format-reference
 -- https://developers.wonderpla.net/entry/2021/03/19/105503
 
@@ -37,9 +39,43 @@
 -- リンカを作ること？
 
 -- libbfdは？
+-- 抽象化はあとまわし
 
-local path = ...
+-- ここからのコメントが.dataセクション生成のため
 
-local handle = assert(io.open(path, "rb"))
-local data = handle:read "*a"
-handle:close()
+local data = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+local n = #data
+local m = 16
+
+io.write [[
+#include <stdint.h>
+]]
+
+io.write "\n"
+
+io.write(("static const int32_t SIZE = %d;\n"):format(n))
+
+io.write "\n"
+
+io.write "static const char CDATA[] =\n"
+for i = 1, n, m do
+  io.write(("  \"%s\"\n"):format(data:sub(i, i + m - 1)))
+end
+io.write ";\n"
+
+io.write "\n"
+
+io.write "static const int32_t IDATA[] = {\n"
+for i = 1, n, m do
+  local s = data:sub(i, i + m - 1)
+  io.write " "
+  for j = 1, #s, 4 do
+    local a, b, c, d = s:byte(j, j + 3)
+    io.write((" 0x%02X%02X%02X%02X,"):format(d or 0, c or 0, b or 0, a))
+    -- io.write((" \"%-4s\""):format(s:sub(j, j + 3)))
+  end
+  io.write "\n"
+end
+io.write "};\n"
+
+
