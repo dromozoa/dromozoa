@@ -1,4 +1,4 @@
--- Copyright (C) 2021 Tomoyuki Fujimori <moyu@dromozoa.com>
+-- Copyright (C) 2022 Tomoyuki Fujimori <moyu@dromozoa.com>
 --
 -- This file is part of dromozoa.
 --
@@ -18,50 +18,14 @@
 local class = {}
 local metatable = { __index = class }
 
---[[
+function class.new()
+  return setmetatable({ edges = {} }, metatable)
+end
 
-vertex {
-  id = ?
-  edges = {}
-}
-
-edge {
-  set = {}
-}
-
-]]
-
-local function new()
-  local self = {
-    uid = 0;
-    eid = 0;
-
-    ue = {}; -- u edges -> u last edge / u first edge
-    ve = {}; -- v edges
-    eu = {}; -- edge u
-    ev = {}; -- edge v
-
-    u = {};
-    e = {};
-    uv = {};
-  }
+function class:add_edge(edge)
+  local edges = self.edges
+  edges[#edges + 1] = edge
   return self
 end
 
-function class:new_vertex()
-  local uid = self.uid + 1
-  self.uid = uid
-  return uid
-end
-
-function class:new_edge(u, v)
-  local eid = self.eid + 1
-  self.eid = eid
-  return eid
-end
-
-return setmetatable(class, {
-  __call = function ()
-    return setmetatable(new(), metatable)
-  end;
-})
+return class

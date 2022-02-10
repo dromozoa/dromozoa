@@ -18,12 +18,17 @@
 local class = {}
 local metatable = { __index = class }
 
+function class.new()
+  local self = {
+    first = {};
+    last = {};
+    before = {};
+    after = {};
+    target = {};
+  }
+  return setmetatable({ {}, {}, {}, {}, {} }, metatable)
+end
+
 function class:new_edge(eid, uid, vid)
 
 end
-
-return setmetatable(class, {
-  __call = function ()
-    return 
-  end;
-})

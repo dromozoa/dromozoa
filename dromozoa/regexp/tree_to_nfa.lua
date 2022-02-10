@@ -15,52 +15,59 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local edge = require "dromozoa.regexp.edge"
+local vertex = require "dromozoa.regexp.vertex"
+
 local class = {}
 local metatable = { __index = class }
 
-local function visit(node, accept)
+local function visit(node)
   local code = node[1]
   local a = node[2]
   local b = node[3]
 
-  --[[
-
-    vertex
-
-    edge
-
-  ]]
-
   if code == "[" then
-    -- transition = { set, to }
-
-  elseif code == "." then
-    node.u = a.u
-    node.v = b.v
-    -- epsilon = a.v -> b.u
-  elseif code == "|" then
-    local u = 0 -- new state
-    local v = 0 -- new state
-    -- epsilon = u -> a.u
-    -- epsilon = u -> b.u
-    -- epsilon = a.v -> v
-    -- epsilon = b.v -> v
-  elseif code == "*" then
-    local u = 0 -- new state
-    local v = 0 -- new state
-    -- epsilon = u -> a.u
-    -- epsilon = u -> b.u
-    -- epsilon = a.v -> v
-    -- epsilon = b.v -> v
-
-  elseif code == "?" then
+    local u = vertex.new()
+    local v = vertex.new()
+    local t = edge.new(u, v)
+    t.set = a
+    node.u = u
+    node.v = v
   else
+    visit(a)
+    if b then
+      visit(b)
+    end
+    if code == "." then
+      edge.new(a.v, b.u)
+      node.u = a.u
+      node.v = b.v
+    elseif code == "|" then
+      local u = vertex.new()
+      local v = vertex.new()
+      edge.new(u, a.u)
+      edge.new(u, b.u)
+      edge.new(a.v, v)
+      edge.new(b.v, v)
+      node.u = u
+      node.v = v
+    elseif code == "*" then
+      local u = a.u
+      local v = a.v
+      edge.new(u, v)
+      edge.new(v, u)
+      node.u = u
+      node.v = v
+    elseif code == "?" then
+      local u = a.u
+      local v = a.v
+      edge.new(u, v)
+      node.u = u
+      node.v = v
+    end
   end
+
+  return node.u
 end
 
-return function (root, accept)
-  local graph = {}
-  local max_state = visit(graph, 0, root, accept)
-  graph.max_state = max_state
-  return graph
-end
+return visit
