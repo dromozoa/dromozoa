@@ -21,11 +21,11 @@ local function dump(out, node, map, id)
   id = id + 1
   map[node] = id
 
-  local operator = node[1]
-  if operator == "[" then
+  local code = node[1]
+  if code == "[" then
     out:write(("%d [label=\"%s\", shape=box];\n"):format(id, encode_set(node[2])))
   else
-    out:write(("%d [label = \"%s\"];\n"):format(id, operator))
+    out:write(("%d [label = \"%s\"];\n"):format(id, code))
     for i = 2, #node do
       local that = node[i]
       id = dump(out, that, map, id)

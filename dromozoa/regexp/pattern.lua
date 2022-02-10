@@ -23,11 +23,11 @@ function class.new(...)
 end
 
 function class:clone()
-  local operator = self[1]
-  if operator == "[" then
+  local code = self[1]
+  if code == "[" then
     return class.new("[", self[2])
   else
-    local that = { operator }
+    local that = { code }
     for i = 2, #that do
       that[i] = self[i]:clone()
     end
