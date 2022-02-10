@@ -36,6 +36,6 @@ local P = regexp.pattern.pattern
 local R = regexp.pattern.range
 local S = regexp.pattern.set
 
-dump_ast(io.stdout, P"abc" * (R"09" + S"abc"))
+dump_ast(io.stdout, P(1) * P"abc" * (R"09" + S"abc"))
 
 

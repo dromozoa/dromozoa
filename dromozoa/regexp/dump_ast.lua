@@ -32,6 +32,8 @@ local function dump_set(set)
     end
   end
 
+  io.stderr:write(n, "\n")
+
   assert(n > 0)
   if n == 256 then
     return "."

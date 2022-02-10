@@ -47,7 +47,7 @@ local set = {}
 for byte = 0x00, 0xFF do
   set[byte] = true
 end
-class.any = class.new("[", set)
+class.any = set
 
 function class.pattern(that)
   local t = type(that)
