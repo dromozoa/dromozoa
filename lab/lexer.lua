@@ -35,6 +35,7 @@ local P = regexp.pattern.pattern
 local R = regexp.pattern.range
 local S = regexp.pattern.set
 
+P"abc"
 print(P)
 print(R)
 print(S)
