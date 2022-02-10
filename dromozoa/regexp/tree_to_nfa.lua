@@ -15,11 +15,19 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local edge = require "dromozoa.regexp.edge"
-local vertex = require "dromozoa.regexp.vertex"
-
 local class = {}
 local metatable = { __index = class }
+
+local function new_state()
+  return { t = {} }
+end
+
+local function new_transition(u, v, set)
+  local e = { u = u, v = v, set = set }
+  local t = u.t
+  t[#t + 1] = e
+  return e
+end
 
 local function visit(node)
   local code = node[1]
@@ -27,10 +35,9 @@ local function visit(node)
   local b = node[3]
 
   if code == "[" then
-    local u = vertex.new()
-    local v = vertex.new()
-    local t = edge.new(u, v)
-    t.set = a
+    local u = new_state()
+    local v = new_state()
+    local t = new_transition(u, v, a)
     node.u = u
     node.v = v
   else
@@ -39,29 +46,29 @@ local function visit(node)
       visit(b)
     end
     if code == "." then
-      edge.new(a.v, b.u)
+      new_transition(a.v, b.u)
       node.u = a.u
       node.v = b.v
     elseif code == "|" then
-      local u = vertex.new()
-      local v = vertex.new()
-      edge.new(u, a.u)
-      edge.new(u, b.u)
-      edge.new(a.v, v)
-      edge.new(b.v, v)
+      local u = new_state()
+      local v = new_state()
+      new_transition(u, a.u)
+      new_transition(u, b.u)
+      new_transition(a.v, v)
+      new_transition(b.v, v)
       node.u = u
       node.v = v
     elseif code == "*" then
       local u = a.u
       local v = a.v
-      edge.new(u, v)
-      edge.new(v, u)
+      new_transition(u, v)
+      new_transition(v, u)
       node.u = u
       node.v = v
     elseif code == "?" then
       local u = a.u
       local v = a.v
-      edge.new(u, v)
+      new_transition(u, v)
       node.u = u
       node.v = v
     end

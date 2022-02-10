@@ -21,9 +21,9 @@ local function visit(out, u, color, id)
   id = id + 1
   color[u] = id
 
-  local edges = u.edges
-  for i = 1, #edges do
-    local e = edges[i]
+  local t = u.t
+  for i = 1, #t do
+    local e = t[i]
     local v = assert(e.v)
     local c = color[v]
     if not c then
