@@ -30,13 +30,12 @@
 -- range "az" -- [a-z]
 
 local regexp = require "dromozoa.regexp"
+local dump_ast = require "dromozoa.regexp.dump_ast"
 
 local P = regexp.pattern.pattern
 local R = regexp.pattern.range
 local S = regexp.pattern.set
 
-P"abc"
-print(P)
-print(R)
-print(S)
+dump_ast(io.stdout, P"abc" * (R"09" + S"abc"))
+
 
