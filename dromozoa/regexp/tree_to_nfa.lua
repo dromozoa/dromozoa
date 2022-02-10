@@ -38,9 +38,8 @@ local function visit(node)
     node.u = u
     node.v = v
   else
-    visit(a)
-    if b then
-      visit(b)
+    for i = 2, #node do
+      visit(node[i])
     end
     if code == "." then
       new_transition(a.v, b.u)
@@ -56,15 +55,19 @@ local function visit(node)
       node.u = u
       node.v = v
     elseif code == "*" then
-      local u = a.u
-      local v = a.v
+      local u = new_state()
+      local v = new_state()
+      new_transition(u, a.u)
+      new_transition(a.v, a.u)
+      new_transition(a.v, v)
       new_transition(u, v)
-      new_transition(v, u)
       node.u = u
       node.v = v
     elseif code == "?" then
-      local u = a.u
-      local v = a.v
+      local u = new_state()
+      local v = new_state()
+      new_transition(u, a.u)
+      new_transition(a.v, v)
       new_transition(u, v)
       node.u = u
       node.v = v
@@ -74,6 +77,9 @@ end
 
 return function (root, accept)
   visit(root)
-  root.v.accept = accept
-  return root.u
+  local u = root.u
+  local v = root.v
+  u.start = true
+  v.accept = accept
+  return u
 end

@@ -21,8 +21,15 @@ local function visit(out, u, color, id)
   id = id + 1
   color[u] = id
 
+  local attrs = {}
+  if u.start then
+    attrs[#attrs + 1] = "fillcolor=grey"
+  end
   if u.accept then
-    out:write(("%d [shape=doublecircle];\n"):format(id))
+    attrs[#attrs + 1] = "shape=doublecircle"
+  end
+  if #attrs > 0 then
+    out:write(("%d [%s];\n"):format(id, table.concat(attrs)))
   end
 
   local t = u.t
@@ -45,11 +52,11 @@ local function visit(out, u, color, id)
   return id
 end
 
-return function (out, root)
+return function (out, start)
   local color = {}
 
   out:write "digraph {\n"
-  visit(out, root, color, 0)
+  visit(out, start, color, 0)
   out:write "}\n"
 
   return out

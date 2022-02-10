@@ -40,6 +40,7 @@ local S = regexp.pattern.set
 
 local p = P(1) * P"abc" * (R"09" + S"abc")
 local p = P(2) * P"abc"^0
+local p = P"abc"^0
 
 dump_graph(io.stdout, tree_to_nfa(p, 42))
 
