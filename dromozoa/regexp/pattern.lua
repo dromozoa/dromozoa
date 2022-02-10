@@ -47,14 +47,14 @@ local set = {}
 for byte = 0x00, 0xFF do
   set[byte] = true
 end
-class.any = set
+class.any = class.new("[", set)
 
 function class.pattern(that)
   local t = type(that)
   if t == "number" then
     local items = {}
     for i = 1, that do
-      items[i] = class.new("[", class.any)
+      items[i] = class.any:clone()
     end
     return class.concat(items)
   elseif t == "string" then
