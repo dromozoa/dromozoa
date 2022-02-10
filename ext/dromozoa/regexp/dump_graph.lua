@@ -21,6 +21,10 @@ local function visit(out, u, color, id)
   id = id + 1
   color[u] = id
 
+  if u.accept then
+    out:write(("%d [shape=doublecircle];\n"):format(id))
+  end
+
   local t = u.t
   for i = 1, #t do
     local e = t[i]

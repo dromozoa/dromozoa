@@ -70,8 +70,10 @@ local function visit(node)
       node.v = v
     end
   end
-
-  return node.u
 end
 
-return visit
+return function (root, accept)
+  visit(root)
+  root.v.accept = accept
+  return root.u
+end
