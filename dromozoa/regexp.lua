@@ -20,15 +20,6 @@
 
 local pattern = require "dromozoa.regexp.pattern"
 
-local function range(...)
-  return pattern.range(...)
-end
-
-local function set(...)
-  return pattern.set(...)
-end
-
-return function (env)
-  env.S = set
-  env.R = range
-end
+return {
+  pattern = pattern;
+}

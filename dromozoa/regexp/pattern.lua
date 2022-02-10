@@ -22,6 +22,14 @@ local function construct(...)
   return setmetatable({...}, metatable)
 end
 
+local function concat(items)
+  local result = items[1]
+  for i = 2, #items do
+    result = result * items[i]
+  end
+  return result
+end
+
 local set = {}
 for byte = 0x00, 0xFF do
   set[byte] = true
@@ -29,16 +37,14 @@ end
 local any = construct("[", set)
 
 function class.pattern(that)
-  local t = type(that)
-  if t == "number" then
-    if that == 1 then
-      return any
-    else
-    end
-
-  elseif t == "string" then
+  if #that == 1 then
+    return construct("[", { [that:byte()] = true })
   else
-    return that
+    local items = {}
+    for i = 1, #that do
+      items[i] = construct("[", { [that:byte(i)] = true })
+    end
+    return concat(items)
   end
 end
 
@@ -50,7 +56,7 @@ function class.range(that)
       set[j] = true
     end
   end
-  return setmetatable({ "[", set }, metatable)
+  return construct("[", set)
 end
 
 function class.set(that)
@@ -58,7 +64,7 @@ function class.set(that)
   for i = 1, #that do
     set[that:byte(i)] = true
   end
-  return setmetatable({ "[", set }, metatable)
+  return construct("[", set)
 end
 
 function metatable:__mul(that)
@@ -67,5 +73,4 @@ function metatable:__mul(that)
   return setmetatable({ ".", self, that }, metatable)
 end
 
-return setmetatable(class, {
-})
+return class
