@@ -20,7 +20,7 @@ local function new_state()
 end
 
 local function new_transition(u, v, set)
-  local e = { u = u, v = v, set = set }
+  local e = { v = v, set = set }
   local t = u.t
   t[#t + 1] = e
   return e
