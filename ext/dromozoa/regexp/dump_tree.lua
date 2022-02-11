@@ -14,25 +14,34 @@
 --
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
---
--- https://github.com/aidansteele/osx-abi-macho-file-format-reference
--- https://developers.wonderpla.net/entry/2021/03/19/105503
 
---[[
-  正規表現 (DFA) レキサ
+local encode_set = require "dromozoa.regexp.encode_set"
 
-  正規表現でないレキサは後で実装する
-  レキサの生成自体はFull Luaで実装してよい
-  生成されたコードはTiny Luaで実装する
-]]
+local function dump(out, node, map, id)
+  id = id + 1
+  map[node] = id
 
--- set "abc" -- [abc]
--- range "az" -- [a-z]
+  local code = node[1]
+  if code == "[" then
+    out:write(("%d [label=\"%s\", shape=box];\n"):format(id, encode_set(node[2])))
+  else
+    out:write(("%d [label = \"%s\"];\n"):format(id, code))
+    for i = 2, #node do
+      local that = node[i]
+      id = dump(out, that, map, id)
+      out:write(("%d -> %d;\n"):format(map[node], map[node[i]]))
+    end
+  end
 
-local regexp = require "dromozoa.regexp"
+  return id
+end
 
-regexp(_ENV)
+return function (out, node)
+  local map = {}
 
-print(R)
-print(S)
+  out:write "digraph {\n"
+  dump(out, node, map, 0)
+  out:write "}\n"
 
+  return out
+end

@@ -18,8 +18,33 @@
 -- https://github.com/aidansteele/osx-abi-macho-file-format-reference
 -- https://developers.wonderpla.net/entry/2021/03/19/105503
 
-local pattern = require "dromozoa.regexp.pattern"
+--[[
+  正規表現 (DFA) レキサ
 
-return {
-  pattern = pattern;
-}
+  正規表現でないレキサは後で実装する
+  レキサの生成自体はFull Luaで実装してよい
+  生成されたコードはTiny Luaで実装する
+]]
+
+-- set "abc" -- [abc]
+-- range "az" -- [a-z]
+
+local regexp = require "dromozoa.regexp"
+local tree_to_nfa = require "dromozoa.regexp.tree_to_nfa"
+local nfa_to_dfa = require "dromozoa.regexp.nfa_to_dfa"
+local dump_tree = require "dromozoa.regexp.dump_tree"
+local dump_graph = require "dromozoa.regexp.dump_graph"
+
+local P = regexp.pattern.pattern
+local R = regexp.pattern.range
+local S = regexp.pattern.set
+
+local p = P(1) * P"abc" * (R"09" + S"abc")
+local p = P(2) * P"abc"^0
+local p = P"abc"^0
+local p = (R"ac" * P"abc" + R"df" * P"def")^0
+
+-- dump_graph(io.stdout, tree_to_nfa(p, 42))
+local dfa = nfa_to_dfa(tree_to_nfa(p, 1))
+dump_graph(io.stdout, dfa)
+
