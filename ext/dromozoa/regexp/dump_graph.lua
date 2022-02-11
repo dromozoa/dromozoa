@@ -17,12 +17,12 @@
 
 local encode_set = require "dromozoa.regexp.encode_set"
 
-local function visit(out, u, color, id)
+local function visit(out, u, color, id, start)
   id = id + 1
   color[u] = id
 
   local attrs = {}
-  if u.start then
+  if u == start then
     attrs[#attrs + 1] = "fillcolor=grey"
   end
   if u.accept then
@@ -38,7 +38,7 @@ local function visit(out, u, color, id)
     local v = assert(e.v)
     local c = color[v]
     if not c then
-      id = visit(out, v, color, id)
+      id = visit(out, v, color, id, start)
     end
 
     local set = e.set
@@ -56,7 +56,7 @@ return function (out, start)
   local color = {}
 
   out:write "digraph {\n"
-  visit(out, start, color, 0)
+  visit(out, start, color, 0, start)
   out:write "}\n"
 
   return out

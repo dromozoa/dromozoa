@@ -81,9 +81,6 @@ return function (root, accept)
   visit(root)
   local u = root.u
   local v = root.v
-  -- TODO startはフラグとしてつける必要がないのでは？
-  u.start = true
-  -- TODO accept_statesのリストもあったほうがよい。
   v.accept = accept
   return u
 end

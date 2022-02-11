@@ -180,7 +180,5 @@ return function (u)
   local map = { [encode_seq(useq)] = uobj }
   visit(useq, map, epsilon_closures, color, rev_color)
 
-  uobj.start = true
-
   return uobj
 end
