@@ -26,6 +26,8 @@ local function new_transition(u, v, set)
   return e
 end
 
+-- TODO uvをnodeのしたにはやす必要はない？
+
 local function visit(node)
   local code = node[1]
   local a = node[2]
@@ -79,7 +81,9 @@ return function (root, accept)
   visit(root)
   local u = root.u
   local v = root.v
+  -- TODO startはフラグとしてつける必要がないのでは？
   u.start = true
+  -- TODO accept_statesのリストもあったほうがよい。
   v.accept = accept
   return u
 end

@@ -31,6 +31,7 @@
 
 local regexp = require "dromozoa.regexp"
 local tree_to_nfa = require "dromozoa.regexp.tree_to_nfa"
+local nfa_to_dfa = require "dromozoa.regexp.nfa_to_dfa"
 local dump_tree = require "dromozoa.regexp.dump_tree"
 local dump_graph = require "dromozoa.regexp.dump_graph"
 
@@ -41,7 +42,9 @@ local S = regexp.pattern.set
 local p = P(1) * P"abc" * (R"09" + S"abc")
 local p = P(2) * P"abc"^0
 local p = P"abc"^0
+local p = (R"ac" * P"abc" + R"df" * P"def")^0
 
-dump_graph(io.stdout, tree_to_nfa(p, 42))
-
+-- dump_graph(io.stdout, tree_to_nfa(p, 42))
+local dfa = nfa_to_dfa(tree_to_nfa(p, 1))
+dump_graph(io.stdout, dfa)
 
