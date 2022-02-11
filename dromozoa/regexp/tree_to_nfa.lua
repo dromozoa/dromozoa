@@ -26,61 +26,49 @@ local function new_transition(u, v, set)
   return e
 end
 
--- TODO uvをnodeのしたにはやす必要はない？
-
 local function visit(node)
   local code = node[1]
-  local a = node[2]
-  local b = node[3]
-
   if code == "[" then
     local u = new_state()
     local v = new_state()
-    local t = new_transition(u, v, a)
-    node.u = u
-    node.v = v
+    local t = new_transition(u, v, node[2])
+    return u, v
   else
-    for i = 2, #node do
-      visit(node[i])
-    end
+    local au, av = visit(node[2])
     if code == "." then
-      new_transition(a.v, b.u)
-      node.u = a.u
-      node.v = b.v
+      local bu, bv = visit(node[3])
+      new_transition(av, bu)
+      return au, bv
     elseif code == "|" then
+      local bu, bv = visit(node[3])
       local u = new_state()
       local v = new_state()
-      new_transition(u, a.u)
-      new_transition(u, b.u)
-      new_transition(a.v, v)
-      new_transition(b.v, v)
-      node.u = u
-      node.v = v
+      new_transition(u, au)
+      new_transition(u, bu)
+      new_transition(av, v)
+      new_transition(bv, v)
+      return u, v
     elseif code == "*" then
       local u = new_state()
       local v = new_state()
-      new_transition(u, a.u)
-      new_transition(a.v, a.u)
-      new_transition(a.v, v)
+      new_transition(u, au)
+      new_transition(av, au)
+      new_transition(av, v)
       new_transition(u, v)
-      node.u = u
-      node.v = v
+      return u, v
     elseif code == "?" then
       local u = new_state()
       local v = new_state()
-      new_transition(u, a.u)
-      new_transition(a.v, v)
+      new_transition(u, au)
+      new_transition(av, v)
       new_transition(u, v)
-      node.u = u
-      node.v = v
+      return u, v
     end
   end
 end
 
 return function (root, accept)
-  visit(root)
-  local u = root.u
-  local v = root.v
+  local u, v = visit(root)
   v.accept = accept
   return u
 end
