@@ -22,7 +22,7 @@ local function visit(node)
   if code == "[" then
     local u = graph.new_state()
     local v = graph.new_state()
-    local t = graph.new_transition(u, v, node[2])
+    graph.new_transition(u, v, node[2])
     return u, v
   else
     local au, av = visit(node[2])
@@ -42,17 +42,17 @@ local function visit(node)
     elseif code == "*" then
       local u = graph.new_state()
       local v = graph.new_state()
+      graph.new_transition(u, v)
       graph.new_transition(u, au)
       graph.new_transition(av, au)
       graph.new_transition(av, v)
-      graph.new_transition(u, v)
       return u, v
     elseif code == "?" then
       local u = graph.new_state()
       local v = graph.new_state()
+      graph.new_transition(u, v)
       graph.new_transition(u, au)
       graph.new_transition(av, v)
-      graph.new_transition(u, v)
       return u, v
     end
   end
