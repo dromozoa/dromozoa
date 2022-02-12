@@ -32,16 +32,16 @@ local function visit(out, u, color, id, start)
     out:write(("%d [%s];\n"):format(id, table.concat(attrs)))
   end
 
-  local t = u.t
-  for i = 1, #t do
-    local e = t[i]
-    local v = assert(e.v)
+  local transitions = u.transitions
+  for i = 1, #transitions do
+    local transition = transitions[i]
+    local v = assert(transition.v)
     local c = color[v]
     if not c then
       id = visit(out, v, color, id, start)
     end
 
-    local set = e.set
+    local set = transition.set
     if set then
       out:write(("%d -> %d [label=\"%s\"];\n"):format(color[u], color[v], encode_set(set)))
     else
