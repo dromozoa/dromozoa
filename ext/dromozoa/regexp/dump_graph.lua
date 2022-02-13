@@ -15,12 +15,13 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local graph = require "dromozoa.regexp.graph"
 local encode_set = require "dromozoa.regexp.encode_set"
 
-local function visit(out, u, color, id, start)
-  id = id + 1
-  color[u] = id
+local function visit(out, u, state_to_index, color, start)
+  color[u] = 1
 
+  local uid = state_to_index[u]
   local attrs = {}
   if u == start then
     attrs[#attrs + 1] = "fillcolor=grey"
@@ -29,35 +30,30 @@ local function visit(out, u, color, id, start)
     attrs[#attrs + 1] = "shape=doublecircle"
   end
   if #attrs > 0 then
-    out:write(("%d [%s];\n"):format(id, table.concat(attrs)))
+    out:write(("%d [%s];\n"):format(uid, table.concat(attrs)))
   end
 
   local transitions = u.transitions
   for i = 1, #transitions do
     local transition = transitions[i]
-    local v = assert(transition.v)
-    local c = color[v]
-    if not c then
-      id = visit(out, v, color, id, start)
+    local v = transition.v
+    if not color[v] then
+      visit(out, v, state_to_index, color, start)
     end
-
     local set = transition.set
+    local vid = state_to_index[v]
     if set then
-      out:write(("%d -> %d [label=\"%s\"];\n"):format(color[u], color[v], encode_set(set)))
+      out:write(("%d -> %d [label=\"%s\"];\n"):format(uid, vid, encode_set(set)))
     else
-      out:write(("%d -> %d;\n"):format(color[u], color[v]))
+      out:write(("%d -> %d;\n"):format(uid, vid))
     end
   end
-
-  return id
 end
 
 return function (out, start)
-  local color = {}
-
+  local state_to_index, index_to_state, max_accept_index = graph.create_state_indices(start)
   out:write "digraph {\n"
-  visit(out, start, color, 0, start)
+  visit(out, start, state_to_index, {}, start)
   out:write "}\n"
-
   return out
 end

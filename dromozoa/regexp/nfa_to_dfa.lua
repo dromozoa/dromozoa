@@ -17,26 +17,8 @@
 
 local graph = require "dromozoa.regexp.graph"
 
-local function visit(u, color, id)
-  id = id + 1
-  color[u] = id
-
-  local transitions = u.transitions
-  for i = 1, #transitions do
-    local transition = transitions[i]
-    local v = transition.v
-    if not color[v] then
-      id = visit(v, color, id)
-    end
-  end
-
-  return id
-end
-
 local function map_color(u)
-  local color = {}
-  visit(u, color, 0)
-  return color
+  return graph.create_state_indices(u)
 end
 
 local function visit(u, epsilon_closure, color)
@@ -134,7 +116,7 @@ local function visit(useq, map, epsilon_closures, color, rev_color)
     local vobj = map_transition[i]
     local tset = rev_transition[vobj]
     graph.new_transition(uobj, vobj, tset)
-    print(uobj, vobj, encode_seq(set_to_seq(tset)))
+    -- print(uobj, vobj, encode_seq(set_to_seq(tset)))
 
     local vseq = vobj.seq
 
