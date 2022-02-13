@@ -34,35 +34,35 @@ local function visit1(u, state_to_index, index_to_state, index, color)
     index = index + 1
     state_to_index[u] = index
     index_to_state[index] = u
-  else
-    local transitions = u.transitions
-    for i = 1, #transitions do
-      local transition = transitions[i]
-      local v = transition.v
-      if not color[v] then
-        index = visit1(v, state_to_index, index_to_state, index, color)
-      end
+  end
+  local transitions = u.transitions
+  for i = 1, #transitions do
+    local transition = transitions[i]
+    local v = transition.v
+    if not color[v] then
+      index = visit1(v, state_to_index, index_to_state, index, color)
     end
   end
+  color[u] = 2
   return index
 end
 
 local function visit2(u, state_to_index, index_to_state, index, color)
   color[u] = 1
-  if not u.accept then
+  if not state_to_index[u] then
     index = index + 1
     state_to_index[u] = index
     index_to_state[index] = u
-
-    local transitions = u.transitions
-    for i = 1, #transitions do
-      local transition = transitions[i]
-      local v = transition.v
-      if not color[v] then
-        index = visit2(v, state_to_index, index_to_state, index, color)
-      end
+  end
+  local transitions = u.transitions
+  for i = 1, #transitions do
+    local transition = transitions[i]
+    local v = transition.v
+    if not color[v] then
+      index = visit2(v, state_to_index, index_to_state, index, color)
     end
   end
+  color[u] = 2
   return index
 end
 
