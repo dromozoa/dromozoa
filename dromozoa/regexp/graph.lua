@@ -66,11 +66,11 @@ local function visit2(u, state_to_index, index_to_state, index, color)
   return index
 end
 
-function class.create_state_indices(start)
+function class.create_state_indices(u)
   local state_to_index = {}
   local index_to_state = {}
-  local max_accept_index = visit1(start, state_to_index, index_to_state, 0, {})
-  visit2(start, state_to_index, index_to_state, max_accept_index, {})
+  local max_accept_index = visit1(u, state_to_index, index_to_state, 0, {})
+  visit2(u, state_to_index, index_to_state, max_accept_index, {})
   return state_to_index, index_to_state, max_accept_index
 end
 
