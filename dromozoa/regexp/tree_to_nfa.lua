@@ -15,75 +15,51 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local function new_state()
-  return { t = {} }
-end
-
-local function new_transition(u, v, set)
-  local e = { u = u, v = v, set = set }
-  local t = u.t
-  t[#t + 1] = e
-  return e
-end
-
--- TODO uvをnodeのしたにはやす必要はない？
+local graph = require "dromozoa.regexp.graph"
 
 local function visit(node)
   local code = node[1]
-  local a = node[2]
-  local b = node[3]
-
   if code == "[" then
-    local u = new_state()
-    local v = new_state()
-    local t = new_transition(u, v, a)
-    node.u = u
-    node.v = v
+    local u = graph.new_state()
+    local v = graph.new_state()
+    graph.new_transition(u, v, node[2])
+    return u, v
   else
-    for i = 2, #node do
-      visit(node[i])
-    end
+    local au, av = visit(node[2])
     if code == "." then
-      new_transition(a.v, b.u)
-      node.u = a.u
-      node.v = b.v
+      local bu, bv = visit(node[3])
+      graph.new_transition(av, bu)
+      return au, bv
     elseif code == "|" then
-      local u = new_state()
-      local v = new_state()
-      new_transition(u, a.u)
-      new_transition(u, b.u)
-      new_transition(a.v, v)
-      new_transition(b.v, v)
-      node.u = u
-      node.v = v
+      local bu, bv = visit(node[3])
+      local u = graph.new_state()
+      local v = graph.new_state()
+      graph.new_transition(u, au)
+      graph.new_transition(u, bu)
+      graph.new_transition(av, v)
+      graph.new_transition(bv, v)
+      return u, v
     elseif code == "*" then
-      local u = new_state()
-      local v = new_state()
-      new_transition(u, a.u)
-      new_transition(a.v, a.u)
-      new_transition(a.v, v)
-      new_transition(u, v)
-      node.u = u
-      node.v = v
+      local u = graph.new_state()
+      local v = graph.new_state()
+      graph.new_transition(u, v)
+      graph.new_transition(u, au)
+      graph.new_transition(av, au)
+      graph.new_transition(av, v)
+      return u, v
     elseif code == "?" then
-      local u = new_state()
-      local v = new_state()
-      new_transition(u, a.u)
-      new_transition(a.v, v)
-      new_transition(u, v)
-      node.u = u
-      node.v = v
+      local u = graph.new_state()
+      local v = graph.new_state()
+      graph.new_transition(u, v)
+      graph.new_transition(u, au)
+      graph.new_transition(av, v)
+      return u, v
     end
   end
 end
 
 return function (root, accept)
-  visit(root)
-  local u = root.u
-  local v = root.v
-  -- TODO startはフラグとしてつける必要がないのでは？
-  u.start = true
-  -- TODO accept_statesのリストもあったほうがよい。
+  local u, v = visit(root)
   v.accept = accept
-  return u
+  return u, v
 end

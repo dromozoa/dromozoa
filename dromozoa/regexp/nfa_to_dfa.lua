@@ -15,30 +15,10 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local function visit(u, color, id)
-  id = id + 1
-  color[u] = id
-
-  local transitions = u.t
-  for i = 1, #transitions do
-    local transition = transitions[i]
-    local v = transition.v
-    if not color[v] then
-      id = visit(v, color, id)
-    end
-  end
-
-  return id
-end
-
-local function map_color(u)
-  local color = {}
-  visit(u, color, 0)
-  return color
-end
+local graph = require "dromozoa.regexp.graph"
 
 local function visit(u, epsilon_closure, color)
-  local transitions = u.t
+  local transitions = u.transitions
   for i = 1, #transitions do
     local transition = transitions[i]
     if not transition.set then -- is epsilon
@@ -74,17 +54,6 @@ local function encode_seq(seq)
   return table.concat(seq, ",")
 end
 
-local function new_state()
-  return { t = {} }
-end
-
-local function new_transition_(u, v, set)
-  local e = { u = u, v = v, set = set }
-  local t = u.t
-  t[#t + 1] = e
-  return e
-end
-
 local function visit(useq, map, epsilon_closures, color, rev_color)
   local new_transition = {}
   local rev_transition = {}
@@ -95,7 +64,7 @@ local function visit(useq, map, epsilon_closures, color, rev_color)
     for i = 1, #useq do
       local xid = useq[i]
       local x = rev_color[xid]
-      local transitions = x.t
+      local transitions = x.transitions
       for j = 1, #transitions do
         local transition = transitions[j]
         local set = transition.set
@@ -123,7 +92,7 @@ local function visit(useq, map, epsilon_closures, color, rev_color)
         end
         rev_transition[vobj][byte] = true
       else
-        vobj = new_state()
+        vobj = graph.new_state()
         map[vstr] = vobj
 
         new_transition[byte] = vobj
@@ -142,8 +111,8 @@ local function visit(useq, map, epsilon_closures, color, rev_color)
   for i = 1, #map_transition do
     local vobj = map_transition[i]
     local tset = rev_transition[vobj]
-    new_transition_(uobj, vobj, tset)
-    print(uobj, vobj, encode_seq(set_to_seq(tset)))
+    graph.new_transition(uobj, vobj, tset)
+    -- print(uobj, vobj, encode_seq(set_to_seq(tset)))
 
     local vseq = vobj.seq
 
@@ -165,22 +134,15 @@ local function visit(useq, map, epsilon_closures, color, rev_color)
 end
 
 return function (u)
-  local color = map_color(u)
-
-  local rev_color = {}
-  for k, v in pairs(color) do
-    rev_color[v] = k
-  end
+  local state_to_index, index_to_state = graph.create_state_indices(u)
 
   local epsilon_closures = {}
-  local uset = epsilon_closure(u, epsilon_closures, color)
+  local uset = epsilon_closure(u, epsilon_closures, state_to_index)
   local useq = set_to_seq(uset)
-  local uobj = new_state()
+  local uobj = graph.new_state()
 
   local map = { [encode_seq(useq)] = uobj }
-  visit(useq, map, epsilon_closures, color, rev_color)
-
-  uobj.start = true
+  visit(useq, map, epsilon_closures, state_to_index, index_to_state)
 
   return uobj
 end
