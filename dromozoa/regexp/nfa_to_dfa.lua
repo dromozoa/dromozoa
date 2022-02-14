@@ -31,31 +31,31 @@ local function map_to_seq(map)
   return seq
 end
 
-local function visit(u, map, state_to_index)
+local function visit(u, map, state_indices)
   local transitions = u.transitions
   for i = 1, #transitions do
     local transition = transitions[i]
     if not transition.set then
       local v = transition.v
-      local vid = state_to_index[v]
+      local vid = state_indices[v]
       map[vid] = v
-      visit(v, map, state_to_index)
+      visit(v, map, state_indices)
     end
   end
 end
 
-local function epsilon_closure(u, epsilon_closures, state_to_index)
+local function epsilon_closure(u, epsilon_closures, state_indices)
   local seq = epsilon_closures[u]
   if not seq then
-    local map = { [state_to_index[u]] = u }
-    visit(u, map, state_to_index)
+    local map = { [state_indices[u]] = u }
+    visit(u, map, state_indices)
     seq = map_to_seq(map)
     epsilon_closures[u] = seq
   end
   return seq
 end
 
-local function visit(useq, new_states, epsilon_closures, state_to_index, color)
+local function visit(useq, new_states, epsilon_closures, state_indices, color)
   local new_transitions = {}
   local new_transition_map = {}
 
@@ -73,8 +73,8 @@ local function visit(useq, new_states, epsilon_closures, state_to_index, color)
         local set = transition.set
         if set and set[byte] then
           local y = transition.v
-          local yid = state_to_index[y]
-          local zseq = epsilon_closure(y, epsilon_closures, state_to_index)
+          local yid = state_indices[y]
+          local zseq = epsilon_closure(y, epsilon_closures, state_indices)
           for k = 1, #zseq do
             local zid = zseq[k].index
             local z = zseq[k].state
@@ -125,7 +125,7 @@ local function visit(useq, new_states, epsilon_closures, state_to_index, color)
     vnew.accept = accept
 
     if not color[vseq] then
-      visit(vseq, new_states, epsilon_closures, state_to_index, color)
+      visit(vseq, new_states, epsilon_closures, state_indices, color)
     end
   end
 
@@ -133,11 +133,11 @@ local function visit(useq, new_states, epsilon_closures, state_to_index, color)
 end
 
 return function (u)
-  local state_to_index = graph.create_state_indices(u)
+  local state_indices = graph.create_state_indices(u)
   local epsilon_closures = {}
-  local useq = epsilon_closure(u, epsilon_closures, state_to_index)
+  local useq = epsilon_closure(u, epsilon_closures, state_indices)
   local unew = graph.new_state()
   local new_states = { [useq.key] = { state = unew, seq = useq } }
-  visit(useq, new_states, epsilon_closures, state_to_index, {})
+  visit(useq, new_states, epsilon_closures, state_indices, {})
   return unew
 end
