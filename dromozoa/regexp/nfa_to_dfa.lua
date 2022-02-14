@@ -56,14 +56,19 @@ local function epsilon_closure(u, epsilon_closures, state_to_index)
   return seq
 end
 
-local function visit(useq, map, epsilon_closures, color, rev_color)
+local function visit(useq, map, epsilon_closures, state_to_index, color)
 
   -- set
   -- seq
   -- str
 
-  local rev_transition = {}
-  local map_transition = {}
+  -- local rev_transition = {}
+  -- local map_transition = {}
+
+  local map_transitions = {}
+  local new_transitions = {}
+
+  color[useq] = 1
 
   for byte = 0x00, 0xFF do
     local vmap = {}
@@ -71,16 +76,14 @@ local function visit(useq, map, epsilon_closures, color, rev_color)
       local item = useq[i]
       local xid = item[1]
       local x = item[2]
-
       local transitions = x.transitions
       for j = 1, #transitions do
         local transition = transitions[j]
         local set = transition.set
         if set and set[byte] then
           local y = transition.v
-          local yid = color[y]
-
-          local zseq = epsilon_closure(y, epsilon_closures, color)
+          local yid = state_to_index[y]
+          local zseq = epsilon_closure(y, epsilon_closures, state_to_index)
           for k = 1, #zseq do
             local item = zseq[k]
             local zid = item[1]
@@ -93,29 +96,66 @@ local function visit(useq, map, epsilon_closures, color, rev_color)
 
     if next(vmap) then
       local vseq = map_to_seq(vmap)
-      local vobj = map[vseq.key]
+      local vkey = vseq.key
+      local vobj = map[vkey]
       if not vobj then
-        vobj = graph.new_state()
-        map[vseq.key] = vobj
-        map_transition[#map_transition + 1] = vobj
-        vobj.seq = vseq
+        vobj = { graph.new_state(), vseq }
+        map[vkey] = vobj
       end
 
-      if not rev_transition[vobj] then
-        rev_transition[vobj] = {}
+      local new_transition = map_transitions[vobj]
+      if not new_transition then
+        new_transition = { v = vobj, set = {} }
+        map_transitions[vobj] = new_transition
+        new_transitions[#new_transitions + 1] = new_transition
       end
-      rev_transition[vobj][byte] = true
+      new_transition.set[byte] = true
+
+      -- map_transition[#map_transition + 1] = vobj
+      -- if not rev_transition[vobj] then
+      --   rev_transition[vobj] = {}
+      -- end
+      -- rev_transition[vobj][byte] = true
     end
   end
 
   local uobj = assert(map[useq.key])
+  for i = 1, #new_transitions do
+    local new_transition = new_transitions[i]
+    local vobj = new_transition.v
+    local vset = new_transition.set
+    graph.new_transition(uobj[1], vobj[1], vset)
+
+    -- local vseq = vobj.seq
+    local vseq = vobj[2]
+
+    -- merge accept state
+    -- vsetに含まれる最大のacceptをvobjに設定する
+    local accept
+    for i = 1, #vseq do
+      local yid = vseq[i][1]
+      local y = vseq[i][2]
+      local a = y.accept
+      if a and (not accept or accept > a) then
+        accept = a
+      end
+    end
+    vobj[1].accept = accept
+
+    if not color[vseq] then
+      visit(vseq, map, epsilon_closures, state_to_index, color)
+    end
+  end
+
+--[=[
   for i = 1, #map_transition do
     local vobj = map_transition[i]
     local tset = rev_transition[vobj]
-    graph.new_transition(uobj, vobj, tset)
+    graph.new_transition(uobj[1], vobj[1], tset)
     -- print(uobj, vobj, seq_to_str(set_to_seq(tset)))
 
-    local vseq = vobj.seq
+    -- local vseq = vobj.seq
+    local vseq = vobj[2]
 
     -- merge accept state
     -- vsetに含まれる最大のacceptをvobjに設定する
@@ -128,14 +168,15 @@ local function visit(useq, map, epsilon_closures, color, rev_color)
         accept = a
       end
     end
-    vobj.accept = accept
+    vobj[1].accept = accept
 
-    visit(vseq, map, epsilon_closures, color, rev_color)
+    visit(vseq, map, epsilon_closures, state_to_index)
   end
+]=]
 end
 
 return function (u)
-  local state_to_index, index_to_state = graph.create_state_indices(u)
+  local state_to_index = graph.create_state_indices(u)
 
   local epsilon_closures = {}
   -- local uset = epsilon_closure(u, epsilon_closures, state_to_index)
@@ -144,8 +185,8 @@ return function (u)
   local uobj = graph.new_state()
 
   -- local map = { [seq_to_str(useq)] = uobj }
-  local map = { [useq.key] = uobj }
-  visit(useq, map, epsilon_closures, state_to_index, index_to_state)
+  local map = { [useq.key] = { uobj, useq } }
+  visit(useq, map, epsilon_closures, state_to_index, {})
 
   return uobj
 end
