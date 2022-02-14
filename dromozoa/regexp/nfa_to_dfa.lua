@@ -136,8 +136,8 @@ return function (u)
   local state_to_index = graph.create_state_indices(u)
   local epsilon_closures = {}
   local useq = epsilon_closure(u, epsilon_closures, state_to_index)
-  local uobj = graph.new_state()
-  local map = { [useq.key] = { state = uobj, seq = useq } }
-  visit(useq, map, epsilon_closures, state_to_index, {})
-  return uobj
+  local unew = graph.new_state()
+  local new_states = { [useq.key] = { state = unew, seq = useq } }
+  visit(useq, new_states, epsilon_closures, state_to_index, {})
+  return unew
 end
