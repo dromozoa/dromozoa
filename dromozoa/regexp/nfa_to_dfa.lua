@@ -31,28 +31,29 @@ local function map_to_seq(map)
   return seq
 end
 
-local function visit(u, epsilon_closure, state_to_index)
+local function visit(u, map, state_to_index)
   local transitions = u.transitions
   for i = 1, #transitions do
     local transition = transitions[i]
     if not transition.set then
       local v = transition.v
       local vid = state_to_index[v]
-      epsilon_closure[vid] = v
-      visit(v, epsilon_closure, state_to_index)
+      map[vid] = v
+      visit(v, map, state_to_index)
     end
   end
 end
 
 local function epsilon_closure(u, epsilon_closures, state_to_index)
-  local epsilon_closure = epsilon_closures[u]
-  if not epsilon_closure then
+  local seq = epsilon_closures[u]
+  if not seq then
     local uid = state_to_index[u]
-    epsilon_closure = { [uid] = u }
-    epsilon_closures[u] = epsilon_closure
-    visit(u, epsilon_closure, state_to_index)
+    local map = { [uid] = u }
+    visit(u, map, state_to_index)
+    seq = map_to_seq(map)
+    epsilon_closures[u] = seq
   end
-  return epsilon_closure
+  return seq
 end
 
 local function visit(useq, map, epsilon_closures, color, rev_color)
@@ -61,31 +62,30 @@ local function visit(useq, map, epsilon_closures, color, rev_color)
   -- seq
   -- str
 
-  local new_transition = {}
   local rev_transition = {}
   local map_transition = {}
 
   for byte = 0x00, 0xFF do
     local vmap = {}
     for i = 1, #useq do
-      local xid = useq[i][1]
-      local x = useq[i][2]
+      local item = useq[i]
+      local xid = item[1]
+      local x = item[2]
+
       local transitions = x.transitions
       for j = 1, #transitions do
         local transition = transitions[j]
         local set = transition.set
-        if set then
-          if set[byte] then
-            local y = transition.v
-            local yid = color[y]
+        if set and set[byte] then
+          local y = transition.v
+          local yid = color[y]
 
-            local zmap = epsilon_closure(y, epsilon_closures, color)
-            local zseq = map_to_seq(zmap)
-            for k = 1, #zseq do
-              local zid = zseq[k][1]
-              local z = zseq[k][2]
-              vmap[zid] = z
-            end
+          local zseq = epsilon_closure(y, epsilon_closures, color)
+          for k = 1, #zseq do
+            local item = zseq[k]
+            local zid = item[1]
+            local z = item[2]
+            vmap[zid] = z
           end
         end
       end
@@ -94,25 +94,17 @@ local function visit(useq, map, epsilon_closures, color, rev_color)
     if next(vmap) then
       local vseq = map_to_seq(vmap)
       local vobj = map[vseq.key]
-      if vobj then
-        new_transition[byte] = vobj
-        if not rev_transition[vobj] then
-          rev_transition[vobj] = {}
-        end
-        rev_transition[vobj][byte] = true
-      else
+      if not vobj then
         vobj = graph.new_state()
         map[vseq.key] = vobj
-
-        new_transition[byte] = vobj
-        if not rev_transition[vobj] then
-          rev_transition[vobj] = {}
-        end
-        rev_transition[vobj][byte] = true
         map_transition[#map_transition + 1] = vobj
-
         vobj.seq = vseq
       end
+
+      if not rev_transition[vobj] then
+        rev_transition[vobj] = {}
+      end
+      rev_transition[vobj][byte] = true
     end
   end
 
@@ -148,8 +140,7 @@ return function (u)
   local epsilon_closures = {}
   -- local uset = epsilon_closure(u, epsilon_closures, state_to_index)
   -- local useq = set_to_seq(uset)
-  local umap = epsilon_closure(u, epsilon_closures, state_to_index)
-  local useq = map_to_seq(umap)
+  local useq = epsilon_closure(u, epsilon_closures, state_to_index)
   local uobj = graph.new_state()
 
   -- local map = { [seq_to_str(useq)] = uobj }
