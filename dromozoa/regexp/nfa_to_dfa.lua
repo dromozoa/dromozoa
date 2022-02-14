@@ -55,7 +55,7 @@ local function epsilon_closure(u, epsilon_closures, state_to_index)
   return seq
 end
 
-local function visit(useq, map, epsilon_closures, state_to_index, color)
+local function visit(useq, new_states, epsilon_closures, state_to_index, color)
   local new_transitions = {}
   local new_transition_map = {}
 
@@ -87,10 +87,10 @@ local function visit(useq, map, epsilon_closures, state_to_index, color)
     if next(vmap) then
       local vseq = map_to_seq(vmap)
       local vkey = vseq.key
-      local vobj = map[vkey]
+      local vobj = new_states[vkey]
       if not vobj then
         vobj = { state = graph.new_state(), seq = vseq }
-        map[vkey] = vobj
+        new_states[vkey] = vobj
       end
 
       local new_transition = new_transition_map[vobj]
@@ -104,7 +104,7 @@ local function visit(useq, map, epsilon_closures, state_to_index, color)
   end
 
   local ukey = useq.key
-  local uobj = map[useq.key]
+  local uobj = new_states[useq.key]
   local unew = uobj.state
   for i = 1, #new_transitions do
     local new_transition = new_transitions[i]
@@ -125,7 +125,7 @@ local function visit(useq, map, epsilon_closures, state_to_index, color)
     vnew.accept = accept
 
     if not color[vseq] then
-      visit(vseq, map, epsilon_closures, state_to_index, color)
+      visit(vseq, new_states, epsilon_closures, state_to_index, color)
     end
   end
 
