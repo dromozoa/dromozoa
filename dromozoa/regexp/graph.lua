@@ -1,4 +1,4 @@
--- Copyright (C) 2022 Tomoyuki Fujimori <moyu@dromozoa.com>
+-- Copyright (C) 2021,2022 Tomoyuki Fujimori <moyu@dromozoa.com>
 --
 -- This file is part of dromozoa.
 --
