@@ -19,13 +19,13 @@ local graph = require "dromozoa.regexp.graph"
 
 local function map_to_seq(map)
   local seq = {}
-  for k, v in pairs(map) do
-    seq[#seq + 1] = { k, v }
+  for id, node in pairs(map) do
+    seq[#seq + 1] = { id = id, node = node }
   end
-  table.sort(seq, function (a, b) return a[1] < b[1] end)
+  table.sort(seq, function (a, b) return a.id < b.id end)
   local key = {}
   for i = 1, #seq do
-    key[i] = seq[i][1]
+    key[i] = seq[i].id
   end
   seq.key = table.concat(key, ",")
   return seq
@@ -71,10 +71,11 @@ local function visit(useq, map, epsilon_closures, state_to_index, color)
 
   for byte = 0x00, 0xFF do
     local vmap = {}
+
     for i = 1, #useq do
       local item = useq[i]
-      local xid = item[1]
-      local x = item[2]
+      local xid = item.id
+      local x = item.node
       local transitions = x.transitions
       for j = 1, #transitions do
         local transition = transitions[j]
@@ -85,8 +86,8 @@ local function visit(useq, map, epsilon_closures, state_to_index, color)
           local zseq = epsilon_closure(y, epsilon_closures, state_to_index)
           for k = 1, #zseq do
             local item = zseq[k]
-            local zid = item[1]
-            local z = item[2]
+            local zid = item.id
+            local z = item.node
             vmap[zid] = z
           end
         end
@@ -125,8 +126,8 @@ local function visit(useq, map, epsilon_closures, state_to_index, color)
     -- vsetに含まれる最大のacceptをvobjに設定する
     local accept
     for i = 1, #vseq do
-      local yid = vseq[i][1]
-      local y = vseq[i][2]
+      local yid = vseq[i].id
+      local y = vseq[i].node
       local a = y.accept
       if a and (not accept or accept > a) then
         accept = a
