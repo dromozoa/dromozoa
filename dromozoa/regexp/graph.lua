@@ -1,4 +1,4 @@
--- Copyright (C) 2022 Tomoyuki Fujimori <moyu@dromozoa.com>
+-- Copyright (C) 2021,2022 Tomoyuki Fujimori <moyu@dromozoa.com>
 --
 -- This file is part of dromozoa.
 --
@@ -28,38 +28,36 @@ function class.new_transition(u, v, set)
   return transition
 end
 
-local function visit1(u, state_to_index, index_to_state, index, color)
+local function visit1(u, state_to_index, index, color)
   color[u] = 1
   if u.accept then
     index = index + 1
     state_to_index[u] = index
-    index_to_state[index] = u
   end
   local transitions = u.transitions
   for i = 1, #transitions do
     local transition = transitions[i]
     local v = transition.v
     if not color[v] then
-      index = visit1(v, state_to_index, index_to_state, index, color)
+      index = visit1(v, state_to_index, index, color)
     end
   end
   color[u] = 2
   return index
 end
 
-local function visit2(u, state_to_index, index_to_state, index, color)
+local function visit2(u, state_to_index, index, color)
   color[u] = 1
   if not state_to_index[u] then
     index = index + 1
     state_to_index[u] = index
-    index_to_state[index] = u
   end
   local transitions = u.transitions
   for i = 1, #transitions do
     local transition = transitions[i]
     local v = transition.v
     if not color[v] then
-      index = visit2(v, state_to_index, index_to_state, index, color)
+      index = visit2(v, state_to_index, index, color)
     end
   end
   color[u] = 2
@@ -68,10 +66,9 @@ end
 
 function class.create_state_indices(u)
   local state_to_index = {}
-  local index_to_state = {}
-  local max_accept_index = visit1(u, state_to_index, index_to_state, 0, {})
-  visit2(u, state_to_index, index_to_state, max_accept_index, {})
-  return state_to_index, index_to_state, max_accept_index
+  local max_accept_index = visit1(u, state_to_index, 0, {})
+  visit2(u, state_to_index, max_accept_index, {})
+  return state_to_index, max_accept_index
 end
 
 return class

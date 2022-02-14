@@ -1,4 +1,4 @@
--- Copyright (C) 2022 Tomoyuki Fujimori <moyu@dromozoa.com>
+-- Copyright (C) 2020-2022 Tomoyuki Fujimori <moyu@dromozoa.com>
 --
 -- This file is part of dromozoa.
 --
@@ -19,13 +19,13 @@ local graph = require "dromozoa.regexp.graph"
 
 local function map_to_seq(map)
   local seq = {}
-  for k, v in pairs(map) do
-    seq[#seq + 1] = { k, v }
+  for index, state in pairs(map) do
+    seq[#seq + 1] = { index = index, state = state }
   end
-  table.sort(seq, function (a, b) return a[1] < b[1] end)
+  table.sort(seq, function (a, b) return a.index < b.index end)
   local key = {}
   for i = 1, #seq do
-    key[i] = seq[i][1]
+    key[i] = seq[i].index
   end
   seq.key = table.concat(key, ",")
   return seq
@@ -47,8 +47,7 @@ end
 local function epsilon_closure(u, epsilon_closures, state_to_index)
   local seq = epsilon_closures[u]
   if not seq then
-    local uid = state_to_index[u]
-    local map = { [uid] = u }
+    local map = { [state_to_index[u]] = u }
     visit(u, map, state_to_index)
     seq = map_to_seq(map)
     epsilon_closures[u] = seq
@@ -57,25 +56,17 @@ local function epsilon_closure(u, epsilon_closures, state_to_index)
 end
 
 local function visit(useq, map, epsilon_closures, state_to_index, color)
-
-  -- set
-  -- seq
-  -- str
-
-  -- local rev_transition = {}
-  -- local map_transition = {}
-
-  local map_transitions = {}
   local new_transitions = {}
+  local new_transition_map = {}
 
   color[useq] = 1
 
   for byte = 0x00, 0xFF do
     local vmap = {}
+
     for i = 1, #useq do
-      local item = useq[i]
-      local xid = item[1]
-      local x = item[2]
+      local xid = useq[i].index
+      local x = useq[i].state
       local transitions = x.transitions
       for j = 1, #transitions do
         local transition = transitions[j]
@@ -85,9 +76,8 @@ local function visit(useq, map, epsilon_closures, state_to_index, color)
           local yid = state_to_index[y]
           local zseq = epsilon_closure(y, epsilon_closures, state_to_index)
           for k = 1, #zseq do
-            local item = zseq[k]
-            local zid = item[1]
-            local z = item[2]
+            local zid = zseq[k].index
+            local z = zseq[k].state
             vmap[zid] = z
           end
         end
@@ -99,94 +89,55 @@ local function visit(useq, map, epsilon_closures, state_to_index, color)
       local vkey = vseq.key
       local vobj = map[vkey]
       if not vobj then
-        vobj = { graph.new_state(), vseq }
+        vobj = { state = graph.new_state(), seq = vseq }
         map[vkey] = vobj
       end
 
-      local new_transition = map_transitions[vobj]
+      local new_transition = new_transition_map[vobj]
       if not new_transition then
         new_transition = { v = vobj, set = {} }
-        map_transitions[vobj] = new_transition
         new_transitions[#new_transitions + 1] = new_transition
+        new_transition_map[vobj] = new_transition
       end
       new_transition.set[byte] = true
-
-      -- map_transition[#map_transition + 1] = vobj
-      -- if not rev_transition[vobj] then
-      --   rev_transition[vobj] = {}
-      -- end
-      -- rev_transition[vobj][byte] = true
     end
   end
 
-  local uobj = assert(map[useq.key])
+  local ukey = useq.key
+  local uobj = map[useq.key]
+  local unew = uobj.state
   for i = 1, #new_transitions do
     local new_transition = new_transitions[i]
     local vobj = new_transition.v
-    local vset = new_transition.set
-    graph.new_transition(uobj[1], vobj[1], vset)
+    local vnew = vobj.state
+    local vseq = vobj.seq
+    graph.new_transition(unew, vnew, new_transition.set)
 
-    -- local vseq = vobj.seq
-    local vseq = vobj[2]
-
-    -- merge accept state
-    -- vsetに含まれる最大のacceptをvobjに設定する
     local accept
     for i = 1, #vseq do
-      local yid = vseq[i][1]
-      local y = vseq[i][2]
+      local yid = vseq[i].index
+      local y = vseq[i].state
       local a = y.accept
       if a and (not accept or accept > a) then
         accept = a
       end
     end
-    vobj[1].accept = accept
+    vnew.accept = accept
 
     if not color[vseq] then
       visit(vseq, map, epsilon_closures, state_to_index, color)
     end
   end
 
---[=[
-  for i = 1, #map_transition do
-    local vobj = map_transition[i]
-    local tset = rev_transition[vobj]
-    graph.new_transition(uobj[1], vobj[1], tset)
-    -- print(uobj, vobj, seq_to_str(set_to_seq(tset)))
-
-    -- local vseq = vobj.seq
-    local vseq = vobj[2]
-
-    -- merge accept state
-    -- vsetに含まれる最大のacceptをvobjに設定する
-    local accept
-    for i = 1, #vseq do
-      local yid = vseq[i][1]
-      local y = vseq[1][2]
-      local a = y.accept
-      if a and (not accept or accept > a) then
-        accept = a
-      end
-    end
-    vobj[1].accept = accept
-
-    visit(vseq, map, epsilon_closures, state_to_index)
-  end
-]=]
+  color[useq] = 2
 end
 
 return function (u)
   local state_to_index = graph.create_state_indices(u)
-
   local epsilon_closures = {}
-  -- local uset = epsilon_closure(u, epsilon_closures, state_to_index)
-  -- local useq = set_to_seq(uset)
   local useq = epsilon_closure(u, epsilon_closures, state_to_index)
   local uobj = graph.new_state()
-
-  -- local map = { [seq_to_str(useq)] = uobj }
-  local map = { [useq.key] = { uobj, useq } }
+  local map = { [useq.key] = { state = uobj, seq = useq } }
   visit(useq, map, epsilon_closures, state_to_index, {})
-
   return uobj
 end
