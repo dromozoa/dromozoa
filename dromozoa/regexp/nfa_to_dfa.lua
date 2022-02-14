@@ -17,26 +17,26 @@
 
 local graph = require "dromozoa.regexp.graph"
 
-local function visit(u, epsilon_closure, color)
+local function visit(u, epsilon_closure, state_to_index)
   local transitions = u.transitions
   for i = 1, #transitions do
     local transition = transitions[i]
-    if not transition.set then -- is epsilon
+    if not transition.set then
       local v = transition.v
-      local vid = color[v]
+      local vid = state_to_index[v]
       epsilon_closure[vid] = true
-      visit(v, epsilon_closure, color)
+      visit(v, epsilon_closure, state_to_index)
     end
   end
 end
 
-local function epsilon_closure(u, epsilon_closures, color)
+local function epsilon_closure(u, epsilon_closures, state_to_index)
   local epsilon_closure = epsilon_closures[u]
   if not epsilon_closure then
-    local uid = color[u]
+    local uid = state_to_index[u]
     epsilon_closure = { [uid] = true }
     epsilon_closures[u] = epsilon_closure
-    visit(u, epsilon_closure, color)
+    visit(u, epsilon_closure, state_to_index)
   end
   return epsilon_closure
 end
