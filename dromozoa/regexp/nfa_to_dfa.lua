@@ -56,8 +56,8 @@ local function epsilon_closure(u, epsilon_closures, state_to_index)
 end
 
 local function visit(useq, map, epsilon_closures, state_to_index, color)
-  local map_transitions = {}
   local new_transitions = {}
+  local new_transition_map = {}
 
   color[useq] = 1
 
@@ -93,24 +93,25 @@ local function visit(useq, map, epsilon_closures, state_to_index, color)
         map[vkey] = vobj
       end
 
-      local new_transition = map_transitions[vobj]
+      local new_transition = new_transition_map[vobj]
       if not new_transition then
         new_transition = { v = vobj, set = {} }
-        map_transitions[vobj] = new_transition
         new_transitions[#new_transitions + 1] = new_transition
+        new_transition_map[vobj] = new_transition
       end
       new_transition.set[byte] = true
     end
   end
 
-  local uobj = assert(map[useq.key])
+  local ukey = useq.key
+  local uobj = map[useq.key]
+  local unew = uobj.state
   for i = 1, #new_transitions do
     local new_transition = new_transitions[i]
     local vobj = new_transition.v
-    local vset = new_transition.set
-    graph.new_transition(uobj.state, vobj.state, vset)
-
+    local vnew = vobj.state
     local vseq = vobj.seq
+    graph.new_transition(unew, vnew, new_transition.set)
 
     local accept
     for i = 1, #vseq do
@@ -121,7 +122,7 @@ local function visit(useq, map, epsilon_closures, state_to_index, color)
         accept = a
       end
     end
-    vobj.state.accept = accept
+    vnew.accept = accept
 
     if not color[vseq] then
       visit(vseq, map, epsilon_closures, state_to_index, color)
@@ -133,13 +134,10 @@ end
 
 return function (u)
   local state_to_index = graph.create_state_indices(u)
-
   local epsilon_closures = {}
   local useq = epsilon_closure(u, epsilon_closures, state_to_index)
   local uobj = graph.new_state()
-
   local map = { [useq.key] = { state = uobj, seq = useq } }
   visit(useq, map, epsilon_closures, state_to_index, {})
-
   return uobj
 end
