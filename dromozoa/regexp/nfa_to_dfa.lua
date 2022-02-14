@@ -47,8 +47,7 @@ end
 local function epsilon_closure(u, epsilon_closures, state_to_index)
   local seq = epsilon_closures[u]
   if not seq then
-    local uid = state_to_index[u]
-    local map = { [uid] = u }
+    local map = { [state_to_index[u]] = u }
     visit(u, map, state_to_index)
     seq = map_to_seq(map)
     epsilon_closures[u] = seq
@@ -110,12 +109,6 @@ local function visit(useq, map, epsilon_closures, state_to_index, color)
         new_transitions[#new_transitions + 1] = new_transition
       end
       new_transition.set[byte] = true
-
-      -- map_transition[#map_transition + 1] = vobj
-      -- if not rev_transition[vobj] then
-      --   rev_transition[vobj] = {}
-      -- end
-      -- rev_transition[vobj][byte] = true
     end
   end
 
@@ -126,7 +119,6 @@ local function visit(useq, map, epsilon_closures, state_to_index, color)
     local vset = new_transition.set
     graph.new_transition(uobj[1], vobj[1], vset)
 
-    -- local vseq = vobj.seq
     local vseq = vobj[2]
 
     -- merge accept state
@@ -146,45 +138,15 @@ local function visit(useq, map, epsilon_closures, state_to_index, color)
       visit(vseq, map, epsilon_closures, state_to_index, color)
     end
   end
-
---[=[
-  for i = 1, #map_transition do
-    local vobj = map_transition[i]
-    local tset = rev_transition[vobj]
-    graph.new_transition(uobj[1], vobj[1], tset)
-    -- print(uobj, vobj, seq_to_str(set_to_seq(tset)))
-
-    -- local vseq = vobj.seq
-    local vseq = vobj[2]
-
-    -- merge accept state
-    -- vsetに含まれる最大のacceptをvobjに設定する
-    local accept
-    for i = 1, #vseq do
-      local yid = vseq[i][1]
-      local y = vseq[1][2]
-      local a = y.accept
-      if a and (not accept or accept > a) then
-        accept = a
-      end
-    end
-    vobj[1].accept = accept
-
-    visit(vseq, map, epsilon_closures, state_to_index)
-  end
-]=]
 end
 
 return function (u)
   local state_to_index = graph.create_state_indices(u)
 
   local epsilon_closures = {}
-  -- local uset = epsilon_closure(u, epsilon_closures, state_to_index)
-  -- local useq = set_to_seq(uset)
   local useq = epsilon_closure(u, epsilon_closures, state_to_index)
   local uobj = graph.new_state()
 
-  -- local map = { [seq_to_str(useq)] = uobj }
   local map = { [useq.key] = { uobj, useq } }
   visit(useq, map, epsilon_closures, state_to_index, {})
 
