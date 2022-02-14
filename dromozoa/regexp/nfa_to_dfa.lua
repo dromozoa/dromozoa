@@ -19,8 +19,8 @@ local graph = require "dromozoa.regexp.graph"
 
 local function map_to_seq(map)
   local seq = {}
-  for id, node in pairs(map) do
-    seq[#seq + 1] = { id = id, node = node }
+  for id, state in pairs(map) do
+    seq[#seq + 1] = { id = id, state = state }
   end
   table.sort(seq, function (a, b) return a.id < b.id end)
   local key = {}
@@ -75,7 +75,7 @@ local function visit(useq, map, epsilon_closures, state_to_index, color)
     for i = 1, #useq do
       local item = useq[i]
       local xid = item.id
-      local x = item.node
+      local x = item.state
       local transitions = x.transitions
       for j = 1, #transitions do
         local transition = transitions[j]
@@ -87,7 +87,7 @@ local function visit(useq, map, epsilon_closures, state_to_index, color)
           for k = 1, #zseq do
             local item = zseq[k]
             local zid = item.id
-            local z = item.node
+            local z = item.state
             vmap[zid] = z
           end
         end
@@ -127,7 +127,7 @@ local function visit(useq, map, epsilon_closures, state_to_index, color)
     local accept
     for i = 1, #vseq do
       local yid = vseq[i].id
-      local y = vseq[i].node
+      local y = vseq[i].state
       local a = y.accept
       if a and (not accept or accept > a) then
         accept = a
