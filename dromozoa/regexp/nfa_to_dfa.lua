@@ -65,20 +65,15 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
     local vmap = {}
 
     for i = 1, #useq do
-      local xid = useq[i].index
-      local x = useq[i].state
-      local transitions = x.transitions
+      local transitions = useq[i].state.transitions
       for j = 1, #transitions do
         local transition = transitions[j]
         local set = transition.set
         if set and set[byte] then
-          local y = transition.v
-          local yid = state_indices[y]
-          local zseq = epsilon_closure(y, epsilon_closures, state_indices)
-          for k = 1, #zseq do
-            local zid = zseq[k].index
-            local z = zseq[k].state
-            vmap[zid] = z
+          local seq = epsilon_closure(transition.v, epsilon_closures, state_indices)
+          for k = 1, #seq do
+            local x = seq[k]
+            vmap[x.index] = x.state
           end
         end
       end
