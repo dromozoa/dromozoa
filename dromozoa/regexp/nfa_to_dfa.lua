@@ -17,132 +17,176 @@
 
 local graph = require "dromozoa.regexp.graph"
 
-local function visit(u, epsilon_closure, color)
+local function map_to_seq(map)
+  local seq = {}
+  for k, v in pairs(map) do
+    seq[#seq + 1] = { k, v }
+  end
+  table.sort(seq, function (a, b) return a[1] < b[1] end)
+  local key = {}
+  for i = 1, #seq do
+    key[i] = seq[i][1]
+  end
+  seq.key = table.concat(key, ",")
+  return seq
+end
+
+local function visit(u, map, state_to_index)
   local transitions = u.transitions
   for i = 1, #transitions do
     local transition = transitions[i]
-    if not transition.set then -- is epsilon
+    if not transition.set then
       local v = transition.v
-      local vid = color[v]
-      epsilon_closure[vid] = true
-      visit(v, epsilon_closure, color)
+      local vid = state_to_index[v]
+      map[vid] = v
+      visit(v, map, state_to_index)
     end
   end
 end
 
-local function epsilon_closure(u, epsilon_closures, color)
-  local epsilon_closure = epsilon_closures[u]
-  if not epsilon_closure then
-    local uid = color[u]
-    epsilon_closure = { [uid] = true }
-    epsilon_closures[u] = epsilon_closure
-    visit(u, epsilon_closure, color)
+local function epsilon_closure(u, epsilon_closures, state_to_index)
+  local seq = epsilon_closures[u]
+  if not seq then
+    local uid = state_to_index[u]
+    local map = { [uid] = u }
+    visit(u, map, state_to_index)
+    seq = map_to_seq(map)
+    epsilon_closures[u] = seq
   end
-  return epsilon_closure
-end
-
-local function set_to_seq(set)
-  local seq = {}
-  for k in pairs(set) do
-    seq[#seq + 1] = k
-  end
-  table.sort(seq)
   return seq
 end
 
-local function encode_seq(seq)
-  return table.concat(seq, ",")
-end
+local function visit(useq, map, epsilon_closures, state_to_index, color)
 
-local function visit(useq, map, epsilon_closures, color, rev_color)
-  local new_transition = {}
-  local rev_transition = {}
-  local map_transition = {}
+  -- set
+  -- seq
+  -- str
+
+  -- local rev_transition = {}
+  -- local map_transition = {}
+
+  local map_transitions = {}
+  local new_transitions = {}
+
+  color[useq] = 1
 
   for byte = 0x00, 0xFF do
-    local vset = {}
+    local vmap = {}
     for i = 1, #useq do
-      local xid = useq[i]
-      local x = rev_color[xid]
+      local item = useq[i]
+      local xid = item[1]
+      local x = item[2]
       local transitions = x.transitions
       for j = 1, #transitions do
         local transition = transitions[j]
         local set = transition.set
-        if set then
-          if set[byte] then
-            local y = transition.v
-            local yid = color[y]
-
-            local zset = epsilon_closure(y, epsilon_closures, color)
-            for zid in pairs(zset) do
-              vset[zid] = true
-            end
+        if set and set[byte] then
+          local y = transition.v
+          local yid = state_to_index[y]
+          local zseq = epsilon_closure(y, epsilon_closures, state_to_index)
+          for k = 1, #zseq do
+            local item = zseq[k]
+            local zid = item[1]
+            local z = item[2]
+            vmap[zid] = z
           end
         end
       end
     end
-    if next(vset) then
-      local vseq = set_to_seq(vset)
-      local vstr = encode_seq(vseq)
-      local vobj = map[vstr]
-      if vobj then
-        new_transition[byte] = vobj
-        if not rev_transition[vobj] then
-          rev_transition[vobj] = {}
-        end
-        rev_transition[vobj][byte] = true
-      else
-        vobj = graph.new_state()
-        map[vstr] = vobj
 
-        new_transition[byte] = vobj
-        if not rev_transition[vobj] then
-          rev_transition[vobj] = {}
-        end
-        rev_transition[vobj][byte] = true
-        map_transition[#map_transition + 1] = vobj
-
-        vobj.seq = vseq
+    if next(vmap) then
+      local vseq = map_to_seq(vmap)
+      local vkey = vseq.key
+      local vobj = map[vkey]
+      if not vobj then
+        vobj = { graph.new_state(), vseq }
+        map[vkey] = vobj
       end
+
+      local new_transition = map_transitions[vobj]
+      if not new_transition then
+        new_transition = { v = vobj, set = {} }
+        map_transitions[vobj] = new_transition
+        new_transitions[#new_transitions + 1] = new_transition
+      end
+      new_transition.set[byte] = true
+
+      -- map_transition[#map_transition + 1] = vobj
+      -- if not rev_transition[vobj] then
+      --   rev_transition[vobj] = {}
+      -- end
+      -- rev_transition[vobj][byte] = true
     end
   end
 
-  local uobj = assert(map[encode_seq(useq)])
-  for i = 1, #map_transition do
-    local vobj = map_transition[i]
-    local tset = rev_transition[vobj]
-    graph.new_transition(uobj, vobj, tset)
-    -- print(uobj, vobj, encode_seq(set_to_seq(tset)))
+  local uobj = assert(map[useq.key])
+  for i = 1, #new_transitions do
+    local new_transition = new_transitions[i]
+    local vobj = new_transition.v
+    local vset = new_transition.set
+    graph.new_transition(uobj[1], vobj[1], vset)
 
-    local vseq = vobj.seq
+    -- local vseq = vobj.seq
+    local vseq = vobj[2]
 
     -- merge accept state
     -- vsetに含まれる最大のacceptをvobjに設定する
     local accept
     for i = 1, #vseq do
-      local yid = vseq[i]
-      local y = rev_color[yid]
+      local yid = vseq[i][1]
+      local y = vseq[i][2]
       local a = y.accept
       if a and (not accept or accept > a) then
         accept = a
       end
     end
-    vobj.accept = accept
+    vobj[1].accept = accept
 
-    visit(vseq, map, epsilon_closures, color, rev_color)
+    if not color[vseq] then
+      visit(vseq, map, epsilon_closures, state_to_index, color)
+    end
   end
+
+--[=[
+  for i = 1, #map_transition do
+    local vobj = map_transition[i]
+    local tset = rev_transition[vobj]
+    graph.new_transition(uobj[1], vobj[1], tset)
+    -- print(uobj, vobj, seq_to_str(set_to_seq(tset)))
+
+    -- local vseq = vobj.seq
+    local vseq = vobj[2]
+
+    -- merge accept state
+    -- vsetに含まれる最大のacceptをvobjに設定する
+    local accept
+    for i = 1, #vseq do
+      local yid = vseq[i][1]
+      local y = vseq[1][2]
+      local a = y.accept
+      if a and (not accept or accept > a) then
+        accept = a
+      end
+    end
+    vobj[1].accept = accept
+
+    visit(vseq, map, epsilon_closures, state_to_index)
+  end
+]=]
 end
 
 return function (u)
-  local state_to_index, index_to_state = graph.create_state_indices(u)
+  local state_to_index = graph.create_state_indices(u)
 
   local epsilon_closures = {}
-  local uset = epsilon_closure(u, epsilon_closures, state_to_index)
-  local useq = set_to_seq(uset)
+  -- local uset = epsilon_closure(u, epsilon_closures, state_to_index)
+  -- local useq = set_to_seq(uset)
+  local useq = epsilon_closure(u, epsilon_closures, state_to_index)
   local uobj = graph.new_state()
 
-  local map = { [encode_seq(useq)] = uobj }
-  visit(useq, map, epsilon_closures, state_to_index, index_to_state)
+  -- local map = { [seq_to_str(useq)] = uobj }
+  local map = { [useq.key] = { uobj, useq } }
+  visit(useq, map, epsilon_closures, state_to_index, {})
 
   return uobj
 end
