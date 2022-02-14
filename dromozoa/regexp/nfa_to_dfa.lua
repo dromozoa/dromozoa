@@ -56,14 +56,6 @@ local function epsilon_closure(u, epsilon_closures, state_to_index)
 end
 
 local function visit(useq, map, epsilon_closures, state_to_index, color)
-
-  -- set
-  -- seq
-  -- str
-
-  -- local rev_transition = {}
-  -- local map_transition = {}
-
   local map_transitions = {}
   local new_transitions = {}
 
@@ -120,8 +112,6 @@ local function visit(useq, map, epsilon_closures, state_to_index, color)
 
     local vseq = vobj.seq
 
-    -- merge accept state
-    -- vsetに含まれる最大のacceptをvobjに設定する
     local accept
     for i = 1, #vseq do
       local yid = vseq[i].index
@@ -137,6 +127,8 @@ local function visit(useq, map, epsilon_closures, state_to_index, color)
       visit(vseq, map, epsilon_closures, state_to_index, color)
     end
   end
+
+  color[useq] = 2
 end
 
 return function (u)
