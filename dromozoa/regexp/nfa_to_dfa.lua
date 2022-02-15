@@ -55,6 +55,14 @@ local function epsilon_closure(u, epsilon_closures, state_indices)
   return seq
 end
 
+local function merge_index(a, b)
+  if b and (not a or a > b) then
+    return b
+  else
+    return a
+  end
+end
+
 local function visit(useq, new_states, epsilon_closures, state_indices, color)
   local new_transitions = {}
   local new_transition_map = {}
@@ -108,12 +116,7 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
 
     local accept
     for i = 1, #vseq do
-      local yid = vseq[i].index
-      local y = vseq[i].state
-      local a = y.accept
-      if a and (not accept or accept > a) then
-        accept = a
-      end
+      accept = merge_index(accept, vseq[i].state.accept)
     end
     vnew.accept = accept
 
