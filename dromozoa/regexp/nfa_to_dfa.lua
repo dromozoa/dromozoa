@@ -85,19 +85,19 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
         vnew = { state = graph.new_state(), seq = vseq }
         new_states[vkey] = vnew
       end
-
       local new_transition = new_transition_map[vnew]
       if not new_transition then
-        new_transition = { v = vnew, set = {} }
+        new_transition = { v = vnew, set = { [byte] = true } }
         new_transitions[#new_transitions + 1] = new_transition
         new_transition_map[vnew] = new_transition
+      else
+        new_transition.set[byte] = true
       end
-      new_transition.set[byte] = true
     end
   end
 
   local ukey = useq.key
-  local uobj = new_states[useq.key]
+  local uobj = new_states[ukey]
   local unew = uobj.state
   for i = 1, #new_transitions do
     local new_transition = new_transitions[i]
