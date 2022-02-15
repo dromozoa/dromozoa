@@ -24,12 +24,16 @@ local function dump(out, node, map, id)
   local code = node[1]
   if code == "[" then
     out:write(("%d [label=\"%s\", shape=box];\n"):format(id, encode_set(node[2])))
+  elseif code == "/" then
+    out:write(("%d [label = \"/ %s\"];\n"):format(id, node[3]))
+    id = dump(out, node[2], map, id)
+    out:write(("%d -> %d;\n"):format(map[node], map[node[2]]))
   else
     out:write(("%d [label = \"%s\"];\n"):format(id, code))
     for i = 2, #node do
       local that = node[i]
       id = dump(out, that, map, id)
-      out:write(("%d -> %d;\n"):format(map[node], map[node[i]]))
+      out:write(("%d -> %d;\n"):format(map[node], map[that]))
     end
   end
 

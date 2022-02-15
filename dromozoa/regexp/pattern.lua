@@ -143,5 +143,4 @@ function metatable:__div(that)
   end
 end
 
-
 return class

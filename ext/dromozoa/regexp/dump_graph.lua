@@ -18,6 +18,16 @@
 local graph = require "dromozoa.regexp.graph"
 local encode_set = require "dromozoa.regexp.encode_set"
 
+local function encode(set, action)
+  assert(set)
+
+  if action then
+    return encode_set(set) .. "(?#" .. action .. ")"
+  else
+    return encode_set(set)
+  end
+end
+
 local function visit(out, u, state_to_index, color, start)
   color[u] = 1
 
@@ -41,9 +51,10 @@ local function visit(out, u, state_to_index, color, start)
       visit(out, v, state_to_index, color, start)
     end
     local set = transition.set
+    local action = transition.action
     local vid = state_to_index[v]
-    if set then
-      out:write(("%d -> %d [label=\"%s\"];\n"):format(uid, vid, encode_set(set)))
+    if set or action then
+      out:write(("%d -> %d [label=\"%s\"];\n"):format(uid, vid, encode(set, action)))
     else
       out:write(("%d -> %d;\n"):format(uid, vid))
     end

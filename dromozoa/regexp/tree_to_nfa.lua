@@ -54,6 +54,9 @@ local function visit(node)
       graph.new_transition(u, au)
       graph.new_transition(av, v)
       return u, v
+    elseif code == "/" then
+      au.transitions[1].action = node[3]
+      return au, av
     end
   end
 end
