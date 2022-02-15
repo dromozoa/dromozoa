@@ -55,7 +55,7 @@ local function epsilon_closure(u, epsilon_closures, state_indices)
   return seq
 end
 
-local function merge_index(a, b)
+local function merge_priority(a, b)
   if b and (not a or a > b) then
     return b
   else
@@ -64,11 +64,9 @@ local function merge_index(a, b)
 end
 
 local function visit(useq, new_states, epsilon_closures, state_indices, color)
-  local new_transitions = {}
-  local new_transition_map = {}
-
   color[useq] = 1
 
+  local new_transition_map = {}
   for byte = 0x00, 0xFF do
     local vmap = {}
     for i = 1, #useq do
@@ -95,14 +93,18 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
       end
       local new_transition = new_transition_map[vnew]
       if not new_transition then
-        new_transition = { v = vnew, set = { [byte] = true } }
-        new_transitions[#new_transitions + 1] = new_transition
-        new_transition_map[vnew] = new_transition
+        new_transition_map[vnew] = { index = byte, v = vnew, set = { [byte] = true } }
       else
         new_transition.set[byte] = true
       end
     end
   end
+
+  local new_transitions = {}
+  for _, new_transition in pairs(new_transition_map) do
+    new_transitions[#new_transitions + 1] = new_transition
+  end
+  table.sort(new_transitions, function (a, b) return a.index < b.index end)
 
   local ukey = useq.key
   local uobj = new_states[ukey]
@@ -116,7 +118,7 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
 
     local accept
     for i = 1, #vseq do
-      accept = merge_index(accept, vseq[i].state.accept)
+      accept = merge_priority(accept, vseq[i].state.accept)
     end
     vnew.accept = accept
 
