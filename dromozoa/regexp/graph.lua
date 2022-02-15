@@ -21,8 +21,8 @@ function class.new_state()
   return { transitions = {} }
 end
 
-function class.new_transition(u, v, set)
-  local transition = { v = v, set = set }
+function class.new_transition(u, v, set, action)
+  local transition = { v = v, set = set, action = action }
   local transitions = u.transitions
   transitions[#transitions + 1] = transition
   return transition
