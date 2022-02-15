@@ -66,13 +66,13 @@
   <tr>
     <td><code>pattern^n</code></td>
     <td><code>P"abc"^3</code></td>
-    <td><code>(abc){3,}</code></td>
+    <td><code>(?:abc){3,}</code></td>
     <td><code>n</code> or more repetition</td>
   </tr>
   <tr>
     <td><code>pattern^-n</code></td>
     <td><code>P"abc"^-3</code></td>
-    <td><code>(abc){0,3}</code></td>
+    <td><code>(?:abc){0,3}</code></td>
     <td><code>0</code> to <code>n</code> repetition</td>
   </tr>
   <tr>
@@ -92,6 +92,12 @@
     <td><code>-R"09af"</code></td>
     <td><code>[^0-9a-f]</code></td>
     <td>character level negation</td>
+  </tr>
+  <tr>
+    <td><code>pattern / action</code></td>
+    <td><code>R"09af" / 42</code></td>
+    <td><code>[0-9a-f](?#42)</code></td>
+    <td>character level action (transition action)</td>
   </tr>
 </table>
 
@@ -127,6 +133,11 @@
     <td><code>?</code></td>
     <td><code>pattern</code></td>
     <td>optional</td>
+  </tr>
+  <tr>
+    <td><code>/</code></td>
+    <td><code>pattern action</code></td>
+    <td>transition action</td>
   </tr>
 </table>
 

@@ -55,23 +55,31 @@ local function epsilon_closure(u, epsilon_closures, state_indices)
   return seq
 end
 
-local function visit(useq, new_states, epsilon_closures, state_indices, color)
-  local new_transitions = {}
-  local new_transition_map = {}
+local function merge_priority(a, b)
+  if b and (not a or a > b) then
+    return b
+  else
+    return a
+  end
+end
 
+local function visit(useq, new_states, epsilon_closures, state_indices, color)
   color[useq] = 1
 
+  local new_transition_map = {}
   for byte = 0x00, 0xFF do
     local vmap = {}
+    local action
     for i = 1, #useq do
       local transitions = useq[i].state.transitions
       for j = 1, #transitions do
         local transition = transitions[j]
         local set = transition.set
         if set and set[byte] then
-          local seq = epsilon_closure(transition.v, epsilon_closures, state_indices)
-          for k = 1, #seq do
-            local vobj = seq[k]
+          action = merge_priority(action, transition.action)
+          local vseq = epsilon_closure(transition.v, epsilon_closures, state_indices)
+          for k = 1, #vseq do
+            local vobj = vseq[k]
             vmap[vobj.index] = vobj.state
           end
         end
@@ -85,16 +93,23 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
         vnew = { state = graph.new_state(), seq = vseq }
         new_states[vkey] = vnew
       end
-      local new_transition = new_transition_map[vnew]
+      -- 遷移文字と遷移アクションと遷移先状態でいいかんじにまとめたい
+      -- 遷移先状態と遷移アクションでキーをつくる
+      local new_transition_key = vkey .. ";" .. (action or 0)
+      local new_transition = new_transition_map[new_transition_key]
       if not new_transition then
-        new_transition = { v = vnew, set = { [byte] = true } }
-        new_transitions[#new_transitions + 1] = new_transition
-        new_transition_map[vnew] = new_transition
+        new_transition_map[new_transition_key] = { index = byte, v = vnew, set = { [byte] = true }, action = action }
       else
         new_transition.set[byte] = true
       end
     end
   end
+
+  local new_transitions = {}
+  for _, new_transition in pairs(new_transition_map) do
+    new_transitions[#new_transitions + 1] = new_transition
+  end
+  table.sort(new_transitions, function (a, b) return a.index < b.index end)
 
   local ukey = useq.key
   local uobj = new_states[ukey]
@@ -104,16 +119,12 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
     local vobj = new_transition.v
     local vnew = vobj.state
     local vseq = vobj.seq
-    graph.new_transition(unew, vnew, new_transition.set)
+    local tnew = graph.new_transition(unew, vnew, new_transition.set)
+    tnew.action = new_transition.action
 
     local accept
     for i = 1, #vseq do
-      local yid = vseq[i].index
-      local y = vseq[i].state
-      local a = y.accept
-      if a and (not accept or accept > a) then
-        accept = a
-      end
+      accept = merge_priority(accept, vseq[i].state.accept)
     end
     vnew.accept = accept
 
