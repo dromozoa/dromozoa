@@ -63,7 +63,6 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
 
   for byte = 0x00, 0xFF do
     local vmap = {}
-
     for i = 1, #useq do
       local transitions = useq[i].state.transitions
       for j = 1, #transitions do
@@ -72,8 +71,8 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
         if set and set[byte] then
           local seq = epsilon_closure(transition.v, epsilon_closures, state_indices)
           for k = 1, #seq do
-            local x = seq[k]
-            vmap[x.index] = x.state
+            local vobj = seq[k]
+            vmap[vobj.index] = vobj.state
           end
         end
       end
