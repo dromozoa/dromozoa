@@ -31,31 +31,31 @@ local function map_to_seq(map)
   return seq
 end
 
-local function visit(u, map, state_to_index)
+local function visit(u, map, state_indices)
   local transitions = u.transitions
   for i = 1, #transitions do
     local transition = transitions[i]
     if not transition.set then
       local v = transition.v
-      local vid = state_to_index[v]
+      local vid = state_indices[v]
       map[vid] = v
-      visit(v, map, state_to_index)
+      visit(v, map, state_indices)
     end
   end
 end
 
-local function epsilon_closure(u, epsilon_closures, state_to_index)
+local function epsilon_closure(u, epsilon_closures, state_indices)
   local seq = epsilon_closures[u]
   if not seq then
-    local map = { [state_to_index[u]] = u }
-    visit(u, map, state_to_index)
+    local map = { [state_indices[u]] = u }
+    visit(u, map, state_indices)
     seq = map_to_seq(map)
     epsilon_closures[u] = seq
   end
   return seq
 end
 
-local function visit(useq, map, epsilon_closures, state_to_index, color)
+local function visit(useq, new_states, epsilon_closures, state_indices, color)
   local new_transitions = {}
   local new_transition_map = {}
 
@@ -63,48 +63,41 @@ local function visit(useq, map, epsilon_closures, state_to_index, color)
 
   for byte = 0x00, 0xFF do
     local vmap = {}
-
     for i = 1, #useq do
-      local xid = useq[i].index
-      local x = useq[i].state
-      local transitions = x.transitions
+      local transitions = useq[i].state.transitions
       for j = 1, #transitions do
         local transition = transitions[j]
         local set = transition.set
         if set and set[byte] then
-          local y = transition.v
-          local yid = state_to_index[y]
-          local zseq = epsilon_closure(y, epsilon_closures, state_to_index)
-          for k = 1, #zseq do
-            local zid = zseq[k].index
-            local z = zseq[k].state
-            vmap[zid] = z
+          local seq = epsilon_closure(transition.v, epsilon_closures, state_indices)
+          for k = 1, #seq do
+            local vobj = seq[k]
+            vmap[vobj.index] = vobj.state
           end
         end
       end
     end
-
     if next(vmap) then
       local vseq = map_to_seq(vmap)
       local vkey = vseq.key
-      local vobj = map[vkey]
-      if not vobj then
-        vobj = { state = graph.new_state(), seq = vseq }
-        map[vkey] = vobj
+      local vnew = new_states[vkey]
+      if not vnew then
+        vnew = { state = graph.new_state(), seq = vseq }
+        new_states[vkey] = vnew
       end
-
-      local new_transition = new_transition_map[vobj]
+      local new_transition = new_transition_map[vnew]
       if not new_transition then
-        new_transition = { v = vobj, set = {} }
+        new_transition = { v = vnew, set = { [byte] = true } }
         new_transitions[#new_transitions + 1] = new_transition
-        new_transition_map[vobj] = new_transition
+        new_transition_map[vnew] = new_transition
+      else
+        new_transition.set[byte] = true
       end
-      new_transition.set[byte] = true
     end
   end
 
   local ukey = useq.key
-  local uobj = map[useq.key]
+  local uobj = new_states[ukey]
   local unew = uobj.state
   for i = 1, #new_transitions do
     local new_transition = new_transitions[i]
@@ -125,7 +118,7 @@ local function visit(useq, map, epsilon_closures, state_to_index, color)
     vnew.accept = accept
 
     if not color[vseq] then
-      visit(vseq, map, epsilon_closures, state_to_index, color)
+      visit(vseq, new_states, epsilon_closures, state_indices, color)
     end
   end
 
@@ -133,11 +126,11 @@ local function visit(useq, map, epsilon_closures, state_to_index, color)
 end
 
 return function (u)
-  local state_to_index = graph.create_state_indices(u)
+  local state_indices = graph.create_state_indices(u)
   local epsilon_closures = {}
-  local useq = epsilon_closure(u, epsilon_closures, state_to_index)
-  local uobj = graph.new_state()
-  local map = { [useq.key] = { state = uobj, seq = useq } }
-  visit(useq, map, epsilon_closures, state_to_index, {})
-  return uobj
+  local useq = epsilon_closure(u, epsilon_closures, state_indices)
+  local unew = graph.new_state()
+  local new_states = { [useq.key] = { state = unew, seq = useq } }
+  visit(useq, new_states, epsilon_closures, state_indices, {})
+  return unew
 end
