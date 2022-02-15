@@ -130,8 +130,18 @@ function metatable:__unm(that)
     end
     return class.new("[", neg)
   else
-    error "negative lookahead not supported"
+    error "not supported"
   end
 end
+
+function metatable:__div(that)
+  local self = class.pattern(self)
+  if self[1] == "[" then
+    return class.new("/", self, that)
+  else
+    error "not supported"
+  end
+end
+
 
 return class
