@@ -209,8 +209,6 @@ local function move(u, byte)
 end
 
 return function (u)
-  -- Moore's algorithm
-
   local partitions, partition_map = create_initial_partitions(u)
 
   while true do
