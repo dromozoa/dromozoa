@@ -186,6 +186,8 @@ local function create_initial_partitions(u)
 
   partitions[#partitions + 1] = nonaccept_partition
 
+  -- 状態からパーティションへのマップ
+  -- TODO 再帰中に作成したほうがよいのでは
   local partition_map = {}
   for i = 1, #partitions do
     local partition = partitions[i]
@@ -197,6 +199,9 @@ local function create_initial_partitions(u)
   return partitions, partition_map
 end
 
+-- TODO 他の動詞のほうがよいのでは
+-- TODO graphのほうに移動することを考える
+-- TODO 名詞graphの他の候補automatonやstate machineを考える
 local function move(u, byte)
   local transitions = u.transitions
   for i = 1, #transitions do
@@ -223,6 +228,7 @@ return function (u)
           local y = partition[k]
           local same_partition = true
           for byte = 0x00, 0xFF do
+            -- TODO 遷移アクションとその優先順位を考慮する
             if partition_map[move(x, byte)] ~= partition_map[move(y, byte)] then
               same_partition = false
               break
@@ -238,7 +244,8 @@ return function (u)
                 new_partition_map[y] = px
               else
                 -- この場合、px == pyが保証される？
-                -- そもそも、どんな場合にpxとpyが定義される？
+                -- TODO どんな場合にpxとpyが定義される？
+                -- 遷移行列の下三角形であることで説明可能？
               end
             elseif py then
               py[#py + 1] = x
