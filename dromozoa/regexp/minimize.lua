@@ -16,4 +16,21 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 return function (u)
+  -- 基本はHopcroftのアルゴリズム
+  -- Mooreのアルゴリズムでもよいかも？
+
+  -- accept statesはacceptごとに分割する
+  -- acceptが全部いっしょだったら完全な最小化
+  -- 途中の状態はおなじ遷移とみなしたくなったらどうするの？
+
+  while true do
+    local partition = pop_partition()
+    for byte = 0x00, 0xFF do
+      -- byteでpartitionのなかの状態に遷移する遷移元の集合を計算する
+    end
+
+
+
+
+  end
 end
