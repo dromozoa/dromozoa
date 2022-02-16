@@ -70,6 +70,7 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
   for byte = 0x00, 0xFF do
     local vmap = {}
     local action
+
     for i = 1, #useq do
       local transitions = useq[i].state.transitions
       for j = 1, #transitions do
@@ -77,28 +78,32 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
         local set = transition.set
         if set and set[byte] then
           action = merge_priority(action, transition.action)
-          local vseq = epsilon_closure(transition.v, epsilon_closures, state_indices)
-          for k = 1, #vseq do
-            local vobj = vseq[k]
-            vmap[vobj.index] = vobj.state
+          local seq = epsilon_closure(transition.v, epsilon_closures, state_indices)
+          for k = 1, #seq do
+            local item = seq[k]
+            vmap[item.index] = item.state
           end
         end
       end
     end
+
     if next(vmap) then
       local vseq = map_to_seq(vmap)
       local vkey = vseq.key
-      local vnew = new_states[vkey]
-      if not vnew then
-        vnew = { state = graph.new_state(), seq = vseq }
-        new_states[vkey] = vnew
+      local vobj = new_states[vkey]
+      if not vobj then
+        vobj = { state = graph.new_state(), seq = vseq }
+        new_states[vkey] = vobj
       end
-      -- 遷移文字と遷移アクションと遷移先状態でいいかんじにまとめたい
-      -- 遷移先状態と遷移アクションでキーをつくる
-      local new_transition_key = vkey .. ";" .. (action or 0)
+
+      local new_transition_key = vkey
+      if action then
+        new_transition_key = new_transition_key .. "/" .. action
+      end
+
       local new_transition = new_transition_map[new_transition_key]
       if not new_transition then
-        new_transition_map[new_transition_key] = { index = byte, v = vnew, set = { [byte] = true }, action = action }
+        new_transition_map[new_transition_key] = { index = byte, v = vobj, set = { [byte] = true }, action = action }
       else
         new_transition.set[byte] = true
       end
@@ -119,8 +124,7 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
     local vobj = new_transition.v
     local vnew = vobj.state
     local vseq = vobj.seq
-    local tnew = graph.new_transition(unew, vnew, new_transition.set)
-    tnew.action = new_transition.action
+    graph.new_transition(unew, vnew, new_transition.set, new_transition.action)
 
     local accept
     for i = 1, #vseq do
