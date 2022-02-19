@@ -15,6 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local graph = require "dromozoa.regexp.graph"
 
 --[=[
 local function dummy()
@@ -182,10 +183,12 @@ local function create_initial_partitions(u)
   for _, partition in pairs(accept_partition_map) do
     partitions[#partitions + 1] = partition
   end
-  table.sort(partions, function (a, b) return a[1].accept < b[1].accept end)
+  table.sort(partitions, function (a, b) return a[1].accept < b[1].accept end)
 
   partitions[#partitions + 1] = nonaccept_partition
 
+  -- 状態からパーティションへのマップ
+  -- TODO 再帰中に作成したほうがよいのでは
   local partition_map = {}
   for i = 1, #partitions do
     local partition = partitions[i]
@@ -197,7 +200,9 @@ local function create_initial_partitions(u)
   return partitions, partition_map
 end
 
-local function move(u, byte)
+-- TODO graphのほうに移動することを考える
+-- TODO 名詞graphの他の候補automatonやstate machineを考える
+local function execute_transition(u, byte)
   local transitions = u.transitions
   for i = 1, #transitions do
     local transition = transitions[i]
@@ -209,8 +214,6 @@ local function move(u, byte)
 end
 
 return function (u)
-  -- Moore's algorithm
-
   local partitions, partition_map = create_initial_partitions(u)
 
   while true do
@@ -221,26 +224,37 @@ return function (u)
       local partition = partitions[i]
       for j = 1, #partition do
         local x = partition[j]
+        -- 対象とする状態xよりも、パーティション内で前に存在する状態yと遷移先の
+        -- パーティションが同じかどうかを調べる
         for k = 1, j - 1 do
           local y = partition[k]
+
+          -- すべての文字について、同じ遷移を行うならば、ひとつのパーティション
+          -- にまとめる
           local same_partition = true
           for byte = 0x00, 0xFF do
-            if partition_map[move(x, byte)] ~= partition_map[move(y, byte)] then
+            -- TODO 遷移アクションとその優先順位を考慮する
+            local xv, xa = execute_transition(x, byte)
+            local yv, ya = execute_transition(y, byte)
+            if partition_map[xv] ~= partition_map[yv] then
               same_partition = false
               break
             end
           end
+
           if same_partition then
             -- 順序依存はでない？
             local px = new_partition_map[x]
-            local py = new_partition_map[y]
+            local py = new_partition_map[y] -- pyは必ず定義されているべきでは？
             if px then
+              -- そもそもpyが定義されていないのはどんな状況？
               if not py then
                 px[#px + 1] = y
                 new_partition_map[y] = px
               else
                 -- この場合、px == pyが保証される？
-                -- そもそも、どんな場合にpxとpyが定義される？
+                -- TODO どんな場合にpxとpyが定義される？
+                -- 遷移行列の下三角形であることで説明可能？
               end
             elseif py then
               py[#py + 1] = x
@@ -253,6 +267,12 @@ return function (u)
             end
           end
         end
+
+        if not new_partition_map[x] then
+          local p = { x }
+          new_partitions[#new_partitions + 1] = p
+          new_partition_map[x] = p
+        end
       end
     end
 
@@ -261,8 +281,37 @@ return function (u)
       break
     end
 
-    paritions = new_partitions
+    partitions = new_partitions
     partition_map = new_partition_map
   end
 
+  local new_states = {}
+  for i = 1, #partitions do
+    local partition = partitions[i]
+    local unew = graph.new_state()
+    new_states[partition] = unew
+
+    -- partition内のすべてのacceptは同じはず
+    local u = partition[1]
+    unew.accept = u.accept
+  end
+
+  for i = 1, #partitions do
+    local partition = partitions[i]
+    local unew = new_states[partition]
+
+    -- パーティションに含まれる状態の遷移はすべて同一であるはず
+    local u = partition[1]
+    local transitions = u.transitions
+    for j = 1, #transitions do
+      local transition = transitions[j]
+      local v = transition.v
+      local vnew = new_states[partition_map[v]]
+      local new_transition = graph.new_transition(unew, vnew, transition.set)
+
+      -- アクションもてきとうにマージするべき
+    end
+  end
+
+  return new_states[partition_map[u]]
 end

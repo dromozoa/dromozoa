@@ -26,9 +26,11 @@ function class:clone()
   local code = self[1]
   if code == "[" then
     return class.new("[", self[2])
+  elseif code == "/" then
+    return class.new("/", self[2]:clone(), self[3])
   else
     local that = { code }
-    for i = 2, #that do
+    for i = 2, #self do
       that[i] = self[i]:clone()
     end
     return setmetatable(that, metatable)
