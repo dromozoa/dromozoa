@@ -48,11 +48,11 @@ local p = (R"ac" * P"abc" + (P"d" / 1 + R"df" / 2) * P"def")^0
 local p = R"07" * R"07"^-2 * P(1)
 
 local p = "<" * ("\\" * R"09" * R"09"^-2 * "X" + R"az" * "Y")^0 * ">"
-local p = P"\"" * (P"\\" * R"09" * R"09"^-2 % 1 + (R"az" / 2)^1)^0 * P"\""
+-- local p = P"\"" * (P"\\" * R"09" * R"09"^-2 % 1 + (R"az" / 2)^1)^0 * P"\""
 
-write_graphviz_tree(io.stdout, p)
+-- write_graphviz_tree(io.stdout, p)
 -- dump_graph(io.stdout, tree_to_nfa(p, 42))
--- local dfa = nfa_to_dfa(tree_to_nfa(p, 1))
--- local dfa = minimize(dfa)
--- dump_graph(io.stdout, dfa)
+local dfa = nfa_to_dfa(tree_to_nfa(p, 1))
+local dfa = minimize(dfa)
+dump_graph(io.stdout, dfa)
 

@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local graph = require "dromozoa.regexp.graph"
+local fsm = require "dromozoa.regexp.fsm"
 local encode_set = require "dromozoa.regexp.encode_set"
 
 local function encode(set, action)
@@ -62,7 +62,7 @@ local function visit(out, u, state_to_index, color, start)
 end
 
 return function (out, start)
-  local state_to_index, index_to_state, max_accept_index = graph.create_state_indices(start)
+  local state_to_index, index_to_state, max_accept_index = fsm.create_state_indices(start)
   out:write "digraph {\n"
   visit(out, start, state_to_index, {}, start)
   out:write "}\n"

@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local graph = require "dromozoa.regexp.graph"
+local fsm = require "dromozoa.regexp.fsm"
 
 local function map_to_seq(map)
   local seq = {}
@@ -92,7 +92,7 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
       local vkey = vseq.key
       local vobj = new_states[vkey]
       if not vobj then
-        vobj = { state = graph.new_state(), seq = vseq }
+        vobj = { state = fsm.new_state(), seq = vseq }
         new_states[vkey] = vobj
       end
 
@@ -124,7 +124,7 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
     local vobj = new_transition.v
     local vnew = vobj.state
     local vseq = vobj.seq
-    graph.new_transition(unew, vnew, new_transition.set, new_transition.action)
+    fsm.new_transition(unew, vnew, new_transition.set, new_transition.action)
 
     local accept
     for i = 1, #vseq do
@@ -141,10 +141,10 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
 end
 
 return function (u)
-  local state_indices = graph.create_state_indices(u)
+  local state_indices = fsm.create_state_indices(u)
   local epsilon_closures = {}
   local useq = epsilon_closure(u, epsilon_closures, state_indices)
-  local unew = graph.new_state()
+  local unew = fsm.new_state()
   local new_states = { [useq.key] = { state = unew, seq = useq } }
   visit(useq, new_states, epsilon_closures, state_indices, {})
   return unew

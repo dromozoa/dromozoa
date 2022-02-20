@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local graph = require "dromozoa.regexp.graph"
+local fsm = require "dromozoa.regexp.fsm"
 
 --[=[
 local function dummy()
@@ -200,8 +200,8 @@ local function create_initial_partitions(u)
   return partitions, partition_map
 end
 
--- TODO graphのほうに移動することを考える
--- TODO 名詞graphの他の候補automatonやstate machineを考える
+-- TODO fsmのほうに移動することを考える
+-- TODO 名詞fsmの他の候補automatonやstate machineを考える
 local function execute_transition(u, byte)
   local transitions = u.transitions
   for i = 1, #transitions do
@@ -288,7 +288,7 @@ return function (u)
   local new_states = {}
   for i = 1, #partitions do
     local partition = partitions[i]
-    local unew = graph.new_state()
+    local unew = fsm.new_state()
     new_states[partition] = unew
 
     -- partition内のすべてのacceptは同じはず
@@ -307,7 +307,7 @@ return function (u)
       local transition = transitions[j]
       local v = transition.v
       local vnew = new_states[partition_map[v]]
-      local new_transition = graph.new_transition(unew, vnew, transition.set)
+      local new_transition = fsm.new_transition(unew, vnew, transition.set)
 
       -- アクションもてきとうにマージするべき
     end
