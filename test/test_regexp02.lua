@@ -34,7 +34,7 @@ local tree_to_nfa = require "dromozoa.regexp.tree_to_nfa"
 local nfa_to_dfa = require "dromozoa.regexp.nfa_to_dfa"
 local minimize = require "dromozoa.regexp.minimize"
 local write_graphviz_tree = require "dromozoa.regexp.write_graphviz_tree"
-local dump_graph = require "dromozoa.regexp.dump_graph"
+local write_graphviz = require "dromozoa.regexp.write_graphviz"
 
 local P = regexp.pattern.pattern
 local R = regexp.pattern.range
@@ -51,8 +51,8 @@ local p = R"07" * R"07"^-2 * P(1)
 local p = P"\"" * (P"\\" * R"09" * R"09"^-2 % 1 + (R"az" / 2)^1)^0 * P"\""
 
 -- write_graphviz_tree(io.stdout, p)
--- dump_graph(io.stdout, tree_to_nfa(p, 42))
+-- write_graphviz(io.stdout, tree_to_nfa(p, 42))
 local dfa = nfa_to_dfa(tree_to_nfa(p, 1))
 -- local dfa = minimize(dfa)
-dump_graph(io.stdout, dfa)
+write_graphviz(io.stdout, dfa)
 
