@@ -66,6 +66,7 @@ local function visit(node)
       local transition = fsm.new_transition(av, v, leave_set, node[3])
       transition.leave = node[3] -- TODO これは削除する
       transition.timestamp = node.timestamp
+      transition.action = node[3]
       return au, v
     end
   end
