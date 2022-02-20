@@ -22,7 +22,8 @@ local function visit(node)
   if code == "[" then
     local u = fsm.new_state()
     local v = fsm.new_state()
-    fsm.new_transition(u, v, node[2])
+    local transition = fsm.new_transition(u, v, node[2])
+    transition.timestamp = node.timestamp
     return u, v
   else
     local au, av = visit(node[2])
@@ -55,12 +56,14 @@ local function visit(node)
       fsm.new_transition(av, v)
       return u, v
     elseif code == "/" then
-      au.transitions[1].action = node[3]
+      local transition = au.transitions[1]
+      transition.action = node[3]
       return au, av
     elseif code == "%" then
       local v = fsm.new_state()
       local transition = fsm.new_transition(av, v)
       transition.leave = node[3]
+      transition.timestamp = node.timestamp
       return au, v
     end
   end
