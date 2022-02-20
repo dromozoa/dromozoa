@@ -48,7 +48,7 @@ for byte = 0x00, 0xFF do
 end
 local any = construct("[", set)
 
-function class.pattern(that)
+local function pattern(that)
   local t = type(that)
   if t == "number" then
     local items = {}
@@ -66,6 +66,8 @@ function class.pattern(that)
     return that
   end
 end
+
+class.pattern = pattern
 
 function class.set(that)
   local set = {}
@@ -118,7 +120,6 @@ function metatable:__add(that)
 end
 
 function metatable:__unm(that)
-  local self = class.pattern(self)
   if self[1] == "[" then
     local set = self[2]
     local neg = {}
@@ -134,7 +135,6 @@ function metatable:__unm(that)
 end
 
 function metatable:__div(that)
-  local self = class.pattern(self)
   if self[1] == "[" then
     return construct("/", self, that)
   else
