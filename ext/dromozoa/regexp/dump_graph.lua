@@ -19,8 +19,6 @@ local fsm = require "dromozoa.regexp.fsm"
 local encode_set = require "dromozoa.regexp.encode_set"
 
 local function encode(set, action)
-  assert(set)
-
   if action then
     return encode_set(set) .. "(?#" .. action .. ")"
   else
@@ -50,13 +48,22 @@ local function visit(out, u, state_to_index, color, start)
     if not color[v] then
       visit(out, v, state_to_index, color, start)
     end
-    local set = transition.set
-    local action = transition.action
     local vid = state_to_index[v]
-    if set or action then
-      out:write(("%d -> %d [label=\"%s\"];\n"):format(uid, vid, encode(set, action)))
+    local set = transition.set
+    if set then
+      local action = transition.action
+      if action then
+        out:write(("%d -> %d [label=\"%s / %d\"];\n"):format(uid, vid, encode_set(set), action))
+      else
+        out:write(("%d -> %d [label=\"%s\"];\n"):format(uid, vid, encode_set(set)))
+      end
     else
-      out:write(("%d -> %d;\n"):format(uid, vid))
+      local leave = transition.leave
+      if leave then
+        out:write(("%d -> %d [label=\"leave %% %d\"];\n"):format(uid, vid, leave))
+      else
+        out:write(("%d -> %d;\n"):format(uid, vid))
+      end
     end
   end
 end
