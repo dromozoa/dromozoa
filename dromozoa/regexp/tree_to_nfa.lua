@@ -57,6 +57,11 @@ local function visit(node)
     elseif code == "/" then
       au.transitions[1].action = node[3]
       return au, av
+    elseif code == "%" then
+      local v = fsm.new_state()
+      local transition = fsm.new_transition(av, v)
+      transition.leave = node[3]
+      return au, v
     end
   end
 end
