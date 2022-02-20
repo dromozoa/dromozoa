@@ -46,8 +46,8 @@ local function concat(items)
 end
 
 local set = {}
-for byte = 0x00, 0xFF do
-  set[byte] = true
+for ev = 0, 255 do
+  set[ev] = true
 end
 local any = construct("[", set)
 
