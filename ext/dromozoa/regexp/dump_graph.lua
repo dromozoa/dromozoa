@@ -16,15 +16,7 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local fsm = require "dromozoa.regexp.fsm"
-local encode_set = require "dromozoa.regexp.encode_set"
-
-local function encode(set, action)
-  if action then
-    return encode_set(set) .. "(?#" .. action .. ")"
-  else
-    return encode_set(set)
-  end
-end
+local set_to_str = require "dromozoa.regexp.set_to_str"
 
 local function visit(out, u, state_to_index, color, start)
   color[u] = 1
@@ -53,9 +45,9 @@ local function visit(out, u, state_to_index, color, start)
     if set then
       local action = transition.action
       if action then
-        out:write(("%d -> %d [label=\"%s / %d\"];\n"):format(uid, vid, encode_set(set), action))
+        out:write(("%d -> %d [label=\"%s / %d\"];\n"):format(uid, vid, set_to_str(set), action))
       else
-        out:write(("%d -> %d [label=\"%s\"];\n"):format(uid, vid, encode_set(set)))
+        out:write(("%d -> %d [label=\"%s\"];\n"):format(uid, vid, set_to_str(set)))
       end
     else
       local leave = transition.leave
