@@ -45,11 +45,11 @@ local function concat(items)
   return result
 end
 
-local set = {}
+local any_set = {}
 for ev = 0, 255 do
-  set[ev] = true
+  any_set[ev] = true
 end
-local any = construct("[", set)
+local any = construct("[", any_set)
 
 local function pattern(that)
   local t = type(that)

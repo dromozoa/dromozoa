@@ -17,6 +17,8 @@
 
 local fsm = require "dromozoa.regexp.fsm"
 
+local leave_set = { [256] = true }
+
 local function visit(node)
   local code = node[1]
   if code == "[" then
@@ -61,8 +63,8 @@ local function visit(node)
       return au, av
     elseif code == "%" then
       local v = fsm.new_state()
-      local transition = fsm.new_transition(av, v)
-      transition.leave = node[3]
+      local transition = fsm.new_transition(av, v, leave_set, node[3])
+      transition.leave = node[3] -- TODO これは削除する
       transition.timestamp = node.timestamp
       return au, v
     end
