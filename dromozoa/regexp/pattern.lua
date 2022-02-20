@@ -126,9 +126,9 @@ function metatable:__unm(that)
   if self[1] == "[" then
     local set = self[2]
     local neg = {}
-    for byte = 0x00, 0xFF do
-      if not set[byte] then
-        neg[byte] = true
+    for ev = 0, 255 do
+      if not set[ev] then
+        neg[ev] = true
       end
     end
     return construct("[", neg)
