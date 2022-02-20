@@ -18,15 +18,18 @@
 local class = {}
 local metatable = { __index = class }
 
+local timestamp = 0
+
 local function construct(...)
-  return setmetatable({...}, metatable)
+  timestamp = timestamp + 1
+  return setmetatable({ timestamp = timestamp, ... }, metatable)
 end
 
 local function clone(self)
   if getmetatable(self) == metatable then
     local that = {}
-    for i = 1, #self do
-      that[i] = clone(self[i])
+    for k, v in pairs(self) do
+      that[k] = clone(v)
     end
     return setmetatable(that, metatable)
   else

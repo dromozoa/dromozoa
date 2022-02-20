@@ -50,9 +50,9 @@ local p = R"07" * R"07"^-2 * P(1)
 local p = "<" * ("\\" * R"09" * R"09"^-2 * "X" + R"az" * "Y")^0 * ">"
 local p = "\"" * ("\\" * R"09" * R"09"^-2 + R"az"^1)^0 * "\""
 
--- dump_tree(io.stdout, p)
+dump_tree(io.stdout, p)
 -- dump_graph(io.stdout, tree_to_nfa(p, 42))
 local dfa = nfa_to_dfa(tree_to_nfa(p, 1))
 local dfa = minimize(dfa)
-dump_graph(io.stdout, dfa)
+-- dump_graph(io.stdout, dfa)
 
