@@ -15,48 +15,56 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local graph = require "dromozoa.regexp.graph"
+local fsm = require "dromozoa.regexp.fsm"
 
 local function visit(node)
   local code = node[1]
   if code == "[" then
-    local u = graph.new_state()
-    local v = graph.new_state()
-    graph.new_transition(u, v, node[2])
+    local u = fsm.new_state()
+    local v = fsm.new_state()
+    local transition = fsm.new_transition(u, v, node[2])
+    transition.timestamp = node.timestamp
     return u, v
   else
     local au, av = visit(node[2])
     if code == "." then
       local bu, bv = visit(node[3])
-      graph.new_transition(av, bu)
+      fsm.new_transition(av, bu)
       return au, bv
     elseif code == "|" then
       local bu, bv = visit(node[3])
-      local u = graph.new_state()
-      local v = graph.new_state()
-      graph.new_transition(u, au)
-      graph.new_transition(u, bu)
-      graph.new_transition(av, v)
-      graph.new_transition(bv, v)
+      local u = fsm.new_state()
+      local v = fsm.new_state()
+      fsm.new_transition(u, au)
+      fsm.new_transition(u, bu)
+      fsm.new_transition(av, v)
+      fsm.new_transition(bv, v)
       return u, v
     elseif code == "*" then
-      local u = graph.new_state()
-      local v = graph.new_state()
-      graph.new_transition(u, v)
-      graph.new_transition(u, au)
-      graph.new_transition(av, au)
-      graph.new_transition(av, v)
+      local u = fsm.new_state()
+      local v = fsm.new_state()
+      fsm.new_transition(u, v)
+      fsm.new_transition(u, au)
+      fsm.new_transition(av, au)
+      fsm.new_transition(av, v)
       return u, v
     elseif code == "?" then
-      local u = graph.new_state()
-      local v = graph.new_state()
-      graph.new_transition(u, v)
-      graph.new_transition(u, au)
-      graph.new_transition(av, v)
+      local u = fsm.new_state()
+      local v = fsm.new_state()
+      fsm.new_transition(u, v)
+      fsm.new_transition(u, au)
+      fsm.new_transition(av, v)
       return u, v
     elseif code == "/" then
-      au.transitions[1].action = node[3]
+      local transition = au.transitions[1]
+      transition.action = node[3]
       return au, av
+    elseif code == "%" then
+      local v = fsm.new_state()
+      local transition = fsm.new_transition(av, v)
+      transition.leave = node[3]
+      transition.timestamp = node.timestamp
+      return au, v
     end
   end
 end
