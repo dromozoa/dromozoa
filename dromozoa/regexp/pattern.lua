@@ -45,11 +45,11 @@ local function concat(items)
   return result
 end
 
-local any_set = {}
-for ev = 0, 255 do
-  any_set[ev] = true
+local set = {}
+for byte = 0x00, 0xFF do
+  set[byte] = true
 end
-local any = construct("[", any_set)
+local any = construct("[", set)
 
 local function pattern(that)
   local t = type(that)
@@ -111,24 +111,20 @@ function metatable:__pow(that)
 end
 
 function metatable:__mul(that)
-  local self = class.pattern(self)
-  local that = class.pattern(that)
-  return construct(".", self, that)
+  return construct(".", pattern(self), pattern(that))
 end
 
 function metatable:__add(that)
-  local self = class.pattern(self)
-  local that = class.pattern(that)
-  return construct("|", self, that)
+  return construct("|", pattern(self), pattern(that))
 end
 
 function metatable:__unm(that)
   if self[1] == "[" then
     local set = self[2]
     local neg = {}
-    for ev = 0, 255 do
-      if not set[ev] then
-        neg[ev] = true
+    for byte = 0x00, 0xFF do
+      if not set[byte] then
+        neg[byte] = true
       end
     end
     return construct("[", neg)
@@ -137,17 +133,20 @@ function metatable:__unm(that)
   end
 end
 
-function metatable:__div(that)
+function metatable:__div(action)
   if self[1] == "[" then
-    return construct("/", self, that)
+    return construct("T", self, action)
   else
     error "not supported"
   end
 end
 
-function metatable:__mod(that)
-  local self = class.pattern(self)
-  return construct("%", self, that)
+function metatable:__mod(action)
+  return construct("L", self, action)
+end
+
+function class.guard(action, self, that)
+  return construct("G", action, pattern(self), pattern(that))
 end
 
 return class

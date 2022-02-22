@@ -35,11 +35,6 @@ return function (set)
     n = n + 1
   end
 
-  if set[256] then
-    assert(n == 0)
-    return "leave"
-  end
-
   if n == 1 then
     for byte in pairs(set) do
       return encoder[byte]

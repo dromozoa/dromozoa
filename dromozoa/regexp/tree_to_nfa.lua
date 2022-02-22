@@ -17,8 +17,6 @@
 
 local fsm = require "dromozoa.regexp.fsm"
 
-local leave_set = { [256] = true }
-
 local function visit(node)
   local code = node[1]
   if code == "[" then
@@ -57,17 +55,18 @@ local function visit(node)
       fsm.new_transition(u, au)
       fsm.new_transition(av, v)
       return u, v
-    elseif code == "/" then
+    elseif code == "T" then
       local transition = au.transitions[1]
       transition.action = node[3]
       return au, av
-    elseif code == "%" then
+    elseif code == "L" then
       local v = fsm.new_state()
-      local transition = fsm.new_transition(av, v, leave_set, node[3])
-      transition.leave = node[3] -- TODO これは削除する
+      local transition = fsm.new_transition(av, v)
       transition.timestamp = node.timestamp
-      transition.action = node[3]
+      transition.leave = node[3]
       return au, v
+    elseif code == "G" then
+      error "not supported"
     end
   end
 end
