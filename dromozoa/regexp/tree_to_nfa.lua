@@ -55,18 +55,27 @@ local function visit(node)
       fsm.new_transition(u, au)
       fsm.new_transition(av, v)
       return u, v
-    elseif code == "T" then
+    elseif code == "/" then
       local transition = au.transitions[1]
       transition.action = node[3]
       return au, av
-    elseif code == "L" then
+    elseif code == "%enter" then
+      local u = fsm.new_state()
       local v = fsm.new_state()
+      fsm.new_transition(u, au)
+      fsm.new_transition(av, u)
+      local transition = fsm.new_transition(u, v)
+      transition.timestamp = node.timestamp
+      transition.enter = node[3]
+      return u, v
+    elseif code == "%leave" then
+      local u = fsm.new_state()
+      local v = fsm.new_state()
+      fsm.new_transition(u, au)
       local transition = fsm.new_transition(av, v)
       transition.timestamp = node.timestamp
       transition.leave = node[3]
-      return au, v
-    elseif code == "G" then
-      error "not supported"
+      return u, v
     end
   end
 end

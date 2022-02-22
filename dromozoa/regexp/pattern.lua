@@ -135,18 +135,18 @@ end
 
 function metatable:__div(action)
   if self[1] == "[" then
-    return construct("T", self, action)
+    return construct("/", self, action)
   else
     error "not supported"
   end
 end
 
-function metatable:__mod(action)
-  return construct("L", self, action)
-end
-
-function class.guard(action, self, that)
-  return construct("G", action, pattern(self), pattern(that))
+function metatable:__mod(that)
+  if getmetatable(self) == metatable then
+    return construct("%leave", self, that)
+  else
+    return construct("%enter", that, self)
+  end
 end
 
 return class

@@ -109,14 +109,14 @@
     <td>transition</td>
   </tr>
   <tr>
-    <td><code>pattern % action</code></td>
-    <td><code>R"09" * R"09"^-2 % 2</code></td>
-    <td>leave</td>
+    <td><code>action % pattern</code></td>
+    <td><code>2 % P(1) * P"]" * P"="^0 * P"]"</code></td>
+    <td>enter</td>
   </tr>
   <tr>
-    <td><code>G(action, pattern, pattern)</code></td>
-    <td><code>G(3, P"]" * P"="^0 * P"]", P(1))</code></td>
-    <td>guard</td>
+    <td><code>pattern % action</code></td>
+    <td><code>R"09" * R"09"^-2 % 3</code></td>
+    <td>leave</td>
   </tr>
 </table>
 
@@ -154,19 +154,19 @@
     <td>optional</td>
   </tr>
   <tr>
-    <td><code>T</code></td>
+    <td><code>/</code></td>
     <td><code>pattern action</code></td>
     <td>action: transition</td>
   </tr>
   <tr>
-    <td><code>L</code></td>
+    <td><code>%enter</code></td>
     <td><code>pattern action</code></td>
-    <td>action: leave</td>
+    <td>action: enter</td>
   </tr>
   <tr>
-    <td><code>G</code></td>
-    <td><code>action pattern pattern</code></td>
-    <td>action: guard</td>
+    <td><code>%leave</code></td>
+    <td><code>pattern action</code></td>
+    <td>action: leave</td>
   </tr>
 </table>
 
