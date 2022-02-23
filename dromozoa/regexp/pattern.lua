@@ -45,18 +45,17 @@ local function concat(items)
   return result
 end
 
-local any_set = {}
+local any = {}
 for char = 0, 255 do
-  any_set[char] = true
+  any[char] = true
 end
-local any = construct("[", any_set)
 
 local function pattern(that)
   local t = type(that)
   if t == "number" then
     local items = {}
     for i = 1, that do
-      items[i] = clone(any)
+      items[i] = construct("[", any)
     end
     return concat(items)
   elseif t == "string" then
