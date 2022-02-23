@@ -50,6 +50,7 @@ local p = "<" * ("\\" * R"09" * R"09"^-2 * "X" + R"az" * "Y")^0 * ">"
 local p = P"\"" * (P"\\" * R"09" * R"09"^-2 % 1 + (R"az" / 2)^1)^0 * P"\""
 
 local p = P"[[" * (1 % (R"09"^1 % 2 + P(1) / 3)) * P"]]"
+local p = P"[[" * (1 % (R"09"^1 % 2 + (-R"09") / 3)) * P"]]"
 
 -- write_graphviz_tree(io.stdout, p)
 -- write_graphviz(io.stdout, tree_to_nfa(p, 42))

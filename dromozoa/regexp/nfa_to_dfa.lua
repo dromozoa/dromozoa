@@ -92,6 +92,8 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
 
   -- TODO %leaveがついていても、状態遷移がマージされてしまうので、どうにかして防ぐ
   -- TODO そもそもtimestampは遷移のIDとしては使えないかもしれない
+  -- TODO 全文字の遷移を一旦調べてから考えるのはどうだろう
+  -- TODO epsilon closureの求め方の問題かもしれないけど、どうにかできるのかな？
 
   for char = 0, 257 do
     local vmap = {}
