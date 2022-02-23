@@ -50,17 +50,7 @@ local function visit(out, u, state_to_index, color, start)
         out:write(("%d -> %d [label=\"%s\"];\n"):format(uid, vid, set_to_str(set)))
       end
     else
-      local enter = transition.enter
-      if enter then
-        out:write(("%d -> %d [label=\"enter %% %d\"];\n"):format(uid, vid, enter))
-      else
-        local leave = transition.leave
-        if leave then
-          out:write(("%d -> %d [label=\"leave %% %d\"];\n"):format(uid, vid, leave))
-        else
-          out:write(("%d -> %d;\n"):format(uid, vid))
-        end
-      end
+      out:write(("%d -> %d;\n"):format(uid, vid))
     end
   end
 end

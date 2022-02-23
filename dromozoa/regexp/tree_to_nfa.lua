@@ -17,6 +17,9 @@
 
 local fsm = require "dromozoa.regexp.fsm"
 
+local enter_set = { [256] = true }
+local leave_set = { [257] = true }
+
 local function visit(node)
   local code = node[1]
   if code == "[" then
@@ -64,17 +67,17 @@ local function visit(node)
       local v = fsm.new_state()
       fsm.new_transition(u, au)
       fsm.new_transition(av, u)
-      local transition = fsm.new_transition(u, v)
+      local transition = fsm.new_transition(u, v, enter_set)
       transition.timestamp = node.timestamp
-      transition.enter = node[3]
+      transition.action = node[3]
       return u, v
     elseif code == "%leave" then
       local u = fsm.new_state()
       local v = fsm.new_state()
       fsm.new_transition(u, au)
-      local transition = fsm.new_transition(av, v)
+      local transition = fsm.new_transition(av, v, leave_set)
       transition.timestamp = node.timestamp
-      transition.leave = node[3]
+      transition.action = node[3]
       return u, v
     end
   end

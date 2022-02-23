@@ -57,7 +57,7 @@ local function visit(u, map, state_indices)
   local transitions = u.transitions
   for i = 1, #transitions do
     local transition = transitions[i]
-    if not transition.set and not transition.leave then
+    if not transition.set and not transition.enter and not transition.leave then
       local v = transition.v
       local vid = state_indices[v]
       map[vid] = v

@@ -45,11 +45,11 @@ local function concat(items)
   return result
 end
 
-local set = {}
-for byte = 0x00, 0xFF do
-  set[byte] = true
+local any_set = {}
+for char = 0, 255 do
+  any_set[char] = true
 end
-local any = construct("[", set)
+local any = construct("[", any_set)
 
 local function pattern(that)
   local t = type(that)
@@ -122,9 +122,9 @@ function metatable:__unm(that)
   if self[1] == "[" then
     local set = self[2]
     local neg = {}
-    for byte = 0x00, 0xFF do
-      if not set[byte] then
-        neg[byte] = true
+    for char = 0, 255 do
+      if not set[char] then
+        neg[char] = true
       end
     end
     return construct("[", neg)
