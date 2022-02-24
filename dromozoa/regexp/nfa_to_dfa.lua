@@ -109,7 +109,7 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
           local timestamp = transition.timestamp
           if not merged_timestamp or merged_timestamp > timestamp then
             merged_timestamp = timestamp
-            merged_action = action
+            merged_action = transition.action
           end
           local seq = epsilon_closure(transition.v, epsilon_closures, state_indices)
           for k = 1, #seq do
