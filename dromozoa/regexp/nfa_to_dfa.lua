@@ -90,12 +90,9 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
 
   local new_transition_map = {}
 
-  -- TODO %leaveがついていても、状態遷移がマージされてしまうので、どうにかして防ぐ
-  -- TODO そもそもtimestampは遷移のIDとしては使えないかもしれない
-  -- TODO 全文字の遷移を一旦調べてから考えるのはどうだろう
-  -- TODO epsilon closureの求め方の問題かもしれないけど、どうにかできるのかな？
+  -- TODO なんかいいかんじにする
 
-  for char = 0, 257 do
+  for byte = 0x00, 0xFF do
     local vmap = {}
     local merged_timestamp
     local merged_action
@@ -105,7 +102,7 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
       for j = 1, #transitions do
         local transition = transitions[j]
         local set = transition.set
-        if set and set[char] then
+        if set and set[byte] then
           local timestamp = transition.timestamp
           if not merged_timestamp or merged_timestamp > timestamp then
             merged_timestamp = timestamp
@@ -132,9 +129,9 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
       local new_transition_key = vkey .. merged_timestamp
       local new_transition = new_transition_map[new_transition_key]
       if not new_transition then
-        new_transition_map[new_transition_key] = { index = char, v = vobj, set = { [char] = true }, timestamp = merged_timestamp, action = merged_action }
+        new_transition_map[new_transition_key] = { index = byte, v = vobj, set = { [byte] = true }, timestamp = merged_timestamp, action = merged_action }
       else
-        new_transition.set[char] = true
+        new_transition.set[byte] = true
       end
     end
   end

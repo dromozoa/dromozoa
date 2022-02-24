@@ -46,8 +46,8 @@ local function concat(items)
 end
 
 local any = {}
-for char = 0, 255 do
-  any[char] = true
+for byte = 0x00, 0xFF do
+  any[byte] = true
 end
 
 local function pattern(that)
@@ -121,9 +121,9 @@ function metatable:__unm(that)
   if self[1] == "[" then
     local set = self[2]
     local neg = {}
-    for char = 0, 255 do
-      if not set[char] then
-        neg[char] = true
+    for byte = 0x00, 0xFF do
+      if not set[byte] then
+        neg[byte] = true
       end
     end
     return construct("[", neg)
@@ -137,14 +137,6 @@ function metatable:__div(action)
     return construct("/", self, action)
   else
     error "not supported"
-  end
-end
-
-function metatable:__mod(that)
-  if getmetatable(self) == metatable then
-    return construct("%leave", self, that)
-  else
-    return construct("%enter", that, self)
   end
 end
 

@@ -91,32 +91,13 @@
     <td><code>-pattern</code></td>
     <td><code>-R"09af"</code></td>
     <td><code>[^0-9a-f]</code></td>
-    <td>negation</td>
-  </tr>
-</table>
-
-<h2>Action DSL</h2>
-
-<table>
-  <tr>
-    <th>Operator</th>
-    <th>Example</th>
-    <th>Description</th>
+    <td>character level negation</td>
   </tr>
   <tr>
     <td><code>pattern / action</code></td>
     <td><code>R"09af" / 1</code></td>
-    <td>transition</td>
-  </tr>
-  <tr>
-    <td><code>action % pattern</code></td>
-    <td><code>2 % P(1) * P"]" * P"="^0 * P"]"</code></td>
-    <td>enter</td>
-  </tr>
-  <tr>
-    <td><code>pattern % action</code></td>
-    <td><code>R"09" * R"09"^-2 % 3</code></td>
-    <td>leave</td>
+    <td><code>[0-9a-f](?#/1)</code></td>
+    <td>transition action</td>
   </tr>
 </table>
 
@@ -156,17 +137,7 @@
   <tr>
     <td><code>/</code></td>
     <td><code>pattern action</code></td>
-    <td>action: transition</td>
-  </tr>
-  <tr>
-    <td><code>%enter</code></td>
-    <td><code>pattern action</code></td>
-    <td>action: enter</td>
-  </tr>
-  <tr>
-    <td><code>%leave</code></td>
-    <td><code>pattern action</code></td>
-    <td>action: leave</td>
+    <td>transition action</td>
   </tr>
 </table>
 
