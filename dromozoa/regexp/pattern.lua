@@ -45,18 +45,18 @@ local function concat(items)
   return result
 end
 
-local set = {}
+local any = {}
 for byte = 0x00, 0xFF do
-  set[byte] = true
+  any[byte] = true
 end
-local any = construct("[", set)
 
 local function pattern(that)
   local t = type(that)
   if t == "number" then
+    -- TODO ひとつのanyをクローンするべきか検討する
     local items = {}
     for i = 1, that do
-      items[i] = clone(any)
+      items[i] = construct("[", any)
     end
     return concat(items)
   elseif t == "string" then
@@ -101,6 +101,7 @@ function metatable:__pow(that)
   elseif that == 0 then
     return construct("*", self)
   else
+    -- TODO 1個以上のとき、+を導入する
     local items = { self }
     for i = 2, that do
       items[i] = clone(self)
@@ -111,15 +112,12 @@ function metatable:__pow(that)
 end
 
 function metatable:__mul(that)
-  local self = class.pattern(self)
-  local that = class.pattern(that)
-  return construct(".", self, that)
+  return construct(".", pattern(self), pattern(that))
 end
 
 function metatable:__add(that)
-  local self = class.pattern(self)
-  local that = class.pattern(that)
-  return construct("|", self, that)
+  -- TODO 文字クラス同士の場合、直接集合を計算する
+  return construct("|", pattern(self), pattern(that))
 end
 
 function metatable:__unm(that)
@@ -137,17 +135,12 @@ function metatable:__unm(that)
   end
 end
 
-function metatable:__div(that)
+function metatable:__div(action)
   if self[1] == "[" then
-    return construct("/", self, that)
+    return construct("/", self, action)
   else
     error "not supported"
   end
-end
-
-function metatable:__mod(that)
-  local self = class.pattern(self)
-  return construct("%", self, that)
 end
 
 return class

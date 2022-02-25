@@ -41,6 +41,7 @@ local function visit(node)
       fsm.new_transition(bv, v)
       return u, v
     elseif code == "*" then
+      -- TODO 状態数を減らしたNFAの構築を検討する
       local u = fsm.new_state()
       local v = fsm.new_state()
       fsm.new_transition(u, v)
@@ -59,12 +60,6 @@ local function visit(node)
       local transition = au.transitions[1]
       transition.action = node[3]
       return au, av
-    elseif code == "%" then
-      local v = fsm.new_state()
-      local transition = fsm.new_transition(av, v)
-      transition.leave = node[3]
-      transition.timestamp = node.timestamp
-      return au, v
     end
   end
 end

@@ -1,4 +1,4 @@
--- Copyright (C) 2020 Tomoyuki Fujimori <moyu@dromozoa.com>
+-- Copyright (C) 2022 Tomoyuki Fujimori <moyu@dromozoa.com>
 --
 -- This file is part of dromozoa.
 --
@@ -15,66 +15,50 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local encode_set = require "dromozoa.regexp.encode_set"
+local fsm = require "dromozoa.regexp.fsm"
+local set_to_str = require "dromozoa.regexp.set_to_str"
 
-return function (this, out)
-  local transitions = this.transitions
-  local start_state = this.start_state
-  local action_states = this.action_states
-  local accept_states = this.accept_states
+local function visit(out, u, state_to_index, color, start)
+  color[u] = 1
 
-  out:write [[
-digraph {
-graph[rankdir=LR];
-]]
-
-  for u = 1, transitions.max_state do
-    local attr = {}
-    local name = { u }
-    local action = action_states[u]
-    local accept = accept_states[u]
-
-    if u == start_state then
-      attr[#attr + 1] = "style=filled,fillcolor=black,fontcolor=white"
-    end
-    if action then
-      name[#name + 1] = "@" .. action
-    end
-    if accept then
-      attr[#attr + 1] = "peripheries=2"
-      name[#name + 1] = "/" .. accept
-    end
-
-    attr[#attr + 1] = "label=\"" .. table.concat(name) .. "\""
-    out:write(u, "[", table.concat(attr, ","), "];\n")
-
-    local vsets = {}
-    for ev = 0, 255 do
-      local v = transitions[ev][u]
-      if v then
-        local set = vsets[v]
-        if set then
-          set[ev] = true
-        else
-          vsets[v] = { [ev] = true }
-        end
-      end
-    end
-    for v, set in pairs(vsets) do
-      out:write(u, "->", v, "[label=\"", encode_set(set), "\"];\n")
-    end
-
-    for ev = 256, #transitions do
-      local v = transitions[ev][u]
-      if v then
-        out:write(u, "->", v, ";\n")
-      else
-        break
-      end
-    end
+  local uid = state_to_index[u]
+  local attrs = {}
+  if u == start then
+    attrs[#attrs + 1] = "fillcolor=grey"
+  end
+  if u.accept then
+    attrs[#attrs + 1] = "shape=doublecircle"
+  end
+  if #attrs > 0 then
+    out:write(("%d [%s];\n"):format(uid, table.concat(attrs)))
   end
 
-  out:write "}\n"
+  local transitions = u.transitions
+  for i = 1, #transitions do
+    local transition = transitions[i]
+    local v = transition.v
+    if not color[v] then
+      visit(out, v, state_to_index, color, start)
+    end
+    local vid = state_to_index[v]
+    local set = transition.set
+    if set then
+      local action = transition.action
+      if action then
+        out:write(("%d -> %d [label=\"%s / %d\"];\n"):format(uid, vid, set_to_str(set), action))
+      else
+        out:write(("%d -> %d [label=\"%s\"];\n"):format(uid, vid, set_to_str(set)))
+      end
+    else
+      out:write(("%d -> %d;\n"):format(uid, vid))
+    end
+  end
+end
 
+return function (out, start)
+  local state_to_index, index_to_state, max_accept_index = fsm.create_state_indices(start)
+  out:write "digraph {\n"
+  visit(out, start, state_to_index, {}, start)
+  out:write "}\n"
   return out
 end

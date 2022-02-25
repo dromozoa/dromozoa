@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local encode_set = require "dromozoa.regexp.encode_set"
+local set_to_str = require "dromozoa.regexp.set_to_str"
 
 local function dump(out, node, map, id)
   id = id + 1
@@ -23,7 +23,7 @@ local function dump(out, node, map, id)
 
   local code = node[1]
   if code == "[" then
-    out:write(("%d [label=\"%s\\n%d\", shape=box];\n"):format(id, encode_set(node[2]), node.timestamp))
+    out:write(("%d [label=\"%s\\n%d\", shape=box];\n"):format(id, set_to_str(node[2]), node.timestamp))
   elseif code == "/" or code == "%" then
     out:write(("%d [label = \"%s %s\"];\n"):format(id, code, node[3]))
     id = dump(out, node[2], map, id)

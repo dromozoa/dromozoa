@@ -30,10 +30,17 @@ for byte = 0x61, 0x7A do -- [a-z]
 end
 
 return function (set)
+  if set[256] then
+    return "%enter"
+  elseif set[257] then
+    return "%leave"
+  end
+
   local n = 0
   for byte in pairs(set) do
     n = n + 1
   end
+
   if n == 1 then
     for byte in pairs(set) do
       return encoder[byte]

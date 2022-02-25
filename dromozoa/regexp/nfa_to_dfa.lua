@@ -57,7 +57,7 @@ local function visit(u, map, state_indices)
   local transitions = u.transitions
   for i = 1, #transitions do
     local transition = transitions[i]
-    if not transition.set and not transition.leave then
+    if not transition.set then
       local v = transition.v
       local vid = state_indices[v]
       map[vid] = v
@@ -77,7 +77,7 @@ local function epsilon_closure(u, epsilon_closures, state_indices)
   return seq
 end
 
-local function merge_priority(a, b)
+local function merge_accept(a, b)
   if b and (not a or a > b) then
     return b
   else
@@ -92,8 +92,8 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
 
   for byte = 0x00, 0xFF do
     local vmap = {}
-    local min_timestamp
-    local action
+    local merged_timestamp
+    local merged_action
 
     for i = 1, #useq do
       local transitions = useq[i].state.transitions
@@ -101,10 +101,10 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
         local transition = transitions[j]
         local set = transition.set
         if set and set[byte] then
-          local timestamp = assert(transition.timestamp)
-          if not min_timestamp or min_timestamp > timestamp then
-            min_timestamp = timestamp
-            action = transition.action
+          local timestamp = transition.timestamp
+          if not merged_timestamp or merged_timestamp > timestamp then
+            merged_timestamp = timestamp
+            merged_action = transition.action
           end
           local seq = epsilon_closure(transition.v, epsilon_closures, state_indices)
           for k = 1, #seq do
@@ -124,66 +124,14 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
         new_states[vkey] = vobj
       end
 
-      local new_transition_key = vkey
-      if action then
-        -- TODO タイムスタンプを代表値に使うのはどうか？
-        new_transition_key = new_transition_key .. "/" .. action
-      end
-
+      local new_transition_key = vkey .. merged_timestamp
       local new_transition = new_transition_map[new_transition_key]
       if not new_transition then
-        new_transition_map[new_transition_key] = { index = byte, v = vobj, set = { [byte] = true }, action = action, timestamp = min_timestamp }
+        new_transition_map[new_transition_key] = { index = byte, v = vobj, set = { [byte] = true }, timestamp = merged_timestamp, action = merged_action }
       else
         new_transition.set[byte] = true
-        -- TODO 単純に考えると同じアクションを持つ遷移はタイムスタンプも等しいはずであり、タイムスタンプを更新する必要はない
-        -- TODO 同じアクションを複数回使っている場合はそれが満たされない場合もある、その場合はスプリットも検討するべき？
-        if new_transition.timestamp > min_timestamp then
-          new_transition.timestamp = min_timestamp
-        end
       end
     end
-  end
-
-  -- leaveの処理
-  local vmap = {}
-  local min_timestamp
-  local leave
-  for i = 1, #useq do
-    local transitions = useq[i].state.transitions
-    for j = 1, #transitions do
-      local transition = transitions[j]
-      if transition.leave then
-        local timestamp = assert(transition.timestamp)
-        if not min_timestamp or min_timestamp > timestamp then
-          min_timestamp = timestamp
-          leave = transition.leave
-        end
-        local seq = epsilon_closure(transition.v, epsilon_closures, state_indices)
-        for k = 1, #seq do
-          local item = seq[k]
-          vmap[item.index] = item.state
-        end
-      end
-    end
-  end
-
-  if next(vmap) then
-    local vseq = map_to_seq(vmap)
-    local vkey = vseq.key
-    local vobj = new_states[vkey]
-    if not vobj then
-      vobj = { state = fsm.new_state(), seq = vseq }
-      new_states[vkey] = vobj
-    end
-
-    local new_transition_key = vkey
-    if action then
-      -- TODO タイムスタンプを代表値に使うのはどうか？
-      new_transition_key = new_transition_key .. "/" .. action
-    end
-
-    local new_transition = { index = 256, v = vobj, leave = assert(leave), timestamp = min_timestamp }
-    new_transition_map["leave"] = new_transition
   end
 
   local new_transitions = {}
@@ -202,19 +150,13 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
     local vnew = vobj.state
     local vseq = vobj.seq
 
-    if not new_transition.leave then
-      local t = fsm.new_transition(unew, vnew, new_transition.set)
-      t.action = new_transition.action
-      t.timestamp = new_transition.timestamp
-    else
-      local t = fsm.new_transition(unew, vnew)
-      t.leave = new_transition.leave
-      t.timestamp = new_transition.timestamp
-    end
+    local t = fsm.new_transition(unew, vnew, new_transition.set)
+    t.action = new_transition.action
+    t.timestamp = new_transition.timestamp
 
     local accept
     for i = 1, #vseq do
-      accept = merge_priority(accept, vseq[i].state.accept)
+      accept = merge_accept(accept, vseq[i].state.accept)
     end
     vnew.accept = accept
 
