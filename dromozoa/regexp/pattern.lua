@@ -100,6 +100,7 @@ function metatable:__pow(that)
   elseif that == 0 then
     return construct("*", self)
   else
+    -- TODO 1個以上のとき、+を導入する
     local items = { self }
     for i = 2, that do
       items[i] = clone(self)
@@ -114,6 +115,7 @@ function metatable:__mul(that)
 end
 
 function metatable:__add(that)
+  -- TODO 文字クラス同士の場合、直接集合を計算する
   return construct("|", pattern(self), pattern(that))
 end
 
