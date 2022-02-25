@@ -90,8 +90,6 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
 
   local new_transition_map = {}
 
-  -- TODO なんかいいかんじにする
-
   for byte = 0x00, 0xFF do
     local vmap = {}
     local merged_timestamp
