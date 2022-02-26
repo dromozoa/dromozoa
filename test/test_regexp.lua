@@ -17,6 +17,7 @@
 
 -- local node = require "dromozoa.regexp.node"
 
+--[=[
 local graph = require "dromozoa.regexp.graph"
 
 -- local x = character_class_range "AD"
@@ -53,6 +54,8 @@ local uid = nfa:new_vertex()
 local vid = nfa:new_vertex()
 local eid = nfa:new_edge(u, v)
 print(uid, vid, eid)
+
+]=]
 
 --[[
 

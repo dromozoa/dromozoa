@@ -169,6 +169,7 @@ local function visit(useq, new_states, epsilon_closures, state_indices, color)
 end
 
 return function (u)
+  -- TODO 変数名のつけかたを考える
   local state_indices = create_state_indices(u)
   local epsilon_closures = {}
   local useq = epsilon_closure(u, epsilon_closures, state_indices)
