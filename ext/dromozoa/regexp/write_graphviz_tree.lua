@@ -50,6 +50,9 @@ digraph {
   graph [
     layout=dot,
   ];
+  node [
+    shape=circle,
+  ];
 ]]
 
   -- OmniGraffleのdotレンダリングエンジンは、エッジを先に出力しないと表示順序

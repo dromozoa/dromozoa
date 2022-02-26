@@ -58,4 +58,4 @@ local function test(root)
 end
 
 test(P"abc"^0)
-
+test(P"abc"^1)
