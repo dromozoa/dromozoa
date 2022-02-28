@@ -15,7 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local fsm = require "dromozoa.regexp.fsm"
 local set_to_str = require "dromozoa.regexp.set_to_str"
 
 local function visit(out, u, indices, index, start, color)
@@ -27,7 +26,7 @@ local function visit(out, u, indices, index, start, color)
   local attrs = {}
   if u == start then
     -- OmniGraffleのdotレンダリングエンジンは、ラベルを定義しないとフォント色を
-    -- 認識しないらしい。
+    -- 無視するように見える。
     attrs[#attrs + 1] = "fillcolor=black"
     attrs[#attrs + 1] = "fontcolor=white"
   end
@@ -70,8 +69,6 @@ local function visit(out, u, indices, index, start, color)
 end
 
 return function (out, u)
-  local state_to_index, index_to_state, max_accept_index = fsm.create_state_indices(u)
-
   out:write [[
 digraph {
   graph [layout=dot,rankdir=LR];
@@ -79,7 +76,7 @@ digraph {
 ]]
 
   -- OmniGraffleのdotレンダリングエンジンは、表示順序（重ね合わせ順序）が安定し
-  -- ないように見える。rankdir=LRの場合、安定させる条件が良くわからなかった。
+  -- ないように見える。rankdir=LRの場合、安定させる条件が見つけられなかった。
   visit(out, u, {}, 0, u, {})
 
   out:write "}\n"
