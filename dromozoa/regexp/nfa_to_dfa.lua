@@ -173,7 +173,15 @@ return function (u)
   local state_indices = create_state_indices(u)
   local epsilon_closures = {}
   local useq = epsilon_closure(u, epsilon_closures, state_indices)
+
   local unew = fsm.new_state()
+
+  local accept
+  for i = 1, #useq do
+    accept = merge_accept(accept, useq[i].state.accept)
+  end
+  unew.accept = accept
+
   local new_states = { [useq.key] = { state = unew, seq = useq } }
   visit(useq, new_states, epsilon_closures, state_indices, {})
   return unew

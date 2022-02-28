@@ -51,8 +51,8 @@ digraph {
   node [shape=circle];
 ]]
 
-  -- OmniGraffleのdotレンダリングエンジンは、エッジを先に出力しないと表示順序
-  -- （重ね合わせ順序）が安定しないらしい。
+  -- OmniGraffleのdotレンダリングエンジンは、表示順序（重ね合わせ順序）が安定し
+  -- ないように見える。rankdir=TBの場合はエッジを先に出力することで安定した。
   visit(out, root, {}, 0)
 
   out:write "}\n"

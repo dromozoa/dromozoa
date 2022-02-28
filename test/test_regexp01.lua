@@ -31,7 +31,7 @@ local R = pattern.range
 
 local i = 0
 
-local function test(root)
+local function test(root, check_start_accept)
   i = i + 1
 
   local out = assert(io.open(("test%04d-tree.dot"):format(i), "w"))
@@ -55,7 +55,13 @@ local function test(root)
   local out = assert(io.open(("test%04d-dfa2.dot"):format(i), "w"))
   write_graphviz(out, dfa2)
   out:close()
+
+  if check_start_accept then
+    assert(dfa1.accept)
+    assert(dfa2.accept)
+  end
 end
 
-test(P"abc"^0)
+test(P"abc"^0, true)
 test(P"abc"^1)
+test(P"x"^0, true)
