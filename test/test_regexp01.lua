@@ -38,7 +38,7 @@ local function test(root)
   write_graphviz_tree(out, root)
   out:close()
 
-  local nfa = tree_to_nfa(root)
+  local nfa = tree_to_nfa(root, 1)
 
   local out = assert(io.open(("test%04d-nfa.dot"):format(i), "w"))
   write_graphviz(out, nfa)

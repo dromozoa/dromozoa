@@ -22,22 +22,22 @@ local function visit(out, v, indices, index, uid)
   indices[v] = index
 
   if uid then
-    out:write(("%d -> %d;\n"):format(uid, index))
+    out:write(("  %d -> %d;\n"):format(uid, index))
   end
 
   local code = v[1]
   if code == "[" then
-    out:write(("%d [label=\"%s\\n%d\", shape=box];\n"):format(index, set_to_str(v[2]), v.timestamp))
+    out:write(("  %d [label=\"%s\\n%d\",shape=box];\n"):format(index, set_to_str(v[2]), v.timestamp))
   else
     local vid = index
     if code == "/" then
       index = visit(out, v[2], indices, index, vid)
-      out:write(("%d [label = \"%s %s\"];\n"):format(vid, code, v[3]))
+      out:write(("  %d [label=\"%s %s\"];\n"):format(vid, code, v[3]))
     else
       for i = 2, #v do
         index = visit(out, v[i], indices, index, vid)
       end
-      out:write(("%d [label = \"%s\"];\n"):format(vid, code))
+      out:write(("  %d [label=\"%s\"];\n"):format(vid, code))
     end
   end
 
@@ -47,12 +47,8 @@ end
 return function (out, root)
   out:write [[
 digraph {
-  graph [
-    layout=dot,
-  ];
-  node [
-    shape=circle,
-  ];
+  graph [layout=dot];
+  node [shape=circle];
 ]]
 
   -- OmniGraffleのdotレンダリングエンジンは、エッジを先に出力しないと表示順序
@@ -60,6 +56,4 @@ digraph {
   visit(out, root, {}, 0)
 
   out:write "}\n"
-
-  return out
 end

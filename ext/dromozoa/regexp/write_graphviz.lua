@@ -55,10 +55,111 @@ local function visit(out, u, state_to_index, color, start)
   end
 end
 
-return function (out, start)
-  local state_to_index, index_to_state, max_accept_index = fsm.create_state_indices(start)
-  out:write "digraph {\n"
-  visit(out, start, state_to_index, {}, start)
+local function visit(out, v, indices, index, color, uid)
+  color[v] = 1
+
+  index = index + 1
+  indices[v] = index
+
+  if uid then
+    out:write(("  %d -> %d;\n"):format(uid, index))
+  end
+
+  local vid = index
+  local transitions = v.transitions
+  for i = 1, #transitions do
+    local transition = transitions[i]
+    local w = transition.v
+    if not color[w] then
+      index = visit(out, w, indices, index, color, vid)
+    end
+  end
+
+
+
+  color[v] = 2
+end
+
+local function visit(out, u, indices, index, color)
+  color[u] = 1
+  index = index + 1
+  indices[u] = index
+
+  local uid = index
+
+  local transitions = u.transitions
+  for i = 1, #transitions do
+    local transition = transitions[i]
+    local v = transition.v
+    if not color[v] then
+      index = visit(out, v, indices, index, color)
+    end
+    local vid = indices[v]
+    local set = transition.set
+    if set then
+      local action = transition.action
+      if action then
+        out:write(("  %d -> %d [label=\"%s / %d\"];\n"):format(uid, vid, set_to_str(set), action))
+      else
+        out:write(("  %d -> %d [label=\"%s\"];\n"):format(uid, vid, set_to_str(set)))
+      end
+    else
+      out:write(("  %d -> %d;\n"):format(uid, vid))
+    end
+  end
+  color[u] = 2
+  return index
+end
+
+local function process1(out, u, indices)
+  visit(out, u, indices, 0, {})
+end
+
+local function visit(out, u, indices, start, color)
+  color[u] = 1
+
+  local uid = indices[u]
+
+  local attrs = {}
+  if u == start then
+    attrs[#attrs + 1] = "fillcolor=grey"
+  end
+  local accept = u.accept
+  if accept then
+    attrs[#attrs + 1] = "shape=doublecircle"
+    attrs[#attrs + 1] = ("label=\"%d / %d\""):format(uid, accept)
+  end
+  if next(attrs) then
+  end
+
+  local transitions = u.transitions
+  for i = 1, #transitions do
+    local transition = transitions[i]
+    local v = transition.v
+    if not color[v] then
+      visit(out, v, indices, start, color)
+    end
+  end
+
+  color[u] = 2
+end
+
+local function process2(out, u, indices, start)
+  visit(out, u, indices, start, {})
+end
+
+return function (out, u)
+  local state_to_index, index_to_state, max_accept_index = fsm.create_state_indices(u)
+
+  out:write [[
+digraph {
+  graph [layout=dot,rankdir=LR];
+  node [shape=circle];
+]]
+
+  local indices = {}
+  process1(out, u, indices)
+  process2(out, u, indices, u)
+
   out:write "}\n"
-  return out
 end
