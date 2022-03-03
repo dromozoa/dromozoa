@@ -97,6 +97,7 @@ local function visit(useq, new_states, epsilon_closures, indices, color)
   local unew = uobj.state
 
   local new_transition_map = {}
+  local vseq_map = {}
 
   for byte = 0x00, 0xFF do
     local vmap = {}
@@ -129,6 +130,9 @@ local function visit(useq, new_states, epsilon_closures, indices, color)
         v = { state = vnew, seq = vseq }
         new_states[vkey] = v
       end
+      if not vseq_map[v.seq.key] then
+        vseq_map[v.seq.key] = { index = byte, seq = v.seq }
+      end
 
       local new_transition_key = vkey .. ";" .. timestamp
       if action then
@@ -156,6 +160,22 @@ local function visit(useq, new_states, epsilon_closures, indices, color)
   end
   table.sort(new_transitions, function (a, b) return a.index < b.index end)
 
+  local vseq_list = {}
+  for _, vseq_item in pairs(vseq_map) do
+    vseq_list[#vseq_list + 1] = vseq_item
+  end
+  table.sort(vseq_list, function (a, b) return a.index < b.index end)
+
+  for i = 1, #vseq_list do
+    local vseq_item = vseq_list[i]
+    local vseq = vseq_item.seq
+
+    if not color[vseq] then
+      visit(vseq, new_states, epsilon_closures, indices, color)
+    end
+  end
+--[[
+
   for i = 1, #new_transitions do
     local new_transition = new_transitions[i]
 
@@ -171,6 +191,7 @@ local function visit(useq, new_states, epsilon_closures, indices, color)
       visit(vseq, new_states, epsilon_closures, indices, color)
     end
   end
+]]
 
   color[useq] = 2
 end
