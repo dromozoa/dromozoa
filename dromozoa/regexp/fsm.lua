@@ -28,4 +28,15 @@ function class.new_transition(u, v, set, action)
   return transition
 end
 
+function class.execute_transition(u, byte)
+  local transitions = u.transitions
+  for i = 1, #transitions do
+    local transition = transitions[i]
+    local set = transition.set
+    if set and set[byte] then
+      return transition
+    end
+  end
+end
+
 return class
