@@ -1,4 +1,4 @@
--- Copyright (C) 2022 Tomoyuki Fujimori <moyu@dromozoa.com>
+-- Copyright (C) 2020,2022 Tomoyuki Fujimori <moyu@dromozoa.com>
 --
 -- This file is part of dromozoa.
 --
@@ -15,22 +15,32 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local fsm = require "dromozoa.regexp.fsm"
 local set_to_str = require "dromozoa.regexp.set_to_str"
 
-local function visit(out, u, state_to_index, color, start)
+local function visit(out, u, indices, index, start, color)
   color[u] = 1
+  index = index + 1
+  indices[u] = index
 
-  local uid = state_to_index[u]
+  local uid = index
   local attrs = {}
   if u == start then
-    attrs[#attrs + 1] = "fillcolor=grey"
+    -- OmniGraffleのdotレンダリングエンジンは、ラベルを定義しないとフォント色を
+    -- 無視するように見える。
+    attrs[#attrs + 1] = "fillcolor=black"
+    attrs[#attrs + 1] = "fontcolor=white"
   end
-  if u.accept then
+  local accept = u.accept
+  if accept then
     attrs[#attrs + 1] = "shape=doublecircle"
   end
-  if #attrs > 0 then
-    out:write(("%d [%s];\n"):format(uid, table.concat(attrs)))
+  if next(attrs) then
+    if accept then
+      attrs[#attrs + 1] = ("label=\"%d / %d\""):format(uid, accept)
+    else
+      attrs[#attrs + 1] = ("label=\"%d\""):format(uid)
+    end
+    out:write(("  %d [%s];\n"):format(uid, table.concat(attrs, ",")))
   end
 
   local transitions = u.transitions
@@ -38,27 +48,36 @@ local function visit(out, u, state_to_index, color, start)
     local transition = transitions[i]
     local v = transition.v
     if not color[v] then
-      visit(out, v, state_to_index, color, start)
+      index = visit(out, v, indices, index, start, color)
     end
-    local vid = state_to_index[v]
+    local vid = indices[v]
     local set = transition.set
     if set then
       local action = transition.action
       if action then
-        out:write(("%d -> %d [label=\"%s / %d\"];\n"):format(uid, vid, set_to_str(set), action))
+        out:write(("  %d -> %d [label=\"%s / %d\"];\n"):format(uid, vid, set_to_str(set), action))
       else
-        out:write(("%d -> %d [label=\"%s\"];\n"):format(uid, vid, set_to_str(set)))
+        out:write(("  %d -> %d [label=\"%s\"];\n"):format(uid, vid, set_to_str(set)))
       end
     else
-      out:write(("%d -> %d;\n"):format(uid, vid))
+      out:write(("  %d -> %d;\n"):format(uid, vid))
     end
   end
+
+  color[u] = 2
+  return index
 end
 
-return function (out, start)
-  local state_to_index, index_to_state, max_accept_index = fsm.create_state_indices(start)
-  out:write "digraph {\n"
-  visit(out, start, state_to_index, {}, start)
+return function (out, u)
+  out:write [[
+digraph {
+  graph [layout=dot,rankdir=LR];
+  node [shape=circle];
+]]
+
+  -- OmniGraffleのdotレンダリングエンジンは、表示順序（重ね合わせ順序）が安定し
+  -- ないように見える。rankdir=LRの場合、安定させる条件が見つけられなかった。
+  visit(out, u, {}, 0, u, {})
+
   out:write "}\n"
-  return out
 end

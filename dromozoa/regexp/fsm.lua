@@ -1,4 +1,4 @@
--- Copyright (C) 2021,2022 Tomoyuki Fujimori <moyu@dromozoa.com>
+-- Copyright (C) 2022 Tomoyuki Fujimori <moyu@dromozoa.com>
 --
 -- This file is part of dromozoa.
 --
@@ -28,47 +28,15 @@ function class.new_transition(u, v, set, action)
   return transition
 end
 
-local function visit1(u, state_indices, index, color)
-  color[u] = 1
-  if u.accept then
-    index = index + 1
-    state_indices[u] = index
-  end
+function class.execute_transition(u, byte)
   local transitions = u.transitions
   for i = 1, #transitions do
     local transition = transitions[i]
-    local v = transition.v
-    if not color[v] then
-      index = visit1(v, state_indices, index, color)
+    local set = transition.set
+    if set and set[byte] then
+      return transition
     end
   end
-  color[u] = 2
-  return index
-end
-
-local function visit2(u, state_indices, index, color)
-  color[u] = 1
-  if not state_indices[u] then
-    index = index + 1
-    state_indices[u] = index
-  end
-  local transitions = u.transitions
-  for i = 1, #transitions do
-    local transition = transitions[i]
-    local v = transition.v
-    if not color[v] then
-      index = visit2(v, state_indices, index, color)
-    end
-  end
-  color[u] = 2
-  return index
-end
-
-function class.create_state_indices(u)
-  local state_indices = {}
-  local max_accept_index = visit1(u, state_indices, 0, {})
-  visit2(u, state_indices, max_accept_index, {})
-  return state_indices, max_accept_index
 end
 
 return class

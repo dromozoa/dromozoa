@@ -1,4 +1,4 @@
--- Copyright (C) 2020 Tomoyuki Fujimori <moyu@dromozoa.com>
+-- Copyright (C) 2022 Tomoyuki Fujimori <moyu@dromozoa.com>
 --
 -- This file is part of dromozoa.
 --
@@ -30,12 +30,6 @@ for byte = 0x61, 0x7A do -- [a-z]
 end
 
 return function (set)
-  if set[256] then
-    return "%enter"
-  elseif set[257] then
-    return "%leave"
-  end
-
   local n = 0
   for byte in pairs(set) do
     n = n + 1

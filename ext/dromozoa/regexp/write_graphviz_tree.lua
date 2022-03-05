@@ -17,35 +17,43 @@
 
 local set_to_str = require "dromozoa.regexp.set_to_str"
 
-local function dump(out, node, map, id)
-  id = id + 1
-  map[node] = id
+local function visit(out, v, indices, index, uid)
+  index = index + 1
+  indices[v] = index
 
-  local code = node[1]
+  if uid then
+    out:write(("  %d -> %d;\n"):format(uid, index))
+  end
+
+  local code = v[1]
   if code == "[" then
-    out:write(("%d [label=\"%s\\n%d\", shape=box];\n"):format(id, set_to_str(node[2]), node.timestamp))
-  elseif code == "/" or code == "%" then
-    out:write(("%d [label = \"%s %s\"];\n"):format(id, code, node[3]))
-    id = dump(out, node[2], map, id)
-    out:write(("%d -> %d;\n"):format(map[node], map[node[2]]))
+    out:write(("  %d [label=\"%s\\n%d\",shape=box];\n"):format(index, set_to_str(v[2]), v.timestamp))
   else
-    out:write(("%d [label = \"%s\"];\n"):format(id, code))
-    for i = 2, #node do
-      local that = node[i]
-      id = dump(out, that, map, id)
-      out:write(("%d -> %d;\n"):format(map[node], map[that]))
+    local vid = index
+    if code == "/" then
+      index = visit(out, v[2], indices, index, vid)
+      out:write(("  %d [label=\"%s %s\"];\n"):format(vid, code, v[3]))
+    else
+      for i = 2, #v do
+        index = visit(out, v[i], indices, index, vid)
+      end
+      out:write(("  %d [label=\"%s\"];\n"):format(vid, code))
     end
   end
 
-  return id
+  return index
 end
 
-return function (out, node)
-  local map = {}
+return function (out, root)
+  out:write [[
+digraph {
+  graph [layout=dot];
+  node [shape=circle];
+]]
 
-  out:write "digraph {\n"
-  dump(out, node, map, 0)
+  -- OmniGraffleのdotレンダリングエンジンは、表示順序（重ね合わせ順序）が安定し
+  -- ないように見える。rankdir=TBの場合はエッジを先に出力することで安定した。
+  visit(out, root, {}, 0)
+
   out:write "}\n"
-
-  return out
 end
