@@ -78,7 +78,7 @@ local function epsilon_closure(u, epsilon_closures, indices)
   return seq
 end
 
-local function merge_accept(seq)
+local function new_state(seq)
   local accept
   for i = 1, #seq do
     local a = seq[i].state.accept
@@ -86,12 +86,9 @@ local function merge_accept(seq)
       accept = a
     end
   end
-  return accept
-end
 
-local function new_state(seq)
   local state = fsm.new_state()
-  state.accept = merge_accept(seq)
+  state.accept = accept
   seq.state = state
   return state
 end
@@ -103,7 +100,7 @@ local function visit(useq, states, epsilon_closures, indices, color)
   color[ukey] = 1
 
   local new_transition_map = {}
-  local vseq_list = {}
+  local new_states = {}
 
   for byte = 0x00, 0xFF do
     local vmap = {}
@@ -127,24 +124,20 @@ local function visit(useq, states, epsilon_closures, indices, color)
     end
 
     if next(vmap) then
-      local seq = map_to_seq(vmap)
-      local key = seq.key
+      local vseq = map_to_seq(vmap)
+      local vkey = vseq.key
+      local vnew
 
-      local vseq = states[key]
-
-      if not vseq then
-        vseq = seq
-        local vnew = new_state(vseq)
-        states[key] = vseq
-        vseq_list[#vseq_list + 1] = vseq
-      end
-      local vnew = vseq.state
-
-      local new_transition_key = key .. ";" .. timestamp
-      if action then
-        new_transition_key = new_transition_key .. ";" .. action
+      local xseq = states[vkey]
+      if not xseq then
+        vnew = new_state(vseq)
+        states[vkey] = vseq
+        new_states[#new_states + 1] = vseq
+      else
+        vnew = xseq.state
       end
 
+      local new_transition_key = vkey .. ";" .. timestamp
       local new_transition = new_transition_map[new_transition_key]
       if not new_transition then
         new_transition = fsm.new_transition(unew, vnew, { [byte] = true })
@@ -157,8 +150,8 @@ local function visit(useq, states, epsilon_closures, indices, color)
     end
   end
 
-  for i = 1, #vseq_list do
-    local vseq = vseq_list[i]
+  for i = 1, #new_states do
+    local vseq = new_states[i]
     if not color[vseq.key] then
       visit(vseq, states, epsilon_closures, indices, color)
     end
