@@ -90,11 +90,10 @@ local function merge_accept(seq)
 end
 
 local function visit(useq, new_states, epsilon_closures, indices, color)
-  color[useq] = 1
-
   local ukey = useq.key
-  local uobj = new_states[ukey]
-  local unew = uobj.state
+  local unew = useq.state
+
+  color[ukey] = 1
 
   local new_transition_map = {}
   local vseq_map = {}
@@ -127,11 +126,15 @@ local function visit(useq, new_states, epsilon_closures, indices, color)
       if not v then
         local vnew = fsm.new_state()
         vnew.accept = merge_accept(vseq)
-        v = { state = vnew, seq = vseq }
-        new_states[vkey] = v
+        vseq.state = vnew
+        new_states[vkey] = vseq
+        v = vseq
       end
-      if not vseq_map[v.seq.key] then
-        vseq_map[v.seq.key] = { index = byte, seq = v.seq }
+      vseq = v
+      local vnew = vseq.state
+
+      if not vseq_map[vkey] then
+        vseq_map[vkey] = { index = byte, seq = vseq }
       end
 
       local new_transition_key = vkey .. ";" .. timestamp
@@ -141,24 +144,15 @@ local function visit(useq, new_states, epsilon_closures, indices, color)
 
       local new_transition = new_transition_map[new_transition_key]
       if not new_transition then
-        new_transition = fsm.new_transition(unew, v.state, { [byte] = true })
-        new_transition.index = byte
-        new_transition.vseq = v.seq
+        new_transition = fsm.new_transition(unew, vnew, { [byte] = true })
         new_transition.action = action
         new_transition.timestamp = timestamp
         new_transition_map[new_transition_key] = new_transition
-        -- { index = byte, v = v, set = { [byte] = true }, timestamp = timestamp, action = action }
       else
         new_transition.set[byte] = true
       end
     end
   end
-
-  local new_transitions = {}
-  for _, new_transition in pairs(new_transition_map) do
-    new_transitions[#new_transitions + 1] = new_transition
-  end
-  table.sort(new_transitions, function (a, b) return a.index < b.index end)
 
   local vseq_list = {}
   for _, vseq_item in pairs(vseq_map) do
@@ -170,30 +164,12 @@ local function visit(useq, new_states, epsilon_closures, indices, color)
     local vseq_item = vseq_list[i]
     local vseq = vseq_item.seq
 
-    if not color[vseq] then
+    if not color[vseq.key] then
       visit(vseq, new_states, epsilon_closures, indices, color)
     end
   end
---[[
 
-  for i = 1, #new_transitions do
-    local new_transition = new_transitions[i]
-
-    -- local v = new_transition.v
-    -- local vnew = v.state
-    local vseq = new_transition.vseq
-
-    -- local t = fsm.new_transition(unew, vnew, new_transition.set)
-    -- t.action = new_transition.action
-    -- t.timestamp = new_transition.timestamp
-
-    if not color[vseq] then
-      visit(vseq, new_states, epsilon_closures, indices, color)
-    end
-  end
-]]
-
-  color[useq] = 2
+  color[ukey] = 2
 end
 
 return function (u)
@@ -203,7 +179,9 @@ return function (u)
   local unew = fsm.new_state()
   unew.accept = merge_accept(useq)
   -- TODO new_statesというのはカッコ悪い気がする
-  local new_states = { [useq.key] = { state = unew, seq = useq } }
+  useq.state = unew
+  local new_states = { [useq.key] = useq }
   visit(useq, new_states, epsilon_closures, indices, {})
+
   return unew
 end
