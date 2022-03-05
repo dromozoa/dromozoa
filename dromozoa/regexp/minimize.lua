@@ -98,15 +98,11 @@ return function (u)
           end
 
           if same_partition then
-            -- TODO きれいにする
-            local px = new_partition_map[x]
-            local py = assert(new_partition_map[y])
-            if px then
-              assert(px == py)
-            else
-              py[#py + 1] = x
-              new_partition_map[x] = py
-            end
+            local p = new_partition_map[x]
+            local q = assert(new_partition_map[y])
+            assert(not p or p == q)
+            q[#q + 1] = x
+            new_partition_map[x] = q
           end
         end
 
@@ -126,31 +122,53 @@ return function (u)
     partition_map = new_partition_map
   end
 
-  local new_states = {}
+  local states = {}
   for i = 1, #partitions do
+    -- あるパーティションに含まれる全ての状態のacceptは同一
     local partition = partitions[i]
     local unew = fsm.new_state()
     unew.accept = partition[1].accept
-    new_states[partition] = unew
+    states[partition] = { index = i, state = unew }
   end
 
   for i = 1, #partitions do
     local partition = partitions[i]
-    local unew = new_states[partition]
+    local unew = states[partition].state
 
-    -- パーティションに含まれる状態の遷移はすべて同一であるはず
-    local u = partition[1]
-    local transitions = u.transitions
-    for j = 1, #transitions do
-      local transition = transitions[j]
-      local v = transition.v
-      local vnew = new_states[partition_map[v]]
-      local new_transition = fsm.new_transition(unew, vnew, transition.set)
-      new_transition.action = transition.action
+    -- 全ての遷移を調べてtimestampを決定する
+    local new_transition_map = {}
+    for byte = 0x00, 0xFF do
+      local timestamp
+      local action
+      local vnew
+      local vnew_index
+      for i = 1, #partition do
+        local transition = fsm.execute_transition(partition[i], byte)
+        if transition then
+          local t = transition.timestamp
+          if not timestamp or timestamp > t then
+            timestamp = t
+            action = transition.action
+            vnew = states[partition_map[transition.v]].state
+            vnew_index = states[partition_map[transition.v]].index
+          end
+        end
+      end
 
-      -- TODO timestampはどうする？
+      if vnew_index then
+        local new_transition_key = vnew_index .. ";" .. timestamp
+        local new_transition = new_transition_map[new_transition_key]
+        if not new_transition then
+          new_transition = fsm.new_transition(unew, vnew, { [byte] = true })
+          new_transition.action = action
+          new_transition.timestamp = timestamp
+          new_transition_map[new_transition_key] = new_transition
+        else
+          new_transition.set[byte] = true
+        end
+      end
     end
   end
 
-  return new_states[partition_map[u]]
+  return states[partition_map[u]].state
 end
