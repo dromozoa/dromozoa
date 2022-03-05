@@ -89,7 +89,14 @@ local function merge_accept(seq)
   return accept
 end
 
-local function visit(useq, new_states, epsilon_closures, indices, color)
+local function new_state(seq)
+  local state = fsm.new_state()
+  state.accept = merge_accept(seq)
+  seq.state = state
+  return state
+end
+
+local function visit(useq, states, epsilon_closures, indices, color)
   local ukey = useq.key
   local unew = useq.state
 
@@ -123,15 +130,12 @@ local function visit(useq, new_states, epsilon_closures, indices, color)
       local seq = map_to_seq(vmap)
       local key = seq.key
 
-      local vseq = new_states[key]
+      local vseq = states[key]
 
       if not vseq then
-        local vnew = fsm.new_state()
-        vnew.accept = merge_accept(seq)
-        seq.state = vnew
         vseq = seq
-        new_states[key] = vseq
-
+        local vnew = new_state(vseq)
+        states[key] = vseq
         vseq_list[#vseq_list + 1] = vseq
       end
       local vnew = vseq.state
@@ -156,7 +160,7 @@ local function visit(useq, new_states, epsilon_closures, indices, color)
   for i = 1, #vseq_list do
     local vseq = vseq_list[i]
     if not color[vseq.key] then
-      visit(vseq, new_states, epsilon_closures, indices, color)
+      visit(vseq, states, epsilon_closures, indices, color)
     end
   end
 
@@ -167,12 +171,7 @@ return function (u)
   local indices = create_state_indices(u)
   local epsilon_closures = {}
   local useq = epsilon_closure(u, epsilon_closures, indices)
-  local unew = fsm.new_state()
-  unew.accept = merge_accept(useq)
-  -- TODO new_statesというのはカッコ悪い気がする
-  useq.state = unew
-  local new_states = { [useq.key] = useq }
-  visit(useq, new_states, epsilon_closures, indices, {})
-
+  local unew = new_state(useq)
+  visit(useq, { [useq.key] = useq }, epsilon_closures, indices, {})
   return unew
 end
