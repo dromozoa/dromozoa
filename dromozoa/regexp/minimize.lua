@@ -17,157 +17,27 @@
 
 local fsm = require "dromozoa.regexp.fsm"
 
---[=[
-local function dummy()
-  -- 逆方向の遷移表
-  local reverse_transitions = {}
-  build_reverse_transitions(transitions, reverse_transitions, { [start_state] = true }, start_state)
-
-  -- 受理状態からさかのぼりつつ、IDの最大値を求める
-  local color = {}
-  local color_max
-  for u in pairs(accept_states) do
-    color[u] = true
-    if not color_max or color_max < u then
-      color_max = u
-    end
-    color_max = build_reverse_color(reverse_transitions, color, color_max, u)
-  end
-
-  -- 受理状態の集合と、非受理状態の集合に分ける
-  -- ID順なのでソート済みの列
-  local accept_partitions = {}
-  local nonaccept_partition
-  for u = 1, color_max do
-    if color[u] then
-      local accept = accept_states[u]
-      if accept then
-        local partition = accept_partitions[accept]
-        if partition then
-          partition[#partition + 1] = u
-        else
-          accept_partitions[accept] = { u }
-        end
-      else
-        if nonaccept_partition then
-          nonaccept_partition[#nonaccept_partition + 1] = u
-        else
-          nonaccept_partition = { u }
-        end
-      end
-    end
-  end
-
-  -- 受理番号ごとに受理状態をパーティションにわける
-  -- 最後のひとつだけが非受理状態のパーティション
-  local partitions = {}
-  local partition_table = {}
-  local n = 0
-  for _, partition in pairs(accept_partitions) do
-    n = n + 1
-    partitions[n] = partition
-  end
-  if nonaccept_partition then
-    n = n + 1
-    partitions[n] = nonaccept_partition
-  end
-
-  -- 状態IDからパーティションIDへのマップを作る
-  local partition_table = {}
-  for i = 1, #partitions do
-    local partition = partitions[i]
-    for j = 1, #partition do
-      partition_table[partition[j]] = i
-    end
-  end
-
-  while true do
-    local new_partitions = {}
-    local new_partition_table = {}
-
-    for i = 1, #partitions do
-      local partition = partitions[i]
-      for i = 1, #partition do
-        -- パーティションに含まれる状態xのID
-        local x = partition[i]
-
-        -- パーティションに含まれる自分よりも前の状態yのID
-        for j = 1, i - 1 do
-          local y = partition[j]
-          local same_partition = true
-          for byte = 0, 255 do
-            -- xからの遷移先の状態が含まれるパーティションと
-            -- yからの遷移先の状態が含まれるパーティションが同じかどうか
-            if partition_table[transitions[byte][x]] ~= partition_table[transitions[byte][y]] then
-              same_partition = false
-              break
-            end
-          end
-          -- xとyの遷移先の状態が含まれるパーティションが同じならば、
-          -- xとyはマージができる
-          if same_partition then
-            -- 新しいパーティションがなければ作成する
-            local px = new_partition_table[x]
-            local py = new_partition_table[y]
-            if px then
-              if not py then
-                local new_partition = new_partitions[px]
-                new_partition[#new_partition + 1] = y
-                new_partition_table[y] = px
-              end
-            elseif py then
-              local new_partition = new_partitions[py]
-              new_partition[#new_partition + 1] = x
-              new_partition_table[x] = py
-            else
-              local p = #new_partitions + 1
-              new_partitions[p] = { x, y }
-              new_partition_table[x] = p
-              new_partition_table[y] = p
-            end
-          end
-        end
-
-        -- xが新しいパーティションを割り当てられていなければ
-        -- 孤独なパーティションを作成する
-        if not new_partition_table[x] then
-          local p = #new_partitions + 1
-          new_partitions[p] = { x }
-          new_partition_table[x] = p
-        end
-      end
-    end
-    -- partitionが変わっていなければ
-    if #partitions == #new_partitions then
-      break
-    end
-    partitions = new_partitions
-    partition_table = new_partition_table
-  end
-end
-]=]
-
-local function visit(u, accept_partition_map, nonaccept_partition, color)
+local function visit(u, accept_partition_map, nonaccept_partition, partition_map, color)
   color[u] = 1
 
   local accept = u.accept
+  local partition = nonaccept_partition
   if accept then
-    local partition = accept_partition_map[accept]
+    partition = accept_partition_map[accept]
     if not partition then
-      accept_partition_map[accept] = { u }
-    else
-      partition[#partition + 1] = u
+      partition = {}
+      accept_partition_map[accept] = partition
     end
-  else
-    nonaccept_partition[#nonaccept_partition + 1] = u
   end
+  partition[#partition + 1] = u
+  partition_map[u] = partition
 
   local transitions = u.transitions
   for i = 1, #transitions do
     local transition = transitions[i]
     local v = transition.v
     if not color[v] then
-      visit(v, accept_partition_map, nonaccept_partition, color)
+      visit(v, accept_partition_map, nonaccept_partition, partition_map, color)
     end
   end
 
@@ -177,7 +47,8 @@ end
 local function create_initial_partitions(u)
   local accept_partition_map = {}
   local nonaccept_partition = {}
-  visit(u, accept_partition_map, nonaccept_partition, {})
+  local partition_map = {}
+  visit(u, accept_partition_map, nonaccept_partition, partition_map, {})
 
   local partitions = {}
   for _, partition in pairs(accept_partition_map) do
@@ -187,29 +58,13 @@ local function create_initial_partitions(u)
 
   partitions[#partitions + 1] = nonaccept_partition
 
-  -- 状態からパーティションへのマップ
-  -- TODO 再帰中に作成したほうがよいのでは
-  local partition_map = {}
-  for i = 1, #partitions do
-    local partition = partitions[i]
-    for j = 1, #partition do
-      partition_map[partition[j]] = partition
-    end
-  end
-
   return partitions, partition_map
 end
 
--- TODO fsmのほうに移動することを考える
--- TODO 名詞fsmの他の候補automatonやstate machineを考える
 local function execute_transition(u, byte)
-  local transitions = u.transitions
-  for i = 1, #transitions do
-    local transition = transitions[i]
-    local set = transition.set
-    if set and set[byte] then
-      return transition.v, transition.action
-    end
+  local transition = fsm.execute_transition(u, byte)
+  if transition then
+    return transition.v, transition.action
   end
 end
 
@@ -222,48 +77,35 @@ return function (u)
 
     for i = 1, #partitions do
       local partition = partitions[i]
+      -- あるパーティションに含まれる状態の組 (x, y) が同じ遷移をするならば、ひ
+      -- とつのパーティションにまとめる。
       for j = 1, #partition do
         local x = partition[j]
-        -- 対象とする状態xよりも、パーティション内で前に存在する状態yと遷移先の
-        -- パーティションが同じかどうかを調べる
         for k = 1, j - 1 do
           local y = partition[k]
 
-          -- すべての文字について、同じ遷移を行うならば、ひとつのパーティション
-          -- にまとめる
+          -- 全ての文字について下記の条件が満たされたら、同じ遷移をするとみなす。
+          -- 1. 遷移先の状態が同じパーティションに含まれている
+          -- 2. 同じ遷移アクションを持つ
           local same_partition = true
           for byte = 0x00, 0xFF do
-            -- TODO 遷移アクションとその優先順位を考慮する
-            local xv, xa = execute_transition(x, byte)
-            local yv, ya = execute_transition(y, byte)
-            if partition_map[xv] ~= partition_map[yv] then
+            local xv, xaction = execute_transition(x, byte)
+            local yv, yaction = execute_transition(y, byte)
+            if partition_map[xv] ~= partition_map[yv] or xaction ~= yaction then
               same_partition = false
               break
             end
           end
 
           if same_partition then
-            -- 順序依存はでない？
+            -- TODO きれいにする
             local px = new_partition_map[x]
-            local py = new_partition_map[y] -- pyは必ず定義されているべきでは？
+            local py = assert(new_partition_map[y])
             if px then
-              -- そもそもpyが定義されていないのはどんな状況？
-              if not py then
-                px[#px + 1] = y
-                new_partition_map[y] = px
-              else
-                -- この場合、px == pyが保証される？
-                -- TODO どんな場合にpxとpyが定義される？
-                -- 遷移行列の下三角形であることで説明可能？
-              end
-            elseif py then
+              assert(px == py)
+            else
               py[#py + 1] = x
               new_partition_map[x] = py
-            else
-              local p = { x, y }
-              new_partitions[#new_partitions + 1] = p
-              new_partition_map[x] = p
-              new_partition_map[y] = p
             end
           end
         end
@@ -276,7 +118,6 @@ return function (u)
       end
     end
 
-    -- パーティション数が増えなければ終了でよいはず？
     if #partitions == #new_partitions then
       break
     end
@@ -289,11 +130,8 @@ return function (u)
   for i = 1, #partitions do
     local partition = partitions[i]
     local unew = fsm.new_state()
+    unew.accept = partition[1].accept
     new_states[partition] = unew
-
-    -- partition内のすべてのacceptは同じはず
-    local u = partition[1]
-    unew.accept = u.accept
   end
 
   for i = 1, #partitions do
@@ -308,8 +146,9 @@ return function (u)
       local v = transition.v
       local vnew = new_states[partition_map[v]]
       local new_transition = fsm.new_transition(unew, vnew, transition.set)
+      new_transition.action = transition.action
 
-      -- アクションもてきとうにマージするべき
+      -- TODO timestampはどうする？
     end
   end
 
