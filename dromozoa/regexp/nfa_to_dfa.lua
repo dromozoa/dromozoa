@@ -79,14 +79,14 @@ local function epsilon_closure(u, epsilon_closures, indices)
 end
 
 local function merge_accept(seq)
-  local result
+  local accept
   for i = 1, #seq do
-    local accept = seq[i].state.accept
-    if accept and (not result or result > accept) then
-      result = accept
+    local a = seq[i].state.accept
+    if a and (not accept or accept > a) then
+      accept = a
     end
   end
-  return result
+  return accept
 end
 
 local function visit(useq, new_states, epsilon_closures, indices, color)
@@ -96,7 +96,7 @@ local function visit(useq, new_states, epsilon_closures, indices, color)
   color[ukey] = 1
 
   local new_transition_map = {}
-  local vseq_map = {}
+  local vseq_list = {}
 
   for byte = 0x00, 0xFF do
     local vmap = {}
@@ -120,24 +120,23 @@ local function visit(useq, new_states, epsilon_closures, indices, color)
     end
 
     if next(vmap) then
-      local vseq = map_to_seq(vmap)
-      local vkey = vseq.key
-      local v = new_states[vkey]
-      if not v then
+      local seq = map_to_seq(vmap)
+      local key = seq.key
+
+      local vseq = new_states[key]
+
+      if not vseq then
         local vnew = fsm.new_state()
-        vnew.accept = merge_accept(vseq)
-        vseq.state = vnew
-        new_states[vkey] = vseq
-        v = vseq
+        vnew.accept = merge_accept(seq)
+        seq.state = vnew
+        vseq = seq
+        new_states[key] = vseq
+
+        vseq_list[#vseq_list + 1] = vseq
       end
-      vseq = v
       local vnew = vseq.state
 
-      if not vseq_map[vkey] then
-        vseq_map[vkey] = { index = byte, seq = vseq }
-      end
-
-      local new_transition_key = vkey .. ";" .. timestamp
+      local new_transition_key = key .. ";" .. timestamp
       if action then
         new_transition_key = new_transition_key .. ";" .. action
       end
@@ -154,16 +153,8 @@ local function visit(useq, new_states, epsilon_closures, indices, color)
     end
   end
 
-  local vseq_list = {}
-  for _, vseq_item in pairs(vseq_map) do
-    vseq_list[#vseq_list + 1] = vseq_item
-  end
-  table.sort(vseq_list, function (a, b) return a.index < b.index end)
-
   for i = 1, #vseq_list do
-    local vseq_item = vseq_list[i]
-    local vseq = vseq_item.seq
-
+    local vseq = vseq_list[i]
     if not color[vseq.key] then
       visit(vseq, new_states, epsilon_closures, indices, color)
     end
