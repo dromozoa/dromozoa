@@ -66,6 +66,7 @@ end
 
 return function (root, accept)
   local u, v = visit(root)
-  v.accept = accept
+  v.accept = accept or true
+  v.timestamp = root.timestamp
   return u, v
 end

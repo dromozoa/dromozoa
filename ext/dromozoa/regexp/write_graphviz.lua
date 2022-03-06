@@ -36,7 +36,7 @@ local function visit(out, u, indices, index, start, color)
   end
   if next(attrs) then
     if accept then
-      attrs[#attrs + 1] = ("label=\"%d / %d\""):format(uid, accept)
+      attrs[#attrs + 1] = ("label=\"%d / %s\""):format(uid, accept)
     else
       attrs[#attrs + 1] = ("label=\"%d\""):format(uid)
     end
@@ -55,7 +55,7 @@ local function visit(out, u, indices, index, start, color)
     if set then
       local action = transition.action
       if action then
-        out:write(("  %d -> %d [label=\"%s / %d\"];\n"):format(uid, vid, set_to_str(set), action))
+        out:write(("  %d -> %d [label=\"%s / %s\"];\n"):format(uid, vid, set_to_str(set), action))
       else
         out:write(("  %d -> %d [label=\"%s\"];\n"):format(uid, vid, set_to_str(set)))
       end
