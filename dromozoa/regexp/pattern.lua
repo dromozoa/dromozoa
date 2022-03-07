@@ -25,6 +25,7 @@ local function construct(...)
   return setmetatable({ timestamp = timestamp, ... }, metatable)
 end
 
+-- TODO cloneの廃止を検討する
 local function clone(self)
   if getmetatable(self) == metatable then
     local that = {}
@@ -53,7 +54,6 @@ end
 local function pattern(that)
   local t = type(that)
   if t == "number" then
-    -- TODO ひとつのanyをクローンするべきか検討する
     local items = {}
     for i = 1, that do
       items[i] = construct("[", any)

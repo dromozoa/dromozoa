@@ -80,15 +80,28 @@ end
 
 local function new_state(seq)
   local accept
+  local timestamp
   for i = 1, #seq do
     local a = seq[i].state.accept
-    if a and (not accept or accept > a) then
-      accept = a
+    if a then
+      if not accept then
+        accept = a
+        timestamp = assert(seq[i].state.timestamp)
+      else
+        if timestamp > assert(seq[i].state.timestamp) then
+          accept = a
+          timestamp = assert(seq[i].state.timestamp)
+        end
+      end
     end
+    -- if a and (not accept or accept > a) then
+    --   accept = a
+    -- end
   end
 
   local state = fsm.new_state()
   state.accept = accept
+  state.timestamp = timestamp
   seq.state = state
   return state
 end

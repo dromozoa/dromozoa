@@ -20,6 +20,7 @@ local fsm = require "dromozoa.regexp.fsm"
 local function visit(u, accept_partition_map, nonaccept_partition, partition_map, color)
   color[u] = 1
 
+  -- TODO acceptをキーにするのが正しいのか検討する
   local accept = u.accept
   local partition = nonaccept_partition
   if accept then
@@ -54,7 +55,10 @@ local function create_initial_partitions(u)
   for _, partition in pairs(accept_partition_map) do
     partitions[#partitions + 1] = partition
   end
-  table.sort(partitions, function (a, b) return a[1].accept < b[1].accept end)
+  table.sort(partitions, function (a, b)
+    -- return a[1].accept < b[1].accept
+    return assert(a[1].timestamp) < assert(b[1].timestamp)
+  end)
 
   partitions[#partitions + 1] = nonaccept_partition
 
@@ -128,12 +132,16 @@ return function (u)
 
     -- パーティションに含まれる全ての状態のacceptは同一である
     local accept = partition[1].accept
+    local timestamp = partition[1].timestamp
     for j = 2, #partition do
       assert(accept == partition[j].accept)
+      -- この条件は成立するか？
+      assert(timestamp == partition[j].timestamp)
     end
 
     local unew = fsm.new_state()
     unew.accept = accept
+    unew.timestamp = timestamp
     states[partition] = { key = i, state = unew }
   end
 
