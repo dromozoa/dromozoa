@@ -20,14 +20,20 @@ local fsm = require "dromozoa.regexp.fsm"
 local function visit(u, accept_partition_map, nonaccept_partition, partition_map, color)
   color[u] = 1
 
-  -- TODO acceptをキーにするのが正しいのか検討する
   local accept = u.accept
   local partition = nonaccept_partition
   if accept then
+    local timestamp = assert(u.timestamp)
+    -- acceptの生の比較 (raw equality) を行う
     partition = accept_partition_map[accept]
     if not partition then
-      partition = {}
+      partition = { timestamp = timestamp }
       accept_partition_map[accept] = partition
+    else
+      assert(partition[1].action == action)
+      if partition.timestamp > timestamp then
+        partition.timestamp = timestamp
+      end
     end
   end
   partition[#partition + 1] = u
@@ -56,8 +62,7 @@ local function create_initial_partitions(u)
     partitions[#partitions + 1] = partition
   end
   table.sort(partitions, function (a, b)
-    -- return a[1].accept < b[1].accept
-    return assert(a[1].timestamp) < assert(b[1].timestamp)
+    return assert(a.timestamp) < assert(b.timestamp)
   end)
 
   partitions[#partitions + 1] = nonaccept_partition
@@ -132,11 +137,17 @@ return function (u)
 
     -- パーティションに含まれる全ての状態のacceptは同一である
     local accept = partition[1].accept
-    local timestamp = partition[1].timestamp
-    for j = 2, #partition do
-      assert(accept == partition[j].accept)
-      -- この条件は成立するか？
-      assert(timestamp == partition[j].timestamp)
+    local timestamp
+    if accept then
+      timestamp = partition[1].timestamp
+      for j = 2, #partition do
+        local x = partition[j]
+        assert(accept == x.accept)
+        local t = x.timestamp
+        if timestamp > t then
+          timestamp = t
+        end
+      end
     end
 
     local unew = fsm.new_state()

@@ -82,21 +82,15 @@ local function new_state(seq)
   local accept
   local timestamp
   for i = 1, #seq do
-    local a = seq[i].state.accept
+    local u = seq[i].state
+    local a = u.accept
     if a then
-      if not accept then
+      local t = assert(u.timestamp)
+      if not timestamp or timestamp > t then
         accept = a
-        timestamp = assert(seq[i].state.timestamp)
-      else
-        if timestamp > assert(seq[i].state.timestamp) then
-          accept = a
-          timestamp = assert(seq[i].state.timestamp)
-        end
+        timestamp = t
       end
     end
-    -- if a and (not accept or accept > a) then
-    --   accept = a
-    -- end
   end
 
   local state = fsm.new_state()
@@ -112,21 +106,23 @@ local function visit(useq, states, epsilon_closures, indices, color)
 
   color[ukey] = 1
 
+  local action_index = 0
+  local actions = {}
   local new_transition_map = {}
   local new_states = {}
 
   for byte = 0x00, 0xFF do
     local vmap = {}
-    local timestamp
     local action
+    local timestamp
 
     for i = 1, #useq do
       local transition = fsm.execute_transition(useq[i].state, byte)
       if transition then
         local t = transition.timestamp
         if not timestamp or timestamp > t then
-          timestamp = t
           action = transition.action
+          timestamp = t
         end
         local vseq = epsilon_closure(transition.v, epsilon_closures, indices)
         for j = 1, #vseq do
@@ -150,7 +146,21 @@ local function visit(useq, states, epsilon_closures, indices, color)
         vnew = xseq.state
       end
 
-      local new_transition_key = vkey .. ";" .. timestamp
+      local new_transition_key
+      if action then
+        -- actionの生の比較 (raw equality) を行うためにテーブルを経由する
+        local index = actions[action]
+        if not index then
+          action_index = action_index + 1
+          actions[action] = action_index
+          new_transition_key = vkey .. ";" .. action_index
+        else
+          new_transition_key = vkey .. ";" .. index
+        end
+      else
+        new_transition_key = vkey
+      end
+
       local new_transition = new_transition_map[new_transition_key]
       if not new_transition then
         new_transition = fsm.new_transition(unew, vnew, { [byte] = true })
@@ -159,6 +169,10 @@ local function visit(useq, states, epsilon_closures, indices, color)
         new_transition_map[new_transition_key] = new_transition
       else
         new_transition.set[byte] = true
+        assert(new_transition.action == action)
+        if new_transition.timestamp > timestamp then
+          new_transition.timestamp = timestamp
+        end
       end
     end
   end
