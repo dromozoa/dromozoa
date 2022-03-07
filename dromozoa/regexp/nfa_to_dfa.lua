@@ -82,21 +82,15 @@ local function new_state(seq)
   local accept
   local timestamp
   for i = 1, #seq do
-    local a = seq[i].state.accept
+    local u = seq[i].state
+    local a = u.accept
     if a then
-      if not accept then
+      local t = assert(u.timestamp)
+      if not timestamp or timestamp > t then
         accept = a
-        timestamp = assert(seq[i].state.timestamp)
-      else
-        if timestamp > assert(seq[i].state.timestamp) then
-          accept = a
-          timestamp = assert(seq[i].state.timestamp)
-        end
+        timestamp = t
       end
     end
-    -- if a and (not accept or accept > a) then
-    --   accept = a
-    -- end
   end
 
   local state = fsm.new_state()
@@ -154,13 +148,14 @@ local function visit(useq, states, epsilon_closures, indices, color)
 
       local new_transition_key
       if action then
-        local key = actions[action]
-        if not key then
+        -- actionの生の比較 (raw equality) を行うためにテーブルを経由する
+        local index = actions[action]
+        if not index then
           action_index = action_index + 1
           actions[action] = action_index
           new_transition_key = vkey .. ";" .. action_index
         else
-          new_transition_key = vkey .. ";" .. key
+          new_transition_key = vkey .. ";" .. index
         end
       else
         new_transition_key = vkey
