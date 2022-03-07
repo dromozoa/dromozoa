@@ -143,4 +143,9 @@ function metatable:__div(action)
   end
 end
 
+function metatable:__mod(action)
+  -- TODO %はmetatableを設定しないことでrootであることを保証する？
+  return construct("%", self, action)
+end
+
 return class

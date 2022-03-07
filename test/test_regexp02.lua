@@ -67,7 +67,7 @@ local R = pattern.range
       * (P"=" / _:action { "append_gbuf(c)" })^0
       * P"[" / _:action { "fcall(string_literal)" };
 
-    pat42 % 42;
+    pat42 % "fcall(test)";
     pat69 % 69;
   }
 
