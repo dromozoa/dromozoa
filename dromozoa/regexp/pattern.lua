@@ -92,6 +92,9 @@ function class.range(that)
 end
 
 function metatable:__pow(that)
+  if self[1] == "%" then
+    error "not supported"
+  end
   if that < 0 then
     local items = { construct("?", self) }
     for i = 2, -that do
@@ -112,12 +115,22 @@ function metatable:__pow(that)
 end
 
 function metatable:__mul(that)
-  return construct(".", pattern(self), pattern(that))
+  local self = pattern(self)
+  local that = pattern(that)
+  if self[1] == "%" or that[1] == "%" then
+    error "not supported"
+  end
+  return construct(".", self, that)
 end
 
 function metatable:__add(that)
   -- TODO 文字クラス同士の場合、直接集合を計算する
-  return construct("|", pattern(self), pattern(that))
+  local self = pattern(self)
+  local that = pattern(that)
+  if self[1] == "%" or that[1] == "%" then
+    error "not supported"
+  end
+  return construct("|", self, that)
 end
 
 function metatable:__unm(that)
@@ -144,7 +157,6 @@ function metatable:__div(action)
 end
 
 function metatable:__mod(action)
-  -- TODO %はmetatableを設定しないことでrootであることを保証する？
   return construct("%", self, action)
 end
 
