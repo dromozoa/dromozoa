@@ -25,6 +25,7 @@ local function construct(...)
   return setmetatable({ timestamp = timestamp, ... }, metatable)
 end
 
+-- TODO cloneの廃止を検討する
 local function clone(self)
   if getmetatable(self) == metatable then
     local that = {}
