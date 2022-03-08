@@ -60,6 +60,10 @@ local function visit(node)
       local transition = au.transitions[1]
       transition.action = node[3]
       return au, av
+    elseif code == "%" then
+      av.accept = node[3]
+      av.timestamp = node.timestamp
+      return au, av
     else
       error "not supported"
     end
@@ -67,15 +71,10 @@ local function visit(node)
 end
 
 return function (root, accept)
-  if root[1] == "%" then
-    local u, v = visit(root[2])
-    v.accept = root[3]
-    v.timestamp = root.timestamp
-    return u, v
-  else
-    local u, v = visit(root)
+  local u, v = visit(root)
+  if not v.accept then
     v.accept = accept or true
     v.timestamp = root.timestamp
-    return u, v
   end
+  return u, v
 end

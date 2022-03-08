@@ -28,7 +28,7 @@ local debug = tonumber(os.getenv "DROMOZOA_TEST_DEBUG")
 debug = debug and debug ~= 0
 
 local result, message = pcall(function ()
-  return (P("foo") % 1) * P"bar"
+  return (P"foo" % 1) * P"bar"
 end)
 if debug then
   print(message)
