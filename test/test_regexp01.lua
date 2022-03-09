@@ -65,7 +65,7 @@ end
 test(P"abc"^0, true)
 test(P"abc"^1)
 test(P"abc"^2)
-test(P"abc"^3) -- ???
+test(P"abc"^3)
 test(P"x"^0, true)
 test((R"ac" + R"af"/1 + R"az"/2)^1)
 test(P"if" + P"else" + P"elseif" + P"end")
