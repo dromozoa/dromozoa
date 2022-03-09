@@ -18,12 +18,12 @@
 -- https://github.com/aidansteele/osx-abi-macho-file-format-reference
 -- https://developers.wonderpla.net/entry/2021/03/19/105503
 
+local minimize = require "dromozoa.regexp.minimize"
+local nfa_to_dfa = require "dromozoa.regexp.nfa_to_dfa"
 local pattern = require "dromozoa.regexp.pattern"
 local tree_to_nfa = require "dromozoa.regexp.tree_to_nfa"
-local nfa_to_dfa = require "dromozoa.regexp.nfa_to_dfa"
-local minimize = require "dromozoa.regexp.minimize"
-local write_graphviz_tree = require "dromozoa.regexp.write_graphviz_tree"
 local write_graphviz = require "dromozoa.regexp.write_graphviz"
+local write_graphviz_tree = require "dromozoa.regexp.write_graphviz_tree"
 
 local P = pattern.pattern
 local S = pattern.set
@@ -64,6 +64,9 @@ end
 
 test(P"abc"^0, true)
 test(P"abc"^1)
+test(P"abc"^2)
+test(P"abc"^3)
+test(P"abc"^4)
 test(P"x"^0, true)
 test((R"ac" + R"af"/1 + R"az"/2)^1)
 test(P"if" + P"else" + P"elseif" + P"end")
@@ -75,3 +78,4 @@ test(P(1) * P"abc" * (R"09" + S"abc"))
 test(P(2) * P"abc"^0)
 test((R"ac" * P"abc" + (P"d"/1 + R"df"/2) * P"def")^0, true)
 test(R"07" * R"07"^-2 * P(1))
+test((P"0" + S"123" + R"46") / "1-6")

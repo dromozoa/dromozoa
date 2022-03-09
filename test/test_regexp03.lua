@@ -18,37 +18,19 @@
 -- https://github.com/aidansteele/osx-abi-macho-file-format-reference
 -- https://developers.wonderpla.net/entry/2021/03/19/105503
 
-local minimize = require "dromozoa.regexp.minimize"
-local nfa_to_dfa = require "dromozoa.regexp.nfa_to_dfa"
 local pattern = require "dromozoa.regexp.pattern"
-local union = require "dromozoa.regexp.union"
-local write_graphviz = require "dromozoa.regexp.write_graphviz"
 
 local P = pattern.pattern
 local S = pattern.set
 local R = pattern.range
 
-local nfa = union {
-  P"if" % "if";
-  P"else" % "else";
-  P"elif" % "elseif";
-  P"elsif" % "elseif";
-  P"elseif" % "elseif";
-  P"end" % "end";
-  R"AZaz" * R"09AZaz"^0 % "ID";
-}
+local debug = tonumber(os.getenv "DROMOZOA_TEST_DEBUG")
+debug = debug and debug ~= 0
 
-local dfa1 = nfa_to_dfa(nfa)
-local dfa2 = minimize(dfa1)
-
-local out = assert(io.open("test-nfa.dot", "w"))
-write_graphviz(out, nfa)
-out:close()
-
-local out = assert(io.open("test-dfa1.dot", "w"))
-write_graphviz(out, dfa1)
-out:close()
-
-local out = assert(io.open("test-dfa2.dot", "w"))
-write_graphviz(out, dfa2)
-out:close()
+local result, message = pcall(function ()
+  return (P"foo" % 1) * P"bar"
+end)
+if debug then
+  print(message)
+end
+assert(not result)

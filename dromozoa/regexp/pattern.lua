@@ -25,19 +25,6 @@ local function construct(...)
   return setmetatable({ timestamp = timestamp, ... }, metatable)
 end
 
--- TODO cloneの廃止を検討する
-local function clone(self)
-  if getmetatable(self) == metatable then
-    local that = {}
-    for k, v in pairs(self) do
-      that[k] = clone(v)
-    end
-    return setmetatable(that, metatable)
-  else
-    return self
-  end
-end
-
 local function concat(items)
   local result = items[1]
   for i = 2, #items do
@@ -92,32 +79,58 @@ function class.range(that)
 end
 
 function metatable:__pow(that)
+  if self[1] == "%" then
+    error "not supported"
+  end
   if that < 0 then
-    local items = { construct("?", self) }
-    for i = 2, -that do
-      items[i] = construct("?", clone(self))
+    local items = {}
+    for i = 1, -that do
+      items[i] = construct("?", self)
     end
     return concat(items)
   elseif that == 0 then
     return construct("*", self)
+  elseif that == 1 then
+    return construct("+", self)
   else
-    -- TODO 1個以上のとき、+を導入する
-    local items = { self }
-    for i = 2, that do
-      items[i] = clone(self)
+    local items = {}
+    for i = 1, that - 1 do
+      items[i] = self
     end
-    items[that + 1] = construct("*", clone(self))
+    items[that] = construct("+", self)
     return concat(items)
   end
 end
 
 function metatable:__mul(that)
-  return construct(".", pattern(self), pattern(that))
+  local self = pattern(self)
+  local that = pattern(that)
+  if self[1] == "%" or that[1] == "%" then
+    error "not supported"
+  end
+  return construct(".", self, that)
 end
 
 function metatable:__add(that)
-  -- TODO 文字クラス同士の場合、直接集合を計算する
-  return construct("|", pattern(self), pattern(that))
+  local self = pattern(self)
+  local that = pattern(that)
+  local x = self[1]
+  local y = that[1]
+  if x == "[" and y == "[" then
+    local set = {}
+    for byte in pairs(self[2]) do
+      set[byte] = true
+    end
+    for byte in pairs(that[2]) do
+      set[byte] = true
+    end
+    return construct("[", set)
+  else
+    if x == "%" or y == "%" then
+      error "not supported"
+    end
+    return construct("|", self, that)
+  end
 end
 
 function metatable:__unm(that)
@@ -144,7 +157,6 @@ function metatable:__div(action)
 end
 
 function metatable:__mod(action)
-  -- TODO %はmetatableを設定しないことでrootであることを保証する？
   return construct("%", self, action)
 end
 

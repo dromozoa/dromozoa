@@ -92,7 +92,6 @@ return function (u)
         local x = partition[j]
         for k = 1, j - 1 do
           local y = partition[k]
-
           -- 全ての文字について下記の条件が満たされたら、同じ遷移をするとみなす。
           -- 1. 遷移先の状態が同じパーティションに含まれている
           -- 2. 同じ遷移アクションを持つ
@@ -109,9 +108,13 @@ return function (u)
           if same_partition then
             local p = new_partition_map[x]
             local q = assert(new_partition_map[y])
-            assert(not p or p == q)
-            q[#q + 1] = x
-            new_partition_map[x] = q
+            if not p then
+              q[#q + 1] = x
+              new_partition_map[x] = q
+            else
+              -- 既に新しいパーティションに登録済みである
+              assert(p == q)
+            end
           end
         end
 
