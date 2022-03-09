@@ -77,6 +77,15 @@ assert(not result)
     pat69 % 69;
   }
 
+  local g = guard "string_literal" {
+  }
+
+  _:union "main" {
+  }
+
+  local main = union "main" {
+  }
+
 local literal = P[["]] * (-S[["\]])^0 * P[["]]
 local comment = P"/*" * (P(1)^0 - P(1)^0 * P"*/" * P(1)^0) * P"*/"
 local literal_or_comment = literal + comment

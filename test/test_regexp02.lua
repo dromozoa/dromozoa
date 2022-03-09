@@ -18,46 +18,31 @@
 -- https://github.com/aidansteele/osx-abi-macho-file-format-reference
 -- https://developers.wonderpla.net/entry/2021/03/19/105503
 
-local fsm = require "dromozoa.regexp.fsm"
-local pattern = require "dromozoa.regexp.pattern"
-local tree_to_nfa = require "dromozoa.regexp.tree_to_nfa"
-local nfa_to_dfa = require "dromozoa.regexp.nfa_to_dfa"
 local minimize = require "dromozoa.regexp.minimize"
+local nfa_to_dfa = require "dromozoa.regexp.nfa_to_dfa"
+local pattern = require "dromozoa.regexp.pattern"
+local union = require "dromozoa.regexp.union"
 local write_graphviz = require "dromozoa.regexp.write_graphviz"
 
 local P = pattern.pattern
 local S = pattern.set
 local R = pattern.range
 
-local function machine(root)
-  local nfa = tree_to_nfa(root)
-  local dfa1 = nfa_to_dfa(nfa)
-  local dfa2 = minimize(dfa1)
-  return dfa2
-end
+local nfa = union {
+  P"if" % "if";
+  P"else" % "else";
+  P"elif" % "elseif";
+  P"elsif" % "elseif";
+  P"elseif" % "elseif";
+  P"end" % "end";
+  R"AZaz" * R"09AZaz"^0 % "ID";
+}
 
-local s1 = machine(P"if" % "if")
-local s2 = machine(P"else" % "else")
-local s3 = machine(P"elif" % "elseif")
-local s4 = machine(P"elsif" % "elseif")
-local s5 = machine(P"elseif" % "elseif")
-local s6 = machine(P"end" % "end")
-local s7 = machine(R"AZaz" * R"09AZaz"^0 % "ID")
-
-local s = fsm.new_state()
-fsm.new_transition(s, s1)
-fsm.new_transition(s, s2)
-fsm.new_transition(s, s3)
-fsm.new_transition(s, s4)
-fsm.new_transition(s, s5)
-fsm.new_transition(s, s6)
-fsm.new_transition(s, s7)
-
-local dfa1 = nfa_to_dfa(s)
+local dfa1 = nfa_to_dfa(nfa)
 local dfa2 = minimize(dfa1)
 
 local out = assert(io.open("test-nfa.dot", "w"))
-write_graphviz(out, s)
+write_graphviz(out, nfa)
 out:close()
 
 local out = assert(io.open("test-dfa1.dot", "w"))
