@@ -25,19 +25,6 @@ local function construct(...)
   return setmetatable({ timestamp = timestamp, ... }, metatable)
 end
 
--- TODO cloneの廃止を検討する
-local function clone(self)
-  if getmetatable(self) == metatable then
-    local that = {}
-    for k, v in pairs(self) do
-      that[k] = clone(v)
-    end
-    return setmetatable(that, metatable)
-  else
-    return self
-  end
-end
-
 local function concat(items)
   local result = items[1]
   for i = 2, #items do
@@ -96,20 +83,20 @@ function metatable:__pow(that)
     error "not supported"
   end
   if that < 0 then
-    local items = { construct("?", self) }
-    for i = 2, -that do
-      items[i] = construct("?", clone(self))
+    local items = {}
+    for i = 1, -that do
+      items[i] = construct("?", self)
     end
     return concat(items)
   elseif that == 0 then
     return construct("*", self)
   else
     -- TODO 1個以上のとき、+を導入する
-    local items = { self }
-    for i = 2, that do
-      items[i] = clone(self)
+    local items = {}
+    for i = 1, that do
+      items[i] = self
     end
-    items[that + 1] = construct("*", clone(self))
+    items[that + 1] = construct("*", self)
     return concat(items)
   end
 end
