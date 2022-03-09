@@ -39,7 +39,7 @@ assert(not result)
   1. Ragelの:=に相当することがしたい
   2. 良い感じにaccept番号を割り当てたい
   3. DFAになってからのunionは欲しい
-
+     => NFAでじゅうぶん
 
   1について、Ragelの場合、
     machine definition    <name> = <expression>
@@ -62,6 +62,18 @@ assert(not result)
   instantiate(pat, "name", 42) => fsm
 
   union { fsm, fsm, fsm }
+
+  local global = namespace {
+    dig = union {
+    };
+
+    sub = guard {
+    };
+
+    main = union {
+      ...
+    };
+  }
 
   _:guard "string_literal" {
     _:action { "fret;" },
