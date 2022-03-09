@@ -50,6 +50,27 @@ write_graphviz(out, dfa2)
 out:close()
 
 --[=[
+
+  namespace {
+    digit_lteral = union {
+      (R"09" / "iv*=10;iv+=fc-'0'")^1 % "append_buffer(iv);fret"
+    };
+
+    block_comment = guard "fret" {
+      (P"\r\n" + P"\r" + P"\n") % update_line();
+      (-S"\r\n]")^0 % append_buffer();
+      P(1) % append_buffer();
+    };
+
+    union {
+      ( P"[" / assign_guard "]"
+      * (P"=" / append_guard "=")^0
+      * P"[" / append_guard "]"
+      ) % fcall "block_comment";
+    };
+  }
+
+
   1. Ragelの:=に相当することがしたい
   2. 良い感じにaccept番号を割り当てたい
   3. DFAになってからのunionは欲しい
