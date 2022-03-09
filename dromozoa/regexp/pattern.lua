@@ -90,8 +90,9 @@ function metatable:__pow(that)
     return concat(items)
   elseif that == 0 then
     return construct("*", self)
+  elseif that == 1 then
+    return construct("+", self)
   else
-    -- TODO 1個以上のとき、+を導入する
     local items = {}
     for i = 1, that do
       items[i] = self
