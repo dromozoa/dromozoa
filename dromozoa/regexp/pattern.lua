@@ -112,13 +112,25 @@ function metatable:__mul(that)
 end
 
 function metatable:__add(that)
-  -- TODO 文字クラス同士の場合、直接集合を計算する
   local self = pattern(self)
   local that = pattern(that)
-  if self[1] == "%" or that[1] == "%" then
-    error "not supported"
+  local x = self[1]
+  local y = that[1]
+  if x == "[" and y == "[" then
+    local set = {}
+    for byte in pairs(self[2]) do
+      set[byte] = true
+    end
+    for byte in pairs(that[2]) do
+      set[byte] = true
+    end
+    return construct("[", set)
+  else
+    if x == "%" or y == "%" then
+      error "not supported"
+    end
+    return construct("|", self, that)
   end
-  return construct("|", self, that)
 end
 
 function metatable:__unm(that)
