@@ -94,10 +94,10 @@ function metatable:__pow(that)
     return construct("+", self)
   else
     local items = {}
-    for i = 1, that do
+    for i = 1, that - 1 do
       items[i] = self
     end
-    items[that + 1] = construct("*", self)
+    items[that] = construct("+", self)
     return concat(items)
   end
 end
