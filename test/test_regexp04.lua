@@ -19,7 +19,6 @@
 -- https://developers.wonderpla.net/entry/2021/03/19/105503
 
 local guard = require "dromozoa.regexp.guard"
-local namespace = require "dromozoa.regexp.namespace"
 local pattern = require "dromozoa.regexp.pattern"
 local union = require "dromozoa.regexp.union"
 local write_graphviz = require "dromozoa.regexp.write_graphviz"
@@ -31,7 +30,7 @@ local R = pattern.range
 local debug = tonumber(os.getenv "DROMOZOA_TEST_DEBUG")
 debug = debug and debug ~= 0
 
-local lexers = namespace {
+local namespace = {
   block_comment = guard {
     P(1);
   };
@@ -41,7 +40,7 @@ local lexers = namespace {
   };
 }
 
-for name, dfa in pairs(lexers) do
+for name, dfa in pairs(namespace) do
   local out = assert(io.open(("test-%s-dfa.dot"):format(name), "w"))
   write_graphviz(out, dfa)
   out:close()
