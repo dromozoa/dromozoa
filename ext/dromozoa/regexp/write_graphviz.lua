@@ -35,11 +35,14 @@ local function visit(out, u, indices, index, start, color)
     attrs[#attrs + 1] = "shape=doublecircle"
   end
   if next(attrs) then
+    local label = ("%d"):format(uid)
     if accept then
-      attrs[#attrs + 1] = ("label=\"%d / %s\""):format(uid, accept)
-    else
-      attrs[#attrs + 1] = ("label=\"%d\""):format(uid)
+      label = ("%s %% %s"):format(label, accept)
     end
+    if u.guard then
+      label = ("%s\nguard"):format(label)
+    end
+    attrs[#attrs + 1] = ("label=\"%s\""):format(label)
     out:write(("  %d [%s];\n"):format(uid, table.concat(attrs, ",")))
   end
 

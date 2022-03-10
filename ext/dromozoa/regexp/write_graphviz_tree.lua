@@ -27,7 +27,7 @@ local function visit(out, v, indices, index, uid)
 
   local code = v[1]
   if code == "[" then
-    out:write(("  %d [label=\"%s\\n%d\",shape=box];\n"):format(index, set_to_str(v[2]), v.timestamp))
+    out:write(("  %d [label=\"%s\",shape=box];\n"):format(index, set_to_str(v[2])))
   else
     local vid = index
     if code == "/" then
