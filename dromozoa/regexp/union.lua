@@ -16,6 +16,8 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local fsm = require "dromozoa.regexp.fsm"
+local minimize = require "dromozoa.regexp.minimize"
+local nfa_to_dfa = require "dromozoa.regexp.nfa_to_dfa"
 local tree_to_nfa = require "dromozoa.regexp.tree_to_nfa"
 
 return function (data)
@@ -24,5 +26,5 @@ return function (data)
     local v = tree_to_nfa(data[i])
     fsm.new_transition(u, v)
   end
-  return u
+  return minimize(nfa_to_dfa(u))
 end
