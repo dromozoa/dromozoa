@@ -29,11 +29,14 @@ local P = pattern.pattern
 local S = pattern.set
 local R = pattern.range
 
-local function visit(u, color)
+-- 開始状態と受理状態と文字遷移がtimestampを持つ
+local function visit(u, start, color)
   color[u] = 1
 
-  if u.accept then
+  if u == start or u.accept then
     assert(u.timestamp)
+  else
+    assert(not u.timestamp)
   end
 
   local transitions = u.transitions
@@ -41,20 +44,21 @@ local function visit(u, color)
     local transition = transitions[i]
     if transition.set then
       assert(transition.timestamp)
+    else
+      assert(not transition.timestamp)
     end
     local v = transition.v
     if not color[v] then
-      visit(v, color)
+      visit(v, start, color)
     end
   end
 
   color[u] = 2
 end
 
--- 開始状態と受理状態と非epsilon遷移がtimestampを持つ
 local function check_timestamp(u)
   assert(u.timestamp)
-  visit(u, {})
+  visit(u, u, {})
 end
 
 local i = 0

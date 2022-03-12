@@ -207,9 +207,6 @@ return function (u)
   end
 
   local unew = states[partition_map[u]].state
-  if unew.timestamp then
-    assert(unew.timestamp == u.timestamp)
-  end
   unew.timestamp = u.timestamp
   return unew
 end

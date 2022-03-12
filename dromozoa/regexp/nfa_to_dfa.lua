@@ -85,7 +85,7 @@ local function new_state(seq)
     local u = seq[i].state
     local a = u.accept
     if a then
-      local t = assert(u.timestamp)
+      local t = u.timestamp
       if not timestamp or timestamp > t then
         accept = a
         timestamp = t
@@ -169,7 +169,6 @@ local function visit(useq, states, epsilon_closures, indices, color)
         new_transition_map[new_transition_key] = new_transition
       else
         new_transition.set[byte] = true
-        assert(new_transition.action == action)
         if new_transition.timestamp > timestamp then
           new_transition.timestamp = timestamp
         end
@@ -193,9 +192,6 @@ return function (u)
   local useq = epsilon_closure(u, epsilon_closures, indices)
   local unew = new_state(useq)
   visit(useq, { [useq.key] = useq }, epsilon_closures, indices, {})
-  if unew.timestamp then
-    assert(unew.timestamp == u.timestamp)
-  end
   unew.timestamp = u.timestamp
   return unew
 end
