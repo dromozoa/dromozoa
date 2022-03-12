@@ -18,6 +18,7 @@
 -- https://github.com/aidansteele/osx-abi-macho-file-format-reference
 -- https://developers.wonderpla.net/entry/2021/03/19/105503
 
+local generate = require "dromozoa.regexp.generate"
 local guard = require "dromozoa.regexp.guard"
 local pattern = require "dromozoa.regexp.pattern"
 local union = require "dromozoa.regexp.union"
@@ -30,13 +31,7 @@ local R = pattern.range
 local debug = tonumber(os.getenv "DROMOZOA_TEST_DEBUG")
 debug = debug and debug ~= 0
 
--- start_state, accept_stateは、timestampを持つ
--- 非epsilon transitionは、timestampを持つ
-
-
-
-
-local namespace = {
+local definitions = {
   block_comment = guard {
     P(1);
   };
@@ -46,8 +41,10 @@ local namespace = {
   };
 }
 
-for name, dfa in pairs(namespace) do
+for name, dfa in pairs(definitions) do
   local out = assert(io.open(("test-%s-dfa.dot"):format(name), "w"))
   write_graphviz(out, dfa)
   out:close()
 end
+
+local data = generate(definitions)
