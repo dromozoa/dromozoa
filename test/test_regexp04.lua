@@ -30,6 +30,12 @@ local R = pattern.range
 local debug = tonumber(os.getenv "DROMOZOA_TEST_DEBUG")
 debug = debug and debug ~= 0
 
+-- start_state, accept_stateは、timestampを持つ
+-- 非epsilon transitionは、timestampを持つ
+
+
+
+
 local namespace = {
   block_comment = guard {
     P(1);

@@ -114,9 +114,9 @@ end
 function metatable:__add(that)
   local self = pattern(self)
   local that = pattern(that)
-  local x = self[1]
-  local y = that[1]
-  if x == "[" and y == "[" then
+  local self_op = self[1]
+  local that_op = that[1]
+  if self_op == "[" and that_op == "[" then
     local set = {}
     for byte in pairs(self[2]) do
       set[byte] = true
@@ -126,7 +126,7 @@ function metatable:__add(that)
     end
     return construct("[", set)
   else
-    if x == "%" or y == "%" then
+    if self_op == "%" or that_op == "%" then
       error "not supported"
     end
     return construct("|", self, that)

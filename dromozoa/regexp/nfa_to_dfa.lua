@@ -193,5 +193,9 @@ return function (u)
   local useq = epsilon_closure(u, epsilon_closures, indices)
   local unew = new_state(useq)
   visit(useq, { [useq.key] = useq }, epsilon_closures, indices, {})
+  if unew.timestamp then
+    assert(unew.timestamp == u.timestamp)
+  end
+  unew.timestamp = u.timestamp
   return unew
 end

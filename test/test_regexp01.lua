@@ -29,8 +29,35 @@ local P = pattern.pattern
 local S = pattern.set
 local R = pattern.range
 
-local i = 0
+local function visit(u, color)
+  color[u] = 1
 
+  if u.accept then
+    assert(u.timestamp)
+  end
+
+  local transitions = u.transitions
+  for i = 1, #transitions do
+    local transition = transitions[i]
+    if transition.set then
+      assert(transition.timestamp)
+    end
+    local v = transition.v
+    if not color[v] then
+      visit(v, color)
+    end
+  end
+
+  color[u] = 2
+end
+
+-- 開始状態と受理状態と非epsilon遷移がtimestampを持つ
+local function check_timestamp(u)
+  assert(u.timestamp)
+  visit(u, {})
+end
+
+local i = 0
 local function test(root, check_start_accept)
   i = i + 1
 
@@ -60,6 +87,10 @@ local function test(root, check_start_accept)
     assert(dfa1.accept)
     assert(dfa2.accept)
   end
+
+  check_timestamp(nfa)
+  check_timestamp(dfa1)
+  check_timestamp(dfa2)
 end
 
 test(P"abc"^0, true)
