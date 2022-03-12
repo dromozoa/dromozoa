@@ -23,14 +23,13 @@ local function visit(u, accept_partition_map, nonaccept_partition, partition_map
   local accept = u.accept
   local partition = nonaccept_partition
   if accept then
-    local timestamp = assert(u.timestamp)
     -- acceptの生の比較 (raw equality) を行う
     partition = accept_partition_map[accept]
     if not partition then
-      partition = { timestamp = timestamp }
+      partition = { timestamp = u.timestamp }
       accept_partition_map[accept] = partition
     else
-      assert(partition[1].action == action)
+      local timestamp = u.timestamp
       if partition.timestamp > timestamp then
         partition.timestamp = timestamp
       end
@@ -62,7 +61,7 @@ local function create_initial_partitions(u)
     partitions[#partitions + 1] = partition
   end
   table.sort(partitions, function (a, b)
-    return assert(a.timestamp) < assert(b.timestamp)
+    return a.timestamp < b.timestamp
   end)
 
   partitions[#partitions + 1] = nonaccept_partition
