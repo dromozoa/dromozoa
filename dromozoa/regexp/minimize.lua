@@ -98,29 +98,29 @@ return function (u)
           for byte = 0x00, 0xFF do
             local xv, xaction = execute_transition(x, byte)
             local yv, yaction = execute_transition(y, byte)
-            if partition_map[xv] ~= partition_map[yv] or xaction ~= yaction then
+            if partition_map[xv] ~= partition_map[yv] or not rawequal(xaction, yaction) then
               same_partition = false
               break
             end
           end
 
           if same_partition then
-            local p = new_partition_map[x]
-            local q = assert(new_partition_map[y])
-            if not p then
-              q[#q + 1] = x
-              new_partition_map[x] = q
+            local new_partition = new_partition_map[x]
+            if not new_partition then
+              local new_partition = new_partition_map[y]
+              new_partition[#new_partition + 1] = x
+              new_partition_map[x] = new_partition
             else
-              -- 既に新しいパーティションに登録済みである
-              assert(p == q)
+              -- 新パーティションに登録済みである
+              assert(new_partition == new_partition_map[y])
             end
           end
         end
 
         if not new_partition_map[x] then
-          local p = { x }
-          new_partitions[#new_partitions + 1] = p
-          new_partition_map[x] = p
+          local new_partition = { x }
+          new_partitions[#new_partitions + 1] = new_partition
+          new_partition_map[x] = new_partition
         end
       end
     end
@@ -137,14 +137,12 @@ return function (u)
   for i = 1, #partitions do
     local partition = partitions[i]
 
-    -- パーティションに含まれる全ての状態のacceptは同一である
     local accept = partition[1].accept
     local timestamp
     if accept then
       timestamp = partition[1].timestamp
       for j = 2, #partition do
         local x = partition[j]
-        assert(accept == x.accept)
         local t = x.timestamp
         if timestamp > t then
           timestamp = t
@@ -162,7 +160,10 @@ return function (u)
     local partition = partitions[i]
     local unew = states[partition].state
 
+    local action_index = 0
+    local actions = {}
     local new_transition_map = {}
+
     for byte = 0x00, 0xFF do
       local transition = fsm.execute_transition(partition[1], byte)
 
@@ -173,18 +174,33 @@ return function (u)
         local vkey = v.key
         local vnew = v.state
 
-        -- timestamp以外が同じ遷移である
+        -- パーティションに含まれる各状態は同じ遷移をする
         for j = 2, #partition do
-          local transition = assert(fsm.execute_transition(partition[j], byte))
-          assert(action == transition.action)
+          local transition = fsm.execute_transition(partition[j], byte)
+          assert(rawequal(action, transition.action))
           assert(vkey == states[partition_map[transition.v]].key)
+          assert(vnew == states[partition_map[transition.v]].state)
           local t = transition.timestamp
           if not timestamp or timestamp > t then
             timestamp = t
           end
         end
 
-        local new_transition_key = vkey .. ";" .. timestamp
+        local new_transition_key
+        if action then
+          -- actionの生の比較 (raw equality) を行うためにテーブルを経由する
+          local index = actions[action]
+          if not index then
+            action_index = action_index + 1
+            actions[action] = action_index
+            new_transition_key = vkey .. ";" .. action_index
+          else
+            new_transition_key = vkey .. ";" .. index
+          end
+        else
+          new_transition_key = tostring(vkey)
+        end
+
         local new_transition = new_transition_map[new_transition_key]
         if not new_transition then
           new_transition = fsm.new_transition(unew, vnew, { [byte] = true })
@@ -192,10 +208,12 @@ return function (u)
           new_transition.timestamp = timestamp
           new_transition_map[new_transition_key] = new_transition
         else
-          assert(new_transition.v == vnew)
-          assert(new_transition.action == action)
-          assert(new_transition.timestamp == timestamp)
+          assert(rawequal(action, new_transition.action))
+          assert(vnew == new_transition.v)
           new_transition.set[byte] = true
+          if new_transition.timestamp > timestamp then
+            new_transition.timestamp = timestamp
+          end
         end
       else
         for j = 2, #partition do
