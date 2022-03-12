@@ -18,8 +18,8 @@
 local fsm = require "dromozoa.regexp.fsm"
 
 local function visit(node)
-  local x = node[1]
-  if x == "[" then
+  local op = node[1]
+  if op == "[" then
     local u = fsm.new_state()
     local v = fsm.new_state()
     local transition = fsm.new_transition(u, v, node[2])
@@ -27,11 +27,11 @@ local function visit(node)
     return u, v
   else
     local au, av = visit(node[2])
-    if x == "." then
+    if op == "." then
       local bu, bv = visit(node[3])
       fsm.new_transition(av, bu)
       return au, bv
-    elseif x == "|" then
+    elseif op == "|" then
       local bu, bv = visit(node[3])
       local u = fsm.new_state()
       local v = fsm.new_state()
@@ -40,7 +40,7 @@ local function visit(node)
       fsm.new_transition(av, v)
       fsm.new_transition(bv, v)
       return u, v
-    elseif x == "*" then
+    elseif op == "*" then
       local u = fsm.new_state()
       local v = fsm.new_state()
       fsm.new_transition(u, v)
@@ -48,25 +48,25 @@ local function visit(node)
       fsm.new_transition(av, au)
       fsm.new_transition(av, v)
       return u, v
-    elseif x == "+" then
+    elseif op == "+" then
       local u = fsm.new_state()
       local v = fsm.new_state()
       fsm.new_transition(u, au)
       fsm.new_transition(av, au)
       fsm.new_transition(av, v)
       return u, v
-    elseif x == "?" then
+    elseif op == "?" then
       local u = fsm.new_state()
       local v = fsm.new_state()
       fsm.new_transition(u, v)
       fsm.new_transition(u, au)
       fsm.new_transition(av, v)
       return u, v
-    elseif x == "/" then
+    elseif op == "/" then
       local transition = au.transitions[1]
       transition.action = node[3]
       return au, av
-    elseif x == "%" then
+    elseif op == "%" then
       av.accept = node[3]
       av.timestamp = node.timestamp
       return au, av
@@ -78,9 +78,11 @@ end
 
 return function (root, accept)
   local u, v = visit(root)
+  local timestamp = root.timestamp
+  u.timestamp = timestamp
   if not v.accept then
     v.accept = accept or true
-    v.timestamp = root.timestamp
+    v.timestamp = timestamp
   end
-  return u, v
+  return u
 end

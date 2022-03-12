@@ -15,6 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-return function (data)
-  return data
+return function (namespace)
+
 end

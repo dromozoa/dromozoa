@@ -29,8 +29,39 @@ local P = pattern.pattern
 local S = pattern.set
 local R = pattern.range
 
-local i = 0
+-- 開始状態と受理状態と文字遷移がtimestampを持つ
+local function visit(u, start, color)
+  color[u] = 1
 
+  if u == start or u.accept then
+    assert(u.timestamp)
+  else
+    assert(not u.timestamp)
+  end
+
+  local transitions = u.transitions
+  for i = 1, #transitions do
+    local transition = transitions[i]
+    if transition.set then
+      assert(transition.timestamp)
+    else
+      assert(not transition.timestamp)
+    end
+    local v = transition.v
+    if not color[v] then
+      visit(v, start, color)
+    end
+  end
+
+  color[u] = 2
+end
+
+local function check_timestamp(u)
+  assert(u.timestamp)
+  visit(u, u, {})
+end
+
+local i = 0
 local function test(root, check_start_accept)
   i = i + 1
 
@@ -60,6 +91,10 @@ local function test(root, check_start_accept)
     assert(dfa1.accept)
     assert(dfa2.accept)
   end
+
+  check_timestamp(nfa)
+  check_timestamp(dfa1)
+  check_timestamp(dfa2)
 end
 
 test(P"abc"^0, true)
