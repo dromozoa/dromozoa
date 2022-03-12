@@ -17,6 +17,8 @@
 
 local fsm = require "dromozoa.regexp.fsm"
 
+local assertion = false
+
 local function visit(u, accept_partition_map, nonaccept_partition, partition_map, color)
   color[u] = 1
 
@@ -112,7 +114,9 @@ return function (u)
               new_partition_map[x] = new_partition
             else
               -- 新パーティションに登録済みである
-              assert(new_partition == new_partition_map[y])
+              if assertion then
+                assert(new_partition == new_partition_map[y])
+              end
             end
           end
         end
@@ -177,9 +181,11 @@ return function (u)
         -- パーティションに含まれる各状態は同じ遷移をする
         for j = 2, #partition do
           local transition = fsm.execute_transition(partition[j], byte)
-          assert(rawequal(action, transition.action))
-          assert(vkey == states[partition_map[transition.v]].key)
-          assert(vnew == states[partition_map[transition.v]].state)
+          if assertion then
+            assert(rawequal(action, transition.action))
+            assert(vkey == states[partition_map[transition.v]].key)
+            assert(vnew == states[partition_map[transition.v]].state)
+          end
           local t = transition.timestamp
           if not timestamp or timestamp > t then
             timestamp = t
@@ -208,16 +214,20 @@ return function (u)
           new_transition.timestamp = timestamp
           new_transition_map[new_transition_key] = new_transition
         else
-          assert(rawequal(action, new_transition.action))
-          assert(vnew == new_transition.v)
+          if assertion then
+            assert(rawequal(action, new_transition.action))
+            assert(vnew == new_transition.v)
+          end
           new_transition.set[byte] = true
           if new_transition.timestamp > timestamp then
             new_transition.timestamp = timestamp
           end
         end
       else
-        for j = 2, #partition do
-          assert(not fsm.execute_transition(partition[j], byte))
+        if assertion then
+          for j = 2, #partition do
+            assert(not fsm.execute_transition(partition[j], byte))
+          end
         end
       end
     end
