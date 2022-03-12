@@ -24,6 +24,8 @@ local pattern = require "dromozoa.regexp.pattern"
 local union = require "dromozoa.regexp.union"
 local write_graphviz = require "dromozoa.regexp.write_graphviz"
 
+local dumper = require "dromozoa.commons.dumper"
+
 local P = pattern.pattern
 local S = pattern.set
 local R = pattern.range
@@ -37,7 +39,10 @@ local definitions = {
   };
 
   main = union {
-    P"[" * P"="^0 * (P"[" / "fcall(block_comment)");
+    (P"[" / "append_byte(0x5D)")
+      * (P"=" / "append_byte(fc)")^0
+      * (P"[" / "append_byte(0x5D)")
+    % "fcall(block_comment)";
   };
 }
 
@@ -48,3 +53,6 @@ for name, dfa in pairs(definitions) do
 end
 
 local data = generate(definitions)
+
+print(dumper.encode(data, { pretty = true }))
+
