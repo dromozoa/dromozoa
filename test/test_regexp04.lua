@@ -54,5 +54,5 @@ end
 
 local data = generate(definitions)
 
-print(dumper.encode(data, { pretty = true }))
+print(dumper.encode(data, { pretty = true, stable = true }))
 
