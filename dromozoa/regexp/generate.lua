@@ -93,13 +93,14 @@ local function visit3(def, u, state_indices, transition_indices, color)
     end
   end
 
+  local max_state = def.max_state
   local transitions = def.transitions
 
   for byte = 0x00, 0xFF do
     local transition = fsm.execute_transition(u, byte)
     if transition then
       if transition.action then
-        transitions[byte][index] = -transition_indices[transition]
+        transitions[byte][index] = max_state + transition_indices[transition]
       else
         transitions[byte][index] = state_indices[transition.v]
       end
