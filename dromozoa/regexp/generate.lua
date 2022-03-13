@@ -46,11 +46,11 @@ end
 local function visit2(u, state_indices, state_index, transition_indices, color)
   color[u] = 1
 
-  local x = state_indices[u]
-  if not x then
+  local index = state_indices[u]
+  if not index then
     state_index = state_index + 1
     state_indices[u] = state_index
-    x = state_index
+    index = state_index
   end
 
   local transitions = u.transitions
@@ -66,14 +66,13 @@ local function visit2(u, state_indices, state_index, transition_indices, color)
   return state_index
 end
 
-local function visit3(def, u, state_indices, state_index, transition_indices, color)
+local function visit3(def, u, state_indices, transition_indices, color)
   color[u] = 1
 
-  local x = state_indices[u]
-
+  local index = state_indices[u]
   local accept = u.accept
   if accept then
-    def.accept_actions[x] = accept
+    def.accept_actions[index] = accept
   end
 
   local transition_to_states = def.transition_to_states
@@ -84,13 +83,13 @@ local function visit3(def, u, state_indices, state_index, transition_indices, co
     local transition = transitions[i]
     local v = transition.v
     if not color[v] then
-      visit3(def, v, state_indices, state_index, transition_indices, color)
+      visit3(def, v, state_indices, transition_indices, color)
     end
     local action = transition.action
     if action then
-      local y = transition_indices[transition]
-      transition_to_states[y] = state_indices[transition.v]
-      transition_actions[y] = action
+      local index = transition_indices[transition]
+      transition_to_states[index] = state_indices[transition.v]
+      transition_actions[index] = action
     end
   end
 
@@ -100,12 +99,12 @@ local function visit3(def, u, state_indices, state_index, transition_indices, co
     local transition = fsm.execute_transition(u, byte)
     if transition then
       if transition.action then
-        transitions[byte][x] = -transition_indices[transition]
+        transitions[byte][index] = -transition_indices[transition]
       else
-        transitions[byte][x] = assert(state_indices[transition.v])
+        transitions[byte][index] = state_indices[transition.v]
       end
     else
-      transitions[byte][x] = 0
+      transitions[byte][index] = 0
     end
   end
 
@@ -116,28 +115,27 @@ return function (source)
   local definitions = {}
 
   for name, u in pairs(source) do
+    local state_indices = {}
+    local transition_indices = {}
+    local max_accept_state, max_transition =  visit1(u, state_indices, 0, transition_indices, 0, {})
+    local max_state = visit2(u, state_indices, max_accept_state, transition_indices, {})
+
     local transitions = {}
     for byte = 0x00, 0xFF do
       transitions[byte] = {}
     end
-
     local def = {
       name = name;
+      max_accept_state = max_accept_state;
       accept_actions = {};
+      max_transition = max_transition;
       transition_to_states = {};
       transition_actions = {};
+      start_state = state_indices[u];
+      max_state = max_state;
       transitions = transitions;
     }
-
-    local state_indices = {}
-    local transition_indices = {}
-    local max_accept_state, max_transition =  visit1(u, state_indices, 0, transition_indices, 0, {})
-    def.max_accept_state = max_accept_state
-    def.max_transition = max_transition
-    local max_state = visit2(u, state_indices, max_accept_state, transition_indices, {})
-    def.start_state = state_indices[u]
-    def.max_state = max_state
-    visit3(def, u, state_indices, max_accept_state, transition_indices, {})
+    visit3(def, u, state_indices, transition_indices, {})
 
     definitions[#definitions + 1] = { timestamp = u.timestamp, def = def }
   end
