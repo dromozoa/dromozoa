@@ -114,8 +114,8 @@ return function (source)
     def.max_accept_state = max_accept_state
     def.max_transition = max_transition
     local max_state = visit2(def, u, state_indices, max_accept_state, transition_indices, {})
-    def.max_state = max_state
     def.start_state = state_indices[u]
+    def.max_state = max_state
 
     definitions[#definitions + 1] = { timestamp = u.timestamp, def = def }
   end
