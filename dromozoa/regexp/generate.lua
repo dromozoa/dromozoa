@@ -17,14 +17,14 @@
 
 local fsm = require "dromozoa.regexp.fsm"
 
-local function visit1(out, u, state_indices, state_index, transition_indices, transition_index, color)
+local function visit1(definition, u, state_indices, state_index, transition_indices, transition_index, color)
   color[u] = 1
 
   local accept = u.accept
   if accept then
     state_index = state_index + 1
     state_indices[u] = state_index
-    out.accept_actions[state_index] = u.accept
+    definition.accept_actions[state_index] = u.accept
   end
 
   local transitions = u.transitions
@@ -36,7 +36,7 @@ local function visit1(out, u, state_indices, state_index, transition_indices, tr
     end
     local v = transition.v
     if not color[v] then
-      state_index, transition_index = visit1(out, v, state_indices, state_index, transition_indices, transition_index, color)
+      state_index, transition_index = visit1(definition, v, state_indices, state_index, transition_indices, transition_index, color)
     end
   end
 
@@ -44,7 +44,7 @@ local function visit1(out, u, state_indices, state_index, transition_indices, tr
   return state_index, transition_index
 end
 
-local function visit2(out, u, state_indices, state_index, transition_indices, color)
+local function visit2(definition, u, state_indices, state_index, transition_indices, color)
   color[u] = 1
 
   local x = state_indices[u]
@@ -54,15 +54,15 @@ local function visit2(out, u, state_indices, state_index, transition_indices, co
     x = state_index
   end
 
-  local transition_to_states = out.transition_to_states
-  local transition_actions = out.transition_actions
+  local transition_to_states = definition.transition_to_states
+  local transition_actions = definition.transition_actions
 
   local transitions = u.transitions
   for i = 1, #transitions  do
     local transition = transitions[i]
     local v = transition.v
     if not color[v] then
-      state_index = visit2(out, v, state_indices, state_index, transition_indices, color)
+      state_index = visit2(definition, v, state_indices, state_index, transition_indices, color)
     end
     local action = transition.action
     if action then
@@ -72,7 +72,7 @@ local function visit2(out, u, state_indices, state_index, transition_indices, co
     end
   end
 
-  local transitions = out.transitions
+  local transitions = definition.transitions
 
   for byte = 0x00, 0xFF do
     local transition = fsm.execute_transition(u, byte)
@@ -92,7 +92,7 @@ local function visit2(out, u, state_indices, state_index, transition_indices, co
 end
 
 return function (source)
-  local result = {}
+  local definitions = {}
 
   for name, u in pairs(source) do
     local transitions = {}
@@ -100,7 +100,7 @@ return function (source)
       transitions[byte] = {}
     end
 
-    local out = {
+    local definition = {
       name = name;
       timestamp = u.timestamp;
       accept_actions = {};
@@ -111,16 +111,16 @@ return function (source)
 
     local state_indices = {}
     local transition_indices = {}
-    local max_accept_state, max_transition =  visit1(out, u, state_indices, 0, transition_indices, 0, {})
-    out.max_accept_state = max_accept_state
-    out.max_transition = max_transition
-    local max_state = visit2(out, u, state_indices, max_accept_state, transition_indices, {})
-    out.max_state = max_state
-    out.start_state = state_indices[u]
+    local max_accept_state, max_transition =  visit1(definition, u, state_indices, 0, transition_indices, 0, {})
+    definition.max_accept_state = max_accept_state
+    definition.max_transition = max_transition
+    local max_state = visit2(definition, u, state_indices, max_accept_state, transition_indices, {})
+    definition.max_state = max_state
+    definition.start_state = state_indices[u]
 
-    result[#result + 1] = out
+    definitions[#definitions + 1] = definition
   end
-  table.sort(result, function (a, b) return a.timestamp < b.timestamp end)
+  table.sort(definitions, function (a, b) return a.timestamp < b.timestamp end)
 
-  return result
+  return definitions
 end
