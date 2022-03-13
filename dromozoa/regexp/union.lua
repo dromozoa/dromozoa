@@ -21,10 +21,15 @@ local nfa_to_dfa = require "dromozoa.regexp.nfa_to_dfa"
 local tree_to_nfa = require "dromozoa.regexp.tree_to_nfa"
 
 return function (data)
-  local u = fsm.new_state()
-  for i = 1, #data do
-    local v = tree_to_nfa(data[i])
-    fsm.new_transition(u, v)
+  local n = #data
+  if n == 1 then
+    return minimize(nfa_to_dfa(tree_to_nfa(data[1])))
+  else
+    local u = fsm.new_state()
+    for i = 1, n do
+      local v = tree_to_nfa(data[i])
+      fsm.new_transition(u, v)
+    end
+    return minimize(nfa_to_dfa(u))
   end
-  return minimize(nfa_to_dfa(u))
 end
