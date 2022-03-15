@@ -102,7 +102,19 @@ local %s = %d
 
   out:write [[
 
-return function ()
+return function (s)
+  local fc
+  local fp
+
+  local function fcall(name)
+  end
+
+  local function fgoto(name)
+  end
+
+  local function fret()
+  end
+
   local A = {
 ]]
 
