@@ -23,7 +23,7 @@ local function dump_transitions(out, data, compactor, compactor_index)
     if not name then
       compactor_index = compactor_index + 1
       name = "_[" .. compactor_index .. "]"
-      out:write(name, "=", code, "\n")
+      out:write("  ", code, ";\n")
       compactor[code] = name
     end
     if byte == 0 then
@@ -35,26 +35,102 @@ local function dump_transitions(out, data, compactor, compactor_index)
   return "{" .. table.concat(buffer, ",") .. "}", compactor_index
 end
 
+local function dump_actions(out, data)
+  for i = 1, #data do
+    local action = data[i]
+    out:write "        "
+    if type(action) == "string" then
+      out:write("function () ", action, " end")
+    else
+      out:write "function () end"
+    end
+    out:write ";\n"
+  end
+end
+
 return function(out, data)
-out:write([[
-local _ = {}
-]])
+  out:write [[
+local _ = {
+]]
 
   local compactor = {}
   local compactor_index = 0
+  local transitions = {}
 
   for i = 1, #data do
-    local def = data[i]
-    local name = def.name
-    local code
+    transitions[i], compactor_index = dump_transitions(out, data[i].transitions, compactor, compactor_index)
+  end
 
-    code, compactor_index = dump_transitions(out, def.transitions, compactor, compactor_index)
+  out:write [[
+}
 
+local T = {
+]]
+
+  for i = 1, #data do
+    local item = data[i]
+    out:write(([[
+  {
+    name = "%s";
+    guard = %s;
+    max_accept_state = %d;
+    transition_to_states = {%s};
+    start_state = %d;
+    max_state = %d;
+    transitions = %s;
+  };
+]]):format(
+      item.name,
+      item.guard and "true" or "false",
+      item.max_accept_state,
+      table.concat(item.transition_to_states, ","),
+      item.start_state,
+      item.max_state,
+      transitions[i]))
+  end
+
+  out:write [[
+}
+
+]]
+
+  for i = 1, #data do
     out:write(([[
 local %s = %d
-local %s_transitions = %s
-]]):format(name, i, name, code))
-
-
+]]):format(data[i].name, i))
   end
+
+  out:write [[
+
+return function ()
+  local A = {
+]]
+
+  for i = 1, #data do
+    local item = data[i]
+
+    out:write [[
+    {
+      accept_actions = {
+]]
+
+    dump_actions(out, item.accept_actions)
+
+    out:write [[
+      };
+      transition_actions = {
+]]
+
+    dump_actions(out, item.transition_actions)
+
+    out:write [[
+      };
+    };
+]]
+  end
+
+  out:write [[
+  }
+end
+]]
 end
