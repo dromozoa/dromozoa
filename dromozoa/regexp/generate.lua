@@ -112,10 +112,10 @@ local function visit3(def, u, state_indices, transition_indices, color)
   color[u] = 2
 end
 
-return function (source)
+return function (data)
   local definitions = {}
 
-  for name, u in pairs(source) do
+  for name, u in pairs(data) do
     local state_indices = {}
     local transition_indices = {}
     local max_accept_state, max_transition =  visit1(u, state_indices, 0, transition_indices, 0, {})
@@ -127,6 +127,7 @@ return function (source)
     end
     local def = {
       name = name;
+      guard = u.guard;
       max_accept_state = max_accept_state;
       accept_actions = {};
       max_transition = max_transition;

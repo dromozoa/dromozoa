@@ -18,13 +18,12 @@
 -- https://github.com/aidansteele/osx-abi-macho-file-format-reference
 -- https://developers.wonderpla.net/entry/2021/03/19/105503
 
+local compile = require "dromozoa.regexp.compile"
 local generate = require "dromozoa.regexp.generate"
 local guard = require "dromozoa.regexp.guard"
 local pattern = require "dromozoa.regexp.pattern"
 local union = require "dromozoa.regexp.union"
 local write_graphviz = require "dromozoa.regexp.write_graphviz"
-
-local dumper = require "dromozoa.commons.dumper"
 
 local P = pattern.pattern
 local S = pattern.set
@@ -53,6 +52,8 @@ for name, dfa in pairs(definitions) do
 end
 
 local data = generate(definitions)
+compile(io.stdout, data)
 
-print(dumper.encode(data, { pretty = true, stable = true }))
+
+-- print(dumper.encode(data, { pretty = true, stable = true }))
 
