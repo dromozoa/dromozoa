@@ -15,25 +15,24 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local function dump_integer_array(out, data, arrays, array_index)
-  local code = "{" .. table.concat(data, ",") .. "}"
-  local name = arrays[code]
-  if not name then
-    array_index = array_index + 1
-    name = "_[" .. array_index .. "]"
-    arrays[code] = name
-    out:write(name, "=", code, "\n")
+local function dump_transitions(out, data, compactor, compactor_index)
+  local buffer = {}
+  for byte = 0x00, 0xFF do
+    local code = "{" .. table.concat(data[byte], ",") .. "}"
+    local name = compactor[code]
+    if not name then
+      compactor_index = compactor_index + 1
+      name = "_[" .. compactor_index .. "]"
+      out:write(name, "=", code, "\n")
+      compactor[code] = name
+    end
+    if byte == 0 then
+      buffer[#buffer + 1] =  "[0]=" .. name
+    else
+      buffer[#buffer + 1] =  name
+    end
   end
-  return name, array_index
-end
-
-local function dump(dumper)
-  local data = {}
-  data[1] = "[0]=" .. dumper[0x00]
-  for byte = 0x01, 0xFF do
-    data[#data + 1] = dumper[byte]
-  end
-  return table.concat(data, ",")
+  return "{" .. table.concat(buffer, ",") .. "}", compactor_index
 end
 
 return function(out, data)
@@ -41,23 +40,20 @@ out:write([[
 local _ = {}
 ]])
 
-  local arrays = {}
-  local array_index = 0
+  local compactor = {}
+  local compactor_index = 0
 
   for i = 1, #data do
     local def = data[i]
     local name = def.name
+    local code
 
-    local transitions = def.transitions
-    local dumper = {}
-    for byte = 0x00, 0xFF do
-      dumper[byte], array_index = dump_integer_array(out, transitions[byte], arrays, array_index)
-    end
+    code, compactor_index = dump_transitions(out, def.transitions, compactor, compactor_index)
 
     out:write(([[
 local %s = %d
-local %s_transitions = {%s}
-]]):format(name, i, name, dump(dumper)))
+local %s_transitions = %s
+]]):format(name, i, name, code))
 
 
   end
