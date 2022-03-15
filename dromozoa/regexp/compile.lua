@@ -123,6 +123,20 @@ return function (s)
 
     out:write [[
     {
+]]
+
+    local guard = item.guard
+    if guard then
+      out:write "      guard = "
+      if type(guard) == "string" then
+        out:write("function () ", guard, " end")
+      else
+        out:write "function () end"
+      end
+      out:write ";\n"
+    end
+
+    out:write [[
       accept_actions = {
 ]]
 

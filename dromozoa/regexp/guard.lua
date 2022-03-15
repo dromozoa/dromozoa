@@ -17,8 +17,8 @@
 
 local union = require "dromozoa.regexp.union"
 
-return function (data)
+return function (guard, data)
   local u = union(data)
-  u.guard = true
+  u.guard = guard or true
   return u
 end

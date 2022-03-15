@@ -33,9 +33,9 @@ local debug = tonumber(os.getenv "DROMOZOA_TEST_DEBUG")
 debug = debug and debug ~= 0
 
 local definitions = {
-  block_comment = guard {
+  block_comment = guard("fret()", {
     P(1);
-  };
+  });
 
   main = union {
     (P"[" / "append_byte(0x5D)")
