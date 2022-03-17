@@ -32,16 +32,24 @@ local R = pattern.range
 local debug = tonumber(os.getenv "DROMOZOA_TEST_DEBUG")
 debug = debug and debug ~= 0
 
+--[[
 local definitions = {
   block_comment = guard("fret()", {
     P(1);
   });
 
   main = union {
-    (P"[" / "append_byte(0x5D)")
-      * (P"=" / "append_byte(fc)")^0
-      * (P"[" / "append_byte(0x5D)")
+    (P"[" / "assign_byte(guard,0x5D)")
+      * (P"=" / "append_byte(guard,fc)")^0
+      * (P"[" / "append_byte(guard,0x5D)")
     % "fcall(block_comment)";
+  };
+}
+]]
+
+local definitions = {
+  main = union {
+    (R"09" / "v=c-0x30") * (R"09" / "v=v*10+c-0x30")^0 % "token(\"integer_literal\",v)";
   };
 }
 
