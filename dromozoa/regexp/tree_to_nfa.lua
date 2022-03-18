@@ -114,5 +114,5 @@ return function (root, accept)
     v.accept = accept or true
     v.timestamp = timestamp
   end
-  return u
+  return u, v
 end
