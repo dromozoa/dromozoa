@@ -29,9 +29,6 @@ local P = pattern.pattern
 local S = pattern.set
 local R = pattern.range
 
-local debug = tonumber(os.getenv "DROMOZOA_TEST_DEBUG")
-debug = debug and debug ~= 0
-
 local definitions = {
   dfa1 = minimize(nfa_to_dfa(tree_to_nfa(P(1)^0)));
   dfa2 = minimize(nfa_to_dfa(tree_to_nfa(P(1)^0 * P"a" * P"b"^0 * P"c" * P(1)^0)));
@@ -48,4 +45,3 @@ local dfa = difference(definitions.dfa1, definitions.dfa2)
 local out = assert(io.open("test-dfa.dot", "w"))
 write_graphviz(out, dfa)
 out:close()
-

@@ -18,10 +18,6 @@
 -- https://github.com/aidansteele/osx-abi-macho-file-format-reference
 -- https://developers.wonderpla.net/entry/2021/03/19/105503
 
-local compile = require "dromozoa.regexp.compile"
-local generate = require "dromozoa.regexp.generate"
-local guard = require "dromozoa.regexp.guard"
-local loop = require "dromozoa.regexp.loop"
 local pattern = require "dromozoa.regexp.pattern"
 local union = require "dromozoa.regexp.union"
 local write_graphviz = require "dromozoa.regexp.write_graphviz"
@@ -30,59 +26,10 @@ local P = pattern.pattern
 local S = pattern.set
 local R = pattern.range
 
-local debug = tonumber(os.getenv "DROMOZOA_TEST_DEBUG")
-debug = debug and debug ~= 0
-
-local definitions = {
-  string_literal = union {
-    P[["]] / [[print "\""]] % [[fret()]];
-    (R"az" / [[print "char"]])^1 % [[fgoto(string_literal)]];
-  };
-
-  block_comment = guard("fret()", {
-    (-S"]") % [[print "comment char"]];
-  });
-
-  main = loop {
-    P"if"     % [[print "if"]];
-    P"else"   % [[print "else"]];
-    P"elseif" % [[print "elseif"]];
-    P"end"    % [[print "end"]];
-    P"then"   % [[print "then"]];
-    P"local"  % [[print "local"]];
-    P"--"
-      * (P"[" / "guard_assign_byte(0x5D)")
-      * (P"=" / "guard_append_byte(0x3D)")^0
-      * (P"[" / "guard_append_byte(0x5D) fcall(block_comment)")
-      % [[print "block comment"]];
-    P"--" * (-S"\r\n")^0 * (P"\r\n" + P"\r" + P"\n")
-              % [[print "line comment"]];
-    P[["]] / [[fcall(string_literal)]] % [[print "string_literal"]];
-    R"AZaz__" * R"09AZaz__"^0 % [[print "id"]];
-    P"=" % [[print "="]];
-    R"09"^1 % [[print "int"]];
-    S" \t\r\n"^1;
-  };
+local dfa = union {
+  P"abc" * (P(1)^0 - (P(1)^0 * P"cba" * P(1)^0)) * P"cba";
 }
 
-for name, dfa in pairs(definitions) do
-  local out = assert(io.open(("test-%s-dfa.dot"):format(name), "w"))
-  write_graphviz(out, dfa)
-  out:close()
-end
-
-local out = assert(io.open("test.lua", "w"))
-compile(out, generate(definitions))
+local out = assert(io.open("test-dfa.dot", "w"))
+write_graphviz(out, dfa)
 out:close()
-
-local regexp = assert(loadfile "test.lua")()
-regexp [[
--- test
-if then elseif else
-"aaa" end
-local xyz = 123
---[=[
-  abc
-]=]
-local abc
-]]

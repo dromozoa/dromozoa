@@ -15,7 +15,10 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local difference = require "dromozoa.regexp.difference"
 local fsm = require "dromozoa.regexp.fsm"
+local minimize = require "dromozoa.regexp.minimize"
+local nfa_to_dfa = require "dromozoa.regexp.nfa_to_dfa"
 
 local function visit(node)
   local op = node[1]
@@ -61,6 +64,24 @@ local function visit(node)
       fsm.new_transition(u, v)
       fsm.new_transition(u, au)
       fsm.new_transition(av, v)
+      return u, v
+    elseif op == "-" then
+      local bu, bv = visit(node[3])
+
+      au.timestamp = node.timestamp
+      bu.timestamp = node.timestamp
+      av.accept = true
+      av.timestamp = node.timestamp
+      bv.accept = true
+      bv.timestamp = node.timestamp
+      local u, accept_states = minimize(difference(minimize(nfa_to_dfa(au)), minimize(nfa_to_dfa(bu))))
+      print(u, au, bu, #accept_states)
+      local v = fsm.new_state()
+      for i = 1, #accept_states do
+        local cv = accept_states[i]
+        cv.accept = nil
+        fsm.new_transition(cv, v)
+      end
       return u, v
     elseif op == "/" then
       local transition = au.transitions[1]
