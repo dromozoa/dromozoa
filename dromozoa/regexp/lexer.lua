@@ -62,5 +62,9 @@ return function (data)
   end
   u.timestamp = timestamp
 
-  return minimize(nfa_to_dfa(u))
+  local u = minimize(nfa_to_dfa(u))
+  u.loop = true
+  u.token_names = token_names
+  u.token_codes = token_codes
+  return u
 end
