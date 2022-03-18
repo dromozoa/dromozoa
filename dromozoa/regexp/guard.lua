@@ -17,8 +17,8 @@
 
 local loop = require "dromozoa.regexp.loop"
 
-return function (guard, data)
+return function (guard_action, data)
   local u = loop(data)
-  u.guard = guard or true
+  u.guard_action = guard_action or true
   return u
 end
