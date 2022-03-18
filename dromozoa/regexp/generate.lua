@@ -85,11 +85,11 @@ local function visit3(def, u, state_indices, transition_indices, color)
     if not color[v] then
       visit3(def, v, state_indices, transition_indices, color)
     end
-    local action = transition.action
-    if action then
+    local transition_action = transition.action
+    if transition_action then
       local index = transition_indices[transition]
       transition_to_states[index] = state_indices[transition.v]
-      transition_actions[index] = action
+      transition_actions[index] = transition_action
     end
   end
 
