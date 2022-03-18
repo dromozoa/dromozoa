@@ -81,7 +81,7 @@ local function visit(node)
 
       local cu, accept_states = minimize(difference(minimize(nfa_to_dfa(au)), minimize(nfa_to_dfa(bu))))
 
-      -- 結果のDFAの状態からacceptとtimestampを除去する
+      -- 計算結果からacceptとtimestampを除去する
       cu.timestamp = nil
       fsm.new_transition(u, cu)
       for i = 1, #accept_states do
