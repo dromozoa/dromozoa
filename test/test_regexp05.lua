@@ -44,9 +44,13 @@ local definitions = {
     P"elseif" % [[print "elseif"]];
     P"end"    % [[print "end"]];
     P"then"   % [[print "then"]];
+    P"local"  % [[print "local"]];
     P"--" * (-S"\r\n")^0 * (P"\r\n" + P"\r" + P"\n")
               % [[print "line comment"]];
     P[["]] / [[fcall(string_literal)]] % [[print "string_literal"]];
+    R"AZaz__" * R"09AZaz__"^0 % [[print "id"]];
+    P"=" % [[print "="]];
+    R"09"^1 % [[print "int"]];
     S" \t\r\n"^1;
   };
 }
@@ -66,5 +70,5 @@ regexp [[
 -- test
 if then elseif else
 "aaa" end
-
+local xyz = 123
 ]]
