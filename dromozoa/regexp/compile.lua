@@ -42,9 +42,7 @@ local template2 = [[
       index = current_index;
       state = current_state;
     }
-
-    current_index = index
-    current_state = _[current_index].start_state
+    fgoto(index)
   end
 
   fret = function ()
@@ -71,11 +69,12 @@ local template2 = [[
           -- eof
           break
         end
+        -- loopかどうかをフラグとしてたてるか、明示的にfgotoをつかう
         if current_index == main then
           -- 繰り返すのでcurrent_positionは進めない
           current_state = _[current_index].start_state
         else
-          -- fgoto,fcall,fretされた場合はエラーじゃない
+          -- fgoto,fcall,fretされた場合はエラーするべきでない
           -- error "regexp error"
         end
       else
