@@ -157,8 +157,6 @@ return function (u)
       end
     end
 
-    print("?", accept)
-
     local unew = fsm.new_state()
     unew.accept = accept
     unew.timestamp = timestamp
@@ -167,7 +165,6 @@ return function (u)
       accept_states[#accept_states + 1] = unew
     end
   end
-  print("!", #accept_states)
 
   for i = 1, #partitions do
     local partition = partitions[i]
