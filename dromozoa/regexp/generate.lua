@@ -128,7 +128,7 @@ return function (data)
     local def = {
       name = name;
       loop = u.loop;
-      guard = u.guard;
+      guard_action = u.guard;
       max_accept_state = max_accept_state;
       accept_actions = {};
       max_transition = max_transition;

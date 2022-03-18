@@ -78,16 +78,16 @@ local template2 = [[
   end
 
   while true do
-    local g = _[current_index].guard
+    local guard_action = _[current_index].guard_action
     local guarded
-    if g and current_state == _[current_index].start_state then
+    if current_state == _[current_index].start_state and guard_action then
       -- guardを評価する
       local guard_buffer = table.concat(guard)
       guarded = string.sub(source, current_position, current_position + #guard_buffer - 1) == guard_buffer
       if guarded then
         current_position = current_position + #guard_buffer
         current_state = 0 -- start_stateのままでもよいか？
-        g()
+        guard_action()
       end
     end
 
@@ -217,14 +217,14 @@ return function(out, data)
   out:write(template1)
 
   local compactor = { index = 0 }
-  local guard = {}
+  local guard_action = {}
   local accept_actions = {}
   local transition_actions = {}
 
   out:write "local c={\n"
   for i = 1, n do
     local item = data[i]
-    guard[i] = dump_action(out, item.guard, compactor)
+    guard_action[i] = dump_action(out, item.guard_action, compactor)
     accept_actions[i] = dump_actions(out, item.accept_actions, compactor)
     transition_actions[i] = dump_actions(out, item.transition_actions, compactor)
   end
@@ -235,7 +235,7 @@ return function(out, data)
     local item = data[i]
     out:write "{\n"
     out:write("loop=", item.loop and "true" or "false", ";\n")
-    out:write("guard=", guard[i], ";\n")
+    out:write("guard_action=", guard_action[i], ";\n")
     out:write("max_accept_state=", item.max_accept_state, ";\n")
     out:write("accept_actions=", accept_actions[i], ";\n")
     out:write("max_transition=", item.max_transition, ";\n")
