@@ -55,10 +55,12 @@ local definitions = {
 
 local definitions = {
   main = union {
-    P"if"     % "print(1)";
-    P"else"   % "print(2)";
-    P"elseif" % "print(3)";
-    P"end"    % "print(4)";
+    P"if"     % [[print "if"]];
+    P"else"   % [[print "else"]];
+    P"elseif" % [[print "elseif"]];
+    P"end"    % [[print "end"]];
+    P"then"   % [[print "then"]];
+    S" \t\r\n"^1 % [[print "SP"]];
   };
 }
 
@@ -73,4 +75,4 @@ compile(out, generate(definitions))
 out:close()
 
 local regexp = assert(loadfile "test.lua")()
-regexp "if if if else end"
+regexp "if then elseif else  end "

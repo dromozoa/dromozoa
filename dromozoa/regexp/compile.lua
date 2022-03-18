@@ -42,7 +42,6 @@ local template2 = [[
         end
         if current_index == main then
           current_state = _[current_index].start_state
-          current_position = current_position + 1
         else
           -- repeat???
           break
