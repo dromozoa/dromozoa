@@ -28,4 +28,4 @@ do
   esac
 done
 
-rm -f test*.dot
+rm -f test*.dot test-gen*

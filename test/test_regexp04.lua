@@ -32,7 +32,7 @@ local R = pattern.range
 local debug = tonumber(os.getenv "DROMOZOA_TEST_DEBUG")
 debug = debug and debug ~= 0
 
---[[
+--[====[
 local definitions = {
   block_comment = guard("fret()", {
     P(1);
@@ -45,11 +45,20 @@ local definitions = {
     % "fcall(block_comment)";
   };
 }
-]]
 
 local definitions = {
   main = union {
     (R"09" / "v=c-0x30") * (R"09" / "v=v*10+c-0x30")^0 % "token(\"integer_literal\",v)";
+  };
+}
+]====]
+
+local definitions = {
+  main = union {
+    P"if";
+    P"else";
+    P"elseif";
+    P"end";
   };
 }
 
@@ -59,9 +68,6 @@ for name, dfa in pairs(definitions) do
   out:close()
 end
 
-local data = generate(definitions)
-compile(io.stdout, data)
-
-
--- print(dumper.encode(data, { pretty = true, stable = true }))
-
+local out = assert(io.open("test.lua", "w"))
+compile(out, generate(definitions))
+out:close()
