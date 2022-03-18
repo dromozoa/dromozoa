@@ -34,7 +34,7 @@ debug = debug and debug ~= 0
 
 local definitions = {
   dfa1 = minimize(nfa_to_dfa(tree_to_nfa(P(1)^0)));
-  dfa2 = minimize(nfa_to_dfa(tree_to_nfa(P(1)^0 * P"xyz" * P(1)^0)));
+  dfa2 = minimize(nfa_to_dfa(tree_to_nfa(P(1)^0 * P"a" * P"b"^0 * P"c" * P(1)^0)));
 }
 
 for name, dfa in pairs(definitions) do

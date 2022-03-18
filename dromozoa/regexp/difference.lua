@@ -16,6 +16,7 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local fsm = require "dromozoa.regexp.fsm"
+local remove_dead_states = require "dromozoa.regexp.remove_dead_states"
 
 local function visit(u, states, indices, index, color)
   color[u] = 1
@@ -41,58 +42,6 @@ local function create_state_indices(u)
   local indices = {}
   visit(u, states, indices, 0, {})
   return states, indices
-end
-
-local function visit1(u, not_dead_states, color)
-  color[u] = 1
-
-  if u.accept then
-    not_dead_states[u] = true
-  end
-
-  local transitions = u.transitions
-  for i = 1, #transitions do
-    local transition = transitions[i]
-    local v = transition.v
-    if not color[v] then
-      index = visit1(v, not_dead_states, color)
-    end
-
-    -- check u->v
-    if not_dead_states[v] then
-      not_dead_states[u] = true
-    end
-  end
-
-  color[u] = 2
-end
-
-local function visit2(u, not_dead_states, color)
-  color[u] = 1
-
-  local transitions = u.transitions
-  local new_transitions = {}
-  for i = 1, #transitions do
-    local transition = transitions[i]
-    local v = transition.v
-    if not color[v] then
-      index = visit2(v, not_dead_states, color)
-    end
-
-    -- 遷移先がdead stateじゃなければ遷移を残す
-    if not_dead_states[v] then
-      new_transitions[#new_transitions + 1] = transition
-    end
-  end
-  u.transitions = new_transitions
-
-  color[u] = 2
-end
-
-local function remove_dead_states(u)
-  local not_dead_states = {}
-  visit1(u, not_dead_states, {})
-  visit2(u, not_dead_states, {})
 end
 
 local function execute_transition(u, byte)
