@@ -21,6 +21,7 @@
 local compile = require "dromozoa.regexp.compile"
 local generate = require "dromozoa.regexp.generate"
 local guard = require "dromozoa.regexp.guard"
+local loop = require "dromozoa.regexp.loop"
 local pattern = require "dromozoa.regexp.pattern"
 local union = require "dromozoa.regexp.union"
 local write_graphviz = require "dromozoa.regexp.write_graphviz"
@@ -38,13 +39,22 @@ local definitions = {
     (R"az" / [[print "char"]])^1 % [[fgoto(string_literal)]];
   };
 
-  main = union {
+  block_comment = guard("fret()", {
+    (-S"]") % [[print "comment char"]];
+  });
+
+  main = loop {
     P"if"     % [[print "if"]];
     P"else"   % [[print "else"]];
     P"elseif" % [[print "elseif"]];
     P"end"    % [[print "end"]];
     P"then"   % [[print "then"]];
     P"local"  % [[print "local"]];
+    P"--"
+      * (P"[" / "guard_assign_byte(0x5D)")
+      * (P"=" / "guard_append_byte(0x3D)")^0
+      * (P"[" / "guard_append_byte(0x5D) fcall(block_comment)")
+      % [[print "block comment"]];
     P"--" * (-S"\r\n")^0 * (P"\r\n" + P"\r" + P"\n")
               % [[print "line comment"]];
     P[["]] / [[fcall(string_literal)]] % [[print "string_literal"]];
@@ -71,4 +81,8 @@ regexp [[
 if then elseif else
 "aaa" end
 local xyz = 123
+--[=[
+  abc
+]=]
+local abc
 ]]
