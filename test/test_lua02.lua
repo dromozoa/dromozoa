@@ -14,11 +14,20 @@
 --
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
+--
+-- https://github.com/aidansteele/osx-abi-macho-file-format-reference
+-- https://developers.wonderpla.net/entry/2021/03/19/105503
 
-local loop = require "dromozoa.regexp.loop"
+local debug = tonumber(os.getenv "DROMOZOA_TEST_DEBUG")
+debug = debug and debug ~= 0
 
-return function (guard, data)
-  local u = loop(data)
-  u.guard = guard or true
-  return u
+local loadstring = loadstring or load
+
+local result, message = loadstring [[return "\256789"]]
+if debug then
+  print(message)
 end
+assert(not result)
+
+local result = assert(loadstring [[return "\255789"]])()
+assert(result == string.char(255) .. "789")

@@ -15,10 +15,10 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local loop = require "dromozoa.regexp.loop"
+local union = require "dromozoa.regexp.union"
 
-return function (guard, data)
-  local u = loop(data)
-  u.guard = guard or true
+return function (data)
+  local u = union(data)
+  u.loop = true
   return u
 end

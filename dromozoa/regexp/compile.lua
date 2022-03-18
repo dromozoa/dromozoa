@@ -20,6 +20,8 @@ return function (source)
   local fgoto
   local fcall
   local fret
+  local guard_assign_byte
+  local guard_append_byte
 ]]
 
 local template2 = [[
@@ -30,6 +32,7 @@ local template2 = [[
 
   local stack_top = 0
   local stack = {}
+  local guard
 
   fgoto = function (index)
     current_index = index
@@ -54,49 +57,69 @@ local template2 = [[
     stack_top = stack_top - 1
   end
 
-  while true do
-    current_byte = string.byte(source, current_position)
+  guard_assign_byte = function (byte)
+    guard = { string.char(byte) }
+  end
 
-    local state = 0
-    if current_byte then
-      state = _[current_index].transitions[current_byte][current_state]
+  guard_append_byte = function (byte)
+    guard[#guard + 1] = string.char(byte)
+  end
+
+  while true do
+    local guard_action = _[current_index].guard_action
+    local guarded
+    if current_state == _[current_index].start_state and guard_action then
+      -- guardを評価する
+      local guard_buffer = table.concat(guard)
+      guarded = string.sub(source, current_position, current_position + #guard_buffer - 1) == guard_buffer
+      if guarded then
+        current_position = current_position + #guard_buffer
+        current_state = 0 -- start_stateのままでもよいか？
+        guard_action()
+      end
     end
 
-    if state == 0 then
-      if current_state <= _[current_index].max_accept_state then
-        _[current_index].accept_actions[current_state]()
-        if not current_byte then
-          -- eof
-          break
-        end
-        -- loopかどうかをフラグとしてたてるか、明示的にfgotoをつかう
-        if current_index == main then
-          -- 繰り返すのでcurrent_positionは進めない
-          current_state = _[current_index].start_state
-        else
+    if not guarded then
+      current_byte = string.byte(source, current_position)
+
+      local state = 0
+      if current_byte then
+        state = _[current_index].transitions[current_byte][current_state]
+      end
+
+      if state == 0 then
+        if current_state <= _[current_index].max_accept_state then
+          _[current_index].accept_actions[current_state]()
+          if not current_byte then
+            -- eof
+            break
+          end
+          if _[current_index].loop then
+            -- consumeするべきかどうかはどう決める？
+            current_state = _[current_index].start_state
+          end
           -- fgoto,fcall,fretされた場合はエラーするべきでない
           -- error "regexp error"
+        else
+          -- エラー（位置も返す）
+          error "regexp error"
         end
       else
-        -- エラー（位置も返す）
-        error "regexp error"
-      end
-    else
-      -- 一文字読みおわった扱いにする
+        local max_state = _[current_index].max_state
+        if state > max_state then
+          local transition = state - max_state
 
-      local max_state = _[current_index].max_state
-      if state > max_state then
-        local transition = state - max_state
+          current_position = current_position + 1
+          current_state = _[current_index].transition_to_states[transition]
 
-        current_position = current_position + 1
-        current_state = _[current_index].transition_to_states[transition]
-
-        _[current_index].transition_actions[transition]()
-      else
-        current_position = current_position + 1
-        current_state = state
+          _[current_index].transition_actions[transition]()
+        else
+          current_position = current_position + 1
+          current_state = state
+        end
       end
     end
+
   end
 end
 ]]
@@ -173,6 +196,7 @@ return function(out, data)
   for i = 1, n do
     local item = data[i]
     out:write "{\n"
+    out:write("loop=", item.loop and "true" or "false", ";\n")
     out:write("guard_action=", dump_action(item.guard_action), ";\n")
     out:write("max_accept_state=", item.max_accept_state, ";\n")
     out:write "accept_actions={\n"

@@ -76,14 +76,14 @@
     <td><code>0</code> to <code>n</code> repetition</td>
   </tr>
   <tr>
-    <td><code>pattern * pattern</code></td>
-    <td><code>S"abc" * P"def"</code></td>
+    <td><code>pattern*pattern</code></td>
+    <td><code>S"abc"*P"def"</code></td>
     <td><code>[abc]def</code></td>
     <td>concatenation</td>
   </tr>
   <tr>
-    <td><code>pattern + pattern</code></td>
-    <td><code>P"abc" + P"def"</code></td>
+    <td><code>pattern+pattern</code></td>
+    <td><code>P"abc"+P"def"</code></td>
     <td><code>abc|def</code></td>
     <td>union</td>
   </tr>
@@ -94,15 +94,21 @@
     <td>character level negation</td>
   </tr>
   <tr>
-    <td><code>pattern / action</code></td>
-    <td><code>R"09af" / 1</code></td>
-    <td><code>[0-9a-f](?#/1)</code></td>
+    <td><code>pattern-pattern</code></td>
+    <td><code>(P(1)^0-P(1)^0*P"*/"*P(1)^0)*P"*/"</code></td>
+    <td><code>.*?\*/</code></td>
+    <td>difference</td>
+  </tr>
+  <tr>
+    <td><code>pattern/action</code></td>
+    <td><code>R"09af"/"foo"</code></td>
+    <td><code>[0-9a-f](?#/foo)</code></td>
     <td>transition action</td>
   </tr>
   <tr>
-    <td><code>pattern % action</code></td>
-    <td><code>R"09af" % 1</code></td>
-    <td><code>[0-9a-f](?#%1)</code></td>
+    <td><code>pattern%action</code></td>
+    <td><code>R"09af"%"bar"</code></td>
+    <td><code>[0-9a-f](?#%bar)</code></td>
     <td>accept action</td>
   </tr>
 </table>
@@ -150,6 +156,11 @@ DSLの評価順に遷移 (transition) アクションと受容 (accept) アク�
     <td><code>?</code></td>
     <td><code>pattern</code></td>
     <td>optional</td>
+  </tr>
+  <tr>
+    <td><code>-</code></td>
+    <td><code>pattern pattern</code></td>
+    <td>differnce</td>
   </tr>
   <tr>
     <td><code>/</code></td>

@@ -15,10 +15,4 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local loop = require "dromozoa.regexp.loop"
 
-return function (guard, data)
-  local u = loop(data)
-  u.guard = guard or true
-  return u
-end
