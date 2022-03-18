@@ -27,12 +27,12 @@ local P = pattern.pattern
 local S = pattern.set
 local R = pattern.range
 
---[====[
 local out = assert(io.open("test.lua", "w"))
 compile(out, generate {
   main = lexer {
     P"and";
     P"or";
+    fuck = P"fuck" % "push_token(42)";
 
     WhiteSpace = S" \t\r\n"^1 % "skip_token()";
 
@@ -43,7 +43,6 @@ compile(out, generate {
   };
 })
 out:close()
-]====]
 
 -- local regexp = assert(loadfile "test.lua")()
 -- regexp "a\rb\r\nc\nd\n\re\r\rf\n\ng"

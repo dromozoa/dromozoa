@@ -15,7 +15,10 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local union = require "dromozoa.regexp.union"
+local fsm = require "dromozoa.regexp.fsm"
+local minimize = require "dromozoa.regexp.minimize"
+local nfa_to_dfa = require "dromozoa.regexp.nfa_to_dfa"
+local tree_to_nfa = require "dromozoa.regexp.tree_to_nfa"
 
 return function (data)
   local definitions = {}
@@ -34,18 +37,30 @@ return function (data)
 
   local token_names = {}
   local token_codes = {}
+  local u = fsm.new_state()
+  local timestamp
 
   for i = 1, #definitions do
     local name = definitions[i].name
     token_names[i] = name
     token_codes[name] = i
 
-    -- local accept = "token=" .. i
-    -- local def = definitions[i].def % 
+    local v, w = tree_to_nfa(definitions[i].def, "push_token()")
+    fsm.new_transition(u, v)
 
-    local u, v = tree_to_nfa(definitions[i].def, "push_token()")
-    v.accept_token = i
+    local t = v.timestamp
+    if not timestamp or timestamp > t then
+      timestamp = t
+    end
+
+    local accept_action = w.accept_action
+    if accept_action == true then
+      w.accept_action = "token=" .. i .. "; push_token()"
+    else
+      w.accept_action = "token=" .. i .. "; " .. accept_action
+    end
   end
+  u.timestamp = timestamp
 
-
+  return minimize(nfa_to_dfa(u))
 end
