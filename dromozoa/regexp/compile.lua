@@ -136,15 +136,16 @@ local template2 = [[
 end
 ]]
 
-local function dump_transitions(out, transitions, compactor, compactor_index)
+local function compact_transitions(out, transitions, compactor)
   local buffer = {}
   for byte = 0x00, 0xFF do
     local code = "{" .. table.concat(transitions[byte], ",") .. "}"
     local name = compactor[code]
     if not name then
-      compactor_index = compactor_index + 1
-      name = "c[" .. compactor_index .. "]"
+      local index = compactor.index + 1
+      name = "c[" .. index .. "]"
       out:write(code, ";\n")
+      compactor.index = index
       compactor[code] = name
     end
     if byte == 0 then
@@ -153,10 +154,10 @@ local function dump_transitions(out, transitions, compactor, compactor_index)
       buffer[#buffer + 1] = name
     end
   end
-  return "{" .. table.concat(buffer, ",") .. "}", compactor_index
+  return "{" .. table.concat(buffer, ",") .. "}"
 end
 
-local function dump_action(out, action, compactor, compactor_index)
+local function dump_action(out, action, compactor)
   local code
   if action then
     if type(action) == "string" then
@@ -170,32 +171,32 @@ local function dump_action(out, action, compactor, compactor_index)
   end
   local name = compactor[code]
   if not name then
-    compactor_index = compactor_index + 1
-    name = "c[" .. compactor_index .. "]"
+    local index = compactor.index + 1
+    name = "c[" .. index .. "]"
     out:write(code, ";\n")
+    compactor.index = index
     compactor[code] = name
   end
-  return name, compactor_index
+  return name
 end
 
-local function dump_actions(out, actions, compactor, compactor_index)
+local function dump_actions(out, actions, compactor)
   local buffer = {}
   for i = 1, #actions do
-    buffer[#buffer + 1], compactor_index = dump_action(out, actions[i], compactor, compactor_index)
+    buffer[#buffer + 1] = dump_action(out, actions[i], compactor)
   end
-  return "{" .. table.concat(buffer, ",") .. "}", compactor_index
+  return "{" .. table.concat(buffer, ",") .. "}"
 end
 
 return function(out, data)
   local n = #data
 
-  local compactor = {}
-  local compactor_index = 0
+  local compactor = { index = 0 }
   local transitions = {}
 
   out:write "local c={\n"
   for i = 1, n do
-    transitions[i], compactor_index = dump_transitions(out, data[i].transitions, compactor, compactor_index)
+    transitions[i] = compact_transitions(out, data[i].transitions, compactor)
   end
   out:write "}\n"
 
@@ -215,8 +216,7 @@ return function(out, data)
 
   out:write(template1)
 
-  local compactor = {}
-  local compactor_index = 0
+  local compactor = { index = 0 }
   local guard_actions = {}
   local accept_actions = {}
   local transition_actions = {}
@@ -224,9 +224,9 @@ return function(out, data)
   out:write "local c={\n"
   for i = 1, n do
     local item = data[i]
-    guard_actions[i], compactor_index = dump_action(out, item.guard_action, compactor, compactor_index)
-    accept_actions[i], compactor_index = dump_actions(out, item.accept_actions, compactor, compactor_index)
-    transition_actions[i], compactor_index = dump_actions(out, item.transition_actions, compactor, compactor_index)
+    guard_actions[i] = dump_action(out, item.guard_action, compactor)
+    accept_actions[i] = dump_actions(out, item.accept_actions, compactor)
+    transition_actions[i] = dump_actions(out, item.transition_actions, compactor)
   end
   out:write "}\n"
 
