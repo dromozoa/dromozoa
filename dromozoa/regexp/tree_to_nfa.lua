@@ -71,9 +71,11 @@ local function visit(node)
       au.timestamp = node.timestamp
       bu.timestamp = node.timestamp
       av.accept = true
+
       av.timestamp = node.timestamp
       bv.accept = true
       bv.timestamp = node.timestamp
+
       local u, accept_states = minimize(difference(minimize(nfa_to_dfa(au)), minimize(nfa_to_dfa(bu))))
       local v = fsm.new_state()
       for i = 1, #accept_states do
