@@ -15,6 +15,92 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local template1 = [[
+return function (source)
+  local fgoto
+  local fcall
+  local fret
+]]
+
+local template2 = [[
+  local current_index = main
+  local current_state = _[current_index].start_state
+  local current_position = 1
+  local current_byte
+
+  local stack_top = 0
+  local stack = {}
+
+  fgoto = function (index)
+    current_index = index
+    current_state = _[current_index].start_state
+  end
+
+  fcall = function (index)
+    stack_top = stack_top + 1
+    stack[stack_top] = {
+      index = current_index;
+      state = current_state;
+    }
+    fgoto(index)
+  end
+
+  fret = function ()
+    local item = stack[stack_top]
+    current_index = item.index
+    current_state = item.state
+
+    stack[stack_top] = nil
+    stack_top = stack_top - 1
+  end
+
+  while true do
+    current_byte = string.byte(source, current_position)
+
+    local state = 0
+    if current_byte then
+      state = _[current_index].transitions[current_byte][current_state]
+    end
+
+    if state == 0 then
+      if current_state <= _[current_index].max_accept_state then
+        _[current_index].accept_actions[current_state]()
+        if not current_byte then
+          -- eof
+          break
+        end
+        -- loopかどうかをフラグとしてたてるか、明示的にfgotoをつかう
+        if current_index == main then
+          -- 繰り返すのでcurrent_positionは進めない
+          current_state = _[current_index].start_state
+        else
+          -- fgoto,fcall,fretされた場合はエラーするべきでない
+          -- error "regexp error"
+        end
+      else
+        -- エラー（位置も返す）
+        error "regexp error"
+      end
+    else
+      -- 一文字読みおわった扱いにする
+
+      local max_state = _[current_index].max_state
+      if state > max_state then
+        local transition = state - max_state
+
+        current_position = current_position + 1
+        current_state = _[current_index].transition_to_states[transition]
+
+        _[current_index].transition_actions[transition]()
+      else
+        current_position = current_position + 1
+        current_state = state
+      end
+    end
+  end
+end
+]]
+
 local function dump_transitions(out, data, compactor, compactor_index)
   local buffer = {}
   for byte = 0x00, 0xFF do
@@ -23,126 +109,86 @@ local function dump_transitions(out, data, compactor, compactor_index)
     if not name then
       compactor_index = compactor_index + 1
       name = "_[" .. compactor_index .. "]"
-      out:write("  ", code, ";\n")
+      out:write(code, ";\n")
       compactor[code] = name
     end
     if byte == 0 then
-      buffer[#buffer + 1] =  "[0]=" .. name
+      buffer[#buffer + 1] = "[0]=" .. name
     else
-      buffer[#buffer + 1] =  name
+      buffer[#buffer + 1] = name
     end
   end
   return "{" .. table.concat(buffer, ",") .. "}", compactor_index
 end
 
-local function dump_actions(out, data)
-  for i = 1, #data do
-    local action = data[i]
-    out:write "        "
+local function dump_action(action)
+  if action then
     if type(action) == "string" then
-      out:write("function () ", action, " end")
+      return "function () " .. action .. " end"
     else
-      out:write "function () end"
+      assert(action == true)
+      return "function () end"
     end
-    out:write ";\n"
+  else
+    return "nil"
+  end
+end
+
+local function dump_actions(out, actions)
+  for i = 1, #actions do
+    out:write(dump_action(actions[i]), ";\n")
   end
 end
 
 return function(out, data)
-  out:write [[
-local _ = {
-]]
+  local n = #data
 
   local compactor = {}
   local compactor_index = 0
   local transitions = {}
 
-  for i = 1, #data do
+  out:write "local _={\n"
+  for i = 1, n do
     transitions[i], compactor_index = dump_transitions(out, data[i].transitions, compactor, compactor_index)
   end
+  out:write "}\n"
 
-  out:write [[
-}
-
-local T = {
-]]
-
-  for i = 1, #data do
+  out:write "local _={\n"
+  for i = 1, n do
     local item = data[i]
-    out:write(([[
-  {
-    name = "%s";
-    guard = %s;
-    max_accept_state = %d;
-    transition_to_states = {%s};
-    start_state = %d;
-    max_state = %d;
-    transitions = %s;
-  };
-]]):format(
-      item.name,
-      item.guard and "true" or "false",
-      item.max_accept_state,
-      table.concat(item.transition_to_states, ","),
-      item.start_state,
-      item.max_state,
-      transitions[i]))
+    out:write "{\n"
+    out:write("transition_to_states={", table.concat(item.transition_to_states, ","), "};\n")
+    out:write("transitions=", transitions[i], ";\n")
+    out:write "};\n"
+  end
+  out:write "}\n"
+
+  for i = 1, n do
+    out:write("local ", data[i].name, "=", i, "\n")
   end
 
-  out:write [[
-}
+  out:write(template1)
 
-]]
-
-  for i = 1, #data do
-    out:write(([[
-local %s = %d
-]]):format(data[i].name, i))
-  end
-
-  out:write [[
-
-return function (s)
-  local fc
-  local fp
-
-  local function fcall(name)
-  end
-
-  local function fgoto(name)
-  end
-
-  local function fret()
-  end
-
-  local A = {
-]]
-
-  for i = 1, #data do
+  out:write "local _={\n"
+  for i = 1, n do
     local item = data[i]
-
-    out:write [[
-    {
-      accept_actions = {
-]]
-
+    out:write "{\n"
+    out:write("guard_action=", dump_action(item.guard_action), ";\n")
+    out:write("max_accept_state=", item.max_accept_state, ";\n")
+    out:write "accept_actions={\n"
     dump_actions(out, item.accept_actions)
-
-    out:write [[
-      };
-      transition_actions = {
-]]
-
+    out:write "};\n"
+    out:write("max_transition=", item.max_transition, ";\n")
+    out:write("transition_to_states=_[", i, "].transition_to_states;\n")
+    out:write("start_state=", item.start_state, ";\n")
+    out:write "transition_actions={\n"
     dump_actions(out, item.transition_actions)
-
-    out:write [[
-      };
-    };
-]]
+    out:write "};\n"
+    out:write("max_state=", item.max_state, ";\n")
+    out:write("transitions=_[", i, "].transitions;\n")
+    out:write "};\n"
   end
+  out:write "}\n"
 
-  out:write [[
-  }
-end
-]]
+  out:write(template2)
 end

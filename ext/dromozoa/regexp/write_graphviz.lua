@@ -17,6 +17,10 @@
 
 local set_to_str = require "dromozoa.regexp.set_to_str"
 
+local function escape_action(action)
+  return (tostring(action):gsub([["]], [[\"]]))
+end
+
 local function visit(out, u, indices, index, start, color)
   color[u] = 1
   index = index + 1
@@ -37,7 +41,7 @@ local function visit(out, u, indices, index, start, color)
   if next(attrs) then
     local label = ("%d"):format(uid)
     if accept then
-      label = ("%s %% %s"):format(label, accept)
+      label = ("%s %% %s"):format(label, escape_action(accept))
     end
     if u.guard then
       label = ("%s\nguard"):format(label)
@@ -58,7 +62,7 @@ local function visit(out, u, indices, index, start, color)
     if set then
       local action = transition.action
       if action then
-        out:write(("  %d -> %d [label=\"%s / %s\"];\n"):format(uid, vid, set_to_str(set), action))
+        out:write(("  %d -> %d [label=\"%s / %s\"];\n"):format(uid, vid, set_to_str(set), escape_action(action)))
       else
         out:write(("  %d -> %d [label=\"%s\"];\n"):format(uid, vid, set_to_str(set)))
       end
