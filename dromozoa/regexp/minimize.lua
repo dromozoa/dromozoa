@@ -25,7 +25,6 @@ local function visit(u, accept_partition_map, nonaccept_partition, partition_map
   local accept_action = u.accept_action
   local partition = nonaccept_partition
   if accept_action then
-    -- accept_actionの生の比較 (raw equality) を行う
     partition = accept_partition_map[accept_action]
     if not partition then
       partition = { timestamp = u.timestamp }

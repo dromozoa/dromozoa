@@ -83,11 +83,11 @@ local function new_state(seq)
   local timestamp
   for i = 1, #seq do
     local u = seq[i].state
-    local a = u.accept_action
-    if a then
+    local action = u.accept_action
+    if action then
       local t = u.timestamp
       if not timestamp or timestamp > t then
-        accept_action = a
+        accept_action = action
         timestamp = t
       end
     end

@@ -33,7 +33,7 @@ local R = pattern.range
 local function visit(u, start, color)
   color[u] = 1
 
-  if u == start or u.accept then
+  if u == start or u.accept_action then
     assert(u.timestamp)
   else
     assert(not u.timestamp)
@@ -88,8 +88,8 @@ local function test(root, check_start_accept)
   out:close()
 
   if check_start_accept then
-    assert(dfa1.accept)
-    assert(dfa2.accept)
+    assert(dfa1.accept_action)
+    assert(dfa2.accept_action)
   end
 
   check_timestamp(nfa)

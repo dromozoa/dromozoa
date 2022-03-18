@@ -70,7 +70,7 @@ local function visit(node)
       local u = fsm.new_state()
       local v = fsm.new_state()
 
-      -- 計算のためににaccept_actionとtimestampを割り当てる
+      -- 計算のためにaccept_actionとtimestampを割り当てる
       local timestamp = node.timestamp
       au.timestamp = timestamp
       av.accept_action = true

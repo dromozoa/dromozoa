@@ -20,8 +20,7 @@ local fsm = require "dromozoa.regexp.fsm"
 local function visit1(u, state_indices, state_index, transition_indices, transition_index, color)
   color[u] = 1
 
-  local accept_action = u.accept_action
-  if accept_action then
+  if u.accept_action then
     state_index = state_index + 1
     state_indices[u] = state_index
   end
