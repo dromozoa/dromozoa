@@ -20,8 +20,8 @@ return function (source)
   local fgoto
   local fcall
   local fret
-  local guard_assign_byte
-  local guard_append_byte
+  local guard_assign
+  local guard_append
 ]]
 
 local template2 = [[
@@ -32,6 +32,7 @@ local template2 = [[
 
   local stack_top = 0
   local stack = {}
+  local buffer
   local guard
 
   fgoto = function (index)
@@ -57,24 +58,33 @@ local template2 = [[
     stack_top = stack_top - 1
   end
 
-  guard_assign_byte = function (byte)
-    guard = { string.char(byte) }
+  local function char(data)
+    if not data then
+      return string.char(current_byte)
+    elseif type(data) == "number" then
+      return string.char(data)
+    else
+      return data
+    end
   end
 
-  guard_append_byte = function (byte)
-    guard[#guard + 1] = string.char(byte)
+  guard_assign = function (data)
+    guard = { char(data) }
+  end
+
+  guard_append = function (data)
+    guard[#guard + 1] = char(data)
   end
 
   while true do
     local guard_action = _[current_index].guard_action
     local guarded
-    if current_state == _[current_index].start_state and guard_action then
-      -- guardを評価する
-      local guard_buffer = table.concat(guard)
-      guarded = string.sub(source, current_position, current_position + #guard_buffer - 1) == guard_buffer
+    if guard_action and current_state == _[current_index].start_state then
+      local guard = table.concat(guard)
+      local position = current_position + #guard
+      guarded = string.sub(source, current_position, position - 1) == guard
       if guarded then
-        current_position = current_position + #guard_buffer
-        current_state = 0 -- start_stateのままでもよいか？
+        current_position = position
         guard_action()
       end
     end
@@ -92,26 +102,19 @@ local template2 = [[
           _[current_index].accept_actions[current_state]()
           if not current_byte then
             -- eof
-            break
+            return true
           end
           if _[current_index].loop then
-            -- consumeするべきかどうかはどう決める？
             current_state = _[current_index].start_state
           end
-          -- fgoto,fcall,fretされた場合はエラーするべきでない
-          -- error "regexp error"
         else
-          -- エラー（位置も返す）
           error "regexp error"
         end
       else
-        local max_state = _[current_index].max_state
-        if state > max_state then
-          local transition = state - max_state
-
+        if state > _[current_index].max_state then
+          local transition = state - _[current_index].max_state
           current_position = current_position + 1
           current_state = _[current_index].transition_to_states[transition]
-
           _[current_index].transition_actions[transition]()
         else
           current_position = current_position + 1
@@ -119,20 +122,20 @@ local template2 = [[
         end
       end
     end
-
   end
 end
 ]]
 
-local function dump_transitions(out, data, compactor, compactor_index)
+local function compact_transitions(out, transitions, compactor)
   local buffer = {}
   for byte = 0x00, 0xFF do
-    local code = "{" .. table.concat(data[byte], ",") .. "}"
+    local code = "{" .. table.concat(transitions[byte], ",") .. "}"
     local name = compactor[code]
     if not name then
-      compactor_index = compactor_index + 1
-      name = "_[" .. compactor_index .. "]"
+      local index = compactor.index + 1
+      name = "c[" .. index .. "]"
       out:write(code, ";\n")
+      compactor.index = index
       compactor[code] = name
     end
     if byte == 0 then
@@ -141,38 +144,49 @@ local function dump_transitions(out, data, compactor, compactor_index)
       buffer[#buffer + 1] = name
     end
   end
-  return "{" .. table.concat(buffer, ",") .. "}", compactor_index
+  return "{" .. table.concat(buffer, ",") .. "}"
 end
 
-local function dump_action(action)
+local function dump_action(out, action, compactor)
+  local code
   if action then
     if type(action) == "string" then
-      return "function () " .. action .. " end"
+      code = "function () " .. action .. " end"
     else
       assert(action == true)
-      return "function () end"
+      code = "function () end"
     end
   else
-    return "nil"
+    code = "false"
   end
+  local name = compactor[code]
+  if not name then
+    local index = compactor.index + 1
+    name = "c[" .. index .. "]"
+    out:write(code, ";\n")
+    compactor.index = index
+    compactor[code] = name
+  end
+  return name
 end
 
-local function dump_actions(out, actions)
+local function dump_actions(out, actions, compactor)
+  local buffer = {}
   for i = 1, #actions do
-    out:write(dump_action(actions[i]), ";\n")
+    buffer[#buffer + 1] = dump_action(out, actions[i], compactor)
   end
+  return "{" .. table.concat(buffer, ",") .. "}"
 end
 
 return function(out, data)
   local n = #data
 
-  local compactor = {}
-  local compactor_index = 0
+  local compactor = { index = 0 }
   local transitions = {}
 
-  out:write "local _={\n"
+  out:write "local c={\n"
   for i = 1, n do
-    transitions[i], compactor_index = dump_transitions(out, data[i].transitions, compactor, compactor_index)
+    transitions[i] = compact_transitions(out, data[i].transitions, compactor)
   end
   out:write "}\n"
 
@@ -192,22 +206,32 @@ return function(out, data)
 
   out:write(template1)
 
+  local compactor = { index = 0 }
+  local guard_action = {}
+  local accept_actions = {}
+  local transition_actions = {}
+
+  out:write "local c={\n"
+  for i = 1, n do
+    local item = data[i]
+    guard_action[i] = dump_action(out, item.guard_action, compactor)
+    accept_actions[i] = dump_actions(out, item.accept_actions, compactor)
+    transition_actions[i] = dump_actions(out, item.transition_actions, compactor)
+  end
+  out:write "}\n"
+
   out:write "local _={\n"
   for i = 1, n do
     local item = data[i]
     out:write "{\n"
     out:write("loop=", item.loop and "true" or "false", ";\n")
-    out:write("guard_action=", dump_action(item.guard_action), ";\n")
+    out:write("guard_action=", guard_action[i], ";\n")
     out:write("max_accept_state=", item.max_accept_state, ";\n")
-    out:write "accept_actions={\n"
-    dump_actions(out, item.accept_actions)
-    out:write "};\n"
+    out:write("accept_actions=", accept_actions[i], ";\n")
     out:write("max_transition=", item.max_transition, ";\n")
     out:write("transition_to_states=_[", i, "].transition_to_states;\n")
     out:write("start_state=", item.start_state, ";\n")
-    out:write "transition_actions={\n"
-    dump_actions(out, item.transition_actions)
-    out:write "};\n"
+    out:write("transition_actions=", transition_actions[i], ";\n")
     out:write("max_state=", item.max_state, ";\n")
     out:write("transitions=_[", i, "].transitions;\n")
     out:write "};\n"
