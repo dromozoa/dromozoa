@@ -136,14 +136,14 @@ local template2 = [[
 end
 ]]
 
-local function dump_transitions(out, data, compactor, compactor_index)
+local function dump_transitions(out, transitions, compactor, compactor_index)
   local buffer = {}
   for byte = 0x00, 0xFF do
-    local code = "{" .. table.concat(data[byte], ",") .. "}"
+    local code = "{" .. table.concat(transitions[byte], ",") .. "}"
     local name = compactor[code]
     if not name then
       compactor_index = compactor_index + 1
-      name = "_[" .. compactor_index .. "]"
+      name = "_c[" .. compactor_index .. "]"
       out:write(code, ";\n")
       compactor[code] = name
     end
@@ -156,23 +156,34 @@ local function dump_transitions(out, data, compactor, compactor_index)
   return "{" .. table.concat(buffer, ",") .. "}", compactor_index
 end
 
-local function dump_action(action)
+local function dump_action(out, action, compactor, compactor_index)
+  local code
   if action then
     if type(action) == "string" then
-      return "function () " .. action .. " end"
+      code = "function () " .. action .. " end"
     else
       assert(action == true)
-      return "function () end"
+      code = "function () end"
     end
   else
-    return "nil"
+    code = "false"
   end
+  local name = compactor[code]
+  if not name then
+    compactor_index = compactor_index + 1
+    name = "_c[" .. compactor_index .. "]"
+    out:write(code, ";\n")
+    compactor[code] = name
+  end
+  return name, compactor_index
 end
 
-local function dump_actions(out, actions)
+local function dump_actions(out, actions, compactor, compactor_index)
+  local buffer = {}
   for i = 1, #actions do
-    out:write(dump_action(actions[i]), ";\n")
+    buffer[#buffer + 1], compactor_index = dump_action(out, actions[i], compactor, compactor_index)
   end
+  return "{" .. table.concat(buffer, ",") .. "}", compactor_index
 end
 
 return function(out, data)
@@ -182,7 +193,7 @@ return function(out, data)
   local compactor_index = 0
   local transitions = {}
 
-  out:write "local _={\n"
+  out:write "local _c={\n"
   for i = 1, n do
     transitions[i], compactor_index = dump_transitions(out, data[i].transitions, compactor, compactor_index)
   end
@@ -204,22 +215,33 @@ return function(out, data)
 
   out:write(template1)
 
+  local compactor = {}
+  local compactor_index = 0
+  local guard_actions = {}
+  local accept_actions = {}
+  local transition_actions = {}
+
+  out:write "local _c={\n"
+  for i = 1, n do
+    local item = data[i]
+    guard_actions[i], compactor_index = dump_action(out, item.guard_action, compactor, compactor_index)
+    accept_actions[i], compactor_index = dump_actions(out, item.accept_actions, compactor, compactor_index)
+    transition_actions[i], compactor_index = dump_actions(out, item.transition_actions, compactor, compactor_index)
+  end
+  out:write "}\n"
+
   out:write "local _={\n"
   for i = 1, n do
     local item = data[i]
     out:write "{\n"
     out:write("loop=", item.loop and "true" or "false", ";\n")
-    out:write("guard_action=", dump_action(item.guard_action), ";\n")
+    out:write("guard_action=", guard_actions[i], ";\n")
     out:write("max_accept_state=", item.max_accept_state, ";\n")
-    out:write "accept_actions={\n"
-    dump_actions(out, item.accept_actions)
-    out:write "};\n"
+    out:write("accept_actions=", accept_actions[i], ";\n")
     out:write("max_transition=", item.max_transition, ";\n")
     out:write("transition_to_states=_[", i, "].transition_to_states;\n")
     out:write("start_state=", item.start_state, ";\n")
-    out:write "transition_actions={\n"
-    dump_actions(out, item.transition_actions)
-    out:write "};\n"
+    out:write("transition_actions=", transition_actions[i], ";\n")
     out:write("max_state=", item.max_state, ";\n")
     out:write("transitions=_[", i, "].transitions;\n")
     out:write "};\n"
