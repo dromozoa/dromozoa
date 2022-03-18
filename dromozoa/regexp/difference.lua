@@ -37,7 +37,7 @@ local function visit(u, states, indices, index, color)
   return index
 end
 
-local function create_state_indices(u)
+local function create_states_and_indices(u)
   local states = {}
   local indices = {}
   visit(u, states, indices, 0, {})
@@ -51,8 +51,8 @@ local function execute_transition(u, byte)
 end
 
 return function (this, that)
-  local this_states, this_indices = create_state_indices(this)
-  local that_states, that_indices = create_state_indices(that)
+  local this_states, this_indices = create_states_and_indices(this)
+  local that_states, that_indices = create_states_and_indices(that)
 
   local n = #this_states + 1
 
@@ -65,7 +65,7 @@ return function (this, that)
       local uy = that_states[j]
 
       -- ux, uy
-      -- x, t
+      -- x, y
       -- vx, vy
       -- ukey, unew
       -- vkey, vnew
@@ -119,15 +119,6 @@ return function (this, that)
 
             local action
             local timestamp
-            if x then
-              action = x.action
-              timestamp = x.timestamp
-              if action then
-              end
-            end
-
-            local action
-            local timestamp
             local new_transition_key
             if x then
               action = x.action
@@ -169,7 +160,6 @@ return function (this, that)
           end
         end
       end
-
     end
   end
 

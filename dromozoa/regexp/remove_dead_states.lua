@@ -61,5 +61,4 @@ return function (u)
   local not_dead_states = {}
   visit1(u, not_dead_states, {})
   visit2(u, not_dead_states, {})
-  return u
 end
