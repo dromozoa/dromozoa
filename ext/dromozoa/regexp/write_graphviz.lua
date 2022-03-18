@@ -34,17 +34,17 @@ local function visit(out, u, indices, index, start, color)
     attrs[#attrs + 1] = "fillcolor=black"
     attrs[#attrs + 1] = "fontcolor=white"
   end
-  local accept = u.accept
-  if accept then
+  local accept_action = u.accept_action
+  if accept_action then
     attrs[#attrs + 1] = "shape=doublecircle"
   end
   if next(attrs) then
     local label = ("%d"):format(uid)
-    if accept then
-      label = ("%s %% %s"):format(label, escape_action(accept))
+    if accept_action then
+      label = ("%s %% %s"):format(label, escape_action(accept_action))
     end
-    if u.guard then
-      label = ("%s\nguard"):format(label)
+    if u.guard_action then
+      label = ("%s\nguard_action"):format(label)
     end
     attrs[#attrs + 1] = ("label=\"%s\""):format(label)
     out:write(("  %d [%s];\n"):format(uid, table.concat(attrs, ",")))
@@ -60,9 +60,9 @@ local function visit(out, u, indices, index, start, color)
     local vid = indices[v]
     local set = transition.set
     if set then
-      local action = transition.action
-      if action then
-        out:write(("  %d -> %d [label=\"%s / %s\"];\n"):format(uid, vid, set_to_str(set), escape_action(action)))
+      local transition_action = transition.action
+      if transition_action then
+        out:write(("  %d -> %d [label=\"%s / %s\"];\n"):format(uid, vid, set_to_str(set), escape_action(transition_action)))
       else
         out:write(("  %d -> %d [label=\"%s\"];\n"):format(uid, vid, set_to_str(set)))
       end

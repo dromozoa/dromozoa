@@ -51,7 +51,9 @@ local function pattern(that)
     for i = 1, #that do
       items[i] = construct("[", { [that:byte(i)] = true })
     end
-    return concat(items)
+    local result = concat(items)
+    result.literal = that
+    return result
   else
     return that
   end

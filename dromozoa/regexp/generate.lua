@@ -20,8 +20,7 @@ local fsm = require "dromozoa.regexp.fsm"
 local function visit1(u, state_indices, state_index, transition_indices, transition_index, color)
   color[u] = 1
 
-  local accept = u.accept
-  if accept then
+  if u.accept_action then
     state_index = state_index + 1
     state_indices[u] = state_index
   end
@@ -70,9 +69,9 @@ local function visit3(def, u, state_indices, transition_indices, color)
   color[u] = 1
 
   local index = state_indices[u]
-  local accept = u.accept
-  if accept then
-    def.accept_actions[index] = accept
+  local accept_action = u.accept_action
+  if accept_action then
+    def.accept_actions[index] = accept_action
   end
 
   local transition_to_states = def.transition_to_states
@@ -85,11 +84,11 @@ local function visit3(def, u, state_indices, transition_indices, color)
     if not color[v] then
       visit3(def, v, state_indices, transition_indices, color)
     end
-    local action = transition.action
-    if action then
+    local transition_action = transition.action
+    if transition_action then
       local index = transition_indices[transition]
       transition_to_states[index] = state_indices[transition.v]
-      transition_actions[index] = action
+      transition_actions[index] = transition_action
     end
   end
 
@@ -128,7 +127,7 @@ return function (data)
     local def = {
       name = name;
       loop = u.loop;
-      guard_action = u.guard;
+      guard_action = u.guard_action;
       max_accept_state = max_accept_state;
       accept_actions = {};
       max_transition = max_transition;

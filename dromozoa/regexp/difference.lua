@@ -56,9 +56,9 @@ end
 local function new_state(ux, uy)
   local state = fsm.new_state()
   if ux then
-    local accept = ux.accept
-    if accept and (not uy or not uy.accept) then
-      state.accept = accept
+    local accept_action = ux.accept_action
+    if accept_action and (not uy or not uy.accept_action) then
+      state.accept_action = accept_action
       state.timestamp = ux.timestamp
     end
   end
