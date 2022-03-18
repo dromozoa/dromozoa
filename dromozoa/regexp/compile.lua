@@ -20,8 +20,8 @@ return function (source)
   local fgoto
   local fcall
   local fret
-  local guard_assign_byte
-  local guard_append_byte
+  local guard_assign
+  local guard_append
 ]]
 
 local template2 = [[
@@ -32,6 +32,7 @@ local template2 = [[
 
   local stack_top = 0
   local stack = {}
+  local buffer
   local guard
 
   fgoto = function (index)
@@ -57,12 +58,23 @@ local template2 = [[
     stack_top = stack_top - 1
   end
 
-  guard_assign_byte = function (byte)
-    guard = { string.char(byte) }
+  -- static functionにする
+  local function char(data)
+    if not data then
+      return string.char(current_byte)
+    elseif type(data) == "number" then
+      return string.char(data)
+    else
+      return data
+    end
   end
 
-  guard_append_byte = function (byte)
-    guard[#guard + 1] = string.char(byte)
+  guard_assign = function (data)
+    guard = { char(data) }
+  end
+
+  guard_append = function (data)
+    guard[#guard + 1] = char(data)
   end
 
   while true do
