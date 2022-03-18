@@ -67,22 +67,30 @@ local function visit(node)
       return u, v
     elseif op == "-" then
       local bu, bv = visit(node[3])
-
-      au.timestamp = node.timestamp
-      bu.timestamp = node.timestamp
-      av.accept = true
-
-      av.timestamp = node.timestamp
-      bv.accept = true
-      bv.timestamp = node.timestamp
-
-      local u, accept_states = minimize(difference(minimize(nfa_to_dfa(au)), minimize(nfa_to_dfa(bu))))
+      local u = fsm.new_state()
       local v = fsm.new_state()
+
+      -- 計算のためににacceptとtimestampを割り当てる
+      local timestamp = node.timestamp
+      au.timestamp = timestamp
+      av.accept = true
+      av.timestamp = timestamp
+      bu.timestamp = timestamp
+      bv.accept = true
+      bv.timestamp = timestamp
+
+      local cu, accept_states = minimize(difference(minimize(nfa_to_dfa(au)), minimize(nfa_to_dfa(bu))))
+
+      -- 結果のDFAの状態からacceptとtimestampを除去する
+      cu.timestamp = nil
+      fsm.new_transition(u, cu)
       for i = 1, #accept_states do
         local cv = accept_states[i]
         cv.accept = nil
+        cv.timestamp = nil
         fsm.new_transition(cv, v)
       end
+
       return u, v
     elseif op == "/" then
       local transition = au.transitions[1]
