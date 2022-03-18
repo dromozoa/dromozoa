@@ -33,21 +33,22 @@ local debug = tonumber(os.getenv "DROMOZOA_TEST_DEBUG")
 debug = debug and debug ~= 0
 
 local definitions = {
-  main = union {
-    P[["]]  % [[fret()]];
-    R"az"^0 % [[print "chars"]];
+  string_literal = union {
+    P[["]] / [[print "\""]] % [[fret()]];
+    (R"az" / [[print "char"]])^1 % [[fgoto(string_literal)]];
   };
 
-  -- main = union {
-  --   P"if"     % [[print "if"]];
-  --   P"else"   % [[print "else"]];
-  --   P"elseif" % [[print "elseif"]];
-  --   P"end"    % [[print "end"]];
-  --   P"then"   % [[print "then"]];
-  --   P"--" * (-S"\r\n")^0 * (P"\r\n" + P"\r" + P"\n")
-  --             % [[print "line comment"]];
-  --   S" \t\r\n"^1;
-  -- };
+  main = union {
+    P"if"     % [[print "if"]];
+    P"else"   % [[print "else"]];
+    P"elseif" % [[print "elseif"]];
+    P"end"    % [[print "end"]];
+    P"then"   % [[print "then"]];
+    P"--" * (-S"\r\n")^0 * (P"\r\n" + P"\r" + P"\n")
+              % [[print "line comment"]];
+    P[["]] / [[fcall(string_literal)]] % [[print "string_literal"]];
+    S" \t\r\n"^1;
+  };
 }
 
 for name, dfa in pairs(definitions) do
@@ -63,5 +64,6 @@ out:close()
 local regexp = assert(loadfile "test.lua")()
 regexp [[
 -- test
-if then elseif else  end
+if then elseif else
+"aaa" end
 ]]

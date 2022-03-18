@@ -17,8 +17,7 @@
 
 local template1 = [[
 return function (source)
-  local current_byte
-
+  local fgoto
   local fcall
   local fret
 ]]
@@ -27,38 +26,77 @@ local template2 = [[
   local current_index = main
   local current_state = _[current_index].start_state
   local current_position = 1
+  local current_byte
+
+  local stack_top = 0
+  local stack = {}
+
+  fgoto = function (index)
+    current_index = index
+    current_state = _[current_index].start_state
+  end
+
+  fcall = function (index)
+    stack_top = stack_top + 1
+    stack[stack_top] = {
+      index = current_index;
+      state = current_state;
+    }
+
+    current_index = index
+    current_state = _[current_index].start_state
+  end
+
+  fret = function ()
+    local item = stack[stack_top]
+    current_index = item.index
+    current_state = item.state
+
+    stack[stack_top] = nil
+    stack_top = stack_top - 1
+  end
 
   while true do
     current_byte = string.byte(source, current_position)
+
     local state = 0
     if current_byte then
       state = _[current_index].transitions[current_byte][current_state]
     end
+
     if state == 0 then
       if current_state <= _[current_index].max_accept_state then
         _[current_index].accept_actions[current_state]()
         if not current_byte then
+          -- eof
           break
         end
         if current_index == main then
+          -- 繰り返すのでcurrent_positionは進めない
           current_state = _[current_index].start_state
         else
-          -- repeat???
-          break
+          -- fgoto,fcall,fretされた場合はエラーじゃない
+          -- error "regexp error"
         end
       else
-        -- error
+        -- エラー（位置も返す）
         error "regexp error"
       end
     else
+      -- 一文字読みおわった扱いにする
+
       local max_state = _[current_index].max_state
       if state > max_state then
         local transition = state - max_state
+
+        current_position = current_position + 1
+        current_state = _[current_index].transition_to_states[transition]
+
         _[current_index].transition_actions[transition]()
-        state = _[current_index].transition_to_states[transition]
+      else
+        current_position = current_position + 1
+        current_state = state
       end
-      current_state = state
-      current_position = current_position + 1
     end
   end
 end
@@ -84,11 +122,12 @@ local function dump_transitions(out, data, compactor, compactor_index)
   return "{" .. table.concat(buffer, ",") .. "}", compactor_index
 end
 
-local function dump_action(data)
-  if data then
-    if type(data) == "string" then
-      return "function () " .. data .. " end"
+local function dump_action(action)
+  if action then
+    if type(action) == "string" then
+      return "function () " .. action .. " end"
     else
+      assert(action == true)
       return "function () end"
     end
   else
@@ -96,9 +135,9 @@ local function dump_action(data)
   end
 end
 
-local function dump_actions(out, data)
-  for i = 1, #data do
-    out:write(dump_action(data[i]), ";\n")
+local function dump_actions(out, actions)
+  for i = 1, #actions do
+    out:write(dump_action(actions[i]), ";\n")
   end
 end
 
