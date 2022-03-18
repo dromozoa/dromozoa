@@ -58,7 +58,6 @@ local template2 = [[
     stack_top = stack_top - 1
   end
 
-  -- static functionにする
   local function char(data)
     if not data then
       return string.char(current_byte)
@@ -80,13 +79,12 @@ local template2 = [[
   while true do
     local guard_action = _[current_index].guard_action
     local guarded
-    if current_state == _[current_index].start_state and guard_action then
-      -- guardを評価する
-      local guard_buffer = table.concat(guard)
-      guarded = string.sub(source, current_position, current_position + #guard_buffer - 1) == guard_buffer
+    if guard_action and current_state == _[current_index].start_state then
+      local guard = table.concat(guard)
+      local position = current_position + #guard
+      guarded = string.sub(source, current_position, position - 1) == guard
       if guarded then
-        current_position = current_position + #guard_buffer
-        current_state = 0 -- start_stateのままでもよいか？
+        current_position = position
         guard_action()
       end
     end
@@ -104,26 +102,19 @@ local template2 = [[
           _[current_index].accept_actions[current_state]()
           if not current_byte then
             -- eof
-            break
+            return true
           end
           if _[current_index].loop then
-            -- consumeするべきかどうかはどう決める？
             current_state = _[current_index].start_state
           end
-          -- fgoto,fcall,fretされた場合はエラーするべきでない
-          -- error "regexp error"
         else
-          -- エラー（位置も返す）
           error "regexp error"
         end
       else
-        local max_state = _[current_index].max_state
-        if state > max_state then
-          local transition = state - max_state
-
+        if state > _[current_index].max_state then
+          local transition = state - _[current_index].max_state
           current_position = current_position + 1
           current_state = _[current_index].transition_to_states[transition]
-
           _[current_index].transition_actions[transition]()
         else
           current_position = current_position + 1
@@ -131,7 +122,6 @@ local template2 = [[
         end
       end
     end
-
   end
 end
 ]]
