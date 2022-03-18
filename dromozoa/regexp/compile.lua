@@ -143,7 +143,7 @@ local function dump_transitions(out, transitions, compactor, compactor_index)
     local name = compactor[code]
     if not name then
       compactor_index = compactor_index + 1
-      name = "_c[" .. compactor_index .. "]"
+      name = "c[" .. compactor_index .. "]"
       out:write(code, ";\n")
       compactor[code] = name
     end
@@ -171,7 +171,7 @@ local function dump_action(out, action, compactor, compactor_index)
   local name = compactor[code]
   if not name then
     compactor_index = compactor_index + 1
-    name = "_c[" .. compactor_index .. "]"
+    name = "c[" .. compactor_index .. "]"
     out:write(code, ";\n")
     compactor[code] = name
   end
@@ -193,7 +193,7 @@ return function(out, data)
   local compactor_index = 0
   local transitions = {}
 
-  out:write "local _c={\n"
+  out:write "local c={\n"
   for i = 1, n do
     transitions[i], compactor_index = dump_transitions(out, data[i].transitions, compactor, compactor_index)
   end
@@ -221,7 +221,7 @@ return function(out, data)
   local accept_actions = {}
   local transition_actions = {}
 
-  out:write "local _c={\n"
+  out:write "local c={\n"
   for i = 1, n do
     local item = data[i]
     guard_actions[i], compactor_index = dump_action(out, item.guard_action, compactor, compactor_index)
