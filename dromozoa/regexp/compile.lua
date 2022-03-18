@@ -78,16 +78,16 @@ local template2 = [[
   end
 
   while true do
-    local guard_action = _[current_index].guard
+    local g = _[current_index].guard
     local guarded
-    if current_state == _[current_index].start_state and guard_action then
+    if g and current_state == _[current_index].start_state then
       -- guardを評価する
       local guard_buffer = table.concat(guard)
       guarded = string.sub(source, current_position, current_position + #guard_buffer - 1) == guard_buffer
       if guarded then
         current_position = current_position + #guard_buffer
         current_state = 0 -- start_stateのままでもよいか？
-        guard_action()
+        g()
       end
     end
 
