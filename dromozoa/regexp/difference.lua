@@ -53,20 +53,32 @@ local function execute_transition(u, byte)
   end
 end
 
-return function (u, v)
-  local u_states, u_indices = create_states_and_indices(u)
-  local v_states, v_indices = create_states_and_indices(v)
+local function new_state(ux, uy)
+  local state = fsm.new_state()
+  if ux then
+    local accept = ux.accept
+    if accept and (not uy or not uy.accept) then
+      state.accept = accept
+      state.timestamp = ux.timestamp
+    end
+  end
+  return state
+end
 
-  local un = #u_states
-  local vn = #v_states
-  local n = un + 1
+return function (ux, uy)
+  local x_states, x_indices = create_states_and_indices(ux)
+  local y_states, y_indices = create_states_and_indices(uy)
+
+  local nx = #x_states
+  local ny = #y_states
+  local n = nx + 1
 
   local new_states = {}
 
-  for i = 0, un do
-    local ux = u_states[i]
-    for j = 0, vn do
-      local uy = v_states[j]
+  for i = 0, nx do
+    local ux = x_states[i]
+    for j = 0, ny do
+      local uy = y_states[j]
       local ukey = i + j * n
       if ukey ~= 0 then
         local action_index = 0
@@ -79,36 +91,25 @@ return function (u, v)
 
           local vkey = 0
           local timestamp
-          if tx then
-            vkey = u_indices[vx]
-            timestamp = tx.timestamp
-            if ty then
-              vkey = vkey + v_indices[vy] * n
-            end
-          elseif ty then
-            vkey = v_indices[vy] * n
+          if ty then
+            vkey = y_indices[vy] * n
             timestamp = ty.timestamp
+          end
+          if tx then
+            vkey = x_indices[vx] + vkey
+            timestamp = tx.timestamp
           end
 
           if vkey ~= 0 then
             local unew = new_states[ukey]
             if not unew then
-              unew = fsm.new_state()
+              unew = new_state(ux, uy)
               new_states[ukey] = unew
-              if ux and ux.accept and (not uy or not uy.accept) then
-                unew.accept = ux.accept
-                unew.timestamp = ux.timestamp
-              end
             end
             local vnew = new_states[vkey]
             if not vnew then
-              vnew = fsm.new_state()
+              vnew = new_state(vx, vy)
               new_states[vkey] = vnew
-
-              if vx and vx.accept and (not vy or not vy.accept) then
-                vnew.accept = vx.accept
-                vnew.timestamp = vx.timestamp
-              end
             end
 
             local new_transition_key
@@ -137,19 +138,13 @@ return function (u, v)
                 new_transition.timestamp = timestamp
               end
             end
-
           end
         end
       end
     end
   end
 
-  local uid = u_indices[u] + n * v_indices[v]
-  local u = new_states[uid]
-  u.timestamp = u.timestamp
-
-  -- remove dead states
-  remove_dead_states(u)
-
-  return u
+  local unew = new_states[x_indices[ux] + y_indices[uy] * n]
+  unew.timestamp = ux.timestamp
+  return remove_dead_states(unew)
 end

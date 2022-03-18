@@ -15,11 +15,12 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local function visit1(u, not_dead_states, color)
+local function visit1(u, not_dead_states, accept_states, color)
   color[u] = 1
 
   if u.accept then
     not_dead_states[u] = true
+    accept_states[#accept_states + 1] = u
   end
 
   local transitions = u.transitions
@@ -27,7 +28,7 @@ local function visit1(u, not_dead_states, color)
     local transition = transitions[i]
     local v = transition.v
     if not color[v] then
-      index = visit1(v, not_dead_states, color)
+      index = visit1(v, not_dead_states, accept_states, color)
     end
     if not_dead_states[v] then
       not_dead_states[u] = true
@@ -59,6 +60,8 @@ end
 
 return function (u)
   local not_dead_states = {}
-  visit1(u, not_dead_states, {})
+  local accept_states = {}
+  visit1(u, not_dead_states, accept_states, {})
   visit2(u, not_dead_states, {})
+  return u, accept_states
 end
