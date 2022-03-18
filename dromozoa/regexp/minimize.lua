@@ -66,7 +66,9 @@ local function create_initial_partitions(u)
     return a.timestamp < b.timestamp
   end)
 
-  partitions[#partitions + 1] = nonaccept_partition
+  if #nonaccept_partition > 0 then
+    partitions[#partitions + 1] = nonaccept_partition
+  end
 
   return partitions, partition_map
 end

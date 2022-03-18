@@ -18,7 +18,7 @@
 local set_to_str = require "dromozoa.regexp.set_to_str"
 
 local function escape_action(action)
-  return (action:gsub([["]], [[\"]]))
+  return (tostring(action):gsub([["]], [[\"]]))
 end
 
 local function visit(out, u, indices, index, start, color)

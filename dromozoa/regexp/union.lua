@@ -26,10 +26,16 @@ return function (data)
     return minimize(nfa_to_dfa(tree_to_nfa(data[1])))
   else
     local u = fsm.new_state()
+    local timestamp
     for i = 1, n do
       local v = tree_to_nfa(data[i])
       fsm.new_transition(u, v)
+      local t = v.timestamp
+      if not timestamp or timestamp > t then
+        timestamp = t
+      end
     end
+    u.timestamp = timestamp
     return minimize(nfa_to_dfa(u))
   end
 end

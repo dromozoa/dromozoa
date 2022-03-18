@@ -18,6 +18,9 @@
 -- https://github.com/aidansteele/osx-abi-macho-file-format-reference
 -- https://developers.wonderpla.net/entry/2021/03/19/105503
 
+local compile = require "dromozoa.regexp.compile"
+local generate = require "dromozoa.regexp.generate"
+local guard = require "dromozoa.regexp.guard"
 local pattern = require "dromozoa.regexp.pattern"
 local union = require "dromozoa.regexp.union"
 local write_graphviz = require "dromozoa.regexp.write_graphviz"
@@ -26,12 +29,39 @@ local P = pattern.pattern
 local S = pattern.set
 local R = pattern.range
 
--- 全状態がacceptの場合のテスト
-local dfa = union {
-  P[["]]  % [[fret()]];
-  R"az"^0 % [[print "chars"]];
+local debug = tonumber(os.getenv "DROMOZOA_TEST_DEBUG")
+debug = debug and debug ~= 0
+
+local definitions = {
+  main = union {
+    P[["]]  % [[fret()]];
+    R"az"^0 % [[print "chars"]];
+  };
+
+  -- main = union {
+  --   P"if"     % [[print "if"]];
+  --   P"else"   % [[print "else"]];
+  --   P"elseif" % [[print "elseif"]];
+  --   P"end"    % [[print "end"]];
+  --   P"then"   % [[print "then"]];
+  --   P"--" * (-S"\r\n")^0 * (P"\r\n" + P"\r" + P"\n")
+  --             % [[print "line comment"]];
+  --   S" \t\r\n"^1;
+  -- };
 }
 
-local out = assert(io.open("test-dfa.dot", "w"))
-write_graphviz(out, dfa)
+for name, dfa in pairs(definitions) do
+  local out = assert(io.open(("test-%s-dfa.dot"):format(name), "w"))
+  write_graphviz(out, dfa)
+  out:close()
+end
+
+local out = assert(io.open("test.lua", "w"))
+compile(out, generate(definitions))
 out:close()
+
+local regexp = assert(loadfile "test.lua")()
+regexp [[
+-- test
+if then elseif else  end
+]]
