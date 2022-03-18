@@ -18,7 +18,7 @@
 local function visit1(u, not_dead_states, color)
   color[u] = 1
 
-  if u.accept then
+  if u.accept_action then
     not_dead_states[u] = true
   end
 

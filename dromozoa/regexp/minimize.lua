@@ -22,14 +22,14 @@ local assertion = false
 local function visit(u, accept_partition_map, nonaccept_partition, partition_map, color)
   color[u] = 1
 
-  local accept = u.accept
+  local accept_action = u.accept_action
   local partition = nonaccept_partition
-  if accept then
-    -- acceptの生の比較 (raw equality) を行う
-    partition = accept_partition_map[accept]
+  if accept_action then
+    -- accept_actionの生の比較 (raw equality) を行う
+    partition = accept_partition_map[accept_action]
     if not partition then
       partition = { timestamp = u.timestamp }
-      accept_partition_map[accept] = partition
+      accept_partition_map[accept_action] = partition
     else
       local timestamp = u.timestamp
       if partition.timestamp > timestamp then
@@ -144,9 +144,9 @@ return function (u)
   for i = 1, #partitions do
     local partition = partitions[i]
 
-    local accept = partition[1].accept
+    local accept_action = partition[1].accept_action
     local timestamp
-    if accept then
+    if accept_action then
       timestamp = partition[1].timestamp
       for j = 2, #partition do
         local x = partition[j]
@@ -158,10 +158,10 @@ return function (u)
     end
 
     local unew = fsm.new_state()
-    unew.accept = accept
+    unew.accept_action = accept_action
     unew.timestamp = timestamp
     states[partition] = { key = i, state = unew }
-    if accept then
+    if accept_action then
       accept_states[#accept_states + 1] = unew
     end
   end

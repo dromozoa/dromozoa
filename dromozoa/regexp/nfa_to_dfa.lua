@@ -79,22 +79,22 @@ local function epsilon_closure(u, epsilon_closures, indices)
 end
 
 local function new_state(seq)
-  local accept
+  local accept_action
   local timestamp
   for i = 1, #seq do
     local u = seq[i].state
-    local a = u.accept
+    local a = u.accept_action
     if a then
       local t = u.timestamp
       if not timestamp or timestamp > t then
-        accept = a
+        accept_action = a
         timestamp = t
       end
     end
   end
 
   local state = fsm.new_state()
-  state.accept = accept
+  state.accept_action = accept_action
   state.timestamp = timestamp
   seq.state = state
   return state

@@ -70,23 +70,23 @@ local function visit(node)
       local u = fsm.new_state()
       local v = fsm.new_state()
 
-      -- 計算のためににacceptとtimestampを割り当てる
+      -- 計算のためににaccept_actionとtimestampを割り当てる
       local timestamp = node.timestamp
       au.timestamp = timestamp
-      av.accept = true
+      av.accept_action = true
       av.timestamp = timestamp
       bu.timestamp = timestamp
-      bv.accept = true
+      bv.accept_action = true
       bv.timestamp = timestamp
 
       local cu, accept_states = minimize(difference(minimize(nfa_to_dfa(au)), minimize(nfa_to_dfa(bu))))
 
-      -- 計算結果からacceptとtimestampを除去する
+      -- 計算結果からaccept_actionとtimestampを除去する
       cu.timestamp = nil
       fsm.new_transition(u, cu)
       for i = 1, #accept_states do
         local cv = accept_states[i]
-        cv.accept = nil
+        cv.accept_action = nil
         cv.timestamp = nil
         fsm.new_transition(cv, v)
       end
@@ -97,7 +97,7 @@ local function visit(node)
       transition.action = node[3]
       return au, av
     elseif op == "%" then
-      av.accept = node[3]
+      av.accept_action = node[3]
       av.timestamp = node.timestamp
       return au, av
     else
@@ -106,12 +106,12 @@ local function visit(node)
   end
 end
 
-return function (root, accept)
+return function (root, accept_action)
   local u, v = visit(root)
   local timestamp = root.timestamp
   u.timestamp = timestamp
-  if not v.accept then
-    v.accept = accept or true
+  if not v.accept_action then
+    v.accept_action = accept_action or true
     v.timestamp = timestamp
   end
   return u, v
