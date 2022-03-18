@@ -55,7 +55,7 @@ local definitions = {
       * (P"=" / "guard_append_byte(0x3D)")^0
       * (P"[" / "guard_append_byte(0x5D) fcall(block_comment)")
       % [[print "block comment"]];
-    P"--" * (-S"\r\n")^0 * (P"\r\n" + P"\r" + P"\n")
+    ((P"--" * (-S"\r\n")^0 * (P"\r\n" + P"\r" + P"\n")) - (P"--[" * P"="^0 * P"[" * P(1)^0))
               % [[print "line comment"]];
     P[["]] / [[fcall(string_literal)]] % [[print "string_literal"]];
     R"AZaz__" * R"09AZaz__"^0 % [[print "id"]];
