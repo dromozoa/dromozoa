@@ -16,12 +16,52 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local template1 = [[
-return function (s)
+return function (source)
+  local current_byte
+
   local fcall
   local fret
 ]]
 
 local template2 = [[
+  local current_index = main
+  local current_state = _[current_index].start_state
+  local current_position = 1
+
+  while true do
+    current_byte = string.byte(source, current_position)
+    local state = 0
+    if current_byte then
+      state = _[current_index].transitions[current_byte][current_state]
+    end
+    if state == 0 then
+      if current_state <= _[current_index].max_accept_state then
+        _[current_index].accept_actions[current_state]()
+        if not current_byte then
+          break
+        end
+        if current_index == main then
+          current_state = _[current_index].start_state
+          current_position = current_position + 1
+        else
+          -- repeat???
+          break
+        end
+      else
+        -- error
+        error "regexp error"
+      end
+    else
+      local max_state = _[current_index].max_state
+      if state > max_state then
+        local transition = state - max_state
+        _[current_index].transition_actions[transition]()
+        state = _[current_index].transition_to_states[transition]
+      end
+      current_state = state
+      current_position = current_position + 1
+    end
+  end
 end
 ]]
 

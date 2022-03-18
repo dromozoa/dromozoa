@@ -55,10 +55,10 @@ local definitions = {
 
 local definitions = {
   main = union {
-    P"if";
-    P"else";
-    P"elseif";
-    P"end";
+    P"if"     % "print(1)";
+    P"else"   % "print(2)";
+    P"elseif" % "print(3)";
+    P"end"    % "print(4)";
   };
 }
 
@@ -71,3 +71,6 @@ end
 local out = assert(io.open("test.lua", "w"))
 compile(out, generate(definitions))
 out:close()
+
+local regexp = assert(loadfile "test.lua")()
+regexp "if if if else end"
