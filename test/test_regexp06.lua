@@ -18,29 +18,17 @@
 -- https://github.com/aidansteele/osx-abi-macho-file-format-reference
 -- https://developers.wonderpla.net/entry/2021/03/19/105503
 
-local difference = require "dromozoa.regexp.difference"
-local minimize = require "dromozoa.regexp.minimize"
-local nfa_to_dfa = require "dromozoa.regexp.nfa_to_dfa"
 local pattern = require "dromozoa.regexp.pattern"
-local tree_to_nfa = require "dromozoa.regexp.tree_to_nfa"
+local union = require "dromozoa.regexp.union"
 local write_graphviz = require "dromozoa.regexp.write_graphviz"
 
 local P = pattern.pattern
 local S = pattern.set
 local R = pattern.range
 
-local definitions = {
-  dfa1 = minimize(nfa_to_dfa(tree_to_nfa(P(1)^0)));
-  dfa2 = minimize(nfa_to_dfa(tree_to_nfa(P(1)^0 * P"a" * P"b"^0 * P"c" * P(1)^0)));
+local dfa = union {
+  P"abc" * (P(1)^0 - (P(1)^0 * P"cba" * P(1)^0)) * P"cba";
 }
-
-for name, dfa in pairs(definitions) do
-  local out = assert(io.open(("test-%s-dfa.dot"):format(name), "w"))
-  write_graphviz(out, dfa)
-  out:close()
-end
-
-local dfa = difference(definitions.dfa1, definitions.dfa2)
 
 local out = assert(io.open("test-dfa.dot", "w"))
 write_graphviz(out, dfa)

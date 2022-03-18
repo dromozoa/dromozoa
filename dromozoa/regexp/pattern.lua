@@ -148,6 +148,15 @@ function metatable:__unm(that)
   end
 end
 
+function metatable:__sub(that)
+  local self = pattern(self)
+  local that = pattern(that)
+  if self[1] == "%" or that[1] == "%" then
+    error "not supported"
+  end
+  return construct("-", self, that)
+end
+
 function metatable:__div(action)
   if self[1] == "[" then
     return construct("/", self, action)
