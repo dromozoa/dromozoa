@@ -76,9 +76,9 @@ compile(out, generate(definitions))
 out:close()
 
 if debug then
-  _ENV.p = print
+  p = print
 else
-  _ENV.p = function () end
+  function p() end
 end
 
 local regexp = assert(loadfile "test.lua")()
