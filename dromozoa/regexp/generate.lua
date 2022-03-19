@@ -136,6 +136,7 @@ return function (data)
       start_state = state_indices[u];
       max_state = max_state;
       transitions = transitions;
+      token_names = u.token_names;
     }
     visit3(def, u, state_indices, transition_indices, {})
 

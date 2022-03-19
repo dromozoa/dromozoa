@@ -22,6 +22,12 @@ return function (source)
   local fret
   local guard_assign
   local guard_append
+  local push_token
+  local skip_token
+
+  local token_symbol
+  local cb
+  local iv
 ]]
 
 local template2 = [[
@@ -76,6 +82,14 @@ local template2 = [[
     guard[#guard + 1] = char(data)
   end
 
+  push_token = function (v)
+    print("push_token", token_symbol, v)
+  end
+
+  skip_token = function ()
+    print "skip_token"
+  end
+
   while true do
     local guard_action = _[current_index].guard_action
     local guarded
@@ -91,6 +105,7 @@ local template2 = [[
 
     if not guarded then
       current_byte = string.byte(source, current_position)
+      cb = current_byte
 
       local state = 0
       if current_byte then
@@ -178,6 +193,16 @@ local function dump_actions(out, actions, compactor)
   return "{" .. table.concat(buffer, ",") .. "}"
 end
 
+local function dump_names(names)
+  local buffer = {}
+  if names then
+    for i = 1, #names do
+      buffer[i] = ("%q"):format(names[i])
+    end
+  end
+  return "{" .. table.concat(buffer, ",") .. "}"
+end
+
 return function(out, data)
   local n = #data
 
@@ -196,6 +221,7 @@ return function(out, data)
     out:write "{\n"
     out:write("transition_to_states={", table.concat(item.transition_to_states, ","), "};\n")
     out:write("transitions=", transitions[i], ";\n")
+    out:write("token_names=", dump_names(item.token_names), ";\n")
     out:write "};\n"
   end
   out:write "}\n"
@@ -234,6 +260,7 @@ return function(out, data)
     out:write("transition_actions=", transition_actions[i], ";\n")
     out:write("max_state=", item.max_state, ";\n")
     out:write("transitions=_[", i, "].transitions;\n")
+    out:write("token_names=_[", i, "].token_names;\n")
     out:write "};\n"
   end
   out:write "}\n"
