@@ -178,6 +178,16 @@ local function dump_actions(out, actions, compactor)
   return "{" .. table.concat(buffer, ",") .. "}"
 end
 
+local function dump_names(names)
+  local buffer = {}
+  if names then
+    for i = 1, #names do
+      buffer[i] = ("%q"):format(names[i])
+    end
+  end
+  return "{" .. table.concat(buffer, ",") .. "}"
+end
+
 return function(out, data)
   local n = #data
 
@@ -196,6 +206,7 @@ return function(out, data)
     out:write "{\n"
     out:write("transition_to_states={", table.concat(item.transition_to_states, ","), "};\n")
     out:write("transitions=", transitions[i], ";\n")
+    out:write("token_names=", dump_names(item.token_names), ";\n")
     out:write "};\n"
   end
   out:write "}\n"
@@ -234,6 +245,7 @@ return function(out, data)
     out:write("transition_actions=", transition_actions[i], ";\n")
     out:write("max_state=", item.max_state, ";\n")
     out:write("transitions=_[", i, "].transitions;\n")
+    out:write("token_names=_[", i, "].token_names;\n")
     out:write "};\n"
   end
   out:write "}\n"

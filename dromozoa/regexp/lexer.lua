@@ -28,7 +28,7 @@ return function (data)
     if type(k) == "string" then
       name = k
     else
-      name = assert(v.literal)
+      name = v.literal
     end
     definitions[#definitions + 1] = { timestamp = assert(v.timestamp), name = name, def = v }
   end
@@ -40,28 +40,30 @@ return function (data)
   local timestamp
 
   for i = 1, #definitions do
-    local name = definitions[i].name
-    names[i] = name
-
-    local v, w = tree_to_nfa(definitions[i].def, "push_token()")
+    local v, w = tree_to_nfa(definitions[i].def)
     fsm.new_transition(u, v)
-
     local t = v.timestamp
     if not timestamp or timestamp > t then
       timestamp = t
     end
 
-    local accept_action = w.accept_action
-    if accept_action == true then
-      w.accept_action = "token_symbol=" .. i .. "; push_token()"
-    else
-      w.accept_action = "token_symbol=" .. i .. "; " .. accept_action
+    local name = definitions[i].name
+    if name then
+      local symbol = #names + 1
+      names[symbol] = name
+
+      local accept_action = w.accept_action
+      if accept_action == true then
+        w.accept_action = "token_symbol=" .. symbol .. "; push_token()"
+      else
+        w.accept_action = "token_symbol=" .. symbol .. "; " .. accept_action
+      end
     end
   end
   u.timestamp = timestamp
 
   local u = minimize(nfa_to_dfa(u))
   u.loop = true
-  u.token_symbol_names = names
+  u.token_names = names
   return u
 end
