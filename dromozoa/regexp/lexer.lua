@@ -20,7 +20,7 @@ local minimize = require "dromozoa.regexp.minimize"
 local nfa_to_dfa = require "dromozoa.regexp.nfa_to_dfa"
 local tree_to_nfa = require "dromozoa.regexp.tree_to_nfa"
 
-return function (data)
+return function (token_names, data)
   local definitions = {}
 
   for k, v in pairs(data) do
@@ -35,7 +35,6 @@ return function (data)
 
   table.sort(definitions, function (a, b) return a.timestamp < b.timestamp end)
 
-  local names = {}
   local u = fsm.new_state()
   local timestamp
 
@@ -49,8 +48,8 @@ return function (data)
 
     local name = definitions[i].name
     if name then
-      local symbol = #names + 1
-      names[symbol] = name
+      local symbol = #token_names + 1
+      token_names[symbol] = name
 
       local accept_action = w.accept_action
       if accept_action == true then
@@ -64,6 +63,5 @@ return function (data)
 
   local u = minimize(nfa_to_dfa(u))
   u.loop = true
-  u.token_names = names
   return u
 end
