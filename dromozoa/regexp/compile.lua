@@ -22,6 +22,12 @@ return function (source)
   local fret
   local guard_assign
   local guard_append
+  local push_token
+  local skip_token
+
+  local token_symbol
+  local cb
+  local iv
 ]]
 
 local template2 = [[
@@ -76,6 +82,14 @@ local template2 = [[
     guard[#guard + 1] = char(data)
   end
 
+  push_token = function (v)
+    print("push_token", token_symbol, v)
+  end
+
+  skip_token = function ()
+    print "skip_token"
+  end
+
   while true do
     local guard_action = _[current_index].guard_action
     local guarded
@@ -91,6 +105,7 @@ local template2 = [[
 
     if not guarded then
       current_byte = string.byte(source, current_position)
+      cb = current_byte
 
       local state = 0
       if current_byte then

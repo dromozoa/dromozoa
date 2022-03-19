@@ -22,28 +22,35 @@ local compile = require "dromozoa.regexp.compile"
 local generate = require "dromozoa.regexp.generate"
 local lexer = require "dromozoa.regexp.lexer"
 local pattern = require "dromozoa.regexp.pattern"
+local union = require "dromozoa.regexp.union"
 
 local P = pattern.pattern
 local S = pattern.set
 local R = pattern.range
 
 local out = assert(io.open("test.lua", "w"))
-compile(out, generate {
+local data = generate {
   main = lexer {
     P"and";
     P"or";
-    fuck = P"fuck" % "push_token(42)";
 
     S" \t\r\n"^1 % "skip_token()";
 
-    -- IntegerConstant = union {
-    --   R"09" * R"09"^0 % "push_token(v)"
-    --   P"0x" * (R"09" + R"AF" + R"af")^1 % "push_token(v)"
-    -- }
+    IntegerConstant = (
+        R"09"/[[iv=cb-0x30]] * (R"09"/[[iv=iv*10+cb-0x30]])^0
+      + P"0" * (P"x"/[[iv=0]]) * (R"09"/[[iv=iv*16+cb-0x30]] + R"AF"/[[iv=iv*16+cb-0x41+10]] + R"af"/[[iv=iv*16+cb-0x61+10]])^1
+    ) % "push_token(iv)";
   };
-})
+}
+compile(out, data)
 out:close()
 
--- local regexp = assert(loadfile "test.lua")()
--- regexp "a\rb\r\nc\nd\n\re\r\rf\n\ng"
+for i = 1, #data[1].token_names do
+  print(i, data[1].token_names[i])
+end
+
+local regexp = assert(loadfile "test.lua")()
+regexp [[
+123 and 456 or 0xAf and
+]]
 -- assert(table.concat(buffer, ",") == "*,CR,x,*,CR,CRLF,x,*,LF,y,*,LF,LFCR,y,*,CR,CR,x,*,LF,LF,y,*")
