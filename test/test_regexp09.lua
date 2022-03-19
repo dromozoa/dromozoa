@@ -34,6 +34,7 @@ compile(out, generate {
     P"or";
     fuck = P"fuck" % "push_token(42)";
 
+    -- skipをどうやって判別する？
     WhiteSpace = S" \t\r\n"^1 % "skip_token()";
 
     -- IntegerConstant = union {

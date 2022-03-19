@@ -35,15 +35,13 @@ return function (data)
 
   table.sort(definitions, function (a, b) return a.timestamp < b.timestamp end)
 
-  local token_names = {}
-  local token_codes = {}
+  local names = {}
   local u = fsm.new_state()
   local timestamp
 
   for i = 1, #definitions do
     local name = definitions[i].name
-    token_names[i] = name
-    token_codes[name] = i
+    names[i] = name
 
     local v, w = tree_to_nfa(definitions[i].def, "push_token()")
     fsm.new_transition(u, v)
@@ -55,16 +53,15 @@ return function (data)
 
     local accept_action = w.accept_action
     if accept_action == true then
-      w.accept_action = "token=" .. i .. "; push_token()"
+      w.accept_action = "token_symbol=" .. i .. "; push_token()"
     else
-      w.accept_action = "token=" .. i .. "; " .. accept_action
+      w.accept_action = "token_symbol=" .. i .. "; " .. accept_action
     end
   end
   u.timestamp = timestamp
 
   local u = minimize(nfa_to_dfa(u))
   u.loop = true
-  u.token_names = token_names
-  u.token_codes = token_codes
+  u.token_symbol_names = names
   return u
 end
