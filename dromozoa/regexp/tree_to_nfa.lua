@@ -70,7 +70,7 @@ local function visit(node)
       local u = fsm.new_state()
       local v = fsm.new_state()
 
-      -- 計算のためにaccept_actionとtimestampを割り当てる
+      -- 差集合を求めるためにaccept_actionとtimestampを割り当てる
       local timestamp = node.timestamp
       au.timestamp = timestamp
       av.accept_action = true
@@ -81,7 +81,7 @@ local function visit(node)
 
       local cu, accept_states = minimize(difference(minimize(nfa_to_dfa(au)), minimize(nfa_to_dfa(bu))))
 
-      -- 計算結果からaccept_actionとtimestampを除去する
+      -- 求めた差集合からaccept_actionとtimestampを除去する
       cu.timestamp = nil
       fsm.new_transition(u, cu)
       for i = 1, #accept_states do
