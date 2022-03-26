@@ -35,32 +35,32 @@ debug = debug and debug ~= 0
 
 local definitions = {
   string_literal = union {
-    P[["]] / [[p "\""]] % [[fret()]];
-    (R"az" / [[p "char"]])^1 % [[fgoto(string_literal)]];
+    P[["]] / [[print "\""]] % [[fret()]];
+    (R"az" / [[print "char"]])^1 % [[fgoto(string_literal)]];
   };
 
   block_comment = guard("fret()", {
-    (-S"]") % [[p "comment char"]];
+    (-S"]") % [[print "comment char"]];
   });
 
   main = loop {
-    P"if"     % [[p "if"]];
-    P"else"   % [[p "else"]];
-    P"elseif" % [[p "elseif"]];
-    P"end"    % [[p "end"]];
-    P"then"   % [[p "then"]];
-    P"local"  % [[p "local"]];
+    P"if"     % [[print "if"]];
+    P"else"   % [[print "else"]];
+    P"elseif" % [[print "elseif"]];
+    P"end"    % [[print "end"]];
+    P"then"   % [[print "then"]];
+    P"local"  % [[print "local"]];
     P"--"
       * (P"[" / [[guard_assign "]"]])
       * (P"=" / [[guard_append()]])^0
       * (P"[" / [[guard_append "]" fcall(block_comment)]])
-      % [[p "block comment"]];
+      % [[print "block comment"]];
     ((P"--" * (-S"\r\n")^0 * (P"\r\n" + P"\r" + P"\n")) - (P"--[" * P"="^0 * P"[" * P(1)^0))
-              % [[p "line comment"]];
-    P[["]] / [[fcall(string_literal)]] % [[p "string_literal"]];
-    R"AZaz__" * R"09AZaz__"^0 % [[p "id"]];
-    P"=" % [[p "="]];
-    R"09"^1 % [[p "int"]];
+              % [[print "line comment"]];
+    P[["]] / [[fcall(string_literal)]] % [[print "string_literal"]];
+    R"AZaz__" * R"09AZaz__"^0 % [[print "id"]];
+    P"=" % [[print "="]];
+    R"09"^1 % [[print "int"]];
     S" \t\r\n"^1;
   };
 }
@@ -75,10 +75,9 @@ local out = assert(io.open("test.lua", "w"))
 compile(out, generate(definitions))
 out:close()
 
-if debug then
-  p = print
-else
-  function p() end
+local save = print
+if not debug then
+  print = function () end
 end
 
 local regexp = assert(loadfile "test.lua")()

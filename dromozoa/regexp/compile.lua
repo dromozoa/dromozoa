@@ -25,6 +25,19 @@ return function (source)
   local push_token
   local skip_token
 
+  local cs = 0  -- current state
+  local p  = 0  -- current position
+  local c  = 0  -- current char
+  local tk = 0  -- current token symbol
+
+  local sb = {} -- string buffer
+  local gb = {} -- guard buffer
+  local ln = 1  -- line number
+  local lp = 0  -- line position
+  local ra = 0  -- general integer register
+  local rb = 0  -- general integer register
+  local rc = 0  -- general integer register
+
   local token_symbol
   local cb
   local iv
