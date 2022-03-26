@@ -20,16 +20,13 @@ return function (source)
   local fgoto
   local fcall
   local fret
-  local guard_assign
-  local guard_append
+  local assign
+  local append
   local push_token
   local skip_token
 
-  local cs = 0  -- current state
-  local p  = 0  -- current position
-  local c  = 0  -- current char
-  local tk = 0  -- current token symbol
-
+  local fp = 1  -- current position
+  local fc = 0  -- current character
   local sb = {} -- string buffer
   local gb = {} -- guard buffer
   local ln = 1  -- line number
@@ -39,15 +36,14 @@ return function (source)
   local rc = 0  -- general integer register
 
   local token_symbol
-  local cb
-  local iv
 ]]
 
 local template2 = [[
+  -- TODO 実際の変数とアクセス用の変数をわけないとタイミングがおかしくなる
+  local current_position = 1
+  local current_byte = 0
   local current_index = main
   local current_state = _[current_index].start_state
-  local current_position = 1
-  local current_byte
 
   local stack_top = 0
   local stack = {}
@@ -77,22 +73,29 @@ local template2 = [[
     stack_top = stack_top - 1
   end
 
-  local function char(data)
+  assign = function (buffer, data)
     if not data then
-      return string.char(current_byte)
+      buffer[1] = string.char(fc)
     elseif type(data) == "number" then
-      return string.char(data)
+      buffer[1] = string.char(data)
     else
-      return data
+      buffer[1] = tostring(data)
     end
+    buffer.n = 1
+    buffer.s = nil
   end
 
-  guard_assign = function (data)
-    guard = { char(data) }
-  end
-
-  guard_append = function (data)
-    guard[#guard + 1] = char(data)
+  append = function (buffer, data)
+    local n = buffer.n + 1
+    if not data then
+      buffer[n] = string.char(fc)
+    elseif type(data) == "number" then
+      buffer[n] = string.char(data)
+    else
+      buffer[n] = tostring(data)
+    end
+    buffer.n = n
+    buffer.s = nil
   end
 
   push_token = function (v)
@@ -107,18 +110,23 @@ local template2 = [[
     local guard_action = _[current_index].guard_action
     local guarded
     if guard_action and current_state == _[current_index].start_state then
-      local guard = table.concat(guard)
+      local guard = gb.s
+      if not guard then
+        guard = table.concat(gb, "", 1, gb.n)
+        gb.s = guard
+      end
       local position = current_position + #guard
       guarded = string.sub(source, current_position, position - 1) == guard
       if guarded then
         current_position = position
+        fp = nil
+        fc = nil
         guard_action()
       end
     end
 
     if not guarded then
       current_byte = string.byte(source, current_position)
-      cb = current_byte
 
       local state = 0
       if current_byte then
@@ -139,6 +147,8 @@ local template2 = [[
           error "regexp error"
         end
       else
+        fp = current_position
+        fc = current_byte
         if state > _[current_index].max_state then
           local transition = state - _[current_index].max_state
           current_position = current_position + 1
@@ -161,7 +171,7 @@ local function compact_transitions(out, transitions, compactor)
     local name = compactor[code]
     if not name then
       local index = compactor.index + 1
-      name = "c[" .. index .. "]"
+      name = "C[" .. index .. "]"
       out:write(code, ";\n")
       compactor.index = index
       compactor[code] = name
@@ -190,7 +200,7 @@ local function dump_action(out, action, compactor)
   local name = compactor[code]
   if not name then
     local index = compactor.index + 1
-    name = "c[" .. index .. "]"
+    name = "C[" .. index .. "]"
     out:write(code, ";\n")
     compactor.index = index
     compactor[code] = name
@@ -212,7 +222,7 @@ return function(out, data)
   local compactor = { index = 0 }
   local transitions = {}
 
-  out:write "local c={\n"
+  out:write "local C={\n"
   for i = 1, n do
     transitions[i] = compact_transitions(out, data[i].transitions, compactor)
   end
@@ -239,7 +249,7 @@ return function(out, data)
   local accept_actions = {}
   local transition_actions = {}
 
-  out:write "local c={\n"
+  out:write "local C={\n"
   for i = 1, n do
     local item = data[i]
     guard_action[i] = dump_action(out, item.guard_action, compactor)

@@ -32,9 +32,9 @@ debug = debug and debug ~= 0
 
 local buffer = {}
 
-function push(key)
+function push(key, ln, lp, fp, fc)
   if debug then
-    print(key)
+    print(key, ln, lp, fp, fp - lp, fc)
   end
   buffer[#buffer + 1] = key
 end
@@ -42,13 +42,13 @@ end
 local out = assert(io.open("test.lua", "w"))
 compile(out, generate {
   main = loop {
-    (-S"\r\n")^0 % [[push "*"]];
-    ((P"\r" / [[push "CR"]]) * (P"\n" / [[push "CRLF"]])^-1)^1 % [[push "x"]];
-    ((P"\n" / [[push "LF"]]) * (P"\r" / [[push "LFCR"]])^-1)^1 % [[push "y"]];
+    (-S"\r\n")^0 % [[push("*",ln,lp,fp,fc)]];
+    ((P"\r" / [[ln=ln+1 lp=fp push("CR",ln,lp,fp,fc)]]) * (P"\n" / [[lp=fp push("CRLF",ln,lp,fp,fc)]])^-1)^1 % [[push("x",ln,lp,fp,fc)]];
+    ((P"\n" / [[ln=ln+1 lp=fp push("LF",ln,lp,fp,fc)]]) * (P"\r" / [[lp=fp push("LFCR",ln,lp,fp,fc)]])^-1)^1 % [[push("y",ln,lp,fp,fc)]];
   };
 })
 out:close()
 
 local regexp = assert(loadfile "test.lua")()
-regexp "a\rb\r\nc\nd\n\re\r\rf\n\ng"
+regexp "abc\rdef\r\nghi\njkl\n\rmno\r\rpqr\n\nstu"
 assert(table.concat(buffer, ",") == "*,CR,x,*,CR,CRLF,x,*,LF,y,*,LF,LFCR,y,*,CR,CR,x,*,LF,LF,y,*")

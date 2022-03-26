@@ -51,9 +51,9 @@ local definitions = {
     P"then"   % [[print "then"]];
     P"local"  % [[print "local"]];
     P"--"
-      * (P"[" / [[guard_assign "]"]])
-      * (P"=" / [[guard_append()]])^0
-      * (P"[" / [[guard_append "]" fcall(block_comment)]])
+      * (P"[" / [[assign(gb,"]")]])
+      * (P"=" / [[append(gb)]])^0
+      * (P"[" / [[append(gb,"]") fcall(block_comment)]])
       % [[print "block comment"]];
     ((P"--" * (-S"\r\n")^0 * (P"\r\n" + P"\r" + P"\n")) - (P"--[" * P"="^0 * P"[" * P(1)^0))
               % [[print "line comment"]];
