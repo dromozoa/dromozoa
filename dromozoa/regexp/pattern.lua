@@ -47,6 +47,7 @@ local function pattern(that)
     end
     return concat(items)
   elseif t == "string" then
+    -- TODO Literalノードを新設する
     local items = {}
     for i = 1, #that do
       items[i] = construct("[", { [that:byte(i)] = true })

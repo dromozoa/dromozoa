@@ -20,35 +20,46 @@ return function (source)
   local fgoto
   local fcall
   local fret
-  local guard_assign
-  local guard_append
+  local assign
+  local append
   local push_token
   local skip_token
 
+  local fs      -- current start
+  local fp      -- current position
+  local fc      -- current character
+  local fb = {} -- buffer
+  local fg = {} -- guard
+  local ln = 1  -- line number
+  local lp = 0  -- line position
+  local ra
+  local rb
+  local rc
+  local rd
+
   local token_symbol
-  local cb
-  local iv
 ]]
 
 local template2 = [[
+  local current_start = 1
+  local current_position = current_start
+  local current_byte
   local current_index = main
   local current_state = _[current_index].start_state
-  local current_position = 1
-  local current_byte
 
-  local stack_top = 0
+  local top = 0
   local stack = {}
-  local buffer
-  local guard
 
   fgoto = function (index)
+    current_start = current_position
     current_index = index
     current_state = _[current_index].start_state
   end
 
   fcall = function (index)
-    stack_top = stack_top + 1
-    stack[stack_top] = {
+    top = top + 1
+    stack[top] = {
+      start = current_start;
       index = current_index;
       state = current_state;
     }
@@ -56,30 +67,38 @@ local template2 = [[
   end
 
   fret = function ()
-    local item = stack[stack_top]
+    local item = stack[top]
+    current_start = item.start
     current_index = item.index
     current_state = item.state
 
-    stack[stack_top] = nil
-    stack_top = stack_top - 1
+    stack[top] = nil
+    top = top - 1
   end
 
-  local function char(data)
+  assign = function (buffer, data)
     if not data then
-      return string.char(current_byte)
+      buffer[1] = string.char(fc)
     elseif type(data) == "number" then
-      return string.char(data)
+      buffer[1] = string.char(data)
     else
-      return data
+      buffer[1] = tostring(data)
     end
+    buffer.n = 1
+    buffer.str = nil
   end
 
-  guard_assign = function (data)
-    guard = { char(data) }
-  end
-
-  guard_append = function (data)
-    guard[#guard + 1] = char(data)
+  append = function (buffer, data)
+    local n = buffer.n + 1
+    if not data then
+      buffer[n] = string.char(fc)
+    elseif type(data) == "number" then
+      buffer[n] = string.char(data)
+    else
+      buffer[n] = tostring(data)
+    end
+    buffer.n = n
+    buffer.str = nil
   end
 
   push_token = function (v)
@@ -94,25 +113,31 @@ local template2 = [[
     local guard_action = _[current_index].guard_action
     local guarded
     if guard_action and current_state == _[current_index].start_state then
-      local guard = table.concat(guard)
-      local position = current_position + #guard
-      guarded = string.sub(source, current_position, position - 1) == guard
+      local guard = fg.str
+      if not guard then
+        guard = table.concat(fg, "", 1, fg.n)
+        fg.str = guard
+      end
+      local p = current_position + #guard - 1
+      guarded = string.sub(source, current_position, p) == guard
       if guarded then
-        current_position = position
+        current_position = p + 1
+        fs = current_start
+        fp = p
+        fc = string.byte(source, p)
         guard_action()
       end
     end
 
     if not guarded then
       current_byte = string.byte(source, current_position)
-      cb = current_byte
 
-      local state = 0
+      local s = 0
       if current_byte then
-        state = _[current_index].transitions[current_byte][current_state]
+        s = _[current_index].transitions[current_byte][current_state]
       end
 
-      if state == 0 then
+      if s == 0 then
         if current_state <= _[current_index].max_accept_state then
           _[current_index].accept_actions[current_state]()
           if not current_byte then
@@ -120,20 +145,24 @@ local template2 = [[
             return true
           end
           if _[current_index].loop then
+            current_start = current_position
             current_state = _[current_index].start_state
           end
         else
           error "regexp error"
         end
       else
-        if state > _[current_index].max_state then
-          local transition = state - _[current_index].max_state
+        fs = current_start
+        fp = current_position
+        fc = current_byte
+        if s > _[current_index].max_state then
+          local transition = s - _[current_index].max_state
           current_position = current_position + 1
           current_state = _[current_index].transition_to_states[transition]
           _[current_index].transition_actions[transition]()
         else
           current_position = current_position + 1
-          current_state = state
+          current_state = s
         end
       end
     end
@@ -193,16 +222,6 @@ local function dump_actions(out, actions, compactor)
   return "{" .. table.concat(buffer, ",") .. "}"
 end
 
-local function dump_names(names)
-  local buffer = {}
-  if names then
-    for i = 1, #names do
-      buffer[i] = ("%q"):format(names[i])
-    end
-  end
-  return "{" .. table.concat(buffer, ",") .. "}"
-end
-
 return function(out, data)
   local n = #data
 
@@ -221,7 +240,6 @@ return function(out, data)
     out:write "{\n"
     out:write("transition_to_states={", table.concat(item.transition_to_states, ","), "};\n")
     out:write("transitions=", transitions[i], ";\n")
-    out:write("token_names=", dump_names(item.token_names), ";\n")
     out:write "};\n"
   end
   out:write "}\n"
@@ -260,7 +278,6 @@ return function(out, data)
     out:write("transition_actions=", transition_actions[i], ";\n")
     out:write("max_state=", item.max_state, ";\n")
     out:write("transitions=_[", i, "].transitions;\n")
-    out:write("token_names=_[", i, "].token_names;\n")
     out:write "};\n"
   end
   out:write "}\n"

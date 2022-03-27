@@ -28,28 +28,29 @@ local P = pattern.pattern
 local S = pattern.set
 local R = pattern.range
 
-local out = assert(io.open("test.lua", "w"))
+local out = assert(io.open("test-gen.lua", "w"))
+local token_names = {}
 local data = generate {
-  main = lexer {
+  main = lexer(token_names, {
     P"and";
     P"or";
 
     S" \t\r\n"^1 % "skip_token()";
 
     IntegerConstant = (
-        R"09"/[[iv=cb-0x30]] * (R"09"/[[iv=iv*10+cb-0x30]])^0
-      + P"0" * (P"x"/[[iv=0]]) * (R"09"/[[iv=iv*16+cb-0x30]] + R"AF"/[[iv=iv*16+cb-0x41+10]] + R"af"/[[iv=iv*16+cb-0x61+10]])^1
-    ) % "push_token(iv)";
-  };
+        R"09"/[[ra=fc-0x30]] * (R"09"/[[ra=ra*10+fc-0x30]])^0
+      + P"0" * (P"x"/[[ra=0]]) * (R"09"/[[ra=ra*16+fc-0x30]] + R"AF"/[[ra=ra*16+fc-0x41+10]] + R"af"/[[ra=ra*16+fc-0x61+10]])^1
+    ) % "push_token(ra)";
+  });
 }
 compile(out, data)
 out:close()
 
-for i = 1, #data[1].token_names do
-  print(i, data[1].token_names[i])
+for i = 1, #token_names do
+  print(i, token_names[i])
 end
 
-local regexp = assert(loadfile "test.lua")()
+local regexp = assert(loadfile "test-gen.lua")()
 regexp [[
 123 and 456 or 0xAf and
 ]]
