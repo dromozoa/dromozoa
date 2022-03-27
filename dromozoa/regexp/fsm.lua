@@ -17,6 +17,8 @@
 
 local class = {}
 
+local private = function () end
+
 function class.new_state()
   return { transitions = {} }
 end
@@ -36,6 +38,28 @@ function class.execute_transition(u, byte)
     if set and set[byte] then
       return transition
     end
+  end
+end
+
+function class.merge_timestamp(result, timestamp)
+  if not result or result > timestamp then
+    return timestamp
+  else
+    return result
+  end
+end
+
+function class.new_transition_key(key, actions, action)
+  if action then
+    local index = actions[action]
+    if not index then
+      index = (actions[private] or 0) + 1
+      actions[action] = index
+      actions[private] = index
+    end
+    return key .. ";" .. index
+  else
+    return tostring(key)
   end
 end
 

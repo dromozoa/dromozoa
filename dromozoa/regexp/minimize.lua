@@ -30,9 +30,9 @@ local function visit(u, accept_partition_map, nonaccept_partition, partition_map
       partition = { timestamp = u.timestamp }
       accept_partition_map[accept_action] = partition
     else
-      local timestamp = u.timestamp
-      if partition.timestamp > timestamp then
-        partition.timestamp = timestamp
+      local t = u.timestamp
+      if partition.timestamp > t then
+        partition.timestamp = t
       end
     end
   end
@@ -61,9 +61,7 @@ local function create_initial_partitions(u)
   for _, partition in pairs(accept_partition_map) do
     partitions[#partitions + 1] = partition
   end
-  table.sort(partitions, function (a, b)
-    return a.timestamp < b.timestamp
-  end)
+  table.sort(partitions, function (a, b) return a.timestamp < b.timestamp end)
 
   if #nonaccept_partition > 0 then
     partitions[#partitions + 1] = nonaccept_partition
@@ -169,7 +167,6 @@ return function (u)
     local partition = partitions[i]
     local unew = states[partition].state
 
-    local action_index = 0
     local actions = {}
     local new_transition_map = {}
 
@@ -192,26 +189,12 @@ return function (u)
             assert(vnew == states[partition_map[transition.v]].state)
           end
           local t = transition.timestamp
-          if not timestamp or timestamp > t then
+          if timestamp > t then
             timestamp = t
           end
         end
 
-        local new_transition_key
-        if action then
-          -- actionの生の比較 (raw equality) を行うためにテーブルを経由する
-          local index = actions[action]
-          if not index then
-            action_index = action_index + 1
-            actions[action] = action_index
-            new_transition_key = vkey .. ";" .. action_index
-          else
-            new_transition_key = vkey .. ";" .. index
-          end
-        else
-          new_transition_key = tostring(vkey)
-        end
-
+        local new_transition_key = fsm.new_transition_key(vkey, actions, action)
         local new_transition = new_transition_map[new_transition_key]
         if not new_transition then
           new_transition = fsm.new_transition(unew, vnew, { [byte] = true })

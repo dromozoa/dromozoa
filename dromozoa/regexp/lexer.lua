@@ -20,37 +20,26 @@ local minimize = require "dromozoa.regexp.minimize"
 local nfa_to_dfa = require "dromozoa.regexp.nfa_to_dfa"
 local tree_to_nfa = require "dromozoa.regexp.tree_to_nfa"
 
-return function (token_names, data)
-  local definitions = {}
-
-  for k, v in pairs(data) do
-    local name
-    if type(k) == "string" then
-      name = k
-    else
-      name = v.literal
+return function (token_names, that)
+  local data = {}
+  for name, item in pairs(that) do
+    if type(name) ~= "string" then
+      name = item.literal
     end
-    definitions[#definitions + 1] = { timestamp = assert(v.timestamp), name = name, def = v }
+    data[#data + 1] = { timestamp = item.timestamp, name = name, item = item }
   end
-
-  table.sort(definitions, function (a, b) return a.timestamp < b.timestamp end)
+  table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
   local u = fsm.new_state()
   local timestamp
-
-  for i = 1, #definitions do
-    local v, w = tree_to_nfa(definitions[i].def)
+  for i = 1, #data do
+    local v, w = tree_to_nfa(data[i].item)
     fsm.new_transition(u, v)
-    local t = v.timestamp
-    if not timestamp or timestamp > t then
-      timestamp = t
-    end
-
-    local name = definitions[i].name
+    timestamp = fsm.merge_timestamp(timestamp, v.timestamp)
+    local name = data[i].name
     if name then
       local symbol = #token_names + 1
       token_names[symbol] = name
-
       local accept_action = w.accept_action
       if accept_action == true then
         w.accept_action = "token_symbol=" .. symbol .. "; push_token()"
