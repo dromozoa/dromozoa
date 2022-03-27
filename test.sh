@@ -28,4 +28,6 @@ do
   esac
 done
 
-rm -f test*.dot test-gen*.lua
+case X$DROMOZOA_TEST_DEBUG in
+  X|X0) rm -f test*.dot test-gen*.lua;;
+esac
