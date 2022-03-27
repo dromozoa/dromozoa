@@ -167,7 +167,6 @@ return function (u)
     local partition = partitions[i]
     local unew = states[partition].state
 
-    local action_index = 0
     local actions = {}
     local new_transition_map = {}
 
@@ -195,21 +194,7 @@ return function (u)
           end
         end
 
-        local new_transition_key
-        if action then
-          -- actionの生の比較 (raw equality) を行うためにテーブルを経由する
-          local index = actions[action]
-          if not index then
-            action_index = action_index + 1
-            actions[action] = action_index
-            new_transition_key = vkey .. ";" .. action_index
-          else
-            new_transition_key = vkey .. ";" .. index
-          end
-        else
-          new_transition_key = tostring(vkey)
-        end
-
+        local new_transition_key = fsm.new_transition_key(vkey, actions, action)
         local new_transition = new_transition_map[new_transition_key]
         if not new_transition then
           new_transition = fsm.new_transition(unew, vnew, { [byte] = true })

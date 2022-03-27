@@ -17,6 +17,8 @@
 
 local class = {}
 
+local private = function () end
+
 function class.new_state()
   return { transitions = {} }
 end
@@ -44,6 +46,20 @@ function class.merge_timestamp(result, timestamp)
     return timestamp
   else
     return result
+  end
+end
+
+function class.new_transition_key(key, actions, action)
+  if action then
+    local index = actions[action]
+    if not index then
+      index = (actions[private] or 0) + 1
+      actions[action] = index
+      actions[private] = index
+    end
+    return key .. ";" .. index
+  else
+    return tostring(key)
   end
 end
 
