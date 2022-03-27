@@ -25,27 +25,28 @@ return function (source)
   local push_token
   local skip_token
 
-  local fp = 1  -- current position
-  local fc = 0  -- current character
-  local sb = {} -- string buffer
-  local gb = {} -- guard buffer
+  local fs      -- current start
+  local fp      -- current position
+  local fc      -- current character
+  local fb = {} -- buffer
+  local fg = {} -- guard
   local ln = 1  -- line number
   local lp = 0  -- line position
-  local ra = 0  -- general integer register
-  local rb = 0  -- general integer register
-  local rc = 0  -- general integer register
+  local ra
+  local rb
+  local rc
+  local rd
 
   local token_symbol
 ]]
 
 local template2 = [[
-  -- TODO 実際の変数とアクセス用の変数をわけないとタイミングがおかしくなる
   local current_position = 1
   local current_byte = 0
   local current_index = main
   local current_state = _[current_index].start_state
 
-  local stack_top = 0
+  local top = 0
   local stack = {}
   local buffer
   local guard
@@ -56,8 +57,8 @@ local template2 = [[
   end
 
   fcall = function (index)
-    stack_top = stack_top + 1
-    stack[stack_top] = {
+    top = top + 1
+    stack[top] = {
       index = current_index;
       state = current_state;
     }
@@ -65,12 +66,12 @@ local template2 = [[
   end
 
   fret = function ()
-    local item = stack[stack_top]
+    local item = stack[top]
     current_index = item.index
     current_state = item.state
 
-    stack[stack_top] = nil
-    stack_top = stack_top - 1
+    stack[top] = nil
+    top = top - 1
   end
 
   assign = function (buffer, data)
@@ -82,7 +83,7 @@ local template2 = [[
       buffer[1] = tostring(data)
     end
     buffer.n = 1
-    buffer.s = nil
+    buffer.str = nil
   end
 
   append = function (buffer, data)
@@ -95,7 +96,7 @@ local template2 = [[
       buffer[n] = tostring(data)
     end
     buffer.n = n
-    buffer.s = nil
+    buffer.str = nil
   end
 
   push_token = function (v)
@@ -110,17 +111,17 @@ local template2 = [[
     local guard_action = _[current_index].guard_action
     local guarded
     if guard_action and current_state == _[current_index].start_state then
-      local guard = gb.s
+      local guard = fg.str
       if not guard then
-        guard = table.concat(gb, "", 1, gb.n)
-        gb.s = guard
+        guard = table.concat(fg, "", 1, fg.n)
+        fg.str = guard
       end
-      local position = current_position + #guard
-      guarded = string.sub(source, current_position, position - 1) == guard
+      local p = current_position + #guard - 1
+      guarded = string.sub(source, current_position, p) == guard
       if guarded then
-        current_position = position
-        fp = nil
-        fc = nil
+        current_position = p + 1
+        fp = p
+        fc = string.byte(source, p)
         guard_action()
       end
     end
@@ -128,12 +129,12 @@ local template2 = [[
     if not guarded then
       current_byte = string.byte(source, current_position)
 
-      local state = 0
+      local s = 0
       if current_byte then
-        state = _[current_index].transitions[current_byte][current_state]
+        s = _[current_index].transitions[current_byte][current_state]
       end
 
-      if state == 0 then
+      if s == 0 then
         if current_state <= _[current_index].max_accept_state then
           _[current_index].accept_actions[current_state]()
           if not current_byte then
@@ -149,14 +150,14 @@ local template2 = [[
       else
         fp = current_position
         fc = current_byte
-        if state > _[current_index].max_state then
-          local transition = state - _[current_index].max_state
+        if s > _[current_index].max_state then
+          local transition = s - _[current_index].max_state
           current_position = current_position + 1
           current_state = _[current_index].transition_to_states[transition]
           _[current_index].transition_actions[transition]()
         else
           current_position = current_position + 1
-          current_state = state
+          current_state = s
         end
       end
     end
@@ -171,7 +172,7 @@ local function compact_transitions(out, transitions, compactor)
     local name = compactor[code]
     if not name then
       local index = compactor.index + 1
-      name = "C[" .. index .. "]"
+      name = "c[" .. index .. "]"
       out:write(code, ";\n")
       compactor.index = index
       compactor[code] = name
@@ -200,7 +201,7 @@ local function dump_action(out, action, compactor)
   local name = compactor[code]
   if not name then
     local index = compactor.index + 1
-    name = "C[" .. index .. "]"
+    name = "c[" .. index .. "]"
     out:write(code, ";\n")
     compactor.index = index
     compactor[code] = name
@@ -222,7 +223,7 @@ return function(out, data)
   local compactor = { index = 0 }
   local transitions = {}
 
-  out:write "local C={\n"
+  out:write "local c={\n"
   for i = 1, n do
     transitions[i] = compact_transitions(out, data[i].transitions, compactor)
   end
@@ -249,7 +250,7 @@ return function(out, data)
   local accept_actions = {}
   local transition_actions = {}
 
-  out:write "local C={\n"
+  out:write "local c={\n"
   for i = 1, n do
     local item = data[i]
     guard_action[i] = dump_action(out, item.guard_action, compactor)
