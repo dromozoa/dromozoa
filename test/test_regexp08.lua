@@ -30,25 +30,34 @@ local R = pattern.range
 local debug = tonumber(os.getenv "DROMOZOA_TEST_DEBUG")
 debug = debug and debug ~= 0
 
-local buffer = {}
+local source = "abc\rdef\r\nghi\njkl\n\rmno\r\rpqr\n\nstu"
+local buffer1 = {}
+local buffer2 = {}
 
-function push(key, ln, lp, fp, fc)
-  if debug then
-    print(key, ln, lp, fp, fp - lp, fc)
+function push(key, ln, lp, fs, fp, fc)
+  if key == "*" then
+    if debug then
+      print(key, source:sub(fs, fp))
+    end
+    buffer2[#buffer2 + 1] = source:sub(fs, fp)
   end
-  buffer[#buffer + 1] = key
+  if debug then
+    print(key, ln, lp, fs, fp, fc)
+  end
+  buffer1[#buffer1 + 1] = key
 end
 
 local out = assert(io.open("test-gen.lua", "w"))
 compile(out, generate {
   main = loop {
-    (-S"\r\n")^0 % [[push("*",ln,lp,fp,fc)]];
-    ((P"\r" / [[ln=ln+1 lp=fp push("CR",ln,lp,fp,fc)]]) * (P"\n" / [[lp=fp push("CRLF",ln,lp,fp,fc)]])^-1)^1 % [[push("x",ln,lp,fp,fc)]];
-    ((P"\n" / [[ln=ln+1 lp=fp push("LF",ln,lp,fp,fc)]]) * (P"\r" / [[lp=fp push("LFCR",ln,lp,fp,fc)]])^-1)^1 % [[push("y",ln,lp,fp,fc)]];
+    (-S"\r\n")^0 % [[push("*",ln,lp,fs,fp,fc)]];
+    ((P"\r" / [[ln=ln+1 lp=fp push("CR",ln,lp,fs,fp,fc)]]) * (P"\n" / [[lp=fp push("CRLF",ln,lp,fs,fp,fc)]])^-1)^1 % [[push("x",ln,lp,fs,fp,fc)]];
+    ((P"\n" / [[ln=ln+1 lp=fp push("LF",ln,lp,fs,fp,fc)]]) * (P"\r" / [[lp=fp push("LFCR",ln,lp,fs,fp,fc)]])^-1)^1 % [[push("y",ln,lp,fs,fp,fc)]];
   };
 })
 out:close()
 
 local regexp = assert(loadfile "test-gen.lua")()
-regexp "abc\rdef\r\nghi\njkl\n\rmno\r\rpqr\n\nstu"
-assert(table.concat(buffer, ",") == "*,CR,x,*,CR,CRLF,x,*,LF,y,*,LF,LFCR,y,*,CR,CR,x,*,LF,LF,y,*")
+regexp(source)
+assert(table.concat(buffer1, ",") == "*,CR,x,*,CR,CRLF,x,*,LF,y,*,LF,LFCR,y,*,CR,CR,x,*,LF,LF,y,*")
+assert(table.concat(buffer2, ",") == "abc,def,ghi,jkl,mno,pqr,stu")
