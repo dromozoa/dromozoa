@@ -22,32 +22,24 @@ local tree_to_nfa = require "dromozoa.regexp.tree_to_nfa"
 
 return function (token_names, that)
   local data = {}
-
   for name, item in pairs(that) do
     if type(name) ~= "string" then
       name = item.literal
     end
     data[#data + 1] = { timestamp = item.timestamp, name = name, item = item }
   end
-
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
   local u = fsm.new_state()
   local timestamp
-
   for i = 1, #data do
     local v, w = tree_to_nfa(data[i].item)
     fsm.new_transition(u, v)
-    local t = v.timestamp
-    if not timestamp or timestamp > t then
-      timestamp = t
-    end
-
+    timestamp = fsm.merge_timestamp(timestamp, v.timestamp)
     local name = data[i].name
     if name then
       local symbol = #token_names + 1
       token_names[symbol] = name
-
       local accept_action = w.accept_action
       if accept_action == true then
         w.accept_action = "token_symbol=" .. symbol .. "; push_token()"

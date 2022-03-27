@@ -39,4 +39,12 @@ function class.execute_transition(u, byte)
   end
 end
 
+function class.merge_timestamp(result, timestamp)
+  if not result or result > timestamp then
+    return timestamp
+  else
+    return result
+  end
+end
+
 return class

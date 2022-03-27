@@ -30,10 +30,7 @@ return function (that)
     for i = 1, n do
       local v = tree_to_nfa(that[i])
       fsm.new_transition(u, v)
-      local t = v.timestamp
-      if not timestamp or timestamp > t then
-        timestamp = t
-      end
+      timestamp = fsm.merge_timestamp(timestamp, v.timestamp)
     end
     u.timestamp = timestamp
     return minimize(nfa_to_dfa(u))

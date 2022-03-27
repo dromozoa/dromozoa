@@ -113,7 +113,6 @@ end
 
 return function (that)
   local data = {}
-
   for name, u in pairs(that) do
     local state_indices = {}
     local transition_indices = {}
@@ -141,7 +140,6 @@ return function (that)
 
     data[#data + 1] = { timestamp = u.timestamp, item = item }
   end
-
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
   for i = 1, #data do
