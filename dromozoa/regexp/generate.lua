@@ -65,24 +65,24 @@ local function visit2(u, state_indices, state_index, transition_indices, color)
   return state_index
 end
 
-local function visit3(def, u, state_indices, transition_indices, color)
+local function visit3(item, u, state_indices, transition_indices, color)
   color[u] = 1
 
   local index = state_indices[u]
   local accept_action = u.accept_action
   if accept_action then
-    def.accept_actions[index] = accept_action
+    item.accept_actions[index] = accept_action
   end
 
-  local transition_to_states = def.transition_to_states
-  local transition_actions = def.transition_actions
+  local transition_to_states = item.transition_to_states
+  local transition_actions = item.transition_actions
 
   local transitions = u.transitions
   for i = 1, #transitions  do
     local transition = transitions[i]
     local v = transition.v
     if not color[v] then
-      visit3(def, v, state_indices, transition_indices, color)
+      visit3(item, v, state_indices, transition_indices, color)
     end
     local transition_action = transition.action
     if transition_action then
@@ -92,8 +92,8 @@ local function visit3(def, u, state_indices, transition_indices, color)
     end
   end
 
-  local max_state = def.max_state
-  local transitions = def.transitions
+  local max_state = item.max_state
+  local transitions = item.transitions
 
   for byte = 0x00, 0xFF do
     local transition = fsm.execute_transition(u, byte)
@@ -111,10 +111,10 @@ local function visit3(def, u, state_indices, transition_indices, color)
   color[u] = 2
 end
 
-return function (data)
-  local definitions = {}
+return function (that)
+  local data = {}
 
-  for name, u in pairs(data) do
+  for name, u in pairs(that) do
     local state_indices = {}
     local transition_indices = {}
     local max_accept_state, max_transition =  visit1(u, state_indices, 0, transition_indices, 0, {})
@@ -124,7 +124,7 @@ return function (data)
     for byte = 0x00, 0xFF do
       transitions[byte] = {}
     end
-    local def = {
+    local item = {
       name = name;
       loop = u.loop;
       guard_action = u.guard_action;
@@ -137,15 +137,14 @@ return function (data)
       max_state = max_state;
       transitions = transitions;
     }
-    visit3(def, u, state_indices, transition_indices, {})
+    visit3(item, u, state_indices, transition_indices, {})
 
-    definitions[#definitions + 1] = { timestamp = u.timestamp, def = def }
+    data[#data + 1] = { timestamp = u.timestamp, item = item }
   end
-  table.sort(definitions, function (a, b) return a.timestamp < b.timestamp end)
+  table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
-  local result = {}
-  for i = 1, #definitions do
-    result[i] = definitions[i].def
+  for i = 1, #data do
+    data[i] = data[i].item
   end
-  return result
+  return data
 end
