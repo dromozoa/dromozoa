@@ -111,11 +111,15 @@ local template2 = [[
   end
 
   push_token = function (value)
+    local source = string.sub(source, fs, fp)
+    if not value then
+      value = source
+    end
     tokens[#tokens + 1] = {
       symbol = token_symbol;
       i = fs;
       j = fp;
-      source = string.sub(source, fs, fp);
+      source = source;
       line = start_line;
       column = start_column;
       value = value;

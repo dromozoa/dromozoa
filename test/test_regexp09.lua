@@ -22,7 +22,6 @@ local compile = require "dromozoa.regexp.compile"
 local generate = require "dromozoa.regexp.generate"
 local lexer = require "dromozoa.regexp.lexer"
 local pattern = require "dromozoa.regexp.pattern"
-local union = require "dromozoa.regexp.union"
 
 local P = pattern.pattern
 local S = pattern.set
