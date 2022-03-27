@@ -30,9 +30,9 @@ local function visit(u, accept_partition_map, nonaccept_partition, partition_map
       partition = { timestamp = u.timestamp }
       accept_partition_map[accept_action] = partition
     else
-      local timestamp = u.timestamp
-      if partition.timestamp > timestamp then
-        partition.timestamp = timestamp
+      local t = u.timestamp
+      if partition.timestamp > t then
+        partition.timestamp = t
       end
     end
   end
@@ -61,9 +61,7 @@ local function create_initial_partitions(u)
   for _, partition in pairs(accept_partition_map) do
     partitions[#partitions + 1] = partition
   end
-  table.sort(partitions, function (a, b)
-    return a.timestamp < b.timestamp
-  end)
+  table.sort(partitions, function (a, b) return a.timestamp < b.timestamp end)
 
   if #nonaccept_partition > 0 then
     partitions[#partitions + 1] = nonaccept_partition
@@ -192,7 +190,7 @@ return function (u)
             assert(vnew == states[partition_map[transition.v]].state)
           end
           local t = transition.timestamp
-          if not timestamp or timestamp > t then
+          if timestamp > t then
             timestamp = t
           end
         end
