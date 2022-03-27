@@ -221,7 +221,6 @@ local function dump_action(out, action, compactor)
     if type(action) == "string" then
       code = "function () " .. action .. " end"
     else
-      assert(action == true)
       code = "function () end"
     end
   else

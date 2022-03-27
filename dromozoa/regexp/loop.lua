@@ -17,8 +17,8 @@
 
 local union = require "dromozoa.regexp.union"
 
-return function (data)
-  local u = union(data)
+return function (that)
+  local u = union(that)
   u.loop = true
   return u
 end
