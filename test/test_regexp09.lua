@@ -28,7 +28,7 @@ local P = pattern.pattern
 local S = pattern.set
 local R = pattern.range
 
-local out = assert(io.open("test.lua", "w"))
+local out = assert(io.open("test-gen.lua", "w"))
 local token_names = {}
 local data = generate {
   main = lexer(token_names, {
@@ -50,7 +50,7 @@ for i = 1, #token_names do
   print(i, token_names[i])
 end
 
-local regexp = assert(loadfile "test.lua")()
+local regexp = assert(loadfile "test-gen.lua")()
 regexp [[
 123 and 456 or 0xAf and
 ]]

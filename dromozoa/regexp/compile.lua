@@ -41,17 +41,17 @@ return function (source)
 ]]
 
 local template2 = [[
-  local current_position = 1
-  local current_byte = 0
+  local current_start = 1
+  local current_position = current_start
+  local current_byte
   local current_index = main
   local current_state = _[current_index].start_state
 
   local top = 0
   local stack = {}
-  local buffer
-  local guard
 
   fgoto = function (index)
+    current_start = current_position
     current_index = index
     current_state = _[current_index].start_state
   end
@@ -59,6 +59,7 @@ local template2 = [[
   fcall = function (index)
     top = top + 1
     stack[top] = {
+      start = current_start;
       index = current_index;
       state = current_state;
     }
@@ -67,6 +68,7 @@ local template2 = [[
 
   fret = function ()
     local item = stack[top]
+    current_start = item.start
     current_index = item.index
     current_state = item.state
 
@@ -120,6 +122,7 @@ local template2 = [[
       guarded = string.sub(source, current_position, p) == guard
       if guarded then
         current_position = p + 1
+        fs = current_start
         fp = p
         fc = string.byte(source, p)
         guard_action()
@@ -142,12 +145,14 @@ local template2 = [[
             return true
           end
           if _[current_index].loop then
+            current_start = current_position
             current_state = _[current_index].start_state
           end
         else
           error "regexp error"
         end
       else
+        fs = current_start
         fp = current_position
         fc = current_byte
         if s > _[current_index].max_state then

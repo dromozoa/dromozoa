@@ -39,7 +39,7 @@ function push(key, ln, lp, fp, fc)
   buffer[#buffer + 1] = key
 end
 
-local out = assert(io.open("test.lua", "w"))
+local out = assert(io.open("test-gen.lua", "w"))
 compile(out, generate {
   main = loop {
     (-S"\r\n")^0 % [[push("*",ln,lp,fp,fc)]];
@@ -49,6 +49,6 @@ compile(out, generate {
 })
 out:close()
 
-local regexp = assert(loadfile "test.lua")()
+local regexp = assert(loadfile "test-gen.lua")()
 regexp "abc\rdef\r\nghi\njkl\n\rmno\r\rpqr\n\nstu"
 assert(table.concat(buffer, ",") == "*,CR,x,*,CR,CRLF,x,*,LF,y,*,LF,LFCR,y,*,CR,CR,x,*,LF,LF,y,*")

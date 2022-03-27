@@ -71,7 +71,7 @@ for name, dfa in pairs(definitions) do
   out:close()
 end
 
-local out = assert(io.open("test.lua", "w"))
+local out = assert(io.open("test-gen.lua", "w"))
 compile(out, generate(definitions))
 out:close()
 
@@ -80,7 +80,7 @@ if not debug then
   print = function () end
 end
 
-local regexp = assert(loadfile "test.lua")()
+local regexp = assert(loadfile "test-gen.lua")()
 regexp [[
 -- test
 if then elseif else
