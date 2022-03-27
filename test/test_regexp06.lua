@@ -34,7 +34,6 @@ local dfa = union {
   * (P"="/[[append(fg)]])^0
   * (P"["/[[append(fg,"]") fcall(block_comment)]])
   %[[skip_token2()]];
-
 }
 
 local out = assert(io.open("test-dfa.dot", "w"))
