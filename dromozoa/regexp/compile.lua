@@ -16,7 +16,7 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local template1 = [[
-return function (source)
+return function (source, source_name)
   local fgoto
   local fcall
   local fret
@@ -25,11 +25,11 @@ return function (source)
   local push_token
   local skip_token
 
-  local fs      -- current start
+  local fs      -- start position
   local fp      -- current position
   local fc      -- current character
-  local fb = {} -- buffer
-  local fg = {} -- guard
+  local fb = {} -- string buffer
+  local fg = {} -- guard buffer
   local ln = 1  -- line number
   local lp = 0  -- line position
   local ra
@@ -41,17 +41,22 @@ return function (source)
 ]]
 
 local template2 = [[
-  local current_start = 1
-  local current_position = current_start
+  local start_position = 1
+  local start_line
+  local start_column
+  local current_position = start_position
   local current_byte
   local current_index = main
   local current_state = _[current_index].start_state
 
   local top = 0
   local stack = {}
+  local tokens = {}
 
   fgoto = function (index)
-    current_start = current_position
+    start_position = current_position
+    start_line = ln
+    start_column = start_position - lp
     current_index = index
     current_state = _[current_index].start_state
   end
@@ -59,18 +64,22 @@ local template2 = [[
   fcall = function (index)
     top = top + 1
     stack[top] = {
-      start = current_start;
-      index = current_index;
-      state = current_state;
+      start_position = start_position;
+      start_line = start_line;
+      start_column = start_column;
+      current_index = current_index;
+      current_state = current_state;
     }
     fgoto(index)
   end
 
   fret = function ()
     local item = stack[top]
-    current_start = item.start
-    current_index = item.index
-    current_state = item.state
+    start_position = item.start_position
+    start_line = item.start_line
+    start_column = item.start_column
+    current_index = item.current_index
+    current_state = item.current_state
 
     stack[top] = nil
     top = top - 1
@@ -101,12 +110,26 @@ local template2 = [[
     buffer.str = nil
   end
 
-  push_token = function (v)
-    print("push_token", token_symbol, v)
+  push_token = function (value)
+    tokens[#tokens + 1] = {
+      symbol = token_symbol;
+      i = fs;
+      j = fp;
+      source = string.sub(source, fs, fp);
+      line = start_line;
+      column = start_column;
+      value = value;
+    }
   end
 
   skip_token = function ()
-    print "skip_token"
+    tokens[#tokens + 1] = {
+      i = fs;
+      j = fp;
+      source = string.sub(source, fs, fp);
+      line = start_line;
+      column = start_column;
+    }
   end
 
   while true do
@@ -122,7 +145,7 @@ local template2 = [[
       guarded = string.sub(source, current_position, p) == guard
       if guarded then
         current_position = p + 1
-        fs = current_start
+        fs = start_position
         fp = p
         fc = string.byte(source, p)
         guard_action()
@@ -141,18 +164,19 @@ local template2 = [[
         if current_state <= _[current_index].max_accept_state then
           _[current_index].accept_actions[current_state]()
           if not current_byte then
-            -- eof
-            return true
+            return tokens
           end
           if _[current_index].loop then
-            current_start = current_position
-            current_state = _[current_index].start_state
+            fgoto(current_index)
           end
         else
-          error "regexp error"
+          if not source_name then
+            source_name = "?"
+          end
+          error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error")
         end
       else
-        fs = current_start
+        fs = start_position
         fp = current_position
         fc = current_byte
         if s > _[current_index].max_state then
