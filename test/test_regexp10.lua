@@ -23,6 +23,7 @@ local generate = require "dromozoa.regexp.generate"
 local guard = require "dromozoa.regexp.guard"
 local lexer = require "dromozoa.regexp.lexer"
 local pattern = require "dromozoa.regexp.pattern"
+local union = require "dromozoa.regexp.union"
 
 local P = pattern.pattern
 local S = pattern.set
@@ -30,9 +31,54 @@ local R = pattern.range
 
 local out = assert(io.open("test-gen.lua", "w"))
 local token_names = {}
+
+local quoted_char =
+( P[[\]] *
+    ( P[[a]]/[[append(fb,"\a")]]
+    + P[[b]]/[[append(fb,"\b")]]
+    + P[[f]]/[[append(fb,"\f")]]
+    + P[[n]]/[[append(fb,"\n")]]
+    + P[[r]]/[[append(fb,"\r")]]
+    + P[[t]]/[[append(fb,"\t")]]
+    + P[[v]]/[[append(fb,"\v")]]
+    + P[[\]]/[[append(fb,"\\")]]
+    + P[["]]/[[append(fb,"\"")]]
+    + P[[']]/[[append(fb,"\'")]]
+    + P"\r"/[[ln=ln+1 lp=fp append(fb,"\n")]] * (P"\n"/[[lp=fp]])^-1
+    + P"\n"/[[ln=ln+1 lp=fp append(fb,"\n")]] * (P"\r"/[[lp=fp]])^-1
+    + P[[z]] *
+      ( S" \t"
+      + P"\r"/[[ln=ln+1 lp=fp]] * (P"\n"/[[lp=fp]])^-1
+      + P"\n"/[[ln=ln+1 lp=fp]] * (P"\r"/[[lp=fp]])^-1
+      )
+    -- + R"09"/[[ra=fc-0x30 fcall(escaped_decimal)]]
+    + P[[x]] *
+      ( R"09"/[[ra=fc-0x30]]
+      + R"AF"/[[ra=fc-0x41+10]]
+      + R"af"/[[ra=fc-0x61+10]]
+      ) *
+      ( R"09"/[[append(fb,ra*16+fc-0x30)]]
+      + R"AF"/[[append(fb,ra*16+fc-0x41+10)]]
+      + R"af"/[[append(fb,ra*16+fc-0x61+10)]]
+      )
+    )
++ (-S[[\"']])/[[append(fb)]]
+
+)
+
 compile(out, generate {
+  -- escaped_decimal = union {
+  --   (R"09"/[[print"ed" ra=ra*10+fc-0x30]])^-2
+  --   %[[print"ED" append(fb,ra) fret()]]
+  -- };
 
   block_comment = guard([[fret()]], {
+    ( P"\r"/[[ln=ln+1 lp=fp]] * (P"\n"/[[lp=fp]])^-1
+    + P"\n"/[[ln=ln+1 lp=fp]] * (P"\r"/[[lp=fp]])^-1
+    );
+
+    (-S"\r\n]")^1;
+
     P(1);
   });
 
@@ -115,6 +161,11 @@ compile(out, generate {
     + P"0" * S"Xx" * (R"09AFaf"^1 * (P"." * R"09AFaf"^0)^-1 + P"." * R"09AFaf"^1) * (S"Pp" * S"+-"^-1 * R"09"^1)^-1
     );
 
+    LiteralString =
+    ( P[["]]/[[clear(fb)]] * (quoted_char + P[[']]/[[append(fb)]])^0 * P[["]]
+    + P[[']]/[[clear(fb)]] * (quoted_char + P[["]]/[[append(fb)]])^0 * P[[']]
+    ) %[[push_token(fb)]];
+
     P"--"
     * (P"["/[[assign(fg,"]")]])
     * (P"="/[[append(fg)]])^0
@@ -133,7 +184,7 @@ if debug then
 end
 
 local regexp = assert(loadfile "test-gen.lua")()
-local tokens = regexp([[
+local tokens = regexp([==[
 if x then
   local i = { 42, -1, 0xAf, 0XaF }
   local f = {
@@ -142,17 +193,17 @@ if x then
     0.5e2, 0.5e+2, 0.5e-2,
     0xAfp2, 0xAfp+2, 0xAfp-2,
   }
-  --[=[ test
+  --[=[ test [[test]]
   ]=]
-  return 3.14
+  return "3\t14\065    \n"
 end
-]], "(string)")
+]==], "(string)")
 
 for i = 1, #tokens do
   local tk = tokens[i]
   if tk.symbol then
     if debug then
-      print(("%d %q %s"):format(tk.symbol, tk.source, tk.value))
+      print(("%d:%d: %d %q %s"):format(tk.line, tk.column, tk.symbol, tk.source, tk.value))
     end
   end
 end

@@ -20,6 +20,7 @@ return function (source, source_name)
   local fgoto
   local fcall
   local fret
+  local clear
   local assign
   local append
   local push_token
@@ -42,8 +43,8 @@ return function (source, source_name)
 
 local template2 = [[
   local start_position = 1
-  local start_line
-  local start_column
+  local start_line = ln
+  local start_column = start_position - lp
   local current_position = start_position
   local current_byte
   local current_index = main
@@ -85,16 +86,14 @@ local template2 = [[
     top = top - 1
   end
 
-  assign = function (buffer, data)
-    if not data then
-      buffer[1] = string.char(fc)
-    elseif type(data) == "number" then
-      buffer[1] = string.char(data)
-    else
-      buffer[1] = tostring(data)
-    end
-    buffer.n = 1
+  clear = function (buffer)
+    buffer.n = 0
     buffer.str = nil
+  end
+
+  assign = function (buffer, data)
+    clear(buffer)
+    append(buffer, data)
   end
 
   append = function (buffer, data)
@@ -114,6 +113,13 @@ local template2 = [[
     local source = string.sub(source, fs, fp)
     if not value then
       value = source
+    elseif type(value) == "table" then
+      local s = value.str
+      if not s then
+        s = table.concat(value, "", 1, value.n)
+        value.str = s
+      end
+      value = s
     end
     tokens[#tokens + 1] = {
       symbol = token_symbol;
