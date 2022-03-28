@@ -30,7 +30,7 @@ local dfa = union {
   P"--" * ((-S"\r\n")^0 - P"[" * P"="^0 * P"[" * P(1)^0) %[[skip_token()]];
 
   P"--"
-  * (P"["/[[assign(fg,"]")]])
+  * (P"["/[[clear(fg) append(fg,"]")]])
   * (P"="/[[append(fg)]])^0
   * (P"["/[[append(fg,"]") fcall(block_comment)]])
   %[[skip_token2()]];

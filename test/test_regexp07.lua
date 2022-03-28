@@ -21,7 +21,7 @@
 local compile = require "dromozoa.regexp.compile"
 local generate = require "dromozoa.regexp.generate"
 local guard = require "dromozoa.regexp.guard"
-local loop = require "dromozoa.regexp.loop"
+local lexer = require "dromozoa.regexp.lexer"
 local pattern = require "dromozoa.regexp.pattern"
 local union = require "dromozoa.regexp.union"
 local write_graphviz = require "dromozoa.regexp.write_graphviz"
@@ -43,7 +43,7 @@ local definitions = {
     (-S"]") % [[print "comment char"]];
   });
 
-  main = loop {
+  main = lexer({}, {
     P"if"     % [[print "if"]];
     P"else"   % [[print "else"]];
     P"elseif" % [[print "elseif"]];
@@ -51,7 +51,7 @@ local definitions = {
     P"then"   % [[print "then"]];
     P"local"  % [[print "local"]];
     P"--"
-      * (P"[" / [[assign(fg,"]")]])
+      * (P"[" / [[clear(fg) append(fg,"]")]])
       * (P"=" / [[append(fg)]])^0
       * (P"[" / [[append(fg,"]") fcall(block_comment)]])
       % [[print "block comment"]];
@@ -62,7 +62,7 @@ local definitions = {
     P"=" % [[print "="]];
     R"09"^1 % [[print "int"]];
     S" \t\r\n"^1;
-  };
+  });
 }
 
 for name, dfa in pairs(definitions) do

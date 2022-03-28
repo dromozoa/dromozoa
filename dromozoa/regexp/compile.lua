@@ -21,8 +21,9 @@ return function (source, source_name)
   local fcall
   local fret
   local clear
-  local assign
   local append
+  local append_range
+  local append_utf8
   local push_token
   local skip_token
 
@@ -61,7 +62,7 @@ local template2 = [[
     start_column = start_position - lp
     current_index = index
     current_state = _[current_index].start_state
-    current_loop = false
+    current_loop = nil
   end
 
   fcall = function (index)
@@ -83,7 +84,7 @@ local template2 = [[
     start_column = item.start_column
     current_index = item.current_index
     current_state = item.current_state
-    current_loop = false
+    current_loop = nil
     stack[top] = nil
     top = top - 1
   end
@@ -91,11 +92,6 @@ local template2 = [[
   clear = function (buffer)
     buffer.n = 0
     buffer.str = nil
-  end
-
-  assign = function (buffer, data)
-    clear(buffer)
-    append(buffer, data)
   end
 
   append = function (buffer, data)
@@ -109,6 +105,34 @@ local template2 = [[
     end
     buffer.n = n
     buffer.str = nil
+  end
+
+  append_range = function (buffer)
+    append(buffer, string.sub(source, fs, fp))
+  end;
+
+  append_utf8 = function (buffer, a)
+    if a <= 0x7F then
+      append(buffer, string.char(a))
+    elseif a <= 0x07FF then
+      local b = a % 0x40
+      local a = (a - b) / 0x40
+      append(buffer, string.char(a + 0xC0, b + 0x80))
+    elseif a <= 0xFFFF then
+      local c = a % 0x40
+      local a = (a - c) / 0x40
+      local b = a % 0x40
+      local a = (a - b) / 0x40
+      append(buffer, string.char(a + 0xE0, b + 0x80, c + 0x80))
+    else
+      local d = a % 0x40
+      local a = (a - d) / 0x40
+      local c = a % 0x40
+      local a = (a - c) / 0x40
+      local b = a % 0x40
+      local a = (a - b) / 0x40
+      append(buffer, string.char(a + 0xF0, b + 0x80, c + 0x80, d + 0x80))
+    end
   end
 
   push_token = function (value)
@@ -175,9 +199,19 @@ local template2 = [[
       if s == 0 then
         if current_state <= _[current_index].max_accept_state then
           current_loop = _[current_index].loop
+
+          -- TODO fretの後のfp,fcを復帰するか？
+          fs = start_position
+
           _[current_index].accept_actions[current_state]()
           if not current_byte then
-            return tokens
+            if current_index == main then
+              return tokens
+            end
+            if not source_name then
+              source_name = "?"
+            end
+            error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (unexpected eof)")
           end
           if current_loop then
             fgoto(current_index)

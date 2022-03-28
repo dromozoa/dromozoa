@@ -61,15 +61,29 @@ local quoted_char =
       + R"AF"/[[append(fb,ra*16+fc-0x41+10)]]
       + R"af"/[[append(fb,ra*16+fc-0x61+10)]]
       )
+    + P[[u]] * (P"{"/[[ra=0]]) *
+      ( R"09"/[[ra=ra*16+fc-0x30]]
+      + R"AF"/[[ra=ra*16+fc-0x41+10]]
+      + R"af"/[[ra=ra*16+fc-0x61+10]]
+      )^1 * (P"}"/[[append_utf8(fb,ra)]])
     )
 + (-S[[\"']])/[[append(fb)]]
-
 )
 
 compile(out, generate {
   escaped_decimal = union {
-    (R"09"/[[print"ed" ra=ra*10+fc-0x30]])^-2 %[[append(fb,ra) fret()]]
+    (R"09"/[[ra=ra*10+fc-0x30]])^-2 %[[append(fb,ra) fret()]]
   };
+
+  long_string = guard([[fret()]], {
+    ( P"\r"/[[ln=ln+1 lp=fp]] * (P"\n"/[[lp=fp]])^-1
+    + P"\n"/[[ln=ln+1 lp=fp]] * (P"\r"/[[lp=fp]])^-1
+    ) %[[if ra==1 then append(fb,"\n") end ra=1]];
+
+    (-S"\r\n]")^1 %[[append_range(fb) ra=1]];
+
+    P(1) %[[append(fb) ra=1]];
+  });
 
   block_comment = guard([[fret()]], {
     ( P"\r"/[[ln=ln+1 lp=fp]] * (P"\n"/[[lp=fp]])^-1
@@ -104,6 +118,14 @@ compile(out, generate {
     P"true";
     P"until";
     P"while";
+
+    LiteralString =
+    ( P[["]]/[[clear(fb)]] * (quoted_char + P[[']]/[[append(fb)]])^0 * P[["]]
+    + P[[']]/[[clear(fb)]] * (quoted_char + P[["]]/[[append(fb)]])^0 * P[[']]
+    + (P"["/[[clear(fg) append(fg,"]")]])
+    * (P"="/[[append(fg)]])^0
+    * (P"["/[[append(fg,"]") clear(fb) ra=0 fcall(long_string)]])
+    ) %[[push_token(fb)]];
 
     P"+";
     P"-";
@@ -160,13 +182,8 @@ compile(out, generate {
     + P"0" * S"Xx" * (R"09AFaf"^1 * (P"." * R"09AFaf"^0)^-1 + P"." * R"09AFaf"^1) * (S"Pp" * S"+-"^-1 * R"09"^1)^-1
     );
 
-    LiteralString =
-    ( P[["]]/[[clear(fb)]] * (quoted_char + P[[']]/[[append(fb)]])^0 * P[["]]
-    + P[[']]/[[clear(fb)]] * (quoted_char + P[["]]/[[append(fb)]])^0 * P[[']]
-    ) %[[push_token(fb)]];
-
     P"--"
-    * (P"["/[[assign(fg,"]")]])
+    * (P"["/[[clear(fg) append(fg,"]")]])
     * (P"="/[[append(fg)]])^0
     * (P"["/[[append(fg,"]") fcall(block_comment)]])
     %[[skip_token()]];
@@ -194,7 +211,10 @@ if x then
   }
   --[=[ test [[test]]
   ]=]
-  return "3\t14\65\n"
+  local s = [[
+abc
+def]]
+  return "3\t14\u{1F914}\n"
 end
 ]==], "(string)")
 
