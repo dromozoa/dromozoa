@@ -49,6 +49,7 @@ local template2 = [[
   local current_byte
   local current_index = main
   local current_state = _[current_index].start_state
+  local current_loop
 
   local top = 0
   local stack = {}
@@ -60,6 +61,7 @@ local template2 = [[
     start_column = start_position - lp
     current_index = index
     current_state = _[current_index].start_state
+    current_loop = false
   end
 
   fcall = function (index)
@@ -81,7 +83,7 @@ local template2 = [[
     start_column = item.start_column
     current_index = item.current_index
     current_state = item.current_state
-
+    current_loop = false
     stack[top] = nil
     top = top - 1
   end
@@ -172,11 +174,12 @@ local template2 = [[
 
       if s == 0 then
         if current_state <= _[current_index].max_accept_state then
+          current_loop = _[current_index].loop
           _[current_index].accept_actions[current_state]()
           if not current_byte then
             return tokens
           end
-          if _[current_index].loop then
+          if current_loop then
             fgoto(current_index)
           end
         else

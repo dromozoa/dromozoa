@@ -51,7 +51,7 @@ local quoted_char =
       + P"\r"/[[ln=ln+1 lp=fp]] * (P"\n"/[[lp=fp]])^-1
       + P"\n"/[[ln=ln+1 lp=fp]] * (P"\r"/[[lp=fp]])^-1
       )
-    -- + R"09"/[[ra=fc-0x30 fcall(escaped_decimal)]]
+    + R"09"/[[ra=fc-0x30 fcall(escaped_decimal)]]
     + P[[x]] *
       ( R"09"/[[ra=fc-0x30]]
       + R"AF"/[[ra=fc-0x41+10]]
@@ -67,10 +67,9 @@ local quoted_char =
 )
 
 compile(out, generate {
-  -- escaped_decimal = union {
-  --   (R"09"/[[print"ed" ra=ra*10+fc-0x30]])^-2
-  --   %[[print"ED" append(fb,ra) fret()]]
-  -- };
+  escaped_decimal = union {
+    (R"09"/[[print"ed" ra=ra*10+fc-0x30]])^-2 %[[append(fb,ra) fret()]]
+  };
 
   block_comment = guard([[fret()]], {
     ( P"\r"/[[ln=ln+1 lp=fp]] * (P"\n"/[[lp=fp]])^-1
@@ -195,7 +194,7 @@ if x then
   }
   --[=[ test [[test]]
   ]=]
-  return "3\t14\065    \n"
+  return "3\t14\65\n"
 end
 ]==], "(string)")
 
