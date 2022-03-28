@@ -195,6 +195,7 @@ local template2 = [[
       end
 
       if s == 0 then
+        local error_message
         if current_state <= _[current_index].max_accept_state then
           current_loop = _[current_index].loop
           _[current_index].accept_actions[current_state]()
@@ -202,19 +203,19 @@ local template2 = [[
             if current_index == main then
               return tokens
             end
-            if not source_name then
-              source_name = "?"
-            end
-            error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (unexpected eof)")
+            error_message = "unexpected eof"
           end
           if current_loop then
             fgoto(current_index)
           end
         else
+          error_message = "regexpe error"
+        end
+        if error_message then
           if not source_name then
             source_name = "?"
           end
-          error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error")
+          error(source_name .. ":" .. start_line .. ":" .. start_column .. ": " .. error_message)
         end
       else
         fp = current_position
