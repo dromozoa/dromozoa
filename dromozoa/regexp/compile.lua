@@ -27,7 +27,7 @@ return function (source, source_name)
   local push_token
   local skip_token
 
-  local fs      -- start position
+  local fs = 1  -- start position
   local fp      -- current position
   local fc      -- current character
   local fb = {} -- string buffer
@@ -43,10 +43,9 @@ return function (source, source_name)
 ]]
 
 local template2 = [[
-  local start_position = 1
-  local start_line = ln
-  local start_column = start_position - lp
-  local current_position = start_position
+  local start_line = 1
+  local start_column = 1
+  local current_position = 1
   local current_byte
   local current_index = main
   local current_state = _[current_index].start_state
@@ -57,9 +56,9 @@ local template2 = [[
   local tokens = {}
 
   fgoto = function (index)
-    start_position = current_position
+    fs = current_position
     start_line = ln
-    start_column = start_position - lp
+    start_column = fs - lp
     current_index = index
     current_state = _[current_index].start_state
     current_loop = nil
@@ -68,7 +67,7 @@ local template2 = [[
   fcall = function (index)
     top = top + 1
     stack[top] = {
-      start_position = start_position;
+      start_position = fs;
       start_line = start_line;
       start_column = start_column;
       current_index = current_index;
@@ -79,7 +78,7 @@ local template2 = [[
 
   fret = function ()
     local item = stack[top]
-    start_position = item.start_position
+    fs = item.start_position
     start_line = item.start_line
     start_column = item.start_column
     current_index = item.current_index
@@ -181,7 +180,6 @@ local template2 = [[
       guarded = string.sub(source, current_position, p) == guard
       if guarded then
         current_position = p + 1
-        fs = start_position
         fp = p
         fc = string.byte(source, p)
         guard_action()
@@ -199,10 +197,6 @@ local template2 = [[
       if s == 0 then
         if current_state <= _[current_index].max_accept_state then
           current_loop = _[current_index].loop
-
-          -- TODO fretの後のfp,fcを復帰するか？
-          fs = start_position
-
           _[current_index].accept_actions[current_state]()
           if not current_byte then
             if current_index == main then
@@ -223,7 +217,6 @@ local template2 = [[
           error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error")
         end
       else
-        fs = start_position
         fp = current_position
         fc = current_byte
         if s > _[current_index].max_state then
