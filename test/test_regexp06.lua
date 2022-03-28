@@ -27,7 +27,13 @@ local S = pattern.set
 local R = pattern.range
 
 local dfa = union {
-  P"abc" * (P(1)^0 - (P(1)^0 * P"cba" * P(1)^0)) * P"cba";
+  P"--" * ((-S"\r\n")^0 - P"[" * P"="^0 * P"[" * P(1)^0) %[[skip_token()]];
+
+  P"--"
+  * (P"["/[[assign(fg,"]")]])
+  * (P"="/[[append(fg)]])^0
+  * (P"["/[[append(fg,"]") fcall(block_comment)]])
+  %[[skip_token2()]];
 }
 
 local out = assert(io.open("test-dfa.dot", "w"))

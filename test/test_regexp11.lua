@@ -20,32 +20,45 @@
 
 local compile = require "dromozoa.regexp.compile"
 local generate = require "dromozoa.regexp.generate"
+local guard = require "dromozoa.regexp.guard"
 local lexer = require "dromozoa.regexp.lexer"
 local pattern = require "dromozoa.regexp.pattern"
+local union = require "dromozoa.regexp.union"
+local write_graphviz = require "dromozoa.regexp.write_graphviz"
 
 local P = pattern.pattern
 local S = pattern.set
 local R = pattern.range
 
-local debug = tonumber(os.getenv "DROMOZOA_TEST_DEBUG")
-debug = debug and debug ~= 0
-
-local out = assert(io.open("test-gen.lua", "w"))
 local token_names = {}
-local data = generate {
+local data = {
+  escaped_decimal = union {
+    (R"09"/[[print "/ed"]])^-2 %[[print "%ed" fret()]];
+  };
+
   main = lexer(token_names, {
-    P"and";
-    P"or";
-
-    S" \t\r\n"^1 % "skip_token()";
-
-    IntegerConstant = (
-        R"09"/[[ra=fc-0x30]] * (R"09"/[[ra=ra*10+fc-0x30]])^0
-      + P"0" * (P"x"/[[ra=0]]) * (R"09"/[[ra=ra*16+fc-0x30]] + R"AF"/[[ra=ra*16+fc-0x41+10]] + R"af"/[[ra=ra*16+fc-0x61+10]])^1
-    ) % "push_token(ra)";
+    string = P[["]] *
+      ( P[[\]] *
+        ( P[[n]]/[[print "/n"]]
+        + P[[r]]/[[print "/r"]]
+        + P[[t]]/[[print "/t"]]
+        + R"09"/[[print "/ed0" fcall(escaped_decimal)]]
+        )
+      + (-S[[\"]])
+    )^0 * P[["]];
   });
 }
-compile(out, data)
+
+local out = assert(io.open("test-dfa1.dot", "w"))
+write_graphviz(out, data.escaped_decimal)
+out:close()
+
+local out = assert(io.open("test-dfa2.dot", "w"))
+write_graphviz(out, data.main)
+out:close()
+
+local out = assert(io.open("test-gen.lua", "w"))
+compile(out, generate(data))
 out:close()
 
 if debug then
@@ -55,30 +68,13 @@ if debug then
 end
 
 local regexp = assert(loadfile "test-gen.lua")()
-local tokens = regexp([[
-123 and 456 or 0xAf and
-]], "(string)")
+local tokens = regexp([["\nabc\12\tdef"]], "(string)")
 
 for i = 1, #tokens do
   local tk = tokens[i]
   if tk.symbol then
     if debug then
-      print(("%d %q %s"):format(tk.symbol, tk.source, tk.value))
+      print(("%d:%d: %d %q %s"):format(tk.line, tk.column, tk.symbol, tk.source, tk.value))
     end
   end
 end
-
-assert(tokens[1].symbol == 3)
-assert(tokens[1].value == 123)
-
-assert(tokens[3].symbol == 1)
-
-assert(tokens[5].symbol == 3)
-assert(tokens[5].value == 456)
-
-assert(tokens[7].symbol == 2)
-
-assert(tokens[9].symbol == 3)
-assert(tokens[9].value == 175)
-
-assert(tokens[11].symbol == 1)

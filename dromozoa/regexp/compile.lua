@@ -20,6 +20,7 @@ return function (source, source_name)
   local fgoto
   local fcall
   local fret
+  local clear
   local assign
   local append
   local push_token
@@ -42,12 +43,13 @@ return function (source, source_name)
 
 local template2 = [[
   local start_position = 1
-  local start_line
-  local start_column
+  local start_line = ln
+  local start_column = start_position - lp
   local current_position = start_position
   local current_byte
   local current_index = main
   local current_state = _[current_index].start_state
+  local current_loop
 
   local top = 0
   local stack = {}
@@ -59,6 +61,7 @@ local template2 = [[
     start_column = start_position - lp
     current_index = index
     current_state = _[current_index].start_state
+    current_loop = false
   end
 
   fcall = function (index)
@@ -80,21 +83,19 @@ local template2 = [[
     start_column = item.start_column
     current_index = item.current_index
     current_state = item.current_state
-
+    current_loop = false
     stack[top] = nil
     top = top - 1
   end
 
-  assign = function (buffer, data)
-    if not data then
-      buffer[1] = string.char(fc)
-    elseif type(data) == "number" then
-      buffer[1] = string.char(data)
-    else
-      buffer[1] = tostring(data)
-    end
-    buffer.n = 1
+  clear = function (buffer)
+    buffer.n = 0
     buffer.str = nil
+  end
+
+  assign = function (buffer, data)
+    clear(buffer)
+    append(buffer, data)
   end
 
   append = function (buffer, data)
@@ -111,11 +112,22 @@ local template2 = [[
   end
 
   push_token = function (value)
+    local source = string.sub(source, fs, fp)
+    if not value then
+      value = source
+    elseif type(value) == "table" then
+      local s = value.str
+      if not s then
+        s = table.concat(value, "", 1, value.n)
+        value.str = s
+      end
+      value = s
+    end
     tokens[#tokens + 1] = {
       symbol = token_symbol;
       i = fs;
       j = fp;
-      source = string.sub(source, fs, fp);
+      source = source;
       line = start_line;
       column = start_column;
       value = value;
@@ -162,11 +174,12 @@ local template2 = [[
 
       if s == 0 then
         if current_state <= _[current_index].max_accept_state then
+          current_loop = _[current_index].loop
           _[current_index].accept_actions[current_state]()
           if not current_byte then
             return tokens
           end
-          if _[current_index].loop then
+          if current_loop then
             fgoto(current_index)
           end
         else
