@@ -29,18 +29,18 @@ local P = pattern.pattern
 local S = pattern.set
 local R = pattern.range
 
-local definitions = {
+local data = {
   dfa1 = minimize(nfa_to_dfa(tree_to_nfa(P(1)^0)));
   dfa2 = minimize(nfa_to_dfa(tree_to_nfa(P(1)^0 * P"a" * P"b"^0 * P"c" * P(1)^0)));
 }
 
-for name, dfa in pairs(definitions) do
-  local out = assert(io.open(("test-%s-dfa.dot"):format(name), "w"))
+for name, dfa in pairs(data) do
+  local out = assert(io.open(("test-dfa-%s.dot"):format(name), "w"))
   write_graphviz(out, dfa)
   out:close()
 end
 
-local dfa = difference(definitions.dfa1, definitions.dfa2)
+local dfa = difference(data.dfa1, data.dfa2)
 
 local out = assert(io.open("test-dfa.dot", "w"))
 write_graphviz(out, dfa)

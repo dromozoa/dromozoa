@@ -20,7 +20,7 @@
 
 local compile = require "dromozoa.regexp.compile"
 local generate = require "dromozoa.regexp.generate"
-local loop = require "dromozoa.regexp.loop"
+local lexer = require "dromozoa.regexp.lexer"
 local pattern = require "dromozoa.regexp.pattern"
 
 local P = pattern.pattern
@@ -49,11 +49,11 @@ end
 
 local out = assert(io.open("test-gen.lua", "w"))
 compile(out, generate {
-  main = loop {
+  main = lexer({}, {
     (-S"\r\n")^0 % [[push("*",ln,lp,fs,fp,fc)]];
     ((P"\r" / [[ln=ln+1 lp=fp push("CR",ln,lp,fs,fp,fc)]]) * (P"\n" / [[lp=fp push("CRLF",ln,lp,fs,fp,fc)]])^-1)^1 % [[push("x",ln,lp,fs,fp,fc)]];
     ((P"\n" / [[ln=ln+1 lp=fp push("LF",ln,lp,fs,fp,fc)]]) * (P"\r" / [[lp=fp push("LFCR",ln,lp,fs,fp,fc)]])^-1)^1 % [[push("y",ln,lp,fs,fp,fc)]];
-  };
+  });
 })
 out:close()
 
