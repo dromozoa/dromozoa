@@ -33,7 +33,7 @@ local R = pattern.range
 local debug = tonumber(os.getenv "DROMOZOA_TEST_DEBUG")
 debug = debug and debug ~= 0
 
-local definitions = {
+local data = {
   string_literal = union {
     P[["]] / [[print "\""]] % [[fret()]];
     (R"az" / [[print "char"]])^1 % [[fgoto(string_literal)]];
@@ -65,14 +65,14 @@ local definitions = {
   });
 }
 
-for name, dfa in pairs(definitions) do
+for name, dfa in pairs(data) do
   local out = assert(io.open(("test-%s-dfa.dot"):format(name), "w"))
   write_graphviz(out, dfa)
   out:close()
 end
 
 local out = assert(io.open("test-gen.lua", "w"))
-compile(out, generate(definitions))
+compile(out, generate(data))
 out:close()
 
 local save = print

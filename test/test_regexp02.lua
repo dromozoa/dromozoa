@@ -33,7 +33,7 @@ local dfa = union {
   P"elsif" % "elseif";
   P"elseif" % "elseif";
   P"end" % "end";
-  R"AZaz" * R"09AZaz"^0 % "ID";
+  R"AZaz" * R"09AZaz"^0 % "Name";
 }
 
 local out = assert(io.open("test-dfa.dot", "w"))
