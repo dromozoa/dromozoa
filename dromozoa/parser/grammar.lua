@@ -17,17 +17,54 @@
 
 return function (symbol_names, that)
   local data = {}
-  for head, body in pairs(that) do
-    local timestamp = body[1].timestamp
-    data[#data + 1] = {
-      timestamp = timestamp;
-      item = { head = head, body = body };
-    }
+  for head, bodies in pairs(that) do
+    data[#data + 1] = { timestamp = bodies[1].timestamp, head = head, bodies = bodies }
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
-  for i = 1, #data do
-    data[i] = data[i].item
+  local max_terminal_symbol = #symbol_names
+  local symbol_table = {}
+  for i = 1, max_terminal_symbol do
+    symbol_table[symbol_names[i]] = i
   end
-  return data
+
+  for i = 1, #data do
+    local name = data[i].head
+    if symbol_table[name] then
+      error("symbol " .. name .. " is already defined")
+    end
+    local symbol = #symbol_names + 1
+    symbol_names[symbol] = name
+    symbol_table[name] = symbol
+  end
+
+  local productions = {}
+  local check_table = {}
+  for i = 1, #data do
+    local item = data[i]
+    local head = symbol_table[item.head]
+    local bodies = item.bodies
+    for j = 1, #bodies do
+      local names = bodies[j]
+      local body = {}
+      for k = 1, #names do
+        local name = names[k]
+        local symbol = symbol_table[name]
+        if not symbol then
+          error("symbol " .. name .. " is not defined")
+        end
+        body[k] = symbol
+        check_table[symbol] = true
+      end
+      productions[#productions + 1] = { head = head, body = body }
+    end
+  end
+
+  for i = 1, max_terminal_symbol do
+    if not check_table[i] then
+      error("symbol " .. symbol_names[i] .. " is not used")
+    end
+  end
+
+  return productions
 end

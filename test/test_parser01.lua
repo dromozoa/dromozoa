@@ -21,6 +21,8 @@
 local body = require "dromozoa.parser.body"
 local grammar = require "dromozoa.parser.grammar"
 
+local json = require "dromozoa.commons.json"
+
 local _ = body
 
 local symbol_names = { "+", "*", "(", ")", "id" }
@@ -40,3 +42,4 @@ local g = grammar(symbol_names, {
   };
 })
 
+print(json.encode(g, { pretty = true, stable = true }))
