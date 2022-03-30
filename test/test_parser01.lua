@@ -20,12 +20,14 @@
 
 local body = require "dromozoa.parser.body"
 local grammar = require "dromozoa.parser.grammar"
+local eliminate_left_recursions = require "dromozoa.parser.eliminate_left_recursions"
 
 local json = require "dromozoa.commons.json"
 
 local _ = body
 
 local symbol_names = { "+", "*", "(", ")", "id" }
+local max_terminal_symbol = #symbol_names
 
 local g = grammar(symbol_names, {
   E = {
@@ -43,3 +45,5 @@ local g = grammar(symbol_names, {
 })
 
 print(json.encode(g, { pretty = true, stable = true }))
+
+eliminate_left_recursions(symbol_names, max_terminal_symbol, g)

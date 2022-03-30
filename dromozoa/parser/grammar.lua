@@ -38,6 +38,8 @@ return function (symbol_names, that)
     symbol_table[name] = symbol
   end
 
+  -- TODO 開始シンボルの扱いを考える
+
   local productions = {}
   local check_table = {}
   for i = 1, #data do
