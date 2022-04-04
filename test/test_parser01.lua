@@ -46,4 +46,4 @@ local g = grammar(symbol_names, {
 
 print(json.encode(g, { pretty = true, stable = true }))
 
-eliminate_left_recursions(symbol_names, max_terminal_symbol, g)
+-- eliminate_left_recursions(symbol_names, max_terminal_symbol, g)

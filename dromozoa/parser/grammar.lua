@@ -16,15 +16,19 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 return function (symbol_names, that)
+  local max_terminal_symbol = #symbol_names
+
   local data = {}
   for head, bodies in pairs(that) do
     data[#data + 1] = { timestamp = bodies[1].timestamp, head = head, bodies = bodies }
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
-  local max_terminal_symbol = #symbol_names
+  local start_name = data[1].head
+  symbol_names[#symbol_names + 1] = start_name .. "'"
+
   local symbol_table = {}
-  for i = 1, max_terminal_symbol do
+  for i = 1, #symbol_names do
     symbol_table[symbol_names[i]] = i
   end
 
@@ -38,10 +42,17 @@ return function (symbol_names, that)
     symbol_table[name] = symbol
   end
 
-  -- TODO 開始シンボルの扱いを考える
+  local productions = {
+    {
+      head = max_terminal_symbol + 1;
+      body = { symbol_table[start_name] };
+    };
+  }
 
-  local productions = {}
-  local check_table = {}
+  local check_table = {
+    [max_terminal_symbol + 1] = true
+  }
+
   for i = 1, #data do
     local item = data[i]
     local head = symbol_table[item.head]
@@ -62,7 +73,7 @@ return function (symbol_names, that)
     end
   end
 
-  for i = 1, max_terminal_symbol do
+  for i = 1, #symbol_names do
     if not check_table[i] then
       error("symbol " .. symbol_names[i] .. " is not used")
     end
