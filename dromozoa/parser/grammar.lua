@@ -18,19 +18,23 @@
 return function (symbol_names, that)
   local max_terminal_symbol = #symbol_names
 
-  local data = {}
+  local symbol_table = {}
+  for i = 1, #symbol_names do
+    symbol_table[symbol_names[i]] = i
+  end
+
+  -- argumented start symbolのためにplaceholderを用意する
+  local data = { { timestamp = 0 } }
   for head, bodies in pairs(that) do
     data[#data + 1] = { timestamp = bodies[1].timestamp, head = head, bodies = bodies }
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
-  local start_name = data[1].head
-  symbol_names[#symbol_names + 1] = start_name .. "'"
-
-  local symbol_table = {}
-  for i = 1, #symbol_names do
-    symbol_table[symbol_names[i]] = i
-  end
+  -- argumented start symbolを設定する
+  local start_name = data[2].head
+  local argumented_start = data[1]
+  argumented_start.head = start_name .. "'"
+  argumented_start.bodies = { { start_name } }
 
   for i = 1, #data do
     local name = data[i].head
@@ -42,17 +46,8 @@ return function (symbol_names, that)
     symbol_table[name] = symbol
   end
 
-  local productions = {
-    {
-      head = max_terminal_symbol + 1;
-      body = { symbol_table[start_name] };
-    };
-  }
-
-  local check_table = {
-    [max_terminal_symbol + 1] = true
-  }
-
+  local productions = {}
+  local check_table = {}
   for i = 1, #data do
     local item = data[i]
     local head = symbol_table[item.head]
@@ -73,7 +68,7 @@ return function (symbol_names, that)
     end
   end
 
-  for i = 1, #symbol_names do
+  for i = 1, max_terminal_symbol do
     if not check_table[i] then
       error("symbol " .. symbol_names[i] .. " is not used")
     end
