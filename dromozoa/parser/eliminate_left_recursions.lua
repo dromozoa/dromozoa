@@ -30,8 +30,16 @@ local function construct_map_of_production_indices(productions)
   return map_of_production_indices
 end
 
-local function move(a1, f, e, t, a2)
-  return table.move(a1, f, e, t, a2)
+local function copy(this, that, i)
+  for i = i or 1, #that do
+    this[#this + 1] = that[i]
+  end
+  return this
+end
+
+local function push(this, that)
+  this[#this + 1] = that
+  return this
 end
 
 return function (symbol_names, max_terminal_symbol, productions)
@@ -57,9 +65,7 @@ return function (symbol_names, max_terminal_symbol, productions)
       if symbol and symbol > max_terminal_symbol and symbol < i then
         local productions = map_of_productions[symbol]
         for k = 1, #productions do
-          local src_body = productions[k].body
-          local new_body = move(src_body, 1, #src_body, 1, {})
-          move(body, 2, #body, #new_body + 1, new_body)
+          local new_body = copy(copy({}, productions[k].body), body, 2)
           if i == new_body[1] then
             left_recursions[#left_recursions + 1] = { head = i, body = new_body }
           else
@@ -81,20 +87,14 @@ return function (symbol_names, max_terminal_symbol, productions)
 
       local productions = {}
       for j = 1, #left_recursions do
-        local src_body = left_recursions[j].body
-        local new_body = move(src_body, 2, #src_body, 1, {})
-        new_body[#new_body + 1] = n
-        productions[#productions + 1] = { head = n, body = new_body }
+        productions[#productions + 1] = { head = n, body = push(copy({}, left_recursions[j].body, 2), n) }
       end
       productions[#productions + 1] = { head = n, body = {} }
       map_of_productions[n] = productions
 
       local productions = {}
       for j = 1, #no_left_recursions do
-        local src_body = no_left_recursions[j].body
-        local new_body = move(src_body, 1, #src_body, 1, {})
-        new_body[#new_body + 1] = n
-        productions[#productions + 1] = { head = i, body = new_body }
+        productions[#productions + 1] = { head = i, body = push(copy({}, no_left_recursions[j].body), n) }
       end
       map_of_productions[i] = productions
     else
