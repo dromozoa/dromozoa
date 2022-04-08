@@ -30,20 +30,23 @@ local function construct_map_of_production_indices(productions)
   return map_of_production_indices
 end
 
+local function move(a1, f, e, t, a2)
+  return table.move(a1, f, e, t, a2)
+end
+
 return function (symbol_names, max_terminal_symbol, productions)
-  local map_of_production_indices = construct_map_of_production_indices(productions)
-  local min_nonterminal_symbol = max_terminal_symbol + 1
-  local max_nonterminal_symbol = #symbol_names
+  local m = max_terminal_symbol + 1
+  local n = #symbol_names
 
   local new_symbol_names = {}
-  for i = 1, max_nonterminal_symbol do
+  for i = 1, n do
     new_symbol_names[i] = symbol_names[i]
   end
 
+  local map_of_production_indices = construct_map_of_production_indices(productions)
   local map_of_productions = {}
-  local n = max_nonterminal_symbol
 
-  for i = min_nonterminal_symbol, max_nonterminal_symbol do
+  for i = m, n do
     local left_recursions = {}
     local no_left_recursions = {}
 
@@ -55,13 +58,8 @@ return function (symbol_names, max_terminal_symbol, productions)
         local productions = map_of_productions[symbol]
         for k = 1, #productions do
           local src_body = productions[k].body
-          local new_body = {}
-          for l = 1, #src_body do
-            new_body[l] = src_body[l]
-          end
-          for l = 2, #body do
-            new_body[#new_body + 1] = body[l]
-          end
+          local new_body = move(src_body, 1, #src_body, 1, {})
+          move(body, 2, #body, #new_body + 1, new_body)
           if i == new_body[1] then
             left_recursions[#left_recursions + 1] = { head = i, body = new_body }
           else
@@ -84,10 +82,7 @@ return function (symbol_names, max_terminal_symbol, productions)
       local productions = {}
       for j = 1, #left_recursions do
         local src_body = left_recursions[j].body
-        local new_body = {}
-        for k = 2, #src_body do
-          new_body[#new_body + 1] = src_body[k]
-        end
+        local new_body = move(src_body, 2, #src_body, 1, {})
         new_body[#new_body + 1] = n
         productions[#productions + 1] = { head = n, body = new_body }
       end
@@ -97,10 +92,7 @@ return function (symbol_names, max_terminal_symbol, productions)
       local productions = {}
       for j = 1, #no_left_recursions do
         local src_body = no_left_recursions[j].body
-        local new_body = {}
-        for k = 1, #src_body do
-          new_body[k] = src_body[k]
-        end
+        local new_body = move(src_body, 1, #src_body, 1, {})
         new_body[#new_body + 1] = n
         productions[#productions + 1] = { head = i, body = new_body }
       end
@@ -111,7 +103,7 @@ return function (symbol_names, max_terminal_symbol, productions)
   end
 
   local new_productions = {}
-  for i = min_nonterminal_symbol, n do
+  for i = m, n do
     local productions = map_of_productions[i]
     for j = 1, #productions do
       new_productions[#new_productions + 1] = productions[j]
