@@ -36,7 +36,9 @@ return function (symbol_names, that)
   argumented_start.head = start_name .. "'"
   argumented_start.bodies = { { start_name } }
 
-  for i = 1, #data do
+  local n = #data
+
+  for i = 1, n do
     local name = data[i].head
     if symbol_table[name] then
       error("symbol " .. name .. " is already defined")
@@ -48,7 +50,7 @@ return function (symbol_names, that)
 
   local productions = {}
   local check_table = {}
-  for i = 1, #data do
+  for i = 1, n do
     local item = data[i]
     local head = symbol_table[item.head]
     local bodies = item.bodies

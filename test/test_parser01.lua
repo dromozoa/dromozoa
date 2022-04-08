@@ -26,24 +26,31 @@ local json = require "dromozoa.commons.json"
 
 local _ = body
 
-local symbol_names = { "+", "*", "(", ")", "id" }
+local symbol_names = { "a", "b", "c", "d" }
 local max_terminal_symbol = #symbol_names
 
-local g = grammar(symbol_names, {
-  E = {
-    _"E" "+" "T";
-    _"T";
+local productions = grammar(symbol_names, {
+  S = {
+    _"A" "a";
+    _"b";
   };
-  T = {
-    _"T" "*" "F";
-    _"F";
-  };
-  F = {
-    _"(" "E" ")";
-    _"id";
+  A = {
+    _"A" "c";
+    _"S" "d";
+    _();
   };
 })
 
-print(json.encode(g, { pretty = true, stable = true }))
+symbol_names, productions = eliminate_left_recursions(symbol_names, max_terminal_symbol, productions)
+for i = 1, #productions do
+  local production = productions[i]
+  io.write(symbol_names[production.head], " ->")
+  local body = production.body
+  for j = 1, #body do
+    io.write(" ", symbol_names[body[j]])
+  end
+  io.write "\n"
+end
 
--- eliminate_left_recursions(symbol_names, max_terminal_symbol, g)
+-- print(json.encode(productions, { pretty = true, stable = true }))
+
