@@ -209,7 +209,7 @@ local template2 = [[
             fgoto(current_index)
           end
         else
-          error_message = "regexpe error"
+          error_message = "regexp error"
         end
         if error_message then
           if not source_name then
