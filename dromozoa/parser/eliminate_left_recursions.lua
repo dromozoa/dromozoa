@@ -15,23 +15,23 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local function construct_map_of_production_ids(productions)
-  local map_of_production_ids = {}
+local function construct_map_of_production_indices(productions)
+  local map_of_production_indices = {}
   for i = 1, #productions do
     local production = productions[i]
     local head = production.head
-    local production_ids = map_of_production_ids[head]
-    if production_ids then
-      production_ids[#production_ids + 1] = i
+    local production_indices = map_of_production_indices[head]
+    if production_indices then
+      production_indices[#production_indices + 1] = i
     else
-      map_of_production_ids[head] = { i }
+      map_of_production_indices[head] = { i }
     end
   end
-  return map_of_production_ids
+  return map_of_production_indices
 end
 
 return function (symbol_names, max_terminal_symbol, productions)
-  local map_of_production_ids = construct_map_of_production_ids(productions)
+  local map_of_production_indices = construct_map_of_production_indices(productions)
   local min_nonterminal_symbol = max_terminal_symbol + 1
   local max_nonterminal_symbol = #symbol_names
 
@@ -47,9 +47,9 @@ return function (symbol_names, max_terminal_symbol, productions)
     local left_recursions = {}
     local no_left_recursions = {}
 
-    local production_ids = map_of_production_ids[i]
-    for j = 1, #production_ids do
-      local body = productions[production_ids[j]].body
+    local production_indices = map_of_production_indices[i]
+    for j = 1, #production_indices do
+      local body = productions[production_indices[j]].body
       local symbol = body[1]
       if symbol and symbol > max_terminal_symbol and symbol < i then
         local productions = map_of_productions[symbol]
@@ -77,7 +77,7 @@ return function (symbol_names, max_terminal_symbol, productions)
       end
     end
 
-    if left_recursions[1] then
+    if next(left_recursions) then
       n = n + 1
       new_symbol_names[n] = symbol_names[i] .. "'"
 
