@@ -21,10 +21,10 @@ local function construct_map_of_production_indices(productions)
     local production = productions[i]
     local head = production.head
     local production_indices = map_of_production_indices[head]
-    if production_indices then
-      production_indices[#production_indices + 1] = i
-    else
+    if not production_indices then
       map_of_production_indices[head] = { i }
+    else
+      production_indices[#production_indices + 1] = i
     end
   end
   return map_of_production_indices
