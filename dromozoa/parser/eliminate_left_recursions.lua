@@ -31,8 +31,10 @@ local function construct_map_of_production_indices(productions)
 end
 
 local function copy(this, that, i)
+  local n = #this
   for i = i or 1, #that do
-    this[#this + 1] = that[i]
+    n = n + 1
+    this[n] = that[i]
   end
   return this
 end
@@ -46,11 +48,7 @@ return function (symbol_names, max_terminal_symbol, productions)
   local m = max_terminal_symbol + 1
   local n = #symbol_names
 
-  local new_symbol_names = {}
-  for i = 1, n do
-    new_symbol_names[i] = symbol_names[i]
-  end
-
+  local new_symbol_names = copy({}, symbol_names)
   local map_of_production_indices = construct_map_of_production_indices(productions)
   local map_of_productions = {}
 
@@ -104,10 +102,7 @@ return function (symbol_names, max_terminal_symbol, productions)
 
   local new_productions = {}
   for i = m, n do
-    local productions = map_of_productions[i]
-    for j = 1, #productions do
-      new_productions[#new_productions + 1] = productions[j]
-    end
+    copy(new_productions, map_of_productions[i])
   end
 
   return new_symbol_names, new_productions
