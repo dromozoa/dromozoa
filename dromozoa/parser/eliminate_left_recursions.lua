@@ -65,11 +65,11 @@ return function (symbol_names, max_terminal_symbol, productions)
       if symbol and symbol > max_terminal_symbol and symbol < i then
         local productions = map_of_productions[symbol]
         for k = 1, #productions do
-          local new_body = copy(copy({}, productions[k].body), body, 2)
-          if i == new_body[1] then
-            left_recursions[#left_recursions + 1] = { head = i, body = new_body }
+          local body = copy(copy({}, productions[k].body), body, 2)
+          if i == body[1] then
+            left_recursions[#left_recursions + 1] = { head = i, body = body }
           else
-            no_left_recursions[#no_left_recursions + 1] = { head = i, body = new_body }
+            no_left_recursions[#no_left_recursions + 1] = { head = i, body = body }
           end
         end
       else
