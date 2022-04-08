@@ -22,7 +22,8 @@ local body = require "dromozoa.parser.body"
 local grammar = require "dromozoa.parser.grammar"
 local eliminate_left_recursions = require "dromozoa.parser.eliminate_left_recursions"
 
-local json = require "dromozoa.commons.json"
+local debug = tonumber(os.getenv "DROMOZOA_TEST_DEBUG")
+debug = debug and debug ~= 0
 
 local _ = body
 
@@ -41,16 +42,32 @@ local productions = grammar(symbol_names, {
   };
 })
 
+local buffer = {}
+
 symbol_names, productions = eliminate_left_recursions(symbol_names, max_terminal_symbol, productions)
 for i = 1, #productions do
   local production = productions[i]
-  io.write(symbol_names[production.head], " ->")
+  buffer[#buffer + 1] = symbol_names[production.head]
+  buffer[#buffer + 1] = " ->"
   local body = production.body
   for j = 1, #body do
-    io.write(" ", symbol_names[body[j]])
+    buffer[#buffer + 1] = " "
+    buffer[#buffer + 1] = symbol_names[body[j]]
   end
-  io.write "\n"
+  buffer[#buffer + 1] = "\n"
 end
 
--- print(json.encode(productions, { pretty = true, stable = true }))
+if debug then
+  io.write(table.concat(buffer))
+end
 
+assert(table.concat(buffer) == [[
+S' -> S
+S -> A a
+S -> b
+A -> b d A'
+A -> A'
+A' -> c A'
+A' -> a d A'
+A' ->
+]])
