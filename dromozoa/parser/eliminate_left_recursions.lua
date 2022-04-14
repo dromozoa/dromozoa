@@ -15,20 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local function construct_map_of_production_indices(productions)
-  local map_of_production_indices = {}
-  for i = 1, #productions do
-    local production = productions[i]
-    local head = production.head
-    local production_indices = map_of_production_indices[head]
-    if not production_indices then
-      map_of_production_indices[head] = { i }
-    else
-      production_indices[#production_indices + 1] = i
-    end
-  end
-  return map_of_production_indices
-end
+local construct_map_of_production_indices = require "dromozoa.parser.construct_map_of_production_indices"
 
 local function copy(this, that, i)
   local n = #this
