@@ -21,26 +21,44 @@
 local body = require "dromozoa.parser.body"
 local eliminate_left_recursions = require "dromozoa.parser.eliminate_left_recursions"
 local grammar = require "dromozoa.parser.grammar"
+local lr0_items = require "dromozoa.parser.lr0_items"
 
 local debug = tonumber(os.getenv "DROMOZOA_TEST_DEBUG")
 debug = debug and debug ~= 0
 
 local _ = body
 
--- P.213 Equation 4.18
-
-local symbol_names = { "a", "b", "c", "d" }
+local symbol_names = { "+", "*", "(", ")", "id" }
 local max_terminal_symbol = #symbol_names
 
+--[[
+_"E"
+  :_ "E" "+" "T"
+  :_ "T"
+_"T"
+  :_ "T" "*" "F"
+  :_ "F"
+_"F"
+  :_ "(" "E" ")"
+  :_ "id"
+
+
+
+]]
+
 local productions = grammar(symbol_names, {
-  S = {
-    _"A" "a";
-    _"b";
+  S = { _"E" };
+  E = {
+    _"E" "+" "T";
+    _"T";
   };
-  A = {
-    _"A" "c";
-    _"S" "d";
-    _();
+  T = {
+    _"T" "*" "F";
+    _"F";
+  };
+  F = {
+    _"(" "E" ")";
+    _"id"
   };
 })
 
@@ -63,13 +81,13 @@ if debug then
   io.write(table.concat(buffer))
 end
 
-assert(table.concat(buffer) == [[
-S' -> S
-S -> A a
-S -> b
-A -> b d A'
-A -> A'
-A' -> c A'
-A' -> a d A'
-A' ->
-]])
+-- assert(table.concat(buffer) == [[
+-- S' -> S
+-- S -> A a
+-- S -> b
+-- A -> b d A'
+-- A -> A'
+-- A' -> c A'
+-- A' -> a d A'
+-- A' ->
+-- ]])
