@@ -27,5 +27,5 @@ end
 
 return function (that)
   timestamp = timestamp + 1
-  return setmetatable({ timestamp = timestamp, that}, metatable)
+  return setmetatable({ timestamp = timestamp, that }, metatable)
 end
