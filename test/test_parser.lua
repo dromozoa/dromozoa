@@ -22,9 +22,6 @@
 
 
   lr0_items()
-    
-
-
 
   lalr1_items()
     set_of_items, transitions = lr0_items()
@@ -64,7 +61,131 @@
 
   productionsは、リスト構造と、headでの検索を行いたい
 
+  symbol
+    1 .. max_terminal_symbol    terminal_symbol
+    max_terminal_symbol+1 .. #  nonterminal_symbol
+
+  symbol_names = {...}
+  1: min_terminal_symbol = 1
+  m: max_terminal_symbol
+     min_nonterminal_symbol = max_terminal_symbol + 1
+  n: max_nonterminal_symbol = #
+
+
+  grammar {
+    procutions;
+    max_terminal_symbols = 0;
+  }
+
 ]]
+
+local module = {}
+
+local class = {}
+local metatable = { __index = class, __name = "dromozoa.parser.productions" }
+
+function class:add(head, body)
+  self[#self + 1] = { head = head, body = body }
+  return self
+end
+
+function class:each_by_head(symbol)
+  return function (self, index)
+    index = index or 0
+    for i = index + 1, #self do
+      local production = self[i]
+      local head = production.head
+
+      if head == symbol then
+        return i, head, production.body
+      end
+    end
+  end, self
+end
+
+module.productions = setmetatable(class, {
+  __call = function ()
+    return setmetatable({}, metatable)
+  end;
+})
+
+local class = {}
+local metatable = { __index = class, __name = "dromozoa.parser.items" }
+
+function class:add(index, dot)
+  self[#self + 1] = { index = index, dot = dot }
+  return self
+end
+
+module.items = setmetatable(class, {
+  __call = function ()
+    return setmetatable({}, metatable)
+  end;
+})
+
+local function lr0_closure(grammar, items)
+  local productions = grammar.productions
+  local max_terminal_symbol = grammar.max_terminal_symbol
+
+  local added = {}
+  local m = 1
+  while true do
+    local n = #items
+    if m > n then
+      break
+    end
+    for i = m, n do
+      local item = items[i]
+      local symbol = productions[item.index].body[item.dot]
+      if symbol and symbol > max_terminal_symbol and not added[symbol] then
+        for j in productions:each_by_head(symbol) do
+          items:add(j, 1)
+        end
+        added[symbol] = true
+      end
+    end
+    m = n + 1
+  end
+end
+
+local function lr0_items(grammar)
+  local start_items = module.items():add(1, 1)
+end
+
+local symbol_names = { "+", "*", "(", ")", "id" }
+local max_terminal_symbol = #symbol_names
+symbol_names[#symbol_names + 1] = "E'"
+symbol_names[#symbol_names + 1] = "E"
+symbol_names[#symbol_names + 1] = "T"
+symbol_names[#symbol_names + 1] = "F"
+
+local symbol_map = {}
+
+for symbol, name in ipairs(symbol_names) do
+  symbol_map[name] = symbol
+end
+
+local function _(name)
+  return assert(symbol_map[name])
+end
+
+local productions = module.productions()
+  :add(_"E'", { _"E" })
+  :add(_"E", { _"E", _"+", _"T" })
+  :add(_"E", { _"T" })
+  :add(_"T", { _"T", _"*", _"F" })
+  :add(_"T", { _"F" })
+  :add(_"F", { _"(", _"E", _")" })
+  :add(_"F", { _"id" })
+
+local grammar = {
+  productions = productions;
+  max_terminal_symbol = max_terminal_symbol;
+}
+
+local items = module.items()
+  :add(1, 1)
+lr0_closure(grammar, items)
 
 local module = {}
 
@@ -81,7 +202,7 @@ do
   end
 
   module.production = setmetatable(class, {
-      __call = function (_, ...) return new(...) end;
+    __call = function (_, ...) return new(...) end;
   })
 end
 
@@ -112,7 +233,7 @@ do
   end
 
   module.productions = setmetatable(class, {
-      __call = function (_, ...) return new(...) end;
+    __call = function (_, ...) return new(...) end;
   })
 end
 
@@ -142,14 +263,10 @@ do
   })
 end
 
-local productions = module.productions()
-productions:add("A", {"b", "c"})
-productions:add("B", {"c", "d"})
-productions:add("A", {"c", "d"})
-
-for index, production in productions:each_by_head "B" do
-  print(index, production)
-end
+-- local productions = module.productions()
+-- productions:add("A", {"b", "c"})
+-- productions:add("B", {"c", "d"})
+-- productions:add("A", {"c", "d"})
 
 
 -- P.246
