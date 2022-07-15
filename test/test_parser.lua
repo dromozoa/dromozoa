@@ -148,9 +148,74 @@ local function lr0_closure(grammar, items)
   end
 end
 
+-- キーにひもづけられた値がなければ、テーブルを作成して設定する
+-- キーにひもづけられた値を返す
+
+-- キーにひもづけられた値がなければ、コンストラクタを実行して設定する
+-- キーにひもづけられた値を返す
+
+local function optional_get(t, k, fn, ...)
+  local v = t[k]
+  if v == nil then
+    if fn == nil then
+      v = {}
+    else
+      v = fn(...)
+    end
+    t[k] = v
+  end
+  return v
+end
+
+-- get, access, opt
+-- optional
+-- conditional
+
+local t = {}
+optional_get(t, 1, module.items):add(17, 17)
+optional_get(t, 2, module.items):add(42, 42)
+optional_get(t, 1, module.items):add(23, 23)
+
+print(t[1][1].index, t[1][2].index, t[2][1].index)
+
+--[[
 local function lr0_items(grammar)
   local start_items = module.items():add(1, 1)
+  lr0_closure(grammar, start_items)
+
+  local set_of_items = { start_items }
+  local transitions = {}
+
+  local m = 1
+  while true do
+    local n = #set_of_items
+    if m > n then
+      break
+    end
+    for i = m, n do
+      local items = set_of_items[i]
+      -- local transition = transitions[i]
+      -- if not transition then
+      --   transition = {}
+      --   transitions[i] = transition
+      -- end
+      -- local gotos = self:lr0_goto(set_of_items[i])
+
+      for symbol in () do
+        if lr0_goto(items, symbol) is_not_empty and not_in(set_of_items) then
+          set_of_items:add(lr0_goto(items, symbol))
+        end
+      end
+
+
+
+
+    end
+    m = n + 1
+  end
+
 end
+]]
 
 local symbol_names = { "+", "*", "(", ")", "id" }
 local max_terminal_symbol = #symbol_names
