@@ -28,26 +28,12 @@ debug = debug and debug ~= 0
 
 local _ = body
 
+-- P.244 Figure 4.31
+
 local symbol_names = { "+", "*", "(", ")", "id" }
 local max_terminal_symbol = #symbol_names
 
---[[
-_"E"
-  :_ "E" "+" "T"
-  :_ "T"
-_"T"
-  :_ "T" "*" "F"
-  :_ "F"
-_"F"
-  :_ "(" "E" ")"
-  :_ "id"
-
-
-
-]]
-
 local productions = grammar(symbol_names, {
-  S = { _"E" };
   E = {
     _"E" "+" "T";
     _"T";
@@ -58,13 +44,13 @@ local productions = grammar(symbol_names, {
   };
   F = {
     _"(" "E" ")";
-    _"id"
+    _"id";
   };
 })
 
 local buffer = {}
 
-symbol_names, productions = eliminate_left_recursions(symbol_names, max_terminal_symbol, productions)
+-- symbol_names, productions = eliminate_left_recursions(symbol_names, max_terminal_symbol, productions)
 for i = 1, #productions do
   local production = productions[i]
   buffer[#buffer + 1] = symbol_names[production.head]
@@ -81,13 +67,64 @@ if debug then
   io.write(table.concat(buffer))
 end
 
--- assert(table.concat(buffer) == [[
--- S' -> S
--- S -> A a
--- S -> b
--- A -> b d A'
--- A -> A'
--- A' -> c A'
--- A' -> a d A'
--- A' ->
--- ]])
+local set_of_items, transitions = lr0_items(max_terminal_symbol, productions)
+
+--[====[
+  local symbol_names = self.symbol_names
+  local productions = self.productions
+  for i = 1, #set_of_items do
+    local items = set_of_items[i]
+    out:write("======== I", i, " ==========\n")
+    for j = 1, #items do
+      local item = items[j]
+      local production = productions[item.id]
+      local body = production.body
+      local dot = item.dot
+      local la = item.la
+      out:write(symbol_names[production.head], " ", TO)
+      for k = 1, #body do
+        if k == dot then
+          out:write(" ", DOT)
+        end
+        out:write(" ", symbol_names[body[k]])
+      end
+      if dot == #body + 1 then
+        out:write(" ", DOT)
+      end
+      if la then
+        out:write(", ", symbol_names[la])
+      end
+      out:write "\n"
+    end
+  end
+  return out
+
+]====]
+
+print("!!!", #set_of_items)
+
+if debug then
+  local out = io.stdout
+  for i = 1, #set_of_items do
+    local items = set_of_items[i]
+    out:write("========== I", i, " ==========\n")
+    for j = 1, #items do
+      local item = items[j]
+      local production = productions[item.index]
+      local body = production.body
+      local dot = item.dot
+      out:write(symbol_names[production.head], " →")
+      for k = 1, #body do
+        if k == dot then
+          out:write " ・"
+        end
+        out:write(" ", symbol_names[body[k]])
+      end
+      if dot == #body + 1 then
+        out:write " ・"
+      end
+      out:write "\n"
+    end
+  end
+end
+
