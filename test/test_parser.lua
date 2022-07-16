@@ -120,40 +120,14 @@ module.set = setmetatable(class, {
 
 ---------------------------------------------------------------------------
 
-local private = setmetatable({}, { __mode = "k" })
-local class = {}
-local metatable = { __index = class, __name = "dromozoa.parser.map" }
-
-function class:each()
-  local priv = private[self]
-  return coroutine.wrap(function ()
-    for i = 1, #priv do
-      local k = priv[i]
-      coroutine.yield(k, self[k])
-    end
-  end), self
-end
-
--- 削除は考慮していない
-function metatable:__newindex(k, v)
-  local priv = private[self]
-  priv[#priv + 1] = k
-  rawset(self, k, v)
-end
-
-module.map = setmetatable(class, {
-  __call = function ()
-    local self = setmetatable({}, metatable)
-    private[self] = {}
-    return self
-  end;
-})
-
----------------------------------------------------------------------------
+-- constructor_chain
+-- map(map(items))
+-- map(function () return map(items) end)
+-- map()
 
 local private = setmetatable({}, { __mode = "k" })
 local class = {}
-local metatable = { __index = class, __name = "dromozoa.parser.optional_map" }
+local metatable = { __name = "dromozoa.parser.optional_map" }
 
 function class:each()
   local priv = private[self]
@@ -166,6 +140,11 @@ function class:each()
 end
 
 function metatable:__index(k)
+  local v = class[k]
+  if v ~= nil then
+    return v
+  end
+
   local priv = private[self]
   local v = priv.constructor()
   priv[#priv + 1] = k
@@ -206,29 +185,6 @@ module.list = setmetatable(class, {
 
 ---------------------------------------------------------------------------
 
--- キーにひもづけられた値がなければ、テーブルを作成して設定する
--- キーにひもづけられた値を返す
-
--- キーにひもづけられた値がなければ、コンストラクタを実行して設定する
--- キーにひもづけられた値を返す
-
--- optional_mapのほうがわかりやすいか
-
-local function optional_get(t, k, fn, ...)
-  local v = t[k]
-  if v == nil then
-    if fn == nil then
-      v = {}
-    else
-      v = fn(...)
-    end
-    t[k] = v
-  end
-  return v
-end
-
----------------------------------------------------------------------------
-
 local function eliminate_left_recursion(grammar, symbol_names)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
@@ -239,7 +195,7 @@ local function eliminate_left_recursion(grammar, symbol_names)
     new_symbol_names:add(symbol_name)
   end
 
-  local map_of_productions = module.map()
+  local map_of_productions = module.optional_map()
 
   for i = max_terminal_symbol + 1, max_nonterminal_symbol do
     local left_recursions = module.productions()
@@ -393,14 +349,14 @@ end
 local function lr0_goto(grammar, items)
   local productions = grammar.productions
 
-  local map_of_to_items = module.map()
+  local map_of_to_items = module.optional_map(module.items)
 
   for _, item in ipairs(items) do
     local index = item.index
     local dot = item.dot
     local symbol = productions[index].body[dot]
     if symbol then
-      optional_get(map_of_to_items, symbol, module.items):add(index, dot + 1)
+      map_of_to_items[symbol]:add(index, dot + 1)
     end
   end
 
@@ -517,13 +473,13 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
   -- カーネル項の抽出
   for i, items in ipairs(set_of_items) do
     local kernel_items = module.items()
-    local kernel_table = {}
+    local kernel_table = module.optional_map()
     for j, item in ipairs(items) do
       local index = item.index
       local dot = item.dot
       if index == 1 or dot > 1 then
         -- カーネル項の生成規則ごとに、dotごとに項の参照をつくる
-        optional_get(kernel_table, index)[dot] = j
+        kernel_table[index][dot] = j
       end
       if index == 1 and dot == 1 then
         kernel_items:add(index, dot, { true }) -- la = { [marker_end] = true }
