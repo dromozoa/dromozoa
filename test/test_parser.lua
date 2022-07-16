@@ -75,6 +75,32 @@
 
 local module = {}
 
+---------------------------------------------------------------------------
+
+local function equal(a, b)
+  if rawequal(a, b) then
+    return true
+  end
+  if type(a) == "table" and type(b) == "table" then
+    for k, u in pairs(a) do
+      if not equal(u, b[k]) then
+        return false
+      end
+    end
+    for k in pairs(b) do
+      if a[k] == nil then
+        return false
+      end
+    end
+    return true
+  end
+  return false
+end
+
+module.equal = equal
+
+---------------------------------------------------------------------------
+
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.productions" }
 
@@ -103,8 +129,10 @@ module.productions = setmetatable(class, {
   end;
 })
 
+---------------------------------------------------------------------------
+
 local class = {}
-local metatable = { __index = class, __name = "dromozoa.parser.items" }
+local metatable = { __index = class, __name = "dromozoa.parser.items", __eq = module.equal }
 
 function class:add(index, dot)
   self[#self + 1] = { index = index, dot = dot }
@@ -116,6 +144,34 @@ module.items = setmetatable(class, {
     return setmetatable({}, metatable)
   end;
 })
+
+---------------------------------------------------------------------------
+
+local class = {}
+local metatable = { __index = class, __name = "dromozoa.parser.set" }
+
+function class:find(v)
+  for i, u in ipairs(self) do
+    if u == v then
+      return i, u
+    end
+  end
+end
+
+function class:add(v)
+  assert(not self:find(v))
+  local n = #self + 1
+  self[n] = v
+  return n
+end
+
+module.set = setmetatable(class, {
+  __call = function ()
+    return setmetatable({}, metatable)
+  end;
+})
+
+---------------------------------------------------------------------------
 
 local private = setmetatable({}, { __mode = "k" })
 local class = {}
@@ -145,6 +201,8 @@ module.map = setmetatable(class, {
   end;
 })
 
+---------------------------------------------------------------------------
+
 local function optional_get(t, k, fn, ...)
   local v = t[k]
   if v == nil then
@@ -157,6 +215,8 @@ local function optional_get(t, k, fn, ...)
   end
   return v
 end
+
+---------------------------------------------------------------------------
 
 -- P.246
 local function lr0_closure(grammar, items)
@@ -184,40 +244,6 @@ local function lr0_closure(grammar, items)
   end
 end
 
---[[
-function class:lr0_goto(items)
-  local productions = self.productions
-  local symbols = {}
-  local map_of_to_items = {}
-  for i = 1, #items do
-    local item = items[i]
-    local id = item.id
-    local dot = item.dot
-    local symbol = productions[id].body[dot]
-    if symbol then
-      local to_items = map_of_to_items[symbol]
-      if to_items then
-        to_items[#to_items + 1] = { id = id, dot = dot + 1 }
-      else
-        symbols[#symbols + 1] = symbol
-        map_of_to_items[symbol] = { { id = id, dot = dot + 1 } }
-      end
-    end
-  end
-  local gotos = {}
-  for i = 1, #symbols do
-    local symbol = symbols[i]
-    local to_items = map_of_to_items[symbol]
-    self:lr0_closure(to_items)
-    gotos[#gotos + 1] = {
-      symbol = symbol;
-      to_items = to_items;
-    }
-  end
-  return gotos
-end
-]]
-
 -- goto結果を直接addしてもよいのでは？
 local function lr0_goto(grammar, items)
   local productions = grammar.productions
@@ -242,12 +268,13 @@ local function lr0_goto(grammar, items)
   return gotos
 end
 
---[[
-function class:lr0_items()
-  local start_items = { { id = 1, dot = 1 } }
-  self:lr0_closure(start_items)
-  local set_of_items = { start_items }
+local function lr0_items(grammar)
+  local start_items = module.items():add(1, 1)
+  lr0_closure(grammar, start_items)
+  local set_of_items = module.set()
+  set_of_items:add(start_items)
   local transitions = {}
+
   local m = 1
   while true do
     local n = #set_of_items
@@ -255,40 +282,22 @@ function class:lr0_items()
       break
     end
     for i = m, n do
-      local transition = transitions[i]
-      if not transition then
-        transition = {}
-        transitions[i] = transition
-      end
-      local gotos = self:lr0_goto(set_of_items[i])
-      for j = 1, #gotos do
-        local data = gotos[j]
+      local gotos = lr0_goto(grammar, set_of_items[i])
+      assert(transitions[i] == nil)
+      local transition = optional_get(transitions, i)
+      for _, data in ipairs(gotos) do
         local to_items = data.to_items
-        -- to_itemsが空でなければ / to_itemsは空になりえる？
-        -- 教科書の条件式に由来
-        if to_items[1] then
-          local to
-          -- set_of_itemsをscanして、to_itemsと同じものがないか探す
-          for k = 1, #set_of_items do
-            if equal(to_items, set_of_items[k]) then
-              to = k
-              break
-            end
-          end
-          -- set_of_itemsに含まれていなければ追加
-          if not to then
-            to = #set_of_items + 1
-            set_of_items[to] = to_items
-          end
-          transition[data.symbol] = to
+        local to = set_of_items:find(to_items)
+        if not to then
+          to = set_of_items:add(to_items)
         end
+        transition[data.symbol] = to
       end
     end
     m = n + 1
   end
   return set_of_items, transitions
 end
-]]
 
 
 -- キーにひもづけられた値がなければ、テーブルを作成して設定する
@@ -326,6 +335,7 @@ end
 -- collectgarbage()
 -- print("#", next(private))
 
+---------------------------------------------------------------------------
 
 local symbol_names = { "+", "*", "(", ")", "id" }
 local max_terminal_symbol = #symbol_names
@@ -371,5 +381,34 @@ for i, data in ipairs(gotos) do
     print(symbol_names[data.symbol], to_item.index, to_item.dot)
   end
 end
+
+print(("="):rep(75))
+
+local set_of_items, transitions = lr0_items(grammar)
+for i, items in ipairs(set_of_items) do
+  io.write("I_", i, "\n")
+  for _, item in ipairs(items) do
+    local dot = item.dot
+    local p = productions[item.index]
+    local body = p.body
+    io.write(symbol_names[p.head], " ->")
+    for j = 1, #body do
+      if j == dot then
+        io.write " ."
+      end
+      io.write(" ", symbol_names[body[j]])
+    end
+    if dot == #body + 1 then
+      io.write " ."
+    end
+    io.write "\n"
+  end
+  -- print(("-"):rep(75))
+  for symbol, to in pairs(transitions[i]) do
+    io.write("==== ", symbol_names[symbol], " ===> ", "I_", to, "\n")
+  end
+  print(("-"):rep(75))
+end
+
 
 
