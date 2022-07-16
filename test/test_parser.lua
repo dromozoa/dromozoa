@@ -25,36 +25,6 @@ local module = {}
 ---------------------------------------------------------------------------
 
 local class = {}
-local metatable = { __index = class, __name = "dromozoa.parser.productions" }
-
-function class:add(production)
-  self[#self + 1] = production
-  return self
-end
-
-function class:each_by_head(symbol)
-  return function (self, index)
-    index = index or 0
-    for i = index + 1, #self do
-      local production = self[i]
-      local head = production.head
-
-      if head == symbol then
-        return i, head, production.body
-      end
-    end
-  end, self
-end
-
-module.productions = setmetatable(class, {
-  __call = function ()
-    return setmetatable({}, metatable)
-  end;
-})
-
----------------------------------------------------------------------------
-
-local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.items" }
 
 function class:add(index, dot, la)
@@ -172,11 +142,28 @@ function class:add(...)
   return self
 end
 
+function class:find(fn)
+  return function (self, index)
+    for i = index + 1, #self do
+      local v = fn(self[i])
+      if v ~= nil then
+        return i, v
+      end
+    end
+  end, self, 0
+end
+
+function class:each_by_head(symbol)
+  return self:find(function (v) if v.head == symbol then return v.body end end)
+end
+
 module.list = setmetatable(class, {
   __call = function (_, ...)
     return setmetatable({...}, metatable)
   end;
 })
+
+module.productions = module.list
 
 ---------------------------------------------------------------------------
 
@@ -192,7 +179,7 @@ local function eliminate_left_recursion(grammar, symbol_names)
     local left_recursions = module.productions()
     local no_left_recursions = module.productions()
 
-    for _, _, body in productions:each_by_head(i) do
+    for _, body in productions:each_by_head(i) do
       local symbol = body[1]
       if symbol and symbol > max_terminal_symbol and symbol < i then
         for _, production in ipairs(map_of_productions[symbol]) do
@@ -259,7 +246,7 @@ local function first_symbol(grammar, symbol)
   else
     local productions = grammar.productions
     local first = {}
-    for i, head, body in productions:each_by_head(symbol) do
+    for i, body in productions:each_by_head(symbol) do
       if body[1] then -- is not epsilon
         for symbol in pairs(first_symbols(grammar, body)) do
           first[symbol] = true
