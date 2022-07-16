@@ -566,7 +566,7 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
         lr1_closure(grammar, first_table, items)
         for _, item in ipairs(items) do
           local index = item.index
-          local production = productions[id]
+          local production = productions[index]
           local dot = item.dot
           local symbol = production.body[dot]
           if symbol then
@@ -581,7 +581,7 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
                 to_j = to_j;
               }
             else
-              set_of_items[to_i][to_j].la[la] = true
+              set_of_kernel_items[to_i][to_j].la[la] = true
             end
           end
         end
@@ -742,7 +742,13 @@ local symbol_names, _, grammar = build {
   };
 }
 
--- local first_table = first(grammar)
+local el_symbol_names, el_productions = eliminate_left_recursion(grammar, symbol_names)
+local el_grammar = {
+  productions = el_productions;
+  max_terminal_symbol = grammar.max_terminal_symbol;
+  max_nonterminal_symbol = #el_symbol_names;
+}
+local first_table = first(el_grammar)
 
 local items = module.items()
   :add(1, 1)
@@ -761,7 +767,7 @@ end
 print(("="):rep(75))
 
 local set_of_items, transitions = lr0_items(grammar)
--- lalr1_kernels(grammar, first_table, set_of_items, transitions)
+lalr1_kernels(grammar, first_table, set_of_items, transitions)
 
 for i, items in ipairs(set_of_items) do
   io.write("I_", i, "\n")
