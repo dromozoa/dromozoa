@@ -25,22 +25,6 @@ local module = {}
 ---------------------------------------------------------------------------
 
 local class = {}
-local metatable = { __index = class, __name = "dromozoa.parser.items" }
-
-function class:add(index, dot, la)
-  self[#self + 1] = { index = index, dot = dot, la = la }
-  return self
-end
-
-module.items = setmetatable(class, {
-  __call = function ()
-    return setmetatable({}, metatable)
-  end;
-})
-
----------------------------------------------------------------------------
-
-local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.set" }
 
 local function equal(a, b)
@@ -143,24 +127,15 @@ function class:add(...)
 end
 
 function class:each(fn)
-  if fn then
-    return function (self, index)
-      for i = index + 1, #self do
-        local v = fn(self[i])
-        if v ~= nil then
-          return i, v
-        end
-      end
-    end, self, 0
-  else
-    return function (self, index)
-      local i = index + 1
-      local v = self[i]
-      if v ~= nil then
+  assert(fn)
+  return function (self, index)
+    for i = index + 1, #self do
+      local v = fn(self[i])
+      if v then
         return i, v
       end
-    end, self, 0
-  end
+    end
+  end, self, 0
 end
 
 module.list = setmetatable(class, {
@@ -183,7 +158,7 @@ local function eliminate_left_recursion(grammar, symbol_names)
     local left_recursions = module.list()
     local no_left_recursions = module.list()
 
-    for _, body in productions:each(function (v) return v.head == i and v.body or nil end) do
+    for _, body in productions:each(function (v) return v.head == i and v.body end) do
       local symbol = body[1]
       if symbol and symbol > max_terminal_symbol and symbol < i then
         for _, production in ipairs(map_of_productions[symbol]) do
@@ -250,7 +225,7 @@ local function first_symbol(grammar, symbol)
   else
     local productions = grammar.productions
     local first = {}
-    for i, body in productions:each(function (v) return v.head == symbol and v.body or nil end) do
+    for i, body in productions:each(function (v) return v.head == symbol and v.body end) do
       if body[1] then -- is not epsilon
         for symbol in pairs(first_symbols(grammar, body)) do
           first[symbol] = true
@@ -303,8 +278,8 @@ local function lr0_closure(grammar, items)
       local item = items[i]
       local symbol = productions[item.index].body[item.dot]
       if symbol and symbol > max_terminal_symbol and not added[symbol] then
-        for j in productions:each(function (v) return v.head == symbol and v.body or nil end) do
-          items:add(j, 1)
+        for j in productions:each(function (v) return v.head == symbol end) do
+          items:add { index = j, dot = 1 }
         end
         added[symbol] = true
       end
@@ -317,14 +292,14 @@ end
 local function lr0_goto(grammar, items)
   local productions = grammar.productions
 
-  local map_of_to_items = module.map(module.items)
+  local map_of_to_items = module.map(module.list)
 
   for _, item in ipairs(items) do
     local index = item.index
     local dot = item.dot
     local symbol = productions[index].body[dot]
     if symbol then
-      map_of_to_items[symbol]:add(index, dot + 1)
+      map_of_to_items[symbol]:add { index = index, dot = dot + 1 }
     end
   end
 
@@ -339,7 +314,7 @@ end
 
 -- P.246
 local function lr0_items(grammar)
-  local start_items = module.items():add(1, 1)
+  local start_items = module.list():add { index = 1, dot = 1 }
   lr0_closure(grammar, start_items)
   local set_of_items = module.set()
   set_of_items:add(start_items)
@@ -412,7 +387,7 @@ local function lr1_closure(grammar, first_table, items)
       end
 
       local symbol = productions[item.index].body[item.dot]
-      for j in productions:each(function (v) return v.head == symbol and v.body or nil end) do
+      for j in productions:each(function (v) return v.head == symbol end) do
         local a = added[j]
         if not a then
           a = {}
@@ -422,7 +397,7 @@ local function lr1_closure(grammar, first_table, items)
         for la in pairs(first) do
           if not a[la] then
             a[la] = true
-            items:add(j, 1, la)
+            items:add { index = j, dot = 1, la = la }
           end
         end
       end
@@ -440,7 +415,7 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
 
   -- カーネル項の抽出
   for i, items in ipairs(set_of_items) do
-    local kernel_items = module.items()
+    local kernel_items = module.list()
     local kernel_table = module.map()
     for j, item in ipairs(items) do
       local index = item.index
@@ -450,9 +425,9 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
         kernel_table[index][dot] = j
       end
       if index == 1 and dot == 1 then
-        kernel_items:add(index, dot, { true }) -- la = { [marker_end] = true }
+        kernel_items:add { index = index, dot = dot, la = { true } } -- la = { [marker_end] = true }
       else
-        kernel_items:add(index, dot, {})
+        kernel_items:add { index = index, dot = dot, la = {} }
       end
     end
     set_of_kernel_items[i] = kernel_items
@@ -466,7 +441,7 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
       local from_index = from_item.index
       local from_dot = from_item.dot
       if productions[from_index].head == min_nonterminal_symbol or from_dot > 1 then
-        local items = module.items():add(from_index, from_dot, -1) -- la = marker_lookahead
+        local items = module.list():add { index = from_index, dot = from_dot, la = -1 } -- la = marker_lookahead
         lr1_closure(grammar, first_table, items)
         for _, item in ipairs(items) do
           local index = item.index
@@ -510,12 +485,12 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
 
   local expanded_set_of_kernel_items = {}
   for _, items in ipairs(set_of_kernel_items) do
-    local expanded_items = module.items()
+    local expanded_items = module.list()
     for _, item in ipairs(items) do
       local index = item.index
       local dot = item.dot
       for la in pairs(item.la) do
-        expanded_items:add(index, dot, la)
+        expanded_items:add { index = index, dot = dot, la = la }
       end
     end
     expanded_set_of_kernel_items[#expanded_set_of_kernel_items + 1] = expanded_items
@@ -634,7 +609,7 @@ local symbol_names, _, grammar = build {
 }
 
 local first_table = first(grammar)
-local start_items = module:items():add(1, 1, 1)
+local start_items = module.list():add { index = 1, dot = 1, la = 1 }
 lr1_closure(grammar, first_table, start_items)
 
 for _, item in ipairs(start_items) do
@@ -682,13 +657,13 @@ local el_grammar = {
 }
 local first_table = first(el_grammar)
 
-local items = module.items()
-  :add(1, 1)
+local items = module.list()
+  :add { index = 1, dot = 1 }
 lr0_closure(grammar, items)
 
-local items = module.items()
-  :add(1, 2)
-  :add(2, 2)
+local items = module.list()
+  :add { index = 1, dot = 2 }
+  :add { index = 2, dot = 2 }
 local gotos = lr0_goto(grammar, items)
 for i, data in ipairs(gotos) do
   for _, to_item in ipairs(data.to_items) do
