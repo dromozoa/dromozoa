@@ -72,7 +72,7 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.productions" }
 
 function class:add(head, body)
-  self[#self + 1] = { head = head, body = body }
+  self[#self + 1] = { head = assert(head), body = assert(body) }
   return self
 end
 
@@ -259,11 +259,11 @@ local function eliminate_left_recursion(grammar, symbol_names)
     new_symbol_names:add(symbol_name)
   end
 
-  local map_of_productions = module.optional_map()
+  local map_of_productions = module.map()
 
   for i = max_terminal_symbol + 1, max_nonterminal_symbol do
-    local left_recursions = module.items()
-    local no_left_recursions = module.items()
+    local left_recursions = module.productions()
+    local no_left_recursions = module.productions()
 
     for _, _, body in productions:each_by_head(i) do
       local symbol = body[1]
@@ -285,9 +285,9 @@ local function eliminate_left_recursion(grammar, symbol_names)
         end
       else
         if i == body[1] then
-          left_recursions:add(i, body)
+          left_recursions:add(i, assert(body))
         else
-          not_left_recursions:add(i, body)
+          no_left_recursions:add(i, assert(body))
         end
       end
     end
@@ -304,20 +304,20 @@ local function eliminate_left_recursion(grammar, symbol_names)
           new_body:add(src_body[j])
         end
         new_body:add(n)
-        productions:add(n, new_body)
+        productions:add(n, assert(new_body))
       end
       productions:add(n, {})
       map_of_productions[n] = productions
 
       local productions = module.productions()
-      for _, no_left_recursion in ipairs(no_left_recursion) do
+      for _, no_left_recursion in ipairs(no_left_recursions) do
         local src_body = no_left_recursion.body
         local new_body = module.list()
         for j = 1, #src_body do
           new_body:add(src_body[j])
         end
         new_body:add(n)
-        productions:add(i, new_body)
+        productions:add(i, assert(new_body))
       end
       map_of_productions[i] = productions
     else
@@ -326,7 +326,7 @@ local function eliminate_left_recursion(grammar, symbol_names)
   end
 
   local new_productions = module.productions()
-  for i = module.max_terminal_symbol + 1, #new_symbol_names do
+  for i = grammar.max_terminal_symbol + 1, #new_symbol_names do
     for _, production in ipairs(map_of_productions[i]) do
       new_productions[#new_productions + 1] = (production)
     end
@@ -629,6 +629,32 @@ local function build(def)
     max_nonterminal_symbol = #symbol_names;
   }
 end
+
+---------------------------------------------------------------------------
+
+local symbol_names, _, grammar = build {
+  { "a", "b", "c", "d" };
+  {
+    { "S", "A", "a" };
+    { "S", "b" };
+    { "A", "A", "c" };
+    { "A", "S", "d" };
+    { "A" };
+  };
+}
+
+local new_symbol_names, new_productions = eliminate_left_recursion(grammar, symbol_names)
+
+for _, p in ipairs(new_productions) do
+  local body = p.body
+  io.write(new_symbol_names[p.head], " ->")
+  for j = 1, #body do
+    io.write(" ", new_symbol_names[body[j]])
+  end
+  io.write "\n"
+end
+
+print(("="):rep(75))
 
 ---------------------------------------------------------------------------
 
