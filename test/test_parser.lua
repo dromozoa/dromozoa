@@ -203,6 +203,22 @@ module.map = setmetatable(class, {
 
 ---------------------------------------------------------------------------
 
+local class = {}
+local metatable = { __index = class, __name = "dromozoa.parser.list" }
+
+function class:add(v)
+  self[#self + 1] = v
+  return self
+end
+
+module.list = setmetatable(class, {
+  __call = function ()
+    return setmetatable({}, metatable)
+  end;
+})
+
+---------------------------------------------------------------------------
+
 -- キーにひもづけられた値がなければ、テーブルを作成して設定する
 -- キーにひもづけられた値を返す
 
@@ -414,7 +430,7 @@ local function lr1_closure(grammar, first_table, items)
   end
 end
 
-local function lalr1_kernels(grammar, set_of_items, transitions)
+local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
   local productions = grammar.productions
   local min_nonterminal_symbol = grammar.max_terminal_symbol + 1
 
@@ -450,11 +466,11 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
       local from_dot = from_item.dot
       if productions[from_index].head == min_nonterminal_symbol or from_dot > 1 then
         local items = module.items():add(from_index, from_dot, -1) -- la = marker_lookahead
-        self:lr1_closure(items)
+        lr1_closure(grammar, first_table, items)
         for _, item in ipairs(items) do
           local index = item.index
           local production = productions[id]
-          local dot = item.do
+          local dot = item.dot
           local symbol = production.body[dot]
           if symbol then
             local la = item.la
@@ -579,7 +595,7 @@ print(("="):rep(75))
 
 ---------------------------------------------------------------------------
 
-local symbol_names = { "+", "*", "(", ")", "id" }
+local symbol_names = { "$", "+", "*", "(", ")", "id" }
 local max_terminal_symbol = #symbol_names
 symbol_names[#symbol_names + 1] = "E'"
 symbol_names[#symbol_names + 1] = "E"
@@ -610,6 +626,7 @@ local grammar = {
   max_terminal_symbol = max_terminal_symbol;
   max_nonterminal_symbol = #symbol_names;
 }
+-- local first_table = first(grammar)
 
 local items = module.items()
   :add(1, 1)
@@ -628,7 +645,7 @@ end
 print(("="):rep(75))
 
 local set_of_items, transitions = lr0_items(grammar)
-lalr1_kernels(grammar, set_of_items, transitions)
+-- lalr1_kernels(grammar, first_table, set_of_items, transitions)
 
 --[==[
 for i, items in ipairs(set_of_items) do
