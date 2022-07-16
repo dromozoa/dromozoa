@@ -134,8 +134,8 @@ module.productions = setmetatable(class, {
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.items", __eq = module.equal }
 
-function class:add(index, dot)
-  self[#self + 1] = { index = index, dot = dot }
+function class:add(index, dot, la)
+  self[#self + 1] = { index = index, dot = dot, la = la }
   return self
 end
 
@@ -307,6 +307,48 @@ local function lr0_items(grammar)
   return set_of_items, transitions
 end
 
+local function lalr1_kernels(grammar, set_of_items, transitions)
+  local productions = grammar.productions
+  local min_nonterminal_symbol = grammar.max_terminal_symbol + 1
+
+  local set_of_kernel_items = {}
+  local map_of_kernel_items = {}
+
+  -- カーネル項の抽出
+  for i, items in ipairs(set_of_items) do
+    local kernel_items = module.items()
+    local kernel_table = {}
+    for j, item in ipairs(items) do
+      local index = item.index
+      local dot = item.dot
+      if index == 1 or dot > 1 then
+        -- カーネル項の生成規則ごとに、dotごとに項の参照をつくる
+        optional_get(kernel_table, index)[dot] = j
+      end
+      if index == 1 and dot == 1 then
+        kernel_items:add(index, dot, { true }) -- la = { [marker_end] = true }
+      else
+        kernel_items:add(index, dot, {})
+      end
+    end
+    set_of_kernel_items[i] = kernel_items
+    map_of_kernel_items[i] = kernel_table
+  end
+
+  local propagated = {}
+
+  for i, from_items in ipairs(set_of_items) do
+    for j, from_item in ipairs(from_items) do
+      local from_index = from_item.index
+      local from_dot = from_item.dot
+      if productions[from_index].head == min_nonterminal_symbol or from_dot > 1 then
+        local items = module.items():add(from_index, from_dot, -1) -- la = marker_lookahead
+        -- lr1_closure
+      end
+    end
+  end
+end
+
 ---------------------------------------------------------------------------
 
 local symbol_names = { "+", "*", "(", ")", "id" }
@@ -357,6 +399,9 @@ end
 print(("="):rep(75))
 
 local set_of_items, transitions = lr0_items(grammar)
+lalr1_kernels(grammar, set_of_items, transitions)
+
+--[==[
 for i, items in ipairs(set_of_items) do
   io.write("I_", i, "\n")
   for _, item in ipairs(items) do
@@ -381,4 +426,5 @@ for i, items in ipairs(set_of_items) do
   end
   print(("-"):rep(75))
 end
+]==]
 
