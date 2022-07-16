@@ -24,35 +24,11 @@ local module = {}
 
 ---------------------------------------------------------------------------
 
-local function equal(a, b)
-  if rawequal(a, b) then
-    return true
-  end
-  if type(a) == "table" and type(b) == "table" then
-    for k, u in pairs(a) do
-      if not equal(u, b[k]) then
-        return false
-      end
-    end
-    for k in pairs(b) do
-      if a[k] == nil then
-        return false
-      end
-    end
-    return true
-  end
-  return false
-end
-
-module.equal = equal
-
----------------------------------------------------------------------------
-
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.productions" }
 
-function class:add(head, body)
-  self[#self + 1] = { head = assert(head), body = assert(body) }
+function class:add(production)
+  self[#self + 1] = production
   return self
 end
 
@@ -79,7 +55,7 @@ module.productions = setmetatable(class, {
 ---------------------------------------------------------------------------
 
 local class = {}
-local metatable = { __index = class, __name = "dromozoa.parser.items", __eq = module.equal }
+local metatable = { __index = class, __name = "dromozoa.parser.items" }
 
 function class:add(index, dot, la)
   self[#self + 1] = { index = index, dot = dot, la = la }
@@ -97,9 +73,29 @@ module.items = setmetatable(class, {
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.set" }
 
+local function equal(a, b)
+  if rawequal(a, b) then
+    return true
+  end
+  if type(a) == "table" and type(b) == "table" then
+    for k, u in pairs(a) do
+      if not equal(u, b[k]) then
+        return false
+      end
+    end
+    for k in pairs(b) do
+      if a[k] == nil then
+        return false
+      end
+    end
+    return true
+  end
+  return false
+end
+
 function class:find(v)
   for i, u in ipairs(self) do
-    if u == v then
+    if equal(u, v) then
       return i, u
     end
   end
@@ -168,10 +164,6 @@ module.map = setmetatable(class, {
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.list" }
 
-local function new(...)
-  return setmetatable({...}, metatable)
-end
-
 function class:add(...)
   local n = #self
   for i, v in ipairs {...} do
@@ -182,7 +174,7 @@ end
 
 module.list = setmetatable(class, {
   __call = function (_, ...)
-    return new(...)
+    return setmetatable({...}, metatable)
   end;
 })
 
@@ -207,16 +199,16 @@ local function eliminate_left_recursion(grammar, symbol_names)
           local src_body = production.body
           local new_body = module.list(table.unpack(src_body)):add(table.unpack(body, 2))
           if i == new_body[1] then
-            left_recursions:add(i, new_body)
+            left_recursions:add { head = i, body = new_body }
           else
-            no_left_recursions:add(i, new_body)
+            no_left_recursions:add { head = i, body = new_body }
           end
         end
       else
         if i == body[1] then
-          left_recursions:add(i, assert(body))
+          left_recursions:add { head = i, body = body }
         else
-          no_left_recursions:add(i, assert(body))
+          no_left_recursions:add { head = i, body = body }
         end
       end
     end
@@ -229,16 +221,16 @@ local function eliminate_left_recursion(grammar, symbol_names)
       for _, left_recursion in ipairs(left_recursions) do
         local src_body = left_recursion.body
         local new_body = module.list(table.unpack(src_body, 2)):add(n)
-        productions:add(n, assert(new_body))
+        productions:add { head = n, body = new_body }
       end
-      productions:add(n, {})
+      productions:add { head = n, body = {} }
       map_of_productions[n] = productions
 
       local productions = module.productions()
       for _, no_left_recursion in ipairs(no_left_recursions) do
         local src_body = no_left_recursion.body
         local new_body = module.list(table.unpack(src_body)):add(n)
-        productions:add(i, assert(new_body))
+        productions:add { head = i, body = new_body }
       end
       map_of_productions[i] = productions
     else
@@ -566,7 +558,7 @@ local function build(def)
     for i = 2, #v do
       body:add(symbol_map[v[i]])
     end
-    productions:add(head, body)
+    productions:add { head = head, body = body }
   end
 
   symbol_names[0] = "epsilon"
