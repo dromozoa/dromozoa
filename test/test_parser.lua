@@ -282,7 +282,7 @@ end
 
 local function first(grammar)
   local first_table = {}
-  for symbol = grammar.max_terminal_symbol + 1, grammar.max_nonterminal_symbol do
+  for symbol = 1, grammar.max_nonterminal_symbol do
     first_table[symbol] = first_symbol(grammar, symbol)
   end
   return first_table
@@ -321,6 +321,7 @@ local function lr0_goto(grammar, items)
   local map_of_to_items = module.map(module.list)
 
   for _, item in ipairs(items) do
+    -- local index, dot, la, production = item:get(productions)
     local index = item.index
     local dot = item.dot
     local symbol = productions[index].body[dot]
