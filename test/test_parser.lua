@@ -245,7 +245,11 @@ end
 local first_symbols
 
 -- P.221
-local function first_symbol(grammar, symbol)
+local function first_symbol(grammar, symbol, first_table)
+  if first_table then
+    return assert(first_table[symbol], "error symbol " .. symbol)
+  end
+
   if symbol <= grammar.max_terminal_symbol then
     return { [symbol] = true }
   else
@@ -264,10 +268,10 @@ local function first_symbol(grammar, symbol)
   end
 end
 
-function first_symbols(grammar, symbols)
+function first_symbols(grammar, symbols, first_table)
   local first = {}
   for i, symbol in ipairs(symbols) do
-    for symbol in pairs(first_symbol(grammar, symbol)) do
+    for symbol in pairs(first_symbol(grammar, symbol, first_table)) do
       first[symbol] = true
     end
     if first[0] then -- epsilon
@@ -409,9 +413,14 @@ local function lr1_closure(grammar, first_table, items)
             end
           end
         else
+          -- TODO laが集合の場合におかしくないか？
           first[item.la] = true
         end
       end
+
+      -- local first2 = first_symbols(grammar,
+      --   module.list(table.unpack(body, item.dot + 1)):add(item.la),
+      --   first_table)
 
       local symbol = productions[item.index].body[item.dot]
       for j in productions:each(function (v) return v.head == symbol end) do
