@@ -171,16 +171,6 @@ module.list = setmetatable(class, {
 
 ---------------------------------------------------------------------------
 
-local function head_is(symbol)
-  return function (v)
-    if v.head == symbol then
-      return v.body
-    end
-  end
-end
-
----------------------------------------------------------------------------
-
 local function eliminate_left_recursion(grammar, symbol_names)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
@@ -193,7 +183,7 @@ local function eliminate_left_recursion(grammar, symbol_names)
     local left_recursions = module.list()
     local no_left_recursions = module.list()
 
-    for _, body in productions:each(head_is(i)) do
+    for _, body in productions:each(function (v) return v.head == i and v.body or nil end) do
       local symbol = body[1]
       if symbol and symbol > max_terminal_symbol and symbol < i then
         for _, production in ipairs(map_of_productions[symbol]) do
@@ -260,7 +250,7 @@ local function first_symbol(grammar, symbol)
   else
     local productions = grammar.productions
     local first = {}
-    for i, body in productions:each(head_is(symbol)) do
+    for i, body in productions:each(function (v) return v.head == symbol and v.body or nil end) do
       if body[1] then -- is not epsilon
         for symbol in pairs(first_symbols(grammar, body)) do
           first[symbol] = true
@@ -313,7 +303,7 @@ local function lr0_closure(grammar, items)
       local item = items[i]
       local symbol = productions[item.index].body[item.dot]
       if symbol and symbol > max_terminal_symbol and not added[symbol] then
-        for j in productions:each(head_is(symbol)) do
+        for j in productions:each(function (v) return v.head == symbol and v.body or nil end) do
           items:add(j, 1)
         end
         added[symbol] = true
@@ -422,7 +412,7 @@ local function lr1_closure(grammar, first_table, items)
       end
 
       local symbol = productions[item.index].body[item.dot]
-      for j in productions:each(head_is(symbol)) do
+      for j in productions:each(function (v) return v.head == symbol and v.body or nil end) do
         local a = added[j]
         if not a then
           a = {}
