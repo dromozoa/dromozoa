@@ -593,48 +593,58 @@ end
 
 ---------------------------------------------------------------------------
 
-local map = module.optional_map()
+local function build(def)
+  local symbol_names = module.list()
+  local symbol_map = {}
+  for _, v in ipairs(def[1]) do
+    symbol_names:add(v)
+    symbol_map[v] = #symbol_names
+  end
+  local max_terminal_symbol = #symbol_names
 
-map.foo[1] = "foo"
-map.foo[2] = "bar"
-map.bar.baz = "qux"
-print(dumper.encode(map))
+  for _, v in ipairs(def[2]) do
+    if not symbol_map[v[1]] then
+      symbol_names:add(v[1])
+      symbol_map[v[1]] = #symbol_names
+    end
+  end
 
-local map = module.optional_map(module.optional_map)
+  local productions = module.productions()
+  for _, v in ipairs(def[2]) do
+    local head = assert(symbol_map[v[1]])
+    local body = module.list()
+    for i = 2, #v do
+      body:add(assert(symbol_map[v[i]], v[i]))
+    end
+    productions:add(head, body)
+  end
 
-map.a.b.c = 42
-map[23][37] = 69
-print(dumper.encode(map))
+  symbol_names[0] = "epsilon"
+
+  return symbol_names, function (name)
+    return assert(symbol_map[name])
+  end, {
+    productions = productions;
+    max_terminal_symbol = max_terminal_symbol;
+    max_nonterminal_symbol = #symbol_names;
+  }
+end
 
 ---------------------------------------------------------------------------
 
-local symbol_names = { "+", "*", "(", ")", "id", "E", "E'", "T", "T'", "F" }
-local max_terminal_symbol = 5
-
-local symbol_map = {}
-for symbol, name in ipairs(symbol_names) do
-  symbol_map[name] = symbol
-end
-local function _(name)
-  return assert(symbol_map[name])
-end
-
-local productions = module.productions()
-  :add(_"E", { _"T", _"E'" })
-  :add(_"E'", { _"+", _"T", _"E'" })
-  :add(_"E'", {})
-  :add(_"T", { _"F", _"T'" })
-  :add(_"T'", { _"*", _"F", _"T'" })
-  :add(_"T'", {})
-  :add(_"F", { _"(", _"E", _")" })
-  :add(_"F", { _"id" })
-
-local grammar = {
-  productions = productions;
-  max_terminal_symbol = max_terminal_symbol;
-  max_nonterminal_symbol = #symbol_names;
+local symbol_names, _, grammar = build {
+  { "$", "+", "*", "(", ")", "id" };
+  {
+    { "E", "T", "E'" };
+    { "E'", "+", "T", "E'" };
+    { "E'" };
+    { "T", "F", "T'" };
+    { "T'", "*", "F", "T'" };
+    { "T'" };
+    { "F", "(", "E", ")" };
+    { "F", "id" };
+  };
 }
-symbol_names[0] = "epsilon"
 
 local function dump(symbol_name, first)
   io.write(symbol_name, " => {")
@@ -654,29 +664,15 @@ print(("="):rep(75))
 
 ---------------------------------------------------------------------------
 
-local symbol_names = { "$", "c", "d", "S'", "S", "C" }
-local max_terminal_symbol = 3
-
-local symbol_map = {}
-for symbol, name in ipairs(symbol_names) do
-  symbol_map[name] = symbol
-end
-local function _(name)
-  return assert(symbol_map[name])
-end
-
-local productions = module.productions()
-  :add(_"S'", { _"S" })
-  :add(_"S", { _"C", _"C" })
-  :add(_"C", { _"c", _"C" })
-  :add(_"C", { _"d" })
-
-local grammar = {
-  productions = productions;
-  max_terminal_symbol = max_terminal_symbol;
-  max_nonterminal_symbol = #symbol_names;
+local symbol_names, _, grammar = build {
+  { "$", "c", "d" };
+  {
+    { "S'", "S" };
+    { "S", "C", "C" };
+    { "C", "c", "C" };
+    { "C", "d" };
+  };
 }
-symbol_names[0] = "epsilon"
 
 local first_table = first(grammar)
 local start_items = module:items():add(1, 1, 1)
@@ -684,7 +680,7 @@ lr1_closure(grammar, first_table, start_items)
 
 for _, item in ipairs(start_items) do
   local dot = item.dot
-  local p = productions[item.index]
+  local p = grammar.productions[item.index]
   local body = p.body
   io.write(symbol_names[p.head], " ->")
   for j = 1, #body do
@@ -707,37 +703,19 @@ print(("="):rep(75))
 
 ---------------------------------------------------------------------------
 
-local symbol_names = { "$", "+", "*", "(", ")", "id" }
-local max_terminal_symbol = #symbol_names
-symbol_names[#symbol_names + 1] = "E'"
-symbol_names[#symbol_names + 1] = "E"
-symbol_names[#symbol_names + 1] = "T"
-symbol_names[#symbol_names + 1] = "F"
-
-local symbol_map = {}
-
-for symbol, name in ipairs(symbol_names) do
-  symbol_map[name] = symbol
-end
-
-local function _(name)
-  return assert(symbol_map[name])
-end
-
-local productions = module.productions()
-  :add(_"E'", { _"E" })
-  :add(_"E", { _"E", _"+", _"T" })
-  :add(_"E", { _"T" })
-  :add(_"T", { _"T", _"*", _"F" })
-  :add(_"T", { _"F" })
-  :add(_"F", { _"(", _"E", _")" })
-  :add(_"F", { _"id" })
-
-local grammar = {
-  productions = productions;
-  max_terminal_symbol = max_terminal_symbol;
-  max_nonterminal_symbol = #symbol_names;
+local symbol_names, _, grammar = build {
+  { "$", "+", "*", "(", ")", "id" };
+  {
+    { "E'", "E" };
+    { "E", "E", "+", "T" };
+    { "E", "T" };
+    { "T", "T", "*", "F" };
+    { "T", "F" };
+    { "F", "(", "E", ")" };
+    { "F", "id" };
+  };
 }
+
 -- local first_table = first(grammar)
 
 local items = module.items()
@@ -759,12 +737,11 @@ print(("="):rep(75))
 local set_of_items, transitions = lr0_items(grammar)
 -- lalr1_kernels(grammar, first_table, set_of_items, transitions)
 
---[==[
 for i, items in ipairs(set_of_items) do
   io.write("I_", i, "\n")
   for _, item in ipairs(items) do
     local dot = item.dot
-    local p = productions[item.index]
+    local p = grammar.productions[item.index]
     local body = p.body
     io.write(symbol_names[p.head], " ->")
     for j = 1, #body do
@@ -784,5 +761,4 @@ for i, items in ipairs(set_of_items) do
   end
   print(("-"):rep(75))
 end
-]==]
 
