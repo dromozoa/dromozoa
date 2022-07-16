@@ -249,6 +249,94 @@ end
 
 ---------------------------------------------------------------------------
 
+local function eliminate_left_recursion(grammar, symbol_names)
+  local productions = grammar.productions
+  local max_terminal_symbol = grammar.max_terminal_symbol
+  local max_nonterminal_symbol = grammar.max_nonterminal_symbol
+
+  local new_symbol_names = module.list()
+  for i, symbol_name in ipairs(symbol_names) do
+    new_symbol_names:add(symbol_name)
+  end
+
+  local map_of_productions = module.optional_map()
+
+  for i = max_terminal_symbol + 1, max_nonterminal_symbol do
+    local left_recursions = module.items()
+    local no_left_recursions = module.items()
+
+    for _, _, body in productions:each_by_head(i) do
+      local symbol = body[1]
+      if symbol and symbol > max_terminal_symbol and symbol < i then
+        for _, production in ipairs(map_of_productions[symbol]) do
+          local src_body = production.body
+          local new_body = module.list()
+          for j = 1, #src_body do
+            new_body:add(src_body[j])
+          end
+          for j = 2, #body do
+            new_body:add(body[j])
+          end
+          if i == new_body[1] then
+            left_recursions:add(i, new_body)
+          else
+            no_left_recursions:add(i, new_body)
+          end
+        end
+      else
+        if i == body[1] then
+          left_recursions:add(i, body)
+        else
+          not_left_recursions:add(i, body)
+        end
+      end
+    end
+
+    if left_recursions[1] then
+      new_symbol_names:add(symbol_names[i] .. "'")
+      local n = #new_symbol_names
+
+      local productions = module.productions()
+      for _, left_recursion in ipairs(left_recursions) do
+        local src_body = left_recursion.body
+        local new_body = module.list()
+        for j = 2, #src_body do
+          new_body:add(src_body[j])
+        end
+        new_body:add(n)
+        productions:add(n, new_body)
+      end
+      productions:add(n, {})
+      map_of_productions[n] = productions
+
+      local productions = module.productions()
+      for _, no_left_recursion in ipairs(no_left_recursion) do
+        local src_body = no_left_recursion.body
+        local new_body = module.list()
+        for j = 1, #src_body do
+          new_body:add(src_body[j])
+        end
+        new_body:add(n)
+        productions:add(i, new_body)
+      end
+      map_of_productions[i] = productions
+    else
+      map_of_productions[i] = no_left_recursions
+    end
+  end
+
+  local new_productions = module.productions()
+  for i = module.max_terminal_symbol + 1, #new_symbol_names do
+    for _, production in ipairs(map_of_productions[i]) do
+      new_productions[#new_productions + 1] = (production)
+    end
+  end
+
+  return new_symbol_names, new_productions
+end
+
+---------------------------------------------------------------------------
+
 local first_symbols
 
 -- P.221
