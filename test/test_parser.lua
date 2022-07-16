@@ -589,6 +589,35 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
     end
   end
 
+  repeat
+    local done = true
+    for i = 1, #propagated do
+      local op = propagated[i]
+      local from_la = set_of_kernel_items[op.from_i][op.from_j].la
+      local to_la = set_of_kernel_items[op.to_i][op.to_j].la
+      for la in pairs(from_la) do
+        if not to_la[la] then
+          to_la[la] = true
+          done = false
+        end
+      end
+    end
+  until done
+
+  local expanded_set_of_kernel_items = {}
+  for _, items in ipairs(set_of_kernel_items) do
+    local expanded_items = module.items()
+    for _, item in ipairs(items) do
+      local index = item.index
+      local dot = item.dot
+      for la in pairs(item.la) do
+        expanded_items:add(index, dot, la)
+      end
+    end
+    expanded_set_of_kernel_items[#expanded_set_of_kernel_items + 1] = expanded_items
+  end
+
+  return expanded_set_of_kernel_items
 end
 
 ---------------------------------------------------------------------------
@@ -720,7 +749,6 @@ for _, item in ipairs(start_items) do
   end
   if item.la then
     io.write(", ", symbol_names[item.la])
-
   end
   io.write "\n"
 end
@@ -767,7 +795,10 @@ end
 print(("="):rep(75))
 
 local set_of_items, transitions = lr0_items(grammar)
-lalr1_kernels(grammar, first_table, set_of_items, transitions)
+local set_of_items = lalr1_kernels(grammar, first_table, set_of_items, transitions)
+for _, items in ipairs(set_of_items) do
+  lr1_closure(grammar, first_table, items)
+end
 
 for i, items in ipairs(set_of_items) do
   io.write("I_", i, "\n")
@@ -784,6 +815,9 @@ for i, items in ipairs(set_of_items) do
     end
     if dot == #body + 1 then
       io.write " ."
+    end
+    if item.la then
+      io.write(", ", symbol_names[item.la])
     end
     io.write "\n"
   end
