@@ -142,19 +142,25 @@ function class:add(...)
   return self
 end
 
-function class:find(fn)
-  return function (self, index)
-    for i = index + 1, #self do
-      local v = fn(self[i])
+function class:each(fn)
+  if fn then
+    return function (self, index)
+      for i = index + 1, #self do
+        local v = fn(self[i])
+        if v ~= nil then
+          return i, v
+        end
+      end
+    end, self, 0
+  else
+    return function (self, index)
+      local i = index + 1
+      local v = self[i]
       if v ~= nil then
         return i, v
       end
-    end
-  end, self, 0
-end
-
-function class:each_by_head(symbol)
-  return self:find(function (v) if v.head == symbol then return v.body end end)
+    end, self, 0
+  end
 end
 
 module.list = setmetatable(class, {
@@ -163,7 +169,15 @@ module.list = setmetatable(class, {
   end;
 })
 
-module.productions = module.list
+---------------------------------------------------------------------------
+
+local function head_is(symbol)
+  return function (v)
+    if v.head == symbol then
+      return v.body
+    end
+  end
+end
 
 ---------------------------------------------------------------------------
 
@@ -176,10 +190,10 @@ local function eliminate_left_recursion(grammar, symbol_names)
   local map_of_productions = module.map()
 
   for i = max_terminal_symbol + 1, max_nonterminal_symbol do
-    local left_recursions = module.productions()
-    local no_left_recursions = module.productions()
+    local left_recursions = module.list()
+    local no_left_recursions = module.list()
 
-    for _, body in productions:each_by_head(i) do
+    for _, body in productions:each(head_is(i)) do
       local symbol = body[1]
       if symbol and symbol > max_terminal_symbol and symbol < i then
         for _, production in ipairs(map_of_productions[symbol]) do
@@ -204,7 +218,7 @@ local function eliminate_left_recursion(grammar, symbol_names)
       new_symbol_names:add(symbol_names[i] .. "'")
       local n = #new_symbol_names
 
-      local productions = module.productions()
+      local productions = module.list()
       for _, left_recursion in ipairs(left_recursions) do
         local src_body = left_recursion.body
         local new_body = module.list(table.unpack(src_body, 2)):add(n)
@@ -213,7 +227,7 @@ local function eliminate_left_recursion(grammar, symbol_names)
       productions:add { head = n, body = {} }
       map_of_productions[n] = productions
 
-      local productions = module.productions()
+      local productions = module.list()
       for _, no_left_recursion in ipairs(no_left_recursions) do
         local src_body = no_left_recursion.body
         local new_body = module.list(table.unpack(src_body)):add(n)
@@ -225,7 +239,7 @@ local function eliminate_left_recursion(grammar, symbol_names)
     end
   end
 
-  local new_productions = module.productions()
+  local new_productions = module.list()
   for i = grammar.max_terminal_symbol + 1, #new_symbol_names do
     for _, production in ipairs(map_of_productions[i]) do
       new_productions[#new_productions + 1] = (production)
@@ -246,7 +260,7 @@ local function first_symbol(grammar, symbol)
   else
     local productions = grammar.productions
     local first = {}
-    for i, body in productions:each_by_head(symbol) do
+    for i, body in productions:each(head_is(symbol)) do
       if body[1] then -- is not epsilon
         for symbol in pairs(first_symbols(grammar, body)) do
           first[symbol] = true
@@ -299,7 +313,7 @@ local function lr0_closure(grammar, items)
       local item = items[i]
       local symbol = productions[item.index].body[item.dot]
       if symbol and symbol > max_terminal_symbol and not added[symbol] then
-        for j in productions:each_by_head(symbol) do
+        for j in productions:each(head_is(symbol)) do
           items:add(j, 1)
         end
         added[symbol] = true
@@ -408,7 +422,7 @@ local function lr1_closure(grammar, first_table, items)
       end
 
       local symbol = productions[item.index].body[item.dot]
-      for j in productions:each_by_head(symbol) do
+      for j in productions:each(head_is(symbol)) do
         local a = added[j]
         if not a then
           a = {}
@@ -538,7 +552,7 @@ local function build(def)
     end
   end
 
-  local productions = module.productions()
+  local productions = module.list()
   for _, v in ipairs(def[2]) do
     local head = assert(symbol_map[v[1]])
     local body = module.list()
