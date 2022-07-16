@@ -20,26 +20,6 @@
 
 local dumper = require "dromozoa.commons.dumper"
 
---[[
-
-  map_of_production_indices
-    head -> index...
-    あるheadを持つproductionの集合をえる
-
-  productionsは、リスト構造と、headでの検索を行いたい
-
-  symbol
-    1 .. max_terminal_symbol    terminal_symbol
-    max_terminal_symbol+1 .. #  nonterminal_symbol
-
-  symbol_names = {...}
-  1: min_terminal_symbol = 1
-  m: max_terminal_symbol
-     min_nonterminal_symbol = max_terminal_symbol + 1
-  n: max_nonterminal_symbol = #
-
-]]
-
 local module = {}
 
 ---------------------------------------------------------------------------
