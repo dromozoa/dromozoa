@@ -120,14 +120,9 @@ module.set = setmetatable(class, {
 
 ---------------------------------------------------------------------------
 
--- constructor_chain
--- map(map(items))
--- map(function () return map(items) end)
--- map()
-
 local private = setmetatable({}, { __mode = "k" })
 local class = {}
-local metatable = { __name = "dromozoa.parser.optional_map" }
+local metatable = { __name = "dromozoa.parser.map" }
 
 function class:each()
   local priv = private[self]
@@ -144,7 +139,8 @@ function metatable:__index(k)
   if v ~= nil then
     return v
   end
-
+  -- いちおうチェック
+  assert(type(k) == "number")
   local priv = private[self]
   local v = priv.constructor()
   priv[#priv + 1] = k
@@ -159,7 +155,7 @@ function metatable:__newindex(k, v)
   rawset(self, k, v)
 end
 
-module.optional_map = setmetatable(class, {
+module.map = setmetatable(class, {
   __call = function (_, constructor)
     local self = setmetatable({}, metatable)
     private[self] = { constructor = constructor or function () return {} end }
@@ -195,7 +191,7 @@ local function eliminate_left_recursion(grammar, symbol_names)
     new_symbol_names:add(symbol_name)
   end
 
-  local map_of_productions = module.optional_map()
+  local map_of_productions = module.map()
 
   for i = max_terminal_symbol + 1, max_nonterminal_symbol do
     local left_recursions = module.productions()
@@ -349,7 +345,7 @@ end
 local function lr0_goto(grammar, items)
   local productions = grammar.productions
 
-  local map_of_to_items = module.optional_map(module.items)
+  local map_of_to_items = module.map(module.items)
 
   for _, item in ipairs(items) do
     local index = item.index
@@ -473,7 +469,7 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
   -- カーネル項の抽出
   for i, items in ipairs(set_of_items) do
     local kernel_items = module.items()
-    local kernel_table = module.optional_map()
+    local kernel_table = module.map()
     for j, item in ipairs(items) do
       local index = item.index
       local dot = item.dot
