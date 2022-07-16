@@ -22,41 +22,6 @@ local dumper = require "dromozoa.commons.dumper"
 
 --[[
 
-
-  lr0_items()
-
-  lalr1_items()
-    set_of_items, transitions = lr0_items()
-    set_of_items = lalr1_kernels(set_of_items, transitions)
-    for set_of_items
-      lr1_closure(set_of_item)
-    return set_of_items, transitions
-
-
-
-
-
-  set_of_items, transitions = lalr1_items()
-  parser, conflicts = lr1_construct_table(set_of_items, transitions)
-
-
-
-  production = { ... }
-  item = { id = production_id, dot = ?, la = ... }
-
-  productions
-
-  production = {
-    head = symbol;
-    body = { symbol, ... };
-  }
-
-  item = {
-    index = production_index;
-    dot = position;
-  }
-
-
   map_of_production_indices
     head -> index...
     あるheadを持つproductionの集合をえる
@@ -189,6 +154,7 @@ function class:each()
   end), self
 end
 
+-- 削除は考慮していない
 function metatable:__newindex(k, v)
   local priv = private[self]
   priv[#priv + 1] = k
@@ -227,6 +193,7 @@ function metatable:__index(k)
   return v
 end
 
+-- 削除は考慮していない
 function metatable:__newindex(k, v)
   local priv = private[self]
   priv[#priv + 1] = k
@@ -264,6 +231,8 @@ module.list = setmetatable(class, {
 
 -- キーにひもづけられた値がなければ、コンストラクタを実行して設定する
 -- キーにひもづけられた値を返す
+
+-- optional_mapのほうがわかりやすいか
 
 local function optional_get(t, k, fn, ...)
   local v = t[k]
