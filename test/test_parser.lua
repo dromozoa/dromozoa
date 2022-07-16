@@ -71,12 +71,6 @@
      min_nonterminal_symbol = max_terminal_symbol + 1
   n: max_nonterminal_symbol = #
 
-
-  grammar {
-    procutions;
-    max_terminal_symbols = 0;
-  }
-
 ]]
 
 local module = {}
@@ -123,6 +117,48 @@ module.items = setmetatable(class, {
   end;
 })
 
+local private = setmetatable({}, { __mode = "k" })
+local class = {}
+local metatable = { __index = class, __name = "dromozoa.parser.map" }
+
+function class:each()
+  local priv = private[self]
+  return coroutine.wrap(function ()
+    for i = 1, #priv do
+      local k = priv[i]
+      coroutine.yield(k, self[k])
+    end
+  end), self
+end
+
+function metatable:__newindex(k, v)
+  local priv = private[self]
+  priv[#priv + 1] = k
+  rawset(self, k, v)
+end
+
+module.map = setmetatable(class, {
+  __call = function ()
+    local self = setmetatable({}, metatable)
+    private[self] = {}
+    return self
+  end;
+})
+
+local function optional_get(t, k, fn, ...)
+  local v = t[k]
+  if v == nil then
+    if fn == nil then
+      v = {}
+    else
+      v = fn(...)
+    end
+    t[k] = v
+  end
+  return v
+end
+
+-- P.246
 local function lr0_closure(grammar, items)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
@@ -148,24 +184,118 @@ local function lr0_closure(grammar, items)
   end
 end
 
+--[[
+function class:lr0_goto(items)
+  local productions = self.productions
+  local symbols = {}
+  local map_of_to_items = {}
+  for i = 1, #items do
+    local item = items[i]
+    local id = item.id
+    local dot = item.dot
+    local symbol = productions[id].body[dot]
+    if symbol then
+      local to_items = map_of_to_items[symbol]
+      if to_items then
+        to_items[#to_items + 1] = { id = id, dot = dot + 1 }
+      else
+        symbols[#symbols + 1] = symbol
+        map_of_to_items[symbol] = { { id = id, dot = dot + 1 } }
+      end
+    end
+  end
+  local gotos = {}
+  for i = 1, #symbols do
+    local symbol = symbols[i]
+    local to_items = map_of_to_items[symbol]
+    self:lr0_closure(to_items)
+    gotos[#gotos + 1] = {
+      symbol = symbol;
+      to_items = to_items;
+    }
+  end
+  return gotos
+end
+]]
+
+-- goto結果を直接addしてもよいのでは？
+local function lr0_goto(grammar, items)
+  local productions = grammar.productions
+
+  local map_of_to_items = module.map()
+
+  for _, item in ipairs(items) do
+    local index = item.index
+    local dot = item.dot
+    local symbol = productions[index].body[dot]
+    if symbol then
+      optional_get(map_of_to_items, symbol, module.items):add(index, dot + 1)
+    end
+  end
+
+  local gotos = {}
+  for symbol, to_items in map_of_to_items:each() do
+    lr0_closure(grammar, to_items)
+    gotos[#gotos + 1] = { symbol = symbol, to_items = to_items }
+  end
+
+  return gotos
+end
+
+--[[
+function class:lr0_items()
+  local start_items = { { id = 1, dot = 1 } }
+  self:lr0_closure(start_items)
+  local set_of_items = { start_items }
+  local transitions = {}
+  local m = 1
+  while true do
+    local n = #set_of_items
+    if m > n then
+      break
+    end
+    for i = m, n do
+      local transition = transitions[i]
+      if not transition then
+        transition = {}
+        transitions[i] = transition
+      end
+      local gotos = self:lr0_goto(set_of_items[i])
+      for j = 1, #gotos do
+        local data = gotos[j]
+        local to_items = data.to_items
+        -- to_itemsが空でなければ / to_itemsは空になりえる？
+        -- 教科書の条件式に由来
+        if to_items[1] then
+          local to
+          -- set_of_itemsをscanして、to_itemsと同じものがないか探す
+          for k = 1, #set_of_items do
+            if equal(to_items, set_of_items[k]) then
+              to = k
+              break
+            end
+          end
+          -- set_of_itemsに含まれていなければ追加
+          if not to then
+            to = #set_of_items + 1
+            set_of_items[to] = to_items
+          end
+          transition[data.symbol] = to
+        end
+      end
+    end
+    m = n + 1
+  end
+  return set_of_items, transitions
+end
+]]
+
+
 -- キーにひもづけられた値がなければ、テーブルを作成して設定する
 -- キーにひもづけられた値を返す
 
 -- キーにひもづけられた値がなければ、コンストラクタを実行して設定する
 -- キーにひもづけられた値を返す
-
-local function optional_get(t, k, fn, ...)
-  local v = t[k]
-  if v == nil then
-    if fn == nil then
-      v = {}
-    else
-      v = fn(...)
-    end
-    t[k] = v
-  end
-  return v
-end
 
 -- get, access, opt
 -- optional
@@ -178,44 +308,24 @@ optional_get(t, 1, module.items):add(23, 23)
 
 print(t[1][1].index, t[1][2].index, t[2][1].index)
 
---[[
-local function lr0_items(grammar)
-  local start_items = module.items():add(1, 1)
-  lr0_closure(grammar, start_items)
+local map = module.map()
 
-  local set_of_items = { start_items }
-  local transitions = {}
+map.xyz = 42
+map.foo = 69
+map.bar = 1
+map.baz = 2
+map.xyz = 3
 
-  local m = 1
-  while true do
-    local n = #set_of_items
-    if m > n then
-      break
-    end
-    for i = m, n do
-      local items = set_of_items[i]
-      -- local transition = transitions[i]
-      -- if not transition then
-      --   transition = {}
-      --   transitions[i] = transition
-      -- end
-      -- local gotos = self:lr0_goto(set_of_items[i])
-
-      for symbol in () do
-        if lr0_goto(items, symbol) is_not_empty and not_in(set_of_items) then
-          set_of_items:add(lr0_goto(items, symbol))
-        end
-      end
-
-
-
-
-    end
-    m = n + 1
-  end
-
+for k, v in map:each() do
+  print(k, v)
 end
-]]
+
+-- map = nil
+-- print("#", next(private))
+-- collectgarbage()
+-- collectgarbage()
+-- print("#", next(private))
+
 
 local symbol_names = { "+", "*", "(", ")", "id" }
 local max_terminal_symbol = #symbol_names
@@ -252,119 +362,14 @@ local items = module.items()
   :add(1, 1)
 lr0_closure(grammar, items)
 
-local module = {}
-
-do
-  local class = {}
-  local metatable = { __index = class, __name = "dromozoa.parser.production" }
-
-  local function new(head, body)
-    return setmetatable({ head = head, body = body }, metatable)
+local items = module.items()
+  :add(1, 2)
+  :add(2, 2)
+local gotos = lr0_goto(grammar, items)
+for i, data in ipairs(gotos) do
+  for _, to_item in ipairs(data.to_items) do
+    print(symbol_names[data.symbol], to_item.index, to_item.dot)
   end
-
-  function metatable:__tostring()
-    return "{" .. self.head .. "->".. table.concat(self.body, ",") .. "}"
-  end
-
-  module.production = setmetatable(class, {
-    __call = function (_, ...) return new(...) end;
-  })
 end
-
-do
-  local class = {}
-  local metatable = { __index = class, __name = "dromozoa.parser.productions" }
-
-  local function new()
-    return setmetatable({}, metatable)
-  end
-
-  function class:add(head, body)
-    local index = #self + 1
-    self[index] = module.production(head, body)
-    return index
-  end
-
-  function class:each_by_head(head)
-    return function (self, index)
-      index = index or 0
-      for i = index + 1, #self do
-        local production = self[i]
-        if production.head == head then
-          return i, production
-        end
-      end
-    end, self
-  end
-
-  module.productions = setmetatable(class, {
-    __call = function (_, ...) return new(...) end;
-  })
-end
-
-do
-  local class = {}
-  local metatable = { __index = class, __name = "dromozoa.parser.item" }
-
-  local function new(index, dot, la)
-    return setmetatable({ index = index, dot = dot, la = la }, metatable)
-  end
-
-  module.item = setmetatable(class, {
-    __call = function (_, ...) return new(...) end;
-  })
-end
-
-do
-  local class = {}
-  local metatable = { __index = class, __name = "dromozoa.parser.items" }
-
-  local function new()
-    return setmetatable({}, metatable)
-  end
-
-  module.item = setmetatable(class, {
-    __call = function (_, ...) return new(...) end;
-  })
-end
-
--- local productions = module.productions()
--- productions:add("A", {"b", "c"})
--- productions:add("B", {"c", "d"})
--- productions:add("A", {"c", "d"})
-
-
--- P.246
---[[
-local function lr0_closure(grammar, items)
-  while true do
-    for _, item in ipairs(items) do
-      -- A -> a . B b
-      local B = productions[item.index].body[item.dot]
-      if B and B > max_terminal_symbol then
-        for i, production in ipairs(productions:find_by_head(B)) do
-          -- B -> c
-          -- add B -> . c
-          items:push { index = i, dot = 1 }
-        end
-      end
-    end
-  end
-
-  repeat
-    for item in each(J) do
-      local A, alpha, B, beta = item
-      for production in each(G) do
-        -- contraint B == B
-        local B, gamma = production
-        if B, dot gamma is not_in J then
-          add B...
-        end
-      end
-    end
-  until no_more_items_are_added_to_J_on_round
-end
-]]
-
 
 
