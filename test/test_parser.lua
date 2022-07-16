@@ -127,7 +127,6 @@ function class:add(...)
 end
 
 function class:each(fn)
-  assert(fn)
   return function (self, index)
     for i = index + 1, #self do
       local v = fn(self[i])
@@ -143,6 +142,33 @@ module.list = setmetatable(class, {
     return setmetatable({...}, metatable)
   end;
 })
+
+---------------------------------------------------------------------------
+
+local class = {}
+local metatable = { __index = class, __name = "dromozoa.parser.production" }
+
+module.production = setmetatable(class, {
+  __call = function (_, head, body)
+    return setmetatable({ head = head, body = body }, metatable)
+  end;
+})
+
+---------------------------------------------------------------------------
+
+local class = {}
+local metatable = { __index = class, __name = "dromozoa.parser.item" }
+
+module.item = setmetatable(class, {
+  __call = function (_, index, dot, la)
+    return setmetatable({ index = index, dot = dot, la = la }, metatable)
+  end;
+})
+
+---------------------------------------------------------------------------
+
+local Production = module.production
+local Item = module.item
 
 ---------------------------------------------------------------------------
 
@@ -165,16 +191,16 @@ local function eliminate_left_recursion(grammar, symbol_names)
           local src_body = production.body
           local new_body = module.list(table.unpack(src_body)):add(table.unpack(body, 2))
           if i == new_body[1] then
-            left_recursions:add { head = i, body = new_body }
+            left_recursions:add(Production(i, new_body))
           else
-            no_left_recursions:add { head = i, body = new_body }
+            no_left_recursions:add(Production(i, new_body))
           end
         end
       else
         if i == body[1] then
-          left_recursions:add { head = i, body = body }
+          left_recursions:add(Production(i, body))
         else
-          no_left_recursions:add { head = i, body = body }
+          no_left_recursions:add(Production(i, body))
         end
       end
     end
@@ -187,16 +213,16 @@ local function eliminate_left_recursion(grammar, symbol_names)
       for _, left_recursion in ipairs(left_recursions) do
         local src_body = left_recursion.body
         local new_body = module.list(table.unpack(src_body, 2)):add(n)
-        productions:add { head = n, body = new_body }
+        productions:add(Production(n, new_body))
       end
-      productions:add { head = n, body = {} }
+      productions:add(Production(n, {}))
       map_of_productions[n] = productions
 
       local productions = module.list()
       for _, no_left_recursion in ipairs(no_left_recursions) do
         local src_body = no_left_recursion.body
         local new_body = module.list(table.unpack(src_body)):add(n)
-        productions:add { head = i, body = new_body }
+        productions:add(Production(i, new_body))
       end
       map_of_productions[i] = productions
     else
@@ -524,7 +550,7 @@ local function build(def)
     for i = 2, #v do
       body:add(symbol_map[v[i]])
     end
-    productions:add { head = head, body = body }
+    productions:add(Production(head, body))
   end
 
   symbol_names[0] = "epsilon"
