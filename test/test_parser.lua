@@ -303,10 +303,10 @@ local function lr0_goto(grammar, items)
     end
   end
 
-  local gotos = {}
+  local gotos = module.list()
   for symbol, to_items in map_of_to_items:each() do
     lr0_closure(grammar, to_items)
-    gotos[#gotos + 1] = { symbol = symbol, to_items = to_items }
+    gotos:add { symbol = symbol, to_items = to_items }
   end
 
   return gotos
@@ -314,7 +314,7 @@ end
 
 -- P.246
 local function lr0_items(grammar)
-  local start_items = module.list():add { index = 1, dot = 1 }
+  local start_items = module.list { index = 1, dot = 1 }
   lr0_closure(grammar, start_items)
   local set_of_items = module.set()
   set_of_items:add(start_items)
