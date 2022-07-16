@@ -203,6 +203,12 @@ module.map = setmetatable(class, {
 
 ---------------------------------------------------------------------------
 
+-- キーにひもづけられた値がなければ、テーブルを作成して設定する
+-- キーにひもづけられた値を返す
+
+-- キーにひもづけられた値がなければ、コンストラクタを実行して設定する
+-- キーにひもづけられた値を返す
+
 local function optional_get(t, k, fn, ...)
   local v = t[k]
   if v == nil then
@@ -218,7 +224,7 @@ end
 
 ---------------------------------------------------------------------------
 
--- P.246
+-- P.245
 local function lr0_closure(grammar, items)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
@@ -268,6 +274,7 @@ local function lr0_goto(grammar, items)
   return gotos
 end
 
+-- P.246
 local function lr0_items(grammar)
   local start_items = module.items():add(1, 1)
   lr0_closure(grammar, start_items)
@@ -283,8 +290,9 @@ local function lr0_items(grammar)
     end
     for i = m, n do
       local gotos = lr0_goto(grammar, set_of_items[i])
-      assert(transitions[i] == nil)
-      local transition = optional_get(transitions, i)
+      -- transitionをset_of_itemsに統合してもよいか？
+      local transition = {}
+      transitions[i] = transition
       for _, data in ipairs(gotos) do
         local to_items = data.to_items
         local to = set_of_items:find(to_items)
@@ -298,42 +306,6 @@ local function lr0_items(grammar)
   end
   return set_of_items, transitions
 end
-
-
--- キーにひもづけられた値がなければ、テーブルを作成して設定する
--- キーにひもづけられた値を返す
-
--- キーにひもづけられた値がなければ、コンストラクタを実行して設定する
--- キーにひもづけられた値を返す
-
--- get, access, opt
--- optional
--- conditional
-
-local t = {}
-optional_get(t, 1, module.items):add(17, 17)
-optional_get(t, 2, module.items):add(42, 42)
-optional_get(t, 1, module.items):add(23, 23)
-
-print(t[1][1].index, t[1][2].index, t[2][1].index)
-
-local map = module.map()
-
-map.xyz = 42
-map.foo = 69
-map.bar = 1
-map.baz = 2
-map.xyz = 3
-
-for k, v in map:each() do
-  print(k, v)
-end
-
--- map = nil
--- print("#", next(private))
--- collectgarbage()
--- collectgarbage()
--- print("#", next(private))
 
 ---------------------------------------------------------------------------
 
@@ -409,6 +381,4 @@ for i, items in ipairs(set_of_items) do
   end
   print(("-"):rep(75))
 end
-
-
 
