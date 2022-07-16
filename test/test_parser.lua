@@ -18,6 +18,8 @@
 -- https://github.com/aidansteele/osx-abi-macho-file-format-reference
 -- https://developers.wonderpla.net/entry/2021/03/19/105503
 
+local dumper = require "dromozoa.commons.dumper"
+
 --[[
 
 
@@ -197,6 +199,44 @@ module.map = setmetatable(class, {
   __call = function ()
     local self = setmetatable({}, metatable)
     private[self] = {}
+    return self
+  end;
+})
+
+---------------------------------------------------------------------------
+
+local private = setmetatable({}, { __mode = "k" })
+local class = {}
+local metatable = { __index = class, __name = "dromozoa.parser.optional_map" }
+
+function class:each()
+  local priv = private[self]
+  return coroutine.wrap(function ()
+    for i = 1, #priv do
+      local k = priv[i]
+      coroutine.yield(k, self[k])
+    end
+  end), self
+end
+
+function metatable:__index(k)
+  local priv = private[self]
+  local v = priv.constructor()
+  priv[#priv + 1] = k
+  rawset(self, k, v)
+  return v
+end
+
+function metatable:__newindex(k, v)
+  local priv = private[self]
+  priv[#priv + 1] = k
+  rawset(self, k, v)
+end
+
+module.optional_map = setmetatable(class, {
+  __call = function (_, constructor)
+    local self = setmetatable({}, metatable)
+    private[self] = { constructor = constructor or function () return {} end }
     return self
   end;
 })
@@ -493,6 +533,21 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
   end
 
 end
+
+---------------------------------------------------------------------------
+
+local map = module.optional_map()
+
+map.foo[1] = "foo"
+map.foo[2] = "bar"
+map.bar.baz = "qux"
+print(dumper.encode(map))
+
+local map = module.optional_map(module.optional_map)
+
+map.a.b.c = 42
+map[23][37] = 69
+print(dumper.encode(map))
 
 ---------------------------------------------------------------------------
 
