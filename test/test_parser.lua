@@ -224,6 +224,52 @@ end
 
 ---------------------------------------------------------------------------
 
+local first_symbols
+
+-- P.221
+local function first_symbol(grammar, symbol)
+  if symbol <= grammar.max_terminal_symbol then
+    return { [symbol] = true }
+  else
+    local productions = grammar.productions
+    local first = {}
+    for i, head, body in productions:each_by_head(symbol) do
+      if body[1] then -- is not epsilon
+        for symbol in pairs(first_symbols(grammar, body)) do
+          first[symbol] = true
+        end
+      else
+        first[0] = true -- epsilon
+      end
+    end
+    return first
+  end
+end
+
+function first_symbols(grammar, symbols)
+  local first = {}
+  for i, symbol in ipairs(symbols) do
+    for symbol in pairs(first_symbol(grammar, symbol)) do
+      first[symbol] = true
+    end
+    if first[0] then -- epsilon
+      first[0] = nil
+    else
+      return first
+    end
+  end
+  first[0] = true
+  return first
+end
+
+local function first(grammar)
+  local first_table = {}
+  for symbol = grammar.max_terminal_symbol + 1, grammar.max_nonterminal_symbol do
+    first_table[symbol] = first_symbol(grammar, symbol)
+  end
+  return first_table
+end
+
 -- P.245
 local function lr0_closure(grammar, items)
   local productions = grammar.productions
@@ -307,6 +353,67 @@ local function lr0_items(grammar)
   return set_of_items, transitions
 end
 
+-- P261
+-- TODO cache
+local function lr1_closure(grammar, first_table, items)
+  local productions = grammar.productions
+  local max_terminal_symbol = grammar.max_terminal_symbol
+
+  local added = {}
+  local m = 1
+  while true do
+    local n = #items
+    if m > n then
+      break
+    end
+    for i = m, n do
+      local item = items[i]
+      -- [A -> alpha . B beta, a]
+      -- FIRST(beta a)
+      -- first_symbolsじゃだめなの？
+      local first = {}
+      local body = productions[item.index].body
+      for j = item.dot + 1, #body + 1 do
+        local symbol = body[j]
+        if symbol then
+          if symbol <= max_terminal_symbol then
+            first[symbol] = true
+            break
+          else
+            for symbol in pairs(first_table[symbol]) do
+              first[symbol] = true
+            end
+            if first[0] then -- epsilon
+              first[0] = nil
+            else
+              break
+            end
+          end
+        else
+          first[item.la] = true
+        end
+      end
+
+      local symbol = productions[item.index].body[item.dot]
+      for j in productions:each_by_head(symbol) do
+        local a = added[j]
+        if not a then
+          a = {}
+          added[j] = a
+        end
+
+        for la in pairs(first) do
+          if not a[la] then
+            a[la] = true
+            items:add(j, 1, la)
+          end
+        end
+      end
+    end
+    m = n + 1
+  end
+end
+
 local function lalr1_kernels(grammar, set_of_items, transitions)
   local productions = grammar.productions
   local min_nonterminal_symbol = grammar.max_terminal_symbol + 1
@@ -343,11 +450,132 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
       local from_dot = from_item.dot
       if productions[from_index].head == min_nonterminal_symbol or from_dot > 1 then
         local items = module.items():add(from_index, from_dot, -1) -- la = marker_lookahead
-        -- lr1_closure
+        self:lr1_closure(items)
+        for _, item in ipairs(items) do
+          local index = item.index
+          local production = productions[id]
+          local dot = item.do
+          local symbol = production.body[dot]
+          if symbol then
+            local la = item.la
+            local to_i = transitions[i][symbol]
+            local to_j = map_of_kernel_items[to_i][index][dot + 1]
+            if la == -1 then -- marker_lookahead
+              propagated[#propagated + 1] = {
+                from_i = i;
+                from_j = j;
+                to_i = to_i;
+                to_j = to_j;
+              }
+            else
+              set_of_items[to_i][to_j].la[la] = true
+            end
+          end
+        end
       end
     end
   end
+
 end
+
+---------------------------------------------------------------------------
+
+local symbol_names = { "+", "*", "(", ")", "id", "E", "E'", "T", "T'", "F" }
+local max_terminal_symbol = 5
+
+local symbol_map = {}
+for symbol, name in ipairs(symbol_names) do
+  symbol_map[name] = symbol
+end
+local function _(name)
+  return assert(symbol_map[name])
+end
+
+local productions = module.productions()
+  :add(_"E", { _"T", _"E'" })
+  :add(_"E'", { _"+", _"T", _"E'" })
+  :add(_"E'", {})
+  :add(_"T", { _"F", _"T'" })
+  :add(_"T'", { _"*", _"F", _"T'" })
+  :add(_"T'", {})
+  :add(_"F", { _"(", _"E", _")" })
+  :add(_"F", { _"id" })
+
+local grammar = {
+  productions = productions;
+  max_terminal_symbol = max_terminal_symbol;
+  max_nonterminal_symbol = #symbol_names;
+}
+symbol_names[0] = "epsilon"
+
+local function dump(symbol_name, first)
+  io.write(symbol_name, " => {")
+  for symbol in pairs(first) do
+    io.write(" ", symbol_names[symbol])
+  end
+  io.write " }\n"
+end
+
+dump("F", first_symbol(grammar, _"F"))
+dump("T", first_symbol(grammar, _"T"))
+dump("E", first_symbol(grammar, _"E"))
+dump("E'", first_symbol(grammar, _"E'"))
+dump("T'", first_symbol(grammar, _"T'"))
+
+print(("="):rep(75))
+
+---------------------------------------------------------------------------
+
+local symbol_names = { "$", "c", "d", "S'", "S", "C" }
+local max_terminal_symbol = 3
+
+local symbol_map = {}
+for symbol, name in ipairs(symbol_names) do
+  symbol_map[name] = symbol
+end
+local function _(name)
+  return assert(symbol_map[name])
+end
+
+local productions = module.productions()
+  :add(_"S'", { _"S" })
+  :add(_"S", { _"C", _"C" })
+  :add(_"C", { _"c", _"C" })
+  :add(_"C", { _"d" })
+
+local grammar = {
+  productions = productions;
+  max_terminal_symbol = max_terminal_symbol;
+  max_nonterminal_symbol = #symbol_names;
+}
+symbol_names[0] = "epsilon"
+
+local first_table = first(grammar)
+local start_items = module:items():add(1, 1, 1)
+lr1_closure(grammar, first_table, start_items)
+
+for _, item in ipairs(start_items) do
+  local dot = item.dot
+  local p = productions[item.index]
+  local body = p.body
+  io.write(symbol_names[p.head], " ->")
+  for j = 1, #body do
+    if j == dot then
+      io.write " ."
+    end
+    io.write(" ", symbol_names[body[j]])
+  end
+  if dot == #body + 1 then
+    io.write " ."
+  end
+  if item.la then
+    io.write(", ", symbol_names[item.la])
+
+  end
+  io.write "\n"
+end
+
+print(("="):rep(75))
 
 ---------------------------------------------------------------------------
 
@@ -380,6 +608,7 @@ local productions = module.productions()
 local grammar = {
   productions = productions;
   max_terminal_symbol = max_terminal_symbol;
+  max_nonterminal_symbol = #symbol_names;
 }
 
 local items = module.items()
