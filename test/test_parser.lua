@@ -746,3 +746,121 @@ for i, items in ipairs(set_of_items) do
   print(("-"):rep(75))
 end
 
+---------------------------------------------------------------------------
+
+--[[
+
+local symbol_names = List("$", "id", "+", "*", "(", ")")
+local grammar = build_grammar(symbol_names, {
+  E = {
+    _"E" "+" "E";
+    _"E" "*" "E";
+    _"(" "E" ")";
+    _"id";
+  };
+})
+
+%left + -
+%left * /
+%right UMINUS
+
+E : E + E
+  | E * E
+  | ( E )
+  | id
+  ;
+
+_:left "+" "-"
+ :left "*" "/"
+ :right "UNM"
+
+_"E" : _"E" "+" "E"
+     | _"E" "-" "E"
+     | _"E" "*" "E"
+     | _"E" "/" "E"
+     | _"-" "E" :prec "UNM"
+     | _"(" "E" ")"
+     | _"id"
+
+_"E" :_ "E" "+" "E"
+     :_ "E" "-" "E"
+
+_:left "+" "-"
+ :left "*" "/"
+ :right "UNM"
+
+  left "*" "/";
+  right "UNM";
+
+x = _{
+  E = _"E" "*" "E"
+    | _"E" "+" "E"
+    | _"-" "E" :prec "UNM" {"$$ = $1 + $2"}
+    ;
+}
+
+
+
+
+
+]]
+
+local metatable = { __name = "dromozoa.parser.test" }
+
+local function new(...)
+  return setmetatable({...}, metatable)
+end
+
+function metatable:__bor(that)
+  print("|", self, that)
+  return new(self, that)
+end
+
+function metatable:__div(that)
+  print("/", self, that)
+  return new(self, that)
+end
+
+function metatable:__mod(that)
+  print("%", self, that)
+  return new(self, that)
+end
+
+function metatable:__call(s)
+  print("call", self, s)
+  return new(self, s)
+end
+
+local function _(s)
+  print("_", s)
+  return new(s)
+end
+
+local function grammar(x)
+end
+
+local function left(s)
+  print("left", s)
+  return new(s)
+end
+
+local function right(s)
+  print("left", s)
+  return new(s)
+end
+
+local function prec(s)
+  print("prec", s)
+  return new(s)
+end
+
+x = grammar(token_names, {
+  left "+" "-";
+  left "*" "/";
+  right "UNM";
+
+  E = _"E" "*" "E" / [[action]]
+    | _"E" "+" "E"
+    | _"-" "E" %prec "UNM" / [[action2]]
+    ;
+})
