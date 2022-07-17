@@ -412,15 +412,13 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
     local kernel_items = List()
     local kernel_table = Map()
     for i, item in ipairs(items) do
-      local index = item.index
-      local dot = item.dot
-      if index == 1 or dot > 1 then
-        kernel_table(index)[dot] = i
+      if item.index == 1 or item.dot > 1 then
+        kernel_table(item.index)[item.dot] = i
       end
-      if index == 1 and dot == 1 then
-        kernel_items:add(Item(index, dot, Map(MARKER_END, true)))
+      if item.index == 1 and item.dot == 1 then
+        kernel_items:add(Item(item.index, item.dot, Map(MARKER_END, true)))
       else
-        kernel_items:add(Item(index, dot, Map()))
+        kernel_items:add(Item(item.index, item.dot, Map()))
       end
     end
     set_of_kernel_items:add(kernel_items)
@@ -437,14 +435,11 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
         local items = List(Item(from_index, from_dot, MARKER_LOOKAHEAD))
         lr1_closure(grammar, first_table, items)
         for _, item in ipairs(items) do
-          local index = item.index
-          local production = productions[index]
-          local dot = item.dot
-          local symbol = production.body[dot]
+          local symbol = productions[item.index].body[item.dot]
           if symbol then
             local la = item.la
             local to_i = transitions[i][symbol]
-            local to_j = map_of_kernel_items[to_i][index][dot + 1]
+            local to_j = map_of_kernel_items[to_i][item.index][item.dot + 1]
             if la == MARKER_LOOKAHEAD then
               propagated:add { from_i = i, from_j = j, to_i = to_i, to_j = to_j }
             else
