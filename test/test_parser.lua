@@ -189,108 +189,42 @@ local function eliminate_left_recursion(grammar, symbol_names)
   local max_nonterminal_symbol = grammar.max_nonterminal_symbol
 
   local new_symbol_names = symbol_names:slice()
-  local map_of_productions = {}
+  local map_of_productions = Map()
 
   for i = max_terminal_symbol + 1, max_nonterminal_symbol do
-    local bodies = List()
-
-    local left_recursion = false
+    local n = #new_symbol_names + 1
+    local n_productions = List()
+    local i_productions = List()
 
     for _, body in productions:each(function (v) return v.head == i and v.body end) do
       local symbol = body[1]
       if symbol and symbol > max_terminal_symbol and symbol < i then
         for _, production in ipairs(map_of_productions[symbol]) do
           local body = production.body:slice():add(table.unpack(body, 2))
-          left_recursion = left_recursion or i == body[1]
-          bodies:add(body)
-        end
-      else
-        left_recursion = left_recursion or i == body[1]
-        bodies:add(body)
-      end
-    end
-
-    -- left_recursion = bodies:each(function (body) return i == body[1] end)
-
-    if left_recursion then
-      new_symbol_names:add(symbol_names[i] .. "'")
-      local n = #new_symbol_names
-
-      local n_productions = List()
-      local i_productions = List()
-
-      for _, body in ipairs(bodies) do
-        if i == body[1] then
-          n_productions:add(Production(n, body:slice(2):add(n)))
-        else
-          i_productions:add(Production(i, body:slice():add(n)))
-        end
-      end
-      n_productions:add(Production(n, List()))
-
-      map_of_productions[n] = n_productions
-      map_of_productions[i] = i_productions
-    else
-      local productions = List();
-      for _, body in ipairs(bodies) do
-        productions:add(Production(i, body))
-      end
-      map_of_productions[i] = productions
-    end
-  end
-
---[[
-  for i = max_terminal_symbol + 1, max_nonterminal_symbol do
-    local left_recursions = List()
-    local no_left_recursions = List()
-
-    -- iを頭部に持つ生成規則
-    for _, body in productions:each(function (v) return v.head == i and v.body end) do
-      local symbol = body[1]
-      if symbol and symbol > max_terminal_symbol and symbol < i then
-        -- 本体の先頭symbolがiより前だったら、おきかえを行う
-        for _, production in ipairs(map_of_productions[symbol]) do
-          local new_body = production.body:slice():add(table.unpack(body, 2))
-          if i == new_body[1] then
-            -- indirect
-            left_recursions:add(Production(i, new_body:slice(2)))
+          if i == body[1] then
+            n_productions:add(Production(n, body:slice(2):add(n)))
           else
-            no_left_recursions:add(Production(i, new_body))
+            i_productions:add(Production(i, body))
           end
         end
       else
         if i == body[1] then
-          -- direct
-          left_recursions:add(Production(i, body:slice(2)))
+          n_productions:add(Production(n, body:slice(2):add(n)))
         else
-          no_left_recursions:add(Production(i, body))
+          i_productions:add(Production(i, body:slice()))
         end
       end
     end
 
-    if left_recursions[1] then
+    if next(n_productions) then
       new_symbol_names:add(symbol_names[i] .. "'")
-      local n = #new_symbol_names
-
-      local productions = List()
-      for _, left_recursion in ipairs(left_recursions) do
-        local new_body = left_recursion.body:slice():add(n)
-        productions:add(Production(n, new_body))
+      map_of_productions[n] = n_productions:add(Production(n, List()))
+      for _, production in ipairs(i_productions) do
+        production.body:add(n)
       end
-      productions:add(Production(n, {}))
-      map_of_productions[n] = productions
-
-      local productions = List()
-      for _, no_left_recursion in ipairs(no_left_recursions) do
-        local new_body = no_left_recursion.body:slice():add(n)
-        productions:add(Production(i, new_body))
-      end
-      map_of_productions[i] = productions
-    else
-      map_of_productions[i] = no_left_recursions
     end
+    map_of_productions[i] = i_productions
   end
-]]
 
   local new_productions = List()
   for i = grammar.max_terminal_symbol + 1, #new_symbol_names do
