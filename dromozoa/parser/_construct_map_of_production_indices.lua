@@ -15,17 +15,17 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local class = {}
-local metatable = { __index = class }
-
-local timestamp = 0
-
-function metatable:__call(that)
-  self[#self + 1] = that
-  return self
-end
-
-return function (that)
-  timestamp = timestamp + 1
-  return setmetatable({ timestamp = timestamp, that}, metatable)
+return function (productions)
+  local map_of_production_indices = {}
+  for i = 1, #productions do
+    local production = productions[i]
+    local head = production.head
+    local production_indices = map_of_production_indices[head]
+    if not production_indices then
+      map_of_production_indices[head] = { i }
+    else
+      production_indices[#production_indices + 1] = i
+    end
+  end
+  return map_of_production_indices
 end

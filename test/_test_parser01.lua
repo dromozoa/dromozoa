@@ -19,13 +19,15 @@
 -- https://developers.wonderpla.net/entry/2021/03/19/105503
 
 local body = require "dromozoa.parser.body"
-local grammar = require "dromozoa.parser.grammar"
 local eliminate_left_recursions = require "dromozoa.parser.eliminate_left_recursions"
+local grammar = require "dromozoa.parser.grammar"
 
 local debug = tonumber(os.getenv "DROMOZOA_TEST_DEBUG")
 debug = debug and debug ~= 0
 
 local _ = body
+
+-- P.213 Equation 4.18
 
 local symbol_names = { "a", "b", "c", "d" }
 local max_terminal_symbol = #symbol_names
