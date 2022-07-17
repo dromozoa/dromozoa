@@ -227,6 +227,7 @@ local function eliminate_left_recursion(grammar, symbol_names)
         body:add(n)
       end
     end
+
     for _, body in ipairs(i_bodies) do
       new_productions:add(Production(i, body))
     end
@@ -238,7 +239,7 @@ local function eliminate_left_recursion(grammar, symbol_names)
   return {
     productions = new_productions;
     max_terminal_symbol = max_terminal_symbol;
-    max_nonterminal_symbol = max_nonterminal_symbol;
+    max_nonterminal_symbol = #new_symbol_names;
   }, new_symbol_names
 end
 
@@ -254,11 +255,10 @@ local function first_symbol(grammar, symbol, first_table)
     if first_table then
       return first_table[symbol]
     end
-    local productions = grammar.productions
     local first = {}
-    for _, body in productions:each(function (v) return v.head == symbol and v.body end) do
-      if next(body) then
-        for symbol in pairs(first_symbols(grammar, body)) do
+    for _, body in grammar.productions:each(function (v) return v.head == symbol and v.body end) do
+      if body[1] then
+        for symbol in pairs(first_symbols(grammar, body, first_table)) do
           first[symbol] = true
         end
       else
