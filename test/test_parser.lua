@@ -55,10 +55,15 @@ function class:find(v)
   end
 end
 
-function class:add(v)
-  assert(not self:find(v))
-  local n = #self + 1
-  self[n] = v
+function class:put(v)
+  local n = self:find(v)
+  if n then
+    return n
+  else
+    n = #self + 1
+    self[n] = v
+    return n
+  end
   return n
 end
 
@@ -350,7 +355,7 @@ local function lr0_items(grammar)
   local start_items = module.list(Item(1, 1))
   lr0_closure(grammar, start_items)
   local set_of_items = module.set()
-  set_of_items:add(start_items)
+  set_of_items:put(start_items)
   local transitions = {}
 
   local m = 1
@@ -365,12 +370,7 @@ local function lr0_items(grammar)
       local transition = {}
       transitions[i] = transition
       for _, data in ipairs(gotos) do
-        local to_items = data.to_items
-        local to = set_of_items:find(to_items)
-        if not to then
-          to = set_of_items:add(to_items)
-        end
-        transition[data.symbol] = to
+        transition[data.symbol] = set_of_items:put(data.to_items)
       end
     end
     m = n + 1
