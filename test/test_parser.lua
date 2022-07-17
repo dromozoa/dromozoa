@@ -403,7 +403,7 @@ end
 -- P.272
 local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
   local productions = grammar.productions
-  local min_nonterminal_symbol = grammar.max_terminal_symbol + 1
+  local max_terminal_symbol = grammar.max_terminal_symbol
 
   local set_of_kernel_items = List()
   local map_of_kernel_items = List()
@@ -431,7 +431,7 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
     for j, from_item in ipairs(from_items) do
       local from_index = from_item.index
       local from_dot = from_item.dot
-      if productions[from_index].head == min_nonterminal_symbol or from_dot > 1 then
+      if productions[from_index].head == max_terminal_symbol + 1 or from_dot > 1 then
         local items = List(Item(from_index, from_dot, MARKER_LOOKAHEAD))
         lr1_closure(grammar, first_table, items)
         for _, item in ipairs(items) do
@@ -469,15 +469,12 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
   for _, items in ipairs(set_of_kernel_items) do
     local expanded_items = List()
     for _, item in ipairs(items) do
-      local index = item.index
-      local dot = item.dot
       for la in pairs(item.la) do
-        expanded_items:add(Item(index, dot, la))
+        expanded_items:add(Item(item.index, item.dot, la))
       end
     end
     expanded_set_of_kernel_items:add(expanded_items)
   end
-
   return expanded_set_of_kernel_items
 end
 
