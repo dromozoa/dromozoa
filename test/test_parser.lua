@@ -174,6 +174,7 @@ local MARKER_EPSILON = 0
 
 ---------------------------------------------------------------------------
 
+-- P.213
 local function eliminate_left_recursion(grammar, symbol_names)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
@@ -193,14 +194,14 @@ local function eliminate_left_recursion(grammar, symbol_names)
           local src_body = production.body
           local new_body = List(table.unpack(src_body)):add(table.unpack(body, 2))
           if i == new_body[1] then
-            left_recursions:add(Production(i, new_body))
+            left_recursions:add(Production(i, List(table.unpack(new_body, 2))))
           else
             no_left_recursions:add(Production(i, new_body))
           end
         end
       else
         if i == body[1] then
-          left_recursions:add(Production(i, body))
+          left_recursions:add(Production(i, List(table.unpack(body, 2))))
         else
           no_left_recursions:add(Production(i, body))
         end
@@ -213,8 +214,7 @@ local function eliminate_left_recursion(grammar, symbol_names)
 
       local productions = List()
       for _, left_recursion in ipairs(left_recursions) do
-        local src_body = left_recursion.body
-        local new_body = List(table.unpack(src_body, 2)):add(n)
+        local new_body = List(table.unpack(left_recursion.body)):add(n)
         productions:add(Production(n, new_body))
       end
       productions:add(Production(n, {}))
@@ -222,8 +222,7 @@ local function eliminate_left_recursion(grammar, symbol_names)
 
       local productions = List()
       for _, no_left_recursion in ipairs(no_left_recursions) do
-        local src_body = no_left_recursion.body
-        local new_body = List(table.unpack(src_body)):add(n)
+        local new_body = List(table.unpack(no_left_recursion.body)):add(n)
         productions:add(Production(i, new_body))
       end
       map_of_productions[i] = productions
@@ -235,7 +234,7 @@ local function eliminate_left_recursion(grammar, symbol_names)
   local new_productions = List()
   for i = grammar.max_terminal_symbol + 1, #new_symbol_names do
     for _, production in ipairs(map_of_productions[i]) do
-      new_productions[#new_productions + 1] = (production)
+      new_productions[#new_productions + 1] = production
     end
   end
 
