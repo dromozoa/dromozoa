@@ -176,14 +176,10 @@ module.item = setmetatable(class, {
 local Set = module.set
 local Map = module.map
 local List = module.list
-
 local Production = module.production
 local Item = module.item
 
 ---------------------------------------------------------------------------
--- lookahead = -1
--- epsilon   = 0
--- end/eof   = 1
 
 local MARKER_LOOKAHEAD = -1
 local MARKER_EPSILON = 0
@@ -409,17 +405,17 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
   local productions = grammar.productions
   local min_nonterminal_symbol = grammar.max_terminal_symbol + 1
 
-  local set_of_kernel_items = Map()
-  local map_of_kernel_items = Map()
+  local set_of_kernel_items = List()
+  local map_of_kernel_items = List()
 
-  for i, items in ipairs(set_of_items) do
+  for _, items in ipairs(set_of_items) do
     local kernel_items = List()
     local kernel_table = Map()
-    for j, item in ipairs(items) do
+    for i, item in ipairs(items) do
       local index = item.index
       local dot = item.dot
       if index == 1 or dot > 1 then
-        kernel_table(index)[dot] = j
+        kernel_table(index)[dot] = i
       end
       if index == 1 and dot == 1 then
         kernel_items:add(Item(index, dot, Map(MARKER_END, true)))
@@ -427,11 +423,11 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
         kernel_items:add(Item(index, dot, Map()))
       end
     end
-    set_of_kernel_items[i] = kernel_items
-    map_of_kernel_items[i] = kernel_table
+    set_of_kernel_items:add(kernel_items)
+    map_of_kernel_items:add(kernel_table)
   end
 
-  local propagated = {}
+  local propagated = List()
 
   for i, from_items in ipairs(set_of_items) do
     for j, from_item in ipairs(from_items) do
@@ -450,12 +446,7 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
             local to_i = transitions[i][symbol]
             local to_j = map_of_kernel_items[to_i][index][dot + 1]
             if la == MARKER_LOOKAHEAD then
-              propagated[#propagated + 1] = {
-                from_i = i;
-                from_j = j;
-                to_i = to_i;
-                to_j = to_j;
-              }
+              propagated:add { from_i = i, from_j = j, to_i = to_i, to_j = to_j }
             else
               set_of_kernel_items[to_i][to_j].la[la] = true
             end
@@ -480,7 +471,7 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
   until done
 
   local expanded_set_of_kernel_items = List()
-  for _, items in pairs(set_of_kernel_items) do
+  for _, items in ipairs(set_of_kernel_items) do
     local expanded_items = List()
     for _, item in ipairs(items) do
       local index = item.index
