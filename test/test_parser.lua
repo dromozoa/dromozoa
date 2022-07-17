@@ -404,6 +404,16 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
   local set_of_kernel_items = List()
   local map_of_kernel_items = List()
 
+  -- set_of_items
+  -- [i]で状態 (items) が得られる
+  -- [j]でitemsの項が得られる
+  -- transitions
+  -- [i]で遷移 (transition) が得られる
+  -- transitionはsymbolについて、遷移先の[i]を与える
+
+  -- map_of_kernel_itemsは、状態について、
+  -- item.index/item.dotの索引を与える
+
   for i, items in ipairs(set_of_items) do
     local kernel_items = List()
     local kernel_table = Map()
@@ -421,7 +431,7 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
     map_of_kernel_items[i] = kernel_table
   end
 
-  local propagated = List()
+  local propagations = List()
 
   for from_i, from_items in ipairs(set_of_items) do
     for from_j, from_item in ipairs(from_items) do
@@ -434,7 +444,7 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
             local to_i = transitions[from_i][symbol]
             local to_j = map_of_kernel_items[to_i][item.index][item.dot + 1]
             if item.la == MARKER_LOOKAHEAD then
-              propagated:add { from_i = from_i, from_j = from_j, to_i = to_i, to_j = to_j }
+              propagations:add { from_i = from_i, from_j = from_j, to_i = to_i, to_j = to_j }
             else
               set_of_kernel_items[to_i][to_j].la[item.la] = true
             end
@@ -446,9 +456,9 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
 
   repeat
     local done = true
-    for _, op in ipairs(propagated) do
-      local from_la = set_of_kernel_items[op.from_i][op.from_j].la
-      local to_la = set_of_kernel_items[op.to_i][op.to_j].la
+    for _, propagation in ipairs(propagations) do
+      local from_la = set_of_kernel_items[propagation.from_i][propagation.from_j].la
+      local to_la = set_of_kernel_items[propagation.to_i][propagation.to_j].la
       for la in pairs(from_la) do
         if not to_la[la] then
           to_la[la] = true
@@ -458,17 +468,17 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
     end
   until done
 
-  local expanded_set_of_kernel_items = List()
+  local new_set_of_kernel_items = List()
   for _, items in ipairs(set_of_kernel_items) do
-    local expanded_items = List()
+    local new_items = List()
     for _, item in ipairs(items) do
       for la in pairs(item.la) do
-        expanded_items:add(Item(item.index, item.dot, la))
+        new_items:add(Item(item.index, item.dot, la))
       end
     end
-    expanded_set_of_kernel_items:add(expanded_items)
+    new_set_of_kernel_items:add(new_items)
   end
-  return expanded_set_of_kernel_items
+  return new_set_of_kernel_items
 end
 
 ---------------------------------------------------------------------------
