@@ -28,7 +28,7 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.set" }
 
 local function equal(a, b)
-  if rawequal(a, b) then
+  if a == b then
     return true
   end
   if type(a) == "table" and type(b) == "table" then
@@ -47,23 +47,14 @@ local function equal(a, b)
   return false
 end
 
-function class:find(v)
+function class:put(v)
   for i, u in ipairs(self) do
     if equal(u, v) then
-      return i, u
+      return i
     end
   end
-end
-
-function class:put(v)
-  local n = self:find(v)
-  if n then
-    return n
-  else
-    n = #self + 1
-    self[n] = v
-    return n
-  end
+  local n = #self + 1
+  self[n] = v
   return n
 end
 
@@ -78,16 +69,6 @@ module.set = setmetatable(class, {
 local private = setmetatable({}, { __mode = "k" })
 local class = {}
 local metatable = { __name = "dromozoa.parser.map" }
-
-function class:each()
-  local priv = private[self]
-  return coroutine.wrap(function ()
-    for i = 1, #priv do
-      local k = priv[i]
-      coroutine.yield(k, self[k])
-    end
-  end), self
-end
 
 function metatable:__index(k)
   local v = class[k]
@@ -108,6 +89,19 @@ function metatable:__newindex(k, v)
   local priv = private[self]
   priv[#priv + 1] = k
   rawset(self, k, v)
+end
+
+function metatable:__pairs()
+  local priv = private[self]
+  local index = 0
+  return function (self, key)
+    index = index + 1
+    local k = priv[index]
+    if k then
+      local k = priv[index]
+      return k, self[k]
+    end
+  end, self
 end
 
 module.map = setmetatable(class, {
@@ -342,7 +336,7 @@ local function lr0_goto(grammar, items)
   end
 
   local gotos = module.list()
-  for symbol, to_items in map_of_to_items:each() do
+  for symbol, to_items in pairs(map_of_to_items) do
     lr0_closure(grammar, to_items)
     gotos:add { symbol = symbol, to_items = to_items }
   end
