@@ -71,13 +71,12 @@ local metatable = { __name = "dromozoa.parser.map" }
 
 function metatable:__index(k)
   local priv = private[self]
-  local v = priv.constructor()
+  local v = priv.new()
   priv[#priv + 1] = k
   rawset(self, k, v)
   return v
 end
 
--- 削除は考慮していない
 function metatable:__newindex(k, v)
   local priv = private[self]
   priv[#priv + 1] = k
@@ -97,15 +96,13 @@ function metatable:__pairs()
   end, self
 end
 
-local function new(constructor)
+local function map(new)
   local self = setmetatable({}, metatable)
-  private[self] = { constructor = constructor or new }
+  private[self] = { new = new or map}
   return self
 end
 
-module.map = function (...)
-  return new(...)
-end
+module.map = map
 
 ---------------------------------------------------------------------------
 
