@@ -427,21 +427,18 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
 
   for i, from_items in ipairs(set_of_items) do
     for j, from_item in ipairs(from_items) do
-      local from_index = from_item.index
-      local from_dot = from_item.dot
-      if productions[from_index].head == max_terminal_symbol + 1 or from_dot > 1 then
-        local items = List(Item(from_index, from_dot, MARKER_LOOKAHEAD))
+      if productions[from_item.index].head == max_terminal_symbol + 1 or from_item.dot > 1 then
+        local items = List(Item(from_item.index, from_item.dot, MARKER_LOOKAHEAD))
         lr1_closure(grammar, first_table, items)
         for _, item in ipairs(items) do
           local symbol = productions[item.index].body[item.dot]
           if symbol then
-            local la = item.la
             local to_i = transitions[i][symbol]
             local to_j = map_of_kernel_items[to_i][item.index][item.dot + 1]
-            if la == MARKER_LOOKAHEAD then
+            if item.la == MARKER_LOOKAHEAD then
               propagated:add { from_i = i, from_j = j, to_i = to_i, to_j = to_j }
             else
-              set_of_kernel_items[to_i][to_j].la[la] = true
+              set_of_kernel_items[to_i][to_j].la[item.la] = true
             end
           end
         end
