@@ -548,11 +548,6 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
       end
     end
   end
-
-
-
-
-
 end
 
 ---------------------------------------------------------------------------
