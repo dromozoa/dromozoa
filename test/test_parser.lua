@@ -191,8 +191,7 @@ local function eliminate_left_recursion(grammar, symbol_names)
       local symbol = body[1]
       if symbol and symbol > max_terminal_symbol and symbol < i then
         for _, production in ipairs(map_of_productions[symbol]) do
-          local src_body = production.body
-          local new_body = List(table.unpack(src_body)):add(table.unpack(body, 2))
+          local new_body = List(table.unpack(production.body)):add(table.unpack(body, 2))
           if i == new_body[1] then
             left_recursions:add(Production(i, List(table.unpack(new_body, 2))))
           else
