@@ -246,16 +246,19 @@ local first_symbols
 
 -- P.221
 local function first_symbol(grammar, symbol, first_table)
-  if first_table then
-    return assert(first_table[symbol], "error symbol " .. symbol)
-  end
 
   if symbol <= grammar.max_terminal_symbol then
+    -- lookahead = -1が存在しているかも
     return { [symbol] = true }
   else
+
+    if first_table then
+      return assert(first_table[symbol], "error symbol " .. symbol)
+    end
+
     local productions = grammar.productions
     local first = {}
-    for i, body in productions:each(function (v) return v.head == symbol and v.body end) do
+    for _, body in productions:each(function (v) return v.head == symbol and v.body end) do
       if body[1] then -- is not epsilon
         for symbol in pairs(first_symbols(grammar, body)) do
           first[symbol] = true
@@ -270,7 +273,7 @@ end
 
 function first_symbols(grammar, symbols, first_table)
   local first = {}
-  for i, symbol in ipairs(symbols) do
+  for _, symbol in ipairs(symbols) do
     for symbol in pairs(first_symbol(grammar, symbol, first_table)) do
       first[symbol] = true
     end
@@ -325,7 +328,6 @@ local function lr0_goto(grammar, items)
   local map_of_to_items = module.map(module.list)
 
   for _, item in ipairs(items) do
-    -- local index, dot, la, production = item:get(productions)
     local index = item.index
     local dot = item.dot
     local symbol = productions[index].body[dot]
@@ -391,36 +393,8 @@ local function lr1_closure(grammar, first_table, items)
     end
     for i = m, n do
       local item = items[i]
-      -- [A -> alpha . B beta, a]
-      -- FIRST(beta a)
-      -- first_symbolsじゃだめなの？
-      local first = {}
       local body = productions[item.index].body
-      for j = item.dot + 1, #body + 1 do
-        local symbol = body[j]
-        if symbol then
-          if symbol <= max_terminal_symbol then
-            first[symbol] = true
-            break
-          else
-            for symbol in pairs(first_table[symbol]) do
-              first[symbol] = true
-            end
-            if first[0] then -- epsilon
-              first[0] = nil
-            else
-              break
-            end
-          end
-        else
-          -- TODO laが集合の場合におかしくないか？
-          first[item.la] = true
-        end
-      end
-
-      -- local first2 = first_symbols(grammar,
-      --   module.list(table.unpack(body, item.dot + 1)):add(item.la),
-      --   first_table)
+      local first = first_symbols(grammar, module.list(table.unpack(body, item.dot + 1)):add(item.la), first_table)
 
       local symbol = productions[item.index].body[item.dot]
       for j in productions:each(function (v) return v.head == symbol end) do
@@ -430,6 +404,7 @@ local function lr1_closure(grammar, first_table, items)
           added[j] = a
         end
 
+        -- LA シンボルを期待している
         for la in pairs(first) do
           if not a[la] then
             a[la] = true
@@ -460,6 +435,7 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
         -- カーネル項の生成規則ごとに、dotごとに項の参照をつくる
         kernel_table[index][dot] = j
       end
+      -- LALR1ではLAは集合にする
       if index == 1 and dot == 1 then
         kernel_items:add(Item(index, dot, { true }))  -- la = { [marker_end] = true }
       else
@@ -477,6 +453,7 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
       local from_index = from_item.index
       local from_dot = from_item.dot
       if productions[from_index].head == min_nonterminal_symbol or from_dot > 1 then
+        -- lookaheadは集合ではない
         local items = module.list():add(Item(from_index, from_dot, -1))  -- la = marker_lookahead
         lr1_closure(grammar, first_table, items)
         for _, item in ipairs(items) do
@@ -496,6 +473,7 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
                 to_j = to_j;
               }
             else
+              -- 以降は集合を期待
               set_of_kernel_items[to_i][to_j].la[la] = true
             end
           end
