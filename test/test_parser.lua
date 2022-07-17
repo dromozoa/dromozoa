@@ -284,7 +284,7 @@ end
 
 local function first(grammar)
   local first_table = {}
-  for symbol = 1, grammar.max_nonterminal_symbol do
+  for symbol = grammar.max_terminal_symbol + 1, grammar.max_nonterminal_symbol do
     first_table[symbol] = first_symbol(grammar, symbol)
   end
   return first_table
