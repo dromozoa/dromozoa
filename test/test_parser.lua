@@ -68,8 +68,8 @@ function class:put(v)
 end
 
 module.set = setmetatable(class, {
-  __call = function ()
-    return setmetatable({}, metatable)
+  __call = function (_, ...)
+    return setmetatable({...}, metatable)
   end;
 })
 
@@ -354,8 +354,7 @@ end
 local function lr0_items(grammar)
   local start_items = module.list(Item(1, 1))
   lr0_closure(grammar, start_items)
-  local set_of_items = module.set()
-  set_of_items:put(start_items)
+  local set_of_items = module.set(start_items)
   local transitions = {}
 
   local m = 1
