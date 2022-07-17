@@ -471,6 +471,90 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
   return new_set_of_kernel_items
 end
 
+local function lalr1_items(grammar, first_table)
+  local set_of_items, transitions = lr0_items(grammar)
+  local set_of_items = lalr1_kernels(grammar, first_table, set_of_items, transitions)
+  for _, items in ipairs(set_of_items) do
+    lr1_closure(grammar, first_table, items)
+  end
+  return set_of_items, transitions
+end
+
+---------------------------------------------------------------------------
+
+-- P.265
+local function lr1_construct_table(grammar, set_of_items, transitions)
+  local productions = self.productions
+  local max_terminal_symbol = self.max_terminal_symbol
+
+  -- output
+  -- actions : action = actions[state][symbol] when symbol < max_terminal_symbol
+  -- gotos   : action = gotos[state][symbol - max_terminal_symbol]
+  --           action <= max_state then SHIFT else REDUCE (or ACCEPT)
+  -- heads   : headの内容 : heads[action] があれば、REDUCE
+  -- sizes   : bodyの個数 : REDUCE時に何個とりだすか
+
+  -- semantic actions, attribute actions
+  -- はとりあえずおいておく
+  -- precedenceもとりあえずおいておく
+
+  -- ACTION : actions : 終端記号を列に持つ
+  -- GOTO:    gotos   : 非終端記号を列に持つ
+  -- ACTIONとGOTOをひとつのテーブルにしてもいいんじゃない？
+
+  -- actionがmax_state以下ならばSHIFT: actionをスタックに積む。つまり、state
+  -- heads[action], sizes[action]でheadを取得する
+  --   semantic/attribute actionも[action]で検索する
+  -- productions[i] / i = action - max_state
+  -- heads
+  -- sizes
+  -- semantic_actions
+  -- attribute_actions
+
+  local max_state = #set_of_items
+
+  for i, items in ipairs(set_of_items) do
+    local transition = transitions[i]
+    local row = Map()
+    for _, item in ipairs(items) do
+      -- TODO transitionをスキャンしたほうがはやいのでは？
+      local symbol = productions[item.index].body[item.dot]
+      if symbol and symbol <= max_terminal_symbol and not terminal_symbol_table[symbol] then
+        row[symbol] = transition[symbol] -- SHIFT
+      end
+    end
+    local error_table = Map()
+    for _, item in ipairs(items) do
+      local symbol = productions[item.index].body[item.dot]
+      if not symbol then -- 末尾なのでREDUCEできるはず
+        local action = max_state + item.index
+        local symbol = item.la
+        local value = row[symbol]
+        if value then -- 衝突
+          if value <= max_state then -- SHIFT/REDUCE
+            -- 優先順位で判定する
+          else -- REDUCE/REDUCE
+            if action < value then
+              -- item.indexがちいさいほうが勝つ
+              t[symbol] = action
+            end
+          end
+        else
+          if error_table[symbol] then
+          else
+            t[symbol] = action
+          end
+        end
+      end
+    end
+  end
+
+
+
+
+
+end
+
 ---------------------------------------------------------------------------
 
 local function build(def)
@@ -637,11 +721,7 @@ end
 
 print(("="):rep(75))
 
-local set_of_items, transitions = lr0_items(grammar)
-local set_of_items = lalr1_kernels(grammar, first_table, set_of_items, transitions)
-for _, items in ipairs(set_of_items) do
-  lr1_closure(grammar, first_table, items)
-end
+local set_of_items, transitions = lalr1_items(grammar, first_table)
 
 for i, items in ipairs(set_of_items) do
   io.write("I_", i, "\n")
