@@ -233,7 +233,11 @@ local function eliminate_left_recursion(grammar, symbol_names)
     end
   end
 
-  return new_symbol_names, new_productions
+  return {
+    productions = new_productions;
+    max_terminal_symbol = max_terminal_symbol;
+    max_nonterminal_symbol = max_nonterminal_symbol;
+  }, new_symbol_names
 end
 
 ---------------------------------------------------------------------------
@@ -549,9 +553,9 @@ local symbol_names, _, grammar = build {
   };
 }
 
-local new_symbol_names, new_productions = eliminate_left_recursion(grammar, symbol_names)
+local new_grammar, new_symbol_names = eliminate_left_recursion(grammar, symbol_names)
 
-for _, p in ipairs(new_productions) do
+for _, p in ipairs(new_grammar.productions) do
   local body = p.body
   io.write(new_symbol_names[p.head], " ->")
   for j = 1, #body do
@@ -647,12 +651,7 @@ local symbol_names, _, grammar = build {
   };
 }
 
-local el_symbol_names, el_productions = eliminate_left_recursion(grammar, symbol_names)
-local el_grammar = {
-  productions = el_productions;
-  max_terminal_symbol = grammar.max_terminal_symbol;
-  max_nonterminal_symbol = #el_symbol_names;
-}
+local el_grammar, el_symbol_names = eliminate_left_recursion(grammar, symbol_names)
 local first_table = first(el_grammar)
 
 local items = List(Item(1, 1))
