@@ -172,19 +172,19 @@ local function eliminate_left_recursion(grammar, symbol_names)
   local max_terminal_symbol = grammar.max_terminal_symbol
   local max_nonterminal_symbol = grammar.max_nonterminal_symbol
 
-  local new_symbol_names = module.list(table.unpack(symbol_names))
-  local map_of_productions = module.map()
+  local new_symbol_names = List(table.unpack(symbol_names))
+  local map_of_productions = Map()
 
   for i = max_terminal_symbol + 1, max_nonterminal_symbol do
-    local left_recursions = module.list()
-    local no_left_recursions = module.list()
+    local left_recursions = List()
+    local no_left_recursions = List()
 
     for _, body in productions:each(function (v) return v.head == i and v.body end) do
       local symbol = body[1]
       if symbol and symbol > max_terminal_symbol and symbol < i then
         for _, production in ipairs(map_of_productions[symbol]) do
           local src_body = production.body
-          local new_body = module.list(table.unpack(src_body)):add(table.unpack(body, 2))
+          local new_body = List(table.unpack(src_body)):add(table.unpack(body, 2))
           if i == new_body[1] then
             left_recursions:add(Production(i, new_body))
           else
@@ -204,19 +204,19 @@ local function eliminate_left_recursion(grammar, symbol_names)
       new_symbol_names:add(symbol_names[i] .. "'")
       local n = #new_symbol_names
 
-      local productions = module.list()
+      local productions = List()
       for _, left_recursion in ipairs(left_recursions) do
         local src_body = left_recursion.body
-        local new_body = module.list(table.unpack(src_body, 2)):add(n)
+        local new_body = List(table.unpack(src_body, 2)):add(n)
         productions:add(Production(n, new_body))
       end
       productions:add(Production(n, {}))
       map_of_productions[n] = productions
 
-      local productions = module.list()
+      local productions = List()
       for _, no_left_recursion in ipairs(no_left_recursions) do
         local src_body = no_left_recursion.body
-        local new_body = module.list(table.unpack(src_body)):add(n)
+        local new_body = List(table.unpack(src_body)):add(n)
         productions:add(Production(i, new_body))
       end
       map_of_productions[i] = productions
@@ -225,7 +225,7 @@ local function eliminate_left_recursion(grammar, symbol_names)
     end
   end
 
-  local new_productions = module.list()
+  local new_productions = List()
   for i = grammar.max_terminal_symbol + 1, #new_symbol_names do
     for _, production in ipairs(map_of_productions[i]) do
       new_productions[#new_productions + 1] = (production)
@@ -320,7 +320,7 @@ end
 local function lr0_goto(grammar, items)
   local productions = grammar.productions
 
-  local map_of_to_items = module.map(module.list)
+  local map_of_to_items = Map(List)
 
   for _, item in ipairs(items) do
     local index = item.index
@@ -331,7 +331,7 @@ local function lr0_goto(grammar, items)
     end
   end
 
-  local gotos = module.list()
+  local gotos = List()
   for symbol, to_items in pairs(map_of_to_items) do
     lr0_closure(grammar, to_items)
     gotos:add { symbol = symbol, to_items = to_items }
@@ -342,7 +342,7 @@ end
 
 -- P.246
 local function lr0_items(grammar)
-  local start_items = module.list(Item(1, 1))
+  local start_items = List(Item(1, 1))
   lr0_closure(grammar, start_items)
   local set_of_items = Set(start_items)
   local transitions = {}
@@ -383,7 +383,7 @@ local function lr1_closure(grammar, first_table, items)
     for i = m, n do
       local item = items[i]
       local body = productions[item.index].body
-      local first = first_symbols(grammar, module.list(table.unpack(body, item.dot + 1)):add(item.la), first_table)
+      local first = first_symbols(grammar, List(table.unpack(body, item.dot + 1)):add(item.la), first_table)
 
       local symbol = productions[item.index].body[item.dot]
       for j in productions:each(function (v) return v.head == symbol end) do
@@ -415,8 +415,8 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
 
   -- カーネル項の抽出
   for i, items in ipairs(set_of_items) do
-    local kernel_items = module.list()
-    local kernel_table = module.map()
+    local kernel_items = List()
+    local kernel_table = Map()
     for j, item in ipairs(items) do
       local index = item.index
       local dot = item.dot
@@ -443,7 +443,7 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
       local from_dot = from_item.dot
       if productions[from_index].head == min_nonterminal_symbol or from_dot > 1 then
         -- lookaheadは集合ではない
-        local items = module.list():add(Item(from_index, from_dot, -1))  -- la = marker_lookahead
+        local items = List(Item(from_index, from_dot, -1))  -- la = marker_lookahead
         lr1_closure(grammar, first_table, items)
         for _, item in ipairs(items) do
           local index = item.index
@@ -488,7 +488,7 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
 
   local expanded_set_of_kernel_items = {}
   for _, items in ipairs(set_of_kernel_items) do
-    local expanded_items = module.list()
+    local expanded_items = List()
     for _, item in ipairs(items) do
       local index = item.index
       local dot = item.dot
@@ -505,7 +505,7 @@ end
 ---------------------------------------------------------------------------
 
 local function build(def)
-  local symbol_names = module.list()
+  local symbol_names = List()
   local symbol_map = {}
   for _, v in ipairs(def[1]) do
     symbol_names:add(v)
@@ -520,10 +520,10 @@ local function build(def)
     end
   end
 
-  local productions = module.list()
+  local productions = List()
   for _, v in ipairs(def[2]) do
     local head = assert(symbol_map[v[1]])
-    local body = module.list()
+    local body = List()
     for i = 2, #v do
       body:add(symbol_map[v[i]])
     end
@@ -612,7 +612,7 @@ local symbol_names, _, grammar = build {
 }
 
 local first_table = first(grammar)
-local start_items = module.list():add(Item(1, 1, 1))
+local start_items = List():add(Item(1, 1, 1))
 lr1_closure(grammar, first_table, start_items)
 
 for _, item in ipairs(start_items) do
@@ -660,10 +660,10 @@ local el_grammar = {
 }
 local first_table = first(el_grammar)
 
-local items = module.list(Item(1, 1))
+local items = List(Item(1, 1))
 lr0_closure(grammar, items)
 
-local items = module.list(Item(1, 2), Item(2, 2))
+local items = List(Item(1, 2), Item(2, 2))
 local gotos = lr0_goto(grammar, items)
 for i, data in ipairs(gotos) do
   for _, to_item in ipairs(data.to_items) do
