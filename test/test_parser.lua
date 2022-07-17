@@ -319,7 +319,6 @@ end
 -- goto結果を直接addしてもよいのでは？
 local function lr0_goto(grammar, items)
   local productions = grammar.productions
-
   local map_of_to_items = Map(List)
 
   for _, item in ipairs(items) do
