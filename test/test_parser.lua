@@ -300,7 +300,7 @@ local function lr0_closure(grammar, items)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
 
-  local added = {}
+  local added = Map()
   local m = 1
   while true do
     local n = #items
@@ -329,11 +329,9 @@ local function lr0_goto(grammar, items)
   local map_of_to_items = Map(List)
 
   for _, item in ipairs(items) do
-    local index = item.index
-    local dot = item.dot
-    local symbol = productions[index].body[dot]
+    local symbol = productions[item.index].body[item.dot]
     if symbol then
-      map_of_to_items(symbol, List):add(Item(index, dot + 1))
+      map_of_to_items(symbol, List):add(Item(item.index, item.dot + 1))
     end
   end
 
@@ -390,8 +388,8 @@ local function lr1_closure(grammar, first_table, items)
         for j in productions:each(function (v) return v.head == symbol end) do
           for la in pairs(first) do
             if not added(j)[la] then
-              added(j)[la] = true
               items:add(Item(j, 1, la))
+              added(j)[la] = true
             end
           end
         end
