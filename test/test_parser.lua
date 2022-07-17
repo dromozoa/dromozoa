@@ -76,6 +76,7 @@ local function map(new)
 end
 
 function metatable:__index(k)
+  assert(type(k) == "number", type(k) .. " " .. k)
   local priv = private[self]
   local v = priv.new()
   priv[#priv + 1] = k
@@ -226,6 +227,7 @@ local function eliminate_left_recursion(grammar, symbol_names)
     map_of_productions[i] = i_productions
   end
 
+  -- TODO リファクタリング
   local new_productions = List()
   for i = grammar.max_terminal_symbol + 1, #new_symbol_names do
     for _, production in ipairs(map_of_productions[i]) do
@@ -401,12 +403,13 @@ local function lr1_closure(grammar, first_table, items)
   return items
 end
 
+-- P.272
 local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
   local productions = grammar.productions
   local min_nonterminal_symbol = grammar.max_terminal_symbol + 1
 
-  local set_of_kernel_items = {}
-  local map_of_kernel_items = {}
+  local set_of_kernel_items = Map()
+  local map_of_kernel_items = Map()
 
   -- カーネル項の抽出
   for i, items in ipairs(set_of_items) do
@@ -426,6 +429,7 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
         kernel_items:add(Item(index, dot, {}))
       end
     end
+    -- assert(set_of_kernel_items[i] == nil)
     set_of_kernel_items[i] = kernel_items
     map_of_kernel_items[i] = kernel_table
   end
@@ -470,8 +474,8 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
     local done = true
     for i = 1, #propagated do
       local op = propagated[i]
-      local from_la = set_of_kernel_items[op.from_i][op.from_j].la
-      local to_la = set_of_kernel_items[op.to_i][op.to_j].la
+      local from_la = assert(set_of_kernel_items[op.from_i][op.from_j].la)
+      local to_la = assert(set_of_kernel_items[op.to_i][op.to_j].la)
       for la in pairs(from_la) do
         if not to_la[la] then
           to_la[la] = true
@@ -482,7 +486,7 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
   until done
 
   local expanded_set_of_kernel_items = {}
-  for _, items in ipairs(set_of_kernel_items) do
+  for _, items in pairs(set_of_kernel_items) do
     local expanded_items = List()
     for _, item in ipairs(items) do
       local index = item.index
