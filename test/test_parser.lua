@@ -404,16 +404,6 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
   local set_of_kernel_items = List()
   local map_of_kernel_items = List()
 
-  -- set_of_items
-  -- [i]で状態 (items) が得られる
-  -- [j]でitemsの項が得られる
-  -- transitions
-  -- [i]で遷移 (transition) が得られる
-  -- transitionはsymbolについて、遷移先の[i]を与える
-
-  -- map_of_kernel_itemsは、状態について、
-  -- item.index/item.dotの索引を与える
-
   for i, items in ipairs(set_of_items) do
     local kernel_items = List()
     local kernel_table = Map()
