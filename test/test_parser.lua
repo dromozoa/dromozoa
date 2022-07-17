@@ -314,9 +314,11 @@ local function lr0_closure(grammar, items)
     end
     m = n + 1
   end
+
+  return items
 end
 
--- goto結果を直接addしてもよいのでは？
+-- P.246
 local function lr0_goto(grammar, items)
   local productions = grammar.productions
   local map_of_to_items = Map(List)
@@ -330,20 +332,16 @@ local function lr0_goto(grammar, items)
     end
   end
 
-  local gotos = List()
-  for symbol, to_items in pairs(map_of_to_items) do
+  for _, to_items in pairs(map_of_to_items) do
     lr0_closure(grammar, to_items)
-    gotos:add { symbol = symbol, to_items = to_items }
   end
 
-  return gotos
+  return map_of_to_items
 end
 
 -- P.246
 local function lr0_items(grammar)
-  local start_items = List(Item(1, 1))
-  lr0_closure(grammar, start_items)
-  local set_of_items = Set(start_items)
+  local set_of_items = Set(lr0_closure(grammar, List(Item(1, 1))))
   local transitions = Map()
 
   local m = 1
@@ -354,10 +352,10 @@ local function lr0_items(grammar)
     end
     for i = m, n do
       local items = set_of_items[i]
-      local gotos = lr0_goto(grammar, items)
+      local map_of_to_items = lr0_goto(grammar, items)
       local transition = transitions[i]
-      for _, data in ipairs(gotos) do
-        transition[data.symbol] = set_of_items:put(data.to_items)
+      for symbol, to_items in pairs(map_of_to_items) do
+        transition[symbol] = set_of_items:put(to_items)
       end
     end
     m = n + 1
@@ -664,9 +662,9 @@ lr0_closure(grammar, items)
 
 local items = List(Item(1, 2), Item(2, 2))
 local gotos = lr0_goto(grammar, items)
-for i, data in ipairs(gotos) do
-  for _, to_item in ipairs(data.to_items) do
-    print(symbol_names[data.symbol], to_item.index, to_item.dot)
+for symbol, to_items in pairs(gotos) do
+  for _, to_item in ipairs(to_items) do
+    print(symbol_names[symbol], to_item.index, to_item.dot)
   end
 end
 
