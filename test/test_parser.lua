@@ -242,9 +242,9 @@ end
 
 ---------------------------------------------------------------------------
 
+-- P.221
 local first_symbols
 
--- P.221
 local function first_symbol(grammar, symbol, first_table)
   if symbol <= grammar.max_terminal_symbol then
     return { [symbol] = true }
@@ -267,7 +267,6 @@ local function first_symbol(grammar, symbol, first_table)
   end
 end
 
--- P.221
 function first_symbols(grammar, symbols, first_table)
   local first = {}
   for _, symbol in ipairs(symbols) do
@@ -291,6 +290,8 @@ local function first(grammar)
   end
   return first_table
 end
+
+---------------------------------------------------------------------------
 
 -- P.245
 local function lr0_closure(grammar, items)
@@ -367,12 +368,11 @@ local function lr0_items(grammar)
 end
 
 -- P261
--- TODO cache
 local function lr1_closure(grammar, first_table, items)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
 
-  local added = {}
+  local added = Map(function () return {} end)
   local m = 1
   while true do
     local n = #items
@@ -382,27 +382,23 @@ local function lr1_closure(grammar, first_table, items)
     for i = m, n do
       local item = items[i]
       local body = productions[item.index].body
-      local first = first_symbols(grammar, body:slice(item.dot + 1):add(item.la), first_table)
-
-      local symbol = productions[item.index].body[item.dot]
-      for j in productions:each(function (v) return v.head == symbol end) do
-        local a = added[j]
-        if not a then
-          a = {}
-          added[j] = a
-        end
-
-        -- LA シンボルを期待している
-        for la in pairs(first) do
-          if not a[la] then
-            a[la] = true
-            items:add(Item(j, 1, la))
+      local symbol = body[item.dot]
+      if symbol and symbol > max_terminal_symbol then
+        local first = first_symbols(grammar, body:slice(item.dot + 1):add(item.la), first_table)
+        for j in productions:each(function (v) return v.head == symbol end) do
+          for la in pairs(first) do
+            if not added[j][la] then
+              added[j][la] = true
+              items:add(Item(j, 1, la))
+            end
           end
         end
       end
     end
     m = n + 1
   end
+
+  return items
 end
 
 local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
