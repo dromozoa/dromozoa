@@ -67,16 +67,9 @@ module.set = setmetatable(class, {
 ---------------------------------------------------------------------------
 
 local private = setmetatable({}, { __mode = "k" })
-local class = {}
 local metatable = { __name = "dromozoa.parser.map" }
 
 function metatable:__index(k)
-  local v = class[k]
-  if v ~= nil then
-    return v
-  end
-  -- いちおうチェック
-  assert(type(k) == "number")
   local priv = private[self]
   local v = priv.constructor()
   priv[#priv + 1] = k
@@ -104,13 +97,11 @@ function metatable:__pairs()
   end, self
 end
 
-module.map = setmetatable(class, {
-  __call = function (_, constructor)
-    local self = setmetatable({}, metatable)
-    private[self] = { constructor = constructor or function () return {} end }
-    return self
-  end;
-})
+module.map = function (constructor)
+  local self = setmetatable({}, metatable)
+  private[self] = { constructor = constructor or function () return {} end }
+  return self
+end
 
 ---------------------------------------------------------------------------
 
