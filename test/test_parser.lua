@@ -345,7 +345,7 @@ local function lr0_items(grammar)
   local start_items = List(Item(1, 1))
   lr0_closure(grammar, start_items)
   local set_of_items = Set(start_items)
-  local transitions = {}
+  local transitions = Map()
 
   local m = 1
   while true do
@@ -354,16 +354,16 @@ local function lr0_items(grammar)
       break
     end
     for i = m, n do
-      local gotos = lr0_goto(grammar, set_of_items[i])
-      -- transitionをset_of_itemsに統合してもよいか？
-      local transition = {}
-      transitions[i] = transition
+      local items = set_of_items[i]
+      local gotos = lr0_goto(grammar, items)
+      local transition = transitions[i]
       for _, data in ipairs(gotos) do
         transition[data.symbol] = set_of_items:put(data.to_items)
       end
     end
     m = n + 1
   end
+
   return set_of_items, transitions
 end
 
