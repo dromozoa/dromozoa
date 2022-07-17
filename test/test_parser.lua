@@ -97,10 +97,14 @@ function metatable:__pairs()
   end, self
 end
 
-module.map = function (constructor)
+local function new(constructor)
   local self = setmetatable({}, metatable)
-  private[self] = { constructor = constructor or function () return {} end }
+  private[self] = { constructor = constructor or new }
   return self
+end
+
+module.map = function (...)
+  return new(...)
 end
 
 ---------------------------------------------------------------------------
