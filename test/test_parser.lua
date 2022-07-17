@@ -195,48 +195,43 @@ local function eliminate_left_recursion(grammar, symbol_names)
   local max_nonterminal_symbol = grammar.max_nonterminal_symbol
 
   local new_symbol_names = symbol_names:slice()
-  local map_of_productions = Map()
+  local new_productions = List()
 
   for i = max_terminal_symbol + 1, max_nonterminal_symbol do
     local n = #new_symbol_names + 1
-    local n_productions = List()
-    local i_productions = List()
+    local n_bodies = List()
+    local i_bodies = List()
 
     for _, body in productions:each(function (v) return v.head == i and v.body end) do
       local symbol = body[1]
       if symbol and symbol > max_terminal_symbol and symbol < i then
-        for _, production in ipairs(map_of_productions[symbol]) do
-          local body = production.body:slice():add(table.unpack(body, 2))
-          if i == body[1] then
-            n_productions:add(Production(n, body:slice(2):add(n)))
+        for _, src_body in new_productions:each(function (v) return v.head == symbol and v.body end) do
+          local new_body = src_body:slice():add(table.unpack(body, 2))
+          if i == new_body[1] then
+            n_bodies:add(new_body:slice(2):add(n))
           else
-            i_productions:add(Production(i, body))
+            i_bodies:add(new_body)
           end
         end
+      elseif i == body[1] then
+        n_bodies:add(body:slice(2):add(n))
       else
-        if i == body[1] then
-          n_productions:add(Production(n, body:slice(2):add(n)))
-        else
-          i_productions:add(Production(i, body:slice()))
-        end
+        i_bodies:add(body:slice())
       end
     end
 
-    if next(n_productions) then
+    if n_bodies[1] then
       new_symbol_names:add(symbol_names[i] .. "'")
-      map_of_productions[n] = n_productions:add(Production(n, List()))
-      for _, production in ipairs(i_productions) do
-        production.body:add(n)
+      n_bodies:add(List())
+      for _, body in ipairs(i_bodies) do
+        body:add(n)
       end
     end
-    map_of_productions[i] = i_productions
-  end
-
-  -- TODO リファクタリング
-  local new_productions = List()
-  for i = max_terminal_symbol + 1, #new_symbol_names do
-    for _, production in ipairs(map_of_productions[i]) do
-      new_productions:add(production)
+    for _, body in ipairs(i_bodies) do
+      new_productions:add(Production(i, body))
+    end
+    for _, body in ipairs(n_bodies) do
+      new_productions:add(Production(n, body))
     end
   end
 
