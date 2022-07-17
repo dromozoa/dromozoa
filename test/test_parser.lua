@@ -69,9 +69,12 @@ module.set = setmetatable(class, {
 local private = setmetatable({}, { __mode = "k" })
 local metatable = { __name = "dromozoa.parser.map" }
 
-local function new()
+local function new(k, v)
   local self = setmetatable({}, metatable)
   private[self] = { set = {} }
+  if k and v then
+    self[k] = v
+  end
   return self
 end
 
@@ -409,7 +412,6 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
   local set_of_kernel_items = Map()
   local map_of_kernel_items = Map()
 
-  -- カーネル項の抽出
   for i, items in ipairs(set_of_items) do
     local kernel_items = List()
     local kernel_table = Map()
@@ -417,17 +419,14 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
       local index = item.index
       local dot = item.dot
       if index == 1 or dot > 1 then
-        -- カーネル項の生成規則ごとに、dotごとに項の参照をつくる
         kernel_table(index)[dot] = j
       end
-      -- LALR1ではLAは集合にする
       if index == 1 and dot == 1 then
-        kernel_items:add(Item(index, dot, { true }))  -- la = { [marker_end] = true }
+        kernel_items:add(Item(index, dot, Map(MARKER_END, true)))
       else
-        kernel_items:add(Item(index, dot, {}))
+        kernel_items:add(Item(index, dot, Map()))
       end
     end
-    -- assert(set_of_kernel_items[i] == nil)
     set_of_kernel_items[i] = kernel_items
     map_of_kernel_items[i] = kernel_table
   end
@@ -439,8 +438,7 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
       local from_index = from_item.index
       local from_dot = from_item.dot
       if productions[from_index].head == min_nonterminal_symbol or from_dot > 1 then
-        -- lookaheadは集合ではない
-        local items = List(Item(from_index, from_dot, -1))  -- la = marker_lookahead
+        local items = List(Item(from_index, from_dot, MARKER_LOOKAHEAD))
         lr1_closure(grammar, first_table, items)
         for _, item in ipairs(items) do
           local index = item.index
@@ -451,7 +449,7 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
             local la = item.la
             local to_i = transitions[i][symbol]
             local to_j = map_of_kernel_items[to_i][index][dot + 1]
-            if la == -1 then -- marker_lookahead
+            if la == MARKER_LOOKAHEAD then
               propagated[#propagated + 1] = {
                 from_i = i;
                 from_j = j;
@@ -459,7 +457,6 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
                 to_j = to_j;
               }
             else
-              -- 以降は集合を期待
               set_of_kernel_items[to_i][to_j].la[la] = true
             end
           end
@@ -470,10 +467,9 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
 
   repeat
     local done = true
-    for i = 1, #propagated do
-      local op = propagated[i]
-      local from_la = assert(set_of_kernel_items[op.from_i][op.from_j].la)
-      local to_la = assert(set_of_kernel_items[op.to_i][op.to_j].la)
+    for _, op in ipairs(propagated) do
+      local from_la = set_of_kernel_items[op.from_i][op.from_j].la
+      local to_la = set_of_kernel_items[op.to_i][op.to_j].la
       for la in pairs(from_la) do
         if not to_la[la] then
           to_la[la] = true
@@ -483,7 +479,7 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
     end
   until done
 
-  local expanded_set_of_kernel_items = {}
+  local expanded_set_of_kernel_items = List()
   for _, items in pairs(set_of_kernel_items) do
     local expanded_items = List()
     for _, item in ipairs(items) do
@@ -493,7 +489,7 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
         expanded_items:add(Item(index, dot, la))
       end
     end
-    expanded_set_of_kernel_items[#expanded_set_of_kernel_items + 1] = expanded_items
+    expanded_set_of_kernel_items:add(expanded_items)
   end
 
   return expanded_set_of_kernel_items
