@@ -151,25 +151,19 @@ module.list = setmetatable(class, {
 
 ---------------------------------------------------------------------------
 
-local class = {}
-local metatable = { __index = class, __name = "dromozoa.parser.production" }
+local metatable = { __name = "dromozoa.parser.production" }
 
-module.production = setmetatable(class, {
-  __call = function (_, head, body)
-    return setmetatable({ head = head, body = body }, metatable)
-  end;
-})
+module.production = function (head, body)
+  return setmetatable({ head = head, body = body }, metatable)
+end
 
 ---------------------------------------------------------------------------
 
-local class = {}
-local metatable = { __index = class, __name = "dromozoa.parser.item" }
+local metatable = { __name = "dromozoa.parser.item" }
 
-module.item = setmetatable(class, {
-  __call = function (_, index, dot, la)
-    return setmetatable({ index = index, dot = dot, la = la }, metatable)
-  end;
-})
+module.item = function (index, dot, la)
+  return setmetatable({ index = index, dot = dot, la = la }, metatable)
+end
 
 ---------------------------------------------------------------------------
 
@@ -249,12 +243,12 @@ local first_symbols
 
 local function first_symbol(grammar, symbol, first_table)
   if symbol <= grammar.max_terminal_symbol then
-    return { [symbol] = true }
+    return Map(symbol, true)
   else
     if first_table then
       return first_table[symbol]
     end
-    local first = {}
+    local first = Map()
     for _, body in grammar.productions:each(function (v) return v.head == symbol and v.body end) do
       if body[1] then
         for symbol in pairs(first_symbols(grammar, body, first_table)) do
@@ -269,7 +263,7 @@ local function first_symbol(grammar, symbol, first_table)
 end
 
 function first_symbols(grammar, symbols, first_table)
-  local first = {}
+  local first = Map()
   for _, symbol in ipairs(symbols) do
     for symbol in pairs(first_symbol(grammar, symbol, first_table)) do
       first[symbol] = true
@@ -285,7 +279,7 @@ function first_symbols(grammar, symbols, first_table)
 end
 
 local function first(grammar)
-  local first_table = {}
+  local first_table = Map()
   for symbol = grammar.max_terminal_symbol + 1, grammar.max_nonterminal_symbol do
     first_table[symbol] = first_symbol(grammar, symbol)
   end
@@ -366,6 +360,8 @@ local function lr0_items(grammar)
   return set_of_items, transitions
 end
 
+---------------------------------------------------------------------------
+
 -- P261
 local function lr1_closure(grammar, first_table, items)
   local productions = grammar.productions
@@ -399,6 +395,8 @@ local function lr1_closure(grammar, first_table, items)
 
   return items
 end
+
+---------------------------------------------------------------------------
 
 -- P.272
 local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
