@@ -50,12 +50,12 @@ end
 function class:put(v)
   for i, u in ipairs(self) do
     if equal(u, v) then
-      return i
+      return i, u
     end
   end
   local n = #self + 1
   self[n] = v
-  return n
+  return n, v
 end
 
 module.set = setmetatable(class, {
@@ -113,7 +113,7 @@ module.map = new
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.list" }
 
-local function list(...)
+local function new(...)
   return setmetatable({...}, metatable)
 end
 
@@ -126,7 +126,7 @@ function class:add(...)
 end
 
 function class:slice(i, j)
-  return list(table.unpack(self, i, j))
+  return new(table.unpack(self, i, j))
 end
 
 function class:each(fn)
@@ -142,7 +142,7 @@ end
 
 module.list = setmetatable(class, {
   __call = function (_, ...)
-    return list(...)
+    return new(...)
   end;
 })
 
@@ -182,7 +182,9 @@ local Item = module.item
 -- epsilon   = 0
 -- end/eof   = 1
 
+local MARKER_LOOKAHEAD = -1
 local MARKER_EPSILON = 0
+local MARKER_END = 1
 
 ---------------------------------------------------------------------------
 
@@ -232,9 +234,9 @@ local function eliminate_left_recursion(grammar, symbol_names)
 
   -- TODO リファクタリング
   local new_productions = List()
-  for i = grammar.max_terminal_symbol + 1, #new_symbol_names do
+  for i = max_terminal_symbol + 1, #new_symbol_names do
     for _, production in ipairs(map_of_productions[i]) do
-      new_productions[#new_productions + 1] = production
+      new_productions:add(production)
     end
   end
 
