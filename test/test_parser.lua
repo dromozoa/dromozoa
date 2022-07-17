@@ -158,6 +158,10 @@ module.item = setmetatable(class, {
 
 ---------------------------------------------------------------------------
 
+local Set = module.set
+local Map = module.map
+local List = module.list
+
 local Production = module.production
 local Item = module.item
 
@@ -340,7 +344,7 @@ end
 local function lr0_items(grammar)
   local start_items = module.list(Item(1, 1))
   lr0_closure(grammar, start_items)
-  local set_of_items = module.set(start_items)
+  local set_of_items = Set(start_items)
   local transitions = {}
 
   local m = 1
