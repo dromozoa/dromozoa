@@ -195,12 +195,15 @@ local function eliminate_left_recursion(grammar, symbol_names)
     local left_recursions = List()
     local no_left_recursions = List()
 
+    -- iを頭部に持つ生成規則
     for _, body in productions:each(function (v) return v.head == i and v.body end) do
       local symbol = body[1]
       if symbol and symbol > max_terminal_symbol and symbol < i then
+        -- 本体の先頭symbolがiより前だったら、おきかえを行う
         for _, production in ipairs(map_of_productions[symbol]) do
           local new_body = production.body:slice():add(table.unpack(body, 2))
           if i == new_body[1] then
+            -- indirect
             left_recursions:add(Production(i, new_body:slice(2)))
           else
             no_left_recursions:add(Production(i, new_body))
@@ -208,6 +211,7 @@ local function eliminate_left_recursion(grammar, symbol_names)
         end
       else
         if i == body[1] then
+          -- direct
           left_recursions:add(Production(i, body:slice(2)))
         else
           no_left_recursions:add(Production(i, body))
