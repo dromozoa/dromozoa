@@ -166,6 +166,13 @@ local Production = module.production
 local Item = module.item
 
 ---------------------------------------------------------------------------
+-- lookahead = -1
+-- epsilon   = 0
+-- end/eof   = 1
+
+local MARKER_EPSILON = 0
+
+---------------------------------------------------------------------------
 
 local function eliminate_left_recursion(grammar, symbol_names)
   local productions = grammar.productions
@@ -241,44 +248,41 @@ local first_symbols
 
 -- P.221
 local function first_symbol(grammar, symbol, first_table)
-
   if symbol <= grammar.max_terminal_symbol then
-    -- lookahead = -1が存在しているかも
     return { [symbol] = true }
   else
-
     if first_table then
-      return assert(first_table[symbol], "error symbol " .. symbol)
+      return first_table[symbol]
     end
-
     local productions = grammar.productions
     local first = {}
     for _, body in productions:each(function (v) return v.head == symbol and v.body end) do
-      if body[1] then -- is not epsilon
+      if next(body) then
         for symbol in pairs(first_symbols(grammar, body)) do
           first[symbol] = true
         end
       else
-        first[0] = true -- epsilon
+        first[MARKER_EPSILON] = true
       end
     end
     return first
   end
 end
 
+-- P.221
 function first_symbols(grammar, symbols, first_table)
   local first = {}
   for _, symbol in ipairs(symbols) do
     for symbol in pairs(first_symbol(grammar, symbol, first_table)) do
       first[symbol] = true
     end
-    if first[0] then -- epsilon
-      first[0] = nil
+    if first[MARKER_EPSILON] then
+      first[MARKER_EPSILON] = nil
     else
       return first
     end
   end
-  first[0] = true
+  first[MARKER_EPSILON] = true
   return first
 end
 
