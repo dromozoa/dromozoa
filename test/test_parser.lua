@@ -69,25 +69,29 @@ module.set = setmetatable(class, {
 local private = setmetatable({}, { __mode = "k" })
 local metatable = { __name = "dromozoa.parser.map" }
 
-local function map(new)
+local function new()
   local self = setmetatable({}, metatable)
-  private[self] = { new = new or map}
+  private[self] = { set = {} }
   return self
-end
-
-function metatable:__index(k)
-  assert(type(k) == "number", type(k) .. " " .. k)
-  local priv = private[self]
-  local v = priv.new()
-  priv[#priv + 1] = k
-  rawset(self, k, v)
-  return v
 end
 
 function metatable:__newindex(k, v)
   local priv = private[self]
-  priv[#priv + 1] = k
+  if not priv.set[k] then
+    priv.set[k] = true
+    priv[#priv + 1] = k
+  end
   rawset(self, k, v)
+end
+
+function metatable:__call(k, fn)
+  local v = self[k]
+  if v then
+    return v
+  end
+  local v = (fn or new)()
+  self[k] = v
+  return v
 end
 
 function metatable:__pairs()
@@ -97,13 +101,12 @@ function metatable:__pairs()
     index = index + 1
     local k = priv[index]
     if k then
-      local k = priv[index]
       return k, self[k]
     end
   end, self
 end
 
-module.map = map
+module.map = new
 
 ---------------------------------------------------------------------------
 
@@ -333,7 +336,7 @@ local function lr0_goto(grammar, items)
     local dot = item.dot
     local symbol = productions[index].body[dot]
     if symbol then
-      map_of_to_items[symbol]:add(Item(index, dot + 1))
+      map_of_to_items(symbol, List):add(Item(index, dot + 1))
     end
   end
 
@@ -358,7 +361,7 @@ local function lr0_items(grammar)
     for i = m, n do
       local items = set_of_items[i]
       local map_of_to_items = lr0_goto(grammar, items)
-      local transition = transitions[i]
+      local transition = transitions(i)
       for symbol, to_items in pairs(map_of_to_items) do
         transition[symbol] = set_of_items:put(to_items)
       end
@@ -374,7 +377,7 @@ local function lr1_closure(grammar, first_table, items)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
 
-  local added = Map(function () return {} end)
+  local added = Map()
   local m = 1
   while true do
     local n = #items
@@ -389,8 +392,8 @@ local function lr1_closure(grammar, first_table, items)
         local first = first_symbols(grammar, body:slice(item.dot + 1):add(item.la), first_table)
         for j in productions:each(function (v) return v.head == symbol end) do
           for la in pairs(first) do
-            if not added[j][la] then
-              added[j][la] = true
+            if not added(j)[la] then
+              added(j)[la] = true
               items:add(Item(j, 1, la))
             end
           end
@@ -420,7 +423,7 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
       local dot = item.dot
       if index == 1 or dot > 1 then
         -- カーネル項の生成規則ごとに、dotごとに項の参照をつくる
-        kernel_table[index][dot] = j
+        kernel_table(index)[dot] = j
       end
       -- LALR1ではLAは集合にする
       if index == 1 and dot == 1 then
