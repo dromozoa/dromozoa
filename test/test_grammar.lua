@@ -23,11 +23,13 @@ local grammar = require "dromozoa.parser.grammar"
 local dumper = require "dromozoa.commons.dumper"
 
 local left = grammar.left
+local right = grammar.right
 local _ = grammar.body
 
-local g = grammar({ "+", "*" }, {
+local g = grammar({ "+", "-", "*", "id" }, {
   left "+";
   left "*";
+  right "UNM";
 
   main
     = _"E"
