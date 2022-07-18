@@ -18,14 +18,14 @@
 -- https://github.com/aidansteele/osx-abi-macho-file-format-reference
 -- https://developers.wonderpla.net/entry/2021/03/19/105503
 
-local module = require "dromozoa.parser.grammar"
+local grammar = require "dromozoa.parser.grammar"
 
 local dumper = require "dromozoa.commons.dumper"
 
-local left = module.left
-local _ = module.body
+local left = grammar.left
+local _ = grammar.body
 
-local grammar = module.grammar({ "+", "*" }, {
+local g = grammar({ "+", "*" }, {
   left "+";
   left "*";
 
@@ -41,4 +41,4 @@ local grammar = module.grammar({ "+", "*" }, {
   F = _();
 })
 
-print(dumper.encode(grammar, { pretty = true, stable = true }))
+print(dumper.encode(g, { pretty = true, stable = true }))

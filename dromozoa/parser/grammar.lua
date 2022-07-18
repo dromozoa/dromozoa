@@ -21,7 +21,7 @@ local module = {}
 
 local timestamp = 0
 
-function module.get_timestamp()
+function get_timestamp()
   timestamp = timestamp + 1
   return timestamp
 end
@@ -31,25 +31,25 @@ end
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.precedence" }
 
-local function new(associativity, ...)
-  return setmetatable({ timestamp = module.get_timestamp(), associativity = associativity, ... }, metatable)
-end
-
 function metatable:__call(that)
   self[#self + 1] = that
   return self
 end
 
+local function precedence(associativity, ...)
+  return setmetatable({ timestamp = get_timestamp(), associativity = associativity, ... }, metatable)
+end
+
 function module.left(...)
-  return new("left", ...)
+  return precedence("left", ...)
 end
 
 function module.right(...)
-  return new("right", ...)
+  return precedence("right", ...)
 end
 
 function module.nonassoc(...)
-  return new("nonassoc", ...)
+  return precedence("nonassoc", ...)
 end
 
 ---------------------------------------------------------------------------
@@ -61,8 +61,8 @@ function metatable:__bor(that)
   return self
 end
 
-function module.bodies(...)
-  return setmetatable({ timestamp = module.get_timestamp(), ... }, metatable)
+local function bodies(...)
+  return setmetatable({ timestamp = get_timestamp(), ... }, metatable)
 end
 
 ---------------------------------------------------------------------------
@@ -81,7 +81,7 @@ function metatable:__mod(that)
 end
 
 function metatable:__bor(that)
-  return module.bodies(self, that)
+  return bodies(self, that)
 end
 
 function metatable:__call(that)
@@ -90,18 +90,15 @@ function metatable:__call(that)
 end
 
 function module.body(...)
-  return setmetatable({ timestamp = module.get_timestamp(), ... }, metatable)
+  return setmetatable({ timestamp = get_timestamp(), ... }, metatable)
 end
 
 ---------------------------------------------------------------------------
 
-local class = {}
-local metatable = { __index = class, __name = "dromozoa.parser.grammar" }
-
-function module.grammar(token_names, that)
+local function grammar(token_names, that)
   return setmetatable({ token_names, that }, metatable)
 end
 
 ---------------------------------------------------------------------------
 
-return module
+return setmetatable(module, { __call = function (_, ...) return grammar(...) end })
