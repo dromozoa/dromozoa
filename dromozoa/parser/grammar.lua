@@ -21,7 +21,7 @@ local module = {}
 
 local timestamp = 0
 
-function get_timestamp()
+local function get_timestamp()
   timestamp = timestamp + 1
   return timestamp
 end
@@ -31,44 +31,48 @@ end
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.precedence" }
 
+local function Precedence(associativity, ...)
+  return setmetatable({ timestamp = get_timestamp(), associativity = associativity, ... }, metatable)
+end
+
 function metatable:__call(that)
   self[#self + 1] = that
   return self
 end
 
-local function precedence(associativity, ...)
-  return setmetatable({ timestamp = get_timestamp(), associativity = associativity, ... }, metatable)
+module.left = function (...)
+  return Precedence("left", ...)
 end
 
-function module.left(...)
-  return precedence("left", ...)
+module.right = function (...)
+  return Precedence("right", ...)
 end
 
-function module.right(...)
-  return precedence("right", ...)
-end
-
-function module.nonassoc(...)
-  return precedence("nonassoc", ...)
+module.nonassoc = function (...)
+  return Precedence("nonassoc", ...)
 end
 
 ---------------------------------------------------------------------------
 
 local metatable = { __name = "dromozoa.parser.bodies" }
 
+local function Bodies(...)
+  return setmetatable({ timestamp = get_timestamp(), ... }, metatable)
+end
+
 function metatable:__bor(that)
   self[#self + 1] = that
   return self
-end
-
-local function bodies(...)
-  return setmetatable({ timestamp = get_timestamp(), ... }, metatable)
 end
 
 ---------------------------------------------------------------------------
 
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.body" }
+
+local function Body(...)
+  return setmetatable({ timestamp = get_timestamp(), ... }, metatable)
+end
 
 function class:prec(that)
   self.prec = that
@@ -81,7 +85,7 @@ function metatable:__mod(that)
 end
 
 function metatable:__bor(that)
-  return bodies(self, that)
+  return Bodies(self, that)
 end
 
 function metatable:__call(that)
@@ -89,16 +93,14 @@ function metatable:__call(that)
   return self
 end
 
-function module.body(...)
-  return setmetatable({ timestamp = get_timestamp(), ... }, metatable)
-end
+module.body = Body
 
 ---------------------------------------------------------------------------
 
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.list" }
 
-local function new(...)
+local function List(...)
   return setmetatable({...}, metatable)
 end
 
@@ -111,7 +113,7 @@ function class:add(...)
 end
 
 function class:slice(i, j)
-  return new(table.unpack(self, i, j))
+  return list(table.unpack(self, i, j))
 end
 
 function class:each(fn)
@@ -123,10 +125,6 @@ function class:each(fn)
       end
     end
   end, self, 0
-end
-
-local function List(...)
-  return new(...)
 end
 
 ---------------------------------------------------------------------------
