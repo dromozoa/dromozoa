@@ -90,16 +90,16 @@ end
 ---------------------------------------------------------------------------
 
 function module:import(...)
-  local result = {}
+  local result = { self }
   for i, k in ipairs {...} do
-    result[i] = self[k]
+    result[i + 1] = self[k]
   end
   return table.unpack(result)
 end
 
 ---------------------------------------------------------------------------
 
-local _, right, left, nonassoc = module:import("body", "right", "left", "nonassoc")
+local grammar, _, right, left, nonassoc = module:import("body", "right", "left", "nonassoc")
 
 local g = {
   left "*";
