@@ -95,8 +95,67 @@ end
 
 ---------------------------------------------------------------------------
 
+local class = {}
+local metatable = { __index = class, __name = "dromozoa.parser.list" }
+
+local function new(...)
+  return setmetatable({...}, metatable)
+end
+
+function class:add(...)
+  local n = #self
+  for i, v in ipairs {...} do
+    self[n + i] = v
+  end
+  return self
+end
+
+function class:slice(i, j)
+  return new(table.unpack(self, i, j))
+end
+
+function class:each(fn)
+  return function (self, index)
+    for i = index + 1, #self do
+      local v = fn(self[i])
+      if v then
+        return i, v
+      end
+    end
+  end, self, 0
+end
+
+local function List(...)
+  return new(...)
+end
+
+---------------------------------------------------------------------------
+
 local function grammar(token_names, that)
-  return setmetatable({ token_names, that }, metatable)
+  local symbol_table = List "$"
+  for _, name in ipairs(token_names) do
+    symbol_table:add(name)
+    symbol_table[name] = #symbol_table
+  end
+  local max_terminal_symbol = #symbol_table
+
+  local data = List()
+  for k, v in pairs(that) do
+    data:add { k = k, v = v }
+  end
+  table.sort(data, function (a, b) return a.v.timestamp < b.v.timestamp end)
+
+  for _, u in ipairs(data) do
+    local k = u.k
+    local v = u.v
+    print(k)
+  end
+
+  -- return setmetatable({ symbol_names, symbol_table, that }, metatable)
+  return {
+    symbol_table = symbol_table;
+    max_terminal_symbol = max_terminal_symbol;
+  };
 end
 
 ---------------------------------------------------------------------------

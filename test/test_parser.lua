@@ -107,7 +107,7 @@ function metatable:__pairs()
   end, self
 end
 
-module.map = new
+.map = new
 
 ---------------------------------------------------------------------------
 
