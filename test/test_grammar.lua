@@ -25,7 +25,7 @@ local dumper = require "dromozoa.commons.dumper"
 local left = module.left
 local _ = module.body
 
-local x = {
+local grammar = module.grammar({ "+", "*" }, {
   left "+";
   left "*";
 
@@ -39,46 +39,6 @@ local x = {
     | _"-" "E" :prec "UNM" %[[action]]
     | _"id";
   F = _();
-}
+})
 
-print(dumper.encode(x, { pretty = true, stable = true }))
-
---[====[
-local module = {}
-local timestamp = 0
-
----------------------------------------------------------------------------
-
-function module:import(...)
-  local result = { self }
-  for i, k in ipairs {...} do
-    result[i + 1] = self[k]
-  end
-  return table.unpack(result)
-end
-
----------------------------------------------------------------------------
-
-local grammar, _, right, left, nonassoc = module:import("body", "right", "left", "nonassoc")
-
-local g = {
-  left "*";
-  left "+";
-  right "UNM";
-
-  ["E'"] = _"E";
-
-  E = _"E" "*" "E"
-    | _"E" "+" "E" / [[action]]
-    | _"-" "E" :prec "UNM"
-    ;
-}
-
-local h = {}
-for k, v in pairs(g) do
-  h[#h + 1] = { k, v }
-end
-table.sort(h, function (a, b) return a[2].timestamp < b[2].timestamp end)
-
-print(dumper.encode(h, { pretty = true, stable = true }))
-]====]
+print(dumper.encode(grammar, { pretty = true, stable = true }))

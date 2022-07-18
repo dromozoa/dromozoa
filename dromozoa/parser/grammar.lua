@@ -29,15 +29,10 @@ end
 ---------------------------------------------------------------------------
 
 local class = {}
-local metatable = { __index = class; __name = "dromozoa.parser.precedence" }
+local metatable = { __index = class, __name = "dromozoa.parser.precedence" }
 
 local function new(associativity, ...)
-  return setmetatable({
-    [0] = "precedence";
-    timestamp = module.get_timestamp();
-    associativity = associativity;
-    ...
-  }, metatable)
+  return setmetatable({ timestamp = module.get_timestamp(), associativity = associativity, ... }, metatable)
 end
 
 function metatable:__call(that)
@@ -67,11 +62,7 @@ function metatable:__bor(that)
 end
 
 function module.bodies(...)
-  return setmetatable({
-    [0] = "bodies";
-    timestamp = module.get_timestamp();
-    ...
-  }, metatable)
+  return setmetatable({ timestamp = module.get_timestamp(), ... }, metatable)
 end
 
 ---------------------------------------------------------------------------
@@ -99,11 +90,16 @@ function metatable:__call(that)
 end
 
 function module.body(...)
-  return setmetatable({
-    [0] = "body";
-    timestamp = module.get_timestamp();
-    ...
-  }, metatable)
+  return setmetatable({ timestamp = module.get_timestamp(), ... }, metatable)
+end
+
+---------------------------------------------------------------------------
+
+local class = {}
+local metatable = { __index = class, __name = "dromozoa.parser.grammar" }
+
+function module.grammar(token_names, that)
+  return setmetatable({ token_names, that }, metatable)
 end
 
 ---------------------------------------------------------------------------
