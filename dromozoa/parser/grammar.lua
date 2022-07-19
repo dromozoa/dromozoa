@@ -24,10 +24,14 @@ local metatable = { __index = class, __name = "dromozoa.parser.grammar.list" }
 
 function class:append(...)
   local n = #self
-  for i, v in ipairs {...} do
-    self[n + i] = v
+  for i = 1, select("#", ...) do
+    self[n + i] = select(i, ...)
   end
   return self
+end
+
+function class:slice(i, j)
+  return module.list(table.unpack(self, i, j))
 end
 
 function module.list(...)
@@ -67,9 +71,12 @@ function metatable:__pairs()
   end, self
 end
 
-function module.map()
+function module.map(...)
   local self = setmetatable({}, metatable)
   private[self] = { set = {} }
+  for i = 1, select("#", ...), 2 do
+    self[select(i, ...)] = select(i + 1, ...)
+  end
   return self
 end
 
@@ -150,7 +157,7 @@ end
 
 ---------------------------------------------------------------------------
 
-local function grammar(token_names, that)
+function module.grammar(token_names, that)
   local symbol_names = module.list()
   local symbol_table = module.map()
   for _, name in ipairs(token_names) do
@@ -264,6 +271,7 @@ local function grammar(token_names, that)
     symbol_names = symbol_names;
     symbol_table = symbol_table;
     max_terminal_symbol = max_terminal_symbol;
+    max_nonterminal_symbol = #symbol_names;
     productions = productions;
     symbol_precedences = symbol_precedences;
     production_precedences = production_precedences;
@@ -273,4 +281,127 @@ end
 
 ---------------------------------------------------------------------------
 
-return setmetatable(module, { __call = function (_, ...) return grammar(...) end })
+function module.each_production(productions, head)
+  return function (productions, index)
+    for i = index + 1, #productions do
+      local production = productions[i]
+      if production.head == head then
+        return i, production.body
+      end
+    end
+  end, productions, 0
+end
+
+---------------------------------------------------------------------------
+
+-- P.213
+function module.eliminate_left_recursion(grammar)
+  local symbol_names = grammar.symbol_names
+  local productions = grammar.productions
+  local max_terminal_symbol = grammar.max_terminal_symbol
+  local max_nonterminal_symbol = grammar.max_nonterminal_symbol
+
+  local new_symbol_names = symbol_names:slice()
+  local new_productions = module.list()
+
+  for i = max_terminal_symbol + 1, max_nonterminal_symbol do
+    local n = #new_symbol_names + 1
+    local n_bodies = module.list()
+    local i_bodies = module.list()
+
+    for _, body in module.each_production(productions, i) do
+      local symbol = body[1]
+      if symbol and symbol > max_terminal_symbol and symbol < i then
+        for _, src_body in module.each_production(new_productions, symbol) do
+          local new_body = src_body:slice():append(table.unpack(body, 2))
+          if i == new_body[1] then
+            n_bodies:append(new_body:slice(2):append(n))
+          else
+            i_bodies:append(new_body)
+          end
+        end
+      elseif i == body[1] then
+        n_bodies:append(body:slice(2):append(n))
+      else
+        i_bodies:append(body:slice())
+      end
+    end
+
+    if n_bodies[1] then
+      new_symbol_names:append(symbol_names[i] .. "'")
+      n_bodies:append(module.list())
+      for _, body in ipairs(i_bodies) do
+        body:append(n)
+      end
+    end
+
+    for _, body in ipairs(i_bodies) do
+      new_productions:append { head = i, body = body }
+    end
+    for _, body in ipairs(n_bodies) do
+      new_productions:append { head = n, body = body }
+    end
+  end
+
+  return {
+    symbol_names = new_symbol_names;
+    max_terminal_symbol = max_terminal_symbol;
+    max_nonterminal_symbol = #new_symbol_names;
+    productions = new_productions;
+  }
+end
+
+---------------------------------------------------------------------------
+
+local marker_epsilon = 0
+
+-- P.221
+function module.first_symbol(grammar, symbol)
+  if symbol <= grammar.max_terminal_symbol then
+    return module.map(symbol, true)
+  else
+    local first_table = grammar.first_table
+    if first_table then
+      return first_table[symbol]
+    end
+    local first = module.map()
+    for _, body in module.each_production(grammar.productions, symbol) do
+      if body[1] then
+        for symbol in pairs(module.first_symbols(grammar, body)) do
+          first[symbol] = true
+        end
+      else
+        first[marker_epsilon] = true
+      end
+    end
+    return first
+  end
+end
+
+function module.first_symbols(grammar, symbols)
+  local first = module.map()
+  for _, symbol in ipairs(symbols) do
+    for symbol in pairs(module.first_symbol(grammar, symbol)) do
+      first[symbol] = true
+    end
+    if first[marker_epsilon] then
+      first[marker_epsilon] = nil
+    else
+      return first
+    end
+  end
+  first[marker_epsilon] = true
+  return first
+end
+
+function module.first_table(grammar)
+  local first_table = module.map()
+  for symbol = grammar.max_terminal_symbol + 1, grammar.max_nonterminal_symbol do
+    first_table[symbol] = module.first_symbol(grammar, symbol)
+  end
+  return first_table
+end
+
+---------------------------------------------------------------------------
+
+return setmetatable(module, { __call = function (_, ...) return module.grammar(...) end })
