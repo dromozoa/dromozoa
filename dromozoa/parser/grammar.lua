@@ -126,6 +126,12 @@ end
 
 ---------------------------------------------------------------------------
 
+-- eof = 1
+--   eofはsymbol_tableからのマップをもたない
+--   "$"というトークンを作成してもだいじょうぶ
+-- min_nonterminal_symbol = max_terminal_symbol + 1
+-- argumented_start_symbol = min_nonterminal_symbol
+
 local function grammar(token_names, that)
   local symbol_table = module.list "$"
   for _, name in ipairs(token_names) do
