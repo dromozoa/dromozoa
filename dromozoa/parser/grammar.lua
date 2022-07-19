@@ -167,7 +167,10 @@ local function grammar(token_names, that)
   end
   table.sort(data, function (a, b) return a.v.timestamp < b.v.timestamp end)
 
-  local productions = module.list { head = #symbol_names:append "", body = module.list() }
+  local augumented_start_head = #symbol_names:append ""
+  local augumented_start_body = augumented_start_head + 1
+
+  local productions = module.list { head = augumented_start_head, body = module.list() }
   local precedence = 0
   local precedence_table = module.map()
   local symbol_precedences = module.map()
@@ -239,12 +242,12 @@ local function grammar(token_names, that)
     production.body = body
   end
 
-  productions[1].body:append(max_terminal_symbol + 2)
-  symbol_names[max_terminal_symbol + 1] = symbol_names[max_terminal_symbol + 2] .. "'"
+  productions[1].body:append(augumented_start_body)
+  symbol_names[augumented_start_head] = symbol_names[augumented_start_body] .. "'"
 
   used_symbols[max_terminal_symbol] = true
-  used_symbols[max_terminal_symbol + 1] = true
-  used_symbols[max_terminal_symbol + 2] = true
+  used_symbols[augumented_start_head] = true
+  used_symbols[augumented_start_body] = true
 
   for i, v in ipairs(symbol_names) do
     if not used_symbols[i] then
@@ -261,7 +264,6 @@ local function grammar(token_names, that)
     symbol_names = symbol_names;
     symbol_table = symbol_table;
     max_terminal_symbol = max_terminal_symbol;
-    max_nonterminal_symbol = #symbol_names;
     productions = productions;
     symbol_precedences = symbol_precedences;
     production_precedences = production_precedences;
