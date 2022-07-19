@@ -164,6 +164,9 @@ local function grammar(token_names, that)
   end
   table.sort(data, function (a, b) return a.v.timestamp < b.v.timestamp end)
 
+  -- local productions = module.list {}
+  -- symbol_names:append ""
+
   local productions = module.list()
   local precedence = 0
   local precedence_table = module.map()
@@ -208,31 +211,55 @@ local function grammar(token_names, that)
     end
   end
 
+  -- local p1 = productions[1]
+  -- local p2 = productions[2]
+  -- productions[1] = { head = max_terminal_symbol + 1, body = module.list(p2.head) }
+  -- symbol_names[max_terminal_symbol + 1]= symbol_names[p2.head] .. "'"
+
   local production_precedences = module.map()
   local semantic_actions = module.map()
+  local symbol_check_table = module.map()
+  local precedence_check_table = module.map()
 
   for i, production in ipairs(productions) do
-    local src_body = production.body
-    local new_body = module.list()
-    for _, name in ipairs(src_body) do
-      local symbol = symbol_table[name];
-      if not symbol then
-        error("symbol " .. name .. " is used, but is not defined as a token and has no rules")
-      end
-      new_body:append(symbol)
-    end
-    production.body = new_body
-
-    local name = src_body.precedence
+    local name = production.body.precedence
     if name then
       local precedence = precedence_table[name]
       if not precedence then
         error("token for :prec is not defined: " .. name)
       end
       production_precedences[i] = precedence
+      precedence_check_table[name] = true
     end
-    semantic_actions[i] = src_body.semantic_action
+    semantic_actions[i] = production.body.semantic_action
+
+    local body = module.list()
+    for _, name in ipairs(production.body) do
+      local symbol = symbol_table[name];
+      if not symbol then
+        error("symbol " .. name .. " is used, but is not defined as a token and has no rules")
+      end
+      body:append(symbol)
+      symbol_check_table[symbol] = true
+    end
+    production.body = body
   end
+
+  for k in pairs(precedence_table) do
+    if not precedence_check_table[k] then
+      error("useless precedence for " .. k)
+    end
+  end
+  for i, v in ipairs(symbol_names) do
+    if not symbol_check_table[i] then
+      if i > 1 and i <= max_terminal_symbol then
+        error("terminal useless in grammar: " .. v)
+      elseif i > max_terminal_symbol + 1 and i <= #symbol_names then
+        error("nonterminal useless in grammar: " .. v)
+      end
+    end
+  end
+
 
   return {
     symbol_names = symbol_names;
