@@ -154,10 +154,12 @@ local function grammar(token_names, that)
   local symbol_names = module.list()
   local symbol_table = module.map()
   for _, name in ipairs(token_names) do
+    if symbol_table[name] then
+      error("symbol " .. name .. " redefined as a terminal")
+    end
     symbol_table[name] = #symbol_names:append(name)
   end
-  symbol_names:append "$" -- EOF
-  local max_terminal_symbol = #symbol_names
+  local max_terminal_symbol = #symbol_names:append "$"
 
   local data = module.list()
   for k, v in pairs(that) do
@@ -165,9 +167,7 @@ local function grammar(token_names, that)
   end
   table.sort(data, function (a, b) return a.v.timestamp < b.v.timestamp end)
 
-  symbol_names:append "" -- argumented
-
-  local productions = module.list { head = #symbol_names }
+  local productions = module.list { head = #symbol_names:append "", body = module.list() }
   local precedence = 0
   local precedence_table = module.map()
   local symbol_precedences = module.map()
@@ -175,8 +175,7 @@ local function grammar(token_names, that)
   for _, u in ipairs(data) do
     local k = u.k
     local v = u.v
-    local metatable = getmetatable(v)
-    local metaname = metatable and metatable.__name
+    local metaname = getmetatable(v).__name
 
     if metaname == "dromozoa.parser.grammar.precedence" then
       precedence = precedence + 1
@@ -196,29 +195,24 @@ local function grammar(token_names, that)
       end
     else
       if symbol_table[k] then
-        error("symbol " .. k .. " redeclared as a nonterminal")
+        error("symbol " .. k .. " redefined as a nonterminal")
       end
       local symbol = #symbol_names:append(k)
       symbol_table[k] = symbol
 
       if metaname == "dromozoa.parser.grammar.body" then
-        v = module.bodies(v)
-      end
-
-      for _, body in ipairs(v) do
-        productions:append { head = symbol, body = body }
+        productions:append { head = symbol, body = v }
+      else
+        for _, body in ipairs(v) do
+          productions:append { head = symbol, body = body }
+        end
       end
     end
   end
 
-  local p1 = productions[1]
-  local p2 = productions[2]
-  local name = symbol_names[p2.head]
-  p1.body = { name }
-  symbol_names[p1.head] = name .. "'"
-
   local production_precedences = module.map()
   local semantic_actions = module.map()
+
   local symbol_check_table = module.map()
   local precedence_check_table = module.map()
 
@@ -227,7 +221,7 @@ local function grammar(token_names, that)
     if name then
       local precedence = precedence_table[name]
       if not precedence then
-        error("token for :prec is not defined: " .. name)
+        error("precedence " .. name .. " not defined")
       end
       production_precedences[i] = precedence
       precedence_check_table[name] = true
@@ -238,13 +232,16 @@ local function grammar(token_names, that)
     for _, name in ipairs(production.body) do
       local symbol = symbol_table[name];
       if not symbol then
-        error("symbol " .. name .. " is used, but is not defined as a token and has no rules")
+        error("symbol " .. name .. " not defined")
       end
       body:append(symbol)
       symbol_check_table[symbol] = true
     end
     production.body = body
   end
+
+  productions[1].body:append(max_terminal_symbol + 2)
+  symbol_names[max_terminal_symbol + 1] = symbol_names[max_terminal_symbol + 2] .. "'"
 
   --[[
   for k in pairs(precedence_table) do
@@ -265,7 +262,7 @@ local function grammar(token_names, that)
 
   return {
     symbol_names = symbol_names;
-    -- symbol_table = symbol_table;
+    symbol_table = symbol_table;
     max_terminal_symbol = max_terminal_symbol;
     max_nonterminal_symbol = #symbol_names;
     productions = productions;
