@@ -151,11 +151,12 @@ end
 ---------------------------------------------------------------------------
 
 local function grammar(token_names, that)
-  local symbol_names = module.list "$"
+  local symbol_names = module.list()
   local symbol_table = module.map()
   for _, name in ipairs(token_names) do
     symbol_table[name] = #symbol_names:append(name)
   end
+  symbol_names:append "$" -- EOF
   local max_terminal_symbol = #symbol_names
 
   local data = module.list()
@@ -164,10 +165,9 @@ local function grammar(token_names, that)
   end
   table.sort(data, function (a, b) return a.v.timestamp < b.v.timestamp end)
 
-  -- local productions = module.list {}
-  -- symbol_names:append ""
+  symbol_names:append "" -- argumented
 
-  local productions = module.list()
+  local productions = module.list { head = #symbol_names }
   local precedence = 0
   local precedence_table = module.map()
   local symbol_precedences = module.map()
@@ -182,7 +182,7 @@ local function grammar(token_names, that)
       precedence = precedence + 1
       for _, name in ipairs(v) do
         local symbol = symbol_table[name]
-        if symbol and symbol < max_terminal_symbol then
+        if symbol and symbol <= max_terminal_symbol then
           symbol_precedences[symbol] = {
             precedence = precedence;
             associativity = v.associativity;
@@ -211,10 +211,11 @@ local function grammar(token_names, that)
     end
   end
 
-  -- local p1 = productions[1]
-  -- local p2 = productions[2]
-  -- productions[1] = { head = max_terminal_symbol + 1, body = module.list(p2.head) }
-  -- symbol_names[max_terminal_symbol + 1]= symbol_names[p2.head] .. "'"
+  local p1 = productions[1]
+  local p2 = productions[2]
+  local name = symbol_names[p2.head]
+  p1.body = { name }
+  symbol_names[p1.head] = name .. "'"
 
   local production_precedences = module.map()
   local semantic_actions = module.map()
@@ -245,6 +246,7 @@ local function grammar(token_names, that)
     production.body = body
   end
 
+  --[[
   for k in pairs(precedence_table) do
     if not precedence_check_table[k] then
       error("useless precedence for " .. k)
@@ -259,11 +261,11 @@ local function grammar(token_names, that)
       end
     end
   end
-
+  ]]
 
   return {
     symbol_names = symbol_names;
-    symbol_table = symbol_table;
+    -- symbol_table = symbol_table;
     max_terminal_symbol = max_terminal_symbol;
     max_nonterminal_symbol = #symbol_names;
     productions = productions;
