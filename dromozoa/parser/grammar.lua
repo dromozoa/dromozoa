@@ -531,4 +531,39 @@ end
 
 ---------------------------------------------------------------------------
 
+function module.lr1_closure(grammar, items)
+  local productions = grammar.productions
+  local max_terminal_symbol = grammar.max_terminal_symbol
+
+  local added = module.map()
+  local m = 1
+  while true do
+    local n = #items
+    if m > n then
+      break
+    end
+    for i = m, n do
+      local item = items[i]
+      local body = productions[item.index].body
+      local symbol = body[item.dot]
+      if symbol and symbol > max_terminal_symbol then
+        local first = module.first_symbols(grammar, body:slice(item.dot + 1):append(item.la))
+        for j in module.each_production(productions, symbol) do
+          for la in pairs(first) do
+            if not added(j)[la] then
+              items:append { index = j, dot = 1, la = la }
+              added(j)[la] = true
+            end
+          end
+        end
+      end
+    end
+    m = n + 1
+  end
+
+  return items
+end
+
+---------------------------------------------------------------------------
+
 return setmetatable(module, { __call = function (_, ...) return module.grammar(...) end })
