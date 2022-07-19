@@ -19,6 +19,57 @@ local module = {}
 
 ---------------------------------------------------------------------------
 
+local class = {}
+local metatable = { __index = class, __name = "dromozoa.parser.grammar.list" }
+
+function class:append(that)
+  self[#self + 1] = that
+  return self
+end
+
+function module.list(...)
+  return setmetatable({...}, metatable)
+end
+
+---------------------------------------------------------------------------
+
+local private = setmetatable({}, { __mode = "k" })
+local metatable = { __name = "dromozoa.parser.grammar.map" }
+
+function metatable:__newindex(k, v)
+  local priv = private[self]
+  local priv_set = priv.set
+  if not priv_set[k] then
+    priv[#priv + 1] = k
+    priv_set[k] = true
+  end
+  rawset(self, k, v)
+end
+
+function metatable:__pairs()
+  local priv = private[self]
+  local index = 0
+  return function (self)
+    local n = #priv
+    while index < n do
+      index = index + 1
+      local k = priv[index]
+      local v = self[k]
+      if v ~= nil then
+        return k, v
+      end
+    end
+  end, self
+end
+
+function module.map()
+  local self = setmetatable({}, metatable)
+  private[self] = { set = {} }
+  return self
+end
+
+---------------------------------------------------------------------------
+
 local timestamp = 0
 
 function module.timestamp()
@@ -70,7 +121,7 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.grammar.body" }
 
 function class:prec(that)
-  self.prec = that
+  self.precedence = that
   return self
 end
 
@@ -94,38 +145,6 @@ end
 
 ---------------------------------------------------------------------------
 
-local class = {}
-local metatable = { __index = class, __name = "dromozoa.parser.grammar.list" }
-
-function class:add(...)
-  local n = #self
-  for i, v in ipairs {...} do
-    self[n + i] = v
-  end
-  return self
-end
-
-function class:slice(i, j)
-  return module.list(table.unpack(self, i, j))
-end
-
-function class:each(fn)
-  return function (self, index)
-    for i = index + 1, #self do
-      local v = fn(self[i])
-      if v then
-        return i, v
-      end
-    end
-  end, self, 0
-end
-
-function module.list(...)
-  return setmetatable({...}, metatable)
-end
-
----------------------------------------------------------------------------
-
 -- eof = 1
 --   eofはsymbol_tableからのマップをもたない
 --   "$"というトークンを作成してもだいじょうぶ
@@ -133,16 +152,16 @@ end
 -- argumented_start_symbol = min_nonterminal_symbol
 
 local function grammar(token_names, that)
-  local symbol_table = module.list "$"
+  local symbol_names = module.list "$"
+  local symbol_table = module.map()
   for _, name in ipairs(token_names) do
-    symbol_table:add(name)
-    symbol_table[name] = #symbol_table
+    symbol_table[name] = #symbol_names:append(name)
   end
-  local max_terminal_symbol = #symbol_table
+  local max_terminal_symbol = #symbol_names
 
   local data = module.list()
   for k, v in pairs(that) do
-    data:add { k = k, v = v }
+    data:append { k = k, v = v }
   end
   table.sort(data, function (a, b) return a.v.timestamp < b.v.timestamp end)
 
@@ -159,7 +178,7 @@ local function grammar(token_names, that)
     assert(metaname:find "^dromozoa%.parser%.grammar%.")
 
     if metaname == "dromozoa.parser.grammar.precedence" then
-      precedences:add(v)
+      precedences:append(v)
     else
       if metaname == "dromozoa.parser.grammar.body" then
         v = module.bodies(v)
@@ -168,11 +187,10 @@ local function grammar(token_names, that)
       assert(metaname == "dromozoa.parser.grammar.bodies")
 
       assert(not symbol_table[k])
-      symbol_table:add(k)
-      symbol_table[k] = #symbol_table
+      symbol_table[k] = #symbol_names:append(k)
 
       for _, body in ipairs(v) do
-        productions:add { head = k, body = body }
+        productions:append { head = k, body = body }
       end
     end
   end
@@ -184,6 +202,7 @@ local function grammar(token_names, that)
   end
 
   return {
+    symbol_names = symbol_names;
     symbol_table = symbol_table;
     max_terminal_symbol = max_terminal_symbol;
     precedences = precedences;
