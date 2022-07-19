@@ -566,4 +566,91 @@ end
 
 ---------------------------------------------------------------------------
 
+local marker_lookahead = -1
+
+function module.lalr1_kernels(grammar, set_of_items, transitions)
+  local productions = grammar.productions
+  local max_terminal_symbol = grammar.max_terminal_symbol
+
+  local set_of_kernel_items = module.list()
+  local map_of_kernel_items = module.list()
+
+  for i, items in ipairs(set_of_items) do
+    local kernel_items = module.list()
+    local kernel_table = module.map()
+    for j, item in ipairs(items) do
+      if item.index == 1 or item.dot > 1 then
+        kernel_table(item.index)[item.dot] = j
+      end
+      if item.index == 1 and item.dot == 1 then
+        kernel_items:append { index = item.index, dot = item.dot, la = module.map(max_terminal_symbol, true) }
+      else
+        kernel_items:append { index = item.index, dot = item.dot, la = module.map() }
+      end
+    end
+    set_of_kernel_items[i] = kernel_items
+    map_of_kernel_items[i] = kernel_table
+  end
+
+  local propagations = module.list()
+
+  for from_i, from_items in ipairs(set_of_items) do
+    for from_j, from_item in ipairs(from_items) do
+      if productions[from_item.index].head == max_terminal_symbol + 1 or from_item.dot > 1 then
+        local items = module.list { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
+        module.lr1_closure(grammar, items)
+        for _, item in ipairs(items) do
+          local symbol = productions[item.index].body[item.dot]
+          if symbol then
+            local to_i = transitions[from_i][symbol]
+            local to_j = map_of_kernel_items[to_i][item.index][item.dot + 1]
+            if item.la == marker_lookahead then
+              propagations:append { from_i = from_i, from_j = from_j, to_i = to_i, to_j = to_j }
+            else
+              set_of_kernel_items[to_i][to_j].la[item.la] = true
+            end
+          end
+        end
+      end
+    end
+  end
+
+  repeat
+    local done = true
+    for _, propagation in ipairs(propagations) do
+      local from_la = set_of_kernel_items[propagation.from_i][propagation.from_j].la
+      local to_la = set_of_kernel_items[propagation.to_i][propagation.to_j].la
+      for la in pairs(from_la) do
+        if not to_la[la] then
+          to_la[la] = true
+          done = false
+        end
+      end
+    end
+  until done
+
+  local new_set_of_kernel_items = module.list()
+  for _, items in ipairs(set_of_kernel_items) do
+    local new_items = module.list()
+    for _, item in ipairs(items) do
+      for la in pairs(item.la) do
+        new_items:append { index = item.index, dot = item.dot, la = la }
+      end
+    end
+    new_set_of_kernel_items:append(new_items)
+  end
+  return new_set_of_kernel_items
+end
+
+function module.lalr1_items(grammar)
+  local set_of_items, transitions = module.lr0_items(grammar)
+  local set_of_items = module.lalr1_kernels(grammar, set_of_items, transitions)
+  for _, items in ipairs(set_of_items) do
+    lr1_closure(grammar, items)
+  end
+  return set_of_items, transitions
+end
+
+---------------------------------------------------------------------------
+
 return setmetatable(module, { __call = function (_, ...) return module.grammar(...) end })
