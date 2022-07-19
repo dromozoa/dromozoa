@@ -35,30 +35,33 @@ local t = grammar.lr1_construct_table(g, set_of_items, transitions)
 
 local buffer = grammar.list()
 
-buffer:append "| |"
+buffer:append "|    |"
 for i = 1, t.max_nonterminal_symbol do
-  buffer:append(" ", t.symbol_names[i], " |")
+  buffer:append((" %2s |"):format(t.symbol_names[i]))
 end
 buffer:append "\n"
 
 for i, data in ipairs(t.actions) do
-  buffer:append("| ", i, " |")
+  buffer:append(("| %2d |"):format(i))
   for j = 1, t.max_nonterminal_symbol do
     local v = data[j]
     if not v then
-      buffer:append " |"
+      buffer:append "    |"
     else
       buffer:append " "
       if v <= t.max_state then
         buffer:append("s", v)
       else
         local v = v - t.max_state
-        buffer:append("r", #g.productions[v].body)
+        if v == 1 then
+          buffer:append "ac"
+        else
+          buffer:append("r", v)
+        end
       end
       buffer:append " |"
     end
   end
-
   buffer:append "\n"
 end
 
