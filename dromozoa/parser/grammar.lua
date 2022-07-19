@@ -22,8 +22,11 @@ local module = {}
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.grammar.list" }
 
-function class:append(that)
-  self[#self + 1] = that
+function class:append(...)
+  local n = #self
+  for i, v in ipairs {...} do
+    self[n + i] = v
+  end
   return self
 end
 
@@ -152,7 +155,7 @@ end
 -- argumented_start_symbol = min_nonterminal_symbol
 
 local function grammar(token_names, that)
-  local symbol_names = module.list "$"
+  local symbol_names = module.list()
   local symbol_table = module.map()
   for _, name in ipairs(token_names) do
     symbol_table[name] = #symbol_names:append(name)
@@ -165,48 +168,82 @@ local function grammar(token_names, that)
   end
   table.sort(data, function (a, b) return a.v.timestamp < b.v.timestamp end)
 
-  local precedences = module.list()
   local productions = module.list()
+
+  local precedence = 0
+  local precedence_table = module.map()
+  local symbol_precedences = module.map()
+  local production_precedences = module.map()
+  local semantic_actions = module.map()
 
   for _, u in ipairs(data) do
     local k = u.k
     local v = u.v
-
     local metatable = getmetatable(v)
     local metaname = metatable and metatable.__name
-    assert(type(metaname) == "string")
-    assert(metaname:find "^dromozoa%.parser%.grammar%.")
 
     if metaname == "dromozoa.parser.grammar.precedence" then
-      precedences:append(v)
+      precedence = precedence + 1
+      for _, name in ipairs(v) do
+        local symbol = symbol_table[name]
+        if symbol and symbol < max_terminal_symbol then
+          symbol_precedences[symbol] = {
+            precedence = precedence;
+            associativity = v.associativity;
+          }
+        else
+          precedence_table[name] = {
+            precedence = precedence;
+            associativity = v.associativity;
+          }
+        end
+      end
     else
+      if symbol_table[k] then
+        error("symbol " .. k .. " redeclared as a nonterminal")
+      end
+      local symbol = #symbol_names:append(k)
+      symbol_table[k] = symbol
+
       if metaname == "dromozoa.parser.grammar.body" then
         v = module.bodies(v)
-        metaname = "dromozoa.parser.grammar.bodies"
       end
-      assert(metaname == "dromozoa.parser.grammar.bodies")
-
-      assert(not symbol_table[k])
-      symbol_table[k] = #symbol_names:append(k)
-
       for _, body in ipairs(v) do
-        productions:append { head = k, body = body }
+        productions:append { head = symbol, body = body }
       end
     end
   end
 
-  for _, production in ipairs(productions) do
+  for i, production in ipairs(productions) do
+    local body = module.list()
     for _, name in ipairs(production.body) do
-      assert(symbol_table[name], "not defined " .. name)
+      local symbol = symbol_table[name];
+      if not symbol then
+        error("symbol " .. name .. " is used, but is not defined as a token and has no rules")
+      end
+      body:append(symbol)
     end
+    local name = production.body.precedence
+    if name then
+      local precedence = precedence_table[name]
+      if not precedence then
+        error("token for :prec is not defined: " .. name)
+      end
+      production_precedences[i] = precedence
+    end
+    semantic_actions[i] = production.body.action
+    production.body = body
   end
 
   return {
     symbol_names = symbol_names;
     symbol_table = symbol_table;
     max_terminal_symbol = max_terminal_symbol;
-    precedences = precedences;
+    max_nonterminal_symbol = #symbol_names;
     productions = productions;
+    symbol_precedences = symbol_precedences;
+    production_precedences = production_precedences;
+    semantic_actions = semantic_actions;
   };
 end
 
