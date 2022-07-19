@@ -18,8 +18,6 @@
 -- https://github.com/aidansteele/osx-abi-macho-file-format-reference
 -- https://developers.wonderpla.net/entry/2021/03/19/105503
 
-local dumper = require "dromozoa.commons.dumper"
-
 local module = {}
 
 ---------------------------------------------------------------------------
@@ -50,12 +48,12 @@ end
 function class:put(v)
   for i, u in ipairs(self) do
     if equal(u, v) then
-      return i
+      return i, u
     end
   end
   local n = #self + 1
   self[n] = v
-  return n
+  return n, v
 end
 
 module.set = setmetatable(class, {
@@ -69,25 +67,32 @@ module.set = setmetatable(class, {
 local private = setmetatable({}, { __mode = "k" })
 local metatable = { __name = "dromozoa.parser.map" }
 
-local function map(new)
+local function new(k, v)
   local self = setmetatable({}, metatable)
-  private[self] = { new = new or map}
+  private[self] = { set = {} }
+  if k and v then
+    self[k] = v
+  end
   return self
-end
-
-function metatable:__index(k)
-  assert(type(k) == "number", type(k) .. " " .. k)
-  local priv = private[self]
-  local v = priv.new()
-  priv[#priv + 1] = k
-  rawset(self, k, v)
-  return v
 end
 
 function metatable:__newindex(k, v)
   local priv = private[self]
-  priv[#priv + 1] = k
+  if not priv.set[k] then
+    priv.set[k] = true
+    priv[#priv + 1] = k
+  end
   rawset(self, k, v)
+end
+
+function metatable:__call(k, fn)
+  local v = self[k]
+  if v then
+    return v
+  end
+  local v = (fn or new)()
+  self[k] = v
+  return v
 end
 
 function metatable:__pairs()
@@ -97,20 +102,19 @@ function metatable:__pairs()
     index = index + 1
     local k = priv[index]
     if k then
-      local k = priv[index]
       return k, self[k]
     end
   end, self
 end
 
-module.map = map
+module.map = new
 
 ---------------------------------------------------------------------------
 
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.list" }
 
-local function list(...)
+local function new(...)
   return setmetatable({...}, metatable)
 end
 
@@ -123,7 +127,7 @@ function class:add(...)
 end
 
 function class:slice(i, j)
-  return list(table.unpack(self, i, j))
+  return new(table.unpack(self, i, j))
 end
 
 function class:each(fn)
@@ -139,47 +143,39 @@ end
 
 module.list = setmetatable(class, {
   __call = function (_, ...)
-    return list(...)
+    return new(...)
   end;
 })
 
 ---------------------------------------------------------------------------
 
-local class = {}
-local metatable = { __index = class, __name = "dromozoa.parser.production" }
+local metatable = { __name = "dromozoa.parser.production" }
 
-module.production = setmetatable(class, {
-  __call = function (_, head, body)
-    return setmetatable({ head = head, body = body }, metatable)
-  end;
-})
+module.production = function (head, body)
+  return setmetatable({ head = head, body = body }, metatable)
+end
 
 ---------------------------------------------------------------------------
 
-local class = {}
-local metatable = { __index = class, __name = "dromozoa.parser.item" }
+local metatable = { __name = "dromozoa.parser.item" }
 
-module.item = setmetatable(class, {
-  __call = function (_, index, dot, la)
-    return setmetatable({ index = index, dot = dot, la = la }, metatable)
-  end;
-})
+module.item = function (index, dot, la)
+  return setmetatable({ index = index, dot = dot, la = la }, metatable)
+end
 
 ---------------------------------------------------------------------------
 
 local Set = module.set
 local Map = module.map
 local List = module.list
-
 local Production = module.production
 local Item = module.item
 
 ---------------------------------------------------------------------------
--- lookahead = -1
--- epsilon   = 0
--- end/eof   = 1
 
+local MARKER_LOOKAHEAD = -1
 local MARKER_EPSILON = 0
+local MARKER_END = 1
 
 ---------------------------------------------------------------------------
 
@@ -190,55 +186,51 @@ local function eliminate_left_recursion(grammar, symbol_names)
   local max_nonterminal_symbol = grammar.max_nonterminal_symbol
 
   local new_symbol_names = symbol_names:slice()
-  local map_of_productions = Map()
+  local new_productions = List()
 
   for i = max_terminal_symbol + 1, max_nonterminal_symbol do
     local n = #new_symbol_names + 1
-    local n_productions = List()
-    local i_productions = List()
+    local n_bodies = List()
+    local i_bodies = List()
 
     for _, body in productions:each(function (v) return v.head == i and v.body end) do
       local symbol = body[1]
       if symbol and symbol > max_terminal_symbol and symbol < i then
-        for _, production in ipairs(map_of_productions[symbol]) do
-          local body = production.body:slice():add(table.unpack(body, 2))
-          if i == body[1] then
-            n_productions:add(Production(n, body:slice(2):add(n)))
+        for _, src_body in new_productions:each(function (v) return v.head == symbol and v.body end) do
+          local new_body = src_body:slice():add(table.unpack(body, 2))
+          if i == new_body[1] then
+            n_bodies:add(new_body:slice(2):add(n))
           else
-            i_productions:add(Production(i, body))
+            i_bodies:add(new_body)
           end
         end
+      elseif i == body[1] then
+        n_bodies:add(body:slice(2):add(n))
       else
-        if i == body[1] then
-          n_productions:add(Production(n, body:slice(2):add(n)))
-        else
-          i_productions:add(Production(i, body:slice()))
-        end
+        i_bodies:add(body:slice())
       end
     end
 
-    if next(n_productions) then
+    if n_bodies[1] then
       new_symbol_names:add(symbol_names[i] .. "'")
-      map_of_productions[n] = n_productions:add(Production(n, List()))
-      for _, production in ipairs(i_productions) do
-        production.body:add(n)
+      n_bodies:add(List())
+      for _, body in ipairs(i_bodies) do
+        body:add(n)
       end
     end
-    map_of_productions[i] = i_productions
-  end
 
-  -- TODO リファクタリング
-  local new_productions = List()
-  for i = grammar.max_terminal_symbol + 1, #new_symbol_names do
-    for _, production in ipairs(map_of_productions[i]) do
-      new_productions[#new_productions + 1] = production
+    for _, body in ipairs(i_bodies) do
+      new_productions:add(Production(i, body))
+    end
+    for _, body in ipairs(n_bodies) do
+      new_productions:add(Production(n, body))
     end
   end
 
   return {
     productions = new_productions;
     max_terminal_symbol = max_terminal_symbol;
-    max_nonterminal_symbol = max_nonterminal_symbol;
+    max_nonterminal_symbol = #new_symbol_names;
   }, new_symbol_names
 end
 
@@ -249,16 +241,15 @@ local first_symbols
 
 local function first_symbol(grammar, symbol, first_table)
   if symbol <= grammar.max_terminal_symbol then
-    return { [symbol] = true }
+    return Map(symbol, true)
   else
     if first_table then
       return first_table[symbol]
     end
-    local productions = grammar.productions
-    local first = {}
-    for _, body in productions:each(function (v) return v.head == symbol and v.body end) do
-      if next(body) then
-        for symbol in pairs(first_symbols(grammar, body)) do
+    local first = Map()
+    for _, body in grammar.productions:each(function (v) return v.head == symbol and v.body end) do
+      if body[1] then
+        for symbol in pairs(first_symbols(grammar, body, first_table)) do
           first[symbol] = true
         end
       else
@@ -270,7 +261,7 @@ local function first_symbol(grammar, symbol, first_table)
 end
 
 function first_symbols(grammar, symbols, first_table)
-  local first = {}
+  local first = Map()
   for _, symbol in ipairs(symbols) do
     for symbol in pairs(first_symbol(grammar, symbol, first_table)) do
       first[symbol] = true
@@ -286,7 +277,7 @@ function first_symbols(grammar, symbols, first_table)
 end
 
 local function first(grammar)
-  local first_table = {}
+  local first_table = Map()
   for symbol = grammar.max_terminal_symbol + 1, grammar.max_nonterminal_symbol do
     first_table[symbol] = first_symbol(grammar, symbol)
   end
@@ -300,7 +291,7 @@ local function lr0_closure(grammar, items)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
 
-  local added = {}
+  local added = Map()
   local m = 1
   while true do
     local n = #items
@@ -329,11 +320,9 @@ local function lr0_goto(grammar, items)
   local map_of_to_items = Map(List)
 
   for _, item in ipairs(items) do
-    local index = item.index
-    local dot = item.dot
-    local symbol = productions[index].body[dot]
+    local symbol = productions[item.index].body[item.dot]
     if symbol then
-      map_of_to_items[symbol]:add(Item(index, dot + 1))
+      map_of_to_items(symbol, List):add(Item(item.index, item.dot + 1))
     end
   end
 
@@ -358,7 +347,7 @@ local function lr0_items(grammar)
     for i = m, n do
       local items = set_of_items[i]
       local map_of_to_items = lr0_goto(grammar, items)
-      local transition = transitions[i]
+      local transition = transitions(i)
       for symbol, to_items in pairs(map_of_to_items) do
         transition[symbol] = set_of_items:put(to_items)
       end
@@ -369,12 +358,14 @@ local function lr0_items(grammar)
   return set_of_items, transitions
 end
 
+---------------------------------------------------------------------------
+
 -- P261
 local function lr1_closure(grammar, first_table, items)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
 
-  local added = Map(function () return {} end)
+  local added = Map()
   local m = 1
   while true do
     local n = #items
@@ -389,9 +380,9 @@ local function lr1_closure(grammar, first_table, items)
         local first = first_symbols(grammar, body:slice(item.dot + 1):add(item.la), first_table)
         for j in productions:each(function (v) return v.head == symbol end) do
           for la in pairs(first) do
-            if not added[j][la] then
-              added[j][la] = true
+            if not added(j)[la] then
               items:add(Item(j, 1, la))
+              added(j)[la] = true
             end
           end
         end
@@ -403,66 +394,49 @@ local function lr1_closure(grammar, first_table, items)
   return items
 end
 
+---------------------------------------------------------------------------
+
 -- P.272
 local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
   local productions = grammar.productions
-  local min_nonterminal_symbol = grammar.max_terminal_symbol + 1
+  local max_terminal_symbol = grammar.max_terminal_symbol
 
-  local set_of_kernel_items = Map()
-  local map_of_kernel_items = Map()
+  local set_of_kernel_items = List()
+  local map_of_kernel_items = List()
 
-  -- カーネル項の抽出
   for i, items in ipairs(set_of_items) do
     local kernel_items = List()
     local kernel_table = Map()
     for j, item in ipairs(items) do
-      local index = item.index
-      local dot = item.dot
-      if index == 1 or dot > 1 then
-        -- カーネル項の生成規則ごとに、dotごとに項の参照をつくる
-        kernel_table[index][dot] = j
+      if item.index == 1 or item.dot > 1 then
+        kernel_table(item.index)[item.dot] = j
       end
-      -- LALR1ではLAは集合にする
-      if index == 1 and dot == 1 then
-        kernel_items:add(Item(index, dot, { true }))  -- la = { [marker_end] = true }
+      if item.index == 1 and item.dot == 1 then
+        kernel_items:add(Item(item.index, item.dot, Map(MARKER_END, true)))
       else
-        kernel_items:add(Item(index, dot, {}))
+        kernel_items:add(Item(item.index, item.dot, Map()))
       end
     end
-    -- assert(set_of_kernel_items[i] == nil)
     set_of_kernel_items[i] = kernel_items
     map_of_kernel_items[i] = kernel_table
   end
 
-  local propagated = {}
+  local propagations = List()
 
-  for i, from_items in ipairs(set_of_items) do
-    for j, from_item in ipairs(from_items) do
-      local from_index = from_item.index
-      local from_dot = from_item.dot
-      if productions[from_index].head == min_nonterminal_symbol or from_dot > 1 then
-        -- lookaheadは集合ではない
-        local items = List(Item(from_index, from_dot, -1))  -- la = marker_lookahead
+  for from_i, from_items in ipairs(set_of_items) do
+    for from_j, from_item in ipairs(from_items) do
+      if productions[from_item.index].head == max_terminal_symbol + 1 or from_item.dot > 1 then
+        local items = List(Item(from_item.index, from_item.dot, MARKER_LOOKAHEAD))
         lr1_closure(grammar, first_table, items)
         for _, item in ipairs(items) do
-          local index = item.index
-          local production = productions[index]
-          local dot = item.dot
-          local symbol = production.body[dot]
+          local symbol = productions[item.index].body[item.dot]
           if symbol then
-            local la = item.la
-            local to_i = transitions[i][symbol]
-            local to_j = map_of_kernel_items[to_i][index][dot + 1]
-            if la == -1 then -- marker_lookahead
-              propagated[#propagated + 1] = {
-                from_i = i;
-                from_j = j;
-                to_i = to_i;
-                to_j = to_j;
-              }
+            local to_i = transitions[from_i][symbol]
+            local to_j = map_of_kernel_items[to_i][item.index][item.dot + 1]
+            if item.la == MARKER_LOOKAHEAD then
+              propagations:add { from_i = from_i, from_j = from_j, to_i = to_i, to_j = to_j }
             else
-              -- 以降は集合を期待
-              set_of_kernel_items[to_i][to_j].la[la] = true
+              set_of_kernel_items[to_i][to_j].la[item.la] = true
             end
           end
         end
@@ -472,10 +446,9 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
 
   repeat
     local done = true
-    for i = 1, #propagated do
-      local op = propagated[i]
-      local from_la = assert(set_of_kernel_items[op.from_i][op.from_j].la)
-      local to_la = assert(set_of_kernel_items[op.to_i][op.to_j].la)
+    for _, propagation in ipairs(propagations) do
+      local from_la = set_of_kernel_items[propagation.from_i][propagation.from_j].la
+      local to_la = set_of_kernel_items[propagation.to_i][propagation.to_j].la
       for la in pairs(from_la) do
         if not to_la[la] then
           to_la[la] = true
@@ -485,20 +458,96 @@ local function lalr1_kernels(grammar, first_table, set_of_items, transitions)
     end
   until done
 
-  local expanded_set_of_kernel_items = {}
-  for _, items in pairs(set_of_kernel_items) do
-    local expanded_items = List()
+  local new_set_of_kernel_items = List()
+  for _, items in ipairs(set_of_kernel_items) do
+    local new_items = List()
     for _, item in ipairs(items) do
-      local index = item.index
-      local dot = item.dot
       for la in pairs(item.la) do
-        expanded_items:add(Item(index, dot, la))
+        new_items:add(Item(item.index, item.dot, la))
       end
     end
-    expanded_set_of_kernel_items[#expanded_set_of_kernel_items + 1] = expanded_items
+    new_set_of_kernel_items:add(new_items)
   end
+  return new_set_of_kernel_items
+end
 
-  return expanded_set_of_kernel_items
+local function lalr1_items(grammar, first_table)
+  local set_of_items, transitions = lr0_items(grammar)
+  local set_of_items = lalr1_kernels(grammar, first_table, set_of_items, transitions)
+  for _, items in ipairs(set_of_items) do
+    lr1_closure(grammar, first_table, items)
+  end
+  return set_of_items, transitions
+end
+
+---------------------------------------------------------------------------
+
+-- P.265
+local function lr1_construct_table(grammar, set_of_items, transitions)
+  local productions = self.productions
+  local max_terminal_symbol = self.max_terminal_symbol
+
+  -- output
+  -- actions : action = actions[state][symbol] when symbol < max_terminal_symbol
+  -- gotos   : action = gotos[state][symbol - max_terminal_symbol]
+  --           action <= max_state then SHIFT else REDUCE (or ACCEPT)
+  -- heads   : headの内容 : heads[action] があれば、REDUCE
+  -- sizes   : bodyの個数 : REDUCE時に何個とりだすか
+
+  -- semantic actions, attribute actions
+  -- はとりあえずおいておく
+  -- precedenceもとりあえずおいておく
+
+  -- ACTION : actions : 終端記号を列に持つ
+  -- GOTO:    gotos   : 非終端記号を列に持つ
+  -- ACTIONとGOTOをひとつのテーブルにしてもいいんじゃない？
+
+  -- actionがmax_state以下ならばSHIFT: actionをスタックに積む。つまり、state
+  -- heads[action], sizes[action]でheadを取得する
+  --   semantic/attribute actionも[action]で検索する
+  -- productions[i] / i = action - max_state
+  -- heads
+  -- sizes
+  -- semantic_actions
+  -- attribute_actions
+
+  local max_state = #set_of_items
+
+  for i, items in ipairs(set_of_items) do
+    local transition = transitions[i]
+    local row = Map()
+    for _, item in ipairs(items) do
+      -- TODO transitionをスキャンしたほうがはやいのでは？
+      local symbol = productions[item.index].body[item.dot]
+      if symbol and symbol <= max_terminal_symbol and not terminal_symbol_table[symbol] then
+        row[symbol] = transition[symbol] -- SHIFT
+      end
+    end
+    local error_table = Map()
+    for _, item in ipairs(items) do
+      local symbol = productions[item.index].body[item.dot]
+      if not symbol then -- 末尾なのでREDUCEできるはず
+        local action = max_state + item.index
+        local symbol = item.la
+        local value = row[symbol]
+        if value then -- 衝突
+          if value <= max_state then -- SHIFT/REDUCE
+            -- 優先順位で判定する
+          else -- REDUCE/REDUCE
+            if action < value then
+              -- item.indexがちいさいほうが勝つ
+              t[symbol] = action
+            end
+          end
+        else
+          if error_table[symbol] then
+          else
+            t[symbol] = action
+          end
+        end
+      end
+    end
+  end
 end
 
 ---------------------------------------------------------------------------
@@ -667,11 +716,7 @@ end
 
 print(("="):rep(75))
 
-local set_of_items, transitions = lr0_items(grammar)
-local set_of_items = lalr1_kernels(grammar, first_table, set_of_items, transitions)
-for _, items in ipairs(set_of_items) do
-  lr1_closure(grammar, first_table, items)
-end
+local set_of_items, transitions = lalr1_items(grammar, first_table)
 
 for i, items in ipairs(set_of_items) do
   io.write("I_", i, "\n")
@@ -701,3 +746,121 @@ for i, items in ipairs(set_of_items) do
   print(("-"):rep(75))
 end
 
+---------------------------------------------------------------------------
+
+--[[
+
+local symbol_names = List("$", "id", "+", "*", "(", ")")
+local grammar = build_grammar(symbol_names, {
+  E = {
+    _"E" "+" "E";
+    _"E" "*" "E";
+    _"(" "E" ")";
+    _"id";
+  };
+})
+
+%left + -
+%left * /
+%right UMINUS
+
+E : E + E
+  | E * E
+  | ( E )
+  | id
+  ;
+
+_:left "+" "-"
+ :left "*" "/"
+ :right "UNM"
+
+_"E" : _"E" "+" "E"
+     | _"E" "-" "E"
+     | _"E" "*" "E"
+     | _"E" "/" "E"
+     | _"-" "E" :prec "UNM"
+     | _"(" "E" ")"
+     | _"id"
+
+_"E" :_ "E" "+" "E"
+     :_ "E" "-" "E"
+
+_:left "+" "-"
+ :left "*" "/"
+ :right "UNM"
+
+  left "*" "/";
+  right "UNM";
+
+x = _{
+  E = _"E" "*" "E"
+    | _"E" "+" "E"
+    | _"-" "E" :prec "UNM" {"$$ = $1 + $2"}
+    ;
+}
+
+
+
+
+
+]]
+
+local metatable = { __name = "dromozoa.parser.test" }
+
+local function new(...)
+  return setmetatable({...}, metatable)
+end
+
+function metatable:__bor(that)
+  print("|", self, that)
+  return new(self, that)
+end
+
+function metatable:__div(that)
+  print("/", self, that)
+  return new(self, that)
+end
+
+function metatable:__mod(that)
+  print("%", self, that)
+  return new(self, that)
+end
+
+function metatable:__call(s)
+  print("call", self, s)
+  return new(self, s)
+end
+
+local function _(s)
+  print("_", s)
+  return new(s)
+end
+
+local function grammar(x)
+end
+
+local function left(s)
+  print("left", s)
+  return new(s)
+end
+
+local function right(s)
+  print("left", s)
+  return new(s)
+end
+
+local function prec(s)
+  print("prec", s)
+  return new(s)
+end
+
+x = grammar(token_names, {
+  left "+" "-";
+  left "*" "/";
+  right "UNM";
+
+  E = _"E" "*" "E" / [[action]]
+    | _"E" "+" "E"
+    | _"-" "E" %prec "UNM" / [[action2]]
+    ;
+})
