@@ -40,6 +40,50 @@ end
 
 ---------------------------------------------------------------------------
 
+local class = {}
+local metatable = { __index = class, __name = "dromozoa.parser.grammar.set" }
+
+local function equal(a, b)
+  if a == b then
+    return true
+  end
+  if type(a) == "table" and type(b) == "table" then
+    for k, u in pairs(a) do
+      if not equal(u, b[k]) then
+        return false
+      end
+    end
+    for k in pairs(b) do
+      if a[k] == nil then
+        return false
+      end
+    end
+    return true
+  end
+  return false
+end
+
+function class:put(v)
+  for i, u in ipairs(self) do
+    if equal(u, v) then
+      return i, u
+    end
+  end
+  local n = #self + 1
+  self[n] = v
+  return n, v
+end
+
+function module.set(...)
+  local self = setmetatable({}, metatable)
+  for i = 1, select("#", ...) do
+    self:put(select(i, ...))
+  end
+  return self
+end
+
+---------------------------------------------------------------------------
+
 local private = setmetatable({}, { __mode = "k" })
 local metatable = { __name = "dromozoa.parser.grammar.map" }
 
@@ -53,6 +97,20 @@ function metatable:__newindex(k, v)
     end
   end
   rawset(self, k, v)
+end
+
+function metatable:__call(k, fn)
+  local v = self[k]
+  if v ~= nil then
+    return v
+  end
+  if fn ~= nil then
+    v = fn()
+  else
+    v = module.map()
+  end
+  self[k] = v
+  return v
 end
 
 function metatable:__pairs()
@@ -294,7 +352,6 @@ end
 
 ---------------------------------------------------------------------------
 
--- P.213
 function module.eliminate_left_recursion(grammar)
   local symbol_names = grammar.symbol_names
   local productions = grammar.productions
@@ -355,7 +412,6 @@ end
 
 local marker_epsilon = 0
 
--- P.221
 function module.first_symbol(grammar, symbol)
   if symbol <= grammar.max_terminal_symbol then
     return module.map(symbol, true)
@@ -400,6 +456,77 @@ function module.first_table(grammar)
     first_table[symbol] = module.first_symbol(grammar, symbol)
   end
   return first_table
+end
+
+---------------------------------------------------------------------------
+
+function module.lr0_closure(grammar, items)
+  local productions = grammar.productions
+  local max_terminal_symbol = grammar.max_terminal_symbol
+
+  local added = module.map()
+  local m = 1
+  while true do
+    local n = #items
+    if m > n then
+      break
+    end
+    for i = m, n do
+      local item = items[i]
+      local symbol = productions[item.index].body[item.dot]
+      if symbol and symbol > max_terminal_symbol and not added[symbol] then
+        for j in module.each_production(productions, symbol) do
+          items:append { index = j, dot = 1 }
+        end
+        added[symbol] = true
+      end
+    end
+    m = n + 1
+  end
+
+  return items
+end
+
+function module.lr0_goto(grammar, items)
+  local productions = grammar.productions
+  local map_of_to_items = module.map()
+
+  for _, item in ipairs(items) do
+    local symbol = productions[item.index].body[item.dot]
+    if symbol then
+      map_of_to_items(symbol, module.list):append { index = item.index, dot = item.dot + 1 }
+    end
+  end
+
+  for _, to_items in pairs(map_of_to_items) do
+    module.lr0_closure(grammar, to_items)
+  end
+
+  return map_of_to_items
+end
+
+function module.lr0_items(grammar)
+  local set_of_items = module.set(module.lr0_closure(grammar, module.list { index = 1, dot = 1 }))
+  local transitions = module.map()
+
+  local m = 1
+  while true do
+    local n = #set_of_items
+    if m > n then
+      break
+    end
+    for i = m, n do
+      local items = set_of_items[i]
+      local map_of_to_items = module.lr0_goto(grammar, items)
+      local transition = transitions(i)
+      for symbol, to_items in pairs(map_of_to_items) do
+        transition[symbol] = set_of_items:put(to_items)
+      end
+    end
+    m = n + 1
+  end
+
+  return set_of_items, transitions
 end
 
 ---------------------------------------------------------------------------
