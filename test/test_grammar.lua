@@ -26,22 +26,14 @@ local left = grammar.left
 local right = grammar.right
 local _ = grammar.body
 
-local g = grammar({ "+", "-", "*", "id" }, {
+local g = grammar({ "+", "*", "(", ")", "id" }, {
   left "+";
   left "*";
-  right "UNM";
-
-  main
-    = _"E"
-    | _"F"
-    ;
 
   E = _"E" "+" "E"
     | _"E" "*" "E"
-    | _"-" "E" :prec "UNM" %[[action]]
+    | _"(" "E" ")"
     | _"id";
-
-  F = _();
 })
 
 print(dumper.encode(g, { pretty = true, stable = true }))
