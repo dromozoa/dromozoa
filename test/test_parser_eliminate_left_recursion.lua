@@ -22,7 +22,7 @@ local grammar = require "dromozoa.parser.grammar"
 
 local _ = grammar.body
 
--- P.213
+-- P.214
 local g = grammar({ "a", "b", "c", "d" }, {
   S = _"A" "a"
     | _"b";
@@ -41,7 +41,6 @@ for _, production in ipairs(g.productions) do
   buffer:append "\n"
 end
 
--- P.214
 assert(table.concat(buffer) == [[
 S' -> S
 S -> A a
