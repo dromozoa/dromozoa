@@ -40,11 +40,13 @@ local private = setmetatable({}, { __mode = "k" })
 local metatable = { __name = "dromozoa.parser.grammar.map" }
 
 function metatable:__newindex(k, v)
-  local priv = private[self]
-  local priv_set = priv.set
-  if not priv_set[k] then
-    priv[#priv + 1] = k
-    priv_set[k] = true
+  if v ~= nil then
+    local priv = private[self]
+    local priv_set = priv.set
+    if not priv_set[k] then
+      priv[#priv + 1] = k
+      priv_set[k] = true
+    end
   end
   rawset(self, k, v)
 end
@@ -129,7 +131,7 @@ function class:prec(that)
 end
 
 function metatable:__mod(that)
-  self.action = that
+  self.semantic_action = that
   return self
 end
 
@@ -148,14 +150,8 @@ end
 
 ---------------------------------------------------------------------------
 
--- eof = 1
---   eofはsymbol_tableからのマップをもたない
---   "$"というトークンを作成してもだいじょうぶ
--- min_nonterminal_symbol = max_terminal_symbol + 1
--- argumented_start_symbol = min_nonterminal_symbol
-
 local function grammar(token_names, that)
-  local symbol_names = module.list()
+  local symbol_names = module.list "$"
   local symbol_table = module.map()
   for _, name in ipairs(token_names) do
     symbol_table[name] = #symbol_names:append(name)
@@ -169,12 +165,9 @@ local function grammar(token_names, that)
   table.sort(data, function (a, b) return a.v.timestamp < b.v.timestamp end)
 
   local productions = module.list()
-
   local precedence = 0
   local precedence_table = module.map()
   local symbol_precedences = module.map()
-  local production_precedences = module.map()
-  local semantic_actions = module.map()
 
   for _, u in ipairs(data) do
     local k = u.k
@@ -208,22 +201,29 @@ local function grammar(token_names, that)
       if metaname == "dromozoa.parser.grammar.body" then
         v = module.bodies(v)
       end
+
       for _, body in ipairs(v) do
         productions:append { head = symbol, body = body }
       end
     end
   end
 
+  local production_precedences = module.map()
+  local semantic_actions = module.map()
+
   for i, production in ipairs(productions) do
-    local body = module.list()
-    for _, name in ipairs(production.body) do
+    local src_body = production.body
+    local new_body = module.list()
+    for _, name in ipairs(src_body) do
       local symbol = symbol_table[name];
       if not symbol then
         error("symbol " .. name .. " is used, but is not defined as a token and has no rules")
       end
-      body:append(symbol)
+      new_body:append(symbol)
     end
-    local name = production.body.precedence
+    production.body = new_body
+
+    local name = src_body.precedence
     if name then
       local precedence = precedence_table[name]
       if not precedence then
@@ -231,8 +231,7 @@ local function grammar(token_names, that)
       end
       production_precedences[i] = precedence
     end
-    semantic_actions[i] = production.body.action
-    production.body = body
+    semantic_actions[i] = src_body.semantic_action
   end
 
   return {
