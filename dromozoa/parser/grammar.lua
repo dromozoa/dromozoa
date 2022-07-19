@@ -350,6 +350,33 @@ function module.each_production(productions, head)
   end, productions, 0
 end
 
+function module.symbol_precedence(grammar, symbol)
+  local precedence = grammar.symbol_precedence[symbol]
+  if precedence then
+    return precedence.precedence, precedence.associativity
+  else
+    return 0
+  end
+end
+
+function module.production_precedence(grammar, index)
+  local precedence = grammar.production_precedences[index]
+  if precedence then
+    return precedence.precedence, precedence.associativity
+  end
+
+  local max_terminal_symbol = grammar.max_terminal_symbol
+  local production = grammar.productions[index]
+  local body = production.body
+  for i = #body, 1, -1 do
+    local symbol = body[i]
+    if symbol <= max_terminal_symbol then
+      return module.symbol_precedence(grammar, symbol)
+    end
+  end
+  return 0
+end
+
 ---------------------------------------------------------------------------
 
 function module.eliminate_left_recursion(grammar)
@@ -646,9 +673,96 @@ function module.lalr1_items(grammar)
   local set_of_items, transitions = module.lr0_items(grammar)
   local set_of_items = module.lalr1_kernels(grammar, set_of_items, transitions)
   for _, items in ipairs(set_of_items) do
-    lr1_closure(grammar, items)
+    module.lr1_closure(grammar, items)
   end
   return set_of_items, transitions
+end
+
+---------------------------------------------------------------------------
+
+function module.lr1_construct_table(grammar, set_of_items, transitions, fn)
+  local productions = grammar.productions
+  local max_terminal_symbol = grammar.max_terminal_symbol
+
+  local max_state = #set_of_items
+  local actions = module.map()
+
+  for i, items in ipairs(set_of_items) do
+    local transition = transitions[i]
+    local data = module.map()
+
+    -- TODO どうして必要なのか？
+    local terminal_symbol_table = module.map()
+
+    for _, item in ipairs(items) do
+      -- TODO transitionをスキャンしたほうがはやいのでは？
+      local symbol = productions[item.index].body[item.dot]
+      if symbol and symbol <= max_terminal_symbol and not terminal_symbol_table[symbol] then
+        -- SHIFT
+        data[symbol] = transition[symbol]
+        terminal_symbol_table[symbol] = true
+      end
+    end
+
+    -- nonassocのエラー用
+    local error_table = module.map()
+
+    for _, item in ipairs(items) do
+      local symbol = productions[item.index].body[item.dot]
+      if not symbol then
+        local action = max_state + item.index
+        local symbol = item.la
+        local value = data[symbol]
+        if value then
+          if value <= max_state then
+            -- SHIFT/SHIFT
+            local shift_precedence = module.symbol_precedence(grammar, symbol)
+            local precedence, associativity = module.production_precedence(grammar, item.index)
+            if precedence > 0 then
+              -- resolved: ok
+              if shift_precedence == precedence then
+                if associativity == "left" then
+                  data[symbol] = action
+                elseif associativity == "nonassoc" then
+                  error_table[symbol] = action
+                  data[symbol] = nil
+                end
+              elseif shift_precedence < precedence then
+                data[symbol] = action
+              end
+            end
+          else
+            if action < value then
+              data[symbol] = action
+            end
+          end
+
+        else
+          if error_table[symbol] then
+          else
+            data[symbol] = action
+          end
+        end
+      end
+    end
+
+    for symbol, to in pairs(transition) do
+      if symbol > max_terminal_symbol then
+        data[symbol] = to
+      end
+    end
+
+    actions[i] = data
+  end
+
+  return {
+    symbol_names = grammar.symbol_names;
+    symbol_table = grammar.symbol_table;
+    max_state = max_state;
+    max_terminal_symbol = max_terminal_symbol;
+    max_nonterminal_symbol = grammar.max_nonterminal_symbol;
+    actions = actions;
+  }
 end
 
 ---------------------------------------------------------------------------
