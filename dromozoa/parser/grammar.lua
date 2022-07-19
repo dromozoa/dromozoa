@@ -212,9 +212,8 @@ local function grammar(token_names, that)
 
   local production_precedences = module.map()
   local semantic_actions = module.map()
-
-  local symbol_check_table = module.map()
-  local precedence_check_table = module.map()
+  local used_symbols = module.map()
+  local used_precedences = module.map()
 
   for i, production in ipairs(productions) do
     local name = production.body.precedence
@@ -224,7 +223,7 @@ local function grammar(token_names, that)
         error("precedence " .. name .. " not defined")
       end
       production_precedences[i] = precedence
-      precedence_check_table[name] = true
+      used_precedences[name] = true
     end
     semantic_actions[i] = production.body.semantic_action
 
@@ -235,7 +234,7 @@ local function grammar(token_names, that)
         error("symbol " .. name .. " not defined")
       end
       body:append(symbol)
-      symbol_check_table[symbol] = true
+      used_symbols[symbol] = true
     end
     production.body = body
   end
@@ -243,22 +242,20 @@ local function grammar(token_names, that)
   productions[1].body:append(max_terminal_symbol + 2)
   symbol_names[max_terminal_symbol + 1] = symbol_names[max_terminal_symbol + 2] .. "'"
 
-  --[[
-  for k in pairs(precedence_table) do
-    if not precedence_check_table[k] then
-      error("useless precedence for " .. k)
-    end
-  end
+  used_symbols[max_terminal_symbol] = true
+  used_symbols[max_terminal_symbol + 1] = true
+  used_symbols[max_terminal_symbol + 2] = true
+
   for i, v in ipairs(symbol_names) do
-    if not symbol_check_table[i] then
-      if i > 1 and i <= max_terminal_symbol then
-        error("terminal useless in grammar: " .. v)
-      elseif i > max_terminal_symbol + 1 and i <= #symbol_names then
-        error("nonterminal useless in grammar: " .. v)
-      end
+    if not used_symbols[i] then
+      error("symbol " .. v .. " not used")
     end
   end
-  ]]
+  for k in pairs(precedence_table) do
+    if not used_precedences[k] then
+      error("precedence " .. k .. " not used")
+    end
+  end
 
   return {
     symbol_names = symbol_names;

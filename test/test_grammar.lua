@@ -40,6 +40,7 @@ local g = grammar({ "+", "-", "*", "id" }, {
     | _"E" "*" "E"
     | _"-" "E" :prec "UNM" %[[action]]
     | _"id";
+
   F = _();
 })
 
