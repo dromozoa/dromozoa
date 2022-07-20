@@ -351,7 +351,7 @@ function module.each_production(productions, head)
 end
 
 function module.symbol_precedence(grammar, symbol)
-  local precedence = grammar.symbol_precedence[symbol]
+  local precedence = grammar.symbol_precedences[symbol]
   if precedence then
     return precedence.precedence, precedence.associativity
   else
@@ -690,7 +690,6 @@ function module.lr1_construct_table(grammar, set_of_items, transitions, fn)
   for i, items in ipairs(set_of_items) do
     local data = module.map()
 
-    -- SHIFT
     for symbol, j in pairs(transitions[i]) do
       data[symbol] = j
     end
@@ -703,46 +702,48 @@ function module.lr1_construct_table(grammar, set_of_items, transitions, fn)
       if not symbol then
         local action = max_state + item.index
         local symbol = item.la
-        local value = data[symbol] -- current action
-        if value then
-          if value <= max_state then
-            -- SHIFT/REDUCE
+        local current_action = data[symbol]
+        if current_action then
+          local buffer = module.list()
+          if current_action <= max_state then
+            buffer:append("shift(", current_action, ") / reduce(", item.index, ") conflict resolved as ")
             local shift_precedence = module.symbol_precedence(grammar, symbol)
             local precedence, associativity = module.production_precedence(grammar, item.index)
             if precedence > 0 then
               if shift_precedence == precedence then
                 if associativity == "left" then
-                  -- SHIFT/REDUCE => REDUCE
+                  buffer:append "reduce"
                   data[symbol] = action
                 elseif associativity == "nonassoc" then
-                  -- SHIFT/REDUCE => ERROR
+                  buffer:append "an error"
                   error_table[symbol] = action
                   data[symbol] = nil
                 else
-                  -- SHIFT/REDUCE => SHIFT
+                  buffer:append "shift"
                 end
+                buffer:append(": precedence ", shift_precedence, " == ", precedence, " associativity ", associativity)
               elseif shift_precedence < precedence then
-                -- SHIFT/REDUCE => REDUCE
+                buffer:append("reduce: precedence ", shift_precedence, " < ", precedence)
                 data[symbol] = action
               else
-                -- SHIFT/REDUCE => SHIFT
+                buffer:append("shift: precedence ", shift_precedence, " > ", precedence)
               end
+            else
+              buffer:append "shift"
             end
           else
             -- REDUCE/REDUCE
-            if action < value then
-              -- REDUCE/REDUCE => REDUCE2
+            buffer:append("reduce(", current_action - max_state, ") / reduce(", item.index, ") conflict")
+            if action < current_action then
               data[symbol] = action
-            else
-              -- REDUCE/REDUCE => REDUCE1
             end
           end
+          buffer:append(" at state(", i, ") symbol(", grammar.symbol_names[symbol], ")")
+          fn(table.concat(buffer))
         else
-          -- REDUCE
           if error_table[symbol] then
-            -- ERROR
+            fn("error / reduce(" .. item.index .. ") at state(" .. i .. ") symbol(" .. grammar.symbol_names[symbol], ")")
           else
-            -- REDUCE
             data[symbol] = action
           end
         end
