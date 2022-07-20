@@ -65,6 +65,15 @@ for i, data in ipairs(t.actions) do
   buffer:append "\n"
 end
 
-io.write(table.concat(buffer))
+-- io.write(table.concat(buffer))
 
-
+assert(table.concat(buffer) == [[
+|   |  c  |  d  |  $  |  S' |  S  |  C  |
+| 1 | s4  | s5  |     |     | s2  | s3  |
+| 2 |     |     | acc |     |     |     |
+| 3 | s4  | s5  |     |     |     | s6  |
+| 4 | s4  | s5  |     |     |     | s7  |
+| 5 | r4  | r4  | r4  |     |     |     |
+| 6 |     |     | r2  |     |     |     |
+| 7 | r3  | r3  | r3  |     |     |     |
+]])
