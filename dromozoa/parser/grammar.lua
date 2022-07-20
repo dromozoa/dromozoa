@@ -755,6 +755,13 @@ function module.lr1_construct_table(grammar, set_of_items, transitions, fn)
     actions[i] = data
   end
 
+  local heads = module.list()
+  local sizes = module.list()
+  for i, production in ipairs(productions) do
+    heads[i] = production.head
+    sizes[i] = #production.body
+  end
+
   return {
     symbol_names = grammar.symbol_names;
     symbol_table = grammar.symbol_table;
@@ -762,6 +769,9 @@ function module.lr1_construct_table(grammar, set_of_items, transitions, fn)
     max_terminal_symbol = max_terminal_symbol;
     max_nonterminal_symbol = grammar.max_nonterminal_symbol;
     actions = actions;
+    heads = heads;
+    sizes = sizes;
+    semantic_actions = grammar.semantic_actions;
   }
 end
 
