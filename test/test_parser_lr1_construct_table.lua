@@ -120,6 +120,7 @@ shift(6) / reduce(3) conflict resolved as reduce: precedence 2 == 2 associativit
 |  8 |     |  r2 |  s6 |     |  r2 |  r2 |     |     |
 |  9 |     |  r3 |  r3 |     |  r3 |  r3 |     |     |
 | 10 |     |  r4 |  r4 |     |  r4 |  r4 |     |     |
+---------------------------------------------------------------------------
 shift(6) / reduce(3) conflict resolved as shift at state(5) symbol(e)
 |    |  i  |  e  |  a  |  $  |  S' |  S  |
 |  1 |  s3 |     |  s4 |     |     |  s2 |

@@ -694,15 +694,16 @@ function module.lr1_construct_table(grammar, set_of_items, transitions, fn)
       data[symbol] = j
     end
 
-    -- nonassocのエラー用
     local error_table = module.map()
 
     for _, item in ipairs(items) do
       local symbol = productions[item.index].body[item.dot]
       if not symbol then
+
         local action = max_state + item.index
         local symbol = item.la
         local current_action = data[symbol]
+
         if current_action then
           local buffer = module.list()
           if current_action <= max_state then
