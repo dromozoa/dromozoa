@@ -695,11 +695,70 @@ function module.lr1_construct_table(grammar, set_of_items, transitions, fn)
     end
 
     local error_table = module.map()
+    for _, item in ipairs(items) do
+      if not productions[item.index].body[item.dot] then
+        local buffer = module.list(false, false)
 
+        local action = data[item.la]
+        if action then
+          if action <= max_state then
+            buffer[1] = "shift(" .. action .. ")"
+            local precedence, associativity = module.production_precedence(grammar, item.index)
+            if precedence > 0 then
+              local shift_precedence = module.symbol_precedence(grammar, item.la)
+              if shift_precedence == precedence then
+                if associativity == "left" then
+                  buffer:append "reduce"
+                  data[item.la] = item.index + max_state
+                elseif associativity == "nonassoc" then
+                  buffer:append "an error"
+                  data[item.la] = nil
+                  error_table[item.la] = true
+                else
+                  buffer:append "shift"
+                end
+                buffer:append(": precedence ", shift_precedence, " == ", precedence, " associativity ", associativity)
+              elseif shift_precedence < precedence then
+                buffer:append("reduce: precedence ", shift_precedence, " < ", precedence)
+                data[item.la] = item.index + max_state
+              else
+                buffer:append("shift: precedence ", shift_precedence, " > ", precedence)
+              end
+            else
+              buffer:append "shift"
+            end
+          else
+            local index = action - max_state
+            buffer[1] = "reduce(" .. index .. ")"
+            if item.index < index then
+              buffer:append "the latter"
+              data[item.la] = item.index + max_state
+            else
+              buffer:append "the former"
+            end
+          end
+        elseif error_table[item.la] then
+          buffer[1] = "error"
+          buffer:append "an error"
+        else
+          data[item.la] = item.index + max_state
+        end
+
+        if buffer[1] then
+          buffer[2] = " / reduce(" .. item.index .. ") conflict resolved as "
+          buffer:append(" at state(", i, ") symbol(", grammar.symbol_names[item.la], ")")
+          fn(table.concat(buffer))
+        end
+      end
+    end
+
+    actions[i] = data
+  end
+
+--[[
     for _, item in ipairs(items) do
       local symbol = productions[item.index].body[item.dot]
       if not symbol then
-
         local action = max_state + item.index
         local symbol = item.la
         local current_action = data[symbol]
@@ -753,6 +812,7 @@ function module.lr1_construct_table(grammar, set_of_items, transitions, fn)
 
     actions[i] = data
   end
+]]
 
   local heads = module.list()
   local sizes = module.list()
