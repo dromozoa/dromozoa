@@ -20,20 +20,38 @@
 
 local grammar = require "dromozoa.parser.grammar"
 
-local dumper = require "dromozoa.commons.dumper"
-
-local left = grammar.left
-local right = grammar.right
 local _ = grammar.body
 
-local g = grammar({ "+", "*", "(", ")", "id" }, {
-  left "+";
-  left "*";
-
-  E = _"E" "+" "E"
-    | _"E" "*" "E"
-    | _"(" "E" ")"
-    | _"id";
+-- P.263
+local g = grammar({ "c", "d" }, {
+  S = _"C" "C";
+  C = _"c" "C"
+    | _"d";
 })
 
-print(dumper.encode(g, { pretty = true, stable = true }))
+local items = grammar.lr1_closure(g, grammar.list { index = 1, dot = 1, la = g.max_terminal_symbol })
+
+local buffer = grammar.list()
+for _, item in ipairs(items) do
+  local production = g.productions[item.index]
+  buffer:append(g.symbol_names[production.head], " ->")
+  for j, symbol in ipairs(production.body) do
+    if j == item.dot then
+      buffer:append " ."
+    end
+    buffer:append(" ", g.symbol_names[symbol])
+  end
+  if not production.body[item.dot] then
+    buffer:append " ."
+  end
+  buffer:append(", ", g.symbol_names[item.la], "\n")
+end
+
+assert(table.concat(buffer) == [[
+S' -> . S, $
+S -> . C C, $
+C -> . c C, c
+C -> . c C, d
+C -> . d, c
+C -> . d, d
+]])

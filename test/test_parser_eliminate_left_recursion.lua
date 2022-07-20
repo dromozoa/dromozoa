@@ -20,20 +20,34 @@
 
 local grammar = require "dromozoa.parser.grammar"
 
-local dumper = require "dromozoa.commons.dumper"
-
-local left = grammar.left
-local right = grammar.right
 local _ = grammar.body
 
-local g = grammar({ "+", "*", "(", ")", "id" }, {
-  left "+";
-  left "*";
-
-  E = _"E" "+" "E"
-    | _"E" "*" "E"
-    | _"(" "E" ")"
-    | _"id";
+-- P.214
+local g = grammar({ "a", "b", "c", "d" }, {
+  S = _"A" "a"
+    | _"b";
+  A = _"A" "c"
+    | _"S" "d"
+    | _();
 })
+local g = grammar.eliminate_left_recursion(g)
 
-print(dumper.encode(g, { pretty = true, stable = true }))
+local buffer = grammar.list()
+for _, production in ipairs(g.productions) do
+  buffer:append(g.symbol_names[production.head], " ->")
+  for _, symbol in ipairs(production.body) do
+    buffer:append(" ", g.symbol_names[symbol])
+  end
+  buffer:append "\n"
+end
+
+assert(table.concat(buffer) == [[
+S' -> S
+S -> A a
+S -> b
+A -> b d A'
+A -> A'
+A' -> c A'
+A' -> a d A'
+A' ->
+]])

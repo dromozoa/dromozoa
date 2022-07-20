@@ -20,20 +20,46 @@
 
 local grammar = require "dromozoa.parser.grammar"
 
-local dumper = require "dromozoa.commons.dumper"
-
-local left = grammar.left
-local right = grammar.right
 local _ = grammar.body
 
+-- P.222
 local g = grammar({ "+", "*", "(", ")", "id" }, {
-  left "+";
-  left "*";
-
-  E = _"E" "+" "E"
-    | _"E" "*" "E"
-    | _"(" "E" ")"
+  E = _"T" "E'";
+  ["E'"]
+    = _"+" "T" "E'"
+    | _();
+  T = _"F" "T'";
+  ["T'"]
+    = _"*" "F" "T'"
+    | _();
+  F = _"(" "E" ")"
     | _"id";
 })
+local first_table = grammar.first_table(g)
 
-print(dumper.encode(g, { pretty = true, stable = true }))
+local buffer = grammar.list()
+for _, name in ipairs { "F", "T", "E", "E'", "T'" } do
+  buffer:append("FIRST(", name, ") = { ")
+  local first = first_table[g.symbol_table[name]]
+  local i = 0
+  for k in pairs(first) do
+    i = i + 1
+    if i > 1 then
+      buffer:append ", "
+    end
+    if k == 0 then
+      buffer:append "e"
+    else
+      buffer:append(g.symbol_names[k])
+    end
+  end
+  buffer:append " }\n"
+end
+
+assert(table.concat(buffer) == [[
+FIRST(F) = { (, id }
+FIRST(T) = { (, id }
+FIRST(E) = { (, id }
+FIRST(E') = { +, e }
+FIRST(T') = { *, e }
+]])
