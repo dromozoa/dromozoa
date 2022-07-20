@@ -117,12 +117,11 @@ function metatable:__pairs()
   local priv = private[self]
   local index = 0
   return function (self)
-    local n = #priv
-    while index < n do
-      index = index + 1
-      local k = priv[index]
+    for i = index + 1, #priv do
+      local k = priv[i]
       local v = self[k]
       if v ~= nil then
+        index = i
         return k, v
       end
     end
