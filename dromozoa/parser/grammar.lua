@@ -688,20 +688,11 @@ function module.lr1_construct_table(grammar, set_of_items, transitions, fn)
   local actions = module.map()
 
   for i, items in ipairs(set_of_items) do
-    local transition = transitions[i]
     local data = module.map()
 
-    -- TODO どうして必要なのか？
-    local terminal_symbol_table = module.map()
-
-    for _, item in ipairs(items) do
-      -- TODO transitionをスキャンしたほうがはやいのでは？
-      local symbol = productions[item.index].body[item.dot]
-      if symbol and symbol <= max_terminal_symbol and not terminal_symbol_table[symbol] then
-        -- SHIFT
-        data[symbol] = transition[symbol]
-        terminal_symbol_table[symbol] = true
-      end
+    -- SHIFT
+    for symbol, j in pairs(transitions[i]) do
+      data[symbol] = j
     end
 
     -- nonassocのエラー用
@@ -712,43 +703,49 @@ function module.lr1_construct_table(grammar, set_of_items, transitions, fn)
       if not symbol then
         local action = max_state + item.index
         local symbol = item.la
-        local value = data[symbol]
+        local value = data[symbol] -- current action
         if value then
           if value <= max_state then
-            -- SHIFT/SHIFT
+            -- SHIFT/REDUCE
             local shift_precedence = module.symbol_precedence(grammar, symbol)
             local precedence, associativity = module.production_precedence(grammar, item.index)
             if precedence > 0 then
-              -- resolved: ok
               if shift_precedence == precedence then
                 if associativity == "left" then
+                  -- SHIFT/REDUCE => REDUCE
                   data[symbol] = action
                 elseif associativity == "nonassoc" then
+                  -- SHIFT/REDUCE => ERROR
                   error_table[symbol] = action
                   data[symbol] = nil
+                else
+                  -- SHIFT/REDUCE => SHIFT
                 end
               elseif shift_precedence < precedence then
+                -- SHIFT/REDUCE => REDUCE
                 data[symbol] = action
+              else
+                -- SHIFT/REDUCE => SHIFT
               end
             end
           else
+            -- REDUCE/REDUCE
             if action < value then
+              -- REDUCE/REDUCE => REDUCE2
               data[symbol] = action
+            else
+              -- REDUCE/REDUCE => REDUCE1
             end
           end
-
         else
+          -- REDUCE
           if error_table[symbol] then
+            -- ERROR
           else
+            -- REDUCE
             data[symbol] = action
           end
         end
-      end
-    end
-
-    for symbol, to in pairs(transition) do
-      if symbol > max_terminal_symbol then
-        data[symbol] = to
       end
     end
 

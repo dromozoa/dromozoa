@@ -22,52 +22,59 @@ local grammar = require "dromozoa.parser.grammar"
 
 local _ = grammar.body
 
--- P.269
-local g = grammar({ "c", "d" }, {
-  S = _"C" "C";
-  C = _"c" "C"
-    | _"d";
-})
-
-g.first_table = grammar.first_table(grammar.eliminate_left_recursion(g))
-local set_of_items, transitions = grammar.lalr1_items(g)
-local t = grammar.lr1_construct_table(g, set_of_items, transitions)
+local G = {
+  -- P.269
+  grammar({ "c", "d" }, {
+    S = _"C" "C";
+    C = _"c" "C"
+      | _"d";
+  });
+}
 
 local buffer = grammar.list()
 
-buffer:append "|   |"
-for i = 1, t.max_nonterminal_symbol do
-  buffer:append(("  %-2s |"):format(t.symbol_names[i]))
-end
-buffer:append "\n"
+for _, g in ipairs(G) do
+  buffer:append(("-"):rep(75), "\n")
+  g.first_table = grammar.first_table(grammar.eliminate_left_recursion(g))
+  local set_of_items, transitions = grammar.lalr1_items(g)
+  local t = grammar.lr1_construct_table(g, set_of_items, transitions)
 
-for i, data in ipairs(t.actions) do
-  buffer:append("| ", i, " |")
-  for j = 1, t.max_nonterminal_symbol do
-    local v = data[j]
-    if not v then
-      buffer:append "     |"
-    else
-      buffer:append " "
-      if v <= t.max_state then
-        buffer:append("s", v, " ")
-      else
-        local v = v - t.max_state
-        if v == 1 then
-          buffer:append "acc"
-        else
-          buffer:append("r", v, " ")
-        end
-      end
-      buffer:append " |"
-    end
+  buffer:append "|   |"
+  for i = 1, t.max_nonterminal_symbol do
+    buffer:append(("  %-2s |"):format(t.symbol_names[i]))
   end
   buffer:append "\n"
+
+  for i, data in ipairs(t.actions) do
+    buffer:append("| ", i, " |")
+    for j = 1, t.max_nonterminal_symbol do
+      local v = data[j]
+      if not v then
+        buffer:append "     |"
+      else
+        buffer:append " "
+        if v <= t.max_state then
+          buffer:append("s", v, " ")
+        else
+          local v = v - t.max_state
+          if v == 1 then
+            buffer:append "acc"
+          else
+            buffer:append("r", v, " ")
+          end
+        end
+        buffer:append " |"
+      end
+    end
+    buffer:append "\n"
+  end
+
 end
 
--- io.write(table.concat(buffer))
+io.write(table.concat(buffer))
 
 assert(table.concat(buffer) == [[
+---------------------------------------------------------------------------
 |   |  c  |  d  |  $  |  S' |  S  |  C  |
 | 1 | s4  | s5  |     |     | s2  | s3  |
 | 2 |     |     | acc |     |     |     |
