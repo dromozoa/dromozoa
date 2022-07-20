@@ -755,65 +755,6 @@ function module.lr1_construct_table(grammar, set_of_items, transitions, fn)
     actions[i] = data
   end
 
---[[
-    for _, item in ipairs(items) do
-      local symbol = productions[item.index].body[item.dot]
-      if not symbol then
-        local action = max_state + item.index
-        local symbol = item.la
-        local current_action = data[symbol]
-
-        if current_action then
-          local buffer = module.list()
-          if current_action <= max_state then
-            buffer:append("shift(", current_action, ") / reduce(", item.index, ") conflict resolved as ")
-            local shift_precedence = module.symbol_precedence(grammar, symbol)
-            local precedence, associativity = module.production_precedence(grammar, item.index)
-            if precedence > 0 then
-              if shift_precedence == precedence then
-                if associativity == "left" then
-                  buffer:append "reduce"
-                  data[symbol] = action
-                elseif associativity == "nonassoc" then
-                  buffer:append "an error"
-                  error_table[symbol] = action
-                  data[symbol] = nil
-                else
-                  buffer:append "shift"
-                end
-                buffer:append(": precedence ", shift_precedence, " == ", precedence, " associativity ", associativity)
-              elseif shift_precedence < precedence then
-                buffer:append("reduce: precedence ", shift_precedence, " < ", precedence)
-                data[symbol] = action
-              else
-                buffer:append("shift: precedence ", shift_precedence, " > ", precedence)
-              end
-            else
-              buffer:append "shift"
-            end
-          else
-            -- REDUCE/REDUCE
-            buffer:append("reduce(", current_action - max_state, ") / reduce(", item.index, ") conflict")
-            if action < current_action then
-              data[symbol] = action
-            end
-          end
-          buffer:append(" at state(", i, ") symbol(", grammar.symbol_names[symbol], ")")
-          fn(table.concat(buffer))
-        else
-          if error_table[symbol] then
-            fn("error / reduce(" .. item.index .. ") at state(" .. i .. ") symbol(" .. grammar.symbol_names[symbol], ")")
-          else
-            data[symbol] = action
-          end
-        end
-      end
-    end
-
-    actions[i] = data
-  end
-]]
-
   local heads = module.list()
   local sizes = module.list()
   for i, production in ipairs(productions) do
