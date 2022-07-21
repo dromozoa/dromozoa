@@ -33,13 +33,21 @@ end
 
 ---------------------------------------------------------------------------
 
-function module:concat(that)
+local metatable = { __name = "dromozoa.regexp.pattern" }
+
+function metatable:__add(that)
   local self = module.construct(self)
   local that = module.construct(that)
   return module.pattern(".", self, that)
 end
 
-function module:union(that)
+function metatable:__mod(that)
+  local result = module.accept_action("%", self, that)
+  result.literal = self.literal
+  return result
+end
+
+function metatable:__bor(that)
   local self = module.construct(self)
   local that = module.construct(that)
   if self[1] == "[" and that[1] == "[" then
@@ -56,7 +64,7 @@ function module:union(that)
   end
 end
 
-function module:quantify(that)
+function module:__call(that)
   local m = that[1]
   local n = that[2]
   if n == nil then
@@ -91,15 +99,6 @@ function module:quantify(that)
   end
 end
 
----------------------------------------------------------------------------
-
-local metatable = {
-  __add = module.concat;
-  __bor = module.union;
-  __call = module.quantify;
-  __name = "dromozoa.regexp.pattern";
-}
-
 function module.pattern(...)
   return setmetatable({ timestamp = module.timestamp(), ... }, metatable)
 end
@@ -107,11 +106,16 @@ end
 ---------------------------------------------------------------------------
 
 local metatable = {
-  __add = module.concat;
-  __bor = module.union;
-  __call = module.quantify;
+  __add = metatable.__add;
+  __mod = metatable.__mod;
+  __bor = metatable.__bor;
+  __call = metatable.__call;
   __name = "dromozoa.regexp.character_class";
 }
+
+function metatable:__div(that)
+  return module.pattern("/", self, that)
+end
 
 function metatable:__bnot()
   local set = self[2]
@@ -130,6 +134,12 @@ end
 
 ---------------------------------------------------------------------------
 
+function module.accept_action(...)
+  return { timestamp = module.timestamp(), ... }
+end
+
+---------------------------------------------------------------------------
+
 function module.construct(that)
   local t = type(that)
   if t == "string" then
@@ -137,6 +147,7 @@ function module.construct(that)
     for i = 2, #that do
       self = self + module.character_class("[", { [that:byte(i)] = true })
     end
+    self.literal = that
     return self
   else
     return that
@@ -147,18 +158,46 @@ end
 
 local metatable = { __name = "dromozoa.regexp.constructor" }
 
+function metatable:__index(that)
+  local set = {}
+  for i = 1, #that, 2 do
+    local a, b = that:byte(i, i + 1)
+    for byte = a, b do
+      set[byte] = true
+    end
+  end
+  return module.character_class("[", set)
+end
+
 function metatable:__call(that)
-  return module.construct(that)
+  if type(that) == "table" then
+    local that = that[1]
+    local set = {}
+    for i = 1, #that do
+      set[that:byte(i)] = true
+    end
+    return module.character_class("[", set)
+  else
+    return module.construct(that)
+  end
 end
 
 module.constructor = setmetatable({}, metatable)
 
 ---------------------------------------------------------------------------
+--[[
+  _"c"          character class
+  _"literal"    literal
+  _{"abcdef"}   set
+  _["09AZaz"]   range
+]]
+---------------------------------------------------------------------------
 
 local _ = module.constructor
 
-local x = _"a"{2,3}
-
+-- local x = _{"abc"} | _["09"]
 -- local x = _"abc"{0,1}
+-- local x = (_{"abc"} / "A" | "def") % "action"
+local x = (_"a" | "b" | "c" | "z")/"transition" %"accept"
 
 print(dumper.encode(x, { pretty = true, stable = true }))
