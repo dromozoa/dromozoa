@@ -28,19 +28,24 @@ local metatable = { __name = "dromozoa.regexp.pattern" }
 
 local timestamp = 0
 
+local function construct(...)
+  timestamp = timestamp + 1
+  return setmetatable({ timestamp = timestamp, ... }, metatable)
+end
+
 function metatable:__add(that)
-  local self = module.construct(self)
-  local that = module.construct(that)
+  local self = module.pattern(self)
+  local that = module.pattern(that)
   if self[1] == "%" or that[1] == "%" then
     error "not supported"
   else
-    return module.pattern(".", self, that)
+    return construct(".", self, that)
   end
 end
 
 function metatable:__sub(that)
-  local self = module.construct(self)
-  local that = module.construct(that)
+  local self = module.pattern(self)
+  local that = module.pattern(that)
   if self[1] == "%" or that[1] == "%" then
     error "not supported"
   elseif self[1] == "[" and that[1] == "[" then
@@ -51,36 +56,35 @@ function metatable:__sub(that)
     for byte in pairs(that[2]) do
       set[byte] = nil
     end
-    return module.pattern("[", set)
+    return construct("[", set)
   else
-    return module.pattern("-", self, that)
+    return construct("-", self, that)
   end
 end
 
 function metatable:__div(that)
-  local self = module.construct(self)
+  local self = module.pattern(self)
   if self[1] ~= "[" then
     error "not supported"
   else
-    return module.pattern("/", self, that)
+    return construct("/", self, that)
   end
 end
 
-
 function metatable:__mod(that)
-  local self = module.construct(self)
+  local self = module.pattern(self)
   if self[1] == "%" then
     error "not supported"
   else
-    local result = module.pattern("%", self, that)
+    local result = construct("%", self, that)
     result.literal = self.literal
     return result
   end
 end
 
 function metatable:__bor(that)
-  local self = module.construct(self)
-  local that = module.construct(that)
+  local self = module.pattern(self)
+  local that = module.pattern(that)
   if self[1] == "%" or that[1] == "%" then
     error "not supported"
   elseif self[1] == "[" and that[1] == "[" then
@@ -93,7 +97,7 @@ function metatable:__bor(that)
     end
     return module.character_class("[", set)
   else
-    return module.pattern("|", self, that)
+    return construct("|", self, that)
   end
 end
 
@@ -108,7 +112,7 @@ function metatable:__bnot(that)
         neg[byte] = true
       end
     end
-    return module.pattern("[", neg)
+    return construct("[", neg)
   end
 end
 
@@ -120,21 +124,21 @@ function metatable:__call(that)
     local n = that[2]
     if n == nil then
       if m == 0 then
-        return module.pattern("*", self)
+        return construct("*", self)
       elseif m == 1 then
-        return module.pattern("+", self)
+        return construct("+", self)
       else
         local result = self
         for i = 3, m do
           result = result + self
         end
-        return result + module.pattern("+", self)
+        return result + construct("+", self)
       end
     else
       if m == 0 then
-        local result = module.pattern("?", self)
+        local result = construct("?", self)
         for i = 2, n do
-          result = result + module.pattern("?", self)
+          result = result + construct("?", self)
         end
         return result
       else
@@ -143,7 +147,7 @@ function metatable:__call(that)
           result = result + self
         end
         for i = m + 1, n do
-          result = result + module.pattern("?", self)
+          result = result + construct("?", self)
         end
         return result
       end
@@ -151,23 +155,16 @@ function metatable:__call(that)
   end
 end
 
-function module.pattern(...)
-  timestamp = timestamp + 1
-  return setmetatable({ timestamp = timestamp, ... }, metatable)
-end
-
----------------------------------------------------------------------------
-
-function module.construct(that)
+function module.pattern(that)
   local t = type(that)
   if t == "string" then
-    local self = module.pattern("[", { [that:byte(1)] = true })
+    local self = construct("[", { [that:byte(1)] = true })
     for i = 2, #that do
-      self = self + module.pattern("[", { [that:byte(i)] = true })
+      self = self + construct("[", { [that:byte(i)] = true })
     end
     self.literal = that
     return self
-  else
+  elseif t == "table" then
     return that
   end
 end
@@ -184,7 +181,7 @@ function metatable:__index(that)
       set[byte] = true
     end
   end
-  return module.pattern("[", set)
+  return construct("[", set)
 end
 
 function metatable:__call(that)
@@ -196,7 +193,7 @@ function metatable:__call(that)
     end
     return module.pattern("[", set)
   else
-    return module.construct(that)
+    return construct(that)
   end
 end
 
