@@ -18,127 +18,9 @@
 -- https://github.com/aidansteele/osx-abi-macho-file-format-reference
 -- https://developers.wonderpla.net/entry/2021/03/19/105503
 
---[[
-
-  pattern(n)  .{n}
-  pattern(1)  .
-  literal     abc
-  range       [a-c]
-  set         [abc]
-  negative    [^abc]
-  *
-  ?
-  action
-
-
-  range op _"a"-"c"
-
-  R"09"
-
-  S"Xx"
-
-
-
-
-  / char action
-  % action
-
-  | "abc" 
-  |
-  |
-  |
-
-
-  _"abc" "def" "ghi"
-
-  _"a"|"b"|"c"
-
-  _"a".."b"
-
-
-]]
-
---[====[
-local metatable = {}
-
-function metatable:__concat(that)
-  print("__concat", self, that)
-  return setmetatable({}, metatable)
-end
-
-function metatable:__shl(that)
-  print("__shl", self, that)
-  return setmetatable({}, metatable)
-end
-
-function metatable:__shr(that)
-  print("__shr", self, that)
-  return setmetatable({}, metatable)
-end
-
-function metatable:__call(that)
-  print("__call", self, that)
-  return setmetatable({}, metatable)
-end
-
-function metatable:__index(that)
-  print("__index", self, that)
-  return setmetatable({}, metatable)
-end
-
-local _ = setmetatable({}, metatable)
-
-local x = _"abc"
-local x = _"1".."2".."3"
-local x = "4".._"5".."6"
-local x = "7".."8".._"9"
-
-local x = _.xyz
-local x = _["abc"]
-local x = _{"abc"}
-local x = _{1,4}
-local x = _<<2>>_
-
-print(~0)
-
-lexer {
-  _"foo";
-
-  LiteralString
-    = _"\"" / "clear(fb)" + (quoted_char | _"'" / "append(fb)"){"*"} + _"\""
-    ;
-
-  (_" \t" | _"\r" + _"\n"{"?"} | _"\n" + _"\r"{"?"}){"+"} %"skip_token"
-
-  IntegerConstant
-    = _["09"] + _["09"]{"*"}
-    | _"0" + _{"Xx"} + _["09AFaf"]^"?"
-}
-
-local _ = pattern
-_() -- any
-_(s) -- literal
-_[""] -- range
-_{""} -- set
-_{[[0-9Xx\-\\]]}
-]====]
-
 local dumper = require "dromozoa.commons.dumper"
 
 local module = {}
-
----------------------------------------------------------------------------
---[[
-
-  node {
-    [0] = name
-    ...
-  }
-
-  pattern
-
-
-]]
 
 ---------------------------------------------------------------------------
 
@@ -174,15 +56,7 @@ function module:union(that)
   end
 end
 
----------------------------------------------------------------------------
-
-local metatable = {
-  __add = module.concat;
-  __bor = module.union;
-  __name = "dromozoa.regexp.pattern";
-}
-
-function metatable:__call(that)
+function module:quantify(that)
   local m = that[1]
   local n = that[2]
   if n == nil then
@@ -198,20 +72,44 @@ function metatable:__call(that)
       return result + module.pattern("+", self)
     end
   else
+    if m == 0 then
+      local result = module.pattern("?", self)
+      for i = 2, n do
+        result = result + module.pattern("?", self)
+      end
+      return result
+    else
+      local result = self
+      for i = 2, m do
+        result = result + self
+      end
+      for i = m + 1, n do
+        result = result + module.pattern("?", self)
+      end
+      return result
+    end
   end
 end
-
-function module.pattern(...)
-  return setmetatable({ timestamp = module.timestamp(), ... }, metatable)
-end
-
-local pattern_metatable = metatable
 
 ---------------------------------------------------------------------------
 
 local metatable = {
   __add = module.concat;
   __bor = module.union;
+  __call = module.quantify;
+  __name = "dromozoa.regexp.pattern";
+}
+
+function module.pattern(...)
+  return setmetatable({ timestamp = module.timestamp(), ... }, metatable)
+end
+
+---------------------------------------------------------------------------
+
+local metatable = {
+  __add = module.concat;
+  __bor = module.union;
+  __call = module.quantify;
   __name = "dromozoa.regexp.character_class";
 }
 
@@ -259,7 +157,7 @@ module.constructor = setmetatable({}, metatable)
 
 local _ = module.constructor
 
-local x = ~_"a" | "b" | "cd"
+local x = _"a"{2,3}
 
 -- local x = _"abc"{0,1}
 
