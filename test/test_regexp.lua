@@ -95,7 +95,7 @@ function metatable:__bor(that)
     for byte in pairs(that[2]) do
       set[byte] = true
     end
-    return module.character_class("[", set)
+    return construct("[", set)
   else
     return construct("|", self, that)
   end
@@ -169,11 +169,7 @@ function module.pattern(that)
   end
 end
 
----------------------------------------------------------------------------
-
-local metatable = { __name = "dromozoa.regexp.pattern.constructor" }
-
-function metatable:__index(that)
+function module.range(that)
   local set = {}
   for i = 1, #that, 2 do
     local a, b = that:byte(i, i + 1)
@@ -184,16 +180,27 @@ function metatable:__index(that)
   return construct("[", set)
 end
 
+function module.set(that)
+  local set = {}
+  for i = 1, #that do
+    set[that:byte(i)] = true
+  end
+  return construct("[", set)
+end
+
+---------------------------------------------------------------------------
+
+local metatable = { __name = "dromozoa.regexp.pattern.constructor" }
+
+function metatable:__index(that)
+  return module.range(that)
+end
+
 function metatable:__call(that)
   if type(that) == "table" then
-    local that = that[1]
-    local set = {}
-    for i = 1, #that do
-      set[that:byte(i)] = true
-    end
-    return module.pattern("[", set)
+    return module.set(that[1])
   else
-    return construct(that)
+    return module.pattern(that)
   end
 end
 
@@ -212,9 +219,10 @@ module.constructor = setmetatable({}, metatable)
 local _ = module.constructor
 
 -- local x = _{"abc"} | _["09"]
--- local x = _"abc"{0,1}
+-- local x = _"abc"{0,2}
 -- local x = (_{"abc"} / "A" | "def") % "action"
 -- local x = (_"a" | "b" | "c" | "z")/"transition" %"accept"
-local x = (_["af"] + _"cz") %"action"
+-- local x = (_["af"] + _"cz") %"action"
+local x = _.ACac
 
 print(dumper.encode(x, { pretty = true, stable = true }))
