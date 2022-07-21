@@ -58,6 +58,7 @@
 
 ]]
 
+--[====[
 local metatable = {}
 
 function metatable:__concat(that)
@@ -98,7 +99,6 @@ local x = _{"abc"}
 local x = _{1,4}
 local x = _<<2>>_
 
---[====[
 print(~0)
 
 lexer {
@@ -123,3 +123,144 @@ _{""} -- set
 _{[[0-9Xx\-\\]]}
 ]====]
 
+local dumper = require "dromozoa.commons.dumper"
+
+local module = {}
+
+---------------------------------------------------------------------------
+--[[
+
+  node {
+    [0] = name
+    ...
+  }
+
+  pattern
+
+
+]]
+
+---------------------------------------------------------------------------
+
+local timestamp = 0
+
+function module.timestamp()
+  timestamp = timestamp + 1
+  return timestamp
+end
+
+---------------------------------------------------------------------------
+
+function module:concat(that)
+  local self = module.construct(self)
+  local that = module.construct(that)
+  return module.pattern(".", self, that)
+end
+
+function module:union(that)
+  local self = module.construct(self)
+  local that = module.construct(that)
+  if self[1] == "[" and that[1] == "[" then
+    local set = {}
+    for byte in pairs(self[2]) do
+      set[byte] = true
+    end
+    for byte in pairs(that[2]) do
+      set[byte] = true
+    end
+    return module.character_class("[", set)
+  else
+    return module.pattern("|", self, that)
+  end
+end
+
+---------------------------------------------------------------------------
+
+local metatable = {
+  __add = module.concat;
+  __bor = module.union;
+  __name = "dromozoa.regexp.pattern";
+}
+
+function metatable:__call(that)
+  local m = that[1]
+  local n = that[2]
+  if n == nil then
+    if m == 0 then
+      return module.pattern("*", self)
+    elseif m == 1 then
+      return module.pattern("+", self)
+    else
+      local result = self
+      for i = 3, m do
+        result = result + self
+      end
+      return result + module.pattern("+", self)
+    end
+  else
+  end
+end
+
+function module.pattern(...)
+  return setmetatable({ timestamp = module.timestamp(), ... }, metatable)
+end
+
+local pattern_metatable = metatable
+
+---------------------------------------------------------------------------
+
+local metatable = {
+  __add = module.concat;
+  __bor = module.union;
+  __name = "dromozoa.regexp.character_class";
+}
+
+function metatable:__bnot()
+  local set = self[2]
+  local neg = {}
+  for byte = 0x00, 0xFF do
+    if not set[byte] then
+      neg[byte] = true
+    end
+  end
+  return module.character_class("[", neg)
+end
+
+function module.character_class(...)
+  return setmetatable({ timestamp = module.timestamp(), ... }, metatable)
+end
+
+---------------------------------------------------------------------------
+
+function module.construct(that)
+  local t = type(that)
+  if t == "string" then
+    local self = module.character_class("[", { [that:byte(1)] = true })
+    for i = 2, #that do
+      self = self + module.character_class("[", { [that:byte(i)] = true })
+    end
+    return self
+  else
+    return that
+  end
+end
+
+---------------------------------------------------------------------------
+
+local metatable = { __name = "dromozoa.regexp.constructor" }
+
+function metatable:__call(that)
+  return module.construct(that)
+end
+
+module.constructor = setmetatable({}, metatable)
+
+---------------------------------------------------------------------------
+
+local _ = module.constructor
+
+local x = ~_"a" | "b" | "cd"
+
+-- local x = _"abc"{0,1}
+
+print(dumper.encode(x, { pretty = true, stable = true }))
