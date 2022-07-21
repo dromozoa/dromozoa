@@ -41,6 +41,23 @@ function metatable:__add(that)
   return module.pattern(".", self, that)
 end
 
+function metatable:__sub(that)
+  local self = module.construct(self)
+  local that = module.construct(that)
+  if self[1] == "[" and that[1] == "[" then
+    local set = {}
+    for byte in pairs(self[2]) do
+      set[byte] = true
+    end
+    for byte in pairs(that[2]) do
+      set[byte] = nil
+    end
+    return module.character_class("[", set)
+  else
+    return module.pattern("-", self, that)
+  end
+end
+
 function metatable:__mod(that)
   local result = module.accept_action("%", self, that)
   result.literal = self.literal
@@ -107,6 +124,7 @@ end
 
 local metatable = {
   __add = metatable.__add;
+  __sub = metatable.__sub;
   __mod = metatable.__mod;
   __bor = metatable.__bor;
   __call = metatable.__call;
@@ -190,6 +208,7 @@ module.constructor = setmetatable({}, metatable)
   _"literal"    literal
   _{"abcdef"}   set
   _["09AZaz"]   range
+  _["\x00\xFF"] any
 ]]
 ---------------------------------------------------------------------------
 
@@ -198,6 +217,7 @@ local _ = module.constructor
 -- local x = _{"abc"} | _["09"]
 -- local x = _"abc"{0,1}
 -- local x = (_{"abc"} / "A" | "def") % "action"
-local x = (_"a" | "b" | "c" | "z")/"transition" %"accept"
+-- local x = (_"a" | "b" | "c" | "z")/"transition" %"accept"
+local x = _["af"] - _"cz"
 
 print(dumper.encode(x, { pretty = true, stable = true }))
