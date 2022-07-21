@@ -57,6 +57,16 @@ function metatable:__sub(that)
   end
 end
 
+function metatable:__div(that)
+  local self = module.construct(self)
+  if self[1] ~= "[" then
+    error "not supported"
+  else
+    return module.pattern("/", self, that)
+  end
+end
+
+
 function metatable:__mod(that)
   local self = module.construct(self)
   if self[1] == "%" then
@@ -115,7 +125,7 @@ function metatable:__call(that)
         return module.pattern("+", self)
       else
         local result = self
-        for _ = 3, m do
+        for i = 3, m do
           result = result + self
         end
         return result + module.pattern("+", self)
@@ -123,16 +133,16 @@ function metatable:__call(that)
     else
       if m == 0 then
         local result = module.pattern("?", self)
-        for _ = 2, n do
+        for i = 2, n do
           result = result + module.pattern("?", self)
         end
         return result
       else
         local result = self
-        for _ = 2, m do
+        for i = 2, m do
           result = result + self
         end
-        for _ = m + 1, n do
+        for i = m + 1, n do
           result = result + module.pattern("?", self)
         end
         return result
