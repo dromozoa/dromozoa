@@ -152,26 +152,6 @@ function metatable:__call(that)
         end
         return result
       end
-
---[[
-      if m == 0 then
-        local result = construct("?", self)
-        for i = 2, n do
-          result = result + construct("?", self)
-        end
-        return result
-      else
-        local result = self
-        for i = 2, m do
-          result = result + self
-        end
-        for i = m + 1, n do
-          result = result + construct("?", self)
-        end
-        return result
-      end
-]]
-
     end
   end
 end
