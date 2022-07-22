@@ -102,9 +102,7 @@ function metatable:__bor(that)
 end
 
 function metatable:__bnot(that)
-  if self[0] == "%" then
-    error "not supported"
-  else
+  if self[0] == "[" then
     local neg = self[1]
     local set = {}
     for byte = 0x00, 0xFF do
@@ -113,6 +111,8 @@ function metatable:__bnot(that)
       end
     end
     return construct("[", set)
+  else
+    error "not supported"
   end
 end
 
@@ -135,7 +135,6 @@ function metatable:__call(that)
         return result + construct("+", self)
       end
     else
-      -- assert(0 <= m and m <= n and n ~= 0)
       if m == 0 then
         local result = construct("?", self)
         for i = 2, n do
@@ -207,33 +206,6 @@ end
 
 module.constructor = setmetatable({}, metatable)
 
----------------------------------------------------------------------------
-
--- local function tree_to_nfa(node)
---   local name = node[0]
--- end
-
----------------------------------------------------------------------------
-
-function module.lexer(that)
-  local data = {}
-  for k, v in pairs(that) do
-    if type(k) ~= "string" then
-      k = v.name
-    end
-    data[#data + 1] = { k = k, v = v }
-  end
-  table.sort(data, function (a, b) return a.v.timestamp < b.v.timestamp end)
-end
-
----------------------------------------------------------------------------
---[[
-  _"c"          character class
-  _"literal"    literal
-  _{"abcdef"}   set
-  _["09AZaz"]   range
-  _["\x00\xFF"] any
-]]
 ---------------------------------------------------------------------------
 
 local _ = module.constructor
