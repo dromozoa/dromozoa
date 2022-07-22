@@ -28,15 +28,15 @@ local metatable = { __name = "dromozoa.regexp.pattern" }
 
 local timestamp = 0
 
-local function construct(...)
+local function construct(code, ...)
   timestamp = timestamp + 1
-  return setmetatable({ timestamp = timestamp, ... }, metatable)
+  return setmetatable({ timestamp = timestamp, [0] = code, ... }, metatable)
 end
 
 function metatable:__add(that)
   local self = module.pattern(self)
   local that = module.pattern(that)
-  if self[1] == "%" or that[1] == "%" then
+  if self[0] == "%" or that[0] == "%" then
     error "not supported"
   else
     return construct(".", self, that)
@@ -46,15 +46,15 @@ end
 function metatable:__sub(that)
   local self = module.pattern(self)
   local that = module.pattern(that)
-  if self[1] == "%" or that[1] == "%" then
+  if self[0] == "%" or that[0] == "%" then
     error "not supported"
-  elseif self[1] == "[" and that[1] == "[" then
+  elseif self[0] == "[" and that[0] == "[" then
+    local sub = that[1]
     local set = {}
-    for byte in pairs(self[2]) do
-      set[byte] = true
-    end
-    for byte in pairs(that[2]) do
-      set[byte] = nil
+    for byte in pairs(self[1]) do
+      if not sub[byte] then
+        set[byte] = true
+      end
     end
     return construct("[", set)
   else
@@ -64,20 +64,20 @@ end
 
 function metatable:__div(that)
   local self = module.pattern(self)
-  if self[1] ~= "[" then
-    error "not supported"
-  else
+  if self[0] == "[" then
     return construct("/", self, that)
+  else
+    error "not supported"
   end
 end
 
 function metatable:__mod(that)
   local self = module.pattern(self)
-  if self[1] == "%" then
+  if self[0] == "%" then
     error "not supported"
   else
     local result = construct("%", self, that)
-    result.literal = self.literal
+    result.name = self.name
     return result
   end
 end
@@ -85,14 +85,14 @@ end
 function metatable:__bor(that)
   local self = module.pattern(self)
   local that = module.pattern(that)
-  if self[1] == "%" or that[1] == "%" then
+  if self[0] == "%" or that[0] == "%" then
     error "not supported"
-  elseif self[1] == "[" and that[1] == "[" then
+  elseif self[0] == "[" and that[0] == "[" then
     local set = {}
-    for byte in pairs(self[2]) do
+    for byte in pairs(self[1]) do
       set[byte] = true
     end
-    for byte in pairs(that[2]) do
+    for byte in pairs(that[1]) do
       set[byte] = true
     end
     return construct("[", set)
@@ -102,22 +102,22 @@ function metatable:__bor(that)
 end
 
 function metatable:__bnot(that)
-  if self[1] == "%" then
+  if self[0] == "%" then
     error "not supported"
   else
-    local set = self[2]
-    local neg = {}
+    local neg = self[1]
+    local set = {}
     for byte = 0x00, 0xFF do
-      if not set[byte] then
-        neg[byte] = true
+      if not neg[byte] then
+        set[byte] = true
       end
     end
-    return construct("[", neg)
+    return construct("[", set)
   end
 end
 
 function metatable:__call(that)
-  if self[1] == "%" then
+  if self[0] == "%" then
     error "not supported"
   else
     local m = that[1]
@@ -163,7 +163,7 @@ function module.pattern(that)
     for i = 2, #that do
       self = self + construct("[", { [that:byte(i)] = true })
     end
-    self.literal = that
+    self.name = that
     return self
   else
     return that
@@ -208,6 +208,25 @@ end
 module.constructor = setmetatable({}, metatable)
 
 ---------------------------------------------------------------------------
+
+-- local function tree_to_nfa(node)
+--   local name = node[0]
+-- end
+
+---------------------------------------------------------------------------
+
+function module.lexer(that)
+  local data = {}
+  for k, v in pairs(that) do
+    if type(k) ~= "string" then
+      k = v.name
+    end
+    data[#data + 1] = { k = k, v = v }
+  end
+  table.sort(data, function (a, b) return a.v.timestamp < b.v.timestamp end)
+end
+
+---------------------------------------------------------------------------
 --[[
   _"c"          character class
   _"literal"    literal
@@ -225,6 +244,8 @@ local _ = module.constructor
 -- local x = (_"a" | "b" | "c" | "z")/"transition" %"accept"
 -- local x = (_["af"] + _"cz") %"action"
 -- local x = _.ACac
-local x = _"a"{0,0}
+-- local x = _"a"{0,0}
+local x = _["ac"] | _["bd"]
+local x = ~_["\0ad\255"]
 
 print(dumper.encode(x, { pretty = true, stable = true }))
