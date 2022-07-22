@@ -135,6 +135,7 @@ function metatable:__call(that)
         return result + construct("+", self)
       end
     else
+      -- assert(0 <= m and m <= n and n ~= 0)
       if m == 0 then
         local result = construct("?", self)
         for i = 2, n do
@@ -151,6 +152,26 @@ function metatable:__call(that)
         end
         return result
       end
+
+--[[
+      if m == 0 then
+        local result = construct("?", self)
+        for i = 2, n do
+          result = result + construct("?", self)
+        end
+        return result
+      else
+        local result = self
+        for i = 2, m do
+          result = result + self
+        end
+        for i = m + 1, n do
+          result = result + construct("?", self)
+        end
+        return result
+      end
+]]
+
     end
   end
 end
@@ -164,12 +185,12 @@ function module.pattern(that)
     end
     self.literal = that
     return self
-  elseif t == "table" then
+  else
     return that
   end
 end
 
-function module.range(that)
+function module.pattern_range(that)
   local set = {}
   for i = 1, #that, 2 do
     local a, b = that:byte(i, i + 1)
@@ -180,7 +201,7 @@ function module.range(that)
   return construct("[", set)
 end
 
-function module.set(that)
+function module.pattern_set(that)
   local set = {}
   for i = 1, #that do
     set[that:byte(i)] = true
@@ -193,12 +214,12 @@ end
 local metatable = { __name = "dromozoa.regexp.pattern.constructor" }
 
 function metatable:__index(that)
-  return module.range(that)
+  return module.pattern_range(that)
 end
 
 function metatable:__call(that)
   if type(that) == "table" then
-    return module.set(that[1])
+    return module.pattern_set(that[1])
   else
     return module.pattern(that)
   end
@@ -223,6 +244,7 @@ local _ = module.constructor
 -- local x = (_{"abc"} / "A" | "def") % "action"
 -- local x = (_"a" | "b" | "c" | "z")/"transition" %"accept"
 -- local x = (_["af"] + _"cz") %"action"
-local x = _.ACac
+-- local x = _.ACac
+local x = _"a"{0,0}
 
 print(dumper.encode(x, { pretty = true, stable = true }))
