@@ -715,6 +715,176 @@ end
 
 ---------------------------------------------------------------------------
 
+local function visit1(u, not_dead_states, color)
+  color[u] = 1
+
+  if u.accept_action then
+    not_dead_states[u] = true
+  end
+
+  local transitions = u.transitions
+  for i = 1, #transitions do
+    local transition = transitions[i]
+    local v = transition.v
+    if not color[v] then
+      index = visit1(v, not_dead_states, color)
+    end
+    if not_dead_states[v] then
+      not_dead_states[u] = true
+    end
+  end
+
+  color[u] = 2
+end
+
+local function visit2(u, not_dead_states, color)
+  color[u] = 1
+
+  local transitions = u.transitions
+  local new_transitions = {}
+  for i = 1, #transitions do
+    local transition = transitions[i]
+    local v = transition.v
+    if not color[v] then
+      index = visit2(v, not_dead_states, color)
+    end
+    if not_dead_states[v] then
+      new_transitions[#new_transitions + 1] = transition
+    end
+  end
+  u.transitions = new_transitions
+
+  color[u] = 2
+end
+
+function module.remove_dead_states(u)
+  local not_dead_states = {}
+  visit1(u, not_dead_states, {})
+  visit2(u, not_dead_states, {})
+  return u
+end
+
+---------------------------------------------------------------------------
+
+local function visit(u, states, indices, index, color)
+  color[u] = 1
+  index = index + 1
+  indices[u] = index
+  states[index] = u
+
+  local transitions = u.transitions
+  for i = 1, #transitions do
+    local transition = transitions[i]
+    local v = transition.v
+    if not color[v] then
+      index = visit(v, states, indices, index, color)
+    end
+  end
+
+  color[u] = 2
+  return index
+end
+
+local function create_states_and_indices(u)
+  local states = {}
+  local indices = {}
+  visit(u, states, indices, 0, {})
+  return states, indices
+end
+
+local function execute_transition(u, byte)
+  if u then
+    local transition = u:execute_transition(byte)
+    if transition then
+      return transition, transition.v, transition.action
+    end
+  end
+end
+
+local function new_state(ux, uy)
+  local state = module.state()
+  if ux then
+    local accept_action = ux.accept_action
+    if accept_action and (not uy or not uy.accept_action) then
+      state.accept_action = accept_action
+      state.timestamp = ux.timestamp
+    end
+  end
+  return state
+end
+
+function module.difference(ux, uy)
+  local x_states, x_indices = create_states_and_indices(ux)
+  local y_states, y_indices = create_states_and_indices(uy)
+
+  local nx = #x_states
+  local ny = #y_states
+  local n = nx + 1
+
+  local new_states = {}
+
+  for i = 0, nx do
+    local ux = x_states[i]
+    for j = 0, ny do
+      local uy = y_states[j]
+      local ukey = i + j * n
+      if ukey ~= 0 then
+        local actions = {}
+        local new_transition_map = {}
+
+        for byte = 0x00, 0xFF do
+          local tx, vx, action = execute_transition(ux, byte)
+          local ty, vy = execute_transition(uy, byte)
+
+          local vkey = 0
+          local timestamp
+          if ty then
+            vkey = y_indices[vy] * n
+            timestamp = ty.timestamp
+          end
+          if tx then
+            vkey = x_indices[vx] + vkey
+            timestamp = tx.timestamp
+          end
+
+          if vkey ~= 0 then
+            local unew = new_states[ukey]
+            if not unew then
+              unew = new_state(ux, uy)
+              new_states[ukey] = unew
+            end
+            local vnew = new_states[vkey]
+            if not vnew then
+              vnew = new_state(vx, vy)
+              new_states[vkey] = vnew
+            end
+
+            local new_transition_key = module.new_transition_key(vkey, actions, action)
+            local new_transition = new_transition_map[new_transition_key]
+            if not new_transition then
+              new_transition = module.transition(unew, vnew, { [byte] = true })
+              new_transition.action = action
+              new_transition.timestamp = timestamp
+              new_transition_map[new_transition_key] = new_transition
+            else
+              new_transition.set[byte] = true
+              if new_transition.timestamp > timestamp then
+                new_transition.timestamp = timestamp
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  local unew = new_states[x_indices[ux] + y_indices[uy] * n]
+  unew.timestamp = ux.timestamp
+  return module.remove_dead_states(unew)
+end
+
+---------------------------------------------------------------------------
+
 local _ = module.constructor
 
 -- local x = _{"abc"} | _["09"]
@@ -726,32 +896,39 @@ local _ = module.constructor
 -- local x = _"a"{0,0}
 -- local x = _["ac"] | _["bd"]
 -- local x = ~_["\0ad\255"]
-local x
+
+local x = _["az"]{1}
+
+local y
   = _"if"
   | _"then"
-  | _"el" + _"s"/"1" + "e"
-  | _"el" + _"s"/"2" + "eif"
+  | _"else"
+  | _"elseif"
   | _"end"
 
+local d1 = module.minimize(module.nfa_to_dfa(module.tree_to_nfa(x, true)))
+local d2 = module.minimize(module.nfa_to_dfa(module.tree_to_nfa(y, true)))
+local d = module.difference(d1, d2)
+
 -- print(dumper.encode(x, { pretty = true, stable = true }))
-local n = module.tree_to_nfa(x, true)
-local d = module.nfa_to_dfa(n)
-local e = module.minimize(d)
+-- local n = module.tree_to_nfa(x, true)
+-- local d = module.nfa_to_dfa(n)
+-- local e = module.minimize(d)
 
-local out = assert(io.open("test-tree.dot", "w"))
-write_graphviz_tree(out, x)
-out:close()
+-- local out = assert(io.open("test-tree.dot", "w"))
+-- write_graphviz_tree(out, x)
+-- out:close()
 
-local out = assert(io.open("test-nfa.dot", "w"))
-write_graphviz(out, n)
-out:close()
+-- local out = assert(io.open("test-nfa.dot", "w"))
+-- write_graphviz(out, n)
+-- out:close()
 
-local out = assert(io.open("test-dfa1.dot", "w"))
+-- local out = assert(io.open("test-dfa1.dot", "w"))
+-- write_graphviz(out, d)
+-- out:close()
+
+local out = assert(io.open("test-dfa.dot", "w"))
 write_graphviz(out, d)
-out:close()
-
-local out = assert(io.open("test-dfa2.dot", "w"))
-write_graphviz(out, e)
 out:close()
 
 
