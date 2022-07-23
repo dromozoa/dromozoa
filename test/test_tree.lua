@@ -87,35 +87,63 @@ local function tree()
   return setmetatable({ bottom = bottom, deleted = bottom }, metatable)
 end
 
-local root = tree()
-local u1 = insert(root, 1, root.bottom)
-local u2 = insert(root, 2, u1)
-local u3 = insert(root, 3, u2)
-local u4 = insert(root, 4, u3)
-
-local function dump(root, t, n)
+local function dump(root, t, n, k)
+  if k == nil then
+    k = " "
+  end
   if n == nil then
     n = 0
   else
     n = n + 1
   end
 
-  io.write(("  "):rep(n), tostring(t), " ", t.level, " / ", tostring(t.key), "\n")
+  io.write(("  "):rep(n), k, " ", tostring(t), " ", t.level, " / ", tostring(t.key), "\n")
   if t.left ~= root.bottom then
-    dump(root, t.left, n)
+    dump(root, t.left, n, "L")
   end
   if t.right ~= root.bottom then
-    dump(root, t.right, n)
+    dump(root, t.right, n, "R")
   end
 end
 
-dump(root, root.bottom)
+local root = tree()
+local u1 = insert(root, 1, root.bottom)
 io.write "----\n"
 dump(root, u1)
+local u2 = insert(root, 2, u1)
 io.write "----\n"
 dump(root, u2)
+local u3 = insert(root, 3, u2)
 io.write "----\n"
 dump(root, u3)
+local u4 = insert(root, 4, u3)
 io.write "----\n"
 dump(root, u4)
+
+io.write "====\n"
+
+local root = tree()
+local u1 = insert(root, 4, root.bottom)
+io.write "----\n"
+dump(root, u1)
+local u2 = insert(root, 3, u1)
+io.write "----\n"
+dump(root, u2)
+local u3 = insert(root, 2, u2)
+io.write "----\n"
+dump(root, u3)
+local u4 = insert(root, 1, u3)
+io.write "----\n"
+dump(root, u4)
+
+
+-- dump(root, root.bottom)
+-- io.write "----\n"
+-- dump(root, u1)
+-- io.write "----\n"
+-- dump(root, u2)
+-- io.write "----\n"
+-- dump(root, u3)
+-- io.write "----\n"
+-- dump(root, u4)
 
