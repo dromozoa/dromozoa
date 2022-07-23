@@ -305,7 +305,34 @@ local function node_to_nfa(node)
       module.transition(av, v)
       return u, v
     elseif code == "-" then
-      error "not implemented"
+      local bu, bv = node_to_nfa(node[2])
+      local u = module.state()
+      local v = module.state()
+
+      -- 差集合を求めるためにaccept_actionとtimestampを割り当てる
+      local timestamp = node.timestamp
+      au.timestamp = timestamp
+      av.accept_action = true
+      av.timestamp = timestamp
+      bu.timestamp = timestamp
+      bv.accept_action = true
+      bv.timestamp = timestamp
+
+      local cu, accept_states = module.minimize(
+        module.difference(
+          module.minimize(module.nfa_to_dfa(au)),
+          module.minimize(module.nfa_to_dfa(bu))))
+
+      -- 求めた差集合からaccept_actionとtimestampを除去する
+      cu.timestamp = nil
+      module.transition(u, cu)
+      for _, cv in ipairs(accept_states) do
+        cv.accept_action = nil
+        cv.timestamp = nil
+        module.transition(cv, v)
+      end
+
+      return u, v
     elseif code == "/" then
       au.transitions[1].action = node[2]
       return au, av
@@ -906,9 +933,11 @@ local y
   | _"elseif"
   | _"end"
 
-local d1 = module.minimize(module.nfa_to_dfa(module.tree_to_nfa(x, true)))
-local d2 = module.minimize(module.nfa_to_dfa(module.tree_to_nfa(y, true)))
-local d = module.difference(d1, d2)
+-- local d1 = module.minimize(module.nfa_to_dfa(module.tree_to_nfa(x, true)))
+-- local d2 = module.minimize(module.nfa_to_dfa(module.tree_to_nfa(y, true)))
+-- local d = module.difference(d1, d2)
+
+local d = module.nfa_to_dfa(module.tree_to_nfa(x - y, true))
 
 -- print(dumper.encode(x, { pretty = true, stable = true }))
 -- local n = module.tree_to_nfa(x, true)
@@ -927,9 +956,6 @@ local d = module.difference(d1, d2)
 -- write_graphviz(out, d)
 -- out:close()
 
-local out = assert(io.open("test-dfa.dot", "w"))
+local out = assert(io.open("test.dot", "w"))
 write_graphviz(out, d)
 out:close()
-
-
-
