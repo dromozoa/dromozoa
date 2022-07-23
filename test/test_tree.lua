@@ -136,14 +136,3 @@ local u4 = insert(root, 1, u3)
 io.write "----\n"
 dump(root, u4)
 
-
--- dump(root, root.bottom)
--- io.write "----\n"
--- dump(root, u1)
--- io.write "----\n"
--- dump(root, u2)
--- io.write "----\n"
--- dump(root, u3)
--- io.write "----\n"
--- dump(root, u4)
-
