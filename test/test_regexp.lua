@@ -914,47 +914,8 @@ end
 
 local _ = module.constructor
 
--- local x = _{"abc"} | _["09"]
--- local x = _"abc"{0,2}
--- local x = (_{"abc"} / "A" | "def") % "action"
--- local x = (_"a" | "b" | "c" | "z")/"transition" %"accept"
--- local x = (_["af"] + _"cz") %"action"
--- local x = _.ACac
--- local x = _"a"{0,0}
--- local x = _["ac"] | _["bd"]
--- local x = ~_["\0ad\255"]
-
-local x = _["az"]{1}
-
-local y
-  = _"if"
-  | _"then"
-  | _"else"
-  | _"elseif"
-  | _"end"
-
--- local d1 = module.minimize(module.nfa_to_dfa(module.tree_to_nfa(x, true)))
--- local d2 = module.minimize(module.nfa_to_dfa(module.tree_to_nfa(y, true)))
--- local d = module.difference(d1, d2)
-
-local d = module.nfa_to_dfa(module.tree_to_nfa(x - y, true))
-
--- print(dumper.encode(x, { pretty = true, stable = true }))
--- local n = module.tree_to_nfa(x, true)
--- local d = module.nfa_to_dfa(n)
--- local e = module.minimize(d)
-
--- local out = assert(io.open("test-tree.dot", "w"))
--- write_graphviz_tree(out, x)
--- out:close()
-
--- local out = assert(io.open("test-nfa.dot", "w"))
--- write_graphviz(out, n)
--- out:close()
-
--- local out = assert(io.open("test-dfa1.dot", "w"))
--- write_graphviz(out, d)
--- out:close()
+local x = _"a"{0} + _"b"{1} + _"c"{0,1} - "abc" | _{"xyz"}{3,3}
+local d = module.nfa_to_dfa(module.tree_to_nfa(x, true))
 
 local out = assert(io.open("test.dot", "w"))
 write_graphviz(out, d)
