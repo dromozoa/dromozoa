@@ -329,9 +329,11 @@ local function node_to_nfa(node)
 
       return u, v
     elseif code == "/" then
+      assert(#au.transitions == 1)
       au.transitions[1].action = node[2]
       return au, av
     elseif code == "%" then
+      assert(#av.transitions == 0)
       av.accept_action = node[2]
       av.timestamp = node.timestamp
       return au, av
@@ -344,7 +346,7 @@ function module.tree_to_nfa(root, accept_action)
   local timestamp = root.timestamp
   u.timestamp = timestamp
   if not v.accept_action then
-    v.accept_action = accept_action
+    v.accept_action = accept_action or true
     v.timestamp = timestamp
   end
   return u, v
@@ -909,7 +911,7 @@ end
 
 local _ = module.constructor
 
-local x = _"a"{0} + _"b"{1} + _"c"{0,1} - "abc" | _{"xyz"}{3,3}
+local x = (_"a"{0} + _"b"{1} + (_"c"/"T"){0,1} - "abc" | _{"xyz"}{3,3}) %"A"
 local d = module.nfa_to_dfa(module.tree_to_nfa(x, true))
 
 local out = assert(io.open("test.dot", "w"))
