@@ -234,6 +234,13 @@ end
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.regexp.state" }
 
+--TODO new_transitionのほうがよいか？
+function class:transition(v, set, action)
+  local transition = { v = v, set = set, action = action }
+  self.transitions:append(transition)
+  return transition
+end
+
 function class:execute_transition(byte)
   for _, transition in ipairs(self.transitions) do
     local set = transition.set
@@ -243,18 +250,13 @@ function class:execute_transition(byte)
   end
 end
 
-function class:transition(v, set, action)
-  local transition = { v = v, set = set, action = action }
-  self.transitions:append(transition)
-  return transition
-end
-
 function module.state()
   return setmetatable({ transitions = module.list() }, metatable)
 end
 
 ---------------------------------------------------------------------------
 
+-- TODO timestampは一括でつけてよいかもしれない
 local function node_to_nfa(node)
   local code = node[0]
   if code == "[" then
@@ -341,6 +343,7 @@ local function node_to_nfa(node)
   end
 end
 
+-- TODO accept_actionのnilの扱いを検討する
 function module.tree_to_nfa(root, accept_action)
   local u, v = node_to_nfa(root)
   local timestamp = root.timestamp
@@ -353,7 +356,18 @@ function module.tree_to_nfa(root, accept_action)
 end
 
 ---------------------------------------------------------------------------
+--[[
 
+  挿入順序でつくるmapは簡単
+  キーが一定の順序になるのは、RB木やソートが必要？
+  pairsかkeyを呼び出した時点でソートするとか？
+
+  欲しいのは状態の集合
+  { index, state }をputする
+]]--
+---------------------------------------------------------------------------
+
+-- 深さ優先探索で状態に番号をつける
 local function create_state_indices(u, indices, index, color)
   color[u] = 1
   index = index + 1
@@ -375,6 +389,8 @@ function module.create_state_indices(u)
   return indices
 end
 
+-- epsilon遷移をたどって閉包を作成する
+-- map<index, state>
 local function epsilon_closure(u, map, indices)
   for _, transition in ipairs(u.transitions) do
     if not transition.set then
@@ -509,16 +525,17 @@ function module.nfa_to_dfa(u)
   return unew
 end
 
--- TODO use __weak
-local private = function () end
+---------------------------------------------------------------------------
+
+local private = setmetatable({}, { __mode = "k" })
 
 function module.new_transition_key(key, actions, action)
   if action then
     local index = actions[action]
     if not index then
-      index = (actions[private] or 0) + 1
+      index = (private[actions] or 0) + 1
       actions[action] = index
-      actions[private] = index
+      private[actions] = index
     end
     return key .. ";" .. index
   else
