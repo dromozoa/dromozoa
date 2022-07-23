@@ -19,6 +19,8 @@
 -- https://developers.wonderpla.net/entry/2021/03/19/105503
 
 local dumper = require "dromozoa.commons.dumper"
+local write_graphviz = require "dromozoa.regexp.write_graphviz"
+local write_graphviz_tree = require "dromozoa.regexp.write_graphviz_tree"
 
 local module = {}
 
@@ -479,6 +481,8 @@ function module.nfa_to_dfa(u)
   local useq = module.epsilon_closure(u, epsilon_closures, indices)
   local unew = new_state(useq)
   nfa_to_dfa(useq, { [useq.key] = useq }, epsilon_closures, indices, {})
+  unew.timestamp = u.timestamp
+  return unew
 end
 
 -- TODO use __weak
@@ -500,17 +504,45 @@ end
 
 ---------------------------------------------------------------------------
 
+
+
+
+
+---------------------------------------------------------------------------
+
 local _ = module.constructor
 
 -- local x = _{"abc"} | _["09"]
 -- local x = _"abc"{0,2}
 -- local x = (_{"abc"} / "A" | "def") % "action"
 -- local x = (_"a" | "b" | "c" | "z")/"transition" %"accept"
-local x = (_["af"] + _"cz") %"action"
+-- local x = (_["af"] + _"cz") %"action"
 -- local x = _.ACac
 -- local x = _"a"{0,0}
 -- local x = _["ac"] | _["bd"]
 -- local x = ~_["\0ad\255"]
+local x
+  = _"if"
+  | _"then"
+  | _"el" + _"s"/"1" + "e"
+  | _"el" + _"s"/"2" + "eif"
+  | _"end"
 
-print(dumper.encode(x, { pretty = true, stable = true }))
-module.nfa_to_dfa(module.tree_to_nfa(x, true))
+-- print(dumper.encode(x, { pretty = true, stable = true }))
+local n = module.tree_to_nfa(x, true)
+local d = module.nfa_to_dfa(n)
+
+local out = assert(io.open("test-tree.dot", "w"))
+write_graphviz_tree(out, x)
+out:close()
+
+local out = assert(io.open("test-nfa.dot", "w"))
+write_graphviz(out, n)
+out:close()
+
+local out = assert(io.open("test-dfa.dot", "w"))
+write_graphviz(out, d)
+out:close()
+
+
+

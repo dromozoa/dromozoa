@@ -25,17 +25,17 @@ local function visit(out, v, indices, index, uid)
     out:write(("  %d -> %d;\n"):format(uid, index))
   end
 
-  local code = v[1]
+  local code = v[0]
   if code == "[" then
-    out:write(("  %d [label=\"%s\",shape=box];\n"):format(index, set_to_str(v[2])))
+    out:write(("  %d [label=\"%s\",shape=box];\n"):format(index, set_to_str(v[1])))
   else
     local vid = index
-    if code == "/" then
-      index = visit(out, v[2], indices, index, vid)
-      out:write(("  %d [label=\"%s %s\"];\n"):format(vid, code, v[3]))
+    if code == "%" or code == "/" then
+      index = visit(out, v[1], indices, index, vid)
+      out:write(("  %d [label=\"%s %s\"];\n"):format(vid, code, v[2]))
     else
-      for i = 2, #v do
-        index = visit(out, v[i], indices, index, vid)
+      for i = 1, #v do
+        index = visit(out, assert(v[i]), indices, index, vid)
       end
       out:write(("  %d [label=\"%s\"];\n"):format(vid, code))
     end
