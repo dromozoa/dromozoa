@@ -23,60 +23,89 @@ local dumper = require "dromozoa.commons.dumper"
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.tree" }
 
---[[
-  struct node {
-    node* left;
-    node* right;
-    int   level;
-    void* key;
-  };
-
-  root : empty
-
-]]
-
 local function skew(t)
+  local temp
   if t.left.level == t.level then
-    local temp = t
-    t = t.left
-    temp.left = t.right
-    t.right = temp
+    -- rotate right
+    temp = t
+    t = t.left          -- t            = t.left
+    temp.left = t.right -- t.left       = t.left.right
+    t.right = temp      -- t.left.right = t
   end
   return t
 end
 
 local function split(t)
+  local temp
   if t.right.right.level == t.level then
-    local temp = t
-    t = t.right
-    temp.right = t.left
-    t.left = temp
-    t.level = t.level + 1
+    -- rotate left
+    temp = t
+    t = t.right           -- t            = t.right
+    temp.right = t.left   -- t.right      = t.right.left
+    t.left = temp         -- t.right.left = t
+    t.level = t.level + 1 -- t.right.level += 1
   end
   return t
 end
 
-local function insert(root, x, t)
-  if root.bottom == t then
+local function insert(self, x, t)
+  if t == self.bottom then
     t = {}
     t.key = x
-    t.left = root.bottom
-    t.right = root.bottom
+    t.left = self.bottom
+    t.right = self.bottom
     t.level = 1
-    return t
+    -- ok = true
   else
-    local u
     if x < t.key then
-      t.left = insert(root, x, t.left)
+      t.left = insert(self, x, t.left)
     elseif x > t.key then
-      t.right = insert(root, x, t.right)
+      t.right = insert(self, x, t.right)
     else
-      error "already exists"
+      -- ok = false
+      error "x == t.key"
     end
     t = skew(t)
     t = split(t)
-    return t
   end
+  return t
+end
+
+local function delete(self, x, t)
+  -- ok = false
+  if t ~= self.bottom then
+    -- 1. Search down the tree and set pointers last and deleted.
+    self.last = t
+    if x < t.key then
+      t.left = delete(self, x, t.left)
+    else
+      self.deleted = t
+      t.right = delete(self, x, t.right)
+    end
+
+    -- 2. At the bottom of the tree we remove the element (if it is present).
+    if t == self.last and self.deleted ~= self.bottom and x == self.deleted.key then
+      self.deleted.key = t.key
+      self.deleted = self.bottom
+      t = t.right
+      -- dispose(last)
+      self.last = nil
+      -- ok = true
+
+    -- 3. On the way back, we rebalance.
+    elseif t.left.level < t.level - 1 or t.right.level < t.level - 1 then
+      t.level = t.level - 1
+      if t.right.level > t.level then
+        t.right.level = t.level
+      end
+      t = skew(t)
+      t.right = skew(t.right)
+      t.right.right = skew(t.right.right)
+      t = split(t)
+      t.right = split(t.right)
+    end
+  end
+  return t
 end
 
 local function tree()
@@ -96,7 +125,6 @@ local function dump(root, t, n, k)
   else
     n = n + 1
   end
-
   io.write(("  "):rep(n), k, " ", tostring(t), " ", t.level, " / ", tostring(t.key), "\n")
   if t.left ~= root.bottom then
     dump(root, t.left, n, "L")
@@ -107,32 +135,28 @@ local function dump(root, t, n, k)
 end
 
 local root = tree()
-local u1 = insert(root, 1, root.bottom)
+local u = root.bottom
+for i = 1, 16 do
+  u = insert(root, i, u)
+end
+dump(root, u)
+
 io.write "----\n"
-dump(root, u1)
-local u2 = insert(root, 2, u1)
-io.write "----\n"
-dump(root, u2)
-local u3 = insert(root, 3, u2)
-io.write "----\n"
-dump(root, u3)
-local u4 = insert(root, 4, u3)
-io.write "----\n"
-dump(root, u4)
+
+u = delete(root, 3, u)
+dump(root, u)
 
 io.write "====\n"
 
 local root = tree()
-local u1 = insert(root, 4, root.bottom)
+local u = root.bottom
+for i = 16, 1, -1 do
+  u = insert(root, i, u)
+end
+dump(root, u)
+
 io.write "----\n"
-dump(root, u1)
-local u2 = insert(root, 3, u1)
-io.write "----\n"
-dump(root, u2)
-local u3 = insert(root, 2, u2)
-io.write "----\n"
-dump(root, u3)
-local u4 = insert(root, 1, u3)
-io.write "----\n"
-dump(root, u4)
+
+u = delete(root, 3, u)
+dump(root, u)
 
