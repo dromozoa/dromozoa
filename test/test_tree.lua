@@ -24,7 +24,7 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.tree" }
 
 local function skew(t)
-  assert(t ~= nil)
+  assert(t ~= nil and t.level ~= 0)
   if t.left == nil then
     -- skip
   elseif t.left.level == t.level then
@@ -41,7 +41,7 @@ local function skew(t)
 end
 
 local function split(t)
-  assert(t ~= nil)
+  assert(t ~= nil and t.level ~= 0)
   if t.right == nil or t.right.right == nil then
     -- skip
   elseif t.right.right.level == t.level then
@@ -112,11 +112,10 @@ local function delete(self, x, t)
         -- t = split(t)
         -- t.right = split(t.right)
 
-        if t.right ~= nil then
-          if t.right.level > t.level then
-            t.right.level = t.level
-          end
+        if (t.right ~= nil and t.right.level or 0) > t.level then
+          t.right.level = t.level
         end
+        t = skew(t)
         if t.right ~= nil then
           t.right = skew(t.right)
         end
