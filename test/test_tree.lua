@@ -24,13 +24,16 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.tree" }
 
 local function skew(t)
-  local temp
+  -- local temp
   if t.left.level == t.level then
     -- rotate right
+    --[[
     temp = t
-    t = t.left          -- t            = t.left
-    temp.left = t.right -- t.left       = t.left.right
-    t.right = temp      -- t.left.right = t
+    t = t.left
+    temp.left = t.right
+    t.right = temp
+    ]]
+    t, t.left, t.left.right = t.left, t.left.right, t
   end
   return t
 end
@@ -39,11 +42,15 @@ local function split(t)
   local temp
   if t.right.right.level == t.level then
     -- rotate left
-    temp = t
-    t = t.right           -- t            = t.right
-    temp.right = t.left   -- t.right      = t.right.left
-    t.left = temp         -- t.right.left = t
-    t.level = t.level + 1 -- t.right.level += 1
+    --[[
+    -- temp = t
+    -- t = t.right           -- t            = t.right
+    -- temp.right = t.left   -- t.right      = t.right.left
+    -- t.left = temp         -- t.right.left = t
+    -- t.level = t.level + 1 -- t.right.level += 1
+    ]]
+    t, t.right, t.right.left = t.right, t.right.left, t
+    t.level = t.level + 1
   end
   return t
 end
@@ -118,7 +125,7 @@ end
 
 local function dump(root, t, n, k)
   if k == nil then
-    k = "_"
+    k = "/"
   end
   if n == nil then
     n = 0
