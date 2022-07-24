@@ -46,7 +46,7 @@ function class:split(t)
   return t
 end
 
-function class:insert(x, t)
+function class:insert(x, t, ok)
   local L = self.L
   local R = self.R
   local N = self.N
@@ -60,21 +60,23 @@ function class:insert(x, t)
     R[t] = 0
     N[t] = 1
     K[t] = x
+    ok = true
   else
     if x < K[t] then
-      L[t] = self:insert(x, L[t])
+      L[t], ok = self:insert(x, L[t])
     elseif x > K[t] then
-      R[t] = self:insert(x, R[t])
+      R[t], ok = self:insert(x, R[t])
     else
-      error "key exists"
+      ok = false
     end
     t = self:skew(t)
     t = self:split(t)
   end
-  return t
+  return t, ok
 end
 
-function class:delete(x, t, last, deleted)
+function class:delete(x, t, ok, last, deleted)
+  ok = false
   if t ~= 0 then
     local L = self.L
     local R = self.R
@@ -84,10 +86,10 @@ function class:delete(x, t, last, deleted)
     -- 1. Search down the tree and set pointers last and deleted.
     last = t
     if x < K[t] then
-      L[t], last, deleted = self:delete(x, L[t], last, deleted)
+      L[t], ok, last, deleted = self:delete(x, L[t], ok, last, deleted)
     else
       deleted = t
-      R[t], last, deleted = self:delete(x, R[t], last, deleted)
+      R[t], ok, last, deleted = self:delete(x, R[t], ok, last, deleted)
     end
 
     -- 2. At the bottom of the tree we remove the element (if it is present).
@@ -109,6 +111,8 @@ function class:delete(x, t, last, deleted)
 
       -- tは消されて、t.rightがその位置におさまる
 
+      ok = true
+
     -- 3. On the way back, we rebalance.
     else
       if N[L[t]] < N[t] - 1 or N[R[t]] < N[t] - 1 then
@@ -124,7 +128,7 @@ function class:delete(x, t, last, deleted)
       end
     end
   end
-  return t, last, deleted
+  return t, ok, last, deleted
 end
 
 local function tree()
@@ -157,21 +161,34 @@ end
 
 local self = tree()
 local u = 0
+local v
+local ok = nil
 for i = 1, 16 do
-  u = self:insert(i, u)
+  u, ok = self:insert(i, u)
+  assert(ok)
 end
 dump(self, u)
 
 io.write "----\n"
 
-u = self:delete(3, u)
+v, ok = self:insert(3, u)
+assert(not ok)
+assert(u == v)
+
+u, ok = self:delete(3, u)
+assert(ok)
 dump(self, u)
+
+v, ok = self:delete(3, u)
+assert(not ok)
+assert(u == v)
 
 -- print(dumper.encode(self, { stable = true, pretty = true }))
 
 for i = 1, 16 do
   if i ~= 3 then
-    u = self:delete(i, u)
+    u, ok = self:delete(i, u)
+    assert(ok)
   end
 end
 assert(u == 0)
@@ -181,18 +198,21 @@ io.write "====\n"
 local self = tree()
 local u = 0
 for i = 16, 1, -1 do
-  u = self:insert(i, u)
+  u, ok = self:insert(i, u)
+  assert(ok)
 end
 dump(self, u)
 
 io.write "----\n"
 
-u = self:delete(3, u)
+u, ok = self:delete(3, u)
+assert(ok)
 dump(self, u)
 
 for i = 1, 16 do
   if i ~= 3 then
-    u = self:delete(i, u)
+    u, ok = self:delete(i, u)
+    assert(ok)
   end
 end
 assert(u == 0)
