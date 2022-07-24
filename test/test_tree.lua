@@ -97,8 +97,16 @@ function class:delete(x, t, last, deleted)
       deleted = nil
       -- t = t.right -- 右にノードがいる場合がある
       -- print("removed: ", t)
+      local u = t
       t = R[t]
       last = nil
+
+      L[u] = nil
+      R[u] = nil
+      K[u] = nil
+      N[u] = nil
+      -- この位置におしりのをつっこんできれいにする
+
       -- tは消されて、t.rightがその位置におさまる
 
     -- 3. On the way back, we rebalance.
@@ -158,6 +166,8 @@ io.write "----\n"
 
 u = self:delete(3, u)
 dump(self, u)
+
+print(dumper.encode(self, { stable = true, pretty = true }))
 
 for i = 1, 16 do
   if i ~= 3 then
