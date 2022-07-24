@@ -66,12 +66,21 @@ function class:delete(x, t)
       t.right = self:delete(x, t.right)
     end
 
+
     -- 2. At the bottom of the tree we remove the element (if it is present).
     if t == self.last and self.deleted ~= nil and x == self.deleted.key then
+      -- xより小さいければ左に、x以上ならば右に進む
+      -- deletedは最後に右に進んだときのノード
+      -- t==self.lastの条件で、葉ノード (level == 1)
+
+      assert(t.level == 1)
+
+      -- 削除対象のキーを葉ノードのキーにおきかえてのっとる
       self.deleted.key = t.key
       self.deleted = nil
-      t = t.right
+      t = t.right -- 右にノードがいるかも
       self.last = nil
+      -- tは消されて、t.rightがその位置におさまる
 
     -- 3. On the way back, we rebalance.
     else
@@ -143,6 +152,13 @@ io.write "----\n"
 
 u = root:delete(3, u)
 dump(root, u)
+
+for i = 1, 16 do
+  if i ~= 3 then
+    u = root:delete(i, u)
+  end
+end
+assert(u == nil)
 
 io.write "====\n"
 
