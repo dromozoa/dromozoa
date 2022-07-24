@@ -118,14 +118,15 @@ end
 
 local function dump(root, t, n, k)
   if k == nil then
-    k = " "
+    k = "_"
   end
   if n == nil then
     n = 0
   else
     n = n + 1
   end
-  io.write(("  "):rep(n), k, " ", tostring(t), " ", t.level, " / ", tostring(t.key), "\n")
+  -- io.write(("  "):rep(n), k, " ", tostring(t), " ", t.level, " / ", tostring(t.key), "\n")
+  io.write(("  "):rep(n), k, " ", tostring(t.key), "\n")
   if t.left ~= root.bottom then
     dump(root, t.left, n, "L")
   end
@@ -159,4 +160,3 @@ io.write "----\n"
 
 u = delete(root, 3, u)
 dump(root, u)
-
