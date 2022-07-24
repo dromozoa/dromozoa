@@ -100,8 +100,7 @@ function class:delete(x, t)
     else
       -- t.left, t.rightが番兵だった場合はレベルは0とする
       -- if t.left.level < t.level - 1 or t.right.level < t.level - 1 then
-      local level = t.level - 1
-      if (t.left ~= nil and t.left.level or 0) < level or (t.right ~= nil and t.right.level or 0) < level then
+      if (t.left ~= nil and t.left.level or 0) < t.level - 1 or (t.right ~= nil and t.right.level or 0) < t.level - 1 then
 
         t.level = t.level - 1
 
