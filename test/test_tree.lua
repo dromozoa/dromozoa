@@ -23,27 +23,27 @@ local dumper = require "dromozoa.commons.dumper"
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.tree" }
 
-function class:skew(t)
+function class:skew(u)
   local L = self.L
-  local N = self.N
-
-  if N[L[t]] == N[t] then
-    local R = self.R
-    t, L[t], R[L[t]] = L[t], R[L[t]], t
-  end
-  return t
-end
-
-function class:split(t)
   local R = self.R
   local N = self.N
 
-  if N[R[R[t]]] == N[t] then
-    local L = self.L
-    t, R[t], L[R[t]] = R[t], L[R[t]], t
-    N[t] = N[t] + 1
+  if N[L[u]] == N[u] then
+    u, L[u], R[L[u]] = L[u], R[L[u]], u
   end
-  return t
+  return u
+end
+
+function class:split(u)
+  local L = self.L
+  local R = self.R
+  local N = self.N
+
+  if N[R[R[u]]] == N[u] then
+    u, R[u], L[R[u]] = R[u], L[R[u]], u
+    N[u] = N[u] + 1
+  end
+  return u
 end
 
 function class:insert(x, t, ok)
@@ -69,8 +69,19 @@ function class:insert(x, t, ok)
     else
       ok = false
     end
-    t = self:skew(t)
-    t = self:split(t)
+    -- inline skew
+
+    -- t = self:skew(t)
+    if N[L[t]] == N[t] then
+      t, L[t], R[L[t]] = L[t], R[L[t]], t
+    end
+
+    -- t = self:split(t)
+    if N[R[R[t]]] == N[t] then
+      t, R[t], L[R[t]] = R[t], L[R[t]], t
+      N[t] = N[t] + 1
+    end
+
   end
   return t, ok
 end
@@ -131,6 +142,40 @@ function class:delete(x, t, ok, last, deleted)
   return t, ok, last, deleted
 end
 
+function class:find(x, t)
+  local L = self.L
+  local R = self.R
+  local K = self.K
+
+  while t ~= 0 do
+    if x == K[t] then
+      return t
+    elseif x < K[t] then
+      t = L[t]
+    else
+      t = R[t]
+    end
+  end
+end
+
+local function each(self, t)
+  local L = self.L
+  local R = self.R
+  local K = self.K
+
+  if t ~= 0 then
+    each(self, L[t])
+    coroutine.yield(K[t])
+    each(self, R[t])
+  end
+end
+
+function class:each(t)
+  return coroutine.wrap(function ()
+    each(self, t)
+  end)
+end
+
 local function tree()
   return setmetatable({
     L = { [0] = 0 };
@@ -171,6 +216,12 @@ dump(self, u)
 
 io.write "----\n"
 
+local buffer = {}
+for k in self:each(u) do
+  buffer[#buffer + 1] = k
+end
+assert(table.concat(buffer, ",") == "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16")
+
 v, ok = self:insert(3, u)
 assert(not ok)
 assert(u == v)
@@ -182,6 +233,17 @@ dump(self, u)
 v, ok = self:delete(3, u)
 assert(not ok)
 assert(u == v)
+
+assert(self:find(1, u))
+assert(self:find(2, u))
+assert(not self:find(3, u))
+assert(self:find(4, u))
+
+local buffer = {}
+for k in self:each(u) do
+  buffer[#buffer + 1] = k
+end
+assert(table.concat(buffer, ",") == "1,2,4,5,6,7,8,9,10,11,12,13,14,15,16")
 
 -- print(dumper.encode(self, { stable = true, pretty = true }))
 
