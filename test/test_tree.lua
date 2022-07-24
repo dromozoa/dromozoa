@@ -24,14 +24,16 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.tree" }
 
 local function skew(t)
-  -- local temp
-  if t.left.level == t.level then
+  assert(t ~= nil)
+  if t.left == nil then
+    -- skip
+  elseif t.left.level == t.level then
     -- rotate right
     --[[
-    temp = t
-    t = t.left
-    temp.left = t.right
-    t.right = temp
+      temp = t
+      t = t.left
+      temp.left = t.right
+      t.right = temp
     ]]
     t, t.left, t.left.right = t.left, t.left.right, t
   end
@@ -39,15 +41,17 @@ local function skew(t)
 end
 
 local function split(t)
-  local temp
-  if t.right.right.level == t.level then
+  assert(t ~= nil)
+  if t.right == nil or t.right.right == nil then
+    -- skip
+  elseif t.right.right.level == t.level then
     -- rotate left
     --[[
-    -- temp = t
-    -- t = t.right           -- t            = t.right
-    -- temp.right = t.left   -- t.right      = t.right.left
-    -- t.left = temp         -- t.right.left = t
-    -- t.level = t.level + 1 -- t.right.level += 1
+      temp = t
+      t = t.right           -- t            = t.right
+      temp.right = t.left   -- t.right      = t.right.left
+      t.left = temp         -- t.right.left = t
+      t.level = t.level + 1 -- t.right.level += 1
     ]]
     t, t.right, t.right.left = t.right, t.right.left, t
     t.level = t.level + 1
@@ -56,13 +60,8 @@ local function split(t)
 end
 
 local function insert(self, x, t)
-  if t == self.bottom then
-    t = {
-      key = x;
-      left = self.bottom;
-      right = self.bottom;
-      level = 1;
-    }
+  if t == nil then
+    t = { key = x, level = 1 }
   else
     if x < t.key then
       t.left = insert(self, x, t.left)
@@ -78,7 +77,7 @@ local function insert(self, x, t)
 end
 
 local function delete(self, x, t)
-  if t ~= self.bottom then
+  if t ~= nil then
     -- 1. Search down the tree and set pointers last and deleted.
     self.last = t
     if x < t.key then
@@ -89,34 +88,55 @@ local function delete(self, x, t)
     end
 
     -- 2. At the bottom of the tree we remove the element (if it is present).
-    if t == self.last and self.deleted ~= self.bottom and x == self.deleted.key then
+    if t == self.last and self.deleted ~= nil and x == self.deleted.key then
       self.deleted.key = t.key
-      self.deleted = self.bottom
+      self.deleted = nil
       t = t.right
       self.last = nil
 
     -- 3. On the way back, we rebalance.
-    elseif t.left.level < t.level - 1 or t.right.level < t.level - 1 then
-      t.level = t.level - 1
-      if t.right.level > t.level then
-        t.right.level = t.level
+    else
+      -- t.left, t.rightが番兵だった場合はレベルは0とする
+      -- if t.left.level < t.level - 1 or t.right.level < t.level - 1 then
+      local level = t.level - 1
+      if (t.left ~= nil and t.left.level or 0) < level or (t.right ~= nil and t.right.level or 0) < level then
+
+        t.level = t.level - 1
+
+        -- if t.right.level > t.level then
+        --   t.right.level = t.level
+        -- end
+        -- t = skew(t)
+        -- t.right = skew(t.right)
+        -- t.right.right = skew(t.right.right)
+        -- t = split(t)
+        -- t.right = split(t.right)
+
+        if t.right ~= nil then
+          if t.right.level > t.level then
+            t.right.level = t.level
+          end
+        end
+        if t.right ~= nil then
+          t.right = skew(t.right)
+        end
+        if t.right ~= nil then
+          if t.right.right ~= nil then
+            t.right.right = skew(t.right.right)
+          end
+        end
+        t = split(t)
+        if t.right ~= nil then
+          t.right = split(t.right)
+        end
       end
-      t = skew(t)
-      t.right = skew(t.right)
-      t.right.right = skew(t.right.right)
-      t = split(t)
-      t.right = split(t.right)
     end
   end
   return t
 end
 
 local function tree()
-  local bottom = {}
-  bottom.level = 0
-  bottom.left = bottom
-  bottom.right = bottom
-  return setmetatable({ bottom = bottom, deleted = bottom }, metatable)
+  return setmetatable({}, metatable)
 end
 
 local function dump(root, t, n, k)
@@ -130,16 +150,16 @@ local function dump(root, t, n, k)
   end
   -- io.write(("  "):rep(n), k, " ", tostring(t), " ", t.level, " / ", tostring(t.key), "\n")
   io.write(("  "):rep(n), k, " ", tostring(t.key), "\n")
-  if t.left ~= root.bottom then
+  if t.left ~= nil then
     dump(root, t.left, n, "L")
   end
-  if t.right ~= root.bottom then
+  if t.right ~= nil then
     dump(root, t.right, n, "R")
   end
 end
 
 local root = tree()
-local u = root.bottom
+local u = nil
 for i = 1, 16 do
   u = insert(root, i, u)
 end
@@ -153,7 +173,7 @@ dump(root, u)
 io.write "====\n"
 
 local root = tree()
-local u = root.bottom
+local u = nil
 for i = 16, 1, -1 do
   u = insert(root, i, u)
 end
