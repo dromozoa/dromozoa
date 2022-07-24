@@ -37,6 +37,7 @@ function class:skew(t)
       t.right = temp
     ]]
     t, t.left, t.left.right = t.left, t.left.right, t
+    assert(t ~= nil)
   end
   return t
 end
@@ -57,6 +58,7 @@ function class:split(t)
     ]]
     t, t.right, t.right.left = t.right, t.right.left, t
     t.level = t.level + 1
+    assert(t ~= nil)
   end
   return t
 end
@@ -100,25 +102,33 @@ function class:delete(x, t)
     else
       -- t.left, t.rightが番兵だった場合はレベルは0とする
       -- if t.left.level < t.level - 1 or t.right.level < t.level - 1 then
-      if (t.left ~= nil and t.left.level or 0) < t.level - 1 or (t.right ~= nil and t.right.level or 0) < t.level - 1 then
 
-        t.level = t.level - 1
-
-        if t.right ~= nil and t.right.level > t.level then
-          t.right.level = t.level
+      if t.right == nil then
+        if (t.left ~= nil and t.left.level or 0) < t.level - 1 or 0 < t.level - 1 then
+          t.level = t.level - 1
+          t = self:skew(t)
+          t.right = self:skew(t.right)
+          if t.right ~= nil then
+            t.right.right = self:skew(t.right.right)
+          end
+          t = self:split(t)
+          t.right = self:split(t.right)
         end
-        t = self:skew(t)
-        t.right = self:skew(t.right)
-        if t.right ~= nil then
+      else
+        if (t.left ~= nil and t.left.level or 0) < t.level - 1 or t.right.level < t.level - 1 then
+          t.level = t.level - 1
+          if t.right.level > t.level then
+            t.right.level = t.level
+          end
+          t = self:skew(t)
+          t.right = self:skew(t.right)
           if t.right.right ~= nil then
             t.right.right = self:skew(t.right.right)
           end
+          t = self:split(t)
+          t.right = self:split(t.right)
         end
-        t = self:split(t)
-        t.right = self:split(t.right)
       end
-
-
     end
   end
   return t
