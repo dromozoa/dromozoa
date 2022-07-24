@@ -24,41 +24,16 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.tree" }
 
 function class:skew(t)
-  if t == nil then
-    -- skip
-  elseif t.left == nil then
-    -- skip
-  elseif t.left.level == t.level then
-    -- rotate right
-    --[[
-      temp = t
-      t = t.left
-      temp.left = t.right
-      t.right = temp
-    ]]
+  if t ~= nil and t.left ~= nil and t.left.level == t.level then
     t, t.left, t.left.right = t.left, t.left.right, t
-    assert(t ~= nil)
   end
   return t
 end
 
 function class:split(t)
-  if t == nil then
-    -- skip
-  elseif t.right == nil or t.right.right == nil then
-    -- skip
-  elseif t.right.right.level == t.level then
-    -- rotate left
-    --[[
-      temp = t
-      t = t.right           -- t            = t.right
-      temp.right = t.left   -- t.right      = t.right.left
-      t.left = temp         -- t.right.left = t
-      t.level = t.level + 1 -- t.right.level += 1
-    ]]
+  if t ~= nil and t.right ~= nil and t.right.right ~= nil and t.right.right.level == t.level then
     t, t.right, t.right.left = t.right, t.right.left, t
     t.level = t.level + 1
-    assert(t ~= nil)
   end
   return t
 end
@@ -72,7 +47,7 @@ function class:insert(x, t)
     elseif x > t.key then
       t.right = self:insert(x, t.right)
     else
-      error "ok = false"
+      error "key exists"
     end
     t = self:skew(t)
     t = self:split(t)
