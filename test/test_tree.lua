@@ -23,7 +23,7 @@ local dumper = require "dromozoa.commons.dumper"
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.tree" }
 
-function class:skew(t)
+local function skew(self, t)
   local L = self.L
   local R = self.R
   local N = self.N
@@ -36,7 +36,7 @@ function class:skew(t)
   return t
 end
 
-function class:split(t)
+local function split(self, t)
   local L = self.L
   local R = self.R
   local N = self.N
@@ -50,7 +50,7 @@ function class:split(t)
   return t
 end
 
-function class:insert(x, t, ok)
+local function insert(self, x, t, ok)
   local K = self.K
   local L = self.L
   local R = self.R
@@ -67,20 +67,20 @@ function class:insert(x, t, ok)
     ok = true
   else
     if x < K[t] then
-      L[t], ok = self:insert(x, L[t], ok)
+      L[t], ok = insert(self, x, L[t], ok)
     elseif x > K[t] then
-      R[t], ok = self:insert(x, R[t], ok)
+      R[t], ok = insert(self, x, R[t], ok)
     else
       ok = false
     end
-    t = self:skew(t)
-    t = self:split(t)
+    t = skew(self, t)
+    t = split(self, t)
   end
 
   return t, ok
 end
 
-function class:delete(x, t, ok, last, deleted)
+local function delete(self, x, t, ok, last, deleted)
   ok = false
 
   if t ~= 0 then
@@ -92,10 +92,10 @@ function class:delete(x, t, ok, last, deleted)
     -- 1. Search down the tree and set pointers last and deleted.
     last = t
     if x < K[t] then
-      L[t], ok, last, deleted = self:delete(x, L[t], ok, last, deleted)
+      L[t], ok, last, deleted = delete(self, x, L[t], ok, last, deleted)
     else
       deleted = t
-      R[t], ok, last, deleted = self:delete(x, R[t], ok, last, deleted)
+      R[t], ok, last, deleted = delete(self, x, R[t], ok, last, deleted)
     end
 
     -- 2. At the bottom of the tree we remove the element (if it is present).
@@ -118,32 +118,16 @@ function class:delete(x, t, ok, last, deleted)
         if N[R[t]] > N[t] then
           N[R[t]] = N[t]
         end
-        t = self:skew(t)
-        R[t] = self:skew(R[t])
-        R[R[t]] = self:skew(R[R[t]])
-        t = self:split(t)
-        R[t] = self:split(R[t])
+        t = skew(self, t)
+        R[t] = skew(self, R[t])
+        R[R[t]] = skew(self, R[R[t]])
+        t = split(self, t)
+        R[t] = split(self, R[t])
       end
     end
   end
 
   return t, ok, last, deleted
-end
-
-function class:find(x, t)
-  local L = self.L
-  local R = self.R
-  local K = self.K
-
-  while t ~= 0 do
-    if x < K[t] then
-      t = L[t]
-    elseif x > K[t] then
-      t = R[t]
-    else
-      return K[t]
-    end
-  end
 end
 
 local function each(self, t)
@@ -158,16 +142,46 @@ local function each(self, t)
   end
 end
 
-function class:each(t)
-  return coroutine.wrap(each), self, t
+function class:insert(key)
+  local root, ok = insert(self, key, self.root, false)
+  self.root = root
+  return self
+end
+
+function class:delete(key)
+  local root, ok = delete(self, key, self.root, false)
+  self.root = root
+  return self
+end
+
+function class:find(x)
+  local L = self.L
+  local R = self.R
+  local K = self.K
+
+  local t = self.root
+  while t ~= 0 do
+    if x < K[t] then
+      t = L[t]
+    elseif x > K[t] then
+      t = R[t]
+    else
+      return K[t]
+    end
+  end
+end
+
+function class:each()
+  return coroutine.wrap(each), self, self.root
 end
 
 local function tree()
   return setmetatable({
+    K = {};
     L = { [0] = 0 };
     R = { [0] = 0 };
     N = { [0] = 0 };
-    K = {};
+    root = 0;
   }, metatable)
 end
 
@@ -191,42 +205,33 @@ local function dump(self, t, n, k)
 end
 
 local self = tree()
-local u = 0
-local v
-local ok = nil
 for i = 1, 16 do
-  u, ok = self:insert(i, u)
-  assert(ok)
+  self:insert(i)
 end
-dump(self, u)
+dump(self, self.root)
 
 io.write "----\n"
 
 local buffer = {}
-for k in self:each(u) do
+for k in self:each() do
   buffer[#buffer + 1] = k
 end
 assert(table.concat(buffer, ",") == "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16")
 
-v, ok = self:insert(3, u)
-assert(not ok)
-assert(u == v)
+self:insert(3)
 
-u, ok = self:delete(3, u)
-assert(ok)
-dump(self, u)
+self:delete(3)
+dump(self, self.root)
 
-v, ok = self:delete(3, u)
-assert(not ok)
-assert(u == v)
+self:delete(3)
 
-assert(self:find(1, u))
-assert(self:find(2, u))
-assert(not self:find(3, u))
-assert(self:find(4, u))
+assert(self:find(1))
+assert(self:find(2))
+assert(not self:find(3))
+assert(self:find(4))
 
 local buffer = {}
-for k in self:each(u) do
+for k in self:each() do
   buffer[#buffer + 1] = k
 end
 assert(table.concat(buffer, ",") == "1,2,4,5,6,7,8,9,10,11,12,13,14,15,16")
@@ -235,32 +240,27 @@ assert(table.concat(buffer, ",") == "1,2,4,5,6,7,8,9,10,11,12,13,14,15,16")
 
 for i = 1, 16 do
   if i ~= 3 then
-    u, ok = self:delete(i, u)
-    assert(ok)
+    self:delete(i)
   end
 end
-assert(u == 0)
+assert(self.root == 0)
 
 io.write "====\n"
 
 local self = tree()
-local u = 0
 for i = 16, 1, -1 do
-  u, ok = self:insert(i, u)
-  assert(ok)
+  self:insert(i)
 end
-dump(self, u)
+dump(self, self.root)
 
 io.write "----\n"
 
-u, ok = self:delete(3, u)
-assert(ok)
-dump(self, u)
+self:delete(3)
+dump(self, self.root)
 
 for i = 1, 16 do
   if i ~= 3 then
-    u, ok = self:delete(i, u)
-    assert(ok)
+    self:delete(i, u)
   end
 end
-assert(u == 0)
+assert(self.root == 0)
