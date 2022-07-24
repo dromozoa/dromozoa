@@ -57,20 +57,19 @@ end
 
 local function insert(self, x, t)
   if t == self.bottom then
-    t = {}
-    t.key = x
-    t.left = self.bottom
-    t.right = self.bottom
-    t.level = 1
-    -- ok = true
+    t = {
+      key = x;
+      left = self.bottom;
+      right = self.bottom;
+      level = 1;
+    }
   else
     if x < t.key then
       t.left = insert(self, x, t.left)
     elseif x > t.key then
       t.right = insert(self, x, t.right)
     else
-      -- ok = false
-      error "x == t.key"
+      error "ok = false"
     end
     t = skew(t)
     t = split(t)
@@ -79,7 +78,6 @@ local function insert(self, x, t)
 end
 
 local function delete(self, x, t)
-  -- ok = false
   if t ~= self.bottom then
     -- 1. Search down the tree and set pointers last and deleted.
     self.last = t
@@ -95,9 +93,7 @@ local function delete(self, x, t)
       self.deleted.key = t.key
       self.deleted = self.bottom
       t = t.right
-      -- dispose(last)
       self.last = nil
-      -- ok = true
 
     -- 3. On the way back, we rebalance.
     elseif t.left.level < t.level - 1 or t.right.level < t.level - 1 then
