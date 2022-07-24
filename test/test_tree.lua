@@ -24,28 +24,50 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.tree" }
 
 function class:skew(t)
-  if t ~= nil and t.left ~= nil and t.left.level == t.level then
-    t, t.left, t.left.right = t.left, t.left.right, t
+  local L = self.L
+  local N = self.N
+
+  -- t.left.level == t.level
+  if N[L[t]] == N[t] then
+    -- t, t.left, t.left.right = t.left, t.left.right, t
+    local R = self.R
+    t, L[t], R[L[t]] = L[t], R[L[t]], t
   end
   return t
 end
 
 function class:split(t)
-  if t ~= nil and t.right ~= nil and t.right.right ~= nil and t.right.right.level == t.level then
-    t, t.right, t.right.left = t.right, t.right.left, t
-    t.level = t.level + 1
+  local R = self.R
+  local N = self.N
+
+  -- t.right.right.level == t.level
+  if N[R[R[t]]] == N[t] then
+    local L = self.L
+    -- t, t.right, t.right.left = t.right, t.right.left, t
+    t, R[t], L[R[t]] = R[t], L[R[t]], t
+    -- t.level = t.level + 1
+    N[t] = N[t] + 1
   end
   return t
 end
 
 function class:insert(x, t)
-  if t == nil then
-    t = { key = x, level = 1 }
+  local L = self.L
+  local R = self.R
+  local N = self.N
+  local K = self.K
+
+  if t == 0 then
+    t = #L + 1
+    L[t] = 0
+    R[t] = 0
+    N[t] = 1
+    K[t] = x
   else
-    if x < t.key then
-      t.left = self:insert(x, t.left)
-    elseif x > t.key then
-      t.right = self:insert(x, t.right)
+    if x < K[t] then
+      L[t] = self:insert(x, L[t])
+    elseif x > K[t] then
+      R[t] = self:insert(x, R[t])
     else
       error "key exists"
     end
@@ -55,74 +77,60 @@ function class:insert(x, t)
   return t
 end
 
-function class:delete(x, t)
-  if t ~= nil then
+function class:delete(x, t, last, deleted)
+  if t ~= 0 then
+    local L = self.L
+    local R = self.R
+    local N = self.N
+    local K = self.K
+
     -- 1. Search down the tree and set pointers last and deleted.
-    self.last = t
-    if x < t.key then
-      t.left = self:delete(x, t.left)
+    last = t
+    if x < K[t] then
+      L[t], last, deleted = self:delete(x, L[t], last, deleted)
     else
-      self.deleted = t
-      t.right = self:delete(x, t.right)
+      deleted = t
+      R[t], last, deleted = self:delete(x, R[t], last, deleted)
     end
 
-
     -- 2. At the bottom of the tree we remove the element (if it is present).
-    if t == self.last and self.deleted ~= nil and x == self.deleted.key then
-      -- xより小さいければ左に、x以上ならば右に進む
-      -- deletedは最後に右に進んだときのノード
-      -- t==self.lastの条件で、葉ノード (level == 1)
-
-      assert(t.level == 1)
-
+    if t == last and deleted ~= nil and x == K[deleted] then
       -- 削除対象のキーを葉ノードのキーにおきかえてのっとる
-      self.deleted.key = t.key
-      self.deleted = nil
-      t = t.right -- 右にノードがいるかも
-      self.last = nil
+      K[deleted] = K[t]
+      deleted = nil
+      -- t = t.right -- 右にノードがいる場合がある
+      t = R[t]
+      last = nil
       -- tは消されて、t.rightがその位置におさまる
 
     -- 3. On the way back, we rebalance.
     else
-      -- t.left, t.rightが番兵だった場合はレベルは0とする
-      -- if t.left.level < t.level - 1 or t.right.level < t.level - 1 then
-
-      if t.right == nil then
-        if (t.left ~= nil and t.left.level or 0) < t.level - 1 or 0 < t.level - 1 then
-          t.level = t.level - 1
-          t = self:skew(t)
-          t.right = self:skew(t.right)
-          if t.right ~= nil then
-            t.right.right = self:skew(t.right.right)
-          end
-          t = self:split(t)
-          t.right = self:split(t.right)
+      if N[L[t]] < N[t] - 1 or N[R[t]] < N[t] - 1 then
+        N[t] = N[t] - 1
+        if N[R[t]] > N[t] then
+          N[R[t]] = N[t]
         end
-      else
-        if (t.left ~= nil and t.left.level or 0) < t.level - 1 or t.right.level < t.level - 1 then
-          t.level = t.level - 1
-          if t.right.level > t.level then
-            t.right.level = t.level
-          end
-          t = self:skew(t)
-          t.right = self:skew(t.right)
-          if t.right.right ~= nil then
-            t.right.right = self:skew(t.right.right)
-          end
-          t = self:split(t)
-          t.right = self:split(t.right)
-        end
+        t = self:skew(t)
+        R[t] = self:skew(R[t])
+        R[R[t]] = self:skew(R[R[t]])
+        t = self:split(t)
+        R[t] = self:split(R[t])
       end
     end
   end
-  return t
+  return t, last, deleted
 end
 
 local function tree()
-  return setmetatable({}, metatable)
+  return setmetatable({
+    L = { [0] = 0 };
+    R = { [0] = 0 };
+    N = { [0] = 0 };
+    K = {};
+  }, metatable)
 end
 
-local function dump(root, t, n, k)
+local function dump(self, t, n, k)
   if k == nil then
     k = "/"
   end
@@ -132,51 +140,51 @@ local function dump(root, t, n, k)
     n = n + 1
   end
   -- io.write(("  "):rep(n), k, " ", tostring(t), " ", t.level, " / ", tostring(t.key), "\n")
-  io.write(("  "):rep(n), k, " ", tostring(t.key), "\n")
-  if t.left ~= nil then
-    dump(root, t.left, n, "L")
+  io.write(("  "):rep(n), k, " ", tostring(self.K[t]), "\n")
+  if self.L[t] ~= 0 then
+    dump(self, self.L[t], n, "L")
   end
-  if t.right ~= nil then
-    dump(root, t.right, n, "R")
+  if self.R[t] ~= 0 then
+    dump(self, self.R[t], n, "R")
   end
 end
 
-local root = tree()
-local u = nil
+local self = tree()
+local u = 0
 for i = 1, 16 do
-  u = root:insert(i, u)
+  u = self:insert(i, u)
 end
-dump(root, u)
+dump(self, u)
 
 io.write "----\n"
 
-u = root:delete(3, u)
-dump(root, u)
+u = self:delete(3, u)
+dump(self, u)
 
 for i = 1, 16 do
   if i ~= 3 then
-    u = root:delete(i, u)
+    u = self:delete(i, u)
   end
 end
-assert(u == nil)
+assert(u == 0)
 
 io.write "====\n"
 
-local root = tree()
-local u = nil
+local self = tree()
+local u = 0
 for i = 16, 1, -1 do
-  u = root:insert(i, u)
+  u = self:insert(i, u)
 end
-dump(root, u)
+dump(self, u)
 
 io.write "----\n"
 
-u = root:delete(3, u)
-dump(root, u)
+u = self:delete(3, u)
+dump(self, u)
 
 for i = 1, 16 do
   if i ~= 3 then
-    u = root:delete(i, u)
+    u = self:delete(i, u)
   end
 end
-assert(u == nil)
+assert(u == 0)
