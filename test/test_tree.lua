@@ -23,76 +23,71 @@ local dumper = require "dromozoa.commons.dumper"
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.tree" }
 
-function class:skew(u)
+function class:skew(t)
   local L = self.L
   local R = self.R
   local N = self.N
 
-  if N[L[u]] == N[u] then
-    u, L[u], R[L[u]] = L[u], R[L[u]], u
+  if N[L[t]] == N[t] then
+    -- rotate right
+    t, L[t], R[L[t]] = L[t], R[L[t]], t
   end
-  return u
+
+  return t
 end
 
-function class:split(u)
+function class:split(t)
   local L = self.L
   local R = self.R
   local N = self.N
 
-  if N[R[R[u]]] == N[u] then
-    u, R[u], L[R[u]] = R[u], L[R[u]], u
-    N[u] = N[u] + 1
+  if N[R[R[t]]] == N[t] then
+    -- rotate left
+    t, R[t], L[R[t]] = R[t], L[R[t]], t
+    N[t] = N[t] + 1
   end
-  return u
+
+  return t
 end
 
 function class:insert(x, t, ok)
+  local K = self.K
   local L = self.L
   local R = self.R
   local N = self.N
-  local K = self.K
 
   if t == 0 then
-    -- t = #L + 1
+    -- new(t)
     t = (self.n or 0) + 1
     self.n = t
+    K[t] = x
     L[t] = 0
     R[t] = 0
     N[t] = 1
-    K[t] = x
     ok = true
   else
     if x < K[t] then
-      L[t], ok = self:insert(x, L[t])
+      L[t], ok = self:insert(x, L[t], ok)
     elseif x > K[t] then
-      R[t], ok = self:insert(x, R[t])
+      R[t], ok = self:insert(x, R[t], ok)
     else
       ok = false
     end
-    -- inline skew
-
-    -- t = self:skew(t)
-    if N[L[t]] == N[t] then
-      t, L[t], R[L[t]] = L[t], R[L[t]], t
-    end
-
-    -- t = self:split(t)
-    if N[R[R[t]]] == N[t] then
-      t, R[t], L[R[t]] = R[t], L[R[t]], t
-      N[t] = N[t] + 1
-    end
-
+    t = self:skew(t)
+    t = self:split(t)
   end
+
   return t, ok
 end
 
 function class:delete(x, t, ok, last, deleted)
   ok = false
+
   if t ~= 0 then
+    local K = self.K
     local L = self.L
     local R = self.R
     local N = self.N
-    local K = self.K
 
     -- 1. Search down the tree and set pointers last and deleted.
     last = t
@@ -105,23 +100,15 @@ function class:delete(x, t, ok, last, deleted)
 
     -- 2. At the bottom of the tree we remove the element (if it is present).
     if t == last and deleted ~= nil and x == K[deleted] then
-      -- 削除対象のキーを葉ノードのキーにおきかえてのっとる
       K[deleted] = K[t]
       deleted = nil
-      -- t = t.right -- 右にノードがいる場合がある
-      -- print("removed: ", t)
-      local u = t
       t = R[t]
+      -- dispse(last)
+      L[last] = nil
+      R[last] = nil
+      K[last] = nil
+      N[last] = nil
       last = nil
-
-      L[u] = nil
-      R[u] = nil
-      K[u] = nil
-      N[u] = nil
-      -- この位置におしりのをつっこんできれいにする
-
-      -- tは消されて、t.rightがその位置におさまる
-
       ok = true
 
     -- 3. On the way back, we rebalance.
@@ -139,6 +126,7 @@ function class:delete(x, t, ok, last, deleted)
       end
     end
   end
+
   return t, ok, last, deleted
 end
 
@@ -148,12 +136,12 @@ function class:find(x, t)
   local K = self.K
 
   while t ~= 0 do
-    if x == K[t] then
-      return t
-    elseif x < K[t] then
+    if x < K[t] then
       t = L[t]
-    else
+    elseif x > K[t] then
       t = R[t]
+    else
+      return K[t]
     end
   end
 end
@@ -171,9 +159,7 @@ local function each(self, t)
 end
 
 function class:each(t)
-  return coroutine.wrap(function (self)
-    each(self, t)
-  end), self
+  return coroutine.wrap(each), self, t
 end
 
 local function tree()
