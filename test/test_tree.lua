@@ -24,8 +24,9 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.tree" }
 
 function class:skew(t)
-  assert(t ~= nil and t.level > 0)
-  if t.left == nil then
+  if t == nil then
+    -- skip
+  elseif t.left == nil then
     -- skip
   elseif t.left.level == t.level then
     -- rotate right
@@ -41,8 +42,9 @@ function class:skew(t)
 end
 
 function class:split(t)
-  assert(t ~= nil and t.level > 0)
-  if t.right == nil or t.right.right == nil then
+  if t == nil then
+    -- skip
+  elseif t.right == nil or t.right.right == nil then
     -- skip
   elseif t.right.right.level == t.level then
     -- rotate left
@@ -103,32 +105,21 @@ function class:delete(x, t)
 
         t.level = t.level - 1
 
-        -- if t.right.level > t.level then
-        --   t.right.level = t.level
-        -- end
-        -- t = skew(t)
-        -- t.right = skew(t.right)
-        -- t.right.right = skew(t.right.right)
-        -- t = split(t)
-        -- t.right = split(t.right)
-
-        if (t.right ~= nil and t.right.level or 0) > t.level then
+        if t.right ~= nil and t.right.level > t.level then
           t.right.level = t.level
         end
         t = self:skew(t)
-        if t.right ~= nil then
-          t.right = self:skew(t.right)
-        end
+        t.right = self:skew(t.right)
         if t.right ~= nil then
           if t.right.right ~= nil then
             t.right.right = self:skew(t.right.right)
           end
         end
         t = self:split(t)
-        if t.right ~= nil then
-          t.right = self:split(t.right)
-        end
+        t.right = self:split(t.right)
       end
+
+
     end
   end
   return t
