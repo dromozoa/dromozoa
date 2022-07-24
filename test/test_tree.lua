@@ -27,9 +27,7 @@ function class:skew(t)
   local L = self.L
   local N = self.N
 
-  -- t.left.level == t.level
   if N[L[t]] == N[t] then
-    -- t, t.left, t.left.right = t.left, t.left.right, t
     local R = self.R
     t, L[t], R[L[t]] = L[t], R[L[t]], t
   end
@@ -40,12 +38,9 @@ function class:split(t)
   local R = self.R
   local N = self.N
 
-  -- t.right.right.level == t.level
   if N[R[R[t]]] == N[t] then
     local L = self.L
-    -- t, t.right, t.right.left = t.right, t.right.left, t
     t, R[t], L[R[t]] = R[t], L[R[t]], t
-    -- t.level = t.level + 1
     N[t] = N[t] + 1
   end
   return t
@@ -58,7 +53,9 @@ function class:insert(x, t)
   local K = self.K
 
   if t == 0 then
-    t = #L + 1
+    -- t = #L + 1
+    t = (self.n or 0) + 1
+    self.n = t
     L[t] = 0
     R[t] = 0
     N[t] = 1
@@ -99,6 +96,7 @@ function class:delete(x, t, last, deleted)
       K[deleted] = K[t]
       deleted = nil
       -- t = t.right -- 右にノードがいる場合がある
+      -- print("removed: ", t)
       t = R[t]
       last = nil
       -- tは消されて、t.rightがその位置におさまる
