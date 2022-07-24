@@ -24,7 +24,7 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.tree" }
 
 function class:skew(t)
-  assert(t ~= nil and t.level ~= 0)
+  assert(t ~= nil and t.level > 0)
   if t.left == nil then
     -- skip
   elseif t.left.level == t.level then
@@ -41,7 +41,7 @@ function class:skew(t)
 end
 
 function class:split(t)
-  assert(t ~= nil and t.level ~= 0)
+  assert(t ~= nil and t.level > 0)
   if t.right == nil or t.right.right == nil then
     -- skip
   elseif t.right.right.level == t.level then
@@ -182,3 +182,10 @@ io.write "----\n"
 
 u = root:delete(3, u)
 dump(root, u)
+
+for i = 1, 16 do
+  if i ~= 3 then
+    u = root:delete(i, u)
+  end
+end
+assert(u == nil)
