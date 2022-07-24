@@ -167,7 +167,7 @@ io.write "----\n"
 u = self:delete(3, u)
 dump(self, u)
 
-print(dumper.encode(self, { stable = true, pretty = true }))
+-- print(dumper.encode(self, { stable = true, pretty = true }))
 
 for i = 1, 16 do
   if i ~= 3 then
