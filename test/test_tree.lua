@@ -80,6 +80,12 @@ local function insert(self, x, t, ok)
   return t, ok
 end
 
+function class:insert(key)
+  local root, ok = insert(self, key, self.root, false)
+  self.root = root
+  return self
+end
+
 local function delete(self, x, t, ok, last, deleted)
   ok = false
 
@@ -130,6 +136,12 @@ local function delete(self, x, t, ok, last, deleted)
   return t, ok, last, deleted
 end
 
+function class:delete(key)
+  local root, ok = delete(self, key, self.root, false, 0, 0)
+  self.root = root
+  return self
+end
+
 local function each(self, t)
   local L = self.L
   local R = self.R
@@ -142,16 +154,8 @@ local function each(self, t)
   end
 end
 
-function class:insert(key)
-  local root, ok = insert(self, key, self.root, false)
-  self.root = root
-  return self
-end
-
-function class:delete(key)
-  local root, ok = delete(self, key, self.root, false, 0, 0)
-  self.root = root
-  return self
+function class:each()
+  return coroutine.wrap(each), self, self.root
 end
 
 function class:find(x)
@@ -169,10 +173,6 @@ function class:find(x)
       return K[t]
     end
   end
-end
-
-function class:each()
-  return coroutine.wrap(each), self, self.root
 end
 
 local function tree()
