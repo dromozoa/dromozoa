@@ -55,6 +55,7 @@ local function insert(self, x, t, ok, last)
   local L = self.L
   local R = self.R
   local N = self.N
+  local comp = self.comp
 
   if t == 0 then
     -- new(t)
@@ -68,9 +69,9 @@ local function insert(self, x, t, ok, last)
     ok = true
     last = t
   else
-    if x < K[t] then
+    if comp(x, K[t]) then
       L[t], ok, last = insert(self, x, L[t], ok, last)
-    elseif x > K[t] then
+    elseif comp(K[t], x) then
       R[t], ok, last = insert(self, x, R[t], ok, last)
     else
       ok = false
@@ -91,10 +92,11 @@ local function delete(self, x, t, ok, last, deleted)
     local L = self.L
     local R = self.R
     local N = self.N
+    local comp = self.comp
 
     -- 1. Search down the tree and set pointers last and deleted.
     last = t
-    if x < K[t] then
+    if comp(x, K[t]) then
       L[t], ok, last, deleted = delete(self, x, L[t], ok, last, deleted)
     else
       deleted = t
@@ -102,7 +104,8 @@ local function delete(self, x, t, ok, last, deleted)
     end
 
     -- 2. At the bottom of the tree we remove the element (if it is present).
-    if t == last and deleted ~= 0 and x == K[deleted] then
+    -- K[deleted] <= x なので K[deleted] < x が成立しなければ、K[deleted] == x
+    if t == last and deleted ~= 0 and not comp(K[deleted], x) then
       K[deleted] = K[t]
       deleted = 0
       t = R[t]
@@ -133,6 +136,7 @@ local function dispose(self, t)
   local L = self.L
   local R = self.R
   local N = self.N
+  local comp = self.comp
 
   -- 削除したポインタと最後尾のポインタを入れ替える
   local u = self.size
@@ -151,9 +155,9 @@ local function dispose(self, t)
         elseif R[v] == u then
           R[v] = t
           break
-        elseif K[u] < K[v] then
+        elseif comp(K[u], K[v]) then
           v = L[v]
-        elseif K[u] > K[v] then
+        elseif comp(K[v], K[u]) then
           v = R[v]
         else
           error "algorithm error"
@@ -213,12 +217,13 @@ function class:find(x)
   local L = self.L
   local R = self.R
   local K = self.K
+  local comp = self.comp
 
   local t = self.root
   while t ~= 0 do
-    if x < K[t] then
+    if comp(x, K[t]) then
       t = L[t]
-    elseif x > K[t] then
+    elseif comp(K[t], x) then
       t = R[t]
     else
       return K[t]
@@ -226,7 +231,11 @@ function class:find(x)
   end
 end
 
-local function tree()
+local function tree(comp)
+  if comp == nil then
+    comp = function (a, b) return a < b end
+  end
+
   return setmetatable({
     K = {};
     L = { [0] = 0 };
@@ -234,6 +243,7 @@ local function tree()
     N = { [0] = 0 };
     root = 0;
     size = 0;
+    comp = comp;
   }, metatable)
 end
 
