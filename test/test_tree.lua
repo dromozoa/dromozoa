@@ -171,9 +171,9 @@ local function each(self, t)
 end
 
 function class:each(t)
-  return coroutine.wrap(function ()
+  return coroutine.wrap(function (self)
     each(self, t)
-  end)
+  end), self
 end
 
 local function tree()
