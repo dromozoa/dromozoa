@@ -99,16 +99,16 @@ local function delete(self, x, t, ok, last, deleted)
     end
 
     -- 2. At the bottom of the tree we remove the element (if it is present).
-    if t == last and deleted ~= nil and x == K[deleted] then
+    if t == last and deleted ~= 0 and x == K[deleted] then
       K[deleted] = K[t]
-      deleted = nil
+      deleted = 0
       t = R[t]
       -- dispse(last)
       L[last] = nil
       R[last] = nil
       K[last] = nil
       N[last] = nil
-      last = nil
+      last = 0
       ok = true
 
     -- 3. On the way back, we rebalance.
@@ -149,7 +149,7 @@ function class:insert(key)
 end
 
 function class:delete(key)
-  local root, ok = delete(self, key, self.root, false)
+  local root, ok = delete(self, key, self.root, false, 0, 0)
   self.root = root
   return self
 end
@@ -236,7 +236,7 @@ for k in self:each() do
 end
 assert(table.concat(buffer, ",") == "1,2,4,5,6,7,8,9,10,11,12,13,14,15,16")
 
--- print(dumper.encode(self, { stable = true, pretty = true }))
+print(dumper.encode(self, { stable = true, pretty = true }))
 
 for i = 1, 16 do
   if i ~= 3 then
