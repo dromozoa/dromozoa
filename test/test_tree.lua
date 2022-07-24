@@ -50,7 +50,7 @@ local function split(self, t)
   return t
 end
 
-local function insert(self, x, t, ok)
+local function insert(self, x, t, ok, last)
   local K = self.K
   local L = self.L
   local R = self.R
@@ -58,32 +58,29 @@ local function insert(self, x, t, ok)
 
   if t == 0 then
     -- new(t)
-    t = (self.n or 0) + 1
-    self.n = t
+    t = self.size + 1
+    self.size = t
     K[t] = x
     L[t] = 0
     R[t] = 0
     N[t] = 1
+
     ok = true
+    last = t
   else
     if x < K[t] then
-      L[t], ok = insert(self, x, L[t], ok)
+      L[t], ok, last = insert(self, x, L[t], ok, last)
     elseif x > K[t] then
-      R[t], ok = insert(self, x, R[t], ok)
+      R[t], ok, last = insert(self, x, R[t], ok, last)
     else
       ok = false
+      last = t
     end
     t = skew(self, t)
     t = split(self, t)
   end
 
-  return t, ok
-end
-
-function class:insert(key)
-  local root, ok = insert(self, key, self.root, false)
-  self.root = root
-  return self
+  return t, ok, last
 end
 
 local function delete(self, x, t, ok, last, deleted)
@@ -109,12 +106,7 @@ local function delete(self, x, t, ok, last, deleted)
       K[deleted] = K[t]
       deleted = 0
       t = R[t]
-      -- dispse(last)
-      L[last] = nil
-      R[last] = nil
-      K[last] = nil
-      N[last] = nil
-      last = 0
+      -- dispose(last)
       ok = true
 
     -- 3. On the way back, we rebalance.
@@ -136,16 +128,75 @@ local function delete(self, x, t, ok, last, deleted)
   return t, ok, last, deleted
 end
 
-function class:delete(key)
-  local root, ok = delete(self, key, self.root, false, 0, 0)
+local function dispose(self, t)
+  local K = self.K
+  local L = self.L
+  local R = self.R
+  local N = self.N
+
+  -- 削除したポインタと最後尾のポインタを入れ替える
+  local u = self.size
+  self.size = u - 1
+
+  -- 削除したポインタが最後尾のポインタの場合、参照の付け替えは不要
+  if t ~= u then
+    local v = self.root
+    if v == u then
+      self.root = t
+    else
+      while v ~= 0 do
+        if L[v] == u then
+          L[v] = t
+          break
+        elseif R[v] == u then
+          R[v] = t
+          break
+        elseif K[u] < K[v] then
+          v = L[v]
+        elseif K[u] > K[v] then
+          v = R[v]
+        else
+          error "algorithm error"
+        end
+      end
+    end
+
+    K[t] = K[u]
+    L[t] = L[u]
+    R[t] = R[u]
+    N[t] = N[u]
+  end
+
+  K[u] = nil
+  L[u] = nil
+  R[u] = nil
+  N[u] = nil
+
+  return u
+end
+
+function class:insert(key)
+  local root, ok, last = insert(self, key, self.root, false, 0)
   self.root = root
   return self
 end
 
+function class:delete(key)
+  local root, ok, last = delete(self, key, self.root, false, 0, 0)
+  self.root = root
+  if ok then
+    local u = dispose(self, last)
+    -- V[u] = nil
+  end
+
+  -- self.root = root
+  return self
+end
+
 local function each(self, t)
+  local K = self.K
   local L = self.L
   local R = self.R
-  local K = self.K
 
   if t ~= 0 then
     each(self, L[t])
@@ -182,6 +233,7 @@ local function tree()
     R = { [0] = 0 };
     N = { [0] = 0 };
     root = 0;
+    size = 0;
   }, metatable)
 end
 
