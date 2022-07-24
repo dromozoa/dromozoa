@@ -23,7 +23,7 @@ local dumper = require "dromozoa.commons.dumper"
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.tree" }
 
-local function skew(t)
+function class:skew(t)
   assert(t ~= nil and t.level ~= 0)
   if t.left == nil then
     -- skip
@@ -40,7 +40,7 @@ local function skew(t)
   return t
 end
 
-local function split(t)
+function class:split(t)
   assert(t ~= nil and t.level ~= 0)
   if t.right == nil or t.right.right == nil then
     -- skip
@@ -59,32 +59,32 @@ local function split(t)
   return t
 end
 
-local function insert(self, x, t)
+function class:insert(x, t)
   if t == nil then
     t = { key = x, level = 1 }
   else
     if x < t.key then
-      t.left = insert(self, x, t.left)
+      t.left = self:insert(x, t.left)
     elseif x > t.key then
-      t.right = insert(self, x, t.right)
+      t.right = self:insert(x, t.right)
     else
       error "ok = false"
     end
-    t = skew(t)
-    t = split(t)
+    t = self:skew(t)
+    t = self:split(t)
   end
   return t
 end
 
-local function delete(self, x, t)
+function class:delete(x, t)
   if t ~= nil then
     -- 1. Search down the tree and set pointers last and deleted.
     self.last = t
     if x < t.key then
-      t.left = delete(self, x, t.left)
+      t.left = self:delete(x, t.left)
     else
       self.deleted = t
-      t.right = delete(self, x, t.right)
+      t.right = self:delete(x, t.right)
     end
 
     -- 2. At the bottom of the tree we remove the element (if it is present).
@@ -115,18 +115,18 @@ local function delete(self, x, t)
         if (t.right ~= nil and t.right.level or 0) > t.level then
           t.right.level = t.level
         end
-        t = skew(t)
+        t = self:skew(t)
         if t.right ~= nil then
-          t.right = skew(t.right)
+          t.right = self:skew(t.right)
         end
         if t.right ~= nil then
           if t.right.right ~= nil then
-            t.right.right = skew(t.right.right)
+            t.right.right = self:skew(t.right.right)
           end
         end
-        t = split(t)
+        t = self:split(t)
         if t.right ~= nil then
-          t.right = split(t.right)
+          t.right = self:split(t.right)
         end
       end
     end
@@ -160,13 +160,13 @@ end
 local root = tree()
 local u = nil
 for i = 1, 16 do
-  u = insert(root, i, u)
+  u = root:insert(i, u)
 end
 dump(root, u)
 
 io.write "----\n"
 
-u = delete(root, 3, u)
+u = root:delete(3, u)
 dump(root, u)
 
 io.write "====\n"
@@ -174,11 +174,11 @@ io.write "====\n"
 local root = tree()
 local u = nil
 for i = 16, 1, -1 do
-  u = insert(root, i, u)
+  u = root:insert(i, u)
 end
 dump(root, u)
 
 io.write "----\n"
 
-u = delete(root, 3, u)
+u = root:delete(3, u)
 dump(root, u)
