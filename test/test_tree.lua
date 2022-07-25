@@ -195,7 +195,7 @@ end
 
 ---------------------------------------------------------------------------
 
-local function tree_next(self, x, t, k)
+local function next(self, x, t, k)
   if t ~= 0 then
     local K = self.K
     local L = self.L
@@ -203,14 +203,14 @@ local function tree_next(self, x, t, k)
     local comp = self.comp
 
     if comp(x, K[t]) then
-      k = tree_next(self, x, L[t], k)
+      k = next(self, x, L[t], k)
       if k == nil then
         return K[t]
       else
         return k
       end
     end
-    return tree_next(self, x, R[t], k)
+    return next(self, x, R[t], k)
   end
 
   return k
@@ -228,20 +228,22 @@ local function each(self, t)
   end
 end
 
-local function lower_bound(self, x, t)
+local function each_range(self, t, x, y)
   if t ~= 0 then
     local K = self.K
     local L = self.L
     local R = self.R
     local comp = self.comp
 
-    if comp(x, K[t]) then
-      lower_bound(self, x, L[t])
-      coroutine.yield(K[t])
-    elseif not comp(K[t], x) then
-      coroutine.yield(K[t])
+    if y == nil or comp(K[t], y) then
+      if x == nil or comp(x, K[t]) then
+        each_range(self, L[t], x, y)
+        coroutine.yield(K[t])
+      elseif not comp(K[t], x) then
+        coroutine.yield(K[t])
+      end
+      return each_range(self, R[t], x, y)
     end
-    return lower_bound(self, x, R[t])
   end
 end
 
@@ -268,18 +270,18 @@ function class:find(key)
   return find(self, key)
 end
 
-function class:each()
-  return coroutine.wrap(each), self, self.root
+function class:each(lower_bound, upper_bound)
+  if lower_bound == nil and upper_bound == nil then
+    return coroutine.wrap(each), self, self.root
+  else
+    return coroutine.wrap(function (self, t)
+      return each_range(self, t, lower_bound, upper_bound)
+    end), self, self.root
+  end
 end
 
-function class:lower_bound(x)
-  return coroutine.wrap(function (self, t)
-    lower_bound(self, x, t)
-  end), self, self.root
-end
-
-function class:tree_next(x)
-  return tree_next(self, x, self.root)
+function class:next(x)
+  return next(self, x, self.root)
 end
 
 ---------------------------------------------------------------------------
@@ -355,28 +357,40 @@ assert(table.concat(buffer, ",") == "1,2,4,5,6,7,8,9,10,11,12,13,14,15,16")
 
 
 local buffer = {}
-for k in self:lower_bound(10) do
+for k in self:each(10) do
   buffer[#buffer + 1] = k
 end
 assert(table.concat(buffer, ",") == "10,11,12,13,14,15,16")
 
 local buffer = {}
-for k in self:lower_bound(10.5) do
+for k in self:each(10.5) do
   buffer[#buffer + 1] = k
 end
 assert(table.concat(buffer, ",") == "11,12,13,14,15,16")
 
-assert(self:tree_next(0) == 1)
-assert(self:tree_next(1) == 2)
-assert(self:tree_next(2) == 4)
-assert(self:tree_next(3) == 4)
-assert(self:tree_next(4) == 5)
-assert(self:tree_next(10) == 11)
-assert(self:tree_next(10.5) == 11)
-assert(self:tree_next(11) == 12)
-assert(self:tree_next(15) == 16)
-assert(self:tree_next(16) == nil)
-assert(self:tree_next(17) == nil)
+local buffer = {}
+for k in self:each(10, 15) do
+  buffer[#buffer + 1] = k
+end
+assert(table.concat(buffer, ",") == "10,11,12,13,14")
+
+local buffer = {}
+for k in self:each(10.5, 15.5) do
+  buffer[#buffer + 1] = k
+end
+assert(table.concat(buffer, ",") == "11,12,13,14,15")
+
+assert(self:next(0) == 1)
+assert(self:next(1) == 2)
+assert(self:next(2) == 4)
+assert(self:next(3) == 4)
+assert(self:next(4) == 5)
+assert(self:next(10) == 11)
+assert(self:next(10.5) == 11)
+assert(self:next(11) == 12)
+assert(self:next(15) == 16)
+assert(self:next(16) == nil)
+assert(self:next(17) == nil)
 
 print(dumper.encode(self, { stable = true, pretty = true }))
 
