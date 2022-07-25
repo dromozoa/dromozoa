@@ -210,10 +210,22 @@ assert(m.bar == nil)
 assert(m.baz == 3)
 assert(m.qux == 4)
 
+local orig_pairs = pairs
+local function pairs(x)
+  local metatable = getmetatable(x)
+  if metatable.__pairs ~= nil then
+    local a, b, c = metatable.__pairs(x)
+    return a, b, c
+  else
+    return next, x, nil
+  end
+end
+
 local buffer = {}
 for k, v in pairs(m) do
   buffer[#buffer + 1] = k .. "=" .. v
 end
+-- print(table.concat(buffer, ";"))
 assert(table.concat(buffer, ";") == "baz=3;foo=1;qux=4")
 
 local buffer = {}
@@ -221,4 +233,5 @@ for k, v in pairs(m) do
   buffer[#buffer + 1] = k .. "=" .. v
   m[k] = nil
 end
+-- print(table.concat(buffer, ";"))
 assert(table.concat(buffer, ";") == "baz=3;foo=1;qux=4")
