@@ -18,39 +18,15 @@
 -- https://github.com/aidansteele/osx-abi-macho-file-format-reference
 -- https://developers.wonderpla.net/entry/2021/03/19/105503
 
-local dumper = require "dromozoa.commons.dumper"
 local tree = require "dromozoa.tree"
 local tree_map = require "dromozoa.tree_map"
 
 ---------------------------------------------------------------------------
 
-local function dump(self, t, n, k)
-  if k == nil then
-    k = "/"
-  end
-  if n == nil then
-    n = 0
-  else
-    n = n + 1
-  end
-  -- io.write(("  "):rep(n), k, " ", tostring(t), " ", t.level, " / ", tostring(t.key), "\n")
-  io.write(("  "):rep(n), k, " ", tostring(self.K[t]), "\n")
-  -- io.write(("  "):rep(n), k, " ", tostring(self.K[t]), "=", tostring(self.V[t]), "\n")
-  if self.L[t] ~= 0 then
-    dump(self, self.L[t], n, "L")
-  end
-  if self.R[t] ~= 0 then
-    dump(self, self.R[t], n, "R")
-  end
-end
-
 local self = tree()
 for i = 1, 16 do
   self:insert(i, i*2)
 end
-dump(self, self.root)
-
-io.write "----\n"
 
 local buffer = {}
 for k, v in self:each() do
@@ -61,7 +37,6 @@ assert(table.concat(buffer, ",") == "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16")
 self:insert(3, 6)
 
 self:delete(3)
-dump(self, self.root)
 
 self:delete(3)
 
@@ -122,8 +97,6 @@ for k, v in tree.next, self do
   assert(v == k*2)
 end
 
-print(dumper.encode(self, { stable = true, pretty = true }))
-
 for i = 1, 16 do
   if i ~= 3 then
     self:delete(i)
@@ -131,18 +104,12 @@ for i = 1, 16 do
 end
 assert(self.root == 0)
 
-io.write "====\n"
-
 local self = tree()
 for i = 16, 1, -1 do
   self:insert(i, i*3)
 end
-dump(self, self.root)
-
-io.write "----\n"
 
 self:delete(3)
-dump(self, self.root)
 
 for i = 1, 16 do
   if i ~= 3 then
@@ -185,7 +152,6 @@ local buffer = {}
 for k, v in pairs(m) do
   buffer[#buffer + 1] = k .. "=" .. v
 end
--- print(table.concat(buffer, ";"))
 assert(table.concat(buffer, ";") == "baz=3;foo=1;qux=4")
 
 local buffer = {}
@@ -193,5 +159,4 @@ for k, v in pairs(m) do
   buffer[#buffer + 1] = k .. "=" .. v
   m[k] = nil
 end
--- print(table.concat(buffer, ";"))
 assert(table.concat(buffer, ";") == "baz=3;foo=1;qux=4")
