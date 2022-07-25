@@ -298,6 +298,12 @@ local metatable = { __index = class, __name = "dromozoa.tree.map" }
 
 local private = { __mode = "k" }
 
+local function tree_map(comp)
+  local self = setmetatable({}, metatable)
+  private[self] = tree(comp)
+  return self
+end
+
 function metatable:__index(key)
   local _, value = private[self]:find(key)
   return value
@@ -311,14 +317,21 @@ function metatable:__newindex(key, value)
   end
 end
 
-function metatable:__pairs()
-  return class.next, private[self]
+function metatable:__call(key, fn)
+  local value = self[key]
+  if value == nil then
+    if fn == nil then
+      value = tree_map()
+    else
+      value = fn()
+    end
+    self[key] = value
+  end
+  return value
 end
 
-local function tree_map(comp)
-  local self = setmetatable({}, metatable)
-  private[self] = tree(comp)
-  return self
+function metatable:__pairs()
+  return class.next, private[self]
 end
 
 ---------------------------------------------------------------------------
