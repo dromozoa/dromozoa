@@ -20,48 +20,7 @@
 
 local dumper = require "dromozoa.commons.dumper"
 local tree = require "dromozoa.tree"
-
----------------------------------------------------------------------------
-
-local metatable = { __index = class, __name = "dromozoa.tree.map" }
-
-local private = { __mode = "k" }
-
-local function tree_map(comp)
-  local self = setmetatable({}, metatable)
-  private[self] = tree(comp)
-  return self
-end
-
-function metatable:__index(key)
-  local _, value = private[self]:find(key)
-  return value
-end
-
-function metatable:__newindex(key, value)
-  if value == nil then
-    private[self]:delete(key)
-  else
-    private[self]:insert(key, value)
-  end
-end
-
-function metatable:__call(key, fn)
-  local value = self[key]
-  if value == nil then
-    if fn == nil then
-      value = tree_map()
-    else
-      value = fn()
-    end
-    self[key] = value
-  end
-  return value
-end
-
-function metatable:__pairs()
-  return tree.next, private[self]
-end
+local tree_map = require "dromozoa.tree_map"
 
 ---------------------------------------------------------------------------
 
@@ -200,15 +159,16 @@ m.foo = 1
 m.bar = 2
 m.baz = 3
 m.qux = 4
-assert(private[m].size == 4)
+assert(m().size == 4)
 
 m.bar = nil
-assert(private[m].size == 3)
+assert(m().size == 3)
 
 assert(m.foo == 1)
 assert(m.bar == nil)
 assert(m.baz == 3)
 assert(m.qux == 4)
+assert(m[nil] == nil)
 
 local orig_pairs = pairs
 local function pairs(x)
