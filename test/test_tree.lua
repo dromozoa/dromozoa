@@ -23,6 +23,8 @@ local dumper = require "dromozoa.commons.dumper"
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.tree" }
 
+---------------------------------------------------------------------------
+
 local function skew(self, t)
   local L = self.L
   local R = self.R
@@ -127,6 +129,8 @@ local function delete(self, x, t, ok, last, deleted)
   return t, ok, last, deleted
 end
 
+---------------------------------------------------------------------------
+
 local function dispose(self, t)
   local K = self.K
   local L = self.L
@@ -134,11 +138,9 @@ local function dispose(self, t)
   local N = self.N
   local comp = self.comp
 
-  -- 削除したポインタと最後尾のポインタを入れ替える
   local u = self.size
   self.size = u - 1
 
-  -- 削除したポインタが最後尾のポインタの場合、参照の付け替えは不要
   if t ~= u then
     local v = self.root
     if v == u then
@@ -153,10 +155,8 @@ local function dispose(self, t)
           break
         elseif comp(K[u], K[v]) then
           v = L[v]
-        elseif comp(K[v], K[u]) then
-          v = R[v]
         else
-          error "algorithm error"
+          v = R[v]
         end
       end
     end
@@ -175,17 +175,77 @@ local function dispose(self, t)
   return u
 end
 
-local function each(self, t)
+local function find(self, x)
   local K = self.K
   local L = self.L
   local R = self.R
+  local comp = self.comp
 
+  local t = self.root
+  while t ~= 0 do
+    if comp(x, K[t]) then
+      t = L[t]
+    elseif comp(K[t], x) then
+      t = R[t]
+    else
+      return K[t]
+    end
+  end
+end
+
+---------------------------------------------------------------------------
+
+local function tree_next(self, x, t, k)
   if t ~= 0 then
+    local K = self.K
+    local L = self.L
+    local R = self.R
+    local comp = self.comp
+
+    if comp(x, K[t]) then
+      k = tree_next(self, x, L[t], k)
+      if k == nil then
+        return K[t]
+      else
+        return k
+      end
+    end
+    return tree_next(self, x, R[t], k)
+  end
+
+  return k
+end
+
+local function each(self, t)
+  if t ~= 0 then
+    local K = self.K
+    local L = self.L
+    local R = self.R
+
     each(self, L[t])
     coroutine.yield(K[t])
     return each(self, R[t])
   end
 end
+
+local function lower_bound(self, x, t)
+  if t ~= 0 then
+    local K = self.K
+    local L = self.L
+    local R = self.R
+    local comp = self.comp
+
+    if comp(x, K[t]) then
+      lower_bound(self, x, L[t])
+      coroutine.yield(K[t])
+    elseif not comp(K[t], x) then
+      coroutine.yield(K[t])
+    end
+    return lower_bound(self, x, R[t])
+  end
+end
+
+---------------------------------------------------------------------------
 
 function class:insert(key)
   local root, ok, last = insert(self, key, self.root, false, 0)
@@ -204,44 +264,12 @@ function class:delete(key)
   return self
 end
 
+function class:find(key)
+  return find(self, key)
+end
+
 function class:each()
   return coroutine.wrap(each), self, self.root
-end
-
-function class:find(x)
-  local L = self.L
-  local R = self.R
-  local K = self.K
-  local comp = self.comp
-
-  local t = self.root
-  while t ~= 0 do
-    if comp(x, K[t]) then
-      t = L[t]
-    elseif comp(K[t], x) then
-      t = R[t]
-    else
-      return K[t]
-    end
-  end
-end
-
--- x以上の最小の要素を探して、イテレーションする
-local function lower_bound(self, x, t)
-  local K = self.K
-  local L = self.L
-  local R = self.R
-  local comp = self.comp
-
-  if t ~= 0 then
-    if comp(x, K[t]) then
-      lower_bound(self, x, L[t])
-      coroutine.yield(K[t])
-    elseif not comp(K[t], x) then
-      coroutine.yield(K[t])
-    end
-    return lower_bound(self, x, R[t])
-  end
 end
 
 function class:lower_bound(x)
@@ -250,30 +278,11 @@ function class:lower_bound(x)
   end), self, self.root
 end
 
-local function tree_next(self, x, t, k)
-  if t ~= 0 then
-    local K = self.K
-    local L = self.L
-    local R = self.R
-    local comp = self.comp
-
-    if comp(x, K[t]) then
-      k = tree_next(self, x, L[t], k)
-      if k == nil then -- 見つからなかったか、kが等しいものが見つかった
-        return K[t]
-      else -- kが大きいものが見つかった
-        return k
-      end
-    end
-    return tree_next(self, x, R[t], k)
-  end
-
-  return k
-end
-
 function class:tree_next(x)
   return tree_next(self, x, self.root)
 end
+
+---------------------------------------------------------------------------
 
 local function tree(comp)
   if comp == nil then
@@ -290,6 +299,8 @@ local function tree(comp)
     comp = comp;
   }, metatable)
 end
+
+---------------------------------------------------------------------------
 
 local function dump(self, t, n, k)
   if k == nil then
