@@ -256,12 +256,12 @@ function class:lower_bound(x)
 end
 
 local function tree_next(self, x, t, k)
-  local K = self.K
-  local L = self.L
-  local R = self.R
-  local comp = self.comp
-
   if t ~= 0 then
+    local K = self.K
+    local L = self.L
+    local R = self.R
+    local comp = self.comp
+
     if comp(x, K[t]) then
       k = tree_next(self, x, L[t], k)
       if k == nil then -- 見つからなかったか、kが等しいものが見つかった
@@ -277,8 +277,7 @@ local function tree_next(self, x, t, k)
 end
 
 function class:tree_next(x)
-  local k = tree_next(self, x, self.root)
-  return k
+  return tree_next(self, x, self.root)
 end
 
 local function tree(comp)
