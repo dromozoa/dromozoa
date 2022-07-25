@@ -231,6 +231,30 @@ function class:find(x)
   end
 end
 
+-- x以上の最小の要素を探して、イテレーションする
+local function lower_bound(self, x, t)
+  local K = self.K
+  local L = self.L
+  local R = self.R
+  local comp = self.comp
+
+  if t ~= 0 then
+    if comp(x, K[t]) then
+      lower_bound(self, x, L[t])
+      coroutine.yield(K[t])
+    elseif not comp(K[t], x) then
+      coroutine.yield(K[t])
+    end
+    lower_bound(self, x, R[t])
+  end
+end
+
+function class:lower_bound(x)
+  return coroutine.wrap(function (self, t)
+    lower_bound(self, x, t)
+  end), self, self.root
+end
+
 local function tree(comp)
   if comp == nil then
     comp = function (a, b) return a < b end
@@ -297,6 +321,19 @@ for k in self:each() do
   buffer[#buffer + 1] = k
 end
 assert(table.concat(buffer, ",") == "1,2,4,5,6,7,8,9,10,11,12,13,14,15,16")
+
+
+local buffer = {}
+for k in self:lower_bound(10) do
+  buffer[#buffer + 1] = k
+end
+assert(table.concat(buffer, ",") == "10,11,12,13,14,15,16")
+
+local buffer = {}
+for k in self:lower_bound(10.5) do
+  buffer[#buffer + 1] = k
+end
+assert(table.concat(buffer, ",") == "11,12,13,14,15,16")
 
 print(dumper.encode(self, { stable = true, pretty = true }))
 
