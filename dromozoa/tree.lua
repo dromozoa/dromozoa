@@ -222,13 +222,18 @@ local function each(self, x, y, t)
     local R = self.R
     local comp = self.comp
 
-    if y == nil or comp(K[t], y) then
-      if x == nil or comp(x, K[t]) then
-        each(self, x, y, L[t])
-        coroutine.yield(K[t], V[t])
-      elseif not comp(K[t], x) then
+    -- TODO refactoring
+    if x == nil or comp(x, K[t]) then
+      each(self, x, y, L[t])
+      if y == nil or comp(K[t], y) then
         coroutine.yield(K[t], V[t])
       end
+    elseif not comp(K[t], x) then
+      if y == nil or comp(K[t], y) then
+        coroutine.yield(K[t], V[t])
+      end
+    end
+    if y == nil or comp(K[t], y) then
       return each(self, x, y, R[t])
     end
   end

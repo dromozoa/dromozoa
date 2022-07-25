@@ -23,140 +23,163 @@ local tree_map = require "dromozoa.tree_map"
 
 ---------------------------------------------------------------------------
 
-local self = tree()
-for i = 1, 16 do
-  self:insert(i, i*2)
+local t = tree()
+for i = 1, 256 do
+  assert(t:insert(i, i * 2))
 end
+assert(t.size == 256)
 
-local buffer = {}
-for k, v in self:each() do
-  buffer[#buffer + 1] = k
+local i = 0
+for k, v in t:each() do
+  i = i + 1
+  assert(k == i)
+  assert(v == i * 2)
 end
-assert(table.concat(buffer, ",") == "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16")
+assert(i == 256)
 
-self:insert(3, 6)
-
-self:delete(3)
-
-self:delete(3)
-
-assert(self:find(1))
-assert(self:find(2))
-assert(not self:find(3))
-assert(self:find(4))
-
-local buffer = {}
-for k, v in self:each() do
-  buffer[#buffer + 1] = k
+local i = 0
+for k, v in t.next, t do
+  i = i + 1
+  assert(k == i)
+  assert(v == i * 2)
 end
-assert(table.concat(buffer, ",") == "1,2,4,5,6,7,8,9,10,11,12,13,14,15,16")
+assert(i == 256)
 
-
-local buffer = {}
-for k, v in self:each(10) do
-  buffer[#buffer + 1] = k
-  assert(v == k*2)
-end
-assert(table.concat(buffer, ",") == "10,11,12,13,14,15,16")
-
-local buffer = {}
-for k, v in self:each(10.5) do
-  buffer[#buffer + 1] = k
-  assert(v == k*2)
-end
-assert(table.concat(buffer, ",") == "11,12,13,14,15,16")
-
-local buffer = {}
-for k, v in self:each(10, 15) do
-  buffer[#buffer + 1] = k
-  assert(v == k*2)
-end
-assert(table.concat(buffer, ",") == "10,11,12,13,14")
-
-local buffer = {}
-for k, v in self:each(10.5, 15.5) do
-  buffer[#buffer + 1] = k
-  assert(v == k*2)
-end
-assert(table.concat(buffer, ",") == "11,12,13,14,15")
-
-assert(self:next(nil) == 1)
-assert(self:next(0) == 1)
-assert(self:next(1) == 2)
-assert(self:next(2) == 4)
-assert(self:next(3) == 4)
-assert(self:next(4) == 5)
-assert(self:next(10) == 11)
-assert(self:next(10.5) == 11)
-assert(self:next(11) == 12)
-assert(self:next(15) == 16)
-assert(self:next(16) == nil)
-assert(self:next(17) == nil)
-
-for k, v in tree.next, self do
-  assert(v == k*2)
-end
-
-for i = 1, 16 do
-  if i ~= 3 then
-    self:delete(i)
+local i = 0
+for k, v in t.next, t do
+  i = i + 1
+  assert(k == i)
+  assert(v == i * 2)
+  if k % 2 == 1 then
+    assert(t:delete(k))
   end
 end
-assert(self.root == 0)
+assert(i == 256)
+assert(t.size == 128)
 
-local self = tree()
-for i = 16, 1, -1 do
-  self:insert(i, i*3)
-end
-
-self:delete(3)
-
-for i = 1, 16 do
-  if i ~= 3 then
-    self:delete(i)
+for i = 1, 256 do
+  local k, v = t:find(i)
+  if i % 2 == 1 then
+    assert(k == nil)
+    assert(v == nil)
+  else
+    assert(k == i)
+    assert(v == i * 2)
   end
 end
-assert(self.root == 0)
+
+local i = 0
+for k, v in t:each(nil, 6) do
+  i = i + 2
+  assert(k == i)
+  assert(v == i * 2)
+end
+assert(i == 4)
+
+local i = 0
+for k, v in t:each(nil, 5) do
+  i = i + 2
+  assert(k == i)
+  assert(v == i * 2)
+end
+assert(i == 4)
+
+local i = 60
+for k, v in t:each(61, 65) do
+  i = i + 2
+  assert(k == i)
+  assert(v == i * 2)
+end
+assert(i == 64)
+
+local i = 124
+for k, v in t:each(126, 130) do
+  i = i + 2
+  assert(k == i)
+  assert(v == i * 2)
+end
+assert(i == 128)
+
+local i = 188
+for k, v in t:each(189, 193) do
+  i = i + 2
+  assert(k == i)
+  assert(v == i * 2)
+end
+assert(i == 192)
+
+local i = 252
+for k, v in t:each(253) do
+  i = i + 2
+  assert(k == i)
+  assert(v == i * 2)
+end
+assert(i == 256)
+
+local i = 252
+for k, v in t:each(254) do
+  i = i + 2
+  assert(k == i)
+  assert(v == i * 2)
+end
+assert(i == 256)
+
+local i = 0
+for k, v in t.next, t do
+  i = i + 2
+  assert(k == i)
+  assert(v == i * 2)
+  assert(t:delete(k))
+end
+assert(i == 256)
+assert(t.size == 0)
 
 ---------------------------------------------------------------------------
 
-local m = tree_map()
+local t = tree_map()
 
-m.foo = 1
-m.bar = 2
-m.baz = 3
-m.qux = 4
-assert(m().size == 4)
+t.foo = 1
+t.bar = 2
+t.baz = 3
+t.qux = 4
+assert(t().size == 4)
 
-m.bar = nil
-assert(m().size == 3)
+t.bar = nil
+assert(t().size == 3)
 
-assert(m.foo == 1)
-assert(m.bar == nil)
-assert(m.baz == 3)
-assert(m.qux == 4)
-assert(m[nil] == nil)
+assert(t.foo == 1)
+assert(t.bar == nil)
+assert(t.baz == 3)
+assert(t.qux == 4)
+assert(t[nil] == nil)
 
-local orig_pairs = pairs
-local function pairs(x)
-  local metatable = getmetatable(x)
-  if metatable.__pairs ~= nil then
-    local a, b, c = metatable.__pairs(x)
-    return a, b, c
-  else
-    return next, x, nil
+local function pairs(t)
+  return getmetatable(t).__pairs(t)
+end
+
+local buffer = {}
+for k, v in pairs(t) do
+  buffer[#buffer + 1] = k .. "=" .. v
+end
+assert(table.concat(buffer, ";") == "baz=3;foo=1;qux=4")
+
+local buffer = {}
+for k, v in pairs(t) do
+  buffer[#buffer + 1] = k .. "=" .. v
+  t[k] = nil
+end
+assert(table.concat(buffer, ";") == "baz=3;foo=1;qux=4")
+
+local t = tree_map(function (a, b)
+  local t = type(a)
+  local u = type(b)
+  if t ~= u then
+    return t < u
   end
-end
+  return a < b
+end)
+t"foo""bar".baz = 42
+assert(t.foo.bar.baz == 42)
 
-local buffer = {}
-for k, v in pairs(m) do
-  buffer[#buffer + 1] = k .. "=" .. v
-end
-assert(table.concat(buffer, ";") == "baz=3;foo=1;qux=4")
-
-local buffer = {}
-for k, v in pairs(m) do
-  buffer[#buffer + 1] = k .. "=" .. v
-  m[k] = nil
-end
-assert(table.concat(buffer, ";") == "baz=3;foo=1;qux=4")
+t(1)(2)(3)[4] = "qux"
+assert(t[1][2][3][4] == "qux")
