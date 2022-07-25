@@ -228,15 +228,11 @@ local function each(self, x, y, t)
         coroutine.yield(K[t], V[t])
         return each(self, x, y, R[t])
       end
-    elseif not comp(K[t], x) then
-      if y == nil or comp(K[t], y) then
+    elseif y == nil or comp(K[t], y) then
+      if not comp(K[t], x) then
         coroutine.yield(K[t], V[t])
-        return each(self, x, y, R[t])
       end
-    else
-      if y == nil or comp(K[t], y) then
-        return each(self, x, y, R[t])
-      end
+      return each(self, x, y, R[t])
     end
   end
 end
