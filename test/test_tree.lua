@@ -133,6 +133,7 @@ end
 
 local function dispose(self, t)
   local K = self.K
+  local V = self.V
   local L = self.L
   local R = self.R
   local N = self.N
@@ -162,21 +163,22 @@ local function dispose(self, t)
     end
 
     K[t] = K[u]
+    V[t] = V[u]
     L[t] = L[u]
     R[t] = R[u]
     N[t] = N[u]
   end
 
   K[u] = nil
+  V[u] = nil
   L[u] = nil
   R[u] = nil
   N[u] = nil
-
-  return u
 end
 
 local function find(self, x)
   local K = self.K
+  local V = self.V
   local L = self.L
   local R = self.R
   local comp = self.comp
@@ -188,70 +190,71 @@ local function find(self, x)
     elseif comp(K[t], x) then
       t = R[t]
     else
-      return K[t]
+      return K[t], V[t]
     end
   end
 end
 
 ---------------------------------------------------------------------------
 
-local function next(self, x, t, k)
+local function next(self, x, t, k, v)
   if t ~= 0 then
     local K = self.K
+    local V = self.V
     local L = self.L
     local R = self.R
     local comp = self.comp
 
-    if comp(x, K[t]) then
-      k = next(self, x, L[t], k)
+    if x == nil or comp(x, K[t]) then
+      k, v = next(self, x, L[t], k, v)
       if k == nil then
-        return K[t]
+        return K[t], V[t]
       else
-        return k
+        return k, v
       end
     end
-    return next(self, x, R[t], k)
+    return next(self, x, R[t], k, v)
   end
 
-  return k
+  return k, v
 end
 
-local function each(self, t, a, b)
+local function each(self, x, y, t)
   if t ~= 0 then
     local K = self.K
+    local V = self.V
     local L = self.L
     local R = self.R
     local comp = self.comp
 
-    if b == nil or comp(K[t], b) then
-      if a == nil or comp(a, K[t]) then
-        each(self, L[t], a, b)
-        coroutine.yield(K[t])
-      elseif not comp(K[t], a) then
-        coroutine.yield(K[t])
+    if y == nil or comp(K[t], y) then
+      if x == nil or comp(x, K[t]) then
+        each(self, x, y, L[t])
+        coroutine.yield(K[t], V[t])
+      elseif not comp(K[t], x) then
+        coroutine.yield(K[t], V[t])
       end
-      return each(self, R[t], a, b)
+      return each(self, x, y, R[t])
     end
   end
 end
 
 ---------------------------------------------------------------------------
 
-function class:insert(key)
+function class:insert(key, value)
   local root, ok, last = insert(self, key, self.root, false, 0)
   self.root = root
-  -- V[last] = v
-  return self
+  self.V[last] = value
+  return ok
 end
 
 function class:delete(key)
   local root, ok, last = delete(self, key, self.root, false, 0, 0)
   self.root = root
   if ok then
-    local u = dispose(self, last)
-    -- V[u] = nil
+    dispose(self, last)
   end
-  return self
+  return ok
 end
 
 function class:find(key)
@@ -259,12 +262,12 @@ function class:find(key)
 end
 
 function class:next(key)
-  return next(self, key, self.root, nil)
+  return next(self, key, self.root)
 end
 
 function class:each(lower_bound, upper_bound)
   return coroutine.wrap(function (self, t)
-    return each(self, t, lower_bound, upper_bound)
+    return each(self, lower_bound, upper_bound, t)
   end), self, self.root
 end
 
@@ -277,6 +280,7 @@ local function tree(comp)
 
   return setmetatable({
     K = {};
+    V = {};
     L = { [0] = 0 };
     R = { [0] = 0 };
     N = { [0] = 0 };
@@ -309,19 +313,19 @@ end
 
 local self = tree()
 for i = 1, 16 do
-  self:insert(i)
+  self:insert(i, i*2)
 end
 dump(self, self.root)
 
 io.write "----\n"
 
 local buffer = {}
-for k in self:each() do
+for k, v in self:each() do
   buffer[#buffer + 1] = k
 end
 assert(table.concat(buffer, ",") == "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16")
 
-self:insert(3)
+self:insert(3, 6)
 
 self:delete(3)
 dump(self, self.root)
@@ -334,36 +338,41 @@ assert(not self:find(3))
 assert(self:find(4))
 
 local buffer = {}
-for k in self:each() do
+for k, v in self:each() do
   buffer[#buffer + 1] = k
 end
 assert(table.concat(buffer, ",") == "1,2,4,5,6,7,8,9,10,11,12,13,14,15,16")
 
 
 local buffer = {}
-for k in self:each(10) do
+for k, v in self:each(10) do
   buffer[#buffer + 1] = k
+  assert(v == k*2)
 end
 assert(table.concat(buffer, ",") == "10,11,12,13,14,15,16")
 
 local buffer = {}
-for k in self:each(10.5) do
+for k, v in self:each(10.5) do
   buffer[#buffer + 1] = k
+  assert(v == k*2)
 end
 assert(table.concat(buffer, ",") == "11,12,13,14,15,16")
 
 local buffer = {}
-for k in self:each(10, 15) do
+for k, v in self:each(10, 15) do
   buffer[#buffer + 1] = k
+  assert(v == k*2)
 end
 assert(table.concat(buffer, ",") == "10,11,12,13,14")
 
 local buffer = {}
-for k in self:each(10.5, 15.5) do
+for k, v in self:each(10.5, 15.5) do
   buffer[#buffer + 1] = k
+  assert(v == k*2)
 end
 assert(table.concat(buffer, ",") == "11,12,13,14,15")
 
+assert(self:next(nil) == 1)
 assert(self:next(0) == 1)
 assert(self:next(1) == 2)
 assert(self:next(2) == 4)
@@ -375,6 +384,10 @@ assert(self:next(11) == 12)
 assert(self:next(15) == 16)
 assert(self:next(16) == nil)
 assert(self:next(17) == nil)
+
+for k, v in class.next, self do
+  assert(v == k*2)
+end
 
 print(dumper.encode(self, { stable = true, pretty = true }))
 
@@ -389,7 +402,7 @@ io.write "====\n"
 
 local self = tree()
 for i = 16, 1, -1 do
-  self:insert(i)
+  self:insert(i, i*3)
 end
 dump(self, self.root)
 
@@ -400,7 +413,7 @@ dump(self, self.root)
 
 for i = 1, 16 do
   if i ~= 3 then
-    self:delete(i, u)
+    self:delete(i)
   end
 end
 assert(self.root == 0)
