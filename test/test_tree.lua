@@ -175,6 +175,18 @@ local function dispose(self, t)
   return u
 end
 
+local function each(self, t)
+  local K = self.K
+  local L = self.L
+  local R = self.R
+
+  if t ~= 0 then
+    each(self, L[t])
+    coroutine.yield(K[t])
+    return each(self, R[t])
+  end
+end
+
 function class:insert(key)
   local root, ok, last = insert(self, key, self.root, false, 0)
   self.root = root
@@ -190,18 +202,6 @@ function class:delete(key)
     -- V[u] = nil
   end
   return self
-end
-
-local function each(self, t)
-  local K = self.K
-  local L = self.L
-  local R = self.R
-
-  if t ~= 0 then
-    each(self, L[t])
-    coroutine.yield(K[t])
-    each(self, R[t])
-  end
 end
 
 function class:each()
@@ -240,7 +240,7 @@ local function lower_bound(self, x, t)
     elseif not comp(K[t], x) then
       coroutine.yield(K[t])
     end
-    lower_bound(self, x, R[t])
+    return lower_bound(self, x, R[t])
   end
 end
 
@@ -265,7 +265,7 @@ local function tree_next(self, x, t, k)
         return k
       end
     end
-    k = tree_next(self, x, R[t], k)
+    return tree_next(self, x, R[t], k)
   end
 
   return k
