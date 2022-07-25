@@ -152,6 +152,8 @@ assert(t.bar == nil)
 assert(t.baz == 3)
 assert(t.qux == 4)
 assert(t[nil] == nil)
+assert(t.compare == nil)
+assert(t.size == nil)
 
 local function pairs(t)
   return getmetatable(t).__pairs(t)
@@ -162,6 +164,18 @@ for k, v in pairs(t) do
   buffer[#buffer + 1] = k .. "=" .. v
 end
 assert(table.concat(buffer, ";") == "baz=3;foo=1;qux=4")
+
+local buffer = {}
+for k, v in t():each("c") do
+  buffer[#buffer + 1] = k .. "=" .. v
+end
+assert(table.concat(buffer, ";") == "foo=1;qux=4")
+
+local buffer = {}
+for k, v in t():each(nil, "q") do
+  buffer[#buffer + 1] = k .. "=" .. v
+end
+assert(table.concat(buffer, ";") == "baz=3;foo=1")
 
 local buffer = {}
 for k, v in pairs(t) do

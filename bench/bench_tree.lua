@@ -24,8 +24,12 @@ local N = 100000
 
 local data = {}
 for i = 1, N do
-  data[i] = i .. ("x"):rep(i % 256 + 40) .. i
+  -- data[i] = i .. ("x"):rep(i % 256 + 40) .. i
+  data[i] = i
 end
+
+local t = tree_map()
+-- local t = {}
 
 math.randomseed(42)
 for i = 1, N - 1 do
@@ -49,14 +53,10 @@ collectgarbage()
 local m1 = collectgarbage "count"
 
 local t1 = os.clock()
-
-local t = tree_map()
--- local t = {}
 for i = 1, N do
   local k = data[i]
   t[k] = k
 end
-
 local t2 = os.clock()
 
 collectgarbage()
@@ -67,12 +67,10 @@ io.write(("clock:  %9.3f\n"):format(t2 - t1))
 io.write(("memory: %9.3f\n"):format(m2 - m1))
 
 local t1 = os.clock()
-
 local x = 0
 for k, v in pairs(t) do
-  x = x + #k + #v
+  x = x + 1
 end
-
 local t2 = os.clock()
 
 io.write(("clock:  %9.3f\n"):format(t2 - t1))
@@ -90,12 +88,32 @@ else
 end
 
 local t1 = os.clock()
-
 local x = 0
 for k, v in each(t) do
-  x = x + #k + #v
+  x = x + 1
 end
-
 local t2 = os.clock()
 
 io.write(("clock:  %9.3f\n"):format(t2 - t1))
+
+collectgarbage()
+collectgarbage()
+local m1 = collectgarbage "count"
+
+local t1 = os.clock()
+local x = 0
+for k, v in pairs(t) do
+  x = x + 1
+  if x % 2 == 1 then
+    t[k] = nil
+  end
+end
+local t2 = os.clock()
+
+collectgarbage()
+collectgarbage()
+local m2 = collectgarbage "count"
+
+io.write(("clock:  %9.3f\n"):format(t2 - t1))
+io.write(("memory: %9.3f\n"):format(m2 - m1))
+print(m1, m2)
