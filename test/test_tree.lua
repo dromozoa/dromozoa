@@ -216,19 +216,7 @@ local function next(self, x, t, k)
   return k
 end
 
-local function each(self, t)
-  if t ~= 0 then
-    local K = self.K
-    local L = self.L
-    local R = self.R
-
-    each(self, L[t])
-    coroutine.yield(K[t])
-    return each(self, R[t])
-  end
-end
-
-local function each_range(self, t, x, y)
+local function each(self, t, x, y)
   if t ~= 0 then
     local K = self.K
     local L = self.L
@@ -237,12 +225,12 @@ local function each_range(self, t, x, y)
 
     if y == nil or comp(K[t], y) then
       if x == nil or comp(x, K[t]) then
-        each_range(self, L[t], x, y)
+        each(self, L[t], x, y)
         coroutine.yield(K[t])
       elseif not comp(K[t], x) then
         coroutine.yield(K[t])
       end
-      return each_range(self, R[t], x, y)
+      return each(self, R[t], x, y)
     end
   end
 end
@@ -270,18 +258,14 @@ function class:find(key)
   return find(self, key)
 end
 
-function class:each(lower_bound, upper_bound)
-  if lower_bound == nil and upper_bound == nil then
-    return coroutine.wrap(each), self, self.root
-  else
-    return coroutine.wrap(function (self, t)
-      return each_range(self, t, lower_bound, upper_bound)
-    end), self, self.root
-  end
+function class:next(key)
+  return next(self, key, self.root)
 end
 
-function class:next(x)
-  return next(self, x, self.root)
+function class:each(lower_bound, upper_bound)
+  return coroutine.wrap(function (self, t)
+    return each(self, t, lower_bound, upper_bound)
+  end), self, self.root
 end
 
 ---------------------------------------------------------------------------
