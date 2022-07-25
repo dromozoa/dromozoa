@@ -192,8 +192,6 @@ function class:delete(key)
     local u = dispose(self, last)
     -- V[u] = nil
   end
-
-  -- self.root = root
   return self
 end
 
