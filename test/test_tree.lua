@@ -270,32 +270,27 @@ local function tree_next(self, x, t, i, k)
 
     if comp(x, K[t]) then
       i, k = tree_next(self, x, L[t], i, k)
-      if i == 0 then
-        i = 2
-        k = K[t]
-      elseif i == 1 then -- ==が見つかった
-        i = 3
+      if i == 0 then -- 見つからなかった
+        -- K[t]は条件を満たす
+        -- i = 2
+        -- k = K[t]
         return 3, K[t]
-      elseif i == 2 then -- >が見つかった
-        i = 3
+      elseif i == 1 then -- kが等しいものが見つかった
+        return 3, K[t]
+      elseif i >= 2 then -- kが大きいものが見つかった
+        assert(i == 2 or i == 3)
         return 3, k
-      else
-        assert(i == 3)
-        return i, k
       end
 
     elseif not comp(K[t], x) then
+      assert(i == 0)
       if i == 0 then
         i = 1
-        k = K[t]
-      elseif i == 1 then
-        error "???"
-      elseif i == 2 then
-        error "???"
+        -- k = K[t]
       end
     end
 
-    return tree_next(self, x, R[t], i, k)
+    i, k = tree_next(self, x, R[t], i, k)
   end
 
   return i, k
