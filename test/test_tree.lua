@@ -216,21 +216,21 @@ local function next(self, x, t, k)
   return k
 end
 
-local function each(self, t, x, y)
+local function each(self, t, a, b)
   if t ~= 0 then
     local K = self.K
     local L = self.L
     local R = self.R
     local comp = self.comp
 
-    if y == nil or comp(K[t], y) then
-      if x == nil or comp(x, K[t]) then
-        each(self, L[t], x, y)
+    if b == nil or comp(K[t], b) then
+      if a == nil or comp(a, K[t]) then
+        each(self, L[t], a, b)
         coroutine.yield(K[t])
-      elseif not comp(K[t], x) then
+      elseif not comp(K[t], a) then
         coroutine.yield(K[t])
       end
-      return each(self, R[t], x, y)
+      return each(self, R[t], a, b)
     end
   end
 end
@@ -259,7 +259,7 @@ function class:find(key)
 end
 
 function class:next(key)
-  return next(self, key, self.root)
+  return next(self, key, self.root, nil)
 end
 
 function class:each(lower_bound, upper_bound)
