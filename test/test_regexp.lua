@@ -21,6 +21,7 @@
 local dumper = require "dromozoa.commons.dumper"
 local write_graphviz = require "dromozoa.regexp.write_graphviz"
 local write_graphviz_tree = require "dromozoa.regexp.write_graphviz_tree"
+local tree_map = require "dromozoa.tree_map"
 
 local module = {}
 
@@ -417,7 +418,9 @@ end
 function module.epsilon_closure(u, epsilon_closures, indices)
   local seq = epsilon_closures[u]
   if not seq then
-    local map = { [indices[u]] = u }
+    local map = tree_map()
+    map[indices[u]] = u
+    -- local map = { [indices[u]] = u }
     epsilon_closure(u, map, indices)
     seq = map_to_seq(map)
     epsilon_closures[u] = seq
@@ -457,7 +460,7 @@ local function nfa_to_dfa(useq, states, epsilon_closures, indices, color)
   local new_states = {}
 
   for byte = 0x00, 0xFF do
-    local vmap = {}
+    local vmap = tree_map()
     local action
     local timestamp
 
@@ -475,7 +478,8 @@ local function nfa_to_dfa(useq, states, epsilon_closures, indices, color)
       end
     end
 
-    if next(vmap) then
+    if vmap():next() then
+    -- if next(vmap) then
       local vseq = map_to_seq(vmap)
       local vkey = vseq.key
       local vnew
