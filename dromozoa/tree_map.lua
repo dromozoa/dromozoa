@@ -47,17 +47,17 @@ function metatable:__newindex(k, v)
   end
 end
 
-function metatable:__call(k, fn)
+function metatable:__call(k, constructor)
   if k == nil then
     return private[self]
   end
 
   local v = self[k]
   if v == nil then
-    if fn == nil then
-      fn = tree_map
+    if constructor == nil then
+      constructor = tree_map
     end
-    v = fn(private[self].comp)
+    v = constructor(private[self].comp)
     self[k] = v
   end
   return v
