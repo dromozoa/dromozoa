@@ -412,6 +412,7 @@ local function map_to_seq(map)
     key[i] = seq[i].index
   end
   seq.key = table.concat(key, ",")
+  seq.map = map
   return seq
 end
 
@@ -449,11 +450,56 @@ local function new_state(seq)
   return state
 end
 
+local function compare_seq(a, b)
+  return a.key < b.key
+end
+
+local function compare_map(a, b)
+  -- seqだったら、a.key < b.key
+  -- mapだったら、キーの辞書順比較
+
+  -- 1,2,4,5  x=4
+  -- 1,2,3,5  y=3
+
+  -- 1,2,  5  x=nil
+  -- 1,2,3,5  y=3
+
+  -- 1,2,4,5  x=4
+  -- 1,2,  5  y=nil
+
+  local x
+  local y
+
+  for k in pairs(a) do
+    if b[k] == nil then
+      x = k
+      break
+    end
+  end
+  for k in pairs(b) do
+    if a[k] == nil then
+      y = k
+      break
+    end
+  end
+
+  if x ~= nil and y ~= nil then
+    return x < y
+  end
+  if x ~= nil then
+    return false
+  end
+  if y ~= nil then
+    return true
+  end
+
+  return false
+end
+
 local function nfa_to_dfa(useq, states, epsilon_closures, indices, color)
-  local ukey = useq.key
   local unew = useq.state
 
-  color[ukey] = 1
+  color[useq.map] = 1
 
   local actions = {}
   local new_transition_map = {}
@@ -464,16 +510,18 @@ local function nfa_to_dfa(useq, states, epsilon_closures, indices, color)
     local action
     local timestamp
 
-    for _, u in ipairs(useq) do
-      local transition = u.state:execute_transition(byte)
+    for _, u in pairs(useq.map) do
+    -- for _, u in ipairs(useq) do
+      local transition = u:execute_transition(byte)
       if transition then
         if not timestamp or timestamp > transition.timestamp then
           action = transition.action
           timestamp = transition.timestamp
         end
         local vseq = module.epsilon_closure(transition.v, epsilon_closures, indices)
-        for _, v in ipairs(vseq) do
-          vmap[v.index] = v.state
+        for i, v in pairs(vseq.map) do
+        -- for _, v in ipairs(vseq) do
+          vmap[i] = v
         end
       end
     end
@@ -484,10 +532,10 @@ local function nfa_to_dfa(useq, states, epsilon_closures, indices, color)
       local vkey = vseq.key
       local vnew
 
-      local xseq = states[vkey]
+      local xseq = states[vseq.map]
       if not xseq then
         vnew = new_state(vseq)
-        states[vkey] = vseq
+        states[vseq.map] = vseq
         new_states[#new_states + 1] = vseq
       else
         vnew = xseq.state
@@ -511,12 +559,12 @@ local function nfa_to_dfa(useq, states, epsilon_closures, indices, color)
   end
 
   for _, vseq in ipairs(new_states) do
-    if not color[vseq.key] then
+    if not color[vseq.map] then
       nfa_to_dfa(vseq, states, epsilon_closures, indices, color)
     end
   end
 
-  color[ukey] = 2
+  color[useq.map] = 2
 end
 
 function module.nfa_to_dfa(u)
@@ -524,7 +572,12 @@ function module.nfa_to_dfa(u)
   local epsilon_closures = {}
   local useq = module.epsilon_closure(u, epsilon_closures, indices)
   local unew = new_state(useq)
-  nfa_to_dfa(useq, { [useq.key] = useq }, epsilon_closures, indices, {})
+
+  local states = tree_map(compare_map)
+  local color = tree_map(compare_map)
+  states[useq.map] = useq
+
+  nfa_to_dfa(useq, states, epsilon_closures, indices, color)
   unew.timestamp = u.timestamp
   return unew
 end
