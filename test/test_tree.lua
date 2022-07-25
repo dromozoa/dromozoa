@@ -91,6 +91,7 @@ local function delete(self, x, t, ok, last, deleted)
 
   if t ~= 0 then
     local K = self.K
+    local V = self.V
     local L = self.L
     local R = self.R
     local N = self.N
@@ -108,6 +109,7 @@ local function delete(self, x, t, ok, last, deleted)
     -- 2. At the bottom of the tree we remove the element (if it is present).
     if t == last and deleted ~= 0 and not comp(K[deleted], x) then
       K[deleted] = K[t]
+      V[deleted] = V[t]
       deleted = 0
       t = R[t]
       ok = true
@@ -292,6 +294,35 @@ end
 
 ---------------------------------------------------------------------------
 
+local metatable = { __index = class, __name = "dromozoa.tree.map" }
+
+local private = { __mode = "k" }
+
+function metatable:__index(key)
+  local _, value = private[self]:find(key)
+  return value
+end
+
+function metatable:__newindex(key, value)
+  if value == nil then
+    private[self]:delete(key)
+  else
+    private[self]:insert(key, value)
+  end
+end
+
+function metatable:__pairs()
+  return class.next, private[self]
+end
+
+local function tree_map(comp)
+  local self = setmetatable({}, metatable)
+  private[self] = tree(comp)
+  return self
+end
+
+---------------------------------------------------------------------------
+
 local function dump(self, t, n, k)
   if k == nil then
     k = "/"
@@ -303,6 +334,7 @@ local function dump(self, t, n, k)
   end
   -- io.write(("  "):rep(n), k, " ", tostring(t), " ", t.level, " / ", tostring(t.key), "\n")
   io.write(("  "):rep(n), k, " ", tostring(self.K[t]), "\n")
+  -- io.write(("  "):rep(n), k, " ", tostring(self.K[t]), "=", tostring(self.V[t]), "\n")
   if self.L[t] ~= 0 then
     dump(self, self.L[t], n, "L")
   end
@@ -417,3 +449,34 @@ for i = 1, 16 do
   end
 end
 assert(self.root == 0)
+
+---------------------------------------------------------------------------
+
+local m = tree_map()
+
+m.foo = 1
+m.bar = 2
+m.baz = 3
+m.qux = 4
+assert(private[m].size == 4)
+
+m.bar = nil
+assert(private[m].size == 3)
+
+assert(m.foo == 1)
+assert(m.bar == nil)
+assert(m.baz == 3)
+assert(m.qux == 4)
+
+local buffer = {}
+for k, v in pairs(m) do
+  buffer[#buffer + 1] = k .. "=" .. v
+end
+assert(table.concat(buffer, ";") == "baz=3;foo=1;qux=4")
+
+local buffer = {}
+for k, v in pairs(m) do
+  buffer[#buffer + 1] = k .. "=" .. v
+  m[k] = nil
+end
+assert(table.concat(buffer, ";") == "baz=3;foo=1;qux=4")
