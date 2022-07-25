@@ -58,9 +58,9 @@ local function insert(self, x, t, ok, last)
   local comp = self.comp
 
   if t == 0 then
-    -- new(t)
     t = self.size + 1
     self.size = t
+
     K[t] = x
     L[t] = 0
     R[t] = 0
@@ -104,27 +104,23 @@ local function delete(self, x, t, ok, last, deleted)
     end
 
     -- 2. At the bottom of the tree we remove the element (if it is present).
-    -- K[deleted] <= x なので K[deleted] < x が成立しなければ、K[deleted] == x
     if t == last and deleted ~= 0 and not comp(K[deleted], x) then
       K[deleted] = K[t]
       deleted = 0
       t = R[t]
-      -- dispose(last)
       ok = true
 
     -- 3. On the way back, we rebalance.
-    else
-      if N[L[t]] < N[t] - 1 or N[R[t]] < N[t] - 1 then
-        N[t] = N[t] - 1
-        if N[R[t]] > N[t] then
-          N[R[t]] = N[t]
-        end
-        t = skew(self, t)
-        R[t] = skew(self, R[t])
-        R[R[t]] = skew(self, R[R[t]])
-        t = split(self, t)
-        R[t] = split(self, R[t])
+    elseif N[L[t]] < N[t] - 1 or N[R[t]] < N[t] - 1 then
+      N[t] = N[t] - 1
+      if N[R[t]] > N[t] then
+        N[R[t]] = N[t]
       end
+      t = skew(self, t)
+      R[t] = skew(self, R[t])
+      R[R[t]] = skew(self, R[R[t]])
+      t = split(self, t)
+      R[t] = split(self, R[t])
     end
   end
 
@@ -182,6 +178,7 @@ end
 function class:insert(key)
   local root, ok, last = insert(self, key, self.root, false, 0)
   self.root = root
+  -- V[last] = v
   return self
 end
 
