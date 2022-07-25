@@ -255,49 +255,29 @@ function class:lower_bound(x)
   end), self, self.root
 end
 
-local function tree_next(self, x, t, i, k)
+local function tree_next(self, x, t, k)
   local K = self.K
   local L = self.L
   local R = self.R
   local comp = self.comp
 
-  -- coroutine.yield 1回め
-  -- coroutine.yield 2回め
-
   if t ~= 0 then
-    -- 右に来た場合
-    -- i == 0, 1, 2
-
     if comp(x, K[t]) then
-      i, k = tree_next(self, x, L[t], i, k)
-      if i == 0 then -- 見つからなかった
-        -- K[t]は条件を満たす
-        -- i = 2
-        -- k = K[t]
-        return 3, K[t]
-      elseif i == 1 then -- kが等しいものが見つかった
-        return 3, K[t]
-      elseif i >= 2 then -- kが大きいものが見つかった
-        assert(i == 2 or i == 3)
-        return 3, k
-      end
-
-    elseif not comp(K[t], x) then
-      assert(i == 0)
-      if i == 0 then
-        i = 1
-        -- k = K[t]
+      k = tree_next(self, x, L[t], k)
+      if k == nil then -- 見つからなかったか、kが等しいものが見つかった
+        return K[t]
+      else -- kが大きいものが見つかった
+        return k
       end
     end
-
-    i, k = tree_next(self, x, R[t], i, k)
+    k = tree_next(self, x, R[t], k)
   end
 
-  return i, k
+  return k
 end
 
 function class:tree_next(x)
-  local i, k = tree_next(self, x, self.root, 0, nil)
+  local k = tree_next(self, x, self.root)
   return k
 end
 
@@ -381,15 +361,17 @@ for k in self:lower_bound(10.5) do
 end
 assert(table.concat(buffer, ",") == "11,12,13,14,15,16")
 
--- print(self:tree_next(10))
--- print "----"
+assert(self:tree_next(0) == 1)
+assert(self:tree_next(1) == 2)
+assert(self:tree_next(2) == 4)
+assert(self:tree_next(3) == 4)
+assert(self:tree_next(4) == 5)
 assert(self:tree_next(10) == 11)
--- print "----"
--- print(self:tree_next(10.5))
--- print "----"
 assert(self:tree_next(10.5) == 11)
--- print "----"
-assert(self:tree_next(999) == nil)
+assert(self:tree_next(11) == 12)
+assert(self:tree_next(15) == 16)
+assert(self:tree_next(16) == nil)
+assert(self:tree_next(17) == nil)
 
 print(dumper.encode(self, { stable = true, pretty = true }))
 
