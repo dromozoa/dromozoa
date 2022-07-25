@@ -117,12 +117,11 @@ function metatable:__pairs()
   local priv = private[self]
   local index = 0
   return function (self)
-    local n = #priv
-    while index < n do
-      index = index + 1
-      local k = priv[index]
+    for i = index + 1, #priv do
+      local k = priv[i]
       local v = self[k]
       if v ~= nil then
+        index = i
         return k, v
       end
     end
@@ -609,11 +608,11 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
       if item.index == 1 or item.dot > 1 then
         kernel_table(item.index)[item.dot] = j
       end
+      local la = module.map()
       if item.index == 1 and item.dot == 1 then
-        kernel_items:append { index = item.index, dot = item.dot, la = module.map(max_terminal_symbol, true) }
-      else
-        kernel_items:append { index = item.index, dot = item.dot, la = module.map() }
+        la[max_terminal_symbol] = true
       end
+      kernel_items:append { index = item.index, dot = item.dot, la = la }
     end
     set_of_kernel_items[i] = kernel_items
     map_of_kernel_items[i] = kernel_table
