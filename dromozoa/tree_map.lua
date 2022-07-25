@@ -37,7 +37,7 @@ end
 
 function metatable:__newindex(k, v)
   if k == nil then
-    error "tree_map index is nil"
+    error "table index is nil"
   end
 
   if v == nil then
