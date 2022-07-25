@@ -17,15 +17,20 @@
 
 local tree = require "dromozoa.tree"
 
-local class = {}
 local metatable = { __name = "dromozoa.tree_map" }
 local private = setmetatable({}, { __mode = "k" })
 
--- TODO test[nil]
+local function tree_map(comp)
+  local self = setmetatable({}, metatable)
+  private[self] = tree(comp)
+  return self
+end
+
 function metatable:__index(k)
   if k == nil then
     return nil
   end
+
   local _, v = private[self]:find(k)
   return v
 end
@@ -34,6 +39,7 @@ function metatable:__newindex(k, v)
   if k == nil then
     error "tree_map index is nil"
   end
+
   if v == nil then
     private[self]:delete(k)
   else
@@ -45,13 +51,13 @@ function metatable:__call(k, fn)
   if k == nil then
     return private[self]
   end
+
   local v = self[k]
   if v == nil then
     if fn == nil then
-      v = class(private[self].comp)
-    else
-      v = fn()
+      fn = tree_map
     end
+    v = fn(private[self].comp)
     self[k] = v
   end
   return v
@@ -61,10 +67,4 @@ function metatable:__pairs()
   return tree.next, private[self]
 end
 
-return setmetatable(class, {
-  __call = function (_, comp)
-    local self = setmetatable({}, metatable)
-    private[self] = tree(comp)
-    return self
-  end
-})
+return tree_map
