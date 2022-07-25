@@ -20,9 +20,9 @@ local tree = require "dromozoa.tree"
 local metatable = { __name = "dromozoa.tree_map" }
 local private = setmetatable({}, { __mode = "k" })
 
-local function tree_map(comp)
+local function class(compare)
   local self = setmetatable({}, metatable)
-  private[self] = tree(comp)
+  private[self] = tree(compare)
   return self
 end
 
@@ -55,9 +55,9 @@ function metatable:__call(k, constructor)
   local v = self[k]
   if v == nil then
     if constructor == nil then
-      constructor = tree_map
+      constructor = class
     end
-    v = constructor(private[self].comp)
+    v = constructor(private[self].compare)
     self[k] = v
   end
   return v
@@ -67,4 +67,4 @@ function metatable:__pairs()
   return tree.next, private[self]
 end
 
-return tree_map
+return class

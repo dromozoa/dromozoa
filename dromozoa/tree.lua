@@ -52,7 +52,7 @@ local function insert(self, x, t, ok, last)
   local L = self.L
   local R = self.R
   local N = self.N
-  local comp = self.comp
+  local compare = self.compare
 
   if t == 0 then
     t = self.size + 1
@@ -66,9 +66,9 @@ local function insert(self, x, t, ok, last)
     ok = true
     last = t
   else
-    if comp(x, K[t]) then
+    if compare(x, K[t]) then
       L[t], ok, last = insert(self, x, L[t], ok, last)
-    elseif comp(K[t], x) then
+    elseif compare(K[t], x) then
       R[t], ok, last = insert(self, x, R[t], ok, last)
     else
       ok = false
@@ -90,11 +90,11 @@ local function delete(self, x, t, ok, last, deleted)
     local L = self.L
     local R = self.R
     local N = self.N
-    local comp = self.comp
+    local compare = self.compare
 
     -- 1. Search down the tree and set pointers last and deleted.
     last = t
-    if comp(x, K[t]) then
+    if compare(x, K[t]) then
       L[t], ok, last, deleted = delete(self, x, L[t], ok, last, deleted)
     else
       deleted = t
@@ -102,7 +102,7 @@ local function delete(self, x, t, ok, last, deleted)
     end
 
     -- 2. At the bottom of the tree we remove the element (if it is present).
-    if t == last and deleted ~= 0 and not comp(K[deleted], x) then
+    if t == last and deleted ~= 0 and not compare(K[deleted], x) then
       K[deleted] = K[t]
       V[deleted] = V[t]
       deleted = 0
@@ -134,7 +134,7 @@ local function dispose(self, t)
   local L = self.L
   local R = self.R
   local N = self.N
-  local comp = self.comp
+  local compare = self.compare
 
   local u = self.size
   self.size = u - 1
@@ -151,7 +151,7 @@ local function dispose(self, t)
         elseif R[v] == u then
           R[v] = t
           break
-        elseif comp(K[u], K[v]) then
+        elseif compare(K[u], K[v]) then
           v = L[v]
         else
           v = R[v]
@@ -178,13 +178,13 @@ local function find(self, x)
   local V = self.V
   local L = self.L
   local R = self.R
-  local comp = self.comp
+  local compare = self.compare
 
   local t = self.root
   while t ~= 0 do
-    if comp(x, K[t]) then
+    if compare(x, K[t]) then
       t = L[t]
-    elseif comp(K[t], x) then
+    elseif compare(K[t], x) then
       t = R[t]
     else
       return K[t], V[t]
@@ -198,9 +198,9 @@ local function next(self, x, t, k, v)
     local V = self.V
     local L = self.L
     local R = self.R
-    local comp = self.comp
+    local compare = self.compare
 
-    if x == nil or comp(x, K[t]) then
+    if x == nil or compare(x, K[t]) then
       k, v = next(self, x, L[t], k, v)
       if k == nil then
         return K[t], V[t]
@@ -220,16 +220,16 @@ local function each(self, x, y, t)
     local V = self.V
     local L = self.L
     local R = self.R
-    local comp = self.comp
+    local compare = self.compare
 
-    if x == nil or comp(x, K[t]) then
+    if x == nil or compare(x, K[t]) then
       each(self, x, y, L[t])
-      if y == nil or comp(K[t], y) then
+      if y == nil or compare(K[t], y) then
         coroutine.yield(K[t], V[t])
         return each(self, x, y, R[t])
       end
-    elseif y == nil or comp(K[t], y) then
-      if not comp(K[t], x) then
+    elseif y == nil or compare(K[t], y) then
+      if not compare(K[t], x) then
         coroutine.yield(K[t], V[t])
       end
       return each(self, x, y, R[t])
@@ -273,9 +273,9 @@ function class:each(lower_bound, upper_bound)
 end
 
 return setmetatable(class, {
-  __call = function (_, comp)
-    if comp == nil then
-      comp = function (a, b) return a < b end
+  __call = function (_, compare)
+    if compare == nil then
+      compare = function (a, b) return a < b end
     end
 
     return setmetatable({
@@ -286,7 +286,7 @@ return setmetatable(class, {
       N = { [0] = 0 };
       root = 0;
       size = 0;
-      comp = comp;
+      compare = compare;
     }, metatable)
   end
 })
