@@ -24,8 +24,30 @@ local N = 100000
 
 local data = {}
 for i = 1, N do
-  -- data[i] = i .. ("x"):rep(i % 256 + 40) .. i
-  data[i] = i
+  data[i] = i .. ("x"):rep(i % 256 + 40) .. i
+  -- data[i] = i
+end
+
+local f1 = function (a, b)
+  if a == b then
+    return 0
+  else
+    return a < b and -1 or 1
+  end
+end
+
+local f2 = function (a, b)
+  local x = type(a)
+  local y = type(b)
+  if x ~= y then
+    return x < y and -1 or 1
+  end
+
+  if a == b then
+    return 0
+  else
+    return a < b and -1 or 1
+  end
 end
 
 local t = tree_map()
