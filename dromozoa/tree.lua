@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
----------------------------------------------------------------------------
+local compare = require "dromozoa.compare"
 
 -- Balanced search trees made simple.
 -- https://user.it.uu.se/%7Earnea/abs/simp.html
@@ -131,8 +131,6 @@ local function delete(self, x, t, ok, last, deleted)
   return t, ok, last, deleted
 end
 
----------------------------------------------------------------------------
-
 local function dispose(self, t)
   local K = self.K
   local V = self.V
@@ -247,8 +245,6 @@ local function each(self, x, y, t)
   end
 end
 
----------------------------------------------------------------------------
-
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.tree" }
 
@@ -283,17 +279,9 @@ function class:each(lower_bound, upper_bound)
 end
 
 return setmetatable(class, {
-  __call = function (_, compare)
-    if compare == nil then
-      compare = function (a, b)
-        if a == b then
-          return 0
-        elseif a < b then
-          return -1
-        else
-          return 1
-        end
-      end
+  __call = function (_, fn)
+    if fn == nil then
+      fn = compare
     end
 
     return setmetatable({
@@ -304,7 +292,7 @@ return setmetatable(class, {
       N = { [0] = 0 };
       root = 0;
       size = 0;
-      compare = compare;
+      compare = fn;
     }, metatable)
   end
 })
