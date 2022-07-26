@@ -498,11 +498,30 @@ local function compare_map(a, b)
   return false
 end
 
+local function compare_transition_key(a, b)
+  if compare_map(a.map, b.map) then
+    return true
+  elseif compare_map(b.map, a.map) then
+    return false
+  end
+
+  if a.action == nil and b.action == nil then
+    return false
+  end
+  if a.action == nil then
+    return true
+  end
+  return false
+end
+
 local function nfa_to_dfa(umap, unew, states, epsilon_closures, indices, color)
   color[umap] = 1
 
   local actions = {}
-  local new_transition_map = {}
+
+  -- vmap, actions, action
+  -- key .. ";" .. action_index
+  local new_transition_map = tree_map(compare_transition_key)
   local new_states = {}
 
   for byte = 0x00, 0xFF do
@@ -527,7 +546,6 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, indices, color)
     if vmap():next() then
     -- if next(vmap) then
       local vseq = map_to_seq(vmap)
-      local vkey = vseq.key
       local vnew
 
       local xnew = states[vmap]
@@ -539,7 +557,7 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, indices, color)
         vnew = xnew
       end
 
-      local new_transition_key = module.new_transition_key(vkey, actions, action)
+      local new_transition_key = { map = vmap, action = action }
       local new_transition = new_transition_map[new_transition_key]
       if not new_transition then
         new_transition = unew:transition(vnew, { [byte] = true })
