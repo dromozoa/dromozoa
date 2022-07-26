@@ -25,6 +25,8 @@ local m_zero = 0/m_inf
 local i_zero = 0
 local nan = p_inf/p_inf
 
+print(type(m_zero), type(i_zero), type(nan))
+
 print(p_inf, m_inf, p_zero, m_zero, i_zero, nan)
 print(p_inf == p_inf, m_inf == m_inf)
 print(p_zero == m_zero, p_zero == i_zero, m_zero == i_zero)
@@ -55,3 +57,60 @@ for k, v in pairs(t) do
 end
 
 assert(not pcall(function () t[nan] = "nan" end))
+
+print "=="
+
+local u = setmetatable({}, {
+  __eq = function (a, b)
+    print("u.__eq", a, b)
+    return false
+  end;
+  __lt = function (a, b)
+    print("u.__lt", a, b)
+    return false
+  end;
+})
+
+local v = setmetatable({}, {
+  __eq = function (a, b)
+    print("v.__eq", a, b)
+    return false
+  end;
+  __lt = function (a, b)
+    print("v.__lt", a, b)
+    return false
+  end;
+})
+
+local f = assert(io.open "/dev/null")
+
+local x = u == nil
+local x = u == true
+local x = u == 42
+local x = u == "foo"
+local x = u == v
+local x = u == function () end
+local x = u == f
+local x = u == coroutine.create(function () end)
+
+-- Lua 5.1/LuaJITでは、左右の型が同じで、かつどちらも同じメタメソッドを持ってい
+-- なければならない。
+-- Lua 5.2以降では、メタメソッドが定義されていれば呼ばれる
+
+-- local x = u < nil
+-- local x = u < true
+-- local x = u < 42
+-- local x = u < "foo"
+-- local x = u < v
+-- local x = u < function () end
+-- local x = u < f
+-- local x = u < coroutine.create(function () end)
+
+-- local x = u > nil
+-- local x = u > true
+-- local x = u > 42
+-- local x = u > "foo"
+-- local x = u > v
+-- local x = u > function () end
+-- local x = u > f
+-- local x = u > coroutine.create(function () end)

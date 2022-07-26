@@ -35,6 +35,11 @@ local typemap = {
 local compare
 
 local function stable_pairs(t)
+  local metatable = getmetatable(t)
+  if metatable and metatable.__name == "dromozoa.tree_map" then
+    return metatable.__pairs(t)
+  end
+
   local K = {}
   for k in pairs(t) do
     K[#K + 1] = k
@@ -54,57 +59,56 @@ local function stable_pairs(t)
 end
 
 function compare(a, b)
+  local s = typemap[type(a)]
+  local t = typemap[type(b)]
+  if s ~= t then
+    if s < t then
+      return -1
+    else
+      return 1
+    end
+  end
+
   if a == b then
     return 0
   end
 
-  local status, result = pcall(function () return a < b end)
-  if status and result then
-    return -1
-  end
-
-  local status, result = pcall(function () return b < a end)
-  if status and result then
-    return 1
-  end
-
-  -- エッジケース
-  -- nan, -0, inf, -inf
-
-  local s = typemap[type(a)]
-  local t = typemap[type(b)]
-  if s ~= t then
-    return s < t and -1 or 1
-  end
-
   if t == 1 then
-    return b and -1 or 1
+    if b then
+      return -1
+    else
+      return 1
+    end
+
   elseif t == 3 then
-    return a < b and -1 or 1
+    if a ~= a then
+      if b ~= b then
+        return 0
+      else
+        return 1
+      end
+    elseif b ~= b then
+      return -1
+    end
+
+    if a < b then
+      return -1
+    else
+      return 1
+    end
+
   elseif t == 4 then
-    return a < b and -1 or 1
+    if a < b then
+      return -1
+    else
+      return 1
+    end
+
   elseif t == 5 then
+    -- pcall
 
-    -- stableだったら、巡回して、辞書順比較する
-
-    -- stableじゃなかったら？
-    -- stableなキーリストを作る
-    -- 問題点として、おなじ構造のテーブルがキーになってると詰む
-    -- というか、ソートするためにcompareが必要になる
-
-    local m = getmetatable(a)
-    m = m ~= nil and m.__name == "dromozoa.tree_map"
-
-    local n = getmetatable(b)
-    n = n ~= nil and n.__name == "dromozoa.tree_map"
-
-    -- pairsが安定でない場合、安定なpairsを作成する
-
-    local a_pairs = m and pairs or stable_pairs
-    local b_pairs = n and pairs or stable_pairs
-
-    local f, t, k, v = b_pairs(b)
-    for j, u in a_pairs(a) do
+    local f, t, k, v = stable_pairs(b)
+    for j, u in stable_pairs(a) do
       k, v = f(t, k)
 
       local c = compare(j, k)
@@ -116,17 +120,20 @@ function compare(a, b)
       if c ~= 0 then
         return c
       end
-
-      assert(k ~= nil)
     end
 
     k, v = f(t, k)
     return compare(nil, k)
 
-  else
-    -- サポートしない
-    -- 文字列に変換してポインタを拾う？
-    error "not supported"
+  elseif t == 6 then
+    error "attempt to compare two function values"
+
+  elseif t == 7 then
+    error "attempt to compare two userdata values"
+
+  elseif t == 8 then
+    error "attempt to compare two thread values"
+
   end
 end
 
@@ -137,5 +144,4 @@ t1[2] = 69
 local t2 = tree_map(compare)
 t2(1)(1)(1)(1)[1] = 42
 
-print(compare({abc=42}, {abz=42,abc=nil}))
-
+print(compare({abc=42}, {abc=42,aba=1}))
