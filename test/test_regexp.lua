@@ -435,8 +435,7 @@ local function new_state(seq)
   local accept_action
   local timestamp
 
-  for _, x in ipairs(seq) do
-    local u = x.state
+  for _, u in pairs(seq.map) do
     if u.accept_action then
       if not timestamp or timestamp > u.timestamp then
         accept_action = u.accept_action
@@ -452,76 +451,12 @@ local function new_state(seq)
   return state
 end
 
-local function compare_seq(a, b)
-  return a.key < b.key
-end
-
-local function compare_map(a, b)
-  -- seqだったら、a.key < b.key
-  -- mapだったら、キーの辞書順比較
-
-  -- 1,2,4,5  x=4
-  -- 1,2,3,5  y=3
-
-  -- 1,2,  5  x=nil
-  -- 1,2,3,5  y=3
-
-  -- 1,2,4,5  x=4
-  -- 1,2,  5  y=nil
-
-  local x
-  local y
-
-  for k in pairs(a) do
-    if b[k] == nil then
-      x = k
-      break
-    end
-  end
-  for k in pairs(b) do
-    if a[k] == nil then
-      y = k
-      break
-    end
-  end
-
-  if x ~= nil and y ~= nil then
-    return x < y
-  end
-  if x ~= nil then
-    return false
-  end
-  if y ~= nil then
-    return true
-  end
-
-  return false
-end
-
-local function compare_transition_key(a, b)
-  if compare_map(a.map, b.map) then
-    return true
-  elseif compare_map(b.map, a.map) then
-    return false
-  end
-
-  if a.action == nil and b.action == nil then
-    return false
-  end
-  if a.action == nil then
-    return true
-  end
-  return false
-end
-
 local function nfa_to_dfa(umap, unew, states, epsilon_closures, indices, color)
   color[umap] = 1
 
   local actions = {}
 
-  -- vmap, actions, action
-  -- key .. ";" .. action_index
-  local new_transition_map = tree_map(compare_transition_key)
+  local new_transition_map = tree_map()
   local new_states = {}
 
   for byte = 0x00, 0xFF do
@@ -591,8 +526,8 @@ function module.nfa_to_dfa(u)
   local umap = useq.map
   local unew = new_state(useq)
 
-  local states = tree_map(compare_map)
-  local color = tree_map(compare_map)
+  local states = tree_map()
+  local color = tree_map()
   states[umap] = unew
 
   nfa_to_dfa(umap, unew, states, epsilon_closures, indices, color)
