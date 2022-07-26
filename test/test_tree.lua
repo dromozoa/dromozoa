@@ -188,9 +188,19 @@ local t = tree_map(function (a, b)
   local t = type(a)
   local u = type(b)
   if t ~= u then
-    return t < u
+    if t < u then
+      return -1
+    else
+      return 1
+    end
   end
-  return a < b
+  if a == b then
+    return 0
+  elseif a < b then
+    return -1
+  else
+    return 1
+  end
 end)
 t"foo""bar".baz = 42
 assert(t.foo.bar.baz == 42)

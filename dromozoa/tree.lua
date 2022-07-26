@@ -66,9 +66,10 @@ local function insert(self, x, t, ok, last)
     ok = true
     last = t
   else
-    if compare(x, K[t]) then
+    local c = compare(x, K[t])
+    if c < 0 then
       L[t], ok, last = insert(self, x, L[t], ok, last)
-    elseif compare(K[t], x) then
+    elseif c > 0 then
       R[t], ok, last = insert(self, x, R[t], ok, last)
     else
       ok = false
@@ -94,15 +95,16 @@ local function delete(self, x, t, ok, last, deleted)
 
     -- 1. Search down the tree and set pointers last and deleted.
     last = t
-    if compare(x, K[t]) then
+    if compare(x, K[t]) < 0 then
       L[t], ok, last, deleted = delete(self, x, L[t], ok, last, deleted)
     else
+      -- TODO ここで等値チェックができる？
       deleted = t
       R[t], ok, last, deleted = delete(self, x, R[t], ok, last, deleted)
     end
 
     -- 2. At the bottom of the tree we remove the element (if it is present).
-    if t == last and deleted ~= 0 and not compare(K[deleted], x) then
+    if t == last and deleted ~= 0 and compare(K[deleted], x) == 0 then
       K[deleted] = K[t]
       V[deleted] = V[t]
       deleted = 0
@@ -151,7 +153,7 @@ local function dispose(self, t)
         elseif R[v] == u then
           R[v] = t
           break
-        elseif compare(K[u], K[v]) then
+        elseif compare(K[u], K[v]) < 0 then
           v = L[v]
         else
           v = R[v]
@@ -182,9 +184,10 @@ local function find(self, x)
 
   local t = self.root
   while t ~= 0 do
-    if compare(x, K[t]) then
+    local c = compare(x, K[t])
+    if c < 0 then
       t = L[t]
-    elseif compare(K[t], x) then
+    elseif c > 0 then
       t = R[t]
     else
       return K[t], V[t]
@@ -200,7 +203,7 @@ local function next(self, x, t, k, v)
     local R = self.R
     local compare = self.compare
 
-    if x == nil or compare(x, K[t]) then
+    if x == nil or compare(x, K[t]) < 0 then
       k, v = next(self, x, L[t], k, v)
       if k == nil then
         return K[t], V[t]
@@ -222,14 +225,19 @@ local function each(self, x, y, t)
     local R = self.R
     local compare = self.compare
 
-    if x == nil or compare(x, K[t]) then
+    local c
+    if x ~= nil then
+      c = compare(x, K[t])
+    end
+
+    if c == nil or c < 0 then
       each(self, x, y, L[t])
-      if y == nil or compare(K[t], y) then
+      if y == nil or compare(K[t], y) < 0 then
         coroutine.yield(K[t], V[t])
         return each(self, x, y, R[t])
       end
-    elseif y == nil or compare(K[t], y) then
-      if not compare(K[t], x) then
+    elseif y == nil or compare(K[t], y) < 0 then
+      if c == 0 then
         coroutine.yield(K[t], V[t])
       end
       return each(self, x, y, R[t])
@@ -275,7 +283,15 @@ end
 return setmetatable(class, {
   __call = function (_, compare)
     if compare == nil then
-      compare = function (a, b) return a < b end
+      compare = function (a, b)
+        if a == b then
+          return 0
+        elseif a < b then
+          return -1
+        else
+          return 1
+        end
+      end
     end
 
     return setmetatable({
