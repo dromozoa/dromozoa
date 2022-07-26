@@ -58,16 +58,18 @@ function compare(a, b)
     return 0
   end
 
-  local status, result = pcall(function ()
-    if a < b then
-      return -1
-    elseif a > b then
-      return 1
-    end
-  end)
+  local status, result = pcall(function () return a < b end)
   if status and result then
-    return result
+    return -1
   end
+
+  local status, result = pcall(function () return b < a end)
+  if status and result then
+    return 1
+  end
+
+  -- エッジケース
+  -- nan, -0, inf, -inf
 
   local s = typemap[type(a)]
   local t = typemap[type(b)]
