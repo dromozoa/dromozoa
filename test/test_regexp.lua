@@ -235,7 +235,9 @@ end
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.regexp.state" }
 
---TODO new_transitionのほうがよいか？
+-- TODO new_transitionのほうがよいか？
+-- TODO transitionの構造はこれでいいのか？
+--  とりあえずはこれで
 function class:transition(v, set, action)
   local transition = { v = v, set = set, action = action }
   self.transitions:append(transition)
@@ -369,6 +371,7 @@ end
 ---------------------------------------------------------------------------
 
 -- 深さ優先探索で状態に番号をつける
+-- もともとIDをはっておくというのは？
 local function create_state_indices(u, indices, index, color)
   color[u] = 1
   index = index + 1
@@ -421,7 +424,6 @@ function module.epsilon_closure(u, epsilon_closures, indices)
   if not seq then
     local map = tree_map()
     map[indices[u]] = u
-    -- local map = { [indices[u]] = u }
     epsilon_closure(u, map, indices)
     seq = map_to_seq(map)
     epsilon_closures[u] = seq
@@ -496,10 +498,8 @@ local function compare_map(a, b)
   return false
 end
 
-local function nfa_to_dfa(useq, states, epsilon_closures, indices, color)
-  local unew = useq.state
-
-  color[useq.map] = 1
+local function nfa_to_dfa(umap, unew, states, epsilon_closures, indices, color)
+  color[umap] = 1
 
   local actions = {}
   local new_transition_map = {}
@@ -510,8 +510,7 @@ local function nfa_to_dfa(useq, states, epsilon_closures, indices, color)
     local action
     local timestamp
 
-    for _, u in pairs(useq.map) do
-    -- for _, u in ipairs(useq) do
+    for _, u in pairs(umap) do
       local transition = u:execute_transition(byte)
       if transition then
         if not timestamp or timestamp > transition.timestamp then
@@ -520,7 +519,6 @@ local function nfa_to_dfa(useq, states, epsilon_closures, indices, color)
         end
         local vseq = module.epsilon_closure(transition.v, epsilon_closures, indices)
         for i, v in pairs(vseq.map) do
-        -- for _, v in ipairs(vseq) do
           vmap[i] = v
         end
       end
@@ -532,13 +530,13 @@ local function nfa_to_dfa(useq, states, epsilon_closures, indices, color)
       local vkey = vseq.key
       local vnew
 
-      local xseq = states[vseq.map]
-      if not xseq then
+      local xnew = states[vmap]
+      if not xnew then
         vnew = new_state(vseq)
-        states[vseq.map] = vseq
-        new_states[#new_states + 1] = vseq
+        states[vmap] = vnew
+        new_states[#new_states + 1] = { map = vmap, state = vnew }
       else
-        vnew = xseq.state
+        vnew = xnew
       end
 
       local new_transition_key = module.new_transition_key(vkey, actions, action)
@@ -558,26 +556,28 @@ local function nfa_to_dfa(useq, states, epsilon_closures, indices, color)
     end
   end
 
-  for _, vseq in ipairs(new_states) do
-    if not color[vseq.map] then
-      nfa_to_dfa(vseq, states, epsilon_closures, indices, color)
+  for _, item in ipairs(new_states) do
+    if not color[item.map] then
+      nfa_to_dfa(item.map, item.state, states, epsilon_closures, indices, color)
     end
   end
 
-  color[useq.map] = 2
+  color[umap] = 2
 end
 
 function module.nfa_to_dfa(u)
   local indices = module.create_state_indices(u)
   local epsilon_closures = {}
+
   local useq = module.epsilon_closure(u, epsilon_closures, indices)
+  local umap = useq.map
   local unew = new_state(useq)
 
   local states = tree_map(compare_map)
   local color = tree_map(compare_map)
-  states[useq.map] = useq
+  states[umap] = unew
 
-  nfa_to_dfa(useq, states, epsilon_closures, indices, color)
+  nfa_to_dfa(umap, unew, states, epsilon_closures, indices, color)
   unew.timestamp = u.timestamp
   return unew
 end
