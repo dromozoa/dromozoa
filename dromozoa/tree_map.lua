@@ -47,17 +47,17 @@ function metatable:__newindex(k, v)
   end
 end
 
-function metatable:__call(k, constructor)
+function metatable:__call(k, fn)
   if k == nil then
     return private[self]
   end
 
   local v = self[k]
   if v == nil then
-    if constructor == nil then
-      constructor = class
+    if fn == nil then
+      fn = class
     end
-    v = constructor(private[self].compare)
+    v = fn(private[self].compare)
     self[k] = v
   end
   return v
