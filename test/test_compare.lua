@@ -32,9 +32,7 @@ local typemap = {
   ["thread"]   = 8; -- LUA_TTHREAD
 }
 
-local compare
-
-local function stable_pairs(t)
+local function stable_pairs(t, compare, n)
   local metatable = getmetatable(t)
   if metatable and metatable.__name == "dromozoa.tree_map" then
     return metatable.__pairs(t)
@@ -45,7 +43,7 @@ local function stable_pairs(t)
     K[#K + 1] = k
   end
   table.sort(K, function (a, b)
-    local c = compare(a, b)
+    local c = compare(a, b, n)
     if c == 0 then
       error "table index is not unique"
     end
@@ -60,7 +58,7 @@ local function stable_pairs(t)
   end, t
 end
 
-function compare(a, b)
+local function compare(a, b, n)
   local typename = type(a)
   local t = typemap[typename]
   local u = typemap[type(b)]
@@ -101,33 +99,110 @@ function compare(a, b)
   end
 
   if t == 5 then
-    local f, t, k, v = stable_pairs(b)
-    for j, u in stable_pairs(a) do
+    n = n == nil and 1 or n + 1
+    if n > 2000 then
+      error "too much recursion; possible loop"
+    end
+
+    local f, t, k, v = stable_pairs(b, compare, n)
+    for j, u in stable_pairs(a, compare, n) do
       k, v = f(t, k)
 
-      local c = compare(j, k)
+      local c = compare(j, k, n)
       if c ~= 0 then
         return c
       end
 
-      local c = compare(u, v)
+      local c = compare(u, v, n)
       if c ~= 0 then
         return c
       end
     end
 
     k, v = f(t, k)
-    return compare(nil, k)
+    return compare(nil, k, n)
   end
 
   error("attempt to compare two " .. typename .. " values")
 end
 
-local t1 = tree_map(compare)
-t1[1] = 42
-t1[2] = 69
+local function check_lt(a, b)
+  assert(compare(a, b) < 0)
+  assert(compare(b, a) > 0)
+end
 
-local t2 = tree_map(compare)
-t2(1)(1)(1)(1)[1] = 42
+local function check_eq(a, b)
+  assert(compare(a, b) == 0)
+  assert(compare(b, a) == 0)
+end
 
-print(compare({abc=42}, {abc=42,aba=1}))
+local function check_gt(a, b)
+  assert(compare(a, b) > 0)
+  assert(compare(b, a) < 0)
+end
+
+check_eq(nil, nil)
+check_lt(nil, true)
+check_lt(nil, 1)
+check_lt(nil, "1")
+check_lt(nil, {1})
+check_eq(true, true)
+check_lt(true, 1)
+check_lt(true, "1")
+check_lt(true, {1})
+check_eq(1, 1)
+check_lt(1, "1")
+check_lt(1, {1})
+check_eq("1", "1")
+check_lt("1", {1})
+check_eq({1}, {1})
+
+check_eq(false, false)
+check_lt(false, true)
+
+local minf = -math.huge
+local zero = 0.0
+local pinf = math.huge
+local nan = pinf / pinf
+
+check_lt(minf, zero)
+check_lt(zero, pinf)
+check_lt(pinf, nan)
+check_eq(nan,  nan)
+check_lt(nan,  "")
+
+check_eq("", "")
+check_lt("", "\0")
+check_eq("\0", "\0")
+
+check_eq({}, {})
+check_lt({}, {17})
+check_eq({17}, {17})
+check_lt({17}, {42})
+check_lt({17,23}, {42})
+check_eq({abc=1}, {abc=1})
+check_lt({abc=1}, {abc=2})
+check_lt({aaa=1}, {abc=1})
+
+local status, message = pcall(function ()
+  compare({[{}]=1,[{}]=2}, {[{}]=1,[{}]=2})
+end)
+-- print(message)
+assert(not status)
+
+local f = function () end
+local g = function () end
+assert(compare(f, f) == 0)
+
+local status, message = pcall(function ()
+  compare(f, g)
+end)
+-- print(message)
+assert(not status)
+
+local u = {}
+local v = {}
+u[1] = v
+v[1] = u
+compare(u, v)
+
