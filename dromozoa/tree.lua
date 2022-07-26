@@ -95,16 +95,19 @@ local function delete(self, x, t, ok, last, deleted)
 
     -- 1. Search down the tree and set pointers last and deleted.
     last = t
-    if compare(x, K[t]) < 0 then
+
+    local c = compare(x, K[t])
+    if c < 0 then
       L[t], ok, last, deleted = delete(self, x, L[t], ok, last, deleted)
     else
-      -- TODO ここで等値チェックができる？
-      deleted = t
+      if c == 0 then
+        deleted = t
+      end
       R[t], ok, last, deleted = delete(self, x, R[t], ok, last, deleted)
     end
 
     -- 2. At the bottom of the tree we remove the element (if it is present).
-    if t == last and deleted ~= 0 and compare(K[deleted], x) == 0 then
+    if t == last and deleted ~= 0 then
       K[deleted] = K[t]
       V[deleted] = V[t]
       deleted = 0
@@ -225,12 +228,11 @@ local function each(self, x, y, t)
     local R = self.R
     local compare = self.compare
 
-    local c
+    local c = -1
     if x ~= nil then
       c = compare(x, K[t])
     end
-
-    if c == nil or c < 0 then
+    if c < 0 then
       each(self, x, y, L[t])
       if y == nil or compare(K[t], y) < 0 then
         coroutine.yield(K[t], V[t])
