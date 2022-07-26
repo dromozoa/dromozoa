@@ -32,14 +32,42 @@ local typemap = {
   ["thread"]   = 8; -- LUA_TTHREAD
 }
 
-local function compare(a, b)
-  -- メタメソッドが呼ばれるかもしれない
+local compare
+
+local function stable_pairs(t)
+  local K = {}
+  for k in pairs(t) do
+    K[#K + 1] = k
+  end
+  table.sort(K, function (a, b)
+    local c = compare(a, b)
+    assert(c ~= 0)
+    return c < 0
+  end)
+
+  local i = 0
+  return function (t)
+    i = i + 1
+    local k = K[i]
+    return k, t[k]
+  end, t
+end
+
+function compare(a, b)
   if a == b then
     return 0
   end
-  -- エラーになるかもしれないけど呼んでみる？
-  -- local result
-  -- pcall(function () result = a < b end)
+
+  local status, result = pcall(function ()
+    if a < b then
+      return -1
+    elseif a > b then
+      return 1
+    end
+  end)
+  if status and result then
+    return result
+  end
 
   local s = typemap[type(a)]
   local t = typemap[type(b)]
@@ -47,7 +75,6 @@ local function compare(a, b)
     return s < t and -1 or 1
   end
 
-  assert(t ~= 0)
   if t == 1 then
     return b and -1 or 1
   elseif t == 3 then
@@ -55,6 +82,7 @@ local function compare(a, b)
   elseif t == 4 then
     return a < b and -1 or 1
   elseif t == 5 then
+
     -- stableだったら、巡回して、辞書順比較する
 
     -- stableじゃなかったら？
@@ -63,52 +91,35 @@ local function compare(a, b)
     -- というか、ソートするためにcompareが必要になる
 
     local m = getmetatable(a)
+    m = m ~= nil and m.__name == "dromozoa.tree_map"
+
     local n = getmetatable(b)
+    n = n ~= nil and n.__name == "dromozoa.tree_map"
 
-    -- 両方ともstable
-    if m ~= nil and m == n and m.__name == "dromozoa.tree_map" then
-      local f, t, k, v = pairs(b)
-      for j, u in pairs(a) do
-        k, v = f(t, k)
+    -- pairsが安定でない場合、安定なpairsを作成する
 
-        local c = compare(j, k)
-        if c ~= 0 then
-          return c
-        end
+    local a_pairs = m and pairs or stable_pairs
+    local b_pairs = n and pairs or stable_pairs
 
-        local c = compare(u, v)
-        if c ~= 0 then
-          return c
-        end
-
-        assert(k ~= nil)
-      end
-
+    local f, t, k, v = b_pairs(b)
+    for j, u in a_pairs(a) do
       k, v = f(t, k)
-      return compare(nil, k)
-    else
-      local K = {}
-      for k in pairs(a) do
-        assert(typemap[type(k)] < 5)
-        K[#K + 1] = k
-      end
-      for k in pairs(b) do
-        assert(typemap[type(k)] < 5)
-        if a[k] == nil then
-          K[#K + 1] = k
-        end
-      end
-      table.sort(K, function (a, b) return compare(a, b) < 0 end)
 
-      for _, k in ipairs(K) do
-        local c = compare(a[k], b[k])
-        if c ~= 0 then
-          return c
-        end
+      local c = compare(j, k)
+      if c ~= 0 then
+        return c
       end
 
-      return 0
+      local c = compare(u, v)
+      if c ~= 0 then
+        return c
+      end
+
+      assert(k ~= nil)
     end
+
+    k, v = f(t, k)
+    return compare(nil, k)
 
   else
     -- サポートしない
