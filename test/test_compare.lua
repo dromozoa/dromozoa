@@ -46,7 +46,9 @@ local function stable_pairs(t)
   end
   table.sort(K, function (a, b)
     local c = compare(a, b)
-    assert(c ~= 0)
+    if c == 0 then
+      error "table index is not unique"
+    end
     return c < 0
   end)
 
@@ -59,14 +61,11 @@ local function stable_pairs(t)
 end
 
 function compare(a, b)
-  local s = typemap[type(a)]
-  local t = typemap[type(b)]
-  if s ~= t then
-    if s < t then
-      return -1
-    else
-      return 1
-    end
+  local typename = type(a)
+  local t = typemap[typename]
+  local u = typemap[type(b)]
+  if t ~= u then
+    return t < u and -1 or 1
   end
 
   if a == b then
@@ -74,39 +73,34 @@ function compare(a, b)
   end
 
   if t == 1 then
-    if b then
-      return -1
-    else
-      return 1
-    end
-
+    return b and -1 or 1
   elseif t == 3 then
-    if a ~= a then
-      if b ~= b then
-        return 0
-      else
-        return 1
-      end
-    elseif b ~= b then
-      return -1
-    end
-
-    if a < b then
-      return -1
-    else
+    local a_is_nan = a ~= a
+    local b_is_nan = b ~= b
+    if b_is_nan then
+      return a_is_nan and 0 or -1
+    elseif a_is_nan then
       return 1
     end
-
+    return a < b and -1 or 1
   elseif t == 4 then
+    return a < b and -1 or 1
+  end
+
+  local s, c = pcall(function ()
     if a < b then
       return -1
-    else
+    elseif a > b then
       return 1
+    else
+      return 0
     end
+  end)
+  if s and c then
+    return c
+  end
 
-  elseif t == 5 then
-    -- pcall
-
+  if t == 5 then
     local f, t, k, v = stable_pairs(b)
     for j, u in stable_pairs(a) do
       k, v = f(t, k)
@@ -124,17 +118,9 @@ function compare(a, b)
 
     k, v = f(t, k)
     return compare(nil, k)
-
-  elseif t == 6 then
-    error "attempt to compare two function values"
-
-  elseif t == 7 then
-    error "attempt to compare two userdata values"
-
-  elseif t == 8 then
-    error "attempt to compare two thread values"
-
   end
+
+  error("attempt to compare two " .. typename .. " values")
 end
 
 local t1 = tree_map(compare)
