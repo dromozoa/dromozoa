@@ -18,6 +18,7 @@
 local dumper = require "dromozoa.commons.dumper"
 local write_graphviz = require "dromozoa.regexp.write_graphviz"
 local write_graphviz_tree = require "dromozoa.regexp.write_graphviz_tree"
+local compare = require "dromozoa.compare"
 local tree_map = require "dromozoa.tree_map"
 
 local module = {}
@@ -364,43 +365,44 @@ local function update_state_indices(u, states, color)
   color[u] = 1
   u.index = #states:append(u)
   for _, transition in ipairs(u.transitions) do
-    if not color[transition.v] then
+    if color[transition.v] == nil then
       update_state_indices(transition.v, states, color)
     end
   end
   color[u] = 2
-  return states
 end
 
 function module.update_state_indices(u)
-  return update_state_indices(u, module.list(), {})
+  local states = module.list()
+  update_state_indices(u, states, {})
+  return states
 end
 
 ---------------------------------------------------------------------------
 
-local function epsilon_closure(u, map)
+local function epsilon_closure(u, closure)
   for _, transition in ipairs(u.transitions) do
-    if not transition.set then
-      map[transition.v.index] = transition.v
-      epsilon_closure(transition.v, map)
+    if transition.set == nil then
+      closure[transition.v.index] = transition.v
+      epsilon_closure(transition.v, closure)
     end
   end
 end
 
 function module.epsilon_closure(u, epsilon_closures)
-  local map = epsilon_closures[u]
-  if not map then
-    map = tree_map()
-    map[u.index] = u
-    epsilon_closure(u, map)
-    epsilon_closures[u] = map
+  local closure = epsilon_closures[u]
+  if closure == nil then
+    closure = tree_map()
+    closure[u.index] = u
+    epsilon_closure(u, closure)
+    epsilon_closures[u] = closure
   end
-  return map
+  return closure
 end
 
-local function new_state(map)
+local function new_state(closure)
   local state = module.state()
-  for _, u in pairs(map) do
+  for _, u in pairs(closure) do
     state:update(u.timestamp, u.accept_action)
   end
   return state
@@ -409,35 +411,33 @@ end
 local function nfa_to_dfa(umap, unew, states, epsilon_closures, color)
   color[umap] = 1
 
-  local new_transition_map = tree_map()
   local new_states = module.list()
+  local new_transition_map = tree_map()
 
   for byte = 0x00, 0xFF do
     local vmap = tree_map()
     local move = {}
 
-    -- 複数のノードについて、遷移を調べる
     for _, u in pairs(umap) do
-      local v = u:simulate(byte, move)
-      if v then
-        for k, v in pairs(module.epsilon_closure(v, epsilon_closures)) do
+      local t = u:simulate(byte, move)
+      if t ~= nil then
+        for k, v in pairs(module.epsilon_closure(t, epsilon_closures)) do
           vmap[k] = v
         end
       end
     end
 
-    if vmap():next() then
+    if vmap():next() ~= nil then
       local vnew = states[vmap]
-      if not vnew then
+      if vnew == nil then
         vnew = new_state(vmap)
         states[vmap] = vnew
         new_states:append { map = vmap, state = vnew }
       end
 
-      -- 遷移先とアクションがいっしょの遷移をさがす
       local new_transition_key = { map = vmap, action = move.action }
       local new_transition = new_transition_map[new_transition_key]
-      if not new_transition then
+      if new_transition == nil then
         new_transition_map[new_transition_key] = module.transition(unew, vnew, { [byte] = true }, move.timestamp, move.action)
       else
         new_transition:update(move.timestamp, byte)
@@ -446,7 +446,7 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, color)
   end
 
   for _, item in ipairs(new_states) do
-    if not color[item.map] then
+    if color[item.map] == nil then
       nfa_to_dfa(item.map, item.state, states, epsilon_closures, color)
     end
   end
@@ -456,17 +456,12 @@ end
 
 function module.nfa_to_dfa(u)
   module.update_state_indices(u)
+  local states = tree_map()
   local epsilon_closures = {}
-
   local umap = module.epsilon_closure(u, epsilon_closures)
   local unew = new_state(umap)
-
-  local states = tree_map()
-  local color = tree_map()
   states[umap] = unew
-
-  nfa_to_dfa(umap, unew, states, epsilon_closures, color)
-
+  nfa_to_dfa(umap, unew, states, epsilon_closures, tree_map())
   return unew
 end
 
@@ -481,21 +476,19 @@ local function create_initial_partitions(u, accept_partition_map, nonaccept_part
   local partition = nonaccept_partition
   if accept_action then
     partition = accept_partition_map[accept_action]
-    if not partition then
+    if partition == nil then
       partition = module.list()
       partition.timestamp = u.timestamp
       accept_partition_map[accept_action] = partition
-    else
-      if partition.timestamp > u.timestamp then
-        partition.timestamp = u.timestamp
-      end
+    elseif partition.timestamp > u.timestamp then
+      partition.timestamp = u.timestamp
     end
   end
   partition:append(u)
   partition_map[u] = partition
 
   for _, transition in ipairs(u.transitions) do
-    if not color[transition.v] then
+    if color[transition.v] == nil then
       create_initial_partitions(transition.v, accept_partition_map, nonaccept_partition, partition_map, color)
     end
   end
@@ -515,7 +508,8 @@ function module.create_initial_partitions(u)
   end
   table.sort(partitions, function (a, b) return a.timestamp < b.timestamp end)
 
-  if #nonaccept_partition > 0 then
+  -- partitionsの最後が非受領状態のパーティション
+  if next(nonaccept_partition) ~= nil then
     partitions:append(nonaccept_partition)
   end
 
@@ -532,8 +526,7 @@ function module.minimize(u)
     for _, partition in ipairs(partitions) do
       -- あるパーティションに含まれる状態の組 (x, y) が同じ遷移をするならば、ひ
       -- とつのパーティションにまとめる。
-      for i = 1, #partition do
-        local x = partition[i]
+      for i, x in ipairs(partition) do
         for j = 1, i - 1 do
           local y = partition[j]
           -- 全ての文字について下記の条件が満たされたら、同じ遷移をするとみなす。
@@ -543,8 +536,7 @@ function module.minimize(u)
           for byte = 0x00, 0xFF do
             local xv, xaction = x:simulate(byte)
             local yv, yaction = y:simulate(byte)
-            -- TODO compare(xaction, yaction) ~= 0 にするべきか？
-            if partition_map[xv] ~= partition_map[yv] or xaction ~= yaction then
+            if partition_map[xv] ~= partition_map[yv] or compare(xaction, yaction) ~= 0 then
               same_partition = false
               break
             end
@@ -552,7 +544,7 @@ function module.minimize(u)
 
           if same_partition then
             local new_partition = new_partition_map[x]
-            if not new_partition then
+            if new_partition == nil then
               local new_partition = new_partition_map[y]
               new_partition:append(x)
               new_partition_map[x] = new_partition
@@ -565,7 +557,7 @@ function module.minimize(u)
           end
         end
 
-        if not new_partition_map[x] then
+        if new_partition_map[x] == nil then
           local new_partition = module.list(x)
           new_partitions:append(new_partition)
           new_partition_map[x] = new_partition
