@@ -224,17 +224,13 @@ local metatable = { __index = class, __name = "dromozoa.regexp.list" }
 function class:append(...)
   local n = #self
   for i = 1, select("#", ...) do
-    self[n + i] = select(i, ...)
+    self[#self + 1] = select(i, ...)
   end
   return self
 end
 
-function class:slice(i, j)
-  return module.list(table.unpack(self, i, j))
-end
-
 function module.list(...)
-  return setmetatable({...}, metatable)
+  return setmetatable({}, metatable):append(...)
 end
 
 ---------------------------------------------------------------------------
