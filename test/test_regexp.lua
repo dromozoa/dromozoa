@@ -235,8 +235,8 @@ local metatable = { __index = class, __name = "dromozoa.regexp.state" }
 -- TODO new_transitionのほうがよいか？
 -- TODO transitionの構造はこれでいいのか？
 --  とりあえずはこれで
-function class:transition(v, set, action)
-  local transition = { v = v, set = set, action = action }
+function class:transition(v, set, timestamp, action)
+  local transition = { v = v, set = set, timestamp = timestamp, action = action }
   self.transitions:append(transition)
   return transition
 end
@@ -278,7 +278,7 @@ local function node_to_nfa(node)
   if code == "[" then
     local u = module.state()
     local v = module.state()
-    u:transition(v, node[1]).timestamp = node.timestamp
+    u:transition(v, node[1], timestamp)
     return u, v
   else
     local au, av = node_to_nfa(node[1])
@@ -471,9 +471,7 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, color)
       local new_transition_key = { map = vmap, action = action }
       local new_transition = new_transition_map[new_transition_key]
       if not new_transition then
-        new_transition = unew:transition(vnew, { [byte] = true })
-        new_transition.action = action
-        new_transition.timestamp = timestamp
+        new_transition = unew:transition(vnew, { [byte] = true }, timestamp, action)
         new_transition_map[new_transition_key] = new_transition
       else
         new_transition.set[byte] = true
@@ -687,9 +685,7 @@ function module.minimize(u)
         local new_transition_key = { index = v.index, action = action }
         local new_transition = new_transition_map[new_transition_key]
         if not new_transition then
-          new_transition = unew:transition(v.state, { [byte] = true })
-          new_transition.action = action
-          new_transition.timestamp = timestamp
+          new_transition = unew:transition(v.state, { [byte] = true }, timestamp, action)
           new_transition_map[new_transition_key] = new_transition
         else
           if assertion then
@@ -830,9 +826,7 @@ function module.difference(ux, uy)
             local new_transition_key = { index = vkey, action = action }
             local new_transition = new_transition_map[new_transition_key]
             if not new_transition then
-              new_transition = unew:transition(vnew, { [byte] = true })
-              new_transition.action = action
-              new_transition.timestamp = timestamp
+              new_transition = unew:transition(vnew, { [byte] = true }, timestamp, action)
               new_transition_map[new_transition_key] = new_transition
             else
               new_transition.set[byte] = true
