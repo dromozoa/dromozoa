@@ -230,6 +230,15 @@ end
 ---------------------------------------------------------------------------
 
 local class = {}
+local metatable = { __index = class, __name = "dromozoa.regexp.transition" }
+
+function module.transition(v, set, timestamp, action)
+  return setmetatable({ v = v, set = set, timestamp = timestamp, action = action }, metatable)
+end
+
+---------------------------------------------------------------------------
+
+local class = {}
 local metatable = { __index = class, __name = "dromozoa.regexp.state" }
 
 -- TODO new_transitionのほうがよいか？
@@ -256,13 +265,6 @@ function class:execute_transition(byte)
     end
   end
 end
-
--- 遷移の集合を計算する
--- [char] = { v = v, action = action, timestamp = timestamp }
---   :
--- 遷移の集合を転換する
--- [v,action] = { char = {}, timestamp }
-
 
 function module.state()
   return setmetatable({ transitions = module.list() }, metatable)
@@ -474,6 +476,7 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, color)
         new_transition = unew:transition(vnew, { [byte] = true }, timestamp, action)
         new_transition_map[new_transition_key] = new_transition
       else
+        -- new_transition:update(byte, timestamp)
         new_transition.set[byte] = true
         if new_transition.timestamp > timestamp then
           new_transition.timestamp = timestamp
