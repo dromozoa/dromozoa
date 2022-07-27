@@ -241,6 +241,12 @@ function class:transition(v, set, action)
   return transition
 end
 
+function class:epsilon_transition(v)
+  local transition = { v = v }
+  self.transitions:append(transition)
+  return transition
+end
+
 -- 0x00..0xFFのくりかえしでしか呼ばれない
 function class:execute_transition(byte)
   for _, transition in ipairs(self.transitions) do
@@ -250,6 +256,13 @@ function class:execute_transition(byte)
     end
   end
 end
+
+-- 遷移の集合を計算する
+-- [char] = { v = v, action = action, timestamp = timestamp }
+--   :
+-- 遷移の集合を転換する
+-- [v,action] = { char = {}, timestamp }
+
 
 function module.state()
   return setmetatable({ transitions = module.list() }, metatable)
@@ -271,38 +284,38 @@ local function node_to_nfa(node)
     local au, av = node_to_nfa(node[1])
     if code == "." then
       local bu, bv = node_to_nfa(node[2])
-      av:transition(bu)
+      av:epsilon_transition(bu)
       return au, bv
     elseif code == "|" then
       local bu, bv = node_to_nfa(node[2])
       local u = module.state()
       local v = module.state()
-      u:transition(au)
-      u:transition(bu)
-      av:transition(v)
-      bv:transition(v)
+      u:epsilon_transition(au)
+      u:epsilon_transition(bu)
+      av:epsilon_transition(v)
+      bv:epsilon_transition(v)
       return u, v
     elseif code == "*" then
       local u = module.state()
       local v = module.state()
-      u:transition(v)
-      u:transition(au)
-      av:transition(au)
-      av:transition(v)
+      u:epsilon_transition(v)
+      u:epsilon_transition(au)
+      av:epsilon_transition(au)
+      av:epsilon_transition(v)
       return u, v
     elseif code == "+" then
       local u = module.state()
       local v = module.state()
-      u:transition(au)
-      av:transition(au)
-      av:transition(v)
+      u:epsilon_transition(au)
+      av:epsilon_transition(au)
+      av:epsilon_transition(v)
       return u, v
     elseif code == "?" then
       local u = module.state()
       local v = module.state()
-      u:transition(v)
-      u:transition(au)
-      av:transition(v)
+      u:epsilon_transition(v)
+      u:epsilon_transition(au)
+      av:epsilon_transition(v)
       return u, v
     elseif code == "-" then
       local bu, bv = node_to_nfa(node[2])
@@ -325,11 +338,11 @@ local function node_to_nfa(node)
 
       -- 求めた差集合からaccept_actionとtimestampを除去する
       cu.timestamp = nil
-      u:transition(cu)
+      u:epsilon_transition(cu)
       for _, cv in ipairs(accept_states) do
         cv.accept_action = nil
         cv.timestamp = nil
-        cv:transition(v)
+        cv:epsilon_transition(v)
       end
 
       return u, v
