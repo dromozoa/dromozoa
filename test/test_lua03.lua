@@ -58,6 +58,13 @@ end
 
 assert(not pcall(function () t[nan] = "nan" end))
 
+t["nil"] = nil
+t["nan"] = nan
+print "--"
+for k, v in pairs(t) do
+  print(k, v)
+end
+
 print "=="
 
 local u = setmetatable({}, {
