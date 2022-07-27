@@ -516,7 +516,7 @@ end
 
 ---------------------------------------------------------------------------
 
-local assertion = false
+local assertion = true
 
 local function visit(u, accept_partition_map, nonaccept_partition, partition_map, color)
   color[u] = 1
@@ -526,24 +526,22 @@ local function visit(u, accept_partition_map, nonaccept_partition, partition_map
   if accept_action then
     partition = accept_partition_map[accept_action]
     if not partition then
-      partition = { timestamp = u.timestamp }
+      partition = module.list()
+      partition.timestamp = u.timestamp
       accept_partition_map[accept_action] = partition
     else
-      local t = u.timestamp
-      if partition.timestamp > t then
-        partition.timestamp = t
+      if partition.timestamp > u.timestamp then
+        partition.timestamp = u.timestamp
       end
     end
   end
-  partition[#partition + 1] = u
+  partition:append(u)
   partition_map[u] = partition
 
   local transitions = u.transitions
-  for i = 1, #transitions do
-    local transition = transitions[i]
-    local v = transition.v
-    if not color[v] then
-      visit(v, accept_partition_map, nonaccept_partition, partition_map, color)
+  for _, transition in ipairs(transitions) do
+    if not color[transition.v] then
+      visit(transition.v, accept_partition_map, nonaccept_partition, partition_map, color)
     end
   end
 
@@ -551,19 +549,19 @@ local function visit(u, accept_partition_map, nonaccept_partition, partition_map
 end
 
 local function create_initial_partitions(u)
-  local accept_partition_map = {}
-  local nonaccept_partition = {}
+  local accept_partition_map = tree_map()
+  local nonaccept_partition = module.list()
   local partition_map = {}
   visit(u, accept_partition_map, nonaccept_partition, partition_map, {})
 
-  local partitions = {}
+  local partitions = module.list()
   for _, partition in pairs(accept_partition_map) do
-    partitions[#partitions + 1] = partition
+    partitions:append(partition)
   end
   table.sort(partitions, function (a, b) return a.timestamp < b.timestamp end)
 
   if #nonaccept_partition > 0 then
-    partitions[#partitions + 1] = nonaccept_partition
+    partitions:append(nonaccept_partition)
   end
 
   return partitions, partition_map
@@ -598,7 +596,8 @@ function module.minimize(u)
           for byte = 0x00, 0xFF do
             local xv, xaction = execute_transition(x, byte)
             local yv, yaction = execute_transition(y, byte)
-            if partition_map[xv] ~= partition_map[yv] or not rawequal(xaction, yaction) then
+            -- TODO compare(xaction, yaction) == 0 にするべきか？
+            if partition_map[xv] ~= partition_map[yv] or xaction ~= yaction then
               same_partition = false
               break
             end
@@ -683,7 +682,8 @@ function module.minimize(u)
         for j = 2, #partition do
           local transition = partition[j]:execute_transition(byte)
           if assertion then
-            assert(rawequal(action, transition.action))
+            -- TODO compareにするべき？
+            assert(action == transition.action)
             assert(vkey == states[partition_map[transition.v]].key)
             assert(vnew == states[partition_map[transition.v]].state)
           end
@@ -702,7 +702,8 @@ function module.minimize(u)
           new_transition_map[new_transition_key] = new_transition
         else
           if assertion then
-            assert(rawequal(action, new_transition.action))
+            -- TODO compareにするべき？
+            assert(action == new_transition.action)
             assert(vnew == new_transition.v)
           end
           new_transition.set[byte] = true
