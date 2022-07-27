@@ -83,37 +83,11 @@ function metatable:__mod(that)
 end
 
 function metatable:__bor(that)
-  local self = module.pattern(self)
-  local that = module.pattern(that)
-  if self[0] == "%" or that[0] == "%" then
-    error "not supported"
-  elseif self[0] == "[" and that[0] == "[" then
-    local set = {}
-    for byte in pairs(self[1]) do
-      set[byte] = true
-    end
-    for byte in pairs(that[1]) do
-      set[byte] = true
-    end
-    return construct("[", set)
-  else
-    return construct("|", self, that)
-  end
+  return module.pattern_union(self, that)
 end
 
-function metatable:__bnot(that)
-  if self[0] == "[" then
-    local neg = self[1]
-    local set = {}
-    for byte = 0x00, 0xFF do
-      if not neg[byte] then
-        set[byte] = true
-      end
-    end
-    return construct("[", set)
-  else
-    error "not supported"
-  end
+function metatable:__unm()
+  return module.pattern_negate(self)
 end
 
 function metatable:__call(that)
@@ -170,22 +144,64 @@ function module.pattern(that)
 end
 
 function module.pattern_range(that)
-  local set = {}
-  for i = 1, #that, 2 do
-    local a, b = that:byte(i, i + 1)
-    for byte = a, b do
-      set[byte] = true
+  if type(that) == "string" then
+    local set = {}
+    for i = 1, #that, 2 do
+      local a, b = that:byte(i, i + 1)
+      for byte = a, b do
+        set[byte] = true
+      end
     end
+    return construct("[", set)
+  else
+    return module.pattern(that)
   end
-  return construct("[", set)
 end
 
 function module.pattern_set(that)
-  local set = {}
-  for i = 1, #that do
-    set[that:byte(i)] = true
+  if type(that) == "string" then
+    local set = {}
+    for i = 1, #that do
+      set[that:byte(i)] = true
+    end
+    return construct("[", set)
+  else
+    return module.pattern(that)
   end
-  return construct("[", set)
+end
+
+function module:pattern_negate()
+  if self[0] == "[" then
+    local neg = self[1]
+    local set = {}
+    for byte = 0x00, 0xFF do
+      if not neg[byte] then
+        set[byte] = true
+      end
+    end
+    return construct("[", set)
+  else
+    error "not supported"
+  end
+end
+
+function module:pattern_union(that)
+  local self = module.pattern(self)
+  local that = module.pattern(that)
+  if self[0] == "%" or that[0] == "%" then
+    error "not supported"
+  elseif self[0] == "[" and that[0] == "[" then
+    local set = {}
+    for byte in pairs(self[1]) do
+      set[byte] = true
+    end
+    for byte in pairs(that[1]) do
+      set[byte] = true
+    end
+    return construct("[", set)
+  else
+    return construct("|", self, that)
+  end
 end
 
 ---------------------------------------------------------------------------
@@ -196,12 +212,23 @@ function metatable:__index(that)
   return module.pattern_range(that)
 end
 
-function metatable:__call(that)
+function metatable:__call(that, ...)
   if type(that) == "table" then
-    return module.pattern_set(that[1])
-  else
-    return module.pattern(that)
+    local metatable = getmetatable(that)
+    if not metatable or metatable.__name ~= "dromozoa.regexp.pattern" then
+      local result = module.pattern_set(that[1])
+      for i = 2, #that do
+        result = module.pattern_union(result, module.pattern_set(that[i]))
+      end
+      return result
+    end
   end
+
+  local result = module.pattern(that)
+  for i = 1, select("#", ...) do
+    result = module.pattern_union(result, module.pattern(select(i, ...)))
+  end
+  return result
 end
 
 module.constructor = setmetatable({}, metatable)
@@ -806,10 +833,22 @@ function module.difference(ux, uy)
 end
 
 ---------------------------------------------------------------------------
+--[[
+
+  _("foo", "bar", "baz")
+
+  _{"foo"}
+
+  _["foo"]
+
+]]
+---------------------------------------------------------------------------
 
 local _ = module.constructor
 
-local x = (_"a"{0} + _"b"{1} + (_"c"/"T"){0,1} - "abc" | _{"xyz"}{3,3}) %"A"
+-- local x = (_"a"{0} + _"b"{1} + (_"c"/"T"){0,1} - "abc" | _{"xyz"}{3,3}) %"A"
+-- local x = _(_"a"{0} + _"b"{1} + (_"c"/"T"){0,1} - "abc" , _{"xyz"}{3,3}) %"A"
+local x = _{ _"a"{0} + _"b"{1} + (_"c"/"T"){0,1} - "abc" ; _{"xyz"}{3,3} } %"A"
 local d = module.nfa_to_dfa(module.tree_to_nfa(x, true))
 
 local out = assert(io.open("test.dot", "w"))
