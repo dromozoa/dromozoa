@@ -427,7 +427,7 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, color)
   local actions = {}
 
   local new_transition_map = tree_map()
-  local new_states = {}
+  local new_states = module.list()
 
   for byte = 0x00, 0xFF do
     local vmap = tree_map()
@@ -452,7 +452,7 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, color)
       if not vnew then
         vnew = new_state(vmap)
         states[vmap] = vnew
-        new_states[#new_states + 1] = { map = vmap, state = vnew }
+        new_states:append { map = vmap, state = vnew }
       end
 
       local new_transition_key = { map = vmap, action = action }
@@ -468,7 +468,6 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, color)
           new_transition.timestamp = timestamp
         end
       end
-
     end
   end
 
