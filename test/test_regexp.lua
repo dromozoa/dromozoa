@@ -577,7 +577,7 @@ function module.minimize(u)
           for byte = 0x00, 0xFF do
             local xv, xaction = x:execute_transition(byte)
             local yv, yaction = y:execute_transition(byte)
-            -- TODO compare(xaction, yaction) == 0 にするべきか？
+            -- TODO compare(xaction, yaction) ~= 0 にするべきか？
             if partition_map[xv] ~= partition_map[yv] or xaction ~= yaction then
               same_partition = false
               break
