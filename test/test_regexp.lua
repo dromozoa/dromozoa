@@ -301,80 +301,65 @@ local function node_to_nfa(node)
     return u, v
   else
     local au, av = node_to_nfa(node[1])
-    if code == "." then
-      local bu, bv = node_to_nfa(node[2])
-      module.transition(av, bu)
-      return au, bv
-    elseif code == "|" then
-      local bu, bv = node_to_nfa(node[2])
-      local u = module.state()
-      local v = module.state()
-      module.transition(u, au)
-      module.transition(u, bu)
-      module.transition(av, v)
-      module.transition(bv, v)
-      return u, v
-    elseif code == "*" then
-      local u = module.state()
-      local v = module.state()
-      module.transition(u, v)
-      module.transition(u, au)
-      module.transition(av, au)
-      module.transition(av, v)
-      return u, v
-    elseif code == "+" then
-      local u = module.state()
-      local v = module.state()
-      module.transition(u, au)
-      module.transition(av, au)
-      module.transition(av, v)
-      return u, v
-    elseif code == "?" then
-      local u = module.state()
-      local v = module.state()
-      module.transition(u, v)
-      module.transition(u, au)
-      module.transition(av, v)
-      return u, v
-    elseif code == "-" then
-      local bu, bv = node_to_nfa(node[2])
-      local u = module.state()
-      local v = module.state()
-
-      -- 差集合を求めるためにaccept_actionとtimestampを割り当てる
-      local timestamp = node.timestamp
-      au.timestamp = timestamp
-      av.accept_action = true
-      av.timestamp = timestamp
-      bu.timestamp = timestamp
-      bv.accept_action = true
-      bv.timestamp = timestamp
-
-      local cu, accept_states = module.minimize(
-        module.difference(
-          module.minimize(module.nfa_to_dfa(au)),
-          module.minimize(module.nfa_to_dfa(bu))))
-
-      -- 求めた差集合からaccept_actionとtimestampを除去する
-      cu.timestamp = nil
-      module.transition(u, cu)
-      for _, cv in ipairs(accept_states) do
-        cv.accept_action = nil
-        cv.timestamp = nil
-        module.transition(cv, v)
-      end
-
-      return u, v
-    elseif code == "/" then
-      assert(#au.transitions == 1)
+    if code == "/" then
       au.transitions[1].action = node[2]
       return au, av
     elseif code == "%" then
-      assert(#av.transitions == 0)
-      assert(av.timestamp == nil)
-      assert(av.accept_action == nil)
       av:update(node.timestamp, node[2])
       return au, av
+    elseif code == "." then
+      local bu, bv = node_to_nfa(node[2])
+      module.transition(av, bu)
+      return au, bv
+    else
+      local u = module.state()
+      local v = module.state()
+      if code == "*" then
+        module.transition(u, v)
+        module.transition(u, au)
+        module.transition(av, au)
+        module.transition(av, v)
+      elseif code == "+" then
+        module.transition(u, au)
+        module.transition(av, au)
+        module.transition(av, v)
+      elseif code == "?" then
+        module.transition(u, v)
+        module.transition(u, au)
+        module.transition(av, v)
+      else
+        local bu, bv = node_to_nfa(node[2])
+        if code == "|" then
+          module.transition(u, au)
+          module.transition(u, bu)
+          module.transition(av, v)
+          module.transition(bv, v)
+        elseif code == "-" then
+          -- 差集合を求めるためにaccept_actionとtimestampを割り当てる
+          local timestamp = node.timestamp
+          au.timestamp = timestamp
+          av.timestamp = timestamp
+          av.accept_action = true
+          bu.timestamp = timestamp
+          bv.timestamp = timestamp
+          bv.accept_action = true
+
+          local cu, accept_states = module.minimize(
+            module.difference(
+              module.minimize(module.nfa_to_dfa(au)),
+              module.minimize(module.nfa_to_dfa(bu))))
+
+          -- 求めた差集合からaccept_actionとtimestampを除去する
+          cu.timestamp = nil
+          module.transition(u, cu)
+          for _, cv in ipairs(accept_states) do
+            cv.timestamp = nil
+            cv.accept_action = nil
+            module.transition(cv, v)
+          end
+        end
+      end
+      return u, v
     end
   end
 end
