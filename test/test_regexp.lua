@@ -241,6 +241,7 @@ function class:transition(v, set, action)
   return transition
 end
 
+-- 0x00..0xFFのくりかえしでしか呼ばれない
 function class:execute_transition(byte)
   for _, transition in ipairs(self.transitions) do
     local set = transition.set
@@ -377,6 +378,8 @@ function module.update_state_indices(u)
   return states
 end
 
+---------------------------------------------------------------------------
+
 local function epsilon_closure(u, map)
   for _, transition in ipairs(u.transitions) do
     if not transition.set then
@@ -450,6 +453,7 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, color)
         new_states:append { map = vmap, state = vnew }
       end
 
+      -- 遷移先とアクションがいっしょの遷移をさがす
       local new_transition_key = { map = vmap, action = action }
       local new_transition = new_transition_map[new_transition_key]
       if not new_transition then
