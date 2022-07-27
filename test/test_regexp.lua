@@ -452,8 +452,8 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, indices, color)
           action = transition.action
           timestamp = transition.timestamp
         end
-        for i, v in pairs(module.epsilon_closure(transition.v, epsilon_closures, indices)) do
-          vmap[i] = v
+        for k, v in pairs(module.epsilon_closure(transition.v, epsilon_closures, indices)) do
+          vmap[k] = v
         end
       end
     end
