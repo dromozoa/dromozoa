@@ -336,6 +336,7 @@ local function node_to_nfa(node)
           module.transition(bv, v)
         elseif code == "-" then
           -- 差集合を求めるためにaccept_actionとtimestampを割り当てる
+          -- 先頭にtimestampがいる理由ってなんだっけ
           local timestamp = node.timestamp
           au.timestamp = timestamp
           av.timestamp = timestamp
