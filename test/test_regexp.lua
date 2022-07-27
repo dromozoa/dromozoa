@@ -232,6 +232,13 @@ end
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.regexp.transition" }
 
+function class:update(byte, timestamp)
+  self.set[byte] = byte
+  if self.timestamp > timestamp then
+    self.timestamp = timestamp
+  end
+end
+
 function module.transition(v, set, timestamp, action)
   return setmetatable({ v = v, set = set, timestamp = timestamp, action = action }, metatable)
 end
@@ -245,13 +252,7 @@ local metatable = { __index = class, __name = "dromozoa.regexp.state" }
 -- TODO transitionの構造はこれでいいのか？
 --  とりあえずはこれで
 function class:transition(v, set, timestamp, action)
-  local transition = { v = v, set = set, timestamp = timestamp, action = action }
-  self.transitions:append(transition)
-  return transition
-end
-
-function class:epsilon_transition(v)
-  local transition = { v = v }
+  local transition = module.transition(v, set, timestamp, action)
   self.transitions:append(transition)
   return transition
 end
@@ -286,38 +287,38 @@ local function node_to_nfa(node)
     local au, av = node_to_nfa(node[1])
     if code == "." then
       local bu, bv = node_to_nfa(node[2])
-      av:epsilon_transition(bu)
+      av:transition(bu)
       return au, bv
     elseif code == "|" then
       local bu, bv = node_to_nfa(node[2])
       local u = module.state()
       local v = module.state()
-      u:epsilon_transition(au)
-      u:epsilon_transition(bu)
-      av:epsilon_transition(v)
-      bv:epsilon_transition(v)
+      u:transition(au)
+      u:transition(bu)
+      av:transition(v)
+      bv:transition(v)
       return u, v
     elseif code == "*" then
       local u = module.state()
       local v = module.state()
-      u:epsilon_transition(v)
-      u:epsilon_transition(au)
-      av:epsilon_transition(au)
-      av:epsilon_transition(v)
+      u:transition(v)
+      u:transition(au)
+      av:transition(au)
+      av:transition(v)
       return u, v
     elseif code == "+" then
       local u = module.state()
       local v = module.state()
-      u:epsilon_transition(au)
-      av:epsilon_transition(au)
-      av:epsilon_transition(v)
+      u:transition(au)
+      av:transition(au)
+      av:transition(v)
       return u, v
     elseif code == "?" then
       local u = module.state()
       local v = module.state()
-      u:epsilon_transition(v)
-      u:epsilon_transition(au)
-      av:epsilon_transition(v)
+      u:transition(v)
+      u:transition(au)
+      av:transition(v)
       return u, v
     elseif code == "-" then
       local bu, bv = node_to_nfa(node[2])
@@ -340,11 +341,11 @@ local function node_to_nfa(node)
 
       -- 求めた差集合からaccept_actionとtimestampを除去する
       cu.timestamp = nil
-      u:epsilon_transition(cu)
+      u:transition(cu)
       for _, cv in ipairs(accept_states) do
         cv.accept_action = nil
         cv.timestamp = nil
-        cv:epsilon_transition(v)
+        cv:transition(v)
       end
 
       return u, v
@@ -473,14 +474,9 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, color)
       local new_transition_key = { map = vmap, action = action }
       local new_transition = new_transition_map[new_transition_key]
       if not new_transition then
-        new_transition = unew:transition(vnew, { [byte] = true }, timestamp, action)
-        new_transition_map[new_transition_key] = new_transition
+        new_transition_map[new_transition_key] = unew:transition(vnew, { [byte] = true }, timestamp, action)
       else
-        -- new_transition:update(byte, timestamp)
-        new_transition.set[byte] = true
-        if new_transition.timestamp > timestamp then
-          new_transition.timestamp = timestamp
-        end
+        new_transition:update(byte, timestamp)
       end
     end
   end
