@@ -431,11 +431,11 @@ function module.epsilon_closure(u, epsilon_closures, indices)
   return seq
 end
 
-local function new_state(seq)
+local function new_state(map)
   local accept_action
   local timestamp
 
-  for _, u in pairs(seq.map) do
+  for _, u in pairs(map) do
     if u.accept_action then
       if not timestamp or timestamp > u.timestamp then
         accept_action = u.accept_action
@@ -447,7 +447,6 @@ local function new_state(seq)
   local state = module.state()
   state.accept_action = accept_action
   state.timestamp = timestamp
-  seq.state = state
   return state
 end
 
@@ -485,7 +484,7 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, indices, color)
 
       local xnew = states[vmap]
       if not xnew then
-        vnew = new_state(vseq)
+        vnew = new_state(vseq.map)
         states[vmap] = vnew
         new_states[#new_states + 1] = { map = vmap, state = vnew }
       else
@@ -524,7 +523,7 @@ function module.nfa_to_dfa(u)
 
   local useq = module.epsilon_closure(u, epsilon_closures, indices)
   local umap = useq.map
-  local unew = new_state(useq)
+  local unew = new_state(useq.map)
 
   local states = tree_map()
   local color = tree_map()
