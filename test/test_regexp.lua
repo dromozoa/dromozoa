@@ -359,24 +359,22 @@ end
 
 ---------------------------------------------------------------------------
 
-local function update_state_indices(u, index, color)
+local function update_state_indices(u, states, color)
   color[u] = 1
-
-  index = index + 1
-  u.index = index
-
+  u.index = #states:append(u)
   for _, transition in ipairs(u.transitions) do
     if not color[transition.v] then
-      index = update_state_indices(transition.v, index, color)
+      index = update_state_indices(transition.v, states, color)
     end
   end
-
   color[u] = 2
   return index
 end
 
 function module.update_state_indices(u)
-  update_state_indices(u, 0, {})
+  local states = module.list()
+  update_state_indices(u, states, {})
+  return states
 end
 
 local function epsilon_closure(u, map)
@@ -535,8 +533,7 @@ local function create_initial_partitions(u, accept_partition_map, nonaccept_part
   partition:append(u)
   partition_map[u] = partition
 
-  local transitions = u.transitions
-  for _, transition in ipairs(transitions) do
+  for _, transition in ipairs(u.transitions) do
     if not color[transition.v] then
       create_initial_partitions(transition.v, accept_partition_map, nonaccept_partition, partition_map, color)
     end
@@ -764,32 +761,6 @@ end
 
 ---------------------------------------------------------------------------
 
-local function visit(u, states, indices, index, color)
-  color[u] = 1
-  index = index + 1
-  indices[u] = index
-  states[index] = u
-
-  local transitions = u.transitions
-  for i = 1, #transitions do
-    local transition = transitions[i]
-    local v = transition.v
-    if not color[v] then
-      index = visit(v, states, indices, index, color)
-    end
-  end
-
-  color[u] = 2
-  return index
-end
-
-local function create_states_and_indices(u)
-  local states = {}
-  local indices = {}
-  visit(u, states, indices, 0, {})
-  return states, indices
-end
-
 local function execute_transition(u, byte)
   if u then
     local transition = u:execute_transition(byte)
@@ -812,8 +783,8 @@ local function new_state(ux, uy)
 end
 
 function module.difference(ux, uy)
-  local x_states, x_indices = create_states_and_indices(ux)
-  local y_states, y_indices = create_states_and_indices(uy)
+  local x_states = module.update_state_indices(ux)
+  local y_states = module.update_state_indices(uy)
 
   local nx = #x_states
   local ny = #y_states
@@ -837,11 +808,11 @@ function module.difference(ux, uy)
           local vkey = 0
           local timestamp
           if ty then
-            vkey = y_indices[vy] * n
+            vkey = vy.index * n
             timestamp = ty.timestamp
           end
           if tx then
-            vkey = x_indices[vx] + vkey
+            vkey = vx.index + vkey
             timestamp = tx.timestamp
           end
 
@@ -876,7 +847,7 @@ function module.difference(ux, uy)
     end
   end
 
-  local unew = new_states[x_indices[ux] + y_indices[uy] * n]
+  local unew = new_states[ux.index + uy.index * n]
   unew.timestamp = ux.timestamp
   return module.remove_dead_states(unew)
 end
