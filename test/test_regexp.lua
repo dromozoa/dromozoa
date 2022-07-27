@@ -24,6 +24,7 @@ local module = {}
 
 ---------------------------------------------------------------------------
 
+local class = {}
 local metatable = { __name = "dromozoa.regexp.pattern" }
 
 local timestamp = 0
@@ -34,8 +35,8 @@ local function construct(code, ...)
 end
 
 function metatable:__add(that)
-  local self = module.pattern(self)
-  local that = module.pattern(that)
+  local self = class.pattern(self)
+  local that = class.pattern(that)
   if self[0] == "%" or that[0] == "%" then
     error "not supported"
   else
@@ -44,8 +45,8 @@ function metatable:__add(that)
 end
 
 function metatable:__sub(that)
-  local self = module.pattern(self)
-  local that = module.pattern(that)
+  local self = class.pattern(self)
+  local that = class.pattern(that)
   if self[0] == "%" or that[0] == "%" then
     error "not supported"
   elseif self[0] == "[" and that[0] == "[" then
@@ -63,7 +64,7 @@ function metatable:__sub(that)
 end
 
 function metatable:__div(that)
-  local self = module.pattern(self)
+  local self = class.pattern(self)
   if self[0] == "[" then
     return construct("/", self, that)
   else
@@ -72,7 +73,7 @@ function metatable:__div(that)
 end
 
 function metatable:__mod(that)
-  local self = module.pattern(self)
+  local self = class.pattern(self)
   if self[0] == "%" then
     error "not supported"
   else
@@ -82,12 +83,16 @@ function metatable:__mod(that)
   end
 end
 
-function metatable:__bor(that)
-  return module.pattern_union(self, that)
+function metatable:__unm()
+  return class.negate(self)
 end
 
-function metatable:__unm()
-  return module.pattern_negate(self)
+function metatable:__bor(that)
+  return class.union(self, that)
+end
+
+function metatable:__bnot()
+  return class.negate(self)
 end
 
 function metatable:__call(that)
@@ -129,7 +134,7 @@ function metatable:__call(that)
   end
 end
 
-function module.pattern(that)
+function class.pattern(that)
   local t = type(that)
   if t == "string" then
     local self = construct("[", { [that:byte(1)] = true })
@@ -143,7 +148,7 @@ function module.pattern(that)
   end
 end
 
-function module.pattern_range(that)
+function class.range(that)
   if type(that) == "string" then
     local set = {}
     for i = 1, #that, 2 do
@@ -154,11 +159,11 @@ function module.pattern_range(that)
     end
     return construct("[", set)
   else
-    return module.pattern(that)
+    return class.pattern(that)
   end
 end
 
-function module.pattern_set(that)
+function class.set(that)
   if type(that) == "string" then
     local set = {}
     for i = 1, #that do
@@ -166,11 +171,11 @@ function module.pattern_set(that)
     end
     return construct("[", set)
   else
-    return module.pattern(that)
+    return class.pattern(that)
   end
 end
 
-function module:pattern_negate()
+function class:negate()
   if self[0] == "[" then
     local neg = self[1]
     local set = {}
@@ -185,9 +190,9 @@ function module:pattern_negate()
   end
 end
 
-function module:pattern_union(that)
-  local self = module.pattern(self)
-  local that = module.pattern(that)
+function class:union(that)
+  local self = class.pattern(self)
+  local that = class.pattern(that)
   if self[0] == "%" or that[0] == "%" then
     error "not supported"
   elseif self[0] == "[" and that[0] == "[" then
@@ -204,34 +209,30 @@ function module:pattern_union(that)
   end
 end
 
----------------------------------------------------------------------------
+module.pattern = setmetatable(class, {
+  __index = function (_, that)
+    return class.pattern_range(that)
+  end;
 
-local metatable = { __name = "dromozoa.regexp.pattern.constructor" }
-
-function metatable:__index(that)
-  return module.pattern_range(that)
-end
-
-function metatable:__call(that, ...)
-  if type(that) == "table" then
-    local metatable = getmetatable(that)
-    if not metatable or metatable.__name ~= "dromozoa.regexp.pattern" then
-      local result = module.pattern_set(that[1])
-      for i = 2, #that do
-        result = module.pattern_union(result, module.pattern_set(that[i]))
+  __call = function (_, that, ...)
+    if type(that) == "table" then
+      local metatable = getmetatable(that)
+      if not metatable or metatable.__name ~= "dromozoa.regexp.pattern" then
+        local result = class.set(that[1])
+        for i = 2, #that do
+          result = class.union(result, class.set(that[i]))
+        end
+        return result
       end
-      return result
     end
-  end
 
-  local result = module.pattern(that)
-  for i = 1, select("#", ...) do
-    result = module.pattern_union(result, module.pattern(select(i, ...)))
-  end
-  return result
-end
-
-module.constructor = setmetatable({}, metatable)
+    local result = class.pattern(that)
+    for i = 1, select("#", ...) do
+      result = class.union(result, class.pattern(select(i, ...)))
+    end
+    return result
+  end;
+})
 
 ---------------------------------------------------------------------------
 
@@ -844,7 +845,7 @@ end
 ]]
 ---------------------------------------------------------------------------
 
-local _ = module.constructor
+local _ = module.pattern
 
 -- local x = (_"a"{0} + _"b"{1} + (_"c"/"T"){0,1} - "abc" | _{"xyz"}{3,3}) %"A"
 -- local x = _(_"a"{0} + _"b"{1} + (_"c"/"T"){0,1} - "abc" , _{"xyz"}{3,3}) %"A"
