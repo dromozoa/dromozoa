@@ -404,31 +404,15 @@ local function epsilon_closure(u, map, indices)
   end
 end
 
-local function map_to_seq(map)
-  local seq = {}
-  for index, state in pairs(map) do
-    seq[#seq + 1] = { index = index, state = state }
-  end
-  table.sort(seq, function (a, b) return a.index < b.index end)
-  local key = {}
-  for i = 1, #seq do
-    key[i] = seq[i].index
-  end
-  seq.key = table.concat(key, ",")
-  seq.map = map
-  return seq
-end
-
 function module.epsilon_closure(u, epsilon_closures, indices)
-  local seq = epsilon_closures[u]
-  if not seq then
-    local map = tree_map()
+  local map = epsilon_closures[u]
+  if not map then
+    map = tree_map()
     map[indices[u]] = u
     epsilon_closure(u, map, indices)
-    seq = map_to_seq(map)
-    epsilon_closures[u] = seq
+    epsilon_closures[u] = map
   end
-  return seq
+  return map
 end
 
 local function new_state(map)
@@ -470,8 +454,7 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, indices, color)
           action = transition.action
           timestamp = transition.timestamp
         end
-        local vseq = module.epsilon_closure(transition.v, epsilon_closures, indices)
-        for i, v in pairs(vseq.map) do
+        for i, v in pairs(module.epsilon_closure(transition.v, epsilon_closures, indices)) do
           vmap[i] = v
         end
       end
@@ -479,12 +462,11 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, indices, color)
 
     if vmap():next() then
     -- if next(vmap) then
-      local vseq = map_to_seq(vmap)
       local vnew
 
       local xnew = states[vmap]
       if not xnew then
-        vnew = new_state(vseq.map)
+        vnew = new_state(vmap)
         states[vmap] = vnew
         new_states[#new_states + 1] = { map = vmap, state = vnew }
       else
@@ -521,9 +503,8 @@ function module.nfa_to_dfa(u)
   local indices = module.create_state_indices(u)
   local epsilon_closures = {}
 
-  local useq = module.epsilon_closure(u, epsilon_closures, indices)
-  local umap = useq.map
-  local unew = new_state(useq.map)
+  local umap = module.epsilon_closure(u, epsilon_closures, indices)
+  local unew = new_state(umap)
 
   local states = tree_map()
   local color = tree_map()
