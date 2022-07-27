@@ -684,19 +684,16 @@ function module.minimize(u)
         local new_transition_key = { index = v.index, action = action }
         local new_transition = new_transition_map[new_transition_key]
         if not new_transition then
-          new_transition = unew:transition(v.state, { [byte] = true }, timestamp, action)
-          new_transition_map[new_transition_key] = new_transition
+          new_transition_map[new_transition_key] = unew:transition(v.state, { [byte] = true }, timestamp, action)
         else
           if assertion then
             -- TODO compareにするべき？
             assert(action == new_transition.action)
             assert(v.state == new_transition.v)
           end
-          new_transition.set[byte] = true
-          if new_transition.timestamp > timestamp then
-            new_transition.timestamp = timestamp
-          end
+          new_transition:update(byte, timestamp)
         end
+
       else
         if assertion then
           for j = 2, #partition do
@@ -825,13 +822,9 @@ function module.difference(ux, uy)
             local new_transition_key = { index = vkey, action = action }
             local new_transition = new_transition_map[new_transition_key]
             if not new_transition then
-              new_transition = unew:transition(vnew, { [byte] = true }, timestamp, action)
-              new_transition_map[new_transition_key] = new_transition
+              new_transition_map[new_transition_key] = unew:transition(vnew, { [byte] = true }, timestamp, action)
             else
-              new_transition.set[byte] = true
-              if new_transition.timestamp > timestamp then
-                new_transition.timestamp = timestamp
-              end
+              new_transition:update(byte, timestamp)
             end
           end
         end
