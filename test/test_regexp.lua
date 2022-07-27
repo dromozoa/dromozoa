@@ -515,7 +515,7 @@ end
 
 local assertion = true
 
-local function visit(u, accept_partition_map, nonaccept_partition, partition_map, color)
+local function create_initial_partitions(u, accept_partition_map, nonaccept_partition, partition_map, color)
   color[u] = 1
 
   local accept_action = u.accept_action
@@ -538,18 +538,18 @@ local function visit(u, accept_partition_map, nonaccept_partition, partition_map
   local transitions = u.transitions
   for _, transition in ipairs(transitions) do
     if not color[transition.v] then
-      visit(transition.v, accept_partition_map, nonaccept_partition, partition_map, color)
+      create_initial_partitions(transition.v, accept_partition_map, nonaccept_partition, partition_map, color)
     end
   end
 
   color[u] = 2
 end
 
-local function create_initial_partitions(u)
+function module.create_initial_partitions(u)
   local accept_partition_map = tree_map()
   local nonaccept_partition = module.list()
   local partition_map = {}
-  visit(u, accept_partition_map, nonaccept_partition, partition_map, {})
+  create_initial_partitions(u, accept_partition_map, nonaccept_partition, partition_map, {})
 
   local partitions = module.list()
   for _, partition in pairs(accept_partition_map) do
@@ -572,20 +572,19 @@ local function execute_transition(u, byte)
 end
 
 function module.minimize(u)
-  local partitions, partition_map = create_initial_partitions(u)
+  local partitions, partition_map = module.create_initial_partitions(u)
 
   while true do
-    local new_partitions = {}
+    local new_partitions = module.list()
     local new_partition_map = {}
 
-    for i = 1, #partitions do
-      local partition = partitions[i]
+    for _, partition in ipairs(partitions) do
       -- あるパーティションに含まれる状態の組 (x, y) が同じ遷移をするならば、ひ
       -- とつのパーティションにまとめる。
-      for j = 1, #partition do
-        local x = partition[j]
-        for k = 1, j - 1 do
-          local y = partition[k]
+      for i = 1, #partition do
+        local x = partition[i]
+        for j = 1, i - 1 do
+          local y = partition[j]
           -- 全ての文字について下記の条件が満たされたら、同じ遷移をするとみなす。
           -- 1. 遷移先の状態が同じパーティションに含まれている
           -- 2. 同じ遷移アクションを持つ
@@ -604,7 +603,7 @@ function module.minimize(u)
             local new_partition = new_partition_map[x]
             if not new_partition then
               local new_partition = new_partition_map[y]
-              new_partition[#new_partition + 1] = x
+              new_partition:append(x)
               new_partition_map[x] = new_partition
             else
               -- 新パーティションに登録済みである
@@ -616,8 +615,8 @@ function module.minimize(u)
         end
 
         if not new_partition_map[x] then
-          local new_partition = { x }
-          new_partitions[#new_partitions + 1] = new_partition
+          local new_partition = module.list(x)
+          new_partitions:append(new_partition)
           new_partition_map[x] = new_partition
         end
       end
@@ -652,7 +651,7 @@ function module.minimize(u)
     local unew = module.state()
     unew.accept_action = accept_action
     unew.timestamp = timestamp
-    states[partition] = { key = i, state = unew }
+    states[partition] = { index = i, state = unew }
     if accept_action then
       accept_states[#accept_states + 1] = unew
     end
@@ -663,7 +662,7 @@ function module.minimize(u)
     local unew = states[partition].state
 
     local actions = {}
-    local new_transition_map = {}
+    local new_transition_map = tree_map()
 
     for byte = 0x00, 0xFF do
       local transition = partition[1]:execute_transition(byte)
@@ -672,8 +671,6 @@ function module.minimize(u)
         local timestamp = transition.timestamp
         local action = transition.action
         local v = states[partition_map[transition.v]]
-        local vkey = v.key
-        local vnew = v.state
 
         -- パーティションに含まれる各状態は同じ遷移をする
         for j = 2, #partition do
@@ -681,8 +678,8 @@ function module.minimize(u)
           if assertion then
             -- TODO compareにするべき？
             assert(action == transition.action)
-            assert(vkey == states[partition_map[transition.v]].key)
-            assert(vnew == states[partition_map[transition.v]].state)
+            assert(v.index == states[partition_map[transition.v]].index)
+            assert(v.state == states[partition_map[transition.v]].state)
           end
           local t = transition.timestamp
           if timestamp > t then
@@ -690,10 +687,10 @@ function module.minimize(u)
           end
         end
 
-        local new_transition_key = module.new_transition_key(vkey, actions, action)
+        local new_transition_key = { index = v.index, action = action }
         local new_transition = new_transition_map[new_transition_key]
         if not new_transition then
-          new_transition = unew:transition(vnew, { [byte] = true })
+          new_transition = unew:transition(v.state, { [byte] = true })
           new_transition.action = action
           new_transition.timestamp = timestamp
           new_transition_map[new_transition_key] = new_transition
@@ -701,7 +698,7 @@ function module.minimize(u)
           if assertion then
             -- TODO compareにするべき？
             assert(action == new_transition.action)
-            assert(vnew == new_transition.v)
+            assert(v.state == new_transition.v)
           end
           new_transition.set[byte] = true
           if new_transition.timestamp > timestamp then
