@@ -616,20 +616,18 @@ end
 
 ---------------------------------------------------------------------------
 
-local function remove_dead_states(u, living_states, color)
+local function collect_living_states(u, living_states, color)
   color[u] = 1
 
   if u.accept_action then
     living_states[u] = true
   end
 
-  for _, transition in ipairs(u.transitions) do
-    local v = transition.v
-    if not color[v] then
-      remove_dead_states(v, living_states, color)
+  for _, t in ipairs(u.transitions) do
+    if not color[t.v] then
+      collect_living_states(t.v, living_states, color)
     end
-    -- 帰りがけに調べる
-    if living_states[v] then
+    if living_states[t.v] then
       living_states[u] = true
     end
   end
@@ -637,24 +635,22 @@ local function remove_dead_states(u, living_states, color)
   color[u] = 2
 end
 
-function module.remove_dead_states(u)
+local function remove_dead_states(u)
   local living_states = {}
-  remove_dead_states(u, living_states, {})
+  collect_living_states(u, living_states, {})
 
-  for u in pairs(living_states) do
+  for v in pairs(living_states) do
     local new_transitions = module.list()
-    for _, transition in ipairs(u.transitions) do
+    for _, transition in ipairs(v.transitions) do
       if living_states[transition.v] then
         new_transitions:append(transition)
       end
     end
-    u.transitions = new_transitions
+    v.transitions = new_transitions
   end
 
   return u
 end
-
----------------------------------------------------------------------------
 
 local function new_state(ux, uy)
   local state = module.state()
@@ -666,7 +662,7 @@ local function new_state(ux, uy)
   return state
 end
 
-function module.difference(ux, uy)
+local function difference(ux, uy)
   local x_states = module.update_state_indices(ux)
   local y_states = module.update_state_indices(uy)
 
@@ -734,12 +730,12 @@ function module.difference(ux, uy)
   end
 
   local unew = new_states[ux.index + uy.index * n]
-  return module.remove_dead_states(unew)
+  return remove_dead_states(unew)
 end
 
 function node_to_nfa_difference(au, av, bu, bv)
   return module.minimize(
-    module.difference(
+    difference(
       module.minimize(module.nfa_to_dfa(au)),
       module.minimize(module.nfa_to_dfa(bu))))
 end
