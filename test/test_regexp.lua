@@ -242,7 +242,7 @@ end
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.regexp.transition" }
 
-function class:update(byte, timestamp)
+function class:update(timestamp, byte)
   self.set[byte] = byte
   if self.timestamp > timestamp then
     self.timestamp = timestamp
@@ -450,7 +450,7 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, color)
       if not new_transition then
         new_transition_map[new_transition_key] = module.transition(unew, vnew, { [byte] = true }, move.timestamp, move.action)
       else
-        new_transition:update(byte, move.timestamp)
+        new_transition:update(move.timestamp, byte)
       end
     end
   end
@@ -650,7 +650,7 @@ function module.minimize(u)
             assert(move.action == new_transition.action)
             assert(v.state == new_transition.v)
           end
-          new_transition:update(byte, move.timestamp)
+          new_transition:update(move.timestamp, byte)
         end
       end
     end
@@ -773,7 +773,7 @@ function module.difference(ux, uy)
             if not new_transition then
               new_transition_map[new_transition_key] = module.transition(unew, vnew, { [byte] = true }, assert(move.timestamp), action)
             else
-              new_transition:update(byte, move.timestamp)
+              new_transition:update(move.timestamp, byte)
             end
           end
         end
