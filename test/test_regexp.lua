@@ -237,25 +237,19 @@ function class:update(byte, timestamp)
   if self.timestamp > timestamp then
     self.timestamp = timestamp
   end
+  return self
 end
 
-function module.transition(v, set, timestamp, action)
-  return setmetatable({ v = v, set = set, timestamp = timestamp, action = action }, metatable)
+function module.transition(u, v, set, timestamp, action)
+  local self = setmetatable({ v = v, set = set, timestamp = timestamp, action = action }, metatable)
+  u.transitions:append(self)
+  return self
 end
 
 ---------------------------------------------------------------------------
 
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.regexp.state" }
-
--- TODO new_transitionのほうがよいか？
--- TODO transitionの構造はこれでいいのか？
---  とりあえずはこれで
-function class:transition(v, set, timestamp, action)
-  local transition = module.transition(v, set, timestamp, action)
-  self.transitions:append(transition)
-  return transition
-end
 
 function class:execute_transition(byte, move)
   for _, transition in ipairs(self.transitions) do
@@ -272,6 +266,16 @@ function class:execute_transition(byte, move)
   end
 end
 
+function class:update(timestamp, accept_action)
+  if timestamp and accept_action then
+    if not self.timestamp or self.timestamp > timestamp then
+      self.timestamp = timestamp
+      self.accept_action = accept_action
+    end
+  end
+  return self
+end
+
 function module.state()
   return setmetatable({ transitions = module.list() }, metatable)
 end
@@ -286,44 +290,44 @@ local function node_to_nfa(node)
   if code == "[" then
     local u = module.state()
     local v = module.state()
-    u:transition(v, node[1], timestamp)
+    module.transition(u, v, node[1], timestamp)
     return u, v
   else
     local au, av = node_to_nfa(node[1])
     if code == "." then
       local bu, bv = node_to_nfa(node[2])
-      av:transition(bu)
+      module.transition(av, bu)
       return au, bv
     elseif code == "|" then
       local bu, bv = node_to_nfa(node[2])
       local u = module.state()
       local v = module.state()
-      u:transition(au)
-      u:transition(bu)
-      av:transition(v)
-      bv:transition(v)
+      module.transition(u, au)
+      module.transition(u, bu)
+      module.transition(av, v)
+      module.transition(bv, v)
       return u, v
     elseif code == "*" then
       local u = module.state()
       local v = module.state()
-      u:transition(v)
-      u:transition(au)
-      av:transition(au)
-      av:transition(v)
+      module.transition(u, v)
+      module.transition(u, au)
+      module.transition(av, au)
+      module.transition(av, v)
       return u, v
     elseif code == "+" then
       local u = module.state()
       local v = module.state()
-      u:transition(au)
-      av:transition(au)
-      av:transition(v)
+      module.transition(u, au)
+      module.transition(av, au)
+      module.transition(av, v)
       return u, v
     elseif code == "?" then
       local u = module.state()
       local v = module.state()
-      u:transition(v)
-      u:transition(au)
-      av:transition(v)
+      module.transition(u, v)
+      module.transition(u, au)
+      module.transition(av, v)
       return u, v
     elseif code == "-" then
       local bu, bv = node_to_nfa(node[2])
@@ -346,11 +350,11 @@ local function node_to_nfa(node)
 
       -- 求めた差集合からaccept_actionとtimestampを除去する
       cu.timestamp = nil
-      u:transition(cu)
+      module.transition(u, cu)
       for _, cv in ipairs(accept_states) do
         cv.accept_action = nil
         cv.timestamp = nil
-        cv:transition(v)
+        module.transition(cv, v)
       end
 
       return u, v
@@ -360,8 +364,9 @@ local function node_to_nfa(node)
       return au, av
     elseif code == "%" then
       assert(#av.transitions == 0)
-      av.accept_action = node[2]
-      av.timestamp = node.timestamp
+      assert(av.timestamp == nil)
+      assert(av.accept_action == nil)
+      av:update(node.timestamp, node[2])
       return au, av
     end
   end
@@ -422,21 +427,10 @@ function module.epsilon_closure(u, epsilon_closures)
 end
 
 local function new_state(map)
-  local accept_action
-  local timestamp
-
-  for _, u in pairs(map) do
-    if u.accept_action then
-      if not timestamp or timestamp > u.timestamp then
-        accept_action = u.accept_action
-        timestamp = u.timestamp
-      end
-    end
-  end
-
   local state = module.state()
-  state.accept_action = accept_action
-  state.timestamp = timestamp
+  for _, u in pairs(map) do
+    state:update(u.timestamp, u.accept_action)
+  end
   return state
 end
 
@@ -472,7 +466,7 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, color)
       local new_transition_key = { map = vmap, action = move.action }
       local new_transition = new_transition_map[new_transition_key]
       if not new_transition then
-        new_transition_map[new_transition_key] = unew:transition(vnew, { [byte] = true }, move.timestamp, move.action)
+        new_transition_map[new_transition_key] = module.transition(unew, vnew, { [byte] = true }, move.timestamp, move.action)
       else
         new_transition:update(byte, move.timestamp)
       end
@@ -617,27 +611,17 @@ function module.minimize(u)
 
   local states = {}
   local accept_states = {}
+
   for i = 1, #partitions do
     local partition = partitions[i]
 
-    local accept_action = partition[1].accept_action
-    local timestamp
-    if accept_action then
-      timestamp = partition[1].timestamp
-      for j = 2, #partition do
-        local x = partition[j]
-        local t = x.timestamp
-        if timestamp > t then
-          timestamp = t
-        end
-      end
+    local unew = module.state()
+    for i, x in ipairs(partition) do
+      unew:update(x.timestamp, x.accept_action)
     end
 
-    local unew = module.state()
-    unew.accept_action = accept_action
-    unew.timestamp = timestamp
     states[partition] = { index = i, state = unew }
-    if accept_action then
+    if unew.accept_action then
       accept_states[#accept_states + 1] = unew
     end
   end
@@ -677,7 +661,7 @@ function module.minimize(u)
         local new_transition_key = { index = v.index, action = move.action }
         local new_transition = new_transition_map[new_transition_key]
         if not new_transition then
-          new_transition_map[new_transition_key] = unew:transition(v.state, { [byte] = true }, move.timestamp, move.action)
+          new_transition_map[new_transition_key] = module.transition(unew, v.state, { [byte] = true }, move.timestamp, move.action)
         else
           if assertion then
             -- TODO compareにするべき？
@@ -742,10 +726,8 @@ end
 local function new_state(ux, uy)
   local state = module.state()
   if ux then
-    local accept_action = ux.accept_action
-    if accept_action and (not uy or not uy.accept_action) then
-      state.accept_action = accept_action
-      state.timestamp = ux.timestamp
+    if not uy or not uy.accept_action then
+      state:update(ux.timestamp, ux.accept_action)
     end
   end
   return state
@@ -777,7 +759,12 @@ function module.difference(ux, uy)
           end
           local vy
           if uy then
-            vy = uy:execute_transition(byte, move)
+            -- timestampはvxのuxのものであるべき（ただし、uxが存在しないか、遷移しない場合がある）
+            if vx then
+              vy = uy:execute_transition(byte)
+            else
+              vy = uy:execute_transition(byte, move)
+            end
           end
 
           local vkey = 0
@@ -803,7 +790,7 @@ function module.difference(ux, uy)
             local new_transition_key = { index = vkey, action = action }
             local new_transition = new_transition_map[new_transition_key]
             if not new_transition then
-              new_transition_map[new_transition_key] = unew:transition(vnew, { [byte] = true }, move.timestamp, action)
+              new_transition_map[new_transition_key] = module.transition(unew, vnew, { [byte] = true }, assert(move.timestamp), action)
             else
               new_transition:update(byte, move.timestamp)
             end
