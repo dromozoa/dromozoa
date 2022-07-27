@@ -687,8 +687,6 @@ function module.remove_dead_states(u)
   local living_states = {}
   remove_dead_states(u, living_states, {})
 
-  -- visit2(u, living_states, {})
-  -- 再帰する必要はない
   for u in pairs(living_states) do
     local new_transitions = module.list()
     for _, transition in ipairs(u.transitions) do
@@ -785,16 +783,6 @@ function module.difference(ux, uy)
   return module.remove_dead_states(unew)
 end
 
----------------------------------------------------------------------------
---[[
-
-  _("foo", "bar", "baz")
-
-  _{"foo"}
-
-  _["foo"]
-
-]]
 ---------------------------------------------------------------------------
 
 local _ = module.pattern
