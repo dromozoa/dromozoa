@@ -260,6 +260,8 @@ end
 ---------------------------------------------------------------------------
 
 -- TODO timestampは一括でつけてよいかもしれない
+-- TODO stateに一意なtimestampをつけるのはやめる
+-- TODO stateに必要なのはpointer/handleのようなIDかな
 local function node_to_nfa(node)
   local code = node[0]
   if code == "[" then
