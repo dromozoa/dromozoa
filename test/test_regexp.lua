@@ -262,7 +262,7 @@ function class:execute_transition(byte)
   for _, transition in ipairs(self.transitions) do
     local set = transition.set
     if set and set[byte] then
-      return transition
+      return transition.v, transition.timestamp, transition.action
     end
   end
 end
@@ -450,13 +450,13 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, color)
 
     -- 複数のノードについて、遷移を調べる
     for _, u in pairs(umap) do
-      local transition = u:execute_transition(byte)
-      if transition then
-        if not timestamp or timestamp > transition.timestamp then
-          action = transition.action
-          timestamp = transition.timestamp
+      local transition_v, transition_timestamp, transition_action = u:execute_transition(byte)
+      if transition_v then
+        if not timestamp or timestamp > transition_timestamp then
+          action = transition_action
+          timestamp = transition_timestamp
         end
-        for k, v in pairs(module.epsilon_closure(transition.v, epsilon_closures)) do
+        for k, v in pairs(module.epsilon_closure(transition_v, epsilon_closures)) do
           vmap[k] = v
         end
       end
@@ -558,13 +558,6 @@ function module.create_initial_partitions(u)
   return partitions, partition_map
 end
 
-local function execute_transition(u, byte)
-  local transition = u:execute_transition(byte)
-  if transition then
-    return transition.v, transition.action
-  end
-end
-
 function module.minimize(u)
   local partitions, partition_map = module.create_initial_partitions(u)
 
@@ -584,8 +577,8 @@ function module.minimize(u)
           -- 2. 同じ遷移アクションを持つ
           local same_partition = true
           for byte = 0x00, 0xFF do
-            local xv, xaction = execute_transition(x, byte)
-            local yv, yaction = execute_transition(y, byte)
+            local xv, _, xaction = x:execute_transition(byte)
+            local yv, _, yaction = y:execute_transition(byte)
             -- TODO compare(xaction, yaction) == 0 にするべきか？
             if partition_map[xv] ~= partition_map[yv] or xaction ~= yaction then
               same_partition = false
@@ -659,23 +652,23 @@ function module.minimize(u)
     local new_transition_map = tree_map()
 
     for byte = 0x00, 0xFF do
-      local transition = partition[1]:execute_transition(byte)
+      local transition_v, transition_timestamp, transition_action = partition[1]:execute_transition(byte)
 
-      if transition then
-        local timestamp = transition.timestamp
-        local action = transition.action
-        local v = states[partition_map[transition.v]]
+      if transition_v then
+        local timestamp = transition_timestamp
+        local action = transition_action
+        local v = states[partition_map[transition_v]]
 
         -- パーティションに含まれる各状態は同じ遷移をする
         for j = 2, #partition do
-          local transition = partition[j]:execute_transition(byte)
+          local transition_v, transition_timestamp, transition_action = partition[j]:execute_transition(byte)
           if assertion then
             -- TODO compareにするべき？
-            assert(action == transition.action)
-            assert(v.index == states[partition_map[transition.v]].index)
-            assert(v.state == states[partition_map[transition.v]].state)
+            assert(action == transition_action)
+            assert(v.index == states[partition_map[transition_v]].index)
+            assert(v.state == states[partition_map[transition_v]].state)
           end
-          local t = transition.timestamp
+          local t = transition_timestamp
           if timestamp > t then
             timestamp = t
           end
@@ -755,9 +748,9 @@ end
 
 local function execute_transition(u, byte)
   if u then
-    local transition = u:execute_transition(byte)
-    if transition then
-      return transition, transition.v, transition.action
+    local transition_v, transition_timestamp, transition_action = u:execute_transition(byte)
+    if transition_v then
+      return transition_timestamp, transition_v, transition_action
     end
   end
 end
@@ -800,11 +793,11 @@ function module.difference(ux, uy)
           local timestamp
           if ty then
             vkey = vy.index * n
-            timestamp = ty.timestamp
+            timestamp = ty
           end
           if tx then
             vkey = vx.index + vkey
-            timestamp = tx.timestamp
+            timestamp = tx
           end
 
           if vkey ~= 0 then
