@@ -726,7 +726,7 @@ function module.difference(ux, uy)
             local new_transition_key = { index = vkey, action = action }
             local new_transition = new_transition_map[new_transition_key]
             if not new_transition then
-              new_transition_map[new_transition_key] = module.transition(unew, vnew, { [byte] = true }, assert(move.timestamp), action)
+              new_transition_map[new_transition_key] = module.transition(unew, vnew, { [byte] = true }, move.timestamp, action)
             else
               new_transition:update(move.timestamp, byte)
             end
