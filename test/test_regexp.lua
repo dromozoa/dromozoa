@@ -335,23 +335,15 @@ local function node_to_nfa(node)
           module.transition(av, v)
           module.transition(bv, v)
         elseif code == "-" then
-          -- 差集合を求めるためにaccept_actionとtimestampを割り当てる
-          -- 先頭にtimestampがいる理由ってなんだっけ
           local timestamp = node.timestamp
-          au.timestamp = timestamp
-          av.timestamp = timestamp
-          av.accept_action = true
-          bu.timestamp = timestamp
-          bv.timestamp = timestamp
-          bv.accept_action = true
+          av:update(timestamp, true)
+          bv:update(timestamp, true)
 
           local cu, accept_states = module.minimize(
             module.difference(
               module.minimize(module.nfa_to_dfa(au)),
               module.minimize(module.nfa_to_dfa(bu))))
 
-          -- 求めた差集合からaccept_actionとtimestampを除去する
-          cu.timestamp = nil
           module.transition(u, cu)
           for _, cv in ipairs(accept_states) do
             cv.timestamp = nil
@@ -368,11 +360,8 @@ end
 -- TODO accept_actionのnilの扱いを検討する
 function module.tree_to_nfa(root, accept_action)
   local u, v = node_to_nfa(root)
-  local timestamp = root.timestamp
-  u.timestamp = timestamp
   if not v.accept_action then
-    v.accept_action = accept_action or true
-    v.timestamp = timestamp
+    v:update(root.timestamp, accept_action or true)
   end
   return u, v
 end
@@ -487,7 +476,7 @@ function module.nfa_to_dfa(u)
   states[umap] = unew
 
   nfa_to_dfa(umap, unew, states, epsilon_closures, color)
-  unew.timestamp = u.timestamp
+
   return unew
 end
 
@@ -668,7 +657,6 @@ function module.minimize(u)
   end
 
   local unew = states[partition_map[u]].state
-  unew.timestamp = u.timestamp
   return unew, accept_states
 end
 
@@ -794,7 +782,6 @@ function module.difference(ux, uy)
   end
 
   local unew = new_states[ux.index + uy.index * n]
-  unew.timestamp = ux.timestamp
   return module.remove_dead_states(unew)
 end
 
