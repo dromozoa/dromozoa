@@ -33,9 +33,71 @@ local function construct(code, ...)
   return setmetatable({ timestamp = timestamp, [0] = code, ... }, metatable)
 end
 
+local function pattern(that)
+  if type(that) == "string" then
+    local self = construct("[", { [that:byte(1)] = true })
+    for i = 2, #that do
+      self = self + construct("[", { [that:byte(i)] = true })
+    end
+    self.literal = that
+    return self
+  else
+    return that
+  end
+end
+
+local function range(that)
+  if type(that) == "string" then
+    local set = {}
+    for i = 1, #that, 2 do
+      local a, b = that:byte(i, i + 1)
+      if b == nil then
+        b = a
+      end
+      for byte = a, b do
+        set[byte] = true
+      end
+    end
+    return construct("[", set)
+  else
+    return pattern(that)
+  end
+end
+
+local function set(that)
+  if type(that) == "string" then
+    local set = {}
+    for i = 1, #that do
+      set[that:byte(i)] = true
+    end
+    return construct("[", set)
+  else
+    return pattern(that)
+  end
+end
+
+local function union(self, that)
+  local self = pattern(self)
+  local that = pattern(that)
+  if self[0] == "%" or that[0] == "%" then
+    error "not supported"
+  elseif self[0] == "[" and that[0] == "[" then
+    local set = {}
+    for byte in pairs(self[1]) do
+      set[byte] = true
+    end
+    for byte in pairs(that[1]) do
+      set[byte] = true
+    end
+    return construct("[", set)
+  else
+    return construct("|", self, that)
+  end
+end
+
 function metatable:__add(that)
-  local self = module.pattern(self)
-  local that = module.pattern(that)
+  local self = pattern(self)
+  local that = pattern(that)
   if self[0] == "%" or that[0] == "%" then
     error "not supported"
   else
@@ -44,8 +106,8 @@ function metatable:__add(that)
 end
 
 function metatable:__sub(that)
-  local self = module.pattern(self)
-  local that = module.pattern(that)
+  local self = pattern(self)
+  local that = pattern(that)
   if self[0] == "%" or that[0] == "%" then
     error "not supported"
   elseif self[0] == "[" and that[0] == "[" then
@@ -63,7 +125,7 @@ function metatable:__sub(that)
 end
 
 function metatable:__div(that)
-  local self = module.pattern(self)
+  local self = pattern(self)
   if self[0] == "[" then
     return construct("/", self, that)
   else
@@ -72,36 +134,17 @@ function metatable:__div(that)
 end
 
 function metatable:__mod(that)
-  local self = module.pattern(self)
+  local self = pattern(self)
   if self[0] == "%" then
     error "not supported"
   else
     local result = construct("%", self, that)
-    result.name = self.name
+    result.literal = self.literal
     return result
   end
 end
 
-function metatable:__bor(that)
-  local self = module.pattern(self)
-  local that = module.pattern(that)
-  if self[0] == "%" or that[0] == "%" then
-    error "not supported"
-  elseif self[0] == "[" and that[0] == "[" then
-    local set = {}
-    for byte in pairs(self[1]) do
-      set[byte] = true
-    end
-    for byte in pairs(that[1]) do
-      set[byte] = true
-    end
-    return construct("[", set)
-  else
-    return construct("|", self, that)
-  end
-end
-
-function metatable:__bnot(that)
+function metatable:__unm()
   if self[0] == "[" then
     local neg = self[1]
     local set = {}
@@ -155,56 +198,23 @@ function metatable:__call(that)
   end
 end
 
-function module.pattern(that)
-  local t = type(that)
-  if t == "string" then
-    local self = construct("[", { [that:byte(1)] = true })
-    for i = 2, #that do
-      self = self + construct("[", { [that:byte(i)] = true })
+module.pattern = setmetatable({}, {
+  __index = function (_, that)
+    return range(that)
+  end;
+
+  __call = function (_, that)
+    if type(that) == "table" and getmetatable(that) ~= metatable then
+      local result = set(that[1])
+      for i = 2, #that do
+        result = union(result, set(that[i]))
+      end
+      return result
+    else
+      return pattern(that)
     end
-    self.name = that
-    return self
-  else
-    return that
-  end
-end
-
-function module.pattern_range(that)
-  local set = {}
-  for i = 1, #that, 2 do
-    local a, b = that:byte(i, i + 1)
-    for byte = a, b do
-      set[byte] = true
-    end
-  end
-  return construct("[", set)
-end
-
-function module.pattern_set(that)
-  local set = {}
-  for i = 1, #that do
-    set[that:byte(i)] = true
-  end
-  return construct("[", set)
-end
-
----------------------------------------------------------------------------
-
-local metatable = { __name = "dromozoa.regexp.pattern.constructor" }
-
-function metatable:__index(that)
-  return module.pattern_range(that)
-end
-
-function metatable:__call(that)
-  if type(that) == "table" then
-    return module.pattern_set(that[1])
-  else
-    return module.pattern(that)
-  end
-end
-
-module.constructor = setmetatable({}, metatable)
+  end;
+})
 
 ---------------------------------------------------------------------------
 
@@ -232,7 +242,7 @@ end
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.regexp.transition" }
 
-function class:update(byte, timestamp)
+function class:update(timestamp, byte)
   self.set[byte] = byte
   if self.timestamp > timestamp then
     self.timestamp = timestamp
@@ -282,9 +292,6 @@ end
 
 ---------------------------------------------------------------------------
 
--- TODO timestampは一括でつけてよいかもしれない
--- TODO stateに一意なtimestampをつけるのはやめる
--- TODO stateに必要なのはpointer/handleのようなIDかな
 local function node_to_nfa(node)
   local code = node[0]
   if code == "[" then
@@ -294,80 +301,58 @@ local function node_to_nfa(node)
     return u, v
   else
     local au, av = node_to_nfa(node[1])
-    if code == "." then
-      local bu, bv = node_to_nfa(node[2])
-      module.transition(av, bu)
-      return au, bv
-    elseif code == "|" then
-      local bu, bv = node_to_nfa(node[2])
-      local u = module.state()
-      local v = module.state()
-      module.transition(u, au)
-      module.transition(u, bu)
-      module.transition(av, v)
-      module.transition(bv, v)
-      return u, v
-    elseif code == "*" then
-      local u = module.state()
-      local v = module.state()
-      module.transition(u, v)
-      module.transition(u, au)
-      module.transition(av, au)
-      module.transition(av, v)
-      return u, v
-    elseif code == "+" then
-      local u = module.state()
-      local v = module.state()
-      module.transition(u, au)
-      module.transition(av, au)
-      module.transition(av, v)
-      return u, v
-    elseif code == "?" then
-      local u = module.state()
-      local v = module.state()
-      module.transition(u, v)
-      module.transition(u, au)
-      module.transition(av, v)
-      return u, v
-    elseif code == "-" then
-      local bu, bv = node_to_nfa(node[2])
-      local u = module.state()
-      local v = module.state()
-
-      -- 差集合を求めるためにaccept_actionとtimestampを割り当てる
-      local timestamp = node.timestamp
-      au.timestamp = timestamp
-      av.accept_action = true
-      av.timestamp = timestamp
-      bu.timestamp = timestamp
-      bv.accept_action = true
-      bv.timestamp = timestamp
-
-      local cu, accept_states = module.minimize(
-        module.difference(
-          module.minimize(module.nfa_to_dfa(au)),
-          module.minimize(module.nfa_to_dfa(bu))))
-
-      -- 求めた差集合からaccept_actionとtimestampを除去する
-      cu.timestamp = nil
-      module.transition(u, cu)
-      for _, cv in ipairs(accept_states) do
-        cv.accept_action = nil
-        cv.timestamp = nil
-        module.transition(cv, v)
-      end
-
-      return u, v
-    elseif code == "/" then
-      assert(#au.transitions == 1)
+    if code == "/" then
       au.transitions[1].action = node[2]
       return au, av
     elseif code == "%" then
-      assert(#av.transitions == 0)
-      assert(av.timestamp == nil)
-      assert(av.accept_action == nil)
       av:update(node.timestamp, node[2])
       return au, av
+    elseif code == "." then
+      local bu, bv = node_to_nfa(node[2])
+      module.transition(av, bu)
+      return au, bv
+    else
+      local u = module.state()
+      local v = module.state()
+      if code == "*" then
+        module.transition(u, v)
+        module.transition(u, au)
+        module.transition(av, au)
+        module.transition(av, v)
+      elseif code == "+" then
+        module.transition(u, au)
+        module.transition(av, au)
+        module.transition(av, v)
+      elseif code == "?" then
+        module.transition(u, v)
+        module.transition(u, au)
+        module.transition(av, v)
+      else
+        local bu, bv = node_to_nfa(node[2])
+        if code == "|" then
+          module.transition(u, au)
+          module.transition(u, bu)
+          module.transition(av, v)
+          module.transition(bv, v)
+        elseif code == "-" then
+          local timestamp = node.timestamp
+          av:update(timestamp, true)
+          bv:update(timestamp, true)
+
+          local cu, accept_states = module.minimize(
+            module.difference(
+              module.minimize(module.nfa_to_dfa(au)),
+              module.minimize(module.nfa_to_dfa(bu))))
+
+          module.transition(u, cu)
+          for _, cv in ipairs(accept_states) do
+            cv.timestamp = nil
+            cv.accept_action = nil
+            module.transition(cv, v)
+          end
+        end
+      end
+      return u, v
     end
   end
 end
@@ -375,11 +360,8 @@ end
 -- TODO accept_actionのnilの扱いを検討する
 function module.tree_to_nfa(root, accept_action)
   local u, v = node_to_nfa(root)
-  local timestamp = root.timestamp
-  u.timestamp = timestamp
   if not v.accept_action then
-    v.accept_action = accept_action or true
-    v.timestamp = timestamp
+    v:update(root.timestamp, accept_action or true)
   end
   return u, v
 end
@@ -468,7 +450,7 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, color)
       if not new_transition then
         new_transition_map[new_transition_key] = module.transition(unew, vnew, { [byte] = true }, move.timestamp, move.action)
       else
-        new_transition:update(byte, move.timestamp)
+        new_transition:update(move.timestamp, byte)
       end
     end
   end
@@ -494,7 +476,7 @@ function module.nfa_to_dfa(u)
   states[umap] = unew
 
   nfa_to_dfa(umap, unew, states, epsilon_closures, color)
-  unew.timestamp = u.timestamp
+
   return unew
 end
 
@@ -668,14 +650,13 @@ function module.minimize(u)
             assert(move.action == new_transition.action)
             assert(v.state == new_transition.v)
           end
-          new_transition:update(byte, move.timestamp)
+          new_transition:update(move.timestamp, byte)
         end
       end
     end
   end
 
   local unew = states[partition_map[u]].state
-  unew.timestamp = u.timestamp
   return unew, accept_states
 end
 
@@ -706,8 +687,6 @@ function module.remove_dead_states(u)
   local living_states = {}
   remove_dead_states(u, living_states, {})
 
-  -- visit2(u, living_states, {})
-  -- 再帰する必要はない
   for u in pairs(living_states) do
     local new_transitions = module.list()
     for _, transition in ipairs(u.transitions) do
@@ -792,7 +771,7 @@ function module.difference(ux, uy)
             if not new_transition then
               new_transition_map[new_transition_key] = module.transition(unew, vnew, { [byte] = true }, assert(move.timestamp), action)
             else
-              new_transition:update(byte, move.timestamp)
+              new_transition:update(move.timestamp, byte)
             end
           end
         end
@@ -801,15 +780,14 @@ function module.difference(ux, uy)
   end
 
   local unew = new_states[ux.index + uy.index * n]
-  unew.timestamp = ux.timestamp
   return module.remove_dead_states(unew)
 end
 
 ---------------------------------------------------------------------------
 
-local _ = module.constructor
+local _ = module.pattern
 
-local x = (_"a"{0} + _"b"{1} + (_"c"/"T"){0,1} - "abc" | _{"xyz"}{3,3}) %"A"
+local x = _{ _"a"{0} + _"b"{1} + (_"c"/"T"){0,1} - "abc" ; _["xyz"]{3,3} } %"A"
 local d = module.nfa_to_dfa(module.tree_to_nfa(x, true))
 
 local out = assert(io.open("test.dot", "w"))

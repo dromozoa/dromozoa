@@ -138,13 +138,13 @@ local nan = math.huge / math.huge
 local status, message = pcall(function ()
   tree_map()[nil] = nil
 end)
-print(message)
+-- print(message)
 assert(not status)
 
 local status, message = pcall(function ()
   tree_map()[nan] = nan
 end)
-print(message)
+-- print(message)
 assert(not status)
 
 local t = tree_map()
@@ -203,5 +203,3 @@ assert(t.foo.bar.baz == 42)
 
 t(1)(2)(3)[4] = "qux"
 assert(t[1][2][3][4] == "qux")
-
-
