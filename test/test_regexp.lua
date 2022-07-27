@@ -258,12 +258,12 @@ end
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.regexp.state" }
 
-function class:simulate(byte, move)
+function class:simulate(byte, resolved)
   for _, transition in ipairs(self.transitions) do
     if transition.set ~= nil and transition.set[byte] then
-      if move ~= nil and (move.timestamp == nil or move.timestamp > transition.timestamp) then
-        move.timestamp = transition.timestamp
-        move.action = transition.action
+      if resolved ~= nil and (resolved.timestamp == nil or resolved.timestamp > transition.timestamp) then
+        resolved.timestamp = transition.timestamp
+        resolved.action = transition.action
       end
       return transition.v, transition.action
     end
@@ -283,6 +283,9 @@ function module.state()
 end
 
 ---------------------------------------------------------------------------
+
+-- TODO 名称変更 difference tree to minimized dfa
+local node_to_nfa_difference
 
 local function node_to_nfa(node)
   local code = node[0]
@@ -327,15 +330,9 @@ local function node_to_nfa(node)
           module.transition(av, v)
           module.transition(bv, v)
         elseif code == "-" then
-          -- local timestamp = node.timestamp
-          av:update(node.timestamp, true)
-          bv:update(node.timestamp, true)
-
-          local cu, accept_states = module.minimize(
-            module.difference(
-              module.minimize(module.nfa_to_dfa(au)),
-              module.minimize(module.nfa_to_dfa(bu))))
-
+          av:update(timestamp, true)
+          bv:update(timestamp, true)
+          local cu, accept_states = node_to_nfa_difference(au, av, bu, bv)
           module.transition(u, cu)
           for _, cv in ipairs(accept_states) do
             cv.timestamp = nil
@@ -351,7 +348,7 @@ end
 
 -- TODO accept_actionのnilの扱いを検討する
 -- lexer側の呼び出しに応じて考える
-function module.tree_to_nfa(root, accept_action)
+local function tree_to_nfa(root, accept_action)
   local u, v = node_to_nfa(root)
   if not v.accept_action then
     v:update(root.timestamp, accept_action or true)
@@ -740,12 +737,19 @@ function module.difference(ux, uy)
   return module.remove_dead_states(unew)
 end
 
+function node_to_nfa_difference(au, av, bu, bv)
+  return module.minimize(
+    module.difference(
+      module.minimize(module.nfa_to_dfa(au)),
+      module.minimize(module.nfa_to_dfa(bu))))
+end
+
 ---------------------------------------------------------------------------
 
 local _ = module.pattern
 
 local x = _{ _"a"{0} + _"b"{1} + (_"c"/"T"){0,1} - "abc" ; _["xyz"]{3,3} } %"A"
-local d = module.nfa_to_dfa(module.tree_to_nfa(x, true))
+local d = module.nfa_to_dfa(tree_to_nfa(x, true))
 
 local out = assert(io.open("test.dot", "w"))
 write_graphviz(out, d)
