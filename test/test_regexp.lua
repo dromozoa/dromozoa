@@ -361,27 +361,16 @@ function module.tree_to_nfa(root, accept_action)
 end
 
 ---------------------------------------------------------------------------
---[[
 
-  挿入順序でつくるmapは簡単
-  キーが一定の順序になるのは、RB木やソートが必要？
-  pairsかkeyを呼び出した時点でソートするとか？
-
-  欲しいのは状態の集合
-  { index, state }をputする
-]]--
----------------------------------------------------------------------------
-
--- 深さ優先探索で状態に番号をつける
--- もともとIDをはっておくというのは？
-local function create_state_indices(u, indices, index, color)
+local function update_state_indices(u, index, color)
   color[u] = 1
+
   index = index + 1
-  indices[u] = index
+  u.index = index
 
   for _, transition in ipairs(u.transitions) do
     if not color[transition.v] then
-      index = create_state_indices(transition.v, indices, index, color)
+      index = update_state_indices(transition.v, index, color)
     end
   end
 
@@ -389,27 +378,25 @@ local function create_state_indices(u, indices, index, color)
   return index
 end
 
-function module.create_state_indices(u)
-  local indices = {}
-  create_state_indices(u, indices, 0, {})
-  return indices
+function module.update_state_indices(u)
+  update_state_indices(u, 0, {})
 end
 
-local function epsilon_closure(u, map, indices)
+local function epsilon_closure(u, map)
   for _, transition in ipairs(u.transitions) do
     if not transition.set then
-      map[indices[transition.v]] = transition.v
-      epsilon_closure(transition.v, map, indices)
+      map[transition.v.index] = transition.v
+      epsilon_closure(transition.v, map)
     end
   end
 end
 
-function module.epsilon_closure(u, epsilon_closures, indices)
+function module.epsilon_closure(u, epsilon_closures)
   local map = epsilon_closures[u]
   if not map then
     map = tree_map()
-    map[indices[u]] = u
-    epsilon_closure(u, map, indices)
+    map[u.index] = u
+    epsilon_closure(u, map)
     epsilon_closures[u] = map
   end
   return map
@@ -434,7 +421,7 @@ local function new_state(map)
   return state
 end
 
-local function nfa_to_dfa(umap, unew, states, epsilon_closures, indices, color)
+local function nfa_to_dfa(umap, unew, states, epsilon_closures, color)
   color[umap] = 1
 
   local actions = {}
@@ -454,7 +441,7 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, indices, color)
           action = transition.action
           timestamp = transition.timestamp
         end
-        for k, v in pairs(module.epsilon_closure(transition.v, epsilon_closures, indices)) do
+        for k, v in pairs(module.epsilon_closure(transition.v, epsilon_closures)) do
           vmap[k] = v
         end
       end
@@ -487,7 +474,7 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, indices, color)
 
   for _, item in ipairs(new_states) do
     if not color[item.map] then
-      nfa_to_dfa(item.map, item.state, states, epsilon_closures, indices, color)
+      nfa_to_dfa(item.map, item.state, states, epsilon_closures, color)
     end
   end
 
@@ -495,17 +482,17 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, indices, color)
 end
 
 function module.nfa_to_dfa(u)
-  local indices = module.create_state_indices(u)
+  module.update_state_indices(u)
   local epsilon_closures = {}
 
-  local umap = module.epsilon_closure(u, epsilon_closures, indices)
+  local umap = module.epsilon_closure(u, epsilon_closures)
   local unew = new_state(umap)
 
   local states = tree_map()
   local color = tree_map()
   states[umap] = unew
 
-  nfa_to_dfa(umap, unew, states, epsilon_closures, indices, color)
+  nfa_to_dfa(umap, unew, states, epsilon_closures, color)
   unew.timestamp = u.timestamp
   return unew
 end
