@@ -433,7 +433,6 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, color)
     local timestamp
 
     -- 複数のノードについて、遷移を調べる
-
     for _, u in pairs(umap) do
       local transition = u:execute_transition(byte)
       if transition then
@@ -786,8 +785,7 @@ function module.difference(ux, uy)
       local uy = y_states[j]
       local ukey = i + j * n
       if ukey ~= 0 then
-        local actions = {}
-        local new_transition_map = {}
+        local new_transition_map = tree_map()
 
         for byte = 0x00, 0xFF do
           local tx, vx, action = execute_transition(ux, byte)
