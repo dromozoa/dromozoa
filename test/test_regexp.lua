@@ -722,21 +722,21 @@ end
 
 ---------------------------------------------------------------------------
 
-local function remove_dead_states(u, not_dead_states, color)
+local function remove_dead_states(u, living_states, color)
   color[u] = 1
 
   if u.accept_action then
-    not_dead_states[u] = true
+    living_states[u] = true
   end
 
   for _, transition in ipairs(u.transitions) do
     local v = transition.v
     if not color[v] then
-      remove_dead_states(v, not_dead_states, color)
+      remove_dead_states(v, living_states, color)
     end
     -- 帰りがけに調べる
-    if not_dead_states[v] then
-      not_dead_states[u] = true
+    if living_states[v] then
+      living_states[u] = true
     end
   end
 
@@ -744,15 +744,15 @@ local function remove_dead_states(u, not_dead_states, color)
 end
 
 function module.remove_dead_states(u)
-  local not_dead_states = {}
-  remove_dead_states(u, not_dead_states, {})
+  local living_states = {}
+  remove_dead_states(u, living_states, {})
 
-  -- visit2(u, not_dead_states, {})
+  -- visit2(u, living_states, {})
   -- 再帰する必要はない
-  for u in pairs(not_dead_states) do
+  for u in pairs(living_states) do
     local new_transitions = module.list()
     for _, transition in ipairs(u.transitions) do
-      if not_dead_states[transition.v] then
+      if living_states[transition.v] then
         new_transitions:append(transition)
       end
     end
