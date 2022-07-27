@@ -14,9 +14,6 @@
 --
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
---
--- https://github.com/aidansteele/osx-abi-macho-file-format-reference
--- https://developers.wonderpla.net/entry/2021/03/19/105503
 
 local p_inf = math.huge
 local m_inf = -math.huge
@@ -57,6 +54,13 @@ for k, v in pairs(t) do
 end
 
 assert(not pcall(function () t[nan] = "nan" end))
+
+t["nil"] = nil
+t["nan"] = nan
+print "--"
+for k, v in pairs(t) do
+  print(k, v)
+end
 
 print "=="
 

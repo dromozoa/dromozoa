@@ -14,9 +14,6 @@
 --
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
---
--- https://github.com/aidansteele/osx-abi-macho-file-format-reference
--- https://developers.wonderpla.net/entry/2021/03/19/105503
 
 local tree = require "dromozoa.tree"
 local tree_map = require "dromozoa.tree_map"
@@ -136,8 +133,21 @@ assert(t.size == 0)
 
 ---------------------------------------------------------------------------
 
-local t = tree_map()
+local nan = math.huge / math.huge
 
+local status, message = pcall(function ()
+  tree_map()[nil] = nil
+end)
+print(message)
+assert(not status)
+
+local status, message = pcall(function ()
+  tree_map()[nan] = nan
+end)
+print(message)
+assert(not status)
+
+local t = tree_map()
 t.foo = 1
 t.bar = 2
 t.baz = 3
@@ -152,6 +162,7 @@ assert(t.bar == nil)
 assert(t.baz == 3)
 assert(t.qux == 4)
 assert(t[nil] == nil)
+assert(t[nan] == nil)
 assert(t.compare == nil)
 assert(t.size == nil)
 
@@ -184,26 +195,13 @@ for k, v in pairs(t) do
 end
 assert(table.concat(buffer, ";") == "baz=3;foo=1;qux=4")
 
-local t = tree_map(function (a, b)
-  local t = type(a)
-  local u = type(b)
-  if t ~= u then
-    if t < u then
-      return -1
-    else
-      return 1
-    end
-  end
-  if a == b then
-    return 0
-  elseif a < b then
-    return -1
-  else
-    return 1
-  end
-end)
+---------------------------------------------------------------------------
+
+local t = tree_map()
 t"foo""bar".baz = 42
 assert(t.foo.bar.baz == 42)
 
 t(1)(2)(3)[4] = "qux"
 assert(t[1][2][3][4] == "qux")
+
+

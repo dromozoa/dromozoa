@@ -14,9 +14,6 @@
 --
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
---
--- https://github.com/aidansteele/osx-abi-macho-file-format-reference
--- https://developers.wonderpla.net/entry/2021/03/19/105503
 
 local dumper = require "dromozoa.commons.dumper"
 local write_graphviz = require "dromozoa.regexp.write_graphviz"
@@ -260,6 +257,8 @@ end
 ---------------------------------------------------------------------------
 
 -- TODO timestampは一括でつけてよいかもしれない
+-- TODO stateに一意なtimestampをつけるのはやめる
+-- TODO stateに必要なのはpointer/handleのようなIDかな
 local function node_to_nfa(node)
   local code = node[0]
   if code == "[" then
@@ -359,84 +358,50 @@ function module.tree_to_nfa(root, accept_action)
 end
 
 ---------------------------------------------------------------------------
---[[
 
-  挿入順序でつくるmapは簡単
-  キーが一定の順序になるのは、RB木やソートが必要？
-  pairsかkeyを呼び出した時点でソートするとか？
-
-  欲しいのは状態の集合
-  { index, state }をputする
-]]--
----------------------------------------------------------------------------
-
--- 深さ優先探索で状態に番号をつける
--- もともとIDをはっておくというのは？
-local function create_state_indices(u, indices, index, color)
+local function update_state_indices(u, states, color)
   color[u] = 1
-  index = index + 1
-  indices[u] = index
-
+  u.index = #states:append(u)
   for _, transition in ipairs(u.transitions) do
     if not color[transition.v] then
-      index = create_state_indices(transition.v, indices, index, color)
+      index = update_state_indices(transition.v, states, color)
     end
   end
-
   color[u] = 2
   return index
 end
 
-function module.create_state_indices(u)
-  local indices = {}
-  create_state_indices(u, indices, 0, {})
-  return indices
+function module.update_state_indices(u)
+  local states = module.list()
+  update_state_indices(u, states, {})
+  return states
 end
 
--- epsilon遷移をたどって閉包を作成する
--- map<index, state>
-local function epsilon_closure(u, map, indices)
+local function epsilon_closure(u, map)
   for _, transition in ipairs(u.transitions) do
     if not transition.set then
-      map[indices[transition.v]] = transition.v
-      epsilon_closure(transition.v, map, indices)
+      map[transition.v.index] = transition.v
+      epsilon_closure(transition.v, map)
     end
   end
 end
 
-local function map_to_seq(map)
-  local seq = {}
-  for index, state in pairs(map) do
-    seq[#seq + 1] = { index = index, state = state }
+function module.epsilon_closure(u, epsilon_closures)
+  local map = epsilon_closures[u]
+  if not map then
+    map = tree_map()
+    map[u.index] = u
+    epsilon_closure(u, map)
+    epsilon_closures[u] = map
   end
-  table.sort(seq, function (a, b) return a.index < b.index end)
-  local key = {}
-  for i = 1, #seq do
-    key[i] = seq[i].index
-  end
-  seq.key = table.concat(key, ",")
-  seq.map = map
-  return seq
+  return map
 end
 
-function module.epsilon_closure(u, epsilon_closures, indices)
-  local seq = epsilon_closures[u]
-  if not seq then
-    local map = tree_map()
-    map[indices[u]] = u
-    epsilon_closure(u, map, indices)
-    seq = map_to_seq(map)
-    epsilon_closures[u] = seq
-  end
-  return seq
-end
-
-local function new_state(seq)
+local function new_state(map)
   local accept_action
   local timestamp
 
-  for _, x in ipairs(seq) do
-    local u = x.state
+  for _, u in pairs(map) do
     if u.accept_action then
       if not timestamp or timestamp > u.timestamp then
         accept_action = u.accept_action
@@ -448,81 +413,16 @@ local function new_state(seq)
   local state = module.state()
   state.accept_action = accept_action
   state.timestamp = timestamp
-  seq.state = state
   return state
 end
 
-local function compare_seq(a, b)
-  return a.key < b.key
-end
-
-local function compare_map(a, b)
-  -- seqだったら、a.key < b.key
-  -- mapだったら、キーの辞書順比較
-
-  -- 1,2,4,5  x=4
-  -- 1,2,3,5  y=3
-
-  -- 1,2,  5  x=nil
-  -- 1,2,3,5  y=3
-
-  -- 1,2,4,5  x=4
-  -- 1,2,  5  y=nil
-
-  local x
-  local y
-
-  for k in pairs(a) do
-    if b[k] == nil then
-      x = k
-      break
-    end
-  end
-  for k in pairs(b) do
-    if a[k] == nil then
-      y = k
-      break
-    end
-  end
-
-  if x ~= nil and y ~= nil then
-    return x < y
-  end
-  if x ~= nil then
-    return false
-  end
-  if y ~= nil then
-    return true
-  end
-
-  return false
-end
-
-local function compare_transition_key(a, b)
-  if compare_map(a.map, b.map) then
-    return true
-  elseif compare_map(b.map, a.map) then
-    return false
-  end
-
-  if a.action == nil and b.action == nil then
-    return false
-  end
-  if a.action == nil then
-    return true
-  end
-  return false
-end
-
-local function nfa_to_dfa(umap, unew, states, epsilon_closures, indices, color)
+local function nfa_to_dfa(umap, unew, states, epsilon_closures, color)
   color[umap] = 1
 
   local actions = {}
 
-  -- vmap, actions, action
-  -- key .. ";" .. action_index
-  local new_transition_map = tree_map(compare_transition_key)
-  local new_states = {}
+  local new_transition_map = tree_map()
+  local new_states = module.list()
 
   for byte = 0x00, 0xFF do
     local vmap = tree_map()
@@ -536,25 +436,18 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, indices, color)
           action = transition.action
           timestamp = transition.timestamp
         end
-        local vseq = module.epsilon_closure(transition.v, epsilon_closures, indices)
-        for i, v in pairs(vseq.map) do
-          vmap[i] = v
+        for k, v in pairs(module.epsilon_closure(transition.v, epsilon_closures)) do
+          vmap[k] = v
         end
       end
     end
 
     if vmap():next() then
-    -- if next(vmap) then
-      local vseq = map_to_seq(vmap)
-      local vnew
-
-      local xnew = states[vmap]
-      if not xnew then
-        vnew = new_state(vseq)
+      local vnew = states[vmap]
+      if not vnew then
+        vnew = new_state(vmap)
         states[vmap] = vnew
-        new_states[#new_states + 1] = { map = vmap, state = vnew }
-      else
-        vnew = xnew
+        new_states:append { map = vmap, state = vnew }
       end
 
       local new_transition_key = { map = vmap, action = action }
@@ -570,13 +463,12 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, indices, color)
           new_transition.timestamp = timestamp
         end
       end
-
     end
   end
 
   for _, item in ipairs(new_states) do
     if not color[item.map] then
-      nfa_to_dfa(item.map, item.state, states, epsilon_closures, indices, color)
+      nfa_to_dfa(item.map, item.state, states, epsilon_closures, color)
     end
   end
 
@@ -584,18 +476,17 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, indices, color)
 end
 
 function module.nfa_to_dfa(u)
-  local indices = module.create_state_indices(u)
+  module.update_state_indices(u)
   local epsilon_closures = {}
 
-  local useq = module.epsilon_closure(u, epsilon_closures, indices)
-  local umap = useq.map
-  local unew = new_state(useq)
+  local umap = module.epsilon_closure(u, epsilon_closures)
+  local unew = new_state(umap)
 
-  local states = tree_map(compare_map)
-  local color = tree_map(compare_map)
+  local states = tree_map()
+  local color = tree_map()
   states[umap] = unew
 
-  nfa_to_dfa(umap, unew, states, epsilon_closures, indices, color)
+  nfa_to_dfa(umap, unew, states, epsilon_closures, color)
   unew.timestamp = u.timestamp
   return unew
 end
@@ -620,9 +511,9 @@ end
 
 ---------------------------------------------------------------------------
 
-local assertion = false
+local assertion = true
 
-local function visit(u, accept_partition_map, nonaccept_partition, partition_map, color)
+local function create_initial_partitions(u, accept_partition_map, nonaccept_partition, partition_map, color)
   color[u] = 1
 
   local accept_action = u.accept_action
@@ -630,44 +521,41 @@ local function visit(u, accept_partition_map, nonaccept_partition, partition_map
   if accept_action then
     partition = accept_partition_map[accept_action]
     if not partition then
-      partition = { timestamp = u.timestamp }
+      partition = module.list()
+      partition.timestamp = u.timestamp
       accept_partition_map[accept_action] = partition
     else
-      local t = u.timestamp
-      if partition.timestamp > t then
-        partition.timestamp = t
+      if partition.timestamp > u.timestamp then
+        partition.timestamp = u.timestamp
       end
     end
   end
-  partition[#partition + 1] = u
+  partition:append(u)
   partition_map[u] = partition
 
-  local transitions = u.transitions
-  for i = 1, #transitions do
-    local transition = transitions[i]
-    local v = transition.v
-    if not color[v] then
-      visit(v, accept_partition_map, nonaccept_partition, partition_map, color)
+  for _, transition in ipairs(u.transitions) do
+    if not color[transition.v] then
+      create_initial_partitions(transition.v, accept_partition_map, nonaccept_partition, partition_map, color)
     end
   end
 
   color[u] = 2
 end
 
-local function create_initial_partitions(u)
-  local accept_partition_map = {}
-  local nonaccept_partition = {}
+function module.create_initial_partitions(u)
+  local accept_partition_map = tree_map()
+  local nonaccept_partition = module.list()
   local partition_map = {}
-  visit(u, accept_partition_map, nonaccept_partition, partition_map, {})
+  create_initial_partitions(u, accept_partition_map, nonaccept_partition, partition_map, {})
 
-  local partitions = {}
+  local partitions = module.list()
   for _, partition in pairs(accept_partition_map) do
-    partitions[#partitions + 1] = partition
+    partitions:append(partition)
   end
   table.sort(partitions, function (a, b) return a.timestamp < b.timestamp end)
 
   if #nonaccept_partition > 0 then
-    partitions[#partitions + 1] = nonaccept_partition
+    partitions:append(nonaccept_partition)
   end
 
   return partitions, partition_map
@@ -681,20 +569,19 @@ local function execute_transition(u, byte)
 end
 
 function module.minimize(u)
-  local partitions, partition_map = create_initial_partitions(u)
+  local partitions, partition_map = module.create_initial_partitions(u)
 
   while true do
-    local new_partitions = {}
+    local new_partitions = module.list()
     local new_partition_map = {}
 
-    for i = 1, #partitions do
-      local partition = partitions[i]
+    for _, partition in ipairs(partitions) do
       -- あるパーティションに含まれる状態の組 (x, y) が同じ遷移をするならば、ひ
       -- とつのパーティションにまとめる。
-      for j = 1, #partition do
-        local x = partition[j]
-        for k = 1, j - 1 do
-          local y = partition[k]
+      for i = 1, #partition do
+        local x = partition[i]
+        for j = 1, i - 1 do
+          local y = partition[j]
           -- 全ての文字について下記の条件が満たされたら、同じ遷移をするとみなす。
           -- 1. 遷移先の状態が同じパーティションに含まれている
           -- 2. 同じ遷移アクションを持つ
@@ -702,7 +589,8 @@ function module.minimize(u)
           for byte = 0x00, 0xFF do
             local xv, xaction = execute_transition(x, byte)
             local yv, yaction = execute_transition(y, byte)
-            if partition_map[xv] ~= partition_map[yv] or not rawequal(xaction, yaction) then
+            -- TODO compare(xaction, yaction) == 0 にするべきか？
+            if partition_map[xv] ~= partition_map[yv] or xaction ~= yaction then
               same_partition = false
               break
             end
@@ -712,7 +600,7 @@ function module.minimize(u)
             local new_partition = new_partition_map[x]
             if not new_partition then
               local new_partition = new_partition_map[y]
-              new_partition[#new_partition + 1] = x
+              new_partition:append(x)
               new_partition_map[x] = new_partition
             else
               -- 新パーティションに登録済みである
@@ -724,8 +612,8 @@ function module.minimize(u)
         end
 
         if not new_partition_map[x] then
-          local new_partition = { x }
-          new_partitions[#new_partitions + 1] = new_partition
+          local new_partition = module.list(x)
+          new_partitions:append(new_partition)
           new_partition_map[x] = new_partition
         end
       end
@@ -760,7 +648,7 @@ function module.minimize(u)
     local unew = module.state()
     unew.accept_action = accept_action
     unew.timestamp = timestamp
-    states[partition] = { key = i, state = unew }
+    states[partition] = { index = i, state = unew }
     if accept_action then
       accept_states[#accept_states + 1] = unew
     end
@@ -771,7 +659,7 @@ function module.minimize(u)
     local unew = states[partition].state
 
     local actions = {}
-    local new_transition_map = {}
+    local new_transition_map = tree_map()
 
     for byte = 0x00, 0xFF do
       local transition = partition[1]:execute_transition(byte)
@@ -780,16 +668,15 @@ function module.minimize(u)
         local timestamp = transition.timestamp
         local action = transition.action
         local v = states[partition_map[transition.v]]
-        local vkey = v.key
-        local vnew = v.state
 
         -- パーティションに含まれる各状態は同じ遷移をする
         for j = 2, #partition do
           local transition = partition[j]:execute_transition(byte)
           if assertion then
-            assert(rawequal(action, transition.action))
-            assert(vkey == states[partition_map[transition.v]].key)
-            assert(vnew == states[partition_map[transition.v]].state)
+            -- TODO compareにするべき？
+            assert(action == transition.action)
+            assert(v.index == states[partition_map[transition.v]].index)
+            assert(v.state == states[partition_map[transition.v]].state)
           end
           local t = transition.timestamp
           if timestamp > t then
@@ -797,17 +684,18 @@ function module.minimize(u)
           end
         end
 
-        local new_transition_key = module.new_transition_key(vkey, actions, action)
+        local new_transition_key = { index = v.index, action = action }
         local new_transition = new_transition_map[new_transition_key]
         if not new_transition then
-          new_transition = unew:transition(vnew, { [byte] = true })
+          new_transition = unew:transition(v.state, { [byte] = true })
           new_transition.action = action
           new_transition.timestamp = timestamp
           new_transition_map[new_transition_key] = new_transition
         else
           if assertion then
-            assert(rawequal(action, new_transition.action))
-            assert(vnew == new_transition.v)
+            -- TODO compareにするべき？
+            assert(action == new_transition.action)
+            assert(v.state == new_transition.v)
           end
           new_transition.set[byte] = true
           if new_transition.timestamp > timestamp then
@@ -831,82 +719,47 @@ end
 
 ---------------------------------------------------------------------------
 
-local function visit1(u, not_dead_states, color)
+local function remove_dead_states(u, living_states, color)
   color[u] = 1
 
   if u.accept_action then
-    not_dead_states[u] = true
+    living_states[u] = true
   end
 
-  local transitions = u.transitions
-  for i = 1, #transitions do
-    local transition = transitions[i]
+  for _, transition in ipairs(u.transitions) do
     local v = transition.v
     if not color[v] then
-      index = visit1(v, not_dead_states, color)
+      remove_dead_states(v, living_states, color)
     end
-    if not_dead_states[v] then
-      not_dead_states[u] = true
-    end
-  end
-
-  color[u] = 2
-end
-
-local function visit2(u, not_dead_states, color)
-  color[u] = 1
-
-  local transitions = u.transitions
-  local new_transitions = {}
-  for i = 1, #transitions do
-    local transition = transitions[i]
-    local v = transition.v
-    if not color[v] then
-      index = visit2(v, not_dead_states, color)
-    end
-    if not_dead_states[v] then
-      new_transitions[#new_transitions + 1] = transition
+    -- 帰りがけに調べる
+    if living_states[v] then
+      living_states[u] = true
     end
   end
-  u.transitions = new_transitions
 
   color[u] = 2
 end
 
 function module.remove_dead_states(u)
-  local not_dead_states = {}
-  visit1(u, not_dead_states, {})
-  visit2(u, not_dead_states, {})
+  local living_states = {}
+  remove_dead_states(u, living_states, {})
+
+  -- visit2(u, living_states, {})
+  -- 再帰する必要はない
+  for u in pairs(living_states) do
+    local new_transitions = module.list()
+    for _, transition in ipairs(u.transitions) do
+      if living_states[transition.v] then
+        new_transitions:append(transition)
+      end
+    end
+    u.transitions = new_transitions
+  end
+
   return u
 end
 
 ---------------------------------------------------------------------------
-
-local function visit(u, states, indices, index, color)
-  color[u] = 1
-  index = index + 1
-  indices[u] = index
-  states[index] = u
-
-  local transitions = u.transitions
-  for i = 1, #transitions do
-    local transition = transitions[i]
-    local v = transition.v
-    if not color[v] then
-      index = visit(v, states, indices, index, color)
-    end
-  end
-
-  color[u] = 2
-  return index
-end
-
-local function create_states_and_indices(u)
-  local states = {}
-  local indices = {}
-  visit(u, states, indices, 0, {})
-  return states, indices
-end
 
 local function execute_transition(u, byte)
   if u then
@@ -930,8 +783,8 @@ local function new_state(ux, uy)
 end
 
 function module.difference(ux, uy)
-  local x_states, x_indices = create_states_and_indices(ux)
-  local y_states, y_indices = create_states_and_indices(uy)
+  local x_states = module.update_state_indices(ux)
+  local y_states = module.update_state_indices(uy)
 
   local nx = #x_states
   local ny = #y_states
@@ -955,11 +808,11 @@ function module.difference(ux, uy)
           local vkey = 0
           local timestamp
           if ty then
-            vkey = y_indices[vy] * n
+            vkey = vy.index * n
             timestamp = ty.timestamp
           end
           if tx then
-            vkey = x_indices[vx] + vkey
+            vkey = vx.index + vkey
             timestamp = tx.timestamp
           end
 
@@ -994,7 +847,7 @@ function module.difference(ux, uy)
     end
   end
 
-  local unew = new_states[x_indices[ux] + y_indices[uy] * n]
+  local unew = new_states[ux.index + uy.index * n]
   unew.timestamp = ux.timestamp
   return module.remove_dead_states(unew)
 end
