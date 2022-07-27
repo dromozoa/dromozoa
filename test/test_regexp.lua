@@ -432,6 +432,8 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, color)
     local action
     local timestamp
 
+    -- 複数のノードについて、遷移を調べる
+
     for _, u in pairs(umap) do
       local transition = u:execute_transition(byte)
       if transition then
@@ -493,24 +495,6 @@ function module.nfa_to_dfa(u)
   nfa_to_dfa(umap, unew, states, epsilon_closures, color)
   unew.timestamp = u.timestamp
   return unew
-end
-
----------------------------------------------------------------------------
-
-local private = setmetatable({}, { __mode = "k" })
-
-function module.new_transition_key(key, actions, action)
-  if action then
-    local index = actions[action]
-    if not index then
-      index = (private[actions] or 0) + 1
-      actions[action] = index
-      private[actions] = index
-    end
-    return key .. ";" .. index
-  else
-    return tostring(key)
-  end
 end
 
 ---------------------------------------------------------------------------
@@ -832,7 +816,7 @@ function module.difference(ux, uy)
               new_states[vkey] = vnew
             end
 
-            local new_transition_key = module.new_transition_key(vkey, actions, action)
+            local new_transition_key = { index = vkey, action = action }
             local new_transition = new_transition_map[new_transition_key]
             if not new_transition then
               new_transition = unew:transition(vnew, { [byte] = true })
