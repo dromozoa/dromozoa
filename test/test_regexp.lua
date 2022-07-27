@@ -39,9 +39,10 @@ local function pattern(that)
     for i = 2, #that do
       self = self + construct("[", { [that:byte(i)] = true })
     end
-    self.name = that
+    self.literal = that
     return self
   else
+    assert(getmetatable(that) == metatable)
     return that
   end
 end
@@ -136,7 +137,7 @@ function metatable:__mod(that)
     error "not supported"
   else
     local result = construct("%", self, that)
-    result.name = self.name
+    result.literal = self.literal
     return result
   end
 end
@@ -289,9 +290,6 @@ end
 
 ---------------------------------------------------------------------------
 
--- TODO timestampは一括でつけてよいかもしれない
--- TODO stateに一意なtimestampをつけるのはやめる
--- TODO stateに必要なのはpointer/handleのようなIDかな
 local function node_to_nfa(node)
   local code = node[0]
   if code == "[" then
