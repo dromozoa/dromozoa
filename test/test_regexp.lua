@@ -746,15 +746,6 @@ end
 
 ---------------------------------------------------------------------------
 
-local function execute_transition(u, byte)
-  if u then
-    local transition_v, transition_timestamp, transition_action = u:execute_transition(byte)
-    if transition_v then
-      return transition_timestamp, transition_v, transition_action
-    end
-  end
-end
-
 local function new_state(ux, uy)
   local state = module.state()
   if ux then
@@ -786,8 +777,14 @@ function module.difference(ux, uy)
         local new_transition_map = tree_map()
 
         for byte = 0x00, 0xFF do
-          local tx, vx, action = execute_transition(ux, byte)
-          local ty, vy = execute_transition(uy, byte)
+          local vx, tx, action
+          if ux then
+            vx, tx, action = ux:execute_transition(byte)
+          end
+          local vy, ty
+          if uy then
+            vy, ty = uy:execute_transition(byte)
+          end
 
           local vkey = 0
           local timestamp
