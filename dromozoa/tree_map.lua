@@ -27,10 +27,6 @@ local function class(compare)
 end
 
 function metatable:__index(k)
-  if k == nil then
-    return nil
-  end
-
   local _, v = private[self]:find(k)
   return v
 end
@@ -38,6 +34,8 @@ end
 function metatable:__newindex(k, v)
   if k == nil then
     error "table index is nil"
+  elseif type(k) == "number" and k ~= k then
+    error "table index is NaN"
   end
 
   if v == nil then
