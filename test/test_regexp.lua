@@ -770,24 +770,22 @@ function module.difference(ux, uy)
         local new_transition_map = tree_map()
 
         for byte = 0x00, 0xFF do
-          local vx, tx, action
+          local move = {}
+          local vx, _, action
           if ux then
-            vx, tx, action = ux:execute_transition(byte)
+            vx, _, action = ux:execute_transition(byte, move)
           end
-          local vy, ty
+          local vy
           if uy then
-            vy, ty = uy:execute_transition(byte)
+            vy = uy:execute_transition(byte, move)
           end
 
           local vkey = 0
-          local timestamp
-          if ty then
+          if vy then
             vkey = vy.index * n
-            timestamp = ty
           end
-          if tx then
+          if vx then
             vkey = vx.index + vkey
-            timestamp = tx
           end
 
           if vkey ~= 0 then
@@ -805,9 +803,9 @@ function module.difference(ux, uy)
             local new_transition_key = { index = vkey, action = action }
             local new_transition = new_transition_map[new_transition_key]
             if not new_transition then
-              new_transition_map[new_transition_key] = unew:transition(vnew, { [byte] = true }, timestamp, action)
+              new_transition_map[new_transition_key] = unew:transition(vnew, { [byte] = true }, move.timestamp, action)
             else
-              new_transition:update(byte, timestamp)
+              new_transition:update(byte, move.timestamp)
             end
           end
         end
