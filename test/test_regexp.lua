@@ -42,7 +42,6 @@ local function pattern(that)
     self.literal = that
     return self
   else
-    assert(getmetatable(that) == metatable)
     return that
   end
 end
@@ -52,6 +51,9 @@ local function range(that)
     local set = {}
     for i = 1, #that, 2 do
       local a, b = that:byte(i, i + 1)
+      if b == nil then
+        b = a
+      end
       for byte = a, b do
         set[byte] = true
       end
@@ -824,7 +826,7 @@ end
 
 local _ = module.pattern
 
-local x = _{ _"a"{0} + _"b"{1} + (_"c"/"T"){0,1} - "abc" ; _["xz"]{3,3} } %"A"
+local x = _{ _"a"{0} + _"b"{1} + (_"c"/"T"){0,1} - "abc" ; _["xyz"]{3,3} } %"A"
 local d = module.nfa_to_dfa(module.tree_to_nfa(x, true))
 
 local out = assert(io.open("test.dot", "w"))
