@@ -267,7 +267,7 @@ function class:execute_transition(byte, move)
           move.action = transition.action
         end
       end
-      return transition.v, transition.timestamp, transition.action
+      return transition.v, transition.action
     end
   end
 end
@@ -575,8 +575,8 @@ function module.minimize(u)
           -- 2. 同じ遷移アクションを持つ
           local same_partition = true
           for byte = 0x00, 0xFF do
-            local xv, _, xaction = x:execute_transition(byte)
-            local yv, _, yaction = y:execute_transition(byte)
+            local xv, xaction = x:execute_transition(byte)
+            local yv, yaction = y:execute_transition(byte)
             -- TODO compare(xaction, yaction) == 0 にするべきか？
             if partition_map[xv] ~= partition_map[yv] or xaction ~= yaction then
               same_partition = false
@@ -653,7 +653,7 @@ function module.minimize(u)
       local move = {}
 
       for j, x in ipairs(partition) do
-        local transition_v, _, transition_action = x:execute_transition(byte, move)
+        local transition_v, transition_action = x:execute_transition(byte, move)
 
         if transition_v then
           if j == 1 then
@@ -771,9 +771,9 @@ function module.difference(ux, uy)
 
         for byte = 0x00, 0xFF do
           local move = {}
-          local vx, _, action
+          local vx, action
           if ux then
-            vx, _, action = ux:execute_transition(byte, move)
+            vx, action = ux:execute_transition(byte, move)
           end
           local vy
           if uy then
