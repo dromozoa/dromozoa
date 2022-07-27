@@ -847,9 +847,10 @@ end
 
 local _ = module.pattern
 
--- local x = (_"a"{0} + _"b"{1} + (_"c"/"T"){0,1} - "abc" | _{"xyz"}{3,3}) %"A"
+-- local x = (_"a"{0} + _"b"{1} + (_"c"*"T"){0,1} - "abc" / _{"xyz"}{3,3}) %"A"
 -- local x = _(_"a"{0} + _"b"{1} + (_"c"/"T"){0,1} - "abc" , _{"xyz"}{3,3}) %"A"
 local x = _{ _"a"{0} + _"b"{1} + (_"c"/"T"){0,1} - "abc" ; _{"xyz"}{3,3} } %"A"
+-- local x = ( (_"a"{0} + _"b"{1} + (_"c"/"T"){0,1} - "abc") | _{"xyz"}{3,3}) %"A"
 local d = module.nfa_to_dfa(module.tree_to_nfa(x, true))
 
 local out = assert(io.open("test.dot", "w"))
