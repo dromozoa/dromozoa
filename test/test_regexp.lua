@@ -419,9 +419,9 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, color)
     local move = {}
 
     for _, u in pairs(umap) do
-      local t = u:simulate(byte, move)
-      if t ~= nil then
-        for k, v in pairs(module.epsilon_closure(t, epsilon_closures)) do
+      local to = u:simulate(byte, move)
+      if to ~= nil then
+        for k, v in pairs(module.epsilon_closure(to, epsilon_closures)) do
           vmap[k] = v
         end
       end
@@ -472,14 +472,13 @@ local assertion = true
 local function create_initial_partitions(u, accept_partition_map, nonaccept_partition, partition_map, color)
   color[u] = 1
 
-  local accept_action = u.accept_action
   local partition = nonaccept_partition
-  if accept_action then
-    partition = accept_partition_map[accept_action]
+  if u.accept_action then
+    partition = accept_partition_map[u.accept_action]
     if partition == nil then
       partition = module.list()
       partition.timestamp = u.timestamp
-      accept_partition_map[accept_action] = partition
+      accept_partition_map[u.accept_action] = partition
     elseif partition.timestamp > u.timestamp then
       partition.timestamp = u.timestamp
     end
@@ -506,9 +505,7 @@ function module.create_initial_partitions(u)
   for _, partition in pairs(accept_partition_map) do
     partitions:append(partition)
   end
-  table.sort(partitions, function (a, b) return a.timestamp < b.timestamp end)
 
-  -- partitionsの最後が非受領状態のパーティション
   if next(nonaccept_partition) ~= nil then
     partitions:append(nonaccept_partition)
   end
@@ -524,19 +521,20 @@ function module.minimize(u)
     local new_partition_map = {}
 
     for _, partition in ipairs(partitions) do
-      -- あるパーティションに含まれる状態の組 (x, y) が同じ遷移をするならば、ひ
-      -- とつのパーティションにまとめる。
+      -- パーティション内の状態の組(x,y)について同じ遷移をするか調べる。同じ遷
+      -- 移をするならば、ひとつのパーティションにまとめる。
       for i, x in ipairs(partition) do
         for j = 1, i - 1 do
           local y = partition[j]
-          -- 全ての文字について下記の条件が満たされたら、同じ遷移をするとみなす。
-          -- 1. 遷移先の状態が同じパーティションに含まれている
-          -- 2. 同じ遷移アクションを持つ
+          -- 全ての文字について下記の条件が満たされていれば、同じ遷移をするとみ
+          -- なす。
+          -- 1. 遷移先の状態が同じパーティションに含まれている。
+          -- 2. 同じ遷移アクションを持つ。
           local same_partition = true
           for byte = 0x00, 0xFF do
-            local xv, xaction = x:simulate(byte)
-            local yv, yaction = y:simulate(byte)
-            if partition_map[xv] ~= partition_map[yv] or compare(xaction, yaction) ~= 0 then
+            local x_to, x_action = x:simulate(byte)
+            local y_to, y_action = y:simulate(byte)
+            if partition_map[x_to] ~= partition_map[y_to] or compare(x_action, y_action) ~= 0 then
               same_partition = false
               break
             end
@@ -549,10 +547,11 @@ function module.minimize(u)
               new_partition:append(x)
               new_partition_map[x] = new_partition
             else
-              -- 新パーティションに登録済みである
-              if assertion then
-                assert(new_partition == new_partition_map[y])
-              end
+              -- パーティション内でyよりも前の状態zについて、状態の組(x,z)がひ
+              -- とつのパーティションにまとめられた場合、xはすでに新パーティシ
+              -- ョンに登録済みになっている。このとき、状態(y,z)もひとつのパー
+              -- ティションにまとめられているはずである。
+              assert(new_partition == new_partition_map[y])
             end
           end
         end
@@ -574,64 +573,40 @@ function module.minimize(u)
   end
 
   local states = {}
-  local accept_states = {}
+  local accept_states = module.list()
 
-  for i = 1, #partitions do
-    local partition = partitions[i]
-
+  for i, partition in ipairs(partitions) do
     local unew = module.state()
-    for i, x in ipairs(partition) do
+    for _, x in ipairs(partition) do
       unew:update(x.timestamp, x.accept_action)
     end
 
     states[partition] = { index = i, state = unew }
     if unew.accept_action then
-      accept_states[#accept_states + 1] = unew
+      accept_states:append(unew)
     end
   end
 
-  for i = 1, #partitions do
-    local partition = partitions[i]
+  for i, partition in ipairs(partitions) do
     local unew = states[partition].state
 
     local new_transition_map = tree_map()
 
     for byte = 0x00, 0xFF do
-      local v
       local move = {}
-
-      for j, x in ipairs(partition) do
-        local transition_v, transition_action = x:simulate(byte, move)
-
-        if transition_v then
-          if j == 1 then
-            v = states[partition_map[transition_v]]
-          else
-            if assertion then
-              -- TODO compareにするべき？
-              assert(action == transition_action)
-              assert(v.index == states[partition_map[transition_v]].index)
-              assert(v.state == states[partition_map[transition_v]].state)
-            end
-          end
-        else
-          if j > 1 then
-            assert(not v)
-          end
+      local to = partition[1]:simulate(byte, move)
+      if to ~= nil then
+        local v = states[partition_map[to]]
+        for j = 2, #partition do
+          -- 遷移先が同じであることを確認する。
+          assert(partition[j]:simulate(byte, move) == to)
         end
-      end
 
-      if v then
         local new_transition_key = { index = v.index, action = move.action }
         local new_transition = new_transition_map[new_transition_key]
         if not new_transition then
           new_transition_map[new_transition_key] = module.transition(unew, v.state, { [byte] = true }, move.timestamp, move.action)
         else
-          if assertion then
-            -- TODO compareにするべき？
-            assert(move.action == new_transition.action)
-            assert(v.state == new_transition.v)
-          end
           new_transition:update(move.timestamp, byte)
         end
       end
