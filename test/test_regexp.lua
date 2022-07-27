@@ -259,8 +259,8 @@ local metatable = { __index = class, __name = "dromozoa.regexp.state" }
 
 function class:simulate(byte, move)
   for _, transition in ipairs(self.transitions) do
-    if transition.set and transition.set[byte] then
-      if move and (not move.timestamp or move.timestamp > transition.timestamp) then
+    if transition.set ~= nil and transition.set[byte] then
+      if move ~= nil and (move.timestamp == nil or move.timestamp > transition.timestamp) then
         move.timestamp = transition.timestamp
         move.action = transition.action
       end
@@ -270,7 +270,7 @@ function class:simulate(byte, move)
 end
 
 function class:update(timestamp, accept_action)
-  if timestamp and accept_action and (not self.timestamp or self.timestamp > timestamp) then
+  if timestamp ~= nil and accept_action ~= nil and (self.timestamp == nil or self.timestamp > timestamp) then
     self.timestamp = timestamp
     self.accept_action = accept_action
   end
@@ -326,9 +326,9 @@ local function node_to_nfa(node)
           module.transition(av, v)
           module.transition(bv, v)
         elseif code == "-" then
-          local timestamp = node.timestamp
-          av:update(timestamp, true)
-          bv:update(timestamp, true)
+          -- local timestamp = node.timestamp
+          av:update(node.timestamp, true)
+          bv:update(node.timestamp, true)
 
           local cu, accept_states = module.minimize(
             module.difference(
@@ -349,6 +349,7 @@ local function node_to_nfa(node)
 end
 
 -- TODO accept_actionのnilの扱いを検討する
+-- lexer側の呼び出しに応じて考える
 function module.tree_to_nfa(root, accept_action)
   local u, v = node_to_nfa(root)
   if not v.accept_action then
@@ -364,17 +365,15 @@ local function update_state_indices(u, states, color)
   u.index = #states:append(u)
   for _, transition in ipairs(u.transitions) do
     if not color[transition.v] then
-      index = update_state_indices(transition.v, states, color)
+      update_state_indices(transition.v, states, color)
     end
   end
   color[u] = 2
-  return index
+  return states
 end
 
 function module.update_state_indices(u)
-  local states = module.list()
-  update_state_indices(u, states, {})
-  return states
+  return update_state_indices(u, module.list(), {})
 end
 
 ---------------------------------------------------------------------------
