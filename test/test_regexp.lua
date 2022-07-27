@@ -443,8 +443,6 @@ end
 local function nfa_to_dfa(umap, unew, states, epsilon_closures, color)
   color[umap] = 1
 
-  local actions = {}
-
   local new_transition_map = tree_map()
   local new_states = module.list()
 
@@ -476,7 +474,7 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, color)
       if not new_transition then
         new_transition_map[new_transition_key] = unew:transition(vnew, { [byte] = true }, move.timestamp, move.action)
       else
-        new_transition:update(byte, timestamp)
+        new_transition:update(byte, move.timestamp)
       end
     end
   end
@@ -648,49 +646,45 @@ function module.minimize(u)
     local partition = partitions[i]
     local unew = states[partition].state
 
-    local actions = {}
     local new_transition_map = tree_map()
 
     for byte = 0x00, 0xFF do
-      local transition_v, transition_timestamp, transition_action = partition[1]:execute_transition(byte)
+      local v
+      local move = {}
 
-      if transition_v then
-        local timestamp = transition_timestamp
-        local action = transition_action
-        local v = states[partition_map[transition_v]]
+      for j, x in ipairs(partition) do
+        local transition_v, _, transition_action = x:execute_transition(byte, move)
 
-        -- パーティションに含まれる各状態は同じ遷移をする
-        for j = 2, #partition do
-          local transition_v, transition_timestamp, transition_action = partition[j]:execute_transition(byte)
-          if assertion then
-            -- TODO compareにするべき？
-            assert(action == transition_action)
-            assert(v.index == states[partition_map[transition_v]].index)
-            assert(v.state == states[partition_map[transition_v]].state)
+        if transition_v then
+          if j == 1 then
+            v = states[partition_map[transition_v]]
+          else
+            if assertion then
+              -- TODO compareにするべき？
+              assert(action == transition_action)
+              assert(v.index == states[partition_map[transition_v]].index)
+              assert(v.state == states[partition_map[transition_v]].state)
+            end
           end
-          if timestamp > transition_timestamp then
-            timestamp = transition_timestamp
+        else
+          if j > 1 then
+            assert(not v)
           end
         end
+      end
 
-        local new_transition_key = { index = v.index, action = action }
+      if v then
+        local new_transition_key = { index = v.index, action = move.action }
         local new_transition = new_transition_map[new_transition_key]
         if not new_transition then
-          new_transition_map[new_transition_key] = unew:transition(v.state, { [byte] = true }, timestamp, action)
+          new_transition_map[new_transition_key] = unew:transition(v.state, { [byte] = true }, move.timestamp, move.action)
         else
           if assertion then
             -- TODO compareにするべき？
-            assert(action == new_transition.action)
+            assert(move.action == new_transition.action)
             assert(v.state == new_transition.v)
           end
-          new_transition:update(byte, timestamp)
-        end
-
-      else
-        if assertion then
-          for j = 2, #partition do
-            assert(not partition[j]:execute_transition(byte))
-          end
+          new_transition:update(byte, move.timestamp)
         end
       end
     end
