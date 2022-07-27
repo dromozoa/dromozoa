@@ -393,8 +393,6 @@ function module.create_state_indices(u)
   return indices
 end
 
--- epsilon遷移をたどって閉包を作成する
--- map<index, state>
 local function epsilon_closure(u, map, indices)
   for _, transition in ipairs(u.transitions) do
     if not transition.set then
@@ -461,16 +459,11 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, indices, color)
     end
 
     if vmap():next() then
-    -- if next(vmap) then
-      local vnew
-
-      local xnew = states[vmap]
-      if not xnew then
+      local vnew = states[vmap]
+      if not vnew then
         vnew = new_state(vmap)
         states[vmap] = vnew
         new_states[#new_states + 1] = { map = vmap, state = vnew }
-      else
-        vnew = xnew
       end
 
       local new_transition_key = { map = vmap, action = action }
