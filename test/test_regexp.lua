@@ -257,15 +257,12 @@ end
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.regexp.state" }
 
-function class:execute_transition(byte, move)
+function class:simulate(byte, move)
   for _, transition in ipairs(self.transitions) do
-    local set = transition.set
-    if set and set[byte] then
-      if move then
-        if not move.timestamp or move.timestamp > transition.timestamp then
-          move.timestamp = transition.timestamp
-          move.action = transition.action
-        end
+    if transition.set and transition.set[byte] then
+      if move and (not move.timestamp or move.timestamp > transition.timestamp) then
+        move.timestamp = transition.timestamp
+        move.action = transition.action
       end
       return transition.v, transition.action
     end
@@ -273,11 +270,9 @@ function class:execute_transition(byte, move)
 end
 
 function class:update(timestamp, accept_action)
-  if timestamp and accept_action then
-    if not self.timestamp or self.timestamp > timestamp then
-      self.timestamp = timestamp
-      self.accept_action = accept_action
-    end
+  if timestamp and accept_action and (not self.timestamp or self.timestamp > timestamp) then
+    self.timestamp = timestamp
+    self.accept_action = accept_action
   end
   return self
 end
@@ -424,7 +419,7 @@ local function nfa_to_dfa(umap, unew, states, epsilon_closures, color)
 
     -- 複数のノードについて、遷移を調べる
     for _, u in pairs(umap) do
-      local v = u:execute_transition(byte, move)
+      local v = u:simulate(byte, move)
       if v then
         for k, v in pairs(module.epsilon_closure(v, epsilon_closures)) do
           vmap[k] = v
@@ -547,8 +542,8 @@ function module.minimize(u)
           -- 2. 同じ遷移アクションを持つ
           local same_partition = true
           for byte = 0x00, 0xFF do
-            local xv, xaction = x:execute_transition(byte)
-            local yv, yaction = y:execute_transition(byte)
+            local xv, xaction = x:simulate(byte)
+            local yv, yaction = y:simulate(byte)
             -- TODO compare(xaction, yaction) ~= 0 にするべきか？
             if partition_map[xv] ~= partition_map[yv] or xaction ~= yaction then
               same_partition = false
@@ -615,7 +610,7 @@ function module.minimize(u)
       local move = {}
 
       for j, x in ipairs(partition) do
-        local transition_v, transition_action = x:execute_transition(byte, move)
+        local transition_v, transition_action = x:simulate(byte, move)
 
         if transition_v then
           if j == 1 then
@@ -730,15 +725,15 @@ function module.difference(ux, uy)
           local move = {}
           local vx, action
           if ux then
-            vx, action = ux:execute_transition(byte, move)
+            vx, action = ux:simulate(byte, move)
           end
           local vy
           if uy then
             -- timestampはvxのuxのものであるべき（ただし、uxが存在しないか、遷移しない場合がある）
             if vx then
-              vy = uy:execute_transition(byte)
+              vy = uy:simulate(byte)
             else
-              vy = uy:execute_transition(byte, move)
+              vy = uy:simulate(byte, move)
             end
           end
 
