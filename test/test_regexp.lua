@@ -285,6 +285,7 @@ end
 ---------------------------------------------------------------------------
 
 -- TODO 空文字列の受領状態はつくれないのかな？
+-- \\ [0-9] => fcall [0-9]* => fret でいいか
 
 -- TODO 名称変更 difference tree to minimized dfa
 local node_to_nfa_difference
