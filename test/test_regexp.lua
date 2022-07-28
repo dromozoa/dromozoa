@@ -681,6 +681,11 @@ local function difference(x, y)
   y_states[0] = null
 
   local new_states = {}
+  for i = 0, #x_states do
+    for j = i == 0 and 1 or 0, #y_states do
+      new_states[i + j * (#x_states + 1)] = new_state(x_states[i], y_states[j])
+    end
+  end
 
   for i = 0, #x_states do
     local x_u = x_states[i]
@@ -697,16 +702,8 @@ local function difference(x, y)
         local k_v = x_v.index + y_v.index * (#x_states + 1)
 
         if k_v ~= 0 then
-          local unew = new_states[k_u]
-          if unew == nil then
-            unew = new_state(x_u, y_u)
-            new_states[k_u] = unew
-          end
-          local vnew = new_states[k_v]
-          if vnew == nil then
-            vnew = new_state(x_v, y_v)
-            new_states[k_v] = vnew
-          end
+          local unew = assert(new_states[k_u])
+          local vnew = assert(new_states[k_v])
 
           local new_transition_key = { index = k_v, action = resolved.action }
           local new_transition = new_transition_map[new_transition_key]
