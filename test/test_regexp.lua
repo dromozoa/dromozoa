@@ -729,13 +729,13 @@ end
 local function union(that)
   table.sort(that, function (a, b) return a.timestamp < b.timestamp end)
 
-  local s = state()
+  local u = state()
   for _, node in ipairs(that) do
-    local u, v = tree_to_nfa(node, "")
-    transition(s, u)
+    local v = tree_to_nfa(node, "")
+    transition(u, v)
   end
 
-  local start_state, accept_states = minimize(nfa_to_dfa(s))
+  local start_state, accept_states = minimize(nfa_to_dfa(u))
   return {
     timestamp = that[1].timestamp;
     loop = false;
@@ -761,21 +761,21 @@ local function lexer(tokens, that)
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
-  local s = state()
+  local u = state()
   for _, node in ipairs(data) do
-    local u, v = tree_to_nfa(node, "")
-    transition(s, u)
+    local v, x = tree_to_nfa(node, "")
+    transition(u, v)
     if node.name ~= nil then
       local symbol = tokens[node.name]
       if symbol == nil then
         symbol = #tokens:append(node.name)
         tokens[node.name] = symbol
       end
-      v.accept_action = "token_symbol=" .. symbol .. ";" .. v.accept_action .. ";push_token()"
+      x.accept_action = "token_symbol=" .. symbol .. ";" .. x.accept_action .. ";push_token()"
     end
   end
 
-  local start_state, accept_states = minimize(nfa_to_dfa(s))
+  local start_state, accept_states = minimize(nfa_to_dfa(u))
   return {
     timestamp = data[1].timestamp;
     loop = true;
@@ -805,7 +805,13 @@ out:close()
 
 local tokens = module.list()
 
-local m = lexer(tokens, {
+local m1 = union {
+  _"aaa" %"あ";
+  _"aba" %"い";
+  _{"ab"}{3,3} %"う";
+}
+
+local m2 = lexer(tokens, {
   _"if";
   _"then";
   _"else";
@@ -817,5 +823,5 @@ local m = lexer(tokens, {
 })
 
 local out = assert(io.open("test-lexer.dot", "w"))
-write_graphviz(out, m.start_state)
+write_graphviz(out, m1.start_state)
 out:close()
