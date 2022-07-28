@@ -245,7 +245,7 @@ function class:update(timestamp, byte)
   return self
 end
 
-function module.transition(u, v, set, timestamp, action)
+local function transition(u, v, set, timestamp, action)
   local self = setmetatable({ v = v, set = set, timestamp = timestamp, action = action }, metatable)
   u.transitions:append(self)
   return self
@@ -276,7 +276,7 @@ function class:update(timestamp, accept_action)
   return self
 end
 
-function module.state()
+local function state()
   return setmetatable({ transitions = module.list() }, metatable)
 end
 
@@ -291,9 +291,9 @@ local node_to_nfa_difference
 local function node_to_nfa(node)
   local code = node[0]
   if code == "[" then
-    local u = module.state()
-    local v = module.state()
-    module.transition(u, v, node[1], timestamp)
+    local u = state()
+    local v = state()
+    transition(u, v, node[1], timestamp)
     return u, v
   else
     local au, av = node_to_nfa(node[1])
@@ -305,40 +305,40 @@ local function node_to_nfa(node)
       return au, av
     elseif code == "." then
       local bu, bv = node_to_nfa(node[2])
-      module.transition(av, bu)
+      transition(av, bu)
       return au, bv
     else
-      local u = module.state()
-      local v = module.state()
+      local u = state()
+      local v = state()
       if code == "*" then
-        module.transition(u, v)
-        module.transition(u, au)
-        module.transition(av, au)
-        module.transition(av, v)
+        transition(u, v)
+        transition(u, au)
+        transition(av, au)
+        transition(av, v)
       elseif code == "+" then
-        module.transition(u, au)
-        module.transition(av, au)
-        module.transition(av, v)
+        transition(u, au)
+        transition(av, au)
+        transition(av, v)
       elseif code == "?" then
-        module.transition(u, v)
-        module.transition(u, au)
-        module.transition(av, v)
+        transition(u, v)
+        transition(u, au)
+        transition(av, v)
       else
         local bu, bv = node_to_nfa(node[2])
         if code == "|" then
-          module.transition(u, au)
-          module.transition(u, bu)
-          module.transition(av, v)
-          module.transition(bv, v)
+          transition(u, au)
+          transition(u, bu)
+          transition(av, v)
+          transition(bv, v)
         elseif code == "-" then
           av:update(timestamp, true)
           bv:update(timestamp, true)
           local cu, accept_states = node_to_nfa_difference(au, av, bu, bv)
-          module.transition(u, cu)
+          transition(u, cu)
           for _, cv in ipairs(accept_states) do
             cv.timestamp = nil
             cv.accept_action = nil
-            module.transition(cv, v)
+            transition(cv, v)
           end
         end
       end
@@ -401,7 +401,7 @@ end
 local function closure_to_state(closure, states)
   local u = states[closure]
   if u == nil then
-    u = module.state()
+    u = state()
     for _, v in pairs(closure) do
       u:update(v.timestamp, v.accept_action)
     end
@@ -435,7 +435,7 @@ local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
       local key = { closure = v_closure, action = resolved.action }
       local t = transition_map[key]
       if t == nil then
-        transition_map[key] = module.transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
+        transition_map[key] = transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
       else
         t:update(resolved.timestamp, byte)
       end
@@ -565,7 +565,7 @@ local function minimize(u)
   local accept_states = module.list()
 
   for i, partition in ipairs(partitions) do
-    local u = module.state()
+    local u = state()
     for _, x in ipairs(partition) do
       u:update(x.timestamp, x.accept_action)
     end
@@ -595,7 +595,7 @@ local function minimize(u)
         local key = { index = p.index, action = resolved.action }
         local t = transition_map[key]
         if t == nil then
-          transition_map[key] = module.transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
+          transition_map[key] = transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
         else
           t:update(resolved.timestamp, byte)
         end
@@ -658,7 +658,7 @@ local function difference(x, y)
   local x_states = update_state_indices(x)
   local y_states = update_state_indices(y)
 
-  local null = module.state()
+  local null = state()
   null.index = 0
   x_states[0] = null
   y_states[0] = null
@@ -672,7 +672,7 @@ local function difference(x, y)
     local x = x_states[i]
     for j = i == 0 and 1 or 0, y_n do
       local y = y_states[j]
-      local z = module.state()
+      local z = state()
       if y.accept_action == nil then
         z:update(x.timestamp, x.accept_action)
       end
@@ -697,7 +697,7 @@ local function difference(x, y)
           local key = { index = index, action = action }
           local t = transition_map[key]
           if t == nil then
-            transition_map[key] = module.transition(z_u, z_v, { [byte] = true }, timestamp, action)
+            transition_map[key] = transition(z_u, z_v, { [byte] = true }, timestamp, action)
           else
             t:update(timestamp, byte)
           end
