@@ -674,7 +674,7 @@ local function difference(x, y)
 
   local x_n = #x_states
   local y_n = #y_states
-  local n = x_n + 1
+  local n = y_n + 1
 
   local z_states = {}
   for i = 0, x_n do
@@ -685,7 +685,7 @@ local function difference(x, y)
       if y.accept_action == nil then
         z:update(x.timestamp, x.accept_action)
       end
-      z_states[i + j * n] = z
+      z_states[i * n + j] = z
     end
   end
 
@@ -694,7 +694,7 @@ local function difference(x, y)
 
     for j = i == 0 and 1 or 0, y_n do
       local y_u = y_states[j]
-      local k_u = i + j * n
+      local k_u = i * n + j
       local z_u = assert(z_states[k_u])
 
       local new_transition_map = tree_map()
@@ -702,7 +702,7 @@ local function difference(x, y)
         local resolved = {}
         local x_v = simulate(x_u, byte, resolved, null)
         local y_v = simulate(y_u, byte, resolved, null)
-        local k_v = x_v.index + y_v.index * n
+        local k_v = x_v.index * n + y_v.index
 
         if k_v ~= 0 then
           local z_v = assert(z_states[k_v])
@@ -718,7 +718,7 @@ local function difference(x, y)
     end
   end
 
-  return remove_dead_states(z_states[x.index + y.index * n])
+  return remove_dead_states(z_states[x.index * n + y.index])
 end
 
 function node_to_nfa_difference(au, av, bu, bv)
