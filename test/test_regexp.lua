@@ -361,9 +361,9 @@ end
 local function update_state_indices(u, states, color)
   color[u] = 1
   u.index = #states:append(u)
-  for _, transition in ipairs(u.transitions) do
-    if color[transition.v] == nil then
-      update_state_indices(transition.v, states, color)
+  for _, t in ipairs(u.transitions) do
+    if color[t.v] == nil then
+      update_state_indices(t.v, states, color)
     end
   end
   color[u] = 2
@@ -378,10 +378,10 @@ end
 ---------------------------------------------------------------------------
 
 local function epsilon_closure(u, closure)
-  for _, transition in ipairs(u.transitions) do
-    if transition.set == nil then
-      closure[transition.v.index] = transition.v
-      epsilon_closure(transition.v, closure)
+  for _, t in ipairs(u.transitions) do
+    if t.set == nil then
+      closure[t.v.index] = t.v
+      epsilon_closure(t.v, closure)
     end
   end
 end
@@ -483,9 +483,9 @@ local function create_initial_partitions(u, accept_partition_map, nonaccept_part
   partition:append(u)
   partition_map[u] = partition
 
-  for _, transition in ipairs(u.transitions) do
-    if color[transition.v] == nil then
-      create_initial_partitions(transition.v, accept_partition_map, nonaccept_partition, partition_map, color)
+  for _, t in ipairs(u.transitions) do
+    if color[t.v] == nil then
+      create_initial_partitions(t.v, accept_partition_map, nonaccept_partition, partition_map, color)
     end
   end
 
