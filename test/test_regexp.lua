@@ -257,13 +257,13 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.regexp.state" }
 
 function class:simulate(byte, resolved)
-  for _, transition in ipairs(self.transitions) do
-    if transition.set ~= nil and transition.set[byte] then
-      if resolved ~= nil and (resolved.timestamp == nil or resolved.timestamp > transition.timestamp) then
-        resolved.timestamp = transition.timestamp
-        resolved.action = transition.action
+  for _, t in ipairs(self.transitions) do
+    if t.set ~= nil and t.set[byte] then
+      if resolved ~= nil and (resolved.timestamp == nil or resolved.timestamp > t.timestamp) then
+        resolved.timestamp = t.timestamp
+        resolved.action = t.action
       end
-      return transition.v, transition.timestamp, transition.action
+      return t.v, t.timestamp, t.action
     end
   end
 end
