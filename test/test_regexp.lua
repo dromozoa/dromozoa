@@ -493,16 +493,16 @@ end
 
 local function minimize(u)
   local accept_partition_map = tree_map()
-  local nonaccept_partition = module.list()
+  local partition = module.list()
   local partition_map = {}
-  create_initial_partitions(u, accept_partition_map, nonaccept_partition, partition_map, {})
+  create_initial_partitions(u, accept_partition_map, partition, partition_map, {})
 
   local partitions = module.list()
   for _, partition in pairs(accept_partition_map) do
-    partitions:append(partition)
+    partition.index = #partitions:append(partition)
   end
-  if next(nonaccept_partition) ~= nil then
-    partitions:append(nonaccept_partition)
+  if next(partition) ~= nil then
+    partition.index = #partitions:append(partition)
   end
 
   while true do
@@ -547,7 +547,7 @@ local function minimize(u)
 
         if new_partition_map[x] == nil then
           local new_partition = module.list(x)
-          new_partitions:append(new_partition)
+          new_partition.index = #new_partitions:append(new_partition)
           new_partition_map[x] = new_partition
         end
       end
@@ -569,21 +569,20 @@ local function minimize(u)
     for _, x in ipairs(partition) do
       u:update(x.timestamp, x.accept_action)
     end
-    states[partition] = { index = i, state = u }
+    states[partition] = u
     if u.accept_action ~= nil then
       accept_states:append(u)
     end
   end
 
   for i, partition in ipairs(partitions) do
-    local u = states[partition].state
+    local u = states[partition]
     local transition_map = tree_map()
 
     for byte = 0x00, 0xFF do
       local resolved = {}
       local x_to, _, x_action = partition[1]:simulate(byte, resolved)
       if x_to ~= nil then
-        local v = states[partition_map[x_to]]
         for j = 2, #partition do
           local y_to, _, y_action = partition[j]:simulate(byte, resolved)
           -- 同じ遷移をすることを確認する。
@@ -591,10 +590,12 @@ local function minimize(u)
           assert(x_action == y_action)
         end
 
-        local key = { index = v.index, action = resolved.action }
+        local partition = partition_map[x_to]
+        local v = states[partition]
+        local key = { index = partition.index, action = resolved.action }
         local t = transition_map[key]
         if t == nil then
-          transition_map[key] = module.transition(u, v.state, { [byte] = true }, resolved.timestamp, resolved.action)
+          transition_map[key] = module.transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
         else
           t:update(resolved.timestamp, byte)
         end
@@ -602,7 +603,7 @@ local function minimize(u)
     end
   end
 
-  return states[partition_map[u]].state, accept_states
+  return states[partition_map[u]], accept_states
 end
 
 ---------------------------------------------------------------------------
