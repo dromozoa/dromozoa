@@ -21,6 +21,7 @@ local write_graphviz = require "dromozoa.regexp.write_graphviz"
 local list = require "dromozoa.list"
 local pattern = require "dromozoa.regexp.pattern"
 local machine = require "dromozoa.regexp.machine"
+local compile = require "dromozoa.regexp.compile"
 
 local _ = pattern
 local union = machine.union
@@ -32,7 +33,7 @@ local m1 = union {
 }
 
 local out = assert(io.open("test-m1.dot", "w"))
-write_graphviz(out, m1.start_state)
+write_graphviz(out, m1.u)
 out:close()
 
 local tokens = list()
@@ -44,7 +45,7 @@ local m2 = machine.union {
 }
 
 local out = assert(io.open("test-m2.dot", "w"))
-write_graphviz(out, m2.start_state)
+write_graphviz(out, m2.u)
 out:close()
 
 local m3 = machine.lexer(tokens, {
@@ -59,5 +60,14 @@ local m3 = machine.lexer(tokens, {
 })
 
 local out = assert(io.open("test-m3.dot", "w"))
-write_graphviz(out, m2.start_state)
+write_graphviz(out, m2.u)
 out:close()
+
+local r = compile {
+  m1 = m1;
+  m2 = m2;
+  m3;
+}
+
+print(dumper.encode(r, { stable = true }))
+

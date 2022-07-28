@@ -15,6 +15,106 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local list = require "dromozoa.list"
+
+local function update_state_indices_accept(u, accept_actions, color)
+  color[u] = 1
+  if u.accept_action ~= nil then
+    u.index = #accept_actions:append(u.accept_action)
+  end
+  for _, t in ipairs(u.transitions) do
+    if color[t.v] == nil then
+      update_state_indices_accept(t.v, accept_actions, color)
+    end
+  end
+  color[u] = 2
+end
+
+local function update_state_indices_nonaccept(u, index, color)
+  color[u] = 1
+  if u.accept_action == nil then
+    index = index + 1
+    u.index = index
+  end
+  for _, t in ipairs(u.transitions) do
+    if color[t.v] == nil then
+      index = update_state_indices_nonaccept(t.v, index, color)
+    end
+  end
+  color[u] = 2
+  return index
+end
+
+local function construct_table(u, max_state, transitions, transition_actions, transition_states, color)
+  color[u] = 1
+  for _, t in ipairs(u.transitions) do
+    local code
+    if t.action ~= nil then
+      transition_actions:append(t.action)
+      transition_states:append(t.v.index)
+      code = max_state + #transition_actions
+    else
+      code = t.v.index
+    end
+    for byte in pairs(t.set) do
+      transitions[byte][u.index] = code
+    end
+    if color[t.v] == nil then
+      construct_table(t.v, max_state, transitions, transition_actions, transition_states, color)
+    end
+  end
+  color[u] = 2
+end
+
+local function generate(that)
+  local u = that.u
+
+  local accept_actions = list()
+  update_state_indices_accept(u, accept_actions, {})
+  local max_state = update_state_indices_nonaccept(u, #accept_actions, {})
+
+  local transitions = {}
+  for byte = 0x00, 0xFF do
+    transitions[byte] = {}
+    for i = 1, max_state do
+      transitions[byte][i] = 0
+    end
+  end
+  local transition_actions = list()
+  local transition_states = list()
+
+  construct_table(u, max_state, transitions, transition_actions, transition_states, {})
+
+  return {
+    timestamp = that.timestamp;
+    guard_action = that.guard_action;
+    main = that.main;
+    name = that.name;
+    start_state = u.index;
+    accept_actions = accept_actions;
+    max_state = max_state;
+    transitions = transitions;
+    transition_actions = transition_actions;
+    transition_states = transition_states;
+  }
+end
+
+return function (that)
+  that[1].main = true
+
+  local data = list()
+  for name, machine in pairs(that) do
+    if type(name) == "string" then
+      machine.name = name
+    end
+    data:append(generate(machine))
+  end
+  table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
+
+  return data
+end
+
+--[====[
 local template1 = [[
 return function (source, source_name)
   local fgoto
@@ -40,9 +140,15 @@ return function (source, source_name)
   local rd
 
   local token_symbol
+  local action_table = (function ()
+    local hide_variables...
+    return {
 ]]
 
 local template2 = [[
+    }
+  end)()
+
   local start_line = 1
   local start_column = 1
   local current_position = 1
@@ -348,3 +454,4 @@ return function(out, data)
 
   out:write(template2)
 end
+]====]
