@@ -15,6 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local dumper = require "dromozoa.commons.dumper"
 local write_graphviz = require "dromozoa.regexp.write_graphviz"
 local compare = require "dromozoa.compare"
 local tree_map = require "dromozoa.tree_map"
@@ -38,7 +39,7 @@ local function pattern(that)
     for i = 2, #that do
       self = self + construct("[", { [that:byte(i)] = true })
     end
-    self.literal = that
+    self.name = that
     return self
   else
     return that
@@ -138,7 +139,7 @@ function metatable:__mod(that)
     error "not supported"
   else
     local result = construct("%", self, that)
-    result.literal = self.literal
+    result.name = self.name
     return result
   end
 end
@@ -327,8 +328,8 @@ local function node_to_nfa(node)
           transition(av, v)
           transition(bv, v)
         elseif code == "-" then
-          av:update(timestamp, true)
-          bv:update(timestamp, true)
+          av:update(timestamp, "")
+          bv:update(timestamp, "")
           local cu, accept_states = difference(au, bu)
           transition(u, cu)
           for _, cv in ipairs(accept_states) do
@@ -343,27 +344,37 @@ local function node_to_nfa(node)
   end
 end
 
--- TODO 呼び出し側でtreeのrootをチェックするべき？
-local function tree_to_nfa(root, accept_action)
-  if accept_action == nil then
-    accept_action = true
-  end
-
-  local u, v = node_to_nfa(root)
+local function tree_to_nfa(node, accept_action)
+  local u, v = node_to_nfa(node)
   if v.accept_action == nil then
-    v:update(root.timestamp, accept_action)
+    v:update(node.timestamp, accept_action)
   end
   return u, v
 end
 
 ---------------------------------------------------------------------------
 
-local function update_state_indices_impl(u, states, color)
+local function update_state_indices_accept(u, states, color)
   color[u] = 1
-  u.index = #states:append(u)
+  if u.accept_action ~= nil then
+    u.index = #states:append(u)
+  end
   for _, t in ipairs(u.transitions) do
     if color[t.v] == nil then
-      update_state_indices_impl(t.v, states, color)
+      update_state_indices_accept(t.v, states, color)
+    end
+  end
+  color[u] = 2
+end
+
+local function update_state_indices_nonaccept(u, states, color)
+  color[u] = 1
+  if u.accept_action == nil then
+    u.index = #states:append(u)
+  end
+  for _, t in ipairs(u.transitions) do
+    if color[t.v] == nil then
+      update_state_indices_nonaccept(t.v, states, color)
     end
   end
   color[u] = 2
@@ -371,8 +382,10 @@ end
 
 local function update_state_indices(u)
   local states = module.list()
-  update_state_indices_impl(u, states, {})
-  return states
+  update_state_indices_accept(u, states, {})
+  local max_accept_state = #states
+  update_state_indices_nonaccept(u, states, {})
+  return states, max_accept_state
 end
 
 ---------------------------------------------------------------------------
@@ -580,14 +593,15 @@ local function minimize(u)
       local resolved = {}
       local x_to, _, x_action = partition[1]:simulate(byte, resolved)
       if x_to ~= nil then
+        local p = partition_map[x_to]
+
         for j = 2, #partition do
           local y_to, _, y_action = partition[j]:simulate(byte, resolved)
           -- 同じ遷移をすることを確認する。
-          assert(x_to == y_to)
-          assert(x_action == y_action)
+          assert(p == partition_map[y_to])
+          assert(compare(x_action, y_action) == 0)
         end
 
-        local p = partition_map[x_to]
         local v = states[p]
         local key = { index = p.index, action = resolved.action }
         local t = transition_map[key]
@@ -712,11 +726,101 @@ end
 
 ---------------------------------------------------------------------------
 
+function module.union(that)
+  table.sort(that, function (a, b) return a.timestamp < b.timestamp end)
+  local u = state()
+  for _, node in ipairs(that) do
+    local v = tree_to_nfa(node, "")
+    transition(u, v)
+  end
+  return {
+    timestamp = that[1].timestamp;
+    start_state = minimize(nfa_to_dfa(u));
+  }
+end
+
+function module.guard(guard_action, that)
+  local machine = module.union(that)
+  machine.loop = true
+  machine.guard_action = guard_action
+  return machine
+end
+
+function module.lexer(tokens, that)
+  local data = module.list()
+  for name, node in pairs(that) do
+    if type(name) == "string" then
+      node.name = name
+    end
+    data:append(node)
+  end
+  table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
+
+  local u = state()
+  for _, node in ipairs(data) do
+    local v, x = tree_to_nfa(node, "")
+    transition(u, v)
+    if node.name ~= nil then
+      local symbol = tokens[node.name]
+      if symbol == nil then
+        symbol = #tokens:append(node.name)
+        tokens[node.name] = symbol
+      end
+      x.accept_action = "token_symbol=" .. symbol .. ";" .. x.accept_action .. ";push_token()"
+    else
+      x.accept_action = x.accept_action .. ";skip_token()"
+    end
+  end
+
+  return {
+    timestamp = data[1].timestamp;
+    loop = true;
+    start_state = minimize(nfa_to_dfa(u));
+  }
+end
+
+---------------------------------------------------------------------------
+
 local _ = module.pattern
 
+---------------------------------------------------------------------------
+
 local x = _{ _"a"{0} + _"b"{1} + (_"c"/"T"){0,1} - "abc" ; _["xyz"]{3,3} } %"A"
-local d, a = minimize(nfa_to_dfa(tree_to_nfa(x, true)))
+local u, accept_states = minimize(nfa_to_dfa(tree_to_nfa(x, "")))
+local states, max_accept_state = update_state_indices(u)
+
+assert(max_accept_state == 3)
+assert(u.index == 4)
 
 local out = assert(io.open("test.dot", "w"))
-write_graphviz(out, d)
+write_graphviz(out, u)
+out:close()
+
+---------------------------------------------------------------------------
+
+local tokens = module.list()
+
+local m1 = module.union {
+  _"aaa" %"a";
+  _"aba" %"b";
+  _{"ab"}{3,3} %"b";
+}
+
+local out = assert(io.open("test-m1.dot", "w"))
+write_graphviz(out, m1.start_state)
+out:close()
+
+local m2 = module.lexer(tokens, {
+  _"if";
+  _"then";
+  _"else";
+  _"elseif";
+  _"end";
+  integer = (_["09"]/"i"){1};
+  string = _"\"" + (-_["\""]/"c"){0} + "\"";
+  _{" \t\r\n"}{1};
+})
+
+local out = assert(io.open("test-m2.dot", "w"))
+write_graphviz(out, m2.start_state)
 out:close()
