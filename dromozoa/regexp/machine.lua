@@ -16,24 +16,8 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local compare = require "dromozoa.compare"
+local list = require "dromozoa.list"
 local tree_map = require "dromozoa.tree_map"
-
----------------------------------------------------------------------------
-
-local class = {}
-local metatable = { __index = class, __name = "dromozoa.regexp.list" }
-
-function class:append(...)
-  local n = #self
-  for i = 1, select("#", ...) do
-    self[#self + 1] = select(i, ...)
-  end
-  return self
-end
-
-local function list(...)
-  return setmetatable({}, metatable):append(...)
-end
 
 ---------------------------------------------------------------------------
 
@@ -530,10 +514,6 @@ end
 
 local module = {}
 
-function module.tokens()
-  return list()
-end
-
 function module.union(that)
   table.sort(that, function (a, b) return a.timestamp < b.timestamp end)
   local u = state()
@@ -549,7 +529,6 @@ end
 
 function module.guard(guard_action, that)
   local machine = module.union(that)
-  machine.loop = true
   machine.guard_action = guard_action
   return machine
 end
@@ -582,7 +561,6 @@ function module.lexer(tokens, that)
 
   return {
     timestamp = data[1].timestamp;
-    loop = true;
     start_state = minimize(nfa_to_dfa(u));
   }
 end

@@ -38,7 +38,7 @@ local function stable_pairs(t, compare, n)
     K[#K + 1] = k
   end
   table.sort(K, function (a, b)
-    -- 同一要素を比較する場合がある。
+    -- table.sortは同じ要素を比較する場合がある。
     if rawequal(a, b) then
       return false
     end

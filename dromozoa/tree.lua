@@ -245,6 +245,8 @@ local function each(self, x, y, t)
   end
 end
 
+---------------------------------------------------------------------------
+
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.tree" }
 
