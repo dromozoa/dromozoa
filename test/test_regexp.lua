@@ -663,14 +663,6 @@ local function simulate(u, byte, resolved, null)
   return v
 end
 
-local function new_state(x, y)
-  local u = module.state()
-  if y.accept_action == nil then
-    u:update(x.timestamp, x.accept_action)
-  end
-  return u
-end
-
 local function difference(x, y)
   local x_states = module.update_state_indices(x)
   local y_states = module.update_state_indices(y)
@@ -680,35 +672,44 @@ local function difference(x, y)
   x_states[0] = null
   y_states[0] = null
 
-  local new_states = {}
-  for i = 0, #x_states do
-    for j = i == 0 and 1 or 0, #y_states do
-      new_states[i + j * (#x_states + 1)] = new_state(x_states[i], y_states[j])
+  local x_n = #x_states
+  local y_n = #y_states
+  local n = x_n + 1
+
+  local z_states = {}
+  for i = 0, x_n do
+    local x = x_states[i]
+    for j = i == 0 and 1 or 0, y_n do
+      local y = y_states[j]
+      local z = module.state()
+      if y.accept_action == nil then
+        z:update(x.timestamp, x.accept_action)
+      end
+      z_states[i + j * n] = z
     end
   end
 
-  for i = 0, #x_states do
+  for i = 0, x_n do
     local x_u = x_states[i]
 
-    for j = i == 0 and 1 or 0, #y_states do
+    for j = i == 0 and 1 or 0, y_n do
       local y_u = y_states[j]
-      local k_u = i + j * (#x_states + 1)
+      local k_u = i + j * n
+      local z_u = assert(z_states[k_u])
 
       local new_transition_map = tree_map()
       for byte = 0x00, 0xFF do
         local resolved = {}
         local x_v = simulate(x_u, byte, resolved, null)
         local y_v = simulate(y_u, byte, resolved, null)
-        local k_v = x_v.index + y_v.index * (#x_states + 1)
+        local k_v = x_v.index + y_v.index * n
 
         if k_v ~= 0 then
-          local unew = assert(new_states[k_u])
-          local vnew = assert(new_states[k_v])
-
+          local z_v = assert(z_states[k_v])
           local new_transition_key = { index = k_v, action = resolved.action }
           local new_transition = new_transition_map[new_transition_key]
           if new_transition == nil then
-            new_transition_map[new_transition_key] = module.transition(unew, vnew, { [byte] = true }, resolved.timestamp, resolved.action)
+            new_transition_map[new_transition_key] = module.transition(z_u, z_v, { [byte] = true }, resolved.timestamp, resolved.action)
           else
             new_transition:update(resolved.timestamp, byte)
           end
@@ -717,7 +718,7 @@ local function difference(x, y)
     end
   end
 
-  return remove_dead_states(new_states[x.index + y.index * (#x_states + 1)])
+  return remove_dead_states(z_states[x.index + y.index * n])
 end
 
 function node_to_nfa_difference(au, av, bu, bv)
