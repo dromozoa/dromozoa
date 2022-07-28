@@ -235,25 +235,6 @@ end
 ---------------------------------------------------------------------------
 
 local class = {}
-local metatable = { __index = class, __name = "dromozoa.regexp.transition" }
-
-function class:update(timestamp, byte)
-  self.set[byte] = byte
-  if self.timestamp > timestamp then
-    self.timestamp = timestamp
-  end
-  return self
-end
-
-local function transition(u, v, set, timestamp, action)
-  local self = setmetatable({ v = v, set = set, timestamp = timestamp, action = action }, metatable)
-  u.transitions:append(self)
-  return self
-end
-
----------------------------------------------------------------------------
-
-local class = {}
 local metatable = { __index = class, __name = "dromozoa.regexp.state" }
 
 function class:simulate(byte, resolved)
@@ -282,11 +263,26 @@ end
 
 ---------------------------------------------------------------------------
 
--- TODO 空文字列の受領状態はつくれないのかな？
--- \\ [0-9] => fcall [0-9]* => fret でいいか
+local class = {}
+local metatable = { __index = class, __name = "dromozoa.regexp.transition" }
 
--- TODO 名称変更 difference tree to minimized dfa
-local node_to_nfa_difference
+function class:update(timestamp, byte)
+  self.set[byte] = byte
+  if self.timestamp > timestamp then
+    self.timestamp = timestamp
+  end
+  return self
+end
+
+local function transition(u, v, set, timestamp, action)
+  local self = setmetatable({ v = v, set = set, timestamp = timestamp, action = action }, metatable)
+  u.transitions:append(self)
+  return self
+end
+
+---------------------------------------------------------------------------
+
+local difference
 
 local function node_to_nfa(node)
   local code = node[0]
@@ -333,7 +329,7 @@ local function node_to_nfa(node)
         elseif code == "-" then
           av:update(timestamp, true)
           bv:update(timestamp, true)
-          local cu, accept_states = node_to_nfa_difference(au, av, bu, bv)
+          local cu, accept_states = difference(au, bu)
           transition(u, cu)
           for _, cv in ipairs(accept_states) do
             cv.timestamp = nil
@@ -347,12 +343,15 @@ local function node_to_nfa(node)
   end
 end
 
--- TODO accept_actionのnilの扱いを検討する
--- lexer側の呼び出しに応じて考える
+-- TODO 呼び出し側でtreeのrootをチェックするべき？
 local function tree_to_nfa(root, accept_action)
+  if accept_action == nil then
+    accept_action = true
+  end
+
   local u, v = node_to_nfa(root)
   if v.accept_action == nil then
-    v:update(root.timestamp, accept_action or true)
+    v:update(root.timestamp, accept_action)
   end
   return u, v
 end
@@ -463,8 +462,6 @@ end
 
 ---------------------------------------------------------------------------
 
-local assertion = true
-
 local function create_initial_partitions(u, accept_partition_map, nonaccept_partition, partition_map, color)
   color[u] = 1
 
@@ -515,7 +512,7 @@ local function minimize(u)
       for i, x in ipairs(partition) do
         for j = 1, i - 1 do
           local y = partition[j]
-          -- 全ての文字について下記の条件が満たされていれば、同じ遷移をするとみ
+          -- 全ての文字について下記の条件が満たされていたら、同じ遷移をするとみ
           -- なす。
           -- 1. 遷移先の状態が同じパーティションに含まれている。
           -- 2. 同じ遷移アクションを持つ。
@@ -654,7 +651,7 @@ local function simulate(u, byte, resolved_timestamp, null)
   return v, resolved_timestamp, action
 end
 
-local function difference(x, y)
+local function powerset_construction_difference(x, y)
   local x_states = update_state_indices(x)
   local y_states = update_state_indices(y)
 
@@ -709,11 +706,8 @@ local function difference(x, y)
   return remove_dead_states(z_states[x.index * n + y.index])
 end
 
-function node_to_nfa_difference(au, av, bu, bv)
-  return minimize(
-    difference(
-      minimize(nfa_to_dfa(au)),
-      minimize(nfa_to_dfa(bu))))
+function difference(x, y)
+  return minimize(powerset_construction_difference(minimize(nfa_to_dfa(x)), minimize(nfa_to_dfa(y))))
 end
 
 ---------------------------------------------------------------------------
