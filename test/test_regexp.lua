@@ -503,7 +503,6 @@ function module.minimize(u)
   for _, partition in pairs(accept_partition_map) do
     partitions:append(partition)
   end
-
   if next(nonaccept_partition) ~= nil then
     partitions:append(nonaccept_partition)
   end
