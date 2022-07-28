@@ -15,9 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local dumper = require "dromozoa.commons.dumper"
 local write_graphviz = require "dromozoa.regexp.write_graphviz"
-local write_graphviz_tree = require "dromozoa.regexp.write_graphviz_tree"
 local compare = require "dromozoa.compare"
 local tree_map = require "dromozoa.tree_map"
 
@@ -493,7 +491,7 @@ local function create_initial_partitions(u, accept_partition_map, nonaccept_part
   color[u] = 2
 end
 
-function module.minimize(u)
+local function minimize(u)
   local accept_partition_map = tree_map()
   local nonaccept_partition = module.list()
   local partition_map = {}
@@ -508,8 +506,8 @@ function module.minimize(u)
   end
 
   while true do
-    local new_partitions = module.list()
     local new_partition_map = {}
+    local new_partitions = module.list()
 
     for _, partition in ipairs(partitions) do
       -- パーティション内の状態の組(x,y)について同じ遷移をするか調べる。同じ遷
@@ -571,14 +569,14 @@ function module.minimize(u)
     for _, x in ipairs(partition) do
       u:update(x.timestamp, x.accept_action)
     end
-    states[partition] = u
+    states[partition] = { index = i, state = u }
     if u.accept_action ~= nil then
       accept_states:append(u)
     end
   end
 
   for i, partition in ipairs(partitions) do
-    local u = states[partition]
+    local u = states[partition].state
     local transition_map = tree_map()
 
     for byte = 0x00, 0xFF do
@@ -593,10 +591,10 @@ function module.minimize(u)
           assert(x_action == y_action)
         end
 
-        local key = { state = v, action = resolved.action }
+        local key = { index = v.index, action = resolved.action }
         local t = transition_map[key]
         if t == nil then
-          transition_map[key] = module.transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
+          transition_map[key] = module.transition(u, v.state, { [byte] = true }, resolved.timestamp, resolved.action)
         else
           t:update(resolved.timestamp, byte)
         end
@@ -604,7 +602,7 @@ function module.minimize(u)
     end
   end
 
-  return states[partition_map[u]], accept_states
+  return states[partition_map[u]].state, accept_states
 end
 
 ---------------------------------------------------------------------------
@@ -711,10 +709,10 @@ local function difference(x, y)
 end
 
 function node_to_nfa_difference(au, av, bu, bv)
-  return module.minimize(
+  return minimize(
     difference(
-      module.minimize(module.nfa_to_dfa(au)),
-      module.minimize(module.nfa_to_dfa(bu))))
+      minimize(module.nfa_to_dfa(au)),
+      minimize(module.nfa_to_dfa(bu))))
 end
 
 ---------------------------------------------------------------------------
@@ -722,7 +720,7 @@ end
 local _ = module.pattern
 
 local x = _{ _"a"{0} + _"b"{1} + (_"c"/"T"){0,1} - "abc" ; _["xyz"]{3,3} } %"A"
-local d = module.nfa_to_dfa(tree_to_nfa(x, true))
+local d, a = minimize(module.nfa_to_dfa(tree_to_nfa(x, true)))
 
 local out = assert(io.open("test.dot", "w"))
 write_graphviz(out, d)

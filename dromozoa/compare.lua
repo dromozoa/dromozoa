@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local type_map = {
+local typemap = {
   ["nil"]      = 0; -- LUA_TNIL
   ["boolean"]  = 1; -- LUA_TBOOLEAN
                     -- LUA_TLIGHTUSERDATA
@@ -54,9 +54,9 @@ local function stable_pairs(t, compare, n)
 end
 
 local function compare(a, b, n)
-  local type_name = type(a)
-  local t = type_map[type_name]
-  local u = type_map[type(b)]
+  local typename = type(a)
+  local t = typemap[typename]
+  local u = typemap[type(b)]
   if t ~= u then
     return t < u and -1 or 1
   end
@@ -118,7 +118,7 @@ local function compare(a, b, n)
     return compare(nil, k, n)
   end
 
-  error("attempt to compare two " .. type_name .. " values")
+  error("attempt to compare two " .. typename .. " values")
 end
 
 return function (a, b)
