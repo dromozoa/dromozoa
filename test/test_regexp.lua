@@ -651,7 +651,7 @@ local function simulate(u, byte, resolved_timestamp, null)
   return v, resolved_timestamp, action
 end
 
-local function powerset_construction_difference(x, y)
+local function difference_impl(x, y)
   local x_states = update_state_indices(x)
   local y_states = update_state_indices(y)
 
@@ -703,11 +703,11 @@ local function powerset_construction_difference(x, y)
     end
   end
 
-  return remove_dead_states(z_states[x.index * n + y.index])
+  return z_states[x.index * n + y.index]
 end
 
 function difference(x, y)
-  return minimize(powerset_construction_difference(minimize(nfa_to_dfa(x)), minimize(nfa_to_dfa(y))))
+  return minimize(remove_dead_states(difference_impl(minimize(nfa_to_dfa(x)), minimize(nfa_to_dfa(y)))))
 end
 
 ---------------------------------------------------------------------------
