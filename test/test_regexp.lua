@@ -467,7 +467,7 @@ end
 
 local assertion = true
 
-local function create_initial_partitions_impl(u, accept_partition_map, nonaccept_partition, partition_map, color)
+local function create_initial_partitions(u, accept_partition_map, nonaccept_partition, partition_map, color)
   color[u] = 1
 
   local partition = nonaccept_partition
@@ -486,18 +486,18 @@ local function create_initial_partitions_impl(u, accept_partition_map, nonaccept
 
   for _, t in ipairs(u.transitions) do
     if color[t.v] == nil then
-      create_initial_partitions_impl(t.v, accept_partition_map, nonaccept_partition, partition_map, color)
+      create_initial_partitions(t.v, accept_partition_map, nonaccept_partition, partition_map, color)
     end
   end
 
   color[u] = 2
 end
 
-local function create_initial_partitions(u)
+function module.minimize(u)
   local accept_partition_map = tree_map()
   local nonaccept_partition = module.list()
   local partition_map = {}
-  create_initial_partitions_impl(u, accept_partition_map, nonaccept_partition, partition_map, {})
+  create_initial_partitions(u, accept_partition_map, nonaccept_partition, partition_map, {})
 
   local partitions = module.list()
   for _, partition in pairs(accept_partition_map) do
@@ -507,12 +507,6 @@ local function create_initial_partitions(u)
   if next(nonaccept_partition) ~= nil then
     partitions:append(nonaccept_partition)
   end
-
-  return partitions, partition_map
-end
-
-function module.minimize(u)
-  local partitions, partition_map = create_initial_partitions(u)
 
   while true do
     local new_partitions = module.list()
