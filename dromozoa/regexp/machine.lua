@@ -1,4 +1,4 @@
--- Copyright (C) 2020-2022 Tomoyuki Fujimori <moyu@dromozoa.com>
+-- Copyright (C) 2022 Tomoyuki Fujimori <moyu@dromozoa.com>
 --
 -- This file is part of dromozoa.
 --
@@ -15,15 +15,10 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local dumper = require "dromozoa.commons.dumper"
-local write_graphviz = require "dromozoa.regexp.write_graphviz"
 local compare = require "dromozoa.compare"
 local tree_map = require "dromozoa.tree_map"
-local pattern = require "dromozoa.regexp.pattern"
-local machine = require "dromozoa.regexp.machine"
 
 ---------------------------------------------------------------------------
---[====[
 
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.regexp.list" }
@@ -36,7 +31,7 @@ function class:append(...)
   return self
 end
 
-function module.list(...)
+local function list(...)
   return setmetatable({}, metatable):append(...)
 end
 
@@ -66,7 +61,7 @@ function class:update(timestamp, accept_action)
 end
 
 local function state()
-  return setmetatable({ transitions = module.list() }, metatable)
+  return setmetatable({ transitions = list() }, metatable)
 end
 
 ---------------------------------------------------------------------------
@@ -188,7 +183,7 @@ local function update_state_indices_nonaccept(u, states, color)
 end
 
 local function update_state_indices(u)
-  local states = module.list()
+  local states = list()
   update_state_indices_accept(u, states, {})
   local max_accept_state = #states
   update_state_indices_nonaccept(u, states, {})
@@ -289,7 +284,7 @@ local function create_initial_partitions(u, accept_partition_map, nonaccept_part
   if u.accept_action ~= nil then
     partition = accept_partition_map[u.accept_action]
     if partition == nil then
-      partition = module.list()
+      partition = list()
       partition.timestamp = u.timestamp
       accept_partition_map[u.accept_action] = partition
     elseif partition.timestamp > u.timestamp then
@@ -310,11 +305,11 @@ end
 
 local function minimize(u)
   local accept_partition_map = tree_map()
-  local partition = module.list()
+  local partition = list()
   local partition_map = {}
   create_initial_partitions(u, accept_partition_map, partition, partition_map, {})
 
-  local partitions = module.list()
+  local partitions = list()
   for _, partition in pairs(accept_partition_map) do
     partition.index = #partitions:append(partition)
   end
@@ -324,7 +319,7 @@ local function minimize(u)
 
   while true do
     local new_partition_map = {}
-    local new_partitions = module.list()
+    local new_partitions = list()
 
     for _, partition in ipairs(partitions) do
       -- パーティション内の状態の組(x,y)について同じ遷移をするか調べる。同じ遷
@@ -363,7 +358,7 @@ local function minimize(u)
         end
 
         if new_partition_map[x] == nil then
-          local new_partition = module.list(x)
+          local new_partition = list(x)
           new_partition.index = #new_partitions:append(new_partition)
           new_partition_map[x] = new_partition
         end
@@ -379,7 +374,7 @@ local function minimize(u)
   end
 
   local states = {}
-  local accept_states = module.list()
+  local accept_states = list()
 
   for i, partition in ipairs(partitions) do
     local u = state()
@@ -450,7 +445,7 @@ local function remove_dead_states(u)
   collect_living_states(u, living_states, {})
 
   for v in pairs(living_states) do
-    local new_transitions = module.list()
+    local new_transitions = list()
     for _, t in ipairs(v.transitions) do
       if living_states[t.v] then
         new_transitions:append(t)
@@ -533,6 +528,12 @@ end
 
 ---------------------------------------------------------------------------
 
+local module = {}
+
+function module.tokens()
+  return list()
+end
+
 function module.union(that)
   table.sort(that, function (a, b) return a.timestamp < b.timestamp end)
   local u = state()
@@ -554,7 +555,7 @@ function module.guard(guard_action, that)
 end
 
 function module.lexer(tokens, that)
-  local data = module.list()
+  local data = list()
   for name, node in pairs(that) do
     if type(name) == "string" then
       node.name = name
@@ -586,49 +587,4 @@ function module.lexer(tokens, that)
   }
 end
 
----------------------------------------------------------------------------
-
----------------------------------------------------------------------------
-
-local x = _{ _"a"{0} + _"b"{1} + (_"c"/"T"){0,1} - "abc" ; _["xyz"]{3,3} } %"A"
-local u, accept_states = minimize(nfa_to_dfa(tree_to_nfa(x, "")))
-local states, max_accept_state = update_state_indices(u)
-
-assert(max_accept_state == 3)
-assert(u.index == 4)
-
-local out = assert(io.open("test.dot", "w"))
-write_graphviz(out, u)
-out:close()
-]====]
-
----------------------------------------------------------------------------
-
-local _ = pattern
-
-local tokens = machine.tokens()
-
-local m1 = machine.union {
-  _"aaa" %"a";
-  _"aba" %"b";
-  _{"ab"}{3,3} %"b";
-}
-
-local out = assert(io.open("test-m1.dot", "w"))
-write_graphviz(out, m1.start_state)
-out:close()
-
-local m2 = machine.lexer(tokens, {
-  _"if";
-  _"then";
-  _"else";
-  _"elseif";
-  _"end";
-  integer = (_["09"]/"i"){1};
-  string = _"\"" + (-_["\""]/"c"){0} + "\"";
-  _{" \t\r\n"}{1};
-})
-
-local out = assert(io.open("test-m2.dot", "w"))
-write_graphviz(out, m2.start_state)
-out:close()
+return module
