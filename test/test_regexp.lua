@@ -584,7 +584,7 @@ local function minimize(u)
           local y_to, _, y_action = partition[j]:simulate(byte, resolved)
           -- 同じ遷移をすることを確認する。
           assert(x_to == y_to)
-          assert(x_action == y_action)
+          assert(compare(x_action, y_action) == 0)
         end
 
         local p = partition_map[x_to]
