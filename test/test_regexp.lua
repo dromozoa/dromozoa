@@ -15,6 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local dumper = require "dromozoa.commons.dumper"
 local write_graphviz = require "dromozoa.regexp.write_graphviz"
 local compare = require "dromozoa.compare"
 local tree_map = require "dromozoa.tree_map"
@@ -38,7 +39,7 @@ local function pattern(that)
     for i = 2, #that do
       self = self + construct("[", { [that:byte(i)] = true })
     end
-    self.literal = that
+    self.name = that
     return self
   else
     return that
@@ -138,7 +139,7 @@ function metatable:__mod(that)
     error "not supported"
   else
     local result = construct("%", self, that)
-    result.literal = self.literal
+    result.name = self.name
     return result
   end
 end
@@ -327,8 +328,8 @@ local function node_to_nfa(node)
           transition(av, v)
           transition(bv, v)
         elseif code == "-" then
-          av:update(timestamp, true)
-          bv:update(timestamp, true)
+          av:update(timestamp, "")
+          bv:update(timestamp, "")
           local cu, accept_states = difference(au, bu)
           transition(u, cu)
           for _, cv in ipairs(accept_states) do
@@ -343,15 +344,10 @@ local function node_to_nfa(node)
   end
 end
 
--- TODO 呼び出し側でtreeのrootをチェックするべき？
-local function tree_to_nfa(root, accept_action)
-  if accept_action == nil then
-    accept_action = true
-  end
-
-  local u, v = node_to_nfa(root)
+local function tree_to_nfa(node, accept_action)
+  local u, v = node_to_nfa(node)
   if v.accept_action == nil then
-    v:update(root.timestamp, accept_action)
+    v:update(node.timestamp, accept_action)
   end
   return u, v
 end
@@ -730,10 +726,47 @@ end
 
 ---------------------------------------------------------------------------
 
+local function lexer(tokens, that)
+  local data = module.list()
+  for name, node in pairs(that) do
+    if type(name) == "string" then
+      node.name = name
+    end
+    data:append(node)
+  end
+  table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
+
+  local u = state()
+  for _, node in ipairs(data) do
+    local x, y = tree_to_nfa(node, "")
+    transition(u, x)
+    if node.name ~= nil then
+      local symbol = tokens[node.name]
+      if symbol == nil then
+        symbol = #tokens:append(node.name)
+        tokens[node.name] = symbol
+      end
+      y.accept_action = "token_symbol=" .. symbol .. ";" .. y.accept_action .. ";push_token()"
+    end
+  end
+
+  local start_state, accept_states = minimize(nfa_to_dfa(u))
+  return {
+    timestamp = data[1].timestamp;
+    loop = true;
+    start_state = start_state;
+    accept_states = accept_states;
+  }
+end
+
+---------------------------------------------------------------------------
+
 local _ = module.pattern
 
+---------------------------------------------------------------------------
+
 local x = _{ _"a"{0} + _"b"{1} + (_"c"/"T"){0,1} - "abc" ; _["xyz"]{3,3} } %"A"
-local u, accept_states = minimize(nfa_to_dfa(tree_to_nfa(x, true)))
+local u, accept_states = minimize(nfa_to_dfa(tree_to_nfa(x, "")))
 local states, max_accept_state = update_state_indices(u)
 
 assert(max_accept_state == 3)
@@ -741,4 +774,23 @@ assert(u.index == 4)
 
 local out = assert(io.open("test.dot", "w"))
 write_graphviz(out, u)
+out:close()
+
+---------------------------------------------------------------------------
+
+local tokens = module.list()
+
+local m = lexer(tokens, {
+  _"if";
+  _"then";
+  _"else";
+  _"elseif";
+  _"end";
+  integer = _["09"]{1};
+  string = _"\"" + (-_["\""]){0} + "\"";
+  _{" \t\r\n"}{1};
+})
+
+local out = assert(io.open("test-lexer.dot", "w"))
+write_graphviz(out, m.start_state)
 out:close()
