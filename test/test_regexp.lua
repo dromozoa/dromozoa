@@ -359,20 +359,20 @@ end
 
 ---------------------------------------------------------------------------
 
-local function update_state_indices(u, states, color)
+local function update_state_indices_impl(u, states, color)
   color[u] = 1
   u.index = #states:append(u)
   for _, t in ipairs(u.transitions) do
     if color[t.v] == nil then
-      update_state_indices(t.v, states, color)
+      update_state_indices_impl(t.v, states, color)
     end
   end
   color[u] = 2
 end
 
-function module.update_state_indices(u)
+local function update_state_indices(u)
   local states = module.list()
-  update_state_indices(u, states, {})
+  update_state_indices_impl(u, states, {})
   return states
 end
 
@@ -410,7 +410,7 @@ local function closure_to_state(closure, states)
   return u
 end
 
-local function nfa_to_dfa(u_closure, u, epsilon_closures, states, color)
+local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
   color[u_closure] = 1
 
   local state_map = tree_map()
@@ -444,20 +444,20 @@ local function nfa_to_dfa(u_closure, u, epsilon_closures, states, color)
 
   for v_closure, v in pairs(state_map) do
     if color[v_closure] == nil then
-      nfa_to_dfa(v_closure, v, epsilon_closures, states, color)
+      nfa_to_dfa_impl(v_closure, v, epsilon_closures, states, color)
     end
   end
 
   color[u_closure] = 2
 end
 
-function module.nfa_to_dfa(u)
-  module.update_state_indices(u)
+local function nfa_to_dfa(u)
+  update_state_indices(u)
   local epsilon_closures = {}
   local states = tree_map()
   local u_closure = epsilon_closure(u, epsilon_closures)
   local u = closure_to_state(u_closure, states)
-  nfa_to_dfa(u_closure, u, epsilon_closures, states, tree_map())
+  nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, tree_map())
   return u
 end
 
@@ -654,8 +654,8 @@ local function simulate(u, byte, resolved_timestamp, null)
 end
 
 local function difference(x, y)
-  local x_states = module.update_state_indices(x)
-  local y_states = module.update_state_indices(y)
+  local x_states = update_state_indices(x)
+  local y_states = update_state_indices(y)
 
   local null = module.state()
   null.index = 0
@@ -711,8 +711,8 @@ end
 function node_to_nfa_difference(au, av, bu, bv)
   return minimize(
     difference(
-      minimize(module.nfa_to_dfa(au)),
-      minimize(module.nfa_to_dfa(bu))))
+      minimize(nfa_to_dfa(au)),
+      minimize(nfa_to_dfa(bu))))
 end
 
 ---------------------------------------------------------------------------
@@ -720,7 +720,7 @@ end
 local _ = module.pattern
 
 local x = _{ _"a"{0} + _"b"{1} + (_"c"/"T"){0,1} - "abc" ; _["xyz"]{3,3} } %"A"
-local d, a = minimize(module.nfa_to_dfa(tree_to_nfa(x, true)))
+local d, a = minimize(nfa_to_dfa(tree_to_nfa(x, true)))
 
 local out = assert(io.open("test.dot", "w"))
 write_graphviz(out, d)
