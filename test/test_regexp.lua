@@ -370,7 +370,6 @@ end
 local function update_state_indices_nonaccept(u, states, color)
   color[u] = 1
   if u.accept_action == nil then
-    assert(u.index == nil)
     u.index = #states:append(u)
   end
   for _, t in ipairs(u.transitions) do
@@ -594,14 +593,15 @@ local function minimize(u)
       local resolved = {}
       local x_to, _, x_action = partition[1]:simulate(byte, resolved)
       if x_to ~= nil then
+        local p = partition_map[x_to]
+
         for j = 2, #partition do
           local y_to, _, y_action = partition[j]:simulate(byte, resolved)
           -- 同じ遷移をすることを確認する。
-          assert(x_to == y_to)
+          assert(p == partition_map[y_to])
           assert(compare(x_action, y_action) == 0)
         end
 
-        local p = partition_map[x_to]
         local v = states[p]
         local key = { index = p.index, action = resolved.action }
         local t = transition_map[key]
@@ -736,6 +736,7 @@ local function union(that)
   end
 
   local start_state, accept_states = minimize(nfa_to_dfa(u))
+  -- local start_state, accept_states = nfa_to_dfa(u)
   return {
     timestamp = that[1].timestamp;
     loop = false;
@@ -772,6 +773,8 @@ local function lexer(tokens, that)
         tokens[node.name] = symbol
       end
       x.accept_action = "token_symbol=" .. symbol .. ";" .. x.accept_action .. ";push_token()"
+    else
+      x.accept_action = x.accept_action .. ";skip_token()"
     end
   end
 
@@ -782,6 +785,26 @@ local function lexer(tokens, that)
     start_state = start_state;
     accept_states = accept_states;
   }
+end
+
+---------------------------------------------------------------------------
+
+local function compile(out, that)
+  local main = that[1]
+
+  local data = module.list()
+  for name, machine in pairs(that) do
+    if type(name) == "string" then
+      machine.name = name
+    end
+    data:append(machine)
+  end
+  table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
+
+
+
+
+
 end
 
 ---------------------------------------------------------------------------
@@ -806,10 +829,14 @@ out:close()
 local tokens = module.list()
 
 local m1 = union {
-  _"aaa" %"あ";
-  _"aba" %"い";
-  _{"ab"}{3,3} %"う";
+  _"aaa" %"a";
+  _"aba" %"b";
+  _{"ab"}{3,3} %"b";
 }
+
+local out = assert(io.open("test-m1.dot", "w"))
+write_graphviz(out, m1.start_state)
+out:close()
 
 local m2 = lexer(tokens, {
   _"if";
@@ -822,6 +849,6 @@ local m2 = lexer(tokens, {
   _{" \t\r\n"}{1};
 })
 
-local out = assert(io.open("test-lexer.dot", "w"))
-write_graphviz(out, m1.start_state)
+local out = assert(io.open("test-m2.dot", "w"))
+write_graphviz(out, m2.start_state)
 out:close()
