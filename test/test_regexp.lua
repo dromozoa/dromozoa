@@ -265,7 +265,7 @@ function class:simulate(byte, resolved)
         resolved.timestamp = transition.timestamp
         resolved.action = transition.action
       end
-      return transition.v, transition.action
+      return transition.v, transition.timestamp, transition.action
     end
   end
 end
@@ -529,8 +529,8 @@ function module.minimize(u)
           -- 2. 同じ遷移アクションを持つ。
           local same_partition = true
           for byte = 0x00, 0xFF do
-            local x_to, x_action = x:simulate(byte)
-            local y_to, y_action = y:simulate(byte)
+            local x_to, _, x_action = x:simulate(byte)
+            local y_to, _, y_action = y:simulate(byte)
             if partition_map[x_to] ~= partition_map[y_to] or compare(x_action, y_action) ~= 0 then
               same_partition = false
               break
@@ -641,9 +641,9 @@ local function remove_dead_states(u)
 
   for v in pairs(living_states) do
     local new_transitions = module.list()
-    for _, transition in ipairs(v.transitions) do
-      if living_states[transition.v] then
-        new_transitions:append(transition)
+    for _, t in ipairs(v.transitions) do
+      if living_states[t.v] then
+        new_transitions:append(t)
       end
     end
     v.transitions = new_transitions
@@ -654,75 +654,69 @@ end
 
 local function new_state(ux, uy)
   local state = module.state()
-  if ux then
-    if not uy or not uy.accept_action then
-      state:update(ux.timestamp, ux.accept_action)
-    end
+  if ux and (not uy or not uy.accept_action) then
+    state:update(ux.timestamp, ux.accept_action)
   end
   return state
+end
+
+local function simulate(u, byte, move, dummy)
+  local v, timestamp, action = u:simulate(byte)
+  if v == nil then
+    return dummy
+  elseif move.timestamp == nil and move.action == nil then
+    move.timestamp = timestamp
+    move.action = action
+  end
+  return v
 end
 
 local function difference(ux, uy)
   local x_states = module.update_state_indices(ux)
   local y_states = module.update_state_indices(uy)
 
-  local nx = #x_states
-  local ny = #y_states
-  local n = nx + 1
+  local x_n = #x_states
+  local y_n = #y_states
+  local n = x_n + 1
 
   local new_states = {}
 
-  for i = 0, nx do
+  local dummy = module.state()
+  dummy.index = 0
+  x_states[0] = dummy
+  y_states[0] = dummy
+
+  for i = 0, x_n do
     local ux = x_states[i]
-    for j = 0, ny do
+    for j = 0, y_n do
       local uy = y_states[j]
       local ukey = i + j * n
-      if ukey ~= 0 then
-        local new_transition_map = tree_map()
 
-        for byte = 0x00, 0xFF do
-          local move = {}
-          local vx, action
-          if ux then
-            vx, action = ux:simulate(byte, move)
-          end
-          local vy
-          if uy then
-            -- timestampはvxのuxのものであるべき（ただし、uxが存在しないか、遷移しない場合がある）
-            if vx then
-              vy = uy:simulate(byte)
-            else
-              vy = uy:simulate(byte, move)
-            end
-          end
+      local new_transition_map = tree_map()
+      for byte = 0x00, 0xFF do
+        local move = {}
+        local vx = simulate(ux, byte, move, dummy)
+        local vy = simulate(uy, byte, move, dummy)
+        local vkey = vx.index + vy.index * n
 
-          local vkey = 0
-          if vy then
-            vkey = vy.index * n
+        if vkey ~= 0 then
+          local unew = new_states[ukey]
+          if unew == nil then
+            unew = new_state(ux, uy)
+            new_states[ukey] = unew
           end
-          if vx then
-            vkey = vx.index + vkey
+          local vnew = new_states[vkey]
+          if vnew == nil then
+            vnew = new_state(vx, vy)
+            new_states[vkey] = vnew
           end
 
-          if vkey ~= 0 then
-            local unew = new_states[ukey]
-            if not unew then
-              unew = new_state(ux, uy)
-              new_states[ukey] = unew
-            end
-            local vnew = new_states[vkey]
-            if not vnew then
-              vnew = new_state(vx, vy)
-              new_states[vkey] = vnew
-            end
-
-            local new_transition_key = { index = vkey, action = action }
-            local new_transition = new_transition_map[new_transition_key]
-            if not new_transition then
-              new_transition_map[new_transition_key] = module.transition(unew, vnew, { [byte] = true }, move.timestamp, action)
-            else
-              new_transition:update(move.timestamp, byte)
-            end
+          local new_transition_key = { index = vkey, action = move.action }
+          local new_transition = new_transition_map[new_transition_key]
+          if not new_transition then
+            new_transition_map[new_transition_key] = module.transition(unew, vnew, { [byte] = true }, move.timestamp, move.action)
+          else
+            new_transition:update(move.timestamp, byte)
           end
         end
       end
