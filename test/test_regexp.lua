@@ -726,6 +726,31 @@ end
 
 ---------------------------------------------------------------------------
 
+local function union(that)
+  table.sort(that, function (a, b) return a.timestamp < b.timestamp end)
+
+  local s = state()
+  for _, node in ipairs(that) do
+    local u, v = tree_to_nfa(node, "")
+    transition(s, u)
+  end
+
+  local start_state, accept_states = minimize(nfa_to_dfa(s))
+  return {
+    timestamp = that[1].timestamp;
+    loop = false;
+    start_state = start_state;
+    accept_states = accept_states;
+  }
+end
+
+local function guard(guard_action, that)
+  local machine = union(that)
+  machine.loop = true
+  machine.guard_action = guard_action
+  return machine
+end
+
 local function lexer(tokens, that)
   local data = module.list()
   for name, node in pairs(that) do
@@ -736,21 +761,21 @@ local function lexer(tokens, that)
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
-  local u = state()
+  local s = state()
   for _, node in ipairs(data) do
-    local x, y = tree_to_nfa(node, "")
-    transition(u, x)
+    local u, v = tree_to_nfa(node, "")
+    transition(s, u)
     if node.name ~= nil then
       local symbol = tokens[node.name]
       if symbol == nil then
         symbol = #tokens:append(node.name)
         tokens[node.name] = symbol
       end
-      y.accept_action = "token_symbol=" .. symbol .. ";" .. y.accept_action .. ";push_token()"
+      v.accept_action = "token_symbol=" .. symbol .. ";" .. v.accept_action .. ";push_token()"
     end
   end
 
-  local start_state, accept_states = minimize(nfa_to_dfa(u))
+  local start_state, accept_states = minimize(nfa_to_dfa(s))
   return {
     timestamp = data[1].timestamp;
     loop = true;
