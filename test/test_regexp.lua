@@ -698,20 +698,19 @@ local function difference(x, y)
       local y_u = y_states[j]
       local z_u = z_states[i * n + j]
 
-      local new_transition_map = tree_map()
+      local transition_map = tree_map()
       for byte = 0x00, 0xFF do
         local x_v, timestamp, action = simulate(x_u, byte, nil, null)
         local y_v, timestamp = simulate(y_u, byte, timestamp, null)
         local index = x_v.index * n + y_v.index
-
         if index ~= 0 then
           local z_v = z_states[index]
-          local new_transition_key = { index = index, action = action }
-          local new_transition = new_transition_map[new_transition_key]
-          if new_transition == nil then
-            new_transition_map[new_transition_key] = module.transition(z_u, z_v, { [byte] = true }, timestamp, action)
+          local key = { index = index, action = action }
+          local t = transition_map[key]
+          if t == nil then
+            transition_map[key] = module.transition(z_u, z_v, { [byte] = true }, timestamp, action)
           else
-            new_transition:update(timestamp, byte)
+            t:update(timestamp, byte)
           end
         end
       end
