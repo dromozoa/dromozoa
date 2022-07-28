@@ -358,12 +358,28 @@ end
 
 ---------------------------------------------------------------------------
 
-local function update_state_indices_impl(u, states, color)
+local function update_state_indices_accept(u, states, color)
   color[u] = 1
-  u.index = #states:append(u)
+  if u.accept_action ~= nil then
+    u.index = #states:append(u)
+  end
   for _, t in ipairs(u.transitions) do
     if color[t.v] == nil then
-      update_state_indices_impl(t.v, states, color)
+      update_state_indices_accept(t.v, states, color)
+    end
+  end
+  color[u] = 2
+end
+
+local function update_state_indices_nonaccept(u, states, color)
+  color[u] = 1
+  if u.accept_action == nil then
+    assert(u.index == nil)
+    u.index = #states:append(u)
+  end
+  for _, t in ipairs(u.transitions) do
+    if color[t.v] == nil then
+      update_state_indices_nonaccept(t.v, states, color)
     end
   end
   color[u] = 2
@@ -371,8 +387,10 @@ end
 
 local function update_state_indices(u)
   local states = module.list()
-  update_state_indices_impl(u, states, {})
-  return states
+  update_state_indices_accept(u, states, {})
+  local max_accept_state = #states
+  update_state_indices_nonaccept(u, states, {})
+  return states, max_accept_state
 end
 
 ---------------------------------------------------------------------------
@@ -715,8 +733,12 @@ end
 local _ = module.pattern
 
 local x = _{ _"a"{0} + _"b"{1} + (_"c"/"T"){0,1} - "abc" ; _["xyz"]{3,3} } %"A"
-local d, a = minimize(nfa_to_dfa(tree_to_nfa(x, true)))
+local u, accept_states = minimize(nfa_to_dfa(tree_to_nfa(x, true)))
+local states, max_accept_state = update_state_indices(u)
+
+assert(max_accept_state == 3)
+assert(u.index == 4)
 
 local out = assert(io.open("test.dot", "w"))
-write_graphviz(out, d)
+write_graphviz(out, u)
 out:close()
