@@ -590,9 +590,9 @@ local function minimize(u)
           assert(x_action == y_action)
         end
 
-        local partition = partition_map[x_to]
-        local v = states[partition]
-        local key = { index = partition.index, action = resolved.action }
+        local p = partition_map[x_to]
+        local v = states[p]
+        local key = { index = p.index, action = resolved.action }
         local t = transition_map[key]
         if t == nil then
           transition_map[key] = module.transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
