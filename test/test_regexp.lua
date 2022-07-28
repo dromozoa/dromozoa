@@ -736,7 +736,6 @@ local function union(that)
   end
 
   local start_state, accept_states = minimize(nfa_to_dfa(u))
-  -- local start_state, accept_states = nfa_to_dfa(u)
   return {
     timestamp = that[1].timestamp;
     loop = false;
@@ -801,10 +800,9 @@ local function compile(out, that)
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
-
-
-
-
+  for i, machine in ipairs(data) do
+    out:write("-- ", i, " ", tostring(machine.name), "\n")
+  end
 end
 
 ---------------------------------------------------------------------------
@@ -851,4 +849,11 @@ local m2 = lexer(tokens, {
 
 local out = assert(io.open("test-m2.dot", "w"))
 write_graphviz(out, m2.start_state)
+out:close()
+
+local out = assert(io.open("test.lua", "w"))
+compile(out, {
+  u = m1;
+  m2;
+})
 out:close()
