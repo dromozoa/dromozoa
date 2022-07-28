@@ -671,14 +671,9 @@ local function new_state(x, y)
   return u
 end
 
-local function difference(x_start, y_start)
-  local x_states = module.update_state_indices(x_start)
-  local y_states = module.update_state_indices(y_start)
-
-  local x_n = #x_states
-  local y_n = #y_states
-  local n = x_n + 1
-  local k_start = x_start.index + y_start.index * n
+local function difference(x, y)
+  local x_states = module.update_state_indices(x)
+  local y_states = module.update_state_indices(y)
 
   local null = module.state()
   null.index = 0
@@ -687,19 +682,19 @@ local function difference(x_start, y_start)
 
   local new_states = {}
 
-  for i = 0, x_n do
+  for i = 0, #x_states do
     local x_u = x_states[i]
 
-    for j = i == 0 and 1 or 0, y_n do
+    for j = i == 0 and 1 or 0, #y_states do
       local y_u = y_states[j]
-      local k_u = i + j * n
+      local k_u = i + j * (#x_states + 1)
 
       local new_transition_map = tree_map()
       for byte = 0x00, 0xFF do
         local resolved = {}
         local x_v = simulate(x_u, byte, resolved, null)
         local y_v = simulate(y_u, byte, resolved, null)
-        local k_v = x_v.index + y_v.index * n
+        local k_v = x_v.index + y_v.index * (#x_states + 1)
 
         if k_v ~= 0 then
           local unew = new_states[k_u]
@@ -725,8 +720,7 @@ local function difference(x_start, y_start)
     end
   end
 
-  local unew = new_states[k_start]
-  return remove_dead_states(unew)
+  return remove_dead_states(new_states[x.index + y.index * (#x_states + 1)])
 end
 
 function node_to_nfa_difference(au, av, bu, bv)
