@@ -671,13 +671,14 @@ local function simulate(u, byte, move, dummy)
   return v
 end
 
-local function difference(ux, uy)
-  local x_states = module.update_state_indices(ux)
-  local y_states = module.update_state_indices(uy)
+local function difference(x_start, y_start)
+  local x_states = module.update_state_indices(x_start)
+  local y_states = module.update_state_indices(y_start)
 
   local x_n = #x_states
   local y_n = #y_states
   local n = x_n + 1
+  local k_start = x_start.index + y_start.index * n
 
   local new_states = {}
 
@@ -723,7 +724,7 @@ local function difference(ux, uy)
     end
   end
 
-  local unew = new_states[ux.index + uy.index * n]
+  local unew = new_states[k_start]
   return remove_dead_states(unew)
 end
 
