@@ -726,32 +726,27 @@ end
 
 ---------------------------------------------------------------------------
 
-local function union(that)
+function module.union(that)
   table.sort(that, function (a, b) return a.timestamp < b.timestamp end)
-
   local u = state()
   for _, node in ipairs(that) do
     local v = tree_to_nfa(node, "")
     transition(u, v)
   end
-
-  local start_state, accept_states = minimize(nfa_to_dfa(u))
   return {
     timestamp = that[1].timestamp;
-    loop = false;
-    start_state = start_state;
-    accept_states = accept_states;
+    start_state = minimize(nfa_to_dfa(u));
   }
 end
 
-local function guard(guard_action, that)
-  local machine = union(that)
+function module.guard(guard_action, that)
+  local machine = module.union(that)
   machine.loop = true
   machine.guard_action = guard_action
   return machine
 end
 
-local function lexer(tokens, that)
+function module.lexer(tokens, that)
   local data = module.list()
   for name, node in pairs(that) do
     if type(name) == "string" then
@@ -777,32 +772,11 @@ local function lexer(tokens, that)
     end
   end
 
-  local start_state, accept_states = minimize(nfa_to_dfa(u))
   return {
     timestamp = data[1].timestamp;
     loop = true;
-    start_state = start_state;
-    accept_states = accept_states;
+    start_state = minimize(nfa_to_dfa(u));
   }
-end
-
----------------------------------------------------------------------------
-
-local function compile(out, that)
-  local main = that[1]
-
-  local data = module.list()
-  for name, machine in pairs(that) do
-    if type(name) == "string" then
-      machine.name = name
-    end
-    data:append(machine)
-  end
-  table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
-
-  for i, machine in ipairs(data) do
-    out:write("-- ", i, " ", tostring(machine.name), "\n")
-  end
 end
 
 ---------------------------------------------------------------------------
@@ -826,7 +800,7 @@ out:close()
 
 local tokens = module.list()
 
-local m1 = union {
+local m1 = module.union {
   _"aaa" %"a";
   _"aba" %"b";
   _{"ab"}{3,3} %"b";
@@ -836,24 +810,17 @@ local out = assert(io.open("test-m1.dot", "w"))
 write_graphviz(out, m1.start_state)
 out:close()
 
-local m2 = lexer(tokens, {
+local m2 = module.lexer(tokens, {
   _"if";
   _"then";
   _"else";
   _"elseif";
   _"end";
-  integer = _["09"]{1};
-  string = _"\"" + (-_["\""]){0} + "\"";
+  integer = (_["09"]/"i"){1};
+  string = _"\"" + (-_["\""]/"c"){0} + "\"";
   _{" \t\r\n"}{1};
 })
 
 local out = assert(io.open("test-m2.dot", "w"))
 write_graphviz(out, m2.start_state)
-out:close()
-
-local out = assert(io.open("test.lua", "w"))
-compile(out, {
-  u = m1;
-  m2;
-})
 out:close()
