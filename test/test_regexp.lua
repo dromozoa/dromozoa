@@ -350,7 +350,7 @@ end
 -- lexer側の呼び出しに応じて考える
 local function tree_to_nfa(root, accept_action)
   local u, v = node_to_nfa(root)
-  if not v.accept_action then
+  if v.accept_action == nil then
     v:update(root.timestamp, accept_action or true)
   end
   return u, v
@@ -470,7 +470,7 @@ local function create_initial_partitions(u, accept_partition_map, nonaccept_part
   color[u] = 1
 
   local partition = nonaccept_partition
-  if u.accept_action then
+  if u.accept_action ~= nil then
     partition = accept_partition_map[u.accept_action]
     if partition == nil then
       partition = module.list()
@@ -579,7 +579,7 @@ function module.minimize(u)
     end
 
     states[partition] = { index = i, state = unew }
-    if unew.accept_action then
+    if unew.accept_action ~= nil then
       accept_states:append(unew)
     end
   end
@@ -619,7 +619,7 @@ end
 local function collect_living_states(u, living_states, color)
   color[u] = 1
 
-  if u.accept_action then
+  if u.accept_action ~= nil then
     living_states[u] = true
   end
 
@@ -652,23 +652,23 @@ local function remove_dead_states(u)
   return u
 end
 
-local function new_state(ux, uy)
-  local state = module.state()
-  if ux and (not uy or not uy.accept_action) then
-    state:update(ux.timestamp, ux.accept_action)
-  end
-  return state
-end
-
-local function simulate(u, byte, move, dummy)
+local function simulate(u, byte, resolved, null)
   local v, timestamp, action = u:simulate(byte)
   if v == nil then
-    return dummy
-  elseif move.timestamp == nil and move.action == nil then
-    move.timestamp = timestamp
-    move.action = action
+    return null
+  elseif resolved.timestamp == nil then
+    resolved.timestamp = timestamp
+    resolved.action = action
   end
   return v
+end
+
+local function new_state(x, y)
+  local u = module.state()
+  if y.accept_action == nil then
+    u:update(x.timestamp, x.accept_action)
+  end
+  return u
 end
 
 local function difference(x_start, y_start)
@@ -680,44 +680,45 @@ local function difference(x_start, y_start)
   local n = x_n + 1
   local k_start = x_start.index + y_start.index * n
 
+  local null = module.state()
+  null.index = 0
+  x_states[0] = null
+  y_states[0] = null
+
   local new_states = {}
 
-  local dummy = module.state()
-  dummy.index = 0
-  x_states[0] = dummy
-  y_states[0] = dummy
-
   for i = 0, x_n do
-    local ux = x_states[i]
-    for j = 0, y_n do
-      local uy = y_states[j]
-      local ukey = i + j * n
+    local x_u = x_states[i]
+
+    for j = i == 0 and 1 or 0, y_n do
+      local y_u = y_states[j]
+      local k_u = i + j * n
 
       local new_transition_map = tree_map()
       for byte = 0x00, 0xFF do
-        local move = {}
-        local vx = simulate(ux, byte, move, dummy)
-        local vy = simulate(uy, byte, move, dummy)
-        local vkey = vx.index + vy.index * n
+        local resolved = {}
+        local x_v = simulate(x_u, byte, resolved, null)
+        local y_v = simulate(y_u, byte, resolved, null)
+        local k_v = x_v.index + y_v.index * n
 
-        if vkey ~= 0 then
-          local unew = new_states[ukey]
+        if k_v ~= 0 then
+          local unew = new_states[k_u]
           if unew == nil then
-            unew = new_state(ux, uy)
-            new_states[ukey] = unew
+            unew = new_state(x_u, y_u)
+            new_states[k_u] = unew
           end
-          local vnew = new_states[vkey]
+          local vnew = new_states[k_v]
           if vnew == nil then
-            vnew = new_state(vx, vy)
-            new_states[vkey] = vnew
+            vnew = new_state(x_v, y_v)
+            new_states[k_v] = vnew
           end
 
-          local new_transition_key = { index = vkey, action = move.action }
+          local new_transition_key = { index = k_v, action = resolved.action }
           local new_transition = new_transition_map[new_transition_key]
-          if not new_transition then
-            new_transition_map[new_transition_key] = module.transition(unew, vnew, { [byte] = true }, move.timestamp, move.action)
+          if new_transition == nil then
+            new_transition_map[new_transition_key] = module.transition(unew, vnew, { [byte] = true }, resolved.timestamp, resolved.action)
           else
-            new_transition:update(move.timestamp, byte)
+            new_transition:update(resolved.timestamp, byte)
           end
         end
       end
