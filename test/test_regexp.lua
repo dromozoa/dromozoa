@@ -15,9 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local dumper = require "dromozoa.commons.dumper"
 local write_graphviz = require "dromozoa.regexp.write_graphviz"
-local write_graphviz_tree = require "dromozoa.regexp.write_graphviz_tree"
+local compare = require "dromozoa.compare"
 local tree_map = require "dromozoa.tree_map"
 
 local module = {}
@@ -224,17 +223,42 @@ local metatable = { __index = class, __name = "dromozoa.regexp.list" }
 function class:append(...)
   local n = #self
   for i = 1, select("#", ...) do
-    self[n + i] = select(i, ...)
+    self[#self + 1] = select(i, ...)
   end
   return self
 end
 
-function class:slice(i, j)
-  return module.list(table.unpack(self, i, j))
+function module.list(...)
+  return setmetatable({}, metatable):append(...)
 end
 
-function module.list(...)
-  return setmetatable({...}, metatable)
+---------------------------------------------------------------------------
+
+local class = {}
+local metatable = { __index = class, __name = "dromozoa.regexp.state" }
+
+function class:simulate(byte, resolved)
+  for _, t in ipairs(self.transitions) do
+    if t.set ~= nil and t.set[byte] then
+      if resolved ~= nil and (resolved.timestamp == nil or resolved.timestamp > t.timestamp) then
+        resolved.timestamp = t.timestamp
+        resolved.action = t.action
+      end
+      return t.v, t.timestamp, t.action
+    end
+  end
+end
+
+function class:update(timestamp, accept_action)
+  if timestamp ~= nil and accept_action ~= nil and (self.timestamp == nil or self.timestamp > timestamp) then
+    self.timestamp = timestamp
+    self.accept_action = accept_action
+  end
+  return self
+end
+
+local function state()
+  return setmetatable({ transitions = module.list() }, metatable)
 end
 
 ---------------------------------------------------------------------------
@@ -250,7 +274,7 @@ function class:update(timestamp, byte)
   return self
 end
 
-function module.transition(u, v, set, timestamp, action)
+local function transition(u, v, set, timestamp, action)
   local self = setmetatable({ v = v, set = set, timestamp = timestamp, action = action }, metatable)
   u.transitions:append(self)
   return self
@@ -258,46 +282,14 @@ end
 
 ---------------------------------------------------------------------------
 
-local class = {}
-local metatable = { __index = class, __name = "dromozoa.regexp.state" }
-
-function class:execute_transition(byte, move)
-  for _, transition in ipairs(self.transitions) do
-    local set = transition.set
-    if set and set[byte] then
-      if move then
-        if not move.timestamp or move.timestamp > transition.timestamp then
-          move.timestamp = transition.timestamp
-          move.action = transition.action
-        end
-      end
-      return transition.v, transition.action
-    end
-  end
-end
-
-function class:update(timestamp, accept_action)
-  if timestamp and accept_action then
-    if not self.timestamp or self.timestamp > timestamp then
-      self.timestamp = timestamp
-      self.accept_action = accept_action
-    end
-  end
-  return self
-end
-
-function module.state()
-  return setmetatable({ transitions = module.list() }, metatable)
-end
-
----------------------------------------------------------------------------
+local difference
 
 local function node_to_nfa(node)
   local code = node[0]
   if code == "[" then
-    local u = module.state()
-    local v = module.state()
-    module.transition(u, v, node[1], timestamp)
+    local u = state()
+    local v = state()
+    transition(u, v, node[1], timestamp)
     return u, v
   else
     local au, av = node_to_nfa(node[1])
@@ -309,46 +301,40 @@ local function node_to_nfa(node)
       return au, av
     elseif code == "." then
       local bu, bv = node_to_nfa(node[2])
-      module.transition(av, bu)
+      transition(av, bu)
       return au, bv
     else
-      local u = module.state()
-      local v = module.state()
+      local u = state()
+      local v = state()
       if code == "*" then
-        module.transition(u, v)
-        module.transition(u, au)
-        module.transition(av, au)
-        module.transition(av, v)
+        transition(u, v)
+        transition(u, au)
+        transition(av, au)
+        transition(av, v)
       elseif code == "+" then
-        module.transition(u, au)
-        module.transition(av, au)
-        module.transition(av, v)
+        transition(u, au)
+        transition(av, au)
+        transition(av, v)
       elseif code == "?" then
-        module.transition(u, v)
-        module.transition(u, au)
-        module.transition(av, v)
+        transition(u, v)
+        transition(u, au)
+        transition(av, v)
       else
         local bu, bv = node_to_nfa(node[2])
         if code == "|" then
-          module.transition(u, au)
-          module.transition(u, bu)
-          module.transition(av, v)
-          module.transition(bv, v)
+          transition(u, au)
+          transition(u, bu)
+          transition(av, v)
+          transition(bv, v)
         elseif code == "-" then
-          local timestamp = node.timestamp
           av:update(timestamp, true)
           bv:update(timestamp, true)
-
-          local cu, accept_states = module.minimize(
-            module.difference(
-              module.minimize(module.nfa_to_dfa(au)),
-              module.minimize(module.nfa_to_dfa(bu))))
-
-          module.transition(u, cu)
+          local cu, accept_states = difference(au, bu)
+          transition(u, cu)
           for _, cv in ipairs(accept_states) do
             cv.timestamp = nil
             cv.accept_action = nil
-            module.transition(cv, v)
+            transition(cv, v)
           end
         end
       end
@@ -357,227 +343,208 @@ local function node_to_nfa(node)
   end
 end
 
--- TODO accept_actionのnilの扱いを検討する
-function module.tree_to_nfa(root, accept_action)
+-- TODO 呼び出し側でtreeのrootをチェックするべき？
+local function tree_to_nfa(root, accept_action)
+  if accept_action == nil then
+    accept_action = true
+  end
+
   local u, v = node_to_nfa(root)
-  if not v.accept_action then
-    v:update(root.timestamp, accept_action or true)
+  if v.accept_action == nil then
+    v:update(root.timestamp, accept_action)
   end
   return u, v
 end
 
 ---------------------------------------------------------------------------
 
-local function update_state_indices(u, states, color)
+local function update_state_indices_impl(u, states, color)
   color[u] = 1
   u.index = #states:append(u)
-  for _, transition in ipairs(u.transitions) do
-    if not color[transition.v] then
-      index = update_state_indices(transition.v, states, color)
+  for _, t in ipairs(u.transitions) do
+    if color[t.v] == nil then
+      update_state_indices_impl(t.v, states, color)
     end
   end
   color[u] = 2
-  return index
 end
 
-function module.update_state_indices(u)
+local function update_state_indices(u)
   local states = module.list()
-  update_state_indices(u, states, {})
+  update_state_indices_impl(u, states, {})
   return states
 end
 
 ---------------------------------------------------------------------------
 
-local function epsilon_closure(u, map)
-  for _, transition in ipairs(u.transitions) do
-    if not transition.set then
-      map[transition.v.index] = transition.v
-      epsilon_closure(transition.v, map)
+local function epsilon_closure_impl(u, closure)
+  for _, t in ipairs(u.transitions) do
+    if t.set == nil then
+      closure[t.v.index] = t.v
+      epsilon_closure_impl(t.v, closure)
     end
   end
 end
 
-function module.epsilon_closure(u, epsilon_closures)
-  local map = epsilon_closures[u]
-  if not map then
-    map = tree_map()
-    map[u.index] = u
-    epsilon_closure(u, map)
-    epsilon_closures[u] = map
+local function epsilon_closure(u, epsilon_closures)
+  local closure = epsilon_closures[u]
+  if closure == nil then
+    closure = tree_map()
+    closure[u.index] = u
+    epsilon_closure_impl(u, closure)
+    epsilon_closures[u] = closure
   end
-  return map
+  return closure
 end
 
-local function new_state(map)
-  local state = module.state()
-  for _, u in pairs(map) do
-    state:update(u.timestamp, u.accept_action)
+local function closure_to_state(closure, states)
+  local u = states[closure]
+  if u == nil then
+    u = state()
+    for _, v in pairs(closure) do
+      u:update(v.timestamp, v.accept_action)
+    end
+    states[closure] = u
   end
-  return state
+  return u
 end
 
-local function nfa_to_dfa(umap, unew, states, epsilon_closures, color)
-  color[umap] = 1
+local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
+  color[u_closure] = 1
 
-  local new_transition_map = tree_map()
-  local new_states = module.list()
+  local state_map = tree_map()
+  local transition_map = tree_map()
 
   for byte = 0x00, 0xFF do
-    local vmap = tree_map()
-    local move = {}
-
-    -- 複数のノードについて、遷移を調べる
-    for _, u in pairs(umap) do
-      local v = u:execute_transition(byte, move)
-      if v then
-        for k, v in pairs(module.epsilon_closure(v, epsilon_closures)) do
-          vmap[k] = v
+    local resolved = {}
+    local v_closure = tree_map()
+    for _, u in pairs(u_closure) do
+      local to = u:simulate(byte, resolved)
+      if to ~= nil then
+        for k, v in pairs(epsilon_closure(to, epsilon_closures)) do
+          v_closure[k] = v
         end
       end
     end
 
-    if vmap():next() then
-      local vnew = states[vmap]
-      if not vnew then
-        vnew = new_state(vmap)
-        states[vmap] = vnew
-        new_states:append { map = vmap, state = vnew }
-      end
+    if v_closure():next() ~= nil then
+      local v = closure_to_state(v_closure, states)
+      state_map[v_closure] = v
 
-      -- 遷移先とアクションがいっしょの遷移をさがす
-      local new_transition_key = { map = vmap, action = move.action }
-      local new_transition = new_transition_map[new_transition_key]
-      if not new_transition then
-        new_transition_map[new_transition_key] = module.transition(unew, vnew, { [byte] = true }, move.timestamp, move.action)
+      local key = { closure = v_closure, action = resolved.action }
+      local t = transition_map[key]
+      if t == nil then
+        transition_map[key] = transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
       else
-        new_transition:update(move.timestamp, byte)
+        t:update(resolved.timestamp, byte)
       end
     end
   end
 
-  for _, item in ipairs(new_states) do
-    if not color[item.map] then
-      nfa_to_dfa(item.map, item.state, states, epsilon_closures, color)
+  for v_closure, v in pairs(state_map) do
+    if color[v_closure] == nil then
+      nfa_to_dfa_impl(v_closure, v, epsilon_closures, states, color)
     end
   end
 
-  color[umap] = 2
+  color[u_closure] = 2
 end
 
-function module.nfa_to_dfa(u)
-  module.update_state_indices(u)
+local function nfa_to_dfa(u)
+  update_state_indices(u)
   local epsilon_closures = {}
-
-  local umap = module.epsilon_closure(u, epsilon_closures)
-  local unew = new_state(umap)
-
   local states = tree_map()
-  local color = tree_map()
-  states[umap] = unew
-
-  nfa_to_dfa(umap, unew, states, epsilon_closures, color)
-
-  return unew
+  local u_closure = epsilon_closure(u, epsilon_closures)
+  local u = closure_to_state(u_closure, states)
+  nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, tree_map())
+  return u
 end
 
 ---------------------------------------------------------------------------
 
-local assertion = true
-
 local function create_initial_partitions(u, accept_partition_map, nonaccept_partition, partition_map, color)
   color[u] = 1
 
-  local accept_action = u.accept_action
   local partition = nonaccept_partition
-  if accept_action then
-    partition = accept_partition_map[accept_action]
-    if not partition then
+  if u.accept_action ~= nil then
+    partition = accept_partition_map[u.accept_action]
+    if partition == nil then
       partition = module.list()
       partition.timestamp = u.timestamp
-      accept_partition_map[accept_action] = partition
-    else
-      if partition.timestamp > u.timestamp then
-        partition.timestamp = u.timestamp
-      end
+      accept_partition_map[u.accept_action] = partition
+    elseif partition.timestamp > u.timestamp then
+      partition.timestamp = u.timestamp
     end
   end
   partition:append(u)
   partition_map[u] = partition
 
-  for _, transition in ipairs(u.transitions) do
-    if not color[transition.v] then
-      create_initial_partitions(transition.v, accept_partition_map, nonaccept_partition, partition_map, color)
+  for _, t in ipairs(u.transitions) do
+    if color[t.v] == nil then
+      create_initial_partitions(t.v, accept_partition_map, nonaccept_partition, partition_map, color)
     end
   end
 
   color[u] = 2
 end
 
-function module.create_initial_partitions(u)
+local function minimize(u)
   local accept_partition_map = tree_map()
-  local nonaccept_partition = module.list()
+  local partition = module.list()
   local partition_map = {}
-  create_initial_partitions(u, accept_partition_map, nonaccept_partition, partition_map, {})
+  create_initial_partitions(u, accept_partition_map, partition, partition_map, {})
 
   local partitions = module.list()
   for _, partition in pairs(accept_partition_map) do
-    partitions:append(partition)
+    partition.index = #partitions:append(partition)
   end
-  table.sort(partitions, function (a, b) return a.timestamp < b.timestamp end)
-
-  if #nonaccept_partition > 0 then
-    partitions:append(nonaccept_partition)
+  if next(partition) ~= nil then
+    partition.index = #partitions:append(partition)
   end
-
-  return partitions, partition_map
-end
-
-function module.minimize(u)
-  local partitions, partition_map = module.create_initial_partitions(u)
 
   while true do
-    local new_partitions = module.list()
     local new_partition_map = {}
+    local new_partitions = module.list()
 
     for _, partition in ipairs(partitions) do
-      -- あるパーティションに含まれる状態の組 (x, y) が同じ遷移をするならば、ひ
-      -- とつのパーティションにまとめる。
-      for i = 1, #partition do
-        local x = partition[i]
+      -- パーティション内の状態の組(x,y)について同じ遷移をするか調べる。同じ遷
+      -- 移をする場合、ひとつのパーティションにまとめる。
+      for i, x in ipairs(partition) do
         for j = 1, i - 1 do
           local y = partition[j]
-          -- 全ての文字について下記の条件が満たされたら、同じ遷移をするとみなす。
-          -- 1. 遷移先の状態が同じパーティションに含まれている
-          -- 2. 同じ遷移アクションを持つ
-          local same_partition = true
+          -- 全ての文字について下記の条件が満たされていたら、同じ遷移をするとみ
+          -- なす。
+          -- 1. 遷移先の状態が同じパーティションに含まれている。
+          -- 2. 同じ遷移アクションを持つ。
+          local same_transition = true
           for byte = 0x00, 0xFF do
-            local xv, xaction = x:execute_transition(byte)
-            local yv, yaction = y:execute_transition(byte)
-            -- TODO compare(xaction, yaction) ~= 0 にするべきか？
-            if partition_map[xv] ~= partition_map[yv] or xaction ~= yaction then
-              same_partition = false
+            local x_to, _, x_action = x:simulate(byte)
+            local y_to, _, y_action = y:simulate(byte)
+            if partition_map[x_to] ~= partition_map[y_to] or compare(x_action, y_action) ~= 0 then
+              same_transition = false
               break
             end
           end
 
-          if same_partition then
+          if same_transition then
             local new_partition = new_partition_map[x]
-            if not new_partition then
+            if new_partition == nil then
               local new_partition = new_partition_map[y]
               new_partition:append(x)
               new_partition_map[x] = new_partition
             else
-              -- 新パーティションに登録済みである
-              if assertion then
-                assert(new_partition == new_partition_map[y])
-              end
+              -- xがすでに新パーティションに登録されている。つまり、yよりも先に
+              -- 処理された状態zについて、状態の組(x,z)がひとつのパーティション
+              -- にまとめられた。このとき、状態yも同じパーティションにまとめら
+              -- れているはずである。
+              assert(new_partition == new_partition_map[y])
             end
           end
         end
 
-        if not new_partition_map[x] then
+        if new_partition_map[x] == nil then
           local new_partition = module.list(x)
-          new_partitions:append(new_partition)
+          new_partition.index = #new_partitions:append(new_partition)
           new_partition_map[x] = new_partition
         end
       end
@@ -592,90 +559,64 @@ function module.minimize(u)
   end
 
   local states = {}
-  local accept_states = {}
+  local accept_states = module.list()
 
-  for i = 1, #partitions do
-    local partition = partitions[i]
-
-    local unew = module.state()
-    for i, x in ipairs(partition) do
-      unew:update(x.timestamp, x.accept_action)
+  for i, partition in ipairs(partitions) do
+    local u = state()
+    for _, x in ipairs(partition) do
+      u:update(x.timestamp, x.accept_action)
     end
-
-    states[partition] = { index = i, state = unew }
-    if unew.accept_action then
-      accept_states[#accept_states + 1] = unew
+    states[partition] = u
+    if u.accept_action ~= nil then
+      accept_states:append(u)
     end
   end
 
-  for i = 1, #partitions do
-    local partition = partitions[i]
-    local unew = states[partition].state
-
-    local new_transition_map = tree_map()
+  for i, partition in ipairs(partitions) do
+    local u = states[partition]
+    local transition_map = tree_map()
 
     for byte = 0x00, 0xFF do
-      local v
-      local move = {}
-
-      for j, x in ipairs(partition) do
-        local transition_v, transition_action = x:execute_transition(byte, move)
-
-        if transition_v then
-          if j == 1 then
-            v = states[partition_map[transition_v]]
-          else
-            if assertion then
-              -- TODO compareにするべき？
-              assert(action == transition_action)
-              assert(v.index == states[partition_map[transition_v]].index)
-              assert(v.state == states[partition_map[transition_v]].state)
-            end
-          end
-        else
-          if j > 1 then
-            assert(not v)
-          end
+      local resolved = {}
+      local x_to, _, x_action = partition[1]:simulate(byte, resolved)
+      if x_to ~= nil then
+        for j = 2, #partition do
+          local y_to, _, y_action = partition[j]:simulate(byte, resolved)
+          -- 同じ遷移をすることを確認する。
+          assert(x_to == y_to)
+          assert(x_action == y_action)
         end
-      end
 
-      if v then
-        local new_transition_key = { index = v.index, action = move.action }
-        local new_transition = new_transition_map[new_transition_key]
-        if not new_transition then
-          new_transition_map[new_transition_key] = module.transition(unew, v.state, { [byte] = true }, move.timestamp, move.action)
+        local p = partition_map[x_to]
+        local v = states[p]
+        local key = { index = p.index, action = resolved.action }
+        local t = transition_map[key]
+        if t == nil then
+          transition_map[key] = transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
         else
-          if assertion then
-            -- TODO compareにするべき？
-            assert(move.action == new_transition.action)
-            assert(v.state == new_transition.v)
-          end
-          new_transition:update(move.timestamp, byte)
+          t:update(resolved.timestamp, byte)
         end
       end
     end
   end
 
-  local unew = states[partition_map[u]].state
-  return unew, accept_states
+  return states[partition_map[u]], accept_states
 end
 
 ---------------------------------------------------------------------------
 
-local function remove_dead_states(u, living_states, color)
+local function collect_living_states(u, living_states, color)
   color[u] = 1
 
-  if u.accept_action then
+  if u.accept_action ~= nil then
     living_states[u] = true
   end
 
-  for _, transition in ipairs(u.transitions) do
-    local v = transition.v
-    if not color[v] then
-      remove_dead_states(v, living_states, color)
+  for _, t in ipairs(u.transitions) do
+    if not color[t.v] then
+      collect_living_states(t.v, living_states, color)
     end
-    -- 帰りがけに調べる
-    if living_states[v] then
+    if living_states[t.v] then
       living_states[u] = true
     end
   end
@@ -683,104 +624,90 @@ local function remove_dead_states(u, living_states, color)
   color[u] = 2
 end
 
-function module.remove_dead_states(u)
+local function remove_dead_states(u)
   local living_states = {}
-  remove_dead_states(u, living_states, {})
+  collect_living_states(u, living_states, {})
 
-  for u in pairs(living_states) do
+  for v in pairs(living_states) do
     local new_transitions = module.list()
-    for _, transition in ipairs(u.transitions) do
-      if living_states[transition.v] then
-        new_transitions:append(transition)
+    for _, t in ipairs(v.transitions) do
+      if living_states[t.v] then
+        new_transitions:append(t)
       end
     end
-    u.transitions = new_transitions
+    v.transitions = new_transitions
   end
 
   return u
 end
 
----------------------------------------------------------------------------
-
-local function new_state(ux, uy)
-  local state = module.state()
-  if ux then
-    if not uy or not uy.accept_action then
-      state:update(ux.timestamp, ux.accept_action)
-    end
+local function simulate(u, byte, resolved_timestamp, null)
+  local v, timestamp, action = u:simulate(byte)
+  if v == nil then
+    return null, resolved_timestamp
+  elseif resolved_timestamp == nil then
+    resolved_timestamp = timestamp
   end
-  return state
+  return v, resolved_timestamp, action
 end
 
-function module.difference(ux, uy)
-  local x_states = module.update_state_indices(ux)
-  local y_states = module.update_state_indices(uy)
+local function difference_impl(x, y)
+  local x_states = update_state_indices(x)
+  local y_states = update_state_indices(y)
 
-  local nx = #x_states
-  local ny = #y_states
-  local n = nx + 1
+  local null = state()
+  null.index = 0
+  x_states[0] = null
+  y_states[0] = null
 
-  local new_states = {}
+  local x_n = #x_states
+  local y_n = #y_states
+  local n = y_n + 1
 
-  for i = 0, nx do
-    local ux = x_states[i]
-    for j = 0, ny do
-      local uy = y_states[j]
-      local ukey = i + j * n
-      if ukey ~= 0 then
-        local new_transition_map = tree_map()
+  local z_states = {}
+  for i = 0, x_n do
+    local x = x_states[i]
+    for j = i == 0 and 1 or 0, y_n do
+      local y = y_states[j]
+      local z = state()
+      if y.accept_action == nil then
+        z:update(x.timestamp, x.accept_action)
+      end
+      z_states[i * n + j] = z
+    end
+  end
 
-        for byte = 0x00, 0xFF do
-          local move = {}
-          local vx, action
-          if ux then
-            vx, action = ux:execute_transition(byte, move)
-          end
-          local vy
-          if uy then
-            -- timestampはvxのuxのものであるべき（ただし、uxが存在しないか、遷移しない場合がある）
-            if vx then
-              vy = uy:execute_transition(byte)
-            else
-              vy = uy:execute_transition(byte, move)
-            end
-          end
+  for i = 0, x_n do
+    local x_u = x_states[i]
 
-          local vkey = 0
-          if vy then
-            vkey = vy.index * n
-          end
-          if vx then
-            vkey = vx.index + vkey
-          end
+    for j = i == 0 and 1 or 0, y_n do
+      local y_u = y_states[j]
+      local z_u = z_states[i * n + j]
 
-          if vkey ~= 0 then
-            local unew = new_states[ukey]
-            if not unew then
-              unew = new_state(ux, uy)
-              new_states[ukey] = unew
-            end
-            local vnew = new_states[vkey]
-            if not vnew then
-              vnew = new_state(vx, vy)
-              new_states[vkey] = vnew
-            end
-
-            local new_transition_key = { index = vkey, action = action }
-            local new_transition = new_transition_map[new_transition_key]
-            if not new_transition then
-              new_transition_map[new_transition_key] = module.transition(unew, vnew, { [byte] = true }, assert(move.timestamp), action)
-            else
-              new_transition:update(move.timestamp, byte)
-            end
+      local transition_map = tree_map()
+      for byte = 0x00, 0xFF do
+        local x_v, timestamp, action = simulate(x_u, byte, nil, null)
+        local y_v, timestamp = simulate(y_u, byte, timestamp, null)
+        local index = x_v.index * n + y_v.index
+        if index ~= 0 then
+          local z_v = z_states[index]
+          local key = { index = index, action = action }
+          local t = transition_map[key]
+          if t == nil then
+            transition_map[key] = transition(z_u, z_v, { [byte] = true }, timestamp, action)
+          else
+            t:update(timestamp, byte)
           end
         end
       end
     end
   end
 
-  local unew = new_states[ux.index + uy.index * n]
-  return module.remove_dead_states(unew)
+  return z_states[x.index * n + y.index]
+end
+
+function difference(x, y)
+  return minimize(remove_dead_states(difference_impl(minimize(nfa_to_dfa(x)), minimize(nfa_to_dfa(y)))))
 end
 
 ---------------------------------------------------------------------------
@@ -788,7 +715,7 @@ end
 local _ = module.pattern
 
 local x = _{ _"a"{0} + _"b"{1} + (_"c"/"T"){0,1} - "abc" ; _["xyz"]{3,3} } %"A"
-local d = module.nfa_to_dfa(module.tree_to_nfa(x, true))
+local d, a = minimize(nfa_to_dfa(tree_to_nfa(x, true)))
 
 local out = assert(io.open("test.dot", "w"))
 write_graphviz(out, d)
