@@ -652,15 +652,14 @@ local function remove_dead_states(u)
   return u
 end
 
-local function simulate(u, byte, resolved, null)
+local function simulate(u, byte, resolved_timestamp, null)
   local v, timestamp, action = u:simulate(byte)
   if v == nil then
-    return null
-  elseif resolved.timestamp == nil then
-    resolved.timestamp = timestamp
-    resolved.action = action
+    return null, resolved_timestamp
+  elseif resolved_timestamp == nil then
+    resolved_timestamp = timestamp
   end
-  return v
+  return v, resolved_timestamp, action
 end
 
 local function difference(x, y)
@@ -694,24 +693,22 @@ local function difference(x, y)
 
     for j = i == 0 and 1 or 0, y_n do
       local y_u = y_states[j]
-      local k_u = i * n + j
-      local z_u = assert(z_states[k_u])
+      local z_u = z_states[i * n + j]
 
       local new_transition_map = tree_map()
       for byte = 0x00, 0xFF do
-        local resolved = {}
-        local x_v = simulate(x_u, byte, resolved, null)
-        local y_v = simulate(y_u, byte, resolved, null)
-        local k_v = x_v.index * n + y_v.index
+        local x_v, timestamp, action = simulate(x_u, byte, nil, null)
+        local y_v, timestamp = simulate(y_u, byte, timestamp, null)
+        local index = x_v.index * n + y_v.index
 
-        if k_v ~= 0 then
-          local z_v = assert(z_states[k_v])
-          local new_transition_key = { index = k_v, action = resolved.action }
+        if index ~= 0 then
+          local z_v = z_states[index]
+          local new_transition_key = { index = index, action = action }
           local new_transition = new_transition_map[new_transition_key]
           if new_transition == nil then
-            new_transition_map[new_transition_key] = module.transition(z_u, z_v, { [byte] = true }, resolved.timestamp, resolved.action)
+            new_transition_map[new_transition_key] = module.transition(z_u, z_v, { [byte] = true }, timestamp, action)
           else
-            new_transition:update(resolved.timestamp, byte)
+            new_transition:update(timestamp, byte)
           end
         end
       end
