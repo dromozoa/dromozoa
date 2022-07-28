@@ -140,27 +140,12 @@ end
 
 ---------------------------------------------------------------------------
 
-local function update_state_indices_accept(u, states, color)
+local function update_state_indices_impl(u, states, color)
   color[u] = 1
-  if u.accept_action ~= nil then
-    u.index = #states:append(u)
-  end
+  u.index = #states:append(u)
   for _, t in ipairs(u.transitions) do
     if color[t.v] == nil then
-      update_state_indices_accept(t.v, states, color)
-    end
-  end
-  color[u] = 2
-end
-
-local function update_state_indices_nonaccept(u, states, color)
-  color[u] = 1
-  if u.accept_action == nil then
-    u.index = #states:append(u)
-  end
-  for _, t in ipairs(u.transitions) do
-    if color[t.v] == nil then
-      update_state_indices_nonaccept(t.v, states, color)
+      update_state_indices_impl(t.v, states, color)
     end
   end
   color[u] = 2
@@ -168,10 +153,8 @@ end
 
 local function update_state_indices(u)
   local states = list()
-  update_state_indices_accept(u, states, {})
-  local max_accept_state = #states
-  update_state_indices_nonaccept(u, states, {})
-  return states, max_accept_state
+  update_state_indices_impl(u, states, {})
+  return states
 end
 
 ---------------------------------------------------------------------------
