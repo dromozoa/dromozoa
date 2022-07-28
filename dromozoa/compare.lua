@@ -37,13 +37,20 @@ local function stable_pairs(t, compare, n)
   for k in pairs(t) do
     K[#K + 1] = k
   end
+
+  -- テーブルのインデックス列には
+  -- 1. NaNは含まれない。
+  -- 2. 等値なオブジェクトはたかだか1個含まれる。
+  -- 3. 同値なオブジェクトは2個以上含まれるかもしれない。
+  -- table.sortは同一要素を比較する場合がある。
   table.sort(K, function (a, b)
-    -- table.sortは同じ要素を比較する場合がある。
+    -- 等値ならば同一要素の比較である。
     if rawequal(a, b) then
       return false
     end
     local c = compare(a, b, n)
     if c == 0 then
+      -- 同値なオブジェクトの重複はエラーとする。
       error "table index is not unique"
     end
     return c < 0
@@ -72,6 +79,7 @@ local function compare(a, b, n)
   if t == 1 then
     return b and -1 or 1
   elseif t == 3 then
+    -- NaNは数値と文字列のあいだに位置するものとして扱う。NaN同士は同値とみなす。
     local a_is_nan = a ~= a
     local b_is_nan = b ~= b
     if b_is_nan then
