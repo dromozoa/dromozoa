@@ -534,7 +534,7 @@ function module.lexer(tokens, that)
         symbol = #tokens:append(item.name)
         tokens[item.name] = symbol
       end
-      -- TODO action決定をきれいにする
+      -- TODO action決定をきれいにする (token_symbolの名前とか)
       if v.accept_action == "" then
         v.accept_action = "token_symbol=" .. symbol .. ";push_token()"
       else

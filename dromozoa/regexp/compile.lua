@@ -50,13 +50,11 @@ end
 local function construct_table(u, max_state, transitions, transition_actions, transition_states, color)
   color[u] = 1
   for _, t in ipairs(u.transitions) do
-    local code
+    local code = t.v.index
     if t.action ~= nil then
       transition_actions:append(t.action)
       transition_states:append(t.v.index)
       code = max_state + #transition_actions
-    else
-      code = t.v.index
     end
     for byte in pairs(t.set) do
       transitions[byte][u.index] = code
@@ -111,7 +109,7 @@ local function generate(item, shared_map, shared_data, static_data, action_data)
   action_data:append "{\n"
   if item.machine.guard_action ~= nil then
     action_data:append(
-      "guard_action = function () ;",
+      "guard_action=function()",
       item.machine.guard_action, "\n",
       "end;\n")
   end
@@ -119,7 +117,7 @@ local function generate(item, shared_map, shared_data, static_data, action_data)
     "accept_actions={\n")
   for _, accept_action in ipairs(accept_actions) do
     action_data:append(
-      "function () ;",
+      "function()",
       accept_action, "\n",
       "end;\n")
   end
@@ -130,7 +128,7 @@ local function generate(item, shared_map, shared_data, static_data, action_data)
     "transition_actions={\n")
   for _, transition_action in ipairs(transition_actions) do
     action_data:append(
-      "function () ;",
+      "function()",
       transition_action, "\n",
       "end;\n")
   end
@@ -157,25 +155,23 @@ return function (that)
   local shared_map = tree_map()
   local shared_data = list()
   local static_data = list()
+  local custom_data = list()
   local action_data = list()
 
   for i, item in ipairs(data) do
     if item.main then
       static_data:append("main=", i, ";\n")
     end
+    if item.name ~= nil then
+      custom_data:append("local ", item.name, "=", i, "\n")
+    end
     generate(item, shared_map, shared_data, static_data, action_data)
   end
-  static_data:append "machines={\n"
-  for i, item in ipairs(data) do
-    if item.name ~= nil then -- should be string
-      static_data:append("[", ("%q"):format(item.name), "]=", i, ";\n")
-    end
-  end
-  static_data:append "};\n"
 
   return table.concat(runtime {
     shared_data = table.concat(shared_data);
     static_data = table.concat(static_data);
+    custom_data = table.concat(custom_data);
     action_data = table.concat(action_data);
   })
 end

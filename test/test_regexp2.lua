@@ -72,11 +72,11 @@ local code = compile {
       ; _"\r"/[[ln=ln+1 lp=fp]] + (_"\n"/[[lp=fp]]){0,1}
       }{1};
 
-    _"--" + _"["/[[print"[" append(fg,0x5D)]] + (_"="/[[print"=" append(fg,fc)]]){0} + _"["/[[print"[" append(fg,0x5D) fcall"comment"]];
+    _"--" + _"["/[[print"[" append(fg,0x5D)]] + (_"="/[[print"=" append(fg,fc)]]){0} + _"["/[[print"[" append(fg,0x5D) fcall(comment)]];
     _"--" + (-_{"\n\r"}){0};
 
     string = (_[["]]/[[clear(fb)]]
-      + _{  _[[\]] + _["09"]/[[ra=fc-0x30 fcall"digit" append(fb,ra)]]
+      + _{  _[[\]] + _["09"]/[[ra=fc-0x30 fcall(digit) append(fb,ra)]]
           ; _[[\]] + _[[\]]/[[append(fb,0x5C)]]
           ; _[[\]] + _[["]]/[[append(fb,0x22)]]
           ; (-_{[["\]]})/[[append(fb,fc)]]

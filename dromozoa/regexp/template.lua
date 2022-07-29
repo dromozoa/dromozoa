@@ -34,20 +34,24 @@ return function (source, source_name, fn)
   local fg = {} -- guard buffer
   local ln = 1  -- line number
   local lp = 0  -- line position
+
   -- TODO token_symbolを隠す
   local token_symbol
-
-  -- TODO カスタム初期化ルーチン
-  local ra
-  local rb
-  local rc
-  local rd
 
   local _ = (function ()
     local static_data
     local source
     local source_name
     local fn
+
+    -- TODO カスタム初期化ルーチン
+    local ra
+    local rb
+    local rc
+    local rd
+
+    $custom_data
+
     return { $action_data }
   end)()
 
@@ -57,7 +61,6 @@ return function (source, source_name, fn)
     end
   end
   local main = static_data.main
-  local machines = static_data.machines
 
   local start_line = 1
   local start_column = 1
@@ -69,9 +72,7 @@ return function (source, source_name, fn)
   local stack = {}
   local jumped = false
 
-  function fcall(name)
-    local index = assert(machines[name])
-
+  function fcall(index)
     stack[#stack + 1] = {
       start_position = fs;
       start_line = start_line;
