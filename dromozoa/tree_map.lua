@@ -50,14 +50,10 @@ function metatable:__call(k, fn)
     return private[self]
   end
 
-  local v = self[k]
-  if v == nil then
-    if fn == nil then
-      fn = construct
-    end
-    v = fn(private[self].compare)
-    self[k] = v
+  if fn == nil then
+    fn = construct
   end
+  local _, v = private[self]:insert(k, private[self].compare, fn)
   return v
 end
 
