@@ -28,10 +28,10 @@ return function (source, source_name, fn)
   local token_symbol
 
   -- TODO カスタム初期化ルーチン
-  -- local ra
-  -- local rb
-  -- local rc
-  -- local rd
+  local ra
+  local rb
+  local rc
+  local rd
 
   local _ = (function ()
     local static_data
@@ -107,7 +107,7 @@ context.action_data;
     current_index = index
     current_state = _[current_index].start_state
 
-    coroutine.yield("fcall", index)
+    coroutine.yield()
   end
 
   function fret()
@@ -162,94 +162,79 @@ context.action_data;
   while true do
     current_byte = string.byte(source, current_position)
 
-    local s = 0
-    if current_byte ~= nil then
-      s = _[current_index].transitions[current_byte][current_state]
-    end
-
-    if s == 0 then
-      local error_message
-
---[[
-      while current_state <= _[current_index].max_state do
-        local thread = coroutine.create(_[current_index].accept_actions[current_state])
-        local _, command, index = assert(coroutine.resume(thread))
-        if command == "fcall" then
-          assert(coroutine.status(thread) == "suspended")
-          local item = save_stack()
-          item.thread = thread
-          stack[#stack + 1] = item
-          prepare_stack(index)
-          -- fretしてから、この続きをやるべき
-          break
-        elseif command == "fret" then
-          assert(coroutine.status(thread) == "suspended")
-          -- 現在のスタックを保存して、戻り先のスレッドを呼び出す
-          local item1 = save_stack()
-          local item2 = stack[#stack]
-          stack[#stack] = nil
-          local thread2 = assert(item2.thread)
-          restore_stack(item2)
-          assert(coroutine.resume(thread2))
-          -- 本来はn段階で処理するべき。再帰する？
-          assert(coroutine.status(thread2) == "dead")
-          -- 現在のスタックを戻す
-          -- restore_stack(item1)
-        else
-          assert(coroutine.status(thread) == "dead")
-        end
+    local rep = true
+    while rep do
+      local s = 0
+      if current_byte ~= nil then
+        s = _[current_index].transitions[current_byte][current_state]
       end
-]]
 
-      if current_state <= _[current_index].max_accept_state then
-        local thread = coroutine.create(_[current_index].accept_actions[current_state])
-        assert(coroutine.resume(thread))
-        if coroutine.status(thread) == "suspended" then
-          stack[#stack].thread = thread
-        end
+      repeat
+        if s == 0 then
+          local error_message
+          if current_state <= _[current_index].max_accept_state then
+            local save_current_index = current_index
+            local save_current_state = current_state
 
-        -- current_stateがfretで変わっているかもしれない。
+            local thread = coroutine.create(_[current_index].accept_actions[current_state])
+            assert(coroutine.resume(thread))
+            -- fcallされたので、現在の設定で確認をする
+            if coroutine.status(thread) == "suspended" then
+              stack[#stack].thread = thread
+              break
+            end
 
-        if current_byte == nil then
-          if current_index == main then
-            return fn()
-          else
-            error_message = "unexpected eof"
+            -- fretされたら、その状態で、もっかい実行する
+            -- fretはgoto(tailcall)とみなすべき？
+            if current_index ~= save_current_index or current_state ~= save_current_state then
+              break
+            end
+
+            if current_byte == nil then
+              if current_index == main then
+                return fn()
+              end
+              error_message = "unexpected eof"
+            else
+              -- zero文字マッチの場合、ループする可能性がある
+              if current_state ~= _[current_index].start_state then
+                fs = current_position
+                start_line = ln
+                start_column = fs - lp
+                current_state = _[current_index].start_state
+                break
+              end
+            end
           end
+          if error_message == nil then
+            error_message = "regexp error"
+          end
+          error(source_name .. ":" .. start_line .. ":" .. start_column .. ": " .. error_message)
         else
-          -- loopする
-          -- fgoto(current_index)
-          -- 現在のマシンを再度実行する
-          fs = current_position
-          start_line = ln
-          start_column = fs - lp
-          current_state = _[current_index].start_state
-        end
+          fp = current_position
+          fc = current_byte
+          if s > _[current_index].max_state then
+            local t = s - _[current_index].max_state
+            current_position = current_position + 1
+            current_state = _[current_index].transition_states[t]
+            local thread = coroutine.create(_[current_index].transition_actions[t])
+            assert(coroutine.resume(thread))
+            if coroutine.status(thread) == "suspended" then
+              stack[#stack].thread = thread
+            end
+          else
+            current_position = current_position + 1
+            current_state = s
+          end
 
-      else
-        error_message = "regexp error"
-      end
-
-      if error_message ~= nil then
-        error(source_name .. ":" .. start_line .. ":" .. start_column .. ": " .. error_message)
-      end
-    else
-      fp = current_position
-      fc = current_byte
-      if s > _[current_index].max_state then
-        local t = s - _[current_index].max_state
-        current_position = current_position + 1
-        current_state = _[current_index].transition_states[t]
-        local thread = coroutine.create(_[current_index].transition_actions[t])
-        assert(coroutine.resume(thread))
-        if coroutine.status(thread) == "suspended" then
-          stack[#stack].thread = thread
+          rep = false
+          break
         end
-      else
-        current_position = current_position + 1
-        current_state = s
-      end
+      until true
     end
+
+    ----------------------------------------------------------------------
+
   end
 
 end

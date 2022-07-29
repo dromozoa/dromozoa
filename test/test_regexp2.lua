@@ -55,7 +55,7 @@ local code = compile {
 
 local code = compile {
   digit = union {
-    (_["09"]/[[append(fb,fc) print"B"]]){0,2} %[[print"C" fret()]];
+    (_["09"]/[[ra=ra*10+fc-0x30]]){0,2} %[[fret()]];
   };
 
   lexer(tokens, {
@@ -68,7 +68,7 @@ local code = compile {
     -- _"--[" + (_"="/[[ ]]){0} + "[";
 
     string = (_[["]]/[[clear(fb)]]
-      + _{  _[[\]] + _["09"]/[[append(fb,fc) print"A" fcall"digit" print"Z"]]
+      + _{  _[[\]] + _["09"]/[[ra=fc-0x30 fcall"digit" append(fb,ra)]]
           ; _[[\]] + _[[\]]/[[append(fb,0x5C)]]
           ; _[[\]] + _[["]]/[[append(fb,0x22)]]
           ; (-_{[["\]]})/[[append(fb,fc)]]
@@ -88,10 +88,11 @@ out:close()
 
 local execute = assert(assert(loadfile(filename))())
 execute([[
+    ----------------------------------------------------------------------
 -- test
 123
 + 456
-  * "foo\0123 "
+  * "foo\35abc" 111
 ]], filename, function (token)
   if token ~= nil then
     if token.symbol then
