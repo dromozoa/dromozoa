@@ -75,7 +75,7 @@ local function make_shared(shared_map, shared_data, data)
 end
 
 local function generate(item, shared_map, shared_data, static_data, action_data)
-  local u = item.machine.u
+  local u = item.machine.state
 
   local accept_actions = list()
   update_state_indices_accept(u, accept_actions, {})

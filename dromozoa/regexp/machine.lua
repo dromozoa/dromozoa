@@ -500,12 +500,11 @@ function module.union(that)
   table.sort(that, function (a, b) return a.timestamp < b.timestamp end)
   local u = state()
   for _, node in ipairs(that) do
-    local v = tree_to_nfa(node, "")
-    transition(u, v)
+    transition(u, (tree_to_nfa(node, "")))
   end
   return {
     timestamp = that[1].timestamp;
-    u = minimize(nfa_to_dfa(u));
+    state = minimize(nfa_to_dfa(u));
   }
 end
 
@@ -518,23 +517,25 @@ end
 function module.lexer(tokens, that)
   local data = list()
   for name, node in pairs(that) do
-    if type(name) == "string" then
-      node.name = name
+    if type(name) ~= "string" then
+      name = node.name
     end
-    data:append(node)
+    data:append { timestamp = node.timestamp, node = node, name = name }
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
   local u = state()
-  for _, node in ipairs(data) do
-    local v, x = tree_to_nfa(node, "")
+  for _, item in ipairs(data) do
+    local v, x = tree_to_nfa(item.node, "")
     transition(u, v)
-    if node.name ~= nil then
-      local symbol = tokens[node.name]
+    if item.name ~= nil then
+      local symbol = tokens[item.name]
       if symbol == nil then
-        symbol = #tokens:append(node.name)
-        tokens[node.name] = symbol
+        symbol = #tokens:append(item.name)
+        tokens[item.name] = symbol
       end
+      -- TODO action決定をきれいにする
+
       if x.accept_action == "" then
         x.accept_action = "token_symbol=" .. symbol .. " push_token()"
       else
@@ -549,7 +550,7 @@ function module.lexer(tokens, that)
 
   return {
     timestamp = data[1].timestamp;
-    u = minimize(nfa_to_dfa(u));
+    state = minimize(nfa_to_dfa(u));
   }
 end
 
