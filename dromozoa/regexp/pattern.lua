@@ -24,8 +24,20 @@ local function construct(code, ...)
   return setmetatable({ timestamp = timestamp, [0] = code, ... }, metatable)
 end
 
+local any = {}
+for byte = 0x00, 0xFF do
+  any[byte] = true
+end
+
 local function pattern(that)
-  if type(that) == "string" then
+  local t = type(that)
+  if t == "number" then
+    local self = construct("[", any)
+    for i = 2, that do
+      self = self + construct("[", any)
+    end
+    return self
+  elseif t == "string" then
     local self = construct("[", { [that:byte(1)] = true })
     for i = 2, #that do
       self = self + construct("[", { [that:byte(i)] = true })

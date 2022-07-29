@@ -25,13 +25,27 @@ local union = machine.union
 local guard = machine.guard
 local lexer = machine.lexer
 
+local tokens = list()
+
 local code = compile {
   escape_digit = union {
     (_["09"]/"ra=ra*10+fc-0x30"){0,2} % "fret()";
   };
 
-  lexer {
+  lexer(tokens, {
     integer = _["09"]{1};
-    string = _"\"" + _{_"\\" + _{_["09"]/"ra=fc-0x30 fcall(escape_digit) append(fb,ra)" ; _"n"/"append(fb,'\n')"} ; -_{"\\\""}/"append(fb,fc)"}{0} + "\"";
-  };
+    string
+      = _"\""
+        +_{ _"\\"
+            +_{ _["09"]/"ra=fc-0x30 fcall(escape_digit) append(fb,ra)"
+            ; _"n"/"append(fb,'\\n')"
+            }
+        ; -_{"\\\""}/"append(fb,fc)"
+        }{0}
+      + "\"";
+  });
 }
+
+local out = assert(io.open("test-lexer.lua", "w"))
+out:write(code)
+out:close()
