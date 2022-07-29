@@ -33,7 +33,7 @@ local m1 = union {
 }
 
 local out = assert(io.open("test-m1.dot", "w"))
-write_graphviz(out, m1.u)
+write_graphviz(out, m1.start_state)
 out:close()
 
 local tokens = list()
@@ -45,7 +45,7 @@ local m2 = machine.union {
 }
 
 local out = assert(io.open("test-m2.dot", "w"))
-write_graphviz(out, m2.u)
+write_graphviz(out, m2.start_state)
 out:close()
 
 local m3 = machine.lexer(tokens, {
@@ -60,7 +60,7 @@ local m3 = machine.lexer(tokens, {
 })
 
 local out = assert(io.open("test-m3.dot", "w"))
-write_graphviz(out, m2.u)
+write_graphviz(out, m3.start_state)
 out:close()
 
 local r = compile {

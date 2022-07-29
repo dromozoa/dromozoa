@@ -498,13 +498,13 @@ local module = {}
 
 function module.union(that)
   table.sort(that, function (a, b) return a.timestamp < b.timestamp end)
-  local u = state()
+  local s = state()
   for _, node in ipairs(that) do
-    transition(u, (tree_to_nfa(node, "")))
+    transition(s, (tree_to_nfa(node, "")))
   end
   return {
     timestamp = that[1].timestamp;
-    start_state = minimize(nfa_to_dfa(u));
+    start_state = minimize(nfa_to_dfa(s));
   }
 end
 
@@ -524,34 +524,30 @@ function module.lexer(tokens, that)
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
-  local u = state()
+  local s = state()
   for _, item in ipairs(data) do
-    local v, x = tree_to_nfa(item.node, "")
-    transition(u, v)
+    local u, v = tree_to_nfa(item.node, "")
+    transition(s, u)
     if item.name ~= nil then
       local symbol = tokens[item.name]
       if symbol == nil then
         symbol = #tokens:append(item.name)
         tokens[item.name] = symbol
       end
-
       -- TODO action決定をきれいにする
-
-      if x.accept_action == "" then
-        x.accept_action = "token_symbol=" .. symbol .. " push_token()"
+      if v.accept_action == "" then
+        v.accept_action = "token_symbol=" .. symbol .. ";push_token()"
       else
-        x.accept_action = "token_symbol=" .. symbol .. ";" .. x.accept_action
+        v.accept_action = "token_symbol=" .. symbol .. ";" .. v.accept_action
       end
-    else
-      if x.accept_action == "" then
-        x.accept_action = "skip_token()"
-      end
+    elseif v.accept_action == "" then
+      v.accept_action = "skip_token()"
     end
   end
 
   return {
     timestamp = data[1].timestamp;
-    start_state = minimize(nfa_to_dfa(u));
+    start_state = minimize(nfa_to_dfa(s));
   }
 end
 
