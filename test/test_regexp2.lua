@@ -58,14 +58,22 @@ local code = compile {
     (_["09"]/[[ra=ra*10+fc-0x30]]){0,2} %[[fret()]];
   };
 
+  comment = guard([[fret()]], {
+    _"\n"/[[ln=ln+1 lp=fp]] + (_"\r"/[[lp=fp]]){0,1};
+    _"\r"/[[ln=ln+1 lp=fp]] + (_"\n"/[[lp=fp]]){0,1};
+
+    _"]";
+    (-_{"]\n\r"}){1};
+  });
+
   lexer(tokens, {
     _{  _{" \t\f\v"}
       ; _"\n"/[[ln=ln+1 lp=fp]] + (_"\r"/[[lp=fp]]){0,1}
       ; _"\r"/[[ln=ln+1 lp=fp]] + (_"\n"/[[lp=fp]]){0,1}
       }{1};
 
-    _"--" + ((-_{"\n\r"}){0} - (_"[" + _"="{0} + "[" + any{0}));
-    -- _"--[" + (_"="/[[ ]]){0} + "[";
+    _"--" + _"["/[[print"[" append(fg,0x5D)]] + (_"="/[[print"=" append(fg,fc)]]){0} + _"["/[[print"[" append(fg,0x5D) fcall"comment"]];
+    _"--" + (-_{"\n\r"}){0};
 
     string = (_[["]]/[[clear(fb)]]
       + _{  _[[\]] + _["09"]/[[ra=fc-0x30 fcall"digit" append(fb,ra)]]
@@ -88,9 +96,10 @@ out:close()
 
 local execute = assert(assert(loadfile(filename))())
 execute([[
-    ----------------------------------------------------------------------
--- test
+--[=[
 123
+]=]
+-- test
 + 456
   * "foo\35abc" 111
 ]], filename, function (token)
