@@ -29,7 +29,7 @@ local guard = machine.guard
 local lexer = machine.lexer
 
 local m1 = union {
-  _{ _"a"{0} + _"b"{1} + (_"c"/"T"){0,1} - "abc" ; _["xyz"]{3,3} } %"A"
+  _{ _"a"{0} + _"b"{1} + (_"c"/"print'T'"){0,1} - "abc" ; _["xyz"]{3,3} } %"print'A'"
 }
 
 local out = assert(io.open("test-m1.dot", "w"))
@@ -39,9 +39,9 @@ out:close()
 local tokens = list()
 
 local m2 = machine.union {
-  _"aaa" %"a";
-  _"aba" %"b";
-  _{"ab"}{3,3} %"b";
+  _"aaa" %"print'a'";
+  _"aba" %"print'b'";
+  _{"ab"}{3,3} %"print'b'";
 }
 
 local out = assert(io.open("test-m2.dot", "w"))
@@ -54,8 +54,8 @@ local m3 = machine.lexer(tokens, {
   _"else";
   _"elseif";
   _"end";
-  integer = (_["09"]/"i"){1};
-  string = _"\"" + (-_["\""]/"c"){0} + "\"";
+  integer = (_["09"]/"print'i'"){1};
+  string = _"\"" + (-_["\""]/"print'c'"){0} + "\"";
   _{" \t\r\n"}{1};
 })
 
@@ -68,6 +68,6 @@ local r = compile {
   m2 = m2;
   m3;
 }
-io.write(r)
--- print(dumper.encode(r, { stable = true }))
-
+local out = assert(io.open("test-lexer.lua", "w"))
+out:write(r)
+out:close()

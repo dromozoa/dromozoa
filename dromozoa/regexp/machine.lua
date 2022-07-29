@@ -535,9 +535,9 @@ function module.lexer(tokens, that)
         symbol = #tokens:append(node.name)
         tokens[node.name] = symbol
       end
-      x.accept_action = "token_symbol=" .. symbol .. ";" .. x.accept_action .. ";push_token()"
+      x.accept_action = "token_symbol=" .. symbol .. ";" .. x.accept_action .. "\npush_token()"
     else
-      x.accept_action = x.accept_action .. ";skip_token()"
+      x.accept_action = x.accept_action .. "\nskip_token()"
     end
   end
 

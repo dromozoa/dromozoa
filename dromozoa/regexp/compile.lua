@@ -110,7 +110,7 @@ local function generate(item, shared_map, shared_data, static_data, action_data)
   action_data:append "{\n"
   if item.machine.guard_action ~= nil then
     action_data:append(
-      "guard_action = function ()\n",
+      "guard_action = function () ;",
       item.machine.guard_action, "\n",
       "end;\n")
   end
@@ -118,7 +118,7 @@ local function generate(item, shared_map, shared_data, static_data, action_data)
     "accept_actions={\n")
   for _, accept_action in ipairs(accept_actions) do
     action_data:append(
-      "function ()\n",
+      "function () ;",
       accept_action, "\n",
       "end;\n")
   end
@@ -129,7 +129,7 @@ local function generate(item, shared_map, shared_data, static_data, action_data)
     "transition_actions={\n")
   for _, transition_action in ipairs(transition_actions) do
     action_data:append(
-      "function ()\n",
+      "function () ;",
       transition_action, "\n",
       "end;\n")
   end
