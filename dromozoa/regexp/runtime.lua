@@ -56,7 +56,6 @@ context.action_data;
   local start_line = 1
   local start_column = 1
   local current_position = 1
-  -- local current_byte
   local current_index = main
   local current_state = _[current_index].start_state
   local current_loop
