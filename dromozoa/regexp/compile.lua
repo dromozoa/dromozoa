@@ -140,32 +140,37 @@ local function generate(item, shared_map, shared_data, static_data, action_data)
 end
 
 return function (that)
-  that[1].main = true
-
-  local data = list()
-  for name, machine in pairs(that) do
-    local main = name == 1
-    if type(name) ~= "string" then
-      name = machine.name
-    end
-    data:append { timestamp = machine.timestamp, machine = machine, name = name, main = main }
-  end
-  table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
-
   local shared_map = tree_map()
   local shared_data = list()
   local static_data = list()
   local custom_data = list()
   local action_data = list()
 
-  for i, item in ipairs(data) do
-    if item.main then
+  local data = list()
+  for k, v in pairs(that) do
+    if type(k) == "string" then
+      data:append { timestamp = v.timestamp, machine = v, name = k }
+    end
+  end
+  local j = 0
+  for i, v in ipairs(that) do
+    if type(v) == "string" then
+      custom_data:append(v, "\n")
+    else
+      j = j + 1
+      data:append { timestamp = v.timestamp, machine = v, main = j == 1 }
+    end
+  end
+  table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
+
+  for i, v in ipairs(data) do
+    if v.main then
       static_data:append("main=", i, ";\n")
     end
-    if item.name ~= nil then
-      custom_data:append("local ", item.name, "=", i, "\n")
+    if v.name ~= nil then
+      custom_data:append("local ", v.name, "=", i, "\n")
     end
-    generate(item, shared_map, shared_data, static_data, action_data)
+    generate(v, shared_map, shared_data, static_data, action_data)
   end
 
   return table.concat(runtime {

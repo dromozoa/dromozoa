@@ -45,10 +45,10 @@ return function (source, source_name, fn)
     local fn
 
     -- TODO カスタム初期化ルーチン
-    local ra
-    local rb
-    local rc
-    local rd
+    -- local ra
+    -- local rb
+    -- local rc
+    -- local rd
 
     $custom_data
 

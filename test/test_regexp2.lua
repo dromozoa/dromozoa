@@ -54,6 +54,8 @@ local code = compile {
 ]==]
 
 local code = compile {
+  [[local ra]];
+
   digit = union {
     (_["09"]/[[ra=ra*10+fc-0x30]]){0,2} %[[fret()]];
   };
