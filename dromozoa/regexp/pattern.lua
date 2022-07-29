@@ -22,6 +22,7 @@ local timestamp = 0
 
 -- TODO local, class, metatableの順序を整理する
 -- patternだけ、前にもってきて、あとはうしろのほうがきれいなのではないか。
+-- TODO DSLを調整する。とくに、negateを関数呼び出しで優先度をあげる（anyのかきかたも）
 
 local function construct(code, ...)
   timestamp = timestamp + 1
@@ -53,7 +54,7 @@ function class.pattern(that)
     for i = 2, #that do
       self = self + construct("[", { [that:byte(i)] = true })
     end
-    self.name = that
+    self.literal = that
     return self
   else
     return that
@@ -143,7 +144,7 @@ function metatable:__mod(that)
     error "not supported"
   else
     local result = construct("%", self, that)
-    result.name = self.name
+    result.literal = self.literal
     return result
   end
 end

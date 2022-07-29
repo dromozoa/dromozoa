@@ -518,7 +518,7 @@ function module.lexer(tokens, that)
   local data = list()
   for name, node in pairs(that) do
     if type(name) ~= "string" then
-      name = node.name
+      name = node.literal
     end
     data:append { timestamp = node.timestamp, node = node, name = name }
   end
@@ -534,6 +534,7 @@ function module.lexer(tokens, that)
         symbol = #tokens:append(item.name)
         tokens[item.name] = symbol
       end
+
       -- TODO action決定をきれいにする
 
       if x.accept_action == "" then
