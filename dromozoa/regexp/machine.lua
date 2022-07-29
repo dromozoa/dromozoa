@@ -541,6 +541,7 @@ function module.lexer(tokens, that)
         v.accept_action = "token_symbol=" .. symbol .. ";" .. v.accept_action
       end
     elseif v.accept_action == "" then
+      -- TODO skip_tokenじゃなくて、token_symbol=nilでよい気がする
       v.accept_action = "skip_token()"
     end
   end

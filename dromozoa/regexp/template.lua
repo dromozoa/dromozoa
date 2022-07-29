@@ -36,6 +36,7 @@ return function (source, source_name, fn)
   local lp = 0  -- line position
 
   -- TODO token_symbolを隠す
+  -- TODO 隠さなくていいけど、スタックにキャプチャするべき？
   local token_symbol
 
   local _ = (function ()
