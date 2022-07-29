@@ -68,6 +68,6 @@ local r = compile {
   m2 = m2;
   m3;
 }
-
-print(dumper.encode(r, { stable = true }))
+io.write(r)
+-- print(dumper.encode(r, { stable = true }))
 

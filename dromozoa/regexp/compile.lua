@@ -16,6 +16,8 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local list = require "dromozoa.list"
+local tree_map = require "dromozoa.tree_map"
+local runtime = require "dromozoa.regexp.runtime"
 
 local function update_state_indices_accept(u, accept_actions, color)
   color[u] = 1
@@ -66,8 +68,14 @@ local function construct_table(u, max_state, transitions, transition_actions, tr
   color[u] = 2
 end
 
-local function generate(that)
-  local u = that.u
+local function make_shared(shared_map, shared_data, data)
+  return shared_map(data, function ()
+    return #shared_data:append("{" .. table.concat(data, ",") .. "};\n")
+  end)
+end
+
+local function generate(item, shared_map, shared_data, static_data, action_data)
+  local u = item.machine.u
 
   local accept_actions = list()
   update_state_indices_accept(u, accept_actions, {})
@@ -85,18 +93,60 @@ local function generate(that)
 
   construct_table(u, max_state, transitions, transition_actions, transition_states, {})
 
-  return {
-    timestamp = that.timestamp;
-    guard_action = that.guard_action;
-    main = that.main;
-    name = that.name;
-    start_state = u.index;
-    accept_actions = accept_actions;
-    max_state = max_state;
-    transitions = transitions;
-    transition_actions = transition_actions;
-    transition_states = transition_states;
-  }
+  static_data:append(
+    "{\n",
+    "start_state=", u.index, ";\n",
+    "max_accept_state=", #accept_actions, ";\n",
+    "max_state=", max_state, ";\n",
+    "transitions={[0]=")
+  for byte = 0x00, 0xFF do
+    static_data:append("_[", make_shared(shared_map, shared_data, transitions[byte]), byte == 0xFF and "]" or "],")
+  end
+  static_data:append(
+    "};\n",
+    "transition_states=_[", make_shared(shared_map, shared_data, transition_states), "];\n",
+    "};\n")
+
+  action_data:append "{\n"
+  if item.machine.guard_action ~= nil then
+    action_data:append(
+      "guard_action = function ()\n",
+      item.machine.guard_action, "\n",
+      "end;\n")
+  end
+  action_data:append(
+    "accept_actions={\n")
+  for _, accept_action in ipairs(accept_actions) do
+    action_data:append(
+      "function ()\n",
+      accept_action, "\n",
+      "end;\n")
+  end
+  action_data:append(
+    "};\n")
+
+  action_data:append(
+    "transition_actions={\n")
+  for _, transition_action in ipairs(transition_actions) do
+    action_data:append(
+      "function ()\n",
+      transition_action, "\n",
+      "end;\n")
+  end
+
+  action_data:append(
+    "};\n")
+
+
+  action_data:append "};\n"
+
+
+  -- item.start_state = u.index
+  -- item.accept_actions = accept_actions
+  -- item.max_state = max_state
+  -- item.transitions = transitions
+  -- item.transition_actions = transition_actions
+  -- item.transition_states = transition_states
 end
 
 return function (that)
@@ -104,14 +154,31 @@ return function (that)
 
   local data = list()
   for name, machine in pairs(that) do
-    if type(name) == "string" then
-      machine.name = name
+    local main = name == 1
+    if type(name) ~= "string" then
+      name = machine.name
     end
-    data:append(generate(machine))
+    data:append { timestamp = machine.timestamp, machine = machine, name = name, main = main }
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
-  return data
+  local shared_map = tree_map()
+  local shared_data = list()
+  local static_data = list()
+  local action_data = list()
+
+  for i, item in ipairs(data) do
+    if item.main then
+      static_data:append("main=", i, ";\n")
+    end
+    generate(item, shared_map, shared_data, static_data, action_data)
+  end
+
+  return table.concat(runtime {
+    shared_data = table.concat(shared_data);
+    static_data = table.concat(static_data);
+    action_data = table.concat(action_data);
+  })
 end
 
 --[====[

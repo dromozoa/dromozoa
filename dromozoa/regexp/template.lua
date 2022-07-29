@@ -15,14 +15,15 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-$static_section
+local _ = { $shared_data }
+local static_data = { $static_data }
+_ = nil
 
 return function (source, source_name)
   local action_data = (function ()
     local static_data
     local source
     local source_name
-$action_data
-$static_section
+    return { $action_data }
   end)()
 end
