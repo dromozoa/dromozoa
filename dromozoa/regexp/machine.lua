@@ -504,7 +504,7 @@ function module.union(that)
   end
   return {
     timestamp = that[1].timestamp;
-    state = minimize(nfa_to_dfa(u));
+    start_state = minimize(nfa_to_dfa(u));
   }
 end
 
@@ -550,7 +550,7 @@ function module.lexer(tokens, that)
 
   return {
     timestamp = data[1].timestamp;
-    state = minimize(nfa_to_dfa(u));
+    start_state = minimize(nfa_to_dfa(u));
   }
 end
 
