@@ -72,9 +72,7 @@ local function make_shared(shared_map, shared_data, data)
   end)
 end
 
-local function generate(item, shared_map, shared_data, static_data, action_data)
-  local u = item.machine.start_state
-
+local function generate(u, guard_action, shared_map, shared_data, static_data, action_data)
   local accept_actions = list()
   update_state_indices_accept(u, accept_actions, {})
   local max_state = update_state_indices_nonaccept(u, #accept_actions, {})
@@ -91,7 +89,6 @@ local function generate(item, shared_map, shared_data, static_data, action_data)
 
   construct_table(u, max_state, transitions, transition_actions, transition_states, {})
 
-  -- TODO なんかいいかんじにする
   static_data:append(
     "{\n",
     "start_state=", u.index, ";\n",
@@ -106,36 +103,22 @@ local function generate(item, shared_map, shared_data, static_data, action_data)
     "transition_states=_[", make_shared(shared_map, shared_data, transition_states), "];\n",
     "};\n")
 
+  -- TODO actionも圧縮できる
+
   action_data:append "{\n"
-  if item.machine.guard_action ~= nil then
-    action_data:append(
-      "guard_action=function()",
-      item.machine.guard_action, "\n",
-      "end;\n")
+  if guard_action ~= nil then
+    action_data:append("guard_action=function()", guard_action, "\nend;\n")
   end
-  action_data:append(
-    "accept_actions={\n")
+  action_data:append "accept_actions={\n"
   for _, accept_action in ipairs(accept_actions) do
-    action_data:append(
-      "function()",
-      accept_action, "\n",
-      "end;\n")
+    action_data:append("function()", accept_action, "\nend;\n")
   end
-  action_data:append(
-    "};\n")
-
-  action_data:append(
-    "transition_actions={\n")
+  action_data:append "};\n"
+  action_data:append "transition_actions={\n"
   for _, transition_action in ipairs(transition_actions) do
-    action_data:append(
-      "function()",
-      transition_action, "\n",
-      "end;\n")
+    action_data:append("function()", transition_action, "\nend;\n")
   end
-
-  action_data:append(
-    "};\n")
-
+  action_data:append "};\n"
   action_data:append "};\n"
 end
 
@@ -170,7 +153,7 @@ return function (that)
     if v.name ~= nil then
       custom_data:append("local ", v.name, "=", i, "\n")
     end
-    generate(v, shared_map, shared_data, static_data, action_data)
+    generate(v.machine.start_state, v.machine.guard_action, shared_map, shared_data, static_data, action_data)
   end
 
   return table.concat(runtime {
