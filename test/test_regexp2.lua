@@ -28,6 +28,7 @@ local lexer = machine.lexer
 
 local tokens = list()
 
+--[==[
 local code = compile {
   escape_digit = union {
     (_["09"]/"ra=ra*10+fc-0x30"){0,2} % "fret()";
@@ -35,6 +36,7 @@ local code = compile {
 
   lexer(tokens, {
     -- comment
+    _"--" + ((-_{"\r\n"}){0} - (_"[" + _"="{0} + "[" + (-_{"\r\n"}){0}));
     _"--[[" + (any(){0} - (any(){0} + "]]" + any(){0})) + "]]";
 
     integer = _["09"]{1};
@@ -49,7 +51,56 @@ local code = compile {
       + "\"";
   });
 }
+]==]
 
-local out = assert(io.open("test-lexer.lua", "w"))
+local code = compile {
+  digit = union {
+    (_["09"]/[[append(fb,fc) print"B"]]){0,2} %[[print"C" fret()]];
+  };
+
+  lexer(tokens, {
+    _{  _{" \t\f\v"}
+      ; _"\n"/[[ln=ln+1 lp=fp]] + (_"\r"/[[lp=fp]]){0,1}
+      ; _"\r"/[[ln=ln+1 lp=fp]] + (_"\n"/[[lp=fp]]){0,1}
+      }{1};
+
+    _"--" + ((-_{"\n\r"}){0} - (_"[" + _"="{0} + "[" + any{0}));
+    -- _"--[" + (_"="/[[ ]]){0} + "[";
+
+    string = (_[["]]/[[clear(fb)]]
+      + _{  _[[\]] + _["09"]/[[append(fb,fc) print"A" fcall"digit" print"Z"]]
+          ; _[[\]] + _[[\]]/[[append(fb,0x5C)]]
+          ; _[[\]] + _[["]]/[[append(fb,0x22)]]
+          ; (-_{[["\]]})/[[append(fb,fc)]]
+          }{0}
+      + _[["]]) %[[push_token(fb)]];
+
+    _"*";
+    _"+";
+    integer = _["09"]{1};
+  });
+}
+
+local filename = "test-lexer.lua"
+local out = assert(io.open(filename, "w"))
 out:write(code)
 out:close()
+
+local execute = assert(assert(loadfile(filename))())
+execute([[
+-- test
+123
++ 456
+  * "foo\0123 "
+]], filename, function (token)
+  if token ~= nil then
+    if token.symbol then
+      print("push", token.symbol, token.i, token.j, token.line, token.column, ("%q"):format(token.value))
+    else
+      print("skip", "", token.i, token.j, token.line, token.column, ("%q"):format(token.source))
+    end
+  else
+    print("push", "$")
+  end
+end)
+

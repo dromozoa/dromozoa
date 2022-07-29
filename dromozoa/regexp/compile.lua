@@ -93,6 +93,7 @@ local function generate(item, shared_map, shared_data, static_data, action_data)
 
   construct_table(u, max_state, transitions, transition_actions, transition_states, {})
 
+  -- TODO なんかいいかんじにする
   static_data:append(
     "{\n",
     "start_state=", u.index, ";\n",
@@ -137,16 +138,7 @@ local function generate(item, shared_map, shared_data, static_data, action_data)
   action_data:append(
     "};\n")
 
-
   action_data:append "};\n"
-
-
-  -- item.start_state = u.index
-  -- item.accept_actions = accept_actions
-  -- item.max_state = max_state
-  -- item.transitions = transitions
-  -- item.transition_actions = transition_actions
-  -- item.transition_states = transition_states
 end
 
 return function (that)
@@ -173,6 +165,13 @@ return function (that)
     end
     generate(item, shared_map, shared_data, static_data, action_data)
   end
+  static_data:append "machines={\n"
+  for i, item in ipairs(data) do
+    if item.name ~= nil then -- should be string
+      static_data:append("[", ("%q"):format(item.name), "]=", i, ";\n")
+    end
+  end
+  static_data:append "};\n"
 
   return table.concat(runtime {
     shared_data = table.concat(shared_data);

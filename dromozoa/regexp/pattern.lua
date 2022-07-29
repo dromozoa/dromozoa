@@ -20,6 +20,9 @@ local metatable = { __name = "dromozoa.regexp.pattern" }
 
 local timestamp = 0
 
+-- TODO local, class, metatableの順序を整理する
+-- patternだけ、前にもってきて、あとはうしろのほうがきれいなのではないか。
+
 local function construct(code, ...)
   timestamp = timestamp + 1
   return setmetatable({ timestamp = timestamp, [0] = code, ... }, metatable)
@@ -198,6 +201,8 @@ function metatable:__call(that)
     end
   end
 end
+
+-- TODO metatable.__nameをつける
 
 return setmetatable(class, {
   __index = function (_, that)
