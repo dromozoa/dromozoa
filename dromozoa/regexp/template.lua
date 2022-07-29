@@ -142,30 +142,53 @@ return function (source, source_name, fn)
     buffer[#buffer + 1] = value
   end
 
-  local function execute(current_byte)
-    local s = 0
-    if current_byte ~= nil then
-      s = _[current_index].transitions[current_byte][current_state]
-    end
-
-    -- current_positionを更新しなければ、もういちど同じ文字で呼びだされる。
-
-    if s ~= 0 then
-      fp = current_position
-      fc = current_byte
-      if s > _[current_index].max_state then
-        local t = s - _[current_index].max_state
-        current_position = current_position + 1
-        current_state = _[current_index].transition_states[t]
-        local thread = coroutine.create(_[current_index].transition_actions[t])
+  local function guard(current_byte)
+    if _[current_index].guard_action ~= nil and current_state == _[current_index].start_state then
+      local guard = string.char(table.unpack(fg))
+      local p = current_position + #guard - 1
+      if string.sub(source, current_position, p) == guard then
+        current_position = p + 1
+        fp = p
+        fc = string.byte(source, p)
+        local thread = coroutine.create(_[current_index].guard_action)
         assert(coroutine.resume(thread))
         if coroutine.status(thread) == "suspended" then
           stack[#stack].thread = thread
         end
-      else
-        current_position = current_position + 1
-        current_state = s
+        return true
       end
+    end
+  end
+
+  local function transition(current_byte)
+    if current_byte == nil then
+      return
+    end
+    local s = _[current_index].transitions[current_byte][current_state]
+    if s == 0 then
+      return
+    end
+
+    fp = current_position
+    fc = current_byte
+    if s > _[current_index].max_state then
+      local t = s - _[current_index].max_state
+      current_position = current_position + 1
+      current_state = _[current_index].transition_states[t]
+      local thread = coroutine.create(_[current_index].transition_actions[t])
+      assert(coroutine.resume(thread))
+      if coroutine.status(thread) == "suspended" then
+        stack[#stack].thread = thread
+      end
+    else
+      current_position = current_position + 1
+      current_state = s
+    end
+    return true
+  end
+
+  local function accept(current_byte)
+    if current_byte ~= nil and _[current_index].transitions[current_byte][current_state] ~= 0 then
       return
     end
 
@@ -176,10 +199,7 @@ return function (source, source_name, fn)
       if coroutine.status(thread) == "suspended" then
         stack[#stack].thread = thread
       end
-      -- 状態が変更されたので、再度評価する
       if jumped then
-        -- continue
-        -- return execute(current_byte)
         return
       end
 
@@ -197,7 +217,6 @@ return function (source, source_name, fn)
           start_line = ln
           start_column = fs - lp
           current_state = _[current_index].start_state
-          -- return execute(current_byte)
           return
         end
       end
@@ -206,26 +225,10 @@ return function (source, source_name, fn)
   end
 
   repeat
-    local guarded
+    local current_byte = string.byte(source, current_position)
     local done
-    if _[current_index].guard_action ~= nil and current_state == _[current_index].start_state then
-      local guard = string.char(table.unpack(fg))
-      local p = current_position + #guard - 1
-      guarded = string.sub(source, current_position, p) == guard
-      if guarded then
-        current_position = p + 1
-        fp = p
-        fc = string.byte(source, p)
-
-        local thread = coroutine.create(_[current_index].guard_action)
-        assert(coroutine.resume(thread))
-        if coroutine.status(thread) == "suspended" then
-          stack[#stack].thread = thread
-        end
-      end
-    end
-    if not guarded then
-      done = execute(string.byte(source, current_position))
+    if not guard(current_byte) and not transition(current_byte) then
+      done = accept(current_byte)
     end
   until done
 end
