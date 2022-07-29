@@ -21,6 +21,7 @@ local machine = require "dromozoa.regexp.machine"
 local compile = require "dromozoa.regexp.compile"
 
 local _ = pattern
+local any = pattern.any
 local union = machine.union
 local guard = machine.guard
 local lexer = machine.lexer
@@ -33,6 +34,9 @@ local code = compile {
   };
 
   lexer(tokens, {
+    -- comment
+    _"--[[" + (any(){0} - (any(){0} + "]]" + any(){0})) + "]]";
+
     integer = _["09"]{1};
     string
       = _"\""
