@@ -136,6 +136,16 @@ context.action_data;
     buffer[#buffer + 1] = value
   end
 
+  local function execute(action)
+    jumped = false
+    local thread = coroutine.create(action)
+    assert(coroutine.resume(thread))
+    if coroutine.status(thread) == "suspended" then
+      stack[#stack].thread = thread
+    end
+    return jumped
+  end
+
   local function guard(current_byte)
     if _[current_index].guard_action ~= nil and current_state == _[current_index].start_state then
       local guard = string.char(table.unpack(fg))
@@ -144,36 +154,20 @@ context.action_data;
         current_position = p + 1
         fp = p
         fc = string.byte(source, p)
-        local thread = coroutine.create(_[current_index].guard_action)
-        assert(coroutine.resume(thread))
-        if coroutine.status(thread) == "suspended" then
-          stack[#stack].thread = thread
-        end
+        execute(_[current_index].guard_action)
         return true
       end
     end
   end
 
-  local function transition(current_byte)
-    if current_byte == nil then
-      return
-    end
-    local s = _[current_index].transitions[current_byte][current_state]
-    if s == 0 then
-      return
-    end
-
+  local function transition(current_byte, s)
     fp = current_position
     fc = current_byte
     if s > _[current_index].max_state then
       local t = s - _[current_index].max_state
       current_position = current_position + 1
       current_state = _[current_index].transition_states[t]
-      local thread = coroutine.create(_[current_index].transition_actions[t])
-      assert(coroutine.resume(thread))
-      if coroutine.status(thread) == "suspended" then
-        stack[#stack].thread = thread
-      end
+      execute(_[current_index].transition_actions[t])
     else
       current_position = current_position + 1
       current_state = s
@@ -182,21 +176,10 @@ context.action_data;
   end
 
   local function accept(current_byte)
-    if current_byte ~= nil and _[current_index].transitions[current_byte][current_state] ~= 0 then
-      return
-    end
-
     if current_state <= _[current_index].max_accept_state then
-      jumped = false
-      local thread = coroutine.create(_[current_index].accept_actions[current_state])
-      assert(coroutine.resume(thread))
-      if coroutine.status(thread) == "suspended" then
-        stack[#stack].thread = thread
-      end
-      if jumped then
+      if execute(_[current_index].accept_actions[current_state]) then
         return
       end
-
       if current_byte == nil then
         if current_index == main then
           -- push eof
@@ -218,13 +201,22 @@ context.action_data;
     error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error")
   end
 
-  repeat
+  while true do
     local current_byte = string.byte(source, current_position)
-    local done
-    if not guard(current_byte) and not transition(current_byte) then
-      done = accept(current_byte)
+    if not guard(current_byte) then
+      local s = 0
+      if current_byte ~= nil then
+        s = _[current_index].transitions[current_byte][current_state]
+      end
+      if s ~= 0 then
+        transition(current_byte, s)
+      else
+        if accept(current_byte) then
+          break
+        end
+      end
     end
-  until done
+  end
 end
 ]];
 } end
