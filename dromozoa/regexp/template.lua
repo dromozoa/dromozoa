@@ -189,13 +189,13 @@ return function (source, source_name, fn)
 
     fp = current_position
     fc = current_byte
+    current_position = current_position + 1
+
     if s > _[current_index].max_state then
       local t = s - _[current_index].max_state
-      current_position = current_position + 1
       current_state = _[current_index].transition_states[t]
       execute(_[current_index].transition_actions[t])
     else
-      current_position = current_position + 1
       current_state = s
     end
   end
@@ -214,9 +214,10 @@ return function (source, source_name, fn)
       end
     end
 
-    current_position = current_position + #fg
-    fp = current_position - 1
+    fp = current_position + #fg - 1
     fc = fg[#fg]
+    current_position = current_position + 1
+
     execute(_[current_index].guard_action)
   end
 
