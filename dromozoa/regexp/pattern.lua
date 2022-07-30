@@ -219,6 +219,10 @@ function metatable:__index(that)
   end
 end;
 
+function metatable:__newindex(that)
+  error "not supported"
+end;
+
 function metatable:__call(that)
   if self == module then
     if type(that) == "table" and getmetatable(that) ~= metatable then
