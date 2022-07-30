@@ -112,23 +112,23 @@ local function generate(index, u, guard_action, shared_map, shared_data, static_
     "max_accept_state=", #accept_actions, ";\n",
     "max_state=", max_state, ";\n",
     "transitions=S[", index, "].transitions;\n",
-    "transition_states=S[", index, "].transition_states;\n")
-  if guard_action ~= nil then
-    merged_data:append("guard_action=_[", make_action(action_map, action_data, guard_action), "];\n")
-  end
-  merged_data:append
-    "accept_actions={"
-  for _, accept_action in ipairs(accept_actions) do
-    merged_data:append("_[", make_action(action_map, action_data, accept_action), "],")
-  end
-  merged_data:append(
-    "};\n",
     "transition_actions={")
   for _, transition_action in ipairs(transition_actions) do
     merged_data:append("_[", make_action(action_map, action_data, transition_action), "],")
   end
   merged_data:append(
     "};\n",
+    "transition_states=S[", index, "].transition_states;\n",
+    "accept_actions={")
+  for _, accept_action in ipairs(accept_actions) do
+    merged_data:append("_[", make_action(action_map, action_data, accept_action), "],")
+  end
+  merged_data:append(
+    "};\n")
+  if guard_action ~= nil then
+    merged_data:append("guard_action=_[", make_action(action_map, action_data, guard_action), "];\n")
+  end
+  merged_data:append(
     "};\n")
 end
 

@@ -13,7 +13,7 @@ local _
 return function (source, source_name, fn)
   local fcall
   local fret
-  local push_token
+  local push_token -- TODO pushでよいかも？
   local clear
   local append
 
