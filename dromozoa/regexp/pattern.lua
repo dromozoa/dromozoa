@@ -102,6 +102,9 @@ function metatable:__mul(that)
   if self[0] == "A" then
     error "not supported"
   else
+    local m
+    local n
+
     if that == "*" or that == 0 then
       return construct("*", self)
     elseif that == "+" or that == 1 then
@@ -110,8 +113,6 @@ function metatable:__mul(that)
       return construct("?", self)
     end
 
-    local m
-    local n
     if type(that) == "number" then
       if that < 0 then
         m = 0
