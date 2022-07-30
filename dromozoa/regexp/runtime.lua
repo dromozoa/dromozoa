@@ -27,10 +27,6 @@ return function (source, source_name, fn)
   local lp = 0  -- line position
   local tk      -- token symbol
 
-  -- TODO token_symbolを隠す
-  -- TODO 隠さなくていいけど、スタックにキャプチャするべき？
-  local token_symbol
-
   local _ = (function ()
     local S
     local source
@@ -64,6 +60,7 @@ context.merged_data;
 
   function fcall(index)
     stack[#stack + 1] = {
+      token_symbol = tk;
       start_position = fs;
       start_line = start_line;
       start_column = start_column;
@@ -71,6 +68,7 @@ context.merged_data;
       current_state = current_state;
     }
 
+    tk = nil
     fs = current_position
     start_line = ln
     start_column = fs - lp
@@ -86,6 +84,7 @@ context.merged_data;
     stack[#stack] = nil
 
     local thread = assert(item.thread)
+    tk = item.token_symbol
     fs = item.start_position
     start_line = item.start_line
     start_column = item.start_column
@@ -101,7 +100,6 @@ context.merged_data;
     if value == nil then
       value = source
     elseif type(value) == "table" then
-      -- TODO あとできれいにする
       value = string.char(table_unpack(value))
     end
     fn {
@@ -115,16 +113,6 @@ context.merged_data;
     }
   end
 
-  -- function skip_token()
-  --   fn {
-  --     i = fs;
-  --     j = fp;
-  --     source = string.sub(source, fs, fp);
-  --     line = start_line;
-  --     column = start_column;
-  --   }
-  -- end
-
   function clear(buffer)
     buffer = {}
   end
@@ -134,6 +122,7 @@ context.merged_data;
   end
 
   local function execute(action)
+    -- TODO コルーチンを作るかどうか前もってわかるはず。
     jumped = false
     local thread = coroutine.create(action)
     assert(coroutine.resume(thread))
@@ -145,7 +134,7 @@ context.merged_data;
 
   local function guard(current_byte)
     if _[current_index].guard_action ~= nil and current_state == _[current_index].start_state then
-      -- TODO あとできれいにする
+      -- TODO あとで効率化する
       local guard = string.char(table_unpack(fg))
       local p = current_position + #guard - 1
       if string.sub(source, current_position, p) == guard then
@@ -188,6 +177,7 @@ context.merged_data;
       else
         -- 初期状態でなければ、再度を実行する。
         if current_state ~= _[current_index].start_state then
+          tk = nil
           fs = current_position
           start_line = ln
           start_column = fs - lp

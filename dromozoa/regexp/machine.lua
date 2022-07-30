@@ -496,13 +496,6 @@ end
 
 local module = {}
 
--- debug and test
-module.tree_to_nfa = tree_to_nfa
-module.nfa_to_dfa = nfa_to_dfa
-module.minimize = minimize
-module.difference_impl = difference_impl
-module.remove_dead_states = remove_dead_states
-
 function module.union(that)
   table.sort(that, function (a, b) return a.timestamp < b.timestamp end)
   local s = state()
