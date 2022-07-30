@@ -28,24 +28,6 @@ local union = machine.union
 local guard = machine.guard
 local lexer = machine.lexer
 
-local x = machine.tree_to_nfa(_{ _"a"{0} + _"b"{1} + (_"c"/"print'T'"){0,1} - "abc" ; _["xyz"]{3,3} } %"print'A'")
-local x = machine.tree_to_nfa(_{ _"a"{0} + _"b"{1} + (_"c"/"print'T'"){0,1} ; _["xyz"]{3,3} } %"print'A'")
-local x = machine.tree_to_nfa((_"a"{0} + _"b"{1} + (_"c"/"print'T'"){0,1} - "abc") %"print'A'")
-local a = machine.tree_to_nfa((_"a"{0} + _"b"{1} + (_"c"/"print'T'"){0,1}) %"print'A'")
-local b = machine.tree_to_nfa(_"abc", "")
-
-local a = machine.nfa_to_dfa(a)
-local b = machine.nfa_to_dfa(b)
-
--- local x = machine.minimize(machine.nfa_to_dfa(x))
-local out = assert(io.open("test-a.dot", "w"))
-write_graphviz(out, a)
-out:close()
-
-local out = assert(io.open("test-b.dot", "w"))
-write_graphviz(out, b)
-out:close()
-
 local m1 = union {
   _{ _"a"{0} + _"b"{1} + (_"c"/"print'T'"){0,1} - "abc" ; _["xyz"]{3,3} } %"print'A'"
 }
