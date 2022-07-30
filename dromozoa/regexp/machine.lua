@@ -134,11 +134,11 @@ local function node_to_nfa(node, timestamp)
   end
 end
 
-local function tree_to_nfa(node, accept_action)
+local function tree_to_nfa(node)
   local timestamp = assert(rawget(node, "timestamp"))
   local u, v = node_to_nfa(node, timestamp)
   if v.accept_action == nil then
-    v:update(timestamp, accept_action)
+    v:update(timestamp, "")
   end
   return u, v
 end
@@ -509,7 +509,7 @@ end
 function module.union(that)
   local s = state()
   for _, node in ipairs(that) do
-    transition(s, (tree_to_nfa(node, "")))
+    transition(s, (tree_to_nfa(node)))
   end
   return machine(rawget(that[1], "timestamp"), minimize(nfa_to_dfa(s)))
 end
@@ -532,7 +532,7 @@ function module.lexer(tokens, that)
 
   local s = state()
   for _, item in ipairs(data) do
-    local u, v = tree_to_nfa(item.node, "")
+    local u, v = tree_to_nfa(item.node)
     transition(s, u)
 
     local symbol = "nil"

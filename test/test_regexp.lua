@@ -61,23 +61,8 @@ local m3 = machine.lexer(tokens, {
   line_comment = "--" + (-_{"\n\r"}*0 - ("[[" + _*0));
   block_comment = "--[[" + (_*0 - (_*0 + "]]" + _*0) - (_*0 + "]")) + "]]";
   c_comment = "/*" + (_*0 - (_*0 + "*/" + _*0)) + "*/";
-
+  -- any = _;
 })
-
--- any = -_("")
--- any = -_{""} / _{}
--- any = -_[""] / _[]
---
--- _(1)
---
---
--- _(0)
--- CRLF
--- _{any=1}, _{space=1}
--- space
--- _(any) _()
--- _:any()
-
 
 local out = assert(io.open("test-m3.dot", "w"))
 write_graphviz(out, m3.start_state)
