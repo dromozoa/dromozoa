@@ -23,7 +23,7 @@ local _ = grammar.body
 local g = grammar({ "c", "d" }, {
   S = _"C" "C";
   C = _"c" "C"
-    | _"d";
+    + _"d";
 })
 
 local items = grammar.lr1_closure(g, grammar.list { index = 1, dot = 1, la = g.max_terminal_symbol })

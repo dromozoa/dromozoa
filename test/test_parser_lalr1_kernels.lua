@@ -22,9 +22,9 @@ local _ = grammar.body
 -- P.273
 local g = grammar({ "=", "*", "id" }, {
   S = _"L" "=" "R"
-    | _"R";
+    + _"R";
   L = _"*" "R"
-    | _"id";
+    + _"id";
   R = _"L";
 })
 

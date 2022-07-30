@@ -22,11 +22,11 @@ local _ = grammar.body
 -- P.246
 local g = grammar({ "+", "*", "(", ")", "id" }, {
   E = _"E" "+" "T"
-    | _"T";
+    + _"T";
   T = _"T" "*" "F"
-    | _"F";
+    + _"F";
   F = _"(" "E" ")"
-    | _"id";
+    + _"id";
 })
 
 local set_of_items, transitions = grammar.lr0_items(g)

@@ -24,13 +24,13 @@ local g = grammar({ "+", "*", "(", ")", "id" }, {
   E = _"T" "E'";
   ["E'"]
     = _"+" "T" "E'"
-    | _();
+    + _();
   T = _"F" "T'";
   ["T'"]
     = _"*" "F" "T'"
-    | _();
+    + _();
   F = _"(" "E" ")"
-    | _"id";
+    + _"id";
 })
 local first_table = grammar.first_table(g)
 

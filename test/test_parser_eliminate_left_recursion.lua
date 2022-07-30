@@ -22,10 +22,10 @@ local _ = grammar.body
 -- P.214
 local g = grammar({ "a", "b", "c", "d" }, {
   S = _"A" "a"
-    | _"b";
+    + _"b";
   A = _"A" "c"
-    | _"S" "d"
-    | _();
+    + _"S" "d"
+    + _();
 })
 local g = grammar.eliminate_left_recursion(g)
 

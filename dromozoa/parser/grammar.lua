@@ -175,7 +175,7 @@ end
 
 local metatable = { __name = "dromozoa.parser.grammar.bodies" }
 
-function metatable:__bor(that)
+function metatable:__add(that)
   self[#self + 1] = that
   return self
 end
@@ -199,7 +199,7 @@ function metatable:__mod(that)
   return self
 end
 
-function metatable:__bor(that)
+function metatable:__add(that)
   return module.bodies(self, that)
 end
 
