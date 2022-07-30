@@ -4,7 +4,7 @@ local _ = { ]];
 context.shared_data;
 [[
  }
-local static_data = { ]];
+local S = { ]];
 context.static_data;
 [[
  }
@@ -31,7 +31,7 @@ return function (source, source_name, fn)
   local token_symbol
 
   local _ = (function ()
-    local static_data
+    local S
     local source
     local source_name
     local fn
@@ -49,19 +49,12 @@ context.merged_data;
 [[
  }
 
-  for i, u in ipairs(static_data) do
-    for k, v in pairs(u) do
-      _[i][k] = v
-    end
-  end
-  local main = static_data.main
-
   local table_unpack = table.unpack or unpack
 
   local start_line = 1
   local start_column = 1
   local current_position = 1
-  local current_index = main
+  local current_index = _.main
   local current_state = _[current_index].start_state
   local current_loop
 
@@ -185,7 +178,7 @@ context.merged_data;
         return
       end
       if current_byte == nil then
-        if current_index == main then
+        if current_index == _.main then
           -- push eof
           fn()
           return true

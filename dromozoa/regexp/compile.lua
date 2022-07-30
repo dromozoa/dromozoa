@@ -78,7 +78,7 @@ local function make_action(action_map, action_data, data)
   end)
 end
 
-local function generate(u, guard_action, shared_map, shared_data, static_data, action_map, action_data, merged_data)
+local function generate(index, u, guard_action, shared_map, shared_data, static_data, action_map, action_data, merged_data)
   local accept_actions = list()
   update_state_indices_accept(u, accept_actions, {})
   local max_state = update_state_indices_nonaccept(u, #accept_actions, {})
@@ -97,9 +97,6 @@ local function generate(u, guard_action, shared_map, shared_data, static_data, a
 
   static_data:append(
     "{\n",
-    "start_state=", u.index, ";\n",
-    "max_accept_state=", #accept_actions, ";\n",
-    "max_state=", max_state, ";\n",
     "transitions={[0]=")
   for byte = 0x00, 0xFF do
     static_data:append("_[", make_shared(shared_map, shared_data, transitions[byte]), "],")
@@ -109,9 +106,14 @@ local function generate(u, guard_action, shared_map, shared_data, static_data, a
     "transition_states=_[", make_shared(shared_map, shared_data, transition_states), "];\n",
     "};\n")
 
-  -- TODO actionも圧縮できる
+  merged_data:append(
+    "{\n",
+    "start_state=", u.index, ";\n",
+    "max_accept_state=", #accept_actions, ";\n",
+    "max_state=", max_state, ";\n",
+    "transitions=S[", index, "].transitions;\n",
+    "transition_states=S[", index, "].transition_states;\n")
 
-  merged_data:append "{\n"
   if guard_action ~= nil then
     merged_data:append("guard_action=_[", make_action(action_map, action_data, guard_action), "],\n")
   end
@@ -156,12 +158,12 @@ return function (that)
 
   for i, v in ipairs(data) do
     if v.main then
-      static_data:append("main=", i, ";\n")
+      merged_data:append("main=", i, ";\n")
     end
     if v.name ~= nil then
       custom_data:append("local ", v.name, "=", i, "\n")
     end
-    generate(v.machine.start_state, v.machine.guard_action, shared_map, shared_data, static_data, action_map, action_data, merged_data)
+    generate(i, v.machine.start_state, v.machine.guard_action, shared_map, shared_data, static_data, action_map, action_data, merged_data)
   end
 
   return table.concat(runtime {
