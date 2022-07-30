@@ -71,33 +71,34 @@ local code = compile {
   [[local ra]];
 
   digit = union {
-    (_["09"]/[[ra=ra*10+fc-0x30]])*-2 %[[fret()]];
+    _["09"]/[[ra=ra*10+fc-0x30]]*-2 %[[fret()]];
   };
 
   comment = guard([[fret()]], {
-    _"\n"/[[ln=ln+1 lp=fp]] + (_"\r"/[[lp=fp]])*"?";
-    _"\r"/[[ln=ln+1 lp=fp]] + (_"\n"/[[lp=fp]])*"?";
-
+    _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
+    _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
     _"]";
-    (-_{"]\n\r"})*"+";
+    -_{"]\n\r"}*"+";
   });
 
   lexer(tokens, {
-    _{  _{" \t\f\v"}
-      ; _"\n"/[[ln=ln+1 lp=fp]] + (_"\r"/[[lp=fp]])*"?"
-      ; _"\r"/[[ln=ln+1 lp=fp]] + (_"\n"/[[lp=fp]])*"?"
-      }*"+";
+    _{
+      _{" \t\f\v"};
+      _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
+      _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
+    }*"+";
 
-    _"--" + _"["/[[print"[" append(fg,0x5D)]] + (_"="/[[print"=" append(fg,fc)]])*"*" + _"["/[[print"[" append(fg,0x5D) fcall(comment)]];
-    _"--" + (-_{"\n\r"})*"*";
+    _"--" + _"["/[[append(fg,0x5D)]] + _"="/[[append(fg,fc)]]*"*" + _"["/[[append(fg,0x5D) fcall(comment)]];
+    _"--" + -_{"\n\r"}*"*";
 
-    string = (_[["]]/[[clear(fb)]]
-      + _{  _[[\]] + _["09"]/[[ra=fc-0x30 fcall(digit) append(fb,ra)]]
-          ; _[[\]] + _[[\]]/[[append(fb,0x5C)]]
-          ; _[[\]] + _[["]]/[[append(fb,0x22)]]
-          ; (-_{[["\]]})/[[append(fb,fc)]]
-          }*"*"
-      + _[["]]) %[[push_token(fb)]];
+    string = (
+      _[["]]/[[clear(fb)]] + _{
+        _[[\]] + _["09"]/[[ra=fc-0x30 fcall(digit) append(fb,ra)]];
+        _[[\]] + _[[\]]/[[append(fb,0x5C)]];
+        _[[\]] + _[["]]/[[append(fb,0x22)]];
+        -_{[["\]]}/[[append(fb,fc)]]
+      }*"*" + _[["]]
+    ) %[[push_token(fb)]];
 
     _"*";
     _"+";
