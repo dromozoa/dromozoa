@@ -4,11 +4,10 @@ local _ = { ]];
 context.shared_data;
 [[
  }
-local S = { ]];
+local _ = { ]];
 context.static_data;
 [[
  }
-local _
 
 return function (source, source_name, fn)
   local fcall
@@ -26,8 +25,8 @@ return function (source, source_name, fn)
   local lp = 0  -- line position
   local tk      -- token symbol
 
-  local _ = (function ()
-    local S
+  local action_data = (function ()
+    local _
     local source
     local source_name
     local fn
@@ -40,10 +39,6 @@ context.action_data;
 [[
  }
   end)()
-  local _ = { ]];
-context.merged_data;
-[[
- }
 
   local table_unpack = table.unpack or unpack
 
@@ -120,8 +115,10 @@ context.merged_data;
     buffer[#buffer + 1] = value
   end
 
-  local function execute(action)
+  local function execute(action_index)
     -- TODO コルーチンを作るかどうか前もってわかるはず。
+    -- 継続かどうか、つまり、途中でfcallを呼ぶ場合だけ必要
+    local action = action_data[action_index]
     jumped = false
     local thread = coroutine.create(action)
     assert(coroutine.resume(thread))

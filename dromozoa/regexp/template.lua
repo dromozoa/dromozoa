@@ -16,8 +16,7 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local _ = { $shared_data }
-local S = { $static_data }
-local _
+local _ = { $static_data }
 
 return function (source, source_name, fn)
   local fcall
@@ -35,15 +34,14 @@ return function (source, source_name, fn)
   local lp = 0  -- line position
   local tk      -- token symbol
 
-  local _ = (function ()
-    local S
+  local action_data = (function ()
+    local _
     local source
     local source_name
     local fn
     $custom_data
     return { $action_data }
   end)()
-  local _ = { $merged_data }
 
   local table_unpack = table.unpack or unpack
 
@@ -120,9 +118,10 @@ return function (source, source_name, fn)
     buffer[#buffer + 1] = value
   end
 
-  local function execute(action)
+  local function execute(action_index)
     -- TODO コルーチンを作るかどうか前もってわかるはず。
     -- 継続かどうか、つまり、途中でfcallを呼ぶ場合だけ必要
+    local action = action_data[action_index]
     jumped = false
     local thread = coroutine.create(action)
     assert(coroutine.resume(thread))
