@@ -22,7 +22,7 @@ local tree_map = require "dromozoa.tree_map"
 ---------------------------------------------------------------------------
 
 local class = {}
-local metatable = { __index = class, __name = "dromozoa.regexp.state" }
+local metatable = { __index = class, __name = "dromozoa.regexp.machine.state" }
 
 function class:simulate(byte, resolved)
   for _, t in ipairs(self.transitions) do
@@ -51,7 +51,7 @@ end
 ---------------------------------------------------------------------------
 
 local class = {}
-local metatable = { __index = class, __name = "dromozoa.regexp.transition" }
+local metatable = { __index = class, __name = "dromozoa.regexp.machine.transition" }
 
 function class:update(timestamp, byte)
   self.set[byte] = byte
@@ -493,6 +493,8 @@ function difference(x, y)
 end
 
 ---------------------------------------------------------------------------
+
+-- TODO metanameをつける
 
 local module = {}
 

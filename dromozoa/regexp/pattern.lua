@@ -15,23 +15,65 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local class = {}
 local metatable = { __name = "dromozoa.regexp.pattern" }
 
-local timestamp = 0
-
--- TODO local, class, metatableの順序を整理する
+-- construct, patternのつかいわけ
 -- patternだけ、前にもってきて、あとはうしろのほうがきれいなのではないか。
 -- TODO DSLを調整する。とくに、negateを関数呼び出しで優先度をあげる（anyのかきかたも）
+
+local timestamp = 0
 
 local function construct(code, ...)
   timestamp = timestamp + 1
   return setmetatable({ timestamp = timestamp, [0] = code, ... }, metatable)
 end
 
+local function pattern(that)
+  if type(that) == "string" then
+    local self = construct("[", { [that:byte(1)] = true })
+    for i = 2, #that do
+      self = self + construct("[", { [that:byte(i)] = true })
+    end
+    self.literal = that
+    return self
+  else
+    return that
+  end
+end
+
+local function range(that)
+  if type(that) == "string" then
+    local set = {}
+    for i = 1, #that, 2 do
+      local a, b = that:byte(i, i + 1)
+      if b == nil then
+        b = a
+      end
+      for byte = a, b do
+        set[byte] = true
+      end
+    end
+    return construct("[", set)
+  else
+    return pattern(that)
+  end
+end
+
+local function set(that)
+  if type(that) == "string" then
+    local set = {}
+    for i = 1, #that do
+      set[that:byte(i)] = true
+    end
+    return construct("[", set)
+  else
+    return pattern(that)
+  end
+end
+
 local function union(self, that)
-  local self = class.pattern(self)
-  local that = class.pattern(that)
+  local self = pattern(self)
+  local that = pattern(that)
   if self[0] == "%" or that[0] == "%" then
     error "not supported"
   elseif self[0] == "[" and that[0] == "[" then
@@ -48,61 +90,9 @@ local function union(self, that)
   end
 end
 
-function class.pattern(that)
-  if type(that) == "string" then
-    local self = construct("[", { [that:byte(1)] = true })
-    for i = 2, #that do
-      self = self + construct("[", { [that:byte(i)] = true })
-    end
-    self.literal = that
-    return self
-  else
-    return that
-  end
-end
-
-function class.range(that)
-  if type(that) == "string" then
-    local set = {}
-    for i = 1, #that, 2 do
-      local a, b = that:byte(i, i + 1)
-      if b == nil then
-        b = a
-      end
-      for byte = a, b do
-        set[byte] = true
-      end
-    end
-    return construct("[", set)
-  else
-    return class.pattern(that)
-  end
-end
-
-function class.set(that)
-  if type(that) == "string" then
-    local set = {}
-    for i = 1, #that do
-      set[that:byte(i)] = true
-    end
-    return construct("[", set)
-  else
-    return class.pattern(that)
-  end
-end
-
-local any = {}
-for byte = 0x00, 0xFF do
-  any[byte] = true
-end
-
-function class.any()
-  return construct("[", any)
-end
-
 function metatable:__add(that)
-  local self = class.pattern(self)
-  local that = class.pattern(that)
+  local self = pattern(self)
+  local that = pattern(that)
   if self[0] == "%" or that[0] == "%" then
     error "not supported"
   else
@@ -111,8 +101,8 @@ function metatable:__add(that)
 end
 
 function metatable:__sub(that)
-  local self = class.pattern(self)
-  local that = class.pattern(that)
+  local self = pattern(self)
+  local that = pattern(that)
   if self[0] == "%" or that[0] == "%" then
     error "not supported"
   elseif self[0] == "[" and that[0] == "[" then
@@ -130,7 +120,7 @@ function metatable:__sub(that)
 end
 
 function metatable:__div(that)
-  local self = class.pattern(self)
+  local self = pattern(self)
   if self[0] == "[" then
     return construct("/", self, that)
   else
@@ -139,7 +129,7 @@ function metatable:__div(that)
 end
 
 function metatable:__mod(that)
-  local self = class.pattern(self)
+  local self = pattern(self)
   if self[0] == "%" then
     error "not supported"
   else
@@ -203,22 +193,22 @@ function metatable:__call(that)
   end
 end
 
--- TODO metatable.__nameをつける
-
-return setmetatable(class, {
+return setmetatable({}, {
   __index = function (_, that)
-    return class.range(that)
+    return range(that)
   end;
 
   __call = function (_, that)
     if type(that) == "table" and getmetatable(that) ~= metatable then
-      local result = class.set(that[1])
+      local result = set(that[1])
       for i = 2, #that do
-        result = union(result, class.set(that[i]))
+        result = union(result, set(that[i]))
       end
       return result
     else
-      return class.pattern(that)
+      return pattern(that)
     end
   end;
+
+  __name = "dromozoa.regexp.pattern.constructor";
 })
