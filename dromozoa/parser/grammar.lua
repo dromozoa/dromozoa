@@ -97,61 +97,6 @@ end
 
 ---------------------------------------------------------------------------
 
-local private = setmetatable({}, { __mode = "k" })
-local metatable = { __name = "dromozoa.parser.grammar.map" }
-
-local function module_map(...)
-  local self = setmetatable({}, metatable)
-  private[self] = { set = {} }
-  for i = 1, select("#", ...), 2 do
-    self[select(i, ...)] = select(i + 1, ...)
-  end
-  return self
-end
-
-function metatable:__newindex(k, v)
-  if v ~= nil then
-    local priv = private[self]
-    local priv_set = priv.set
-    if not priv_set[k] then
-      priv[#priv + 1] = k
-      priv_set[k] = true
-    end
-  end
-  rawset(self, k, v)
-end
-
-function metatable:__call(k, fn)
-  local v = self[k]
-  if v ~= nil then
-    return v
-  end
-  if fn ~= nil then
-    v = fn()
-  else
-    v = module_map()
-  end
-  self[k] = v
-  return v
-end
-
-function metatable:__pairs()
-  local priv = private[self]
-  local index = 0
-  return function (self)
-    for i = index + 1, #priv do
-      local k = priv[i]
-      local v = self[k]
-      if v ~= nil then
-        index = i
-        return k, v
-      end
-    end
-  end, self
-end
-
----------------------------------------------------------------------------
-
 function module.grammar(token_names, that)
   local symbol_names = list()
   local symbol_table = {}
@@ -371,6 +316,61 @@ function module.eliminate_left_recursion(grammar)
     max_nonterminal_symbol = #new_symbol_names;
     productions = new_productions;
   }
+end
+
+---------------------------------------------------------------------------
+
+local private = setmetatable({}, { __mode = "k" })
+local metatable = { __name = "dromozoa.parser.grammar.map" }
+
+local function module_map(...)
+  local self = setmetatable({}, metatable)
+  private[self] = { set = {} }
+  for i = 1, select("#", ...), 2 do
+    self[select(i, ...)] = select(i + 1, ...)
+  end
+  return self
+end
+
+function metatable:__newindex(k, v)
+  if v ~= nil then
+    local priv = private[self]
+    local priv_set = priv.set
+    if not priv_set[k] then
+      priv[#priv + 1] = k
+      priv_set[k] = true
+    end
+  end
+  rawset(self, k, v)
+end
+
+function metatable:__call(k, fn)
+  local v = self[k]
+  if v ~= nil then
+    return v
+  end
+  if fn ~= nil then
+    v = fn()
+  else
+    v = module_map()
+  end
+  self[k] = v
+  return v
+end
+
+function metatable:__pairs()
+  local priv = private[self]
+  local index = 0
+  return function (self)
+    for i = index + 1, #priv do
+      local k = priv[i]
+      local v = self[k]
+      if v ~= nil then
+        index = i
+        return k, v
+      end
+    end
+  end, self
 end
 
 ---------------------------------------------------------------------------
