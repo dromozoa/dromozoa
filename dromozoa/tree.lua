@@ -245,22 +245,33 @@ local function each(self, x, y, t)
   end
 end
 
+---------------------------------------------------------------------------
+
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.tree" }
 
-function class:insert(k, v)
+function class:insert(k, v, fn)
   local root, ok, t = insert(self, k, self.root, false, 0)
   self.root = root
-  self.V[t] = v
-  return ok
+
+  local V = self.V
+  if fn == nil then
+    V[t] = v
+  elseif ok then
+    V[t] = fn(v)
+  end
+
+  return ok, V[t]
 end
 
 function class:delete(k)
   local root, ok, t = delete(self, k, self.root, false, 0, 0)
+
   self.root = root
   if ok then
     dispose(self, t)
   end
+
   return ok
 end
 
@@ -275,7 +286,7 @@ end
 function class:each(lower_bound, upper_bound)
   return coroutine.wrap(function (self, t)
     return each(self, lower_bound, upper_bound, t)
-  end), self, self.root
+  end), self, self.root, nil
 end
 
 return setmetatable(class, {

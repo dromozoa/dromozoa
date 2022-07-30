@@ -15,160 +15,229 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local class = {}
-local metatable = { __index = class }
+local metatable = { __name = "dromozoa.regexp.pattern" }
 
 local timestamp = 0
 
-local function construct(...)
+local function construct(code, ...)
   timestamp = timestamp + 1
-  return setmetatable({ timestamp = timestamp, ... }, metatable)
-end
-
-local function concat(items)
-  local result = items[1]
-  for i = 2, #items do
-    result = result * items[i]
-  end
-  return result
-end
-
-local any = {}
-for byte = 0x00, 0xFF do
-  any[byte] = true
+  return setmetatable({ timestamp = timestamp, [0] = code, ... }, metatable)
 end
 
 local function pattern(that)
-  local t = type(that)
-  if t == "number" then
-    local items = {}
-    for i = 1, that do
-      items[i] = construct("[", any)
+  if type(that) == "string" then
+    local self = construct("[", { [that:byte(1)] = true })
+    for i = 2, #that do
+      self = self + construct("[", { [that:byte(i)] = true })
     end
-    return concat(items)
-  elseif t == "string" then
-    local items = {}
-    for i = 1, #that do
-      items[i] = construct("[", { [that:byte(i)] = true })
-    end
-    local result = concat(items)
-    result.literal = that
-    return result
+    return rawset(self, "literal", that)
   else
     return that
   end
 end
 
-class.pattern = pattern
-
-function class.set(that)
-  local set = {}
-  for i = 1, #that do
-    set[that:byte(i)] = true
-  end
-  return construct("[", set)
-end
-
-function class.range(that)
-  local set = {}
-  for i = 1, #that, 2 do
-    local a, b = that:byte(i, i + 1)
-    for j = a, b do
-      set[j] = true
+local function range(that)
+  if type(that) == "string" then
+    local set = {}
+    for i = 1, #that, 2 do
+      local a, b = that:byte(i, i + 1)
+      if b == nil then
+        b = a
+      end
+      for byte = a, b do
+        set[byte] = true
+      end
     end
-  end
-  return construct("[", set)
-end
-
-function metatable:__pow(that)
-  if self[1] == "%" then
-    error "not supported"
-  end
-  if that < 0 then
-    local items = {}
-    for i = 1, -that do
-      items[i] = construct("?", self)
-    end
-    return concat(items)
-  elseif that == 0 then
-    return construct("*", self)
-  elseif that == 1 then
-    return construct("+", self)
+    return construct("[", set)
   else
-    local items = {}
-    for i = 1, that - 1 do
-      items[i] = self
-    end
-    items[that] = construct("+", self)
-    return concat(items)
+    return pattern(that)
   end
 end
 
-function metatable:__mul(that)
+local function set(that)
+  if type(that) == "string" then
+    local set = {}
+    for i = 1, #that do
+      set[that:byte(i)] = true
+    end
+    return construct("[", set)
+  else
+    return pattern(that)
+  end
+end
+
+local function union(self, that)
   local self = pattern(self)
   local that = pattern(that)
-  if self[1] == "%" or that[1] == "%" then
+  if self[0] == "%" or that[0] == "%" then
     error "not supported"
+  elseif self[0] == "[" and that[0] == "[" then
+    local set = {}
+    for byte in pairs(self[1]) do
+      set[byte] = true
+    end
+    for byte in pairs(that[1]) do
+      set[byte] = true
+    end
+    return construct("[", set)
+  else
+    return construct("|", self, that)
   end
-  return construct(".", self, that)
 end
 
 function metatable:__add(that)
   local self = pattern(self)
   local that = pattern(that)
-  local self_op = self[1]
-  local that_op = that[1]
-  if self_op == "[" and that_op == "[" then
-    local set = {}
-    for byte in pairs(self[2]) do
-      set[byte] = true
-    end
-    for byte in pairs(that[2]) do
-      set[byte] = true
-    end
-    return construct("[", set)
+  if self[0] == "%" or that[0] == "%" then
+    error "not supported"
   else
-    if self_op == "%" or that_op == "%" then
-      error "not supported"
-    end
-    return construct("|", self, that)
+    return construct(".", self, that)
   end
 end
 
-function metatable:__unm(that)
-  if self[1] == "[" then
-    local set = self[2]
-    local neg = {}
-    for byte = 0x00, 0xFF do
-      if not set[byte] then
-        neg[byte] = true
+function metatable:__mul(that)
+  local self = pattern(self)
+  if self[0] == "%" then
+    error "not supported"
+  else
+    local m
+    local n
+
+    if that == "*" then
+      m = 0
+    elseif that == "+" then
+      m = 1
+    elseif that == "?" then
+      m, n = 0, 1
+    elseif type(that) == "number" then
+      if that < 0 then
+        m, n = 0, -that
+      else
+        m = that
+      end
+    else
+      m, n = that[1], that[2]
+      if n == nil then
+        n = m
       end
     end
-    return construct("[", neg)
-  else
-    error "not supported"
+
+    if n == nil then
+      if m == 0 then
+        return construct("*", self)
+      elseif m == 1 then
+        return construct("+", self)
+      else
+        local result = self
+        for i = 3, m do
+          result = result + self
+        end
+        return result + construct("+", self)
+      end
+    else
+      if m == 0 then
+        local result = construct("?", self)
+        for i = 2, n do
+          result = result + construct("?", self)
+        end
+        return result
+      else
+        local result = self
+        for i = 2, m do
+          result = result + self
+        end
+        for i = m + 1, n do
+          result = result + construct("?", self)
+        end
+        return result
+      end
+    end
   end
 end
 
 function metatable:__sub(that)
   local self = pattern(self)
   local that = pattern(that)
-  if self[1] == "%" or that[1] == "%" then
+  if self[0] == "%" or that[0] == "%" then
     error "not supported"
+  elseif self[0] == "[" and that[0] == "[" then
+    local sub = that[1]
+    local set = {}
+    for byte in pairs(self[1]) do
+      if not sub[byte] then
+        set[byte] = true
+      end
+    end
+    return construct("[", set)
+  else
+    return construct("-", self, that)
   end
-  return construct("-", self, that)
 end
 
-function metatable:__div(action)
-  if self[1] == "[" then
-    return construct("/", self, action)
+function metatable:__div(that)
+  local self = pattern(self)
+  if self[0] == "[" then
+    return construct("/", self, that)
   else
     error "not supported"
   end
 end
 
-function metatable:__mod(action)
-  return construct("%", self, action)
+function metatable:__mod(that)
+  local self = pattern(self)
+  if self[0] == "%" then
+    error "not supported"
+  else
+    return rawset(construct("%", self, that), "literal", rawget(self, "literal"))
+  end
 end
 
-return class
+function metatable:__unm()
+  if self[0] == "[" then
+    local neg = self[1]
+    local set = {}
+    for byte = 0x00, 0xFF do
+      if not neg[byte] then
+        set[byte] = true
+      end
+    end
+    return construct("[", set)
+  else
+    error "not supported"
+  end
+end
+
+local module = setmetatable({ [0] = "[", {} }, metatable)
+for byte = 0x00, 0xFF do
+  module[1][byte] = true
+end
+
+function metatable:__index(that)
+  if self == module then
+    return range(that)
+  else
+    error "not supported"
+  end
+end;
+
+function metatable:__newindex(that)
+  error "not supported"
+end;
+
+function metatable:__call(that)
+  if self == module then
+    if type(that) == "table" and getmetatable(that) ~= metatable then
+      local result = set(that[1])
+      for i = 2, #that do
+        result = union(result, set(that[i]))
+      end
+      return result
+    else
+      return pattern(that)
+    end
+  else
+    error "not supported"
+  end
+end
+
+return module

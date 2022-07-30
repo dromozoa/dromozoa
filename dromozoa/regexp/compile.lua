@@ -15,336 +15,164 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local template1 = [[
-return function (source, source_name)
-  local fgoto
-  local fcall
-  local fret
-  local clear
-  local append
-  local append_range
-  local append_utf8
-  local push_token
-  local skip_token
+local list = require "dromozoa.list"
+local tree_map = require "dromozoa.tree_map"
+local runtime = require "dromozoa.regexp.runtime"
 
-  local fs = 1  -- start position
-  local fp      -- current position
-  local fc      -- current character
-  local fb = {} -- string buffer
-  local fg = {} -- guard buffer
-  local ln = 1  -- line number
-  local lp = 0  -- line position
-  local ra
-  local rb
-  local rc
-  local rd
-
-  local token_symbol
-]]
-
-local template2 = [[
-  local start_line = 1
-  local start_column = 1
-  local current_position = 1
-  local current_byte
-  local current_index = main
-  local current_state = _[current_index].start_state
-  local current_loop
-
-  local top = 0
-  local stack = {}
-  local tokens = {}
-
-  fgoto = function (index)
-    fs = current_position
-    start_line = ln
-    start_column = fs - lp
-    current_index = index
-    current_state = _[current_index].start_state
-    current_loop = nil
+local function update_state_indices_accept(u, accept_actions, color)
+  color[u] = 1
+  if u.accept_action ~= nil then
+    u.index = #accept_actions:append(u.accept_action)
   end
-
-  fcall = function (index)
-    top = top + 1
-    stack[top] = {
-      start_position = fs;
-      start_line = start_line;
-      start_column = start_column;
-      current_index = current_index;
-      current_state = current_state;
-    }
-    fgoto(index)
-  end
-
-  fret = function ()
-    local item = stack[top]
-    fs = item.start_position
-    start_line = item.start_line
-    start_column = item.start_column
-    current_index = item.current_index
-    current_state = item.current_state
-    current_loop = nil
-    stack[top] = nil
-    top = top - 1
-  end
-
-  clear = function (buffer)
-    buffer.n = 0
-    buffer.str = nil
-  end
-
-  append = function (buffer, data)
-    local n = buffer.n + 1
-    if not data then
-      buffer[n] = string.char(fc)
-    elseif type(data) == "number" then
-      buffer[n] = string.char(data)
-    else
-      buffer[n] = tostring(data)
-    end
-    buffer.n = n
-    buffer.str = nil
-  end
-
-  append_range = function (buffer)
-    append(buffer, string.sub(source, fs, fp))
-  end;
-
-  append_utf8 = function (buffer, a)
-    if a <= 0x7F then
-      append(buffer, string.char(a))
-    elseif a <= 0x07FF then
-      local b = a % 0x40
-      local a = (a - b) / 0x40
-      append(buffer, string.char(a + 0xC0, b + 0x80))
-    elseif a <= 0xFFFF then
-      local c = a % 0x40
-      local a = (a - c) / 0x40
-      local b = a % 0x40
-      local a = (a - b) / 0x40
-      append(buffer, string.char(a + 0xE0, b + 0x80, c + 0x80))
-    else
-      local d = a % 0x40
-      local a = (a - d) / 0x40
-      local c = a % 0x40
-      local a = (a - c) / 0x40
-      local b = a % 0x40
-      local a = (a - b) / 0x40
-      append(buffer, string.char(a + 0xF0, b + 0x80, c + 0x80, d + 0x80))
+  for _, t in ipairs(u.transitions) do
+    if color[t.v] == nil then
+      update_state_indices_accept(t.v, accept_actions, color)
     end
   end
-
-  push_token = function (value)
-    local source = string.sub(source, fs, fp)
-    if not value then
-      value = source
-    elseif type(value) == "table" then
-      local s = value.str
-      if not s then
-        s = table.concat(value, "", 1, value.n)
-        value.str = s
-      end
-      value = s
-    end
-    tokens[#tokens + 1] = {
-      symbol = token_symbol;
-      i = fs;
-      j = fp;
-      source = source;
-      line = start_line;
-      column = start_column;
-      value = value;
-    }
-  end
-
-  skip_token = function ()
-    tokens[#tokens + 1] = {
-      i = fs;
-      j = fp;
-      source = string.sub(source, fs, fp);
-      line = start_line;
-      column = start_column;
-    }
-  end
-
-  while true do
-    local guard_action = _[current_index].guard_action
-    local guarded
-    if guard_action and current_state == _[current_index].start_state then
-      local guard = fg.str
-      if not guard then
-        guard = table.concat(fg, "", 1, fg.n)
-        fg.str = guard
-      end
-      local p = current_position + #guard - 1
-      guarded = string.sub(source, current_position, p) == guard
-      if guarded then
-        current_position = p + 1
-        fp = p
-        fc = string.byte(source, p)
-        guard_action()
-      end
-    end
-
-    if not guarded then
-      current_byte = string.byte(source, current_position)
-
-      local s = 0
-      if current_byte then
-        s = _[current_index].transitions[current_byte][current_state]
-      end
-
-      if s == 0 then
-        local error_message
-        if current_state <= _[current_index].max_accept_state then
-          current_loop = _[current_index].loop
-          _[current_index].accept_actions[current_state]()
-          if not current_byte then
-            if current_index == main then
-              return tokens
-            end
-            error_message = "unexpected eof"
-          end
-          if current_loop then
-            fgoto(current_index)
-          end
-        else
-          error_message = "regexp error"
-        end
-        if error_message then
-          if not source_name then
-            source_name = "?"
-          end
-          error(source_name .. ":" .. start_line .. ":" .. start_column .. ": " .. error_message)
-        end
-      else
-        fp = current_position
-        fc = current_byte
-        if s > _[current_index].max_state then
-          local transition = s - _[current_index].max_state
-          current_position = current_position + 1
-          current_state = _[current_index].transition_to_states[transition]
-          _[current_index].transition_actions[transition]()
-        else
-          current_position = current_position + 1
-          current_state = s
-        end
-      end
-    end
-  end
-end
-]]
-
-local function compact_transitions(out, transitions, compactor)
-  local buffer = {}
-  for byte = 0x00, 0xFF do
-    local code = "{" .. table.concat(transitions[byte], ",") .. "}"
-    local name = compactor[code]
-    if not name then
-      local index = compactor.index + 1
-      name = "c[" .. index .. "]"
-      out:write(code, ";\n")
-      compactor.index = index
-      compactor[code] = name
-    end
-    if byte == 0 then
-      buffer[#buffer + 1] = "[0]=" .. name
-    else
-      buffer[#buffer + 1] = name
-    end
-  end
-  return "{" .. table.concat(buffer, ",") .. "}"
+  color[u] = 2
 end
 
-local function dump_action(out, action, compactor)
-  local code
-  if action then
-    if type(action) == "string" then
-      code = "function () " .. action .. " end"
-    else
-      code = "function () end"
+local function update_state_indices_nonaccept(u, index, color)
+  color[u] = 1
+  if u.accept_action == nil then
+    index = index + 1
+    u.index = index
+  end
+  for _, t in ipairs(u.transitions) do
+    if color[t.v] == nil then
+      index = update_state_indices_nonaccept(t.v, index, color)
     end
-  else
-    code = "false"
   end
-  local name = compactor[code]
-  if not name then
-    local index = compactor.index + 1
-    name = "c[" .. index .. "]"
-    out:write(code, ";\n")
-    compactor.index = index
-    compactor[code] = name
-  end
-  return name
+  color[u] = 2
+  return index
 end
 
-local function dump_actions(out, actions, compactor)
-  local buffer = {}
-  for i = 1, #actions do
-    buffer[#buffer + 1] = dump_action(out, actions[i], compactor)
+local function construct_table(u, max_state, transitions, transition_actions, transition_states, color)
+  color[u] = 1
+  for _, t in ipairs(u.transitions) do
+    local code = t.v.index
+    if t.action ~= nil then
+      transition_actions:append(t.action)
+      transition_states:append(t.v.index)
+      code = max_state + #transition_actions
+    end
+    for byte in pairs(t.set) do
+      transitions[byte][u.index] = code
+    end
+    if color[t.v] == nil then
+      construct_table(t.v, max_state, transitions, transition_actions, transition_states, color)
+    end
   end
-  return "{" .. table.concat(buffer, ",") .. "}"
+  color[u] = 2
 end
 
-return function(out, data)
-  local n = #data
+local function make_shared(shared_map, shared_data, data)
+  return shared_map(data, function ()
+    return #shared_data:append("{" .. table.concat(data, ",") .. "};\n")
+  end)
+end
 
-  local compactor = { index = 0 }
+local function make_action(action_map, action_data, data)
+  return action_map(data, function ()
+    return #action_data:append("function()" .. data .. "\nend;\n")
+  end)
+end
+
+local function generate(index, u, guard_action, shared_map, shared_data, static_data, action_map, action_data, merged_data)
+  local accept_actions = list()
+  update_state_indices_accept(u, accept_actions, {})
+  local max_state = update_state_indices_nonaccept(u, #accept_actions, {})
+
   local transitions = {}
-
-  out:write "local c={\n"
-  for i = 1, n do
-    transitions[i] = compact_transitions(out, data[i].transitions, compactor)
+  for byte = 0x00, 0xFF do
+    transitions[byte] = {}
+    for i = 1, max_state do
+      transitions[byte][i] = 0
+    end
   end
-  out:write "}\n"
+  local transition_actions = list()
+  local transition_states = list()
 
-  out:write "local _={\n"
-  for i = 1, n do
-    local item = data[i]
-    out:write "{\n"
-    out:write("transition_to_states={", table.concat(item.transition_to_states, ","), "};\n")
-    out:write("transitions=", transitions[i], ";\n")
-    out:write "};\n"
+  construct_table(u, max_state, transitions, transition_actions, transition_states, {})
+
+  static_data:append(
+    "{\n",
+    "transitions={[0]=")
+  for byte = 0x00, 0xFF do
+    static_data:append("_[", make_shared(shared_map, shared_data, transitions[byte]), "],")
   end
-  out:write "}\n"
+  static_data:append(
+    "};\n",
+    "transition_states=_[", make_shared(shared_map, shared_data, transition_states), "];\n",
+    "};\n")
 
-  for i = 1, n do
-    out:write("local ", data[i].name, "=", i, "\n")
+  merged_data:append(
+    "{\n",
+    "start_state=", u.index, ";\n",
+    "max_accept_state=", #accept_actions, ";\n",
+    "max_state=", max_state, ";\n",
+    "transitions=S[", index, "].transitions;\n",
+    "transition_actions={")
+  for _, transition_action in ipairs(transition_actions) do
+    merged_data:append("_[", make_action(action_map, action_data, transition_action), "],")
+  end
+  merged_data:append(
+    "};\n",
+    "transition_states=S[", index, "].transition_states;\n",
+    "accept_actions={")
+  for _, accept_action in ipairs(accept_actions) do
+    merged_data:append("_[", make_action(action_map, action_data, accept_action), "],")
+  end
+  merged_data:append(
+    "};\n")
+  if guard_action ~= nil then
+    merged_data:append("guard_action=_[", make_action(action_map, action_data, guard_action), "];\n")
+  end
+  merged_data:append(
+    "};\n")
+end
+
+return function (that)
+  local shared_map = tree_map()
+  local shared_data = list()
+  local static_data = list()
+  local custom_data = list()
+  local action_map = tree_map()
+  local action_data = list()
+  local merged_data = list()
+
+  local data = list()
+  for k, v in pairs(that) do
+    if type(k) == "string" then
+      data:append { timestamp = v.timestamp, machine = v, name = k }
+    end
+  end
+  local j = 0
+  for i, v in ipairs(that) do
+    if type(v) == "string" then
+      custom_data:append(v, "\n")
+    else
+      j = j + 1
+      data:append { timestamp = v.timestamp, machine = v, main = j == 1 }
+    end
+  end
+  table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
+
+  for i, v in ipairs(data) do
+    if v.main then
+      merged_data:append("main=", i, ";\n")
+    end
+    if v.name ~= nil then
+      custom_data:append("local ", v.name, "=", i, "\n")
+    end
+    generate(i, v.machine.start_state, v.machine.guard_action, shared_map, shared_data, static_data, action_map, action_data, merged_data)
   end
 
-  out:write(template1)
-
-  local compactor = { index = 0 }
-  local guard_action = {}
-  local accept_actions = {}
-  local transition_actions = {}
-
-  out:write "local c={\n"
-  for i = 1, n do
-    local item = data[i]
-    guard_action[i] = dump_action(out, item.guard_action, compactor)
-    accept_actions[i] = dump_actions(out, item.accept_actions, compactor)
-    transition_actions[i] = dump_actions(out, item.transition_actions, compactor)
-  end
-  out:write "}\n"
-
-  out:write "local _={\n"
-  for i = 1, n do
-    local item = data[i]
-    out:write "{\n"
-    out:write("loop=", item.loop and "true" or "false", ";\n")
-    out:write("guard_action=", guard_action[i], ";\n")
-    out:write("max_accept_state=", item.max_accept_state, ";\n")
-    out:write("accept_actions=", accept_actions[i], ";\n")
-    out:write("max_transition=", item.max_transition, ";\n")
-    out:write("transition_to_states=_[", i, "].transition_to_states;\n")
-    out:write("start_state=", item.start_state, ";\n")
-    out:write("transition_actions=", transition_actions[i], ";\n")
-    out:write("max_state=", item.max_state, ";\n")
-    out:write("transitions=_[", i, "].transitions;\n")
-    out:write "};\n"
-  end
-  out:write "}\n"
-
-  out:write(template2)
+  return table.concat(runtime {
+    shared_data = table.concat(shared_data);
+    static_data = table.concat(static_data);
+    custom_data = table.concat(custom_data);
+    action_data = table.concat(action_data);
+    merged_data = table.concat(merged_data);
+  })
 end

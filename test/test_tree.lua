@@ -203,3 +203,19 @@ assert(t.foo.bar.baz == 42)
 
 t(1)(2)(3)[4] = "qux"
 assert(t[1][2][3][4] == "qux")
+
+---------------------------------------------------------------------------
+
+local n = 0
+
+local function f(compare)
+  n = n + 1
+  assert(compare == t().compare)
+  return n * 2
+end
+
+assert(n == 0)
+assert(t("xxx", f) == 2)
+assert(n == 1)
+assert(t("xxx", f) == 2)
+assert(n == 1)
