@@ -72,7 +72,6 @@ end
 local difference
 
 local function node_to_nfa(node, timestamp)
-  assert(timestamp ~= nil)
   if rawget(node, "timestamp") ~= nil then
     timestamp = rawget(node, "timestamp")
   end
@@ -84,7 +83,6 @@ local function node_to_nfa(node, timestamp)
     transition(u, v, node[1], timestamp)
     return u, v
   else
-    assert(rawget(node, "timestamp") ~= nil)
     local au, av = node_to_nfa(node[1], timestamp)
     if code == "/" then
       au.transitions[1].action = node[2]
