@@ -27,6 +27,22 @@ local lexer = machine.lexer
 
 local tokens = list()
 
+
+--[[
+
+  -_{"\n"}
+  ~_{"\n"}
+
+  -_["09"]
+  ~_["09"]
+
+
+  _["09"]
+
+  _"abc" "!"
+
+--]]
+
 local code = compile {
   [[local ra]];
 

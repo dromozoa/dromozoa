@@ -80,10 +80,10 @@ local function node_to_nfa(node)
     return u, v
   else
     local au, av = node_to_nfa(node[1])
-    if code == "/" then
+    if code == "T" then
       au.transitions[1].action = node[2]
       return au, av
-    elseif code == "%" then
+    elseif code == "A" then
       av:update(node.timestamp, node[2])
       return au, av
     elseif code == "." then

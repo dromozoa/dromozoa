@@ -72,7 +72,7 @@ end
 local function union(self, that)
   local self = pattern(self)
   local that = pattern(that)
-  if self[0] == "%" or that[0] == "%" then
+  if self[0] == "A" or that[0] == "A" then
     error "not supported"
   elseif self[0] == "[" and that[0] == "[" then
     local set = {}
@@ -91,7 +91,7 @@ end
 function metatable:__add(that)
   local self = pattern(self)
   local that = pattern(that)
-  if self[0] == "%" or that[0] == "%" then
+  if self[0] == "A" or that[0] == "A" then
     error "not supported"
   else
     return construct(".", self, that)
@@ -101,7 +101,7 @@ end
 function metatable:__sub(that)
   local self = pattern(self)
   local that = pattern(that)
-  if self[0] == "%" or that[0] == "%" then
+  if self[0] == "A" or that[0] == "A" then
     error "not supported"
   elseif self[0] == "[" and that[0] == "[" then
     local sub = that[1]
@@ -120,7 +120,7 @@ end
 function metatable:__div(that)
   local self = pattern(self)
   if self[0] == "[" then
-    return construct("/", self, that)
+    return construct("T", self, that)
   else
     error "not supported"
   end
@@ -128,10 +128,10 @@ end
 
 function metatable:__mod(that)
   local self = pattern(self)
-  if self[0] == "%" then
+  if self[0] == "A" then
     error "not supported"
   else
-    local result = construct("%", self, that)
+    local result = construct("A", self, that)
     result.literal = self.literal
     return result
   end
@@ -153,7 +153,7 @@ function metatable:__unm()
 end
 
 function metatable:__call(that)
-  if self[0] == "%" then
+  if self[0] == "A" then
     error "not supported"
   else
     local m = that[1]
