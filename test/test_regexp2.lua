@@ -77,7 +77,9 @@ local code = compile {
   comment = guard([[fret()]], {
     _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
     _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
-    _"]";
+    _"]" + _"="*"*" + ("]" + -_{"]\n\r"}*"*")*"?";
+    -- _"]" + _"="*"*" + _"]"*"?";
+    -- (_"]" + _"="*"*" + "]")*"?" + -_{"]\n\r"}*"+";
     -_{"]\n\r"}*"+";
   });
 
@@ -114,7 +116,7 @@ out:close()
 local execute = assert(assert(loadfile(filename))())
 execute([[
 --[=[
-123
+123] ]==]
 ]=]
 -- test
 + 456
