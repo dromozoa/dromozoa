@@ -21,7 +21,7 @@ local timestamp = 0
 
 local function construct(code, ...)
   timestamp = timestamp + 1
-  return setmetatable({ [-1] = timestamp, [0] = code, ... }, metatable)
+  return setmetatable({ timestamp = timestamp, [0] = code, ... }, metatable)
 end
 
 local function pattern(that)
@@ -30,8 +30,7 @@ local function pattern(that)
     for i = 2, #that do
       self = self + construct("[", { [that:byte(i)] = true })
     end
-    self[-2] = that
-    return self
+    return rawset(self, "literal", that)
   else
     return that
   end
@@ -188,9 +187,7 @@ function metatable:__mod(that)
   if self[0] == "%" then
     error "not supported"
   else
-    local result = construct("%", self, that)
-    result[-2] = self[-2]
-    return result
+    return rawset(construct("%", self, that), "literal", rawget(self, "literal"))
   end
 end
 
@@ -217,8 +214,6 @@ end
 function metatable:__index(that)
   if self == module then
     return range(that)
-  elseif type(that) == "number" then
-    return nil
   else
     error "not supported"
   end

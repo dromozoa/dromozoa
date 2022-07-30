@@ -73,8 +73,8 @@ local difference
 
 local function node_to_nfa(node, timestamp)
   assert(timestamp ~= nil)
-  if node[-1] ~= nil then
-    timestamp = node[-1]
+  if rawget(node, "timestamp") ~= nil then
+    timestamp = rawget(node, "timestamp")
   end
 
   local code = node[0]
@@ -84,7 +84,7 @@ local function node_to_nfa(node, timestamp)
     transition(u, v, node[1], timestamp)
     return u, v
   else
-    assert(node[-1] ~= nil)
+    assert(rawget(node, "timestamp") ~= nil)
     local au, av = node_to_nfa(node[1], timestamp)
     if code == "/" then
       au.transitions[1].action = node[2]
@@ -137,7 +137,7 @@ local function node_to_nfa(node, timestamp)
 end
 
 local function tree_to_nfa(node, accept_action)
-  local timestamp = assert(node[-1])
+  local timestamp = assert(rawget(node, "timestamp"))
   local u, v = node_to_nfa(node, timestamp)
   if v.accept_action == nil then
     v:update(timestamp, accept_action)
@@ -513,7 +513,7 @@ function module.union(that)
   for _, node in ipairs(that) do
     transition(s, (tree_to_nfa(node, "")))
   end
-  return machine(that[1][-1], minimize(nfa_to_dfa(s)))
+  return machine(rawget(that[1], "timestamp"), minimize(nfa_to_dfa(s)))
 end
 
 function module.guard(guard_action, that)
@@ -526,9 +526,9 @@ function module.lexer(tokens, that)
   local data = list()
   for name, node in pairs(that) do
     if type(name) ~= "string" then
-      name = node[-2]
+      name = rawget(node, "literal")
     end
-    data:append { timestamp = node[-1], node = node, name = name }
+    data:append { timestamp = rawget(node, "timestamp"), node = node, name = name }
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
