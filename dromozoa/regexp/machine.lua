@@ -183,7 +183,7 @@ local function closure_to_state(closure, states)
   local u = states[closure]
   if u == nil then
     u = state()
-    for _, v in pairs(closure) do
+    for _, v in closure():each() do
       u:update(v.timestamp, v.accept_action)
     end
     states[closure] = u
@@ -200,10 +200,10 @@ local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
   for byte = 0x00, 0xFF do
     local resolved = {}
     local v_closure = tree_map()
-    for _, u in pairs(u_closure) do
+    for _, u in u_closure():each() do
       local to = u:simulate(byte, resolved)
       if to ~= nil then
-        for k, v in pairs(epsilon_closure(to, epsilon_closures)) do
+        for k, v in epsilon_closure(to, epsilon_closures)():each() do
           v_closure[k] = v
         end
       end
@@ -223,7 +223,7 @@ local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
     end
   end
 
-  for v_closure, v in pairs(state_map) do
+  for v_closure, v in state_map():each() do
     if color[v_closure] == nil then
       nfa_to_dfa_impl(v_closure, v, epsilon_closures, states, color)
     end
@@ -277,7 +277,7 @@ local function minimize(u)
   create_initial_partitions(u, accept_partition_map, partition, partition_map, {})
 
   local partitions = list()
-  for _, partition in pairs(accept_partition_map) do
+  for _, partition in accept_partition_map():each() do
     partition.index = #partitions:append(partition)
   end
   if next(partition) ~= nil then
@@ -495,6 +495,13 @@ end
 ---------------------------------------------------------------------------
 
 local module = {}
+
+-- debug and test
+module.tree_to_nfa = tree_to_nfa
+module.nfa_to_dfa = nfa_to_dfa
+module.minimize = minimize
+module.difference_impl = difference_impl
+module.remove_dead_states = remove_dead_states
 
 function module.union(that)
   table.sort(that, function (a, b) return a.timestamp < b.timestamp end)

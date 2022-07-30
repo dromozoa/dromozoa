@@ -109,7 +109,8 @@ context.action_data;
     if value == nil then
       value = source
     elseif type(value) == "table" then
-      value = string.char(table.unpack(value))
+      -- TODO あとできれいにする
+      value = string.char((table.unpack or unpack)(value))
     end
     fn {
       symbol = token_symbol;
@@ -152,7 +153,8 @@ context.action_data;
 
   local function guard(current_byte)
     if _[current_index].guard_action ~= nil and current_state == _[current_index].start_state then
-      local guard = string.char(table.unpack(fg))
+      -- TODO あとできれいにする
+      local guard = string.char((table.unpack or unpack)(fg))
       local p = current_position + #guard - 1
       if string.sub(source, current_position, p) == guard then
         current_position = p + 1
