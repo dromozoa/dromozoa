@@ -14,7 +14,7 @@ return function (source, source_name, fn)
   local fcall
   local fret
   local push_token
-  local skip_token
+  -- local skip_token
   local clear
   local append
 
@@ -25,6 +25,7 @@ return function (source, source_name, fn)
   local fg = {} -- guard buffer
   local ln = 1  -- line number
   local lp = 0  -- line position
+  local tk      -- token symbol
 
   -- TODO token_symbolを隠す
   -- TODO 隠さなくていいけど、スタックにキャプチャするべき？
@@ -104,7 +105,7 @@ context.merged_data;
       value = string.char(table_unpack(value))
     end
     fn {
-      symbol = token_symbol;
+      symbol = tk;
       i = fs;
       j = fp;
       source = source;
@@ -114,15 +115,15 @@ context.merged_data;
     }
   end
 
-  function skip_token()
-    fn {
-      i = fs;
-      j = fp;
-      source = string.sub(source, fs, fp);
-      line = start_line;
-      column = start_column;
-    }
-  end
+  -- function skip_token()
+  --   fn {
+  --     i = fs;
+  --     j = fp;
+  --     source = string.sub(source, fs, fp);
+  --     line = start_line;
+  --     column = start_column;
+  --   }
+  -- end
 
   function clear(buffer)
     buffer = {}

@@ -535,21 +535,19 @@ function module.lexer(tokens, that)
   for _, item in ipairs(data) do
     local u, v = tree_to_nfa(item.node, "")
     transition(s, u)
+
+    local symbol = "nil"
     if item.name ~= nil then
-      local symbol = tokens[item.name]
+      symbol = tokens[item.name]
       if symbol == nil then
         symbol = #tokens:append(item.name)
         tokens[item.name] = symbol
       end
-      -- TODO action決定をきれいにする (token_symbolの名前とか)
-      if v.accept_action == "" then
-        v.accept_action = "token_symbol=" .. symbol .. ";push_token()"
-      else
-        v.accept_action = "token_symbol=" .. symbol .. ";" .. v.accept_action
-      end
-    elseif v.accept_action == "" then
-      -- TODO skip_tokenじゃなくて、token_symbol=nilでよい気がする
-      v.accept_action = "skip_token()"
+    end
+    if v.accept_action == "" then
+      v.accept_action = "tk=" .. symbol .. ";push_token()"
+    else
+      v.accept_action = "tk=" .. symbol .. ";" .. v.accept_action
     end
   end
 
