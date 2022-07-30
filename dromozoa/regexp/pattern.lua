@@ -105,24 +105,20 @@ function metatable:__mul(that)
     local m
     local n
 
-    if that == "*" or that == 0 then
-      return construct("*", self)
-    elseif that == "+" or that == 1 then
-      return construct("+", self)
-    elseif that == "?" or that == -1 then
-      return construct("?", self)
-    end
-
-    if type(that) == "number" then
+    if that == "*" then
+      m = 0
+    elseif that == "+" then
+      m = 1
+    elseif that == "?" then
+      m, n = 0, 1
+    elseif type(that) == "number" then
       if that < 0 then
-        m = 0
-        n = -that
+        m, n = 0, -that
       else
         m = that
       end
     else
-      m = that[1]
-      n = that[2]
+      m, n = that[1], that[2]
       if n == nil then
         n = m
       end
