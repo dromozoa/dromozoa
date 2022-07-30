@@ -47,8 +47,7 @@ return function (source, source_name, fn)
     $custom_data
     return { $action_data }
   end)()
-
-  local table_unpack = table.unpack or unpack
+  local _ = { $merged_data }
 
   for i, u in ipairs(static_data) do
     for k, v in pairs(u) do
@@ -56,6 +55,8 @@ return function (source, source_name, fn)
     end
   end
   local main = static_data.main
+
+  local table_unpack = table.unpack or unpack
 
   local start_line = 1
   local start_column = 1

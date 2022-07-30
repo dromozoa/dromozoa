@@ -72,7 +72,13 @@ local function make_shared(shared_map, shared_data, data)
   end)
 end
 
-local function generate(u, guard_action, shared_map, shared_data, static_data, action_data)
+local function make_action(action_map, action_data, data)
+  return action_map(data, function ()
+    return #action_data:append("function()" .. data .. "\nend;\n")
+  end)
+end
+
+local function generate(u, guard_action, shared_map, shared_data, static_data, action_map, action_data, merged_data)
   local accept_actions = list()
   update_state_indices_accept(u, accept_actions, {})
   local max_state = update_state_indices_nonaccept(u, #accept_actions, {})
@@ -96,7 +102,7 @@ local function generate(u, guard_action, shared_map, shared_data, static_data, a
     "max_state=", max_state, ";\n",
     "transitions={[0]=")
   for byte = 0x00, 0xFF do
-    static_data:append("_[", make_shared(shared_map, shared_data, transitions[byte]), byte == 0xFF and "]" or "],")
+    static_data:append("_[", make_shared(shared_map, shared_data, transitions[byte]), "],")
   end
   static_data:append(
     "};\n",
@@ -105,21 +111,21 @@ local function generate(u, guard_action, shared_map, shared_data, static_data, a
 
   -- TODO actionも圧縮できる
 
-  action_data:append "{\n"
+  merged_data:append "{\n"
   if guard_action ~= nil then
-    action_data:append("guard_action=function()", guard_action, "\nend;\n")
+    merged_data:append("guard_action=_[", make_action(action_map, action_data, guard_action), "],\n")
   end
-  action_data:append "accept_actions={\n"
+  merged_data:append "accept_actions={"
   for _, accept_action in ipairs(accept_actions) do
-    action_data:append("function()", accept_action, "\nend;\n")
+    merged_data:append("_[", make_action(action_map, action_data, accept_action), "],")
   end
-  action_data:append "};\n"
-  action_data:append "transition_actions={\n"
+  merged_data:append "};\n"
+  merged_data:append "transition_actions={"
   for _, transition_action in ipairs(transition_actions) do
-    action_data:append("function()", transition_action, "\nend;\n")
+    merged_data:append("_[", make_action(action_map, action_data, transition_action), "],")
   end
-  action_data:append "};\n"
-  action_data:append "};\n"
+  merged_data:append "};\n"
+  merged_data:append "};\n"
 end
 
 return function (that)
@@ -127,7 +133,9 @@ return function (that)
   local shared_data = list()
   local static_data = list()
   local custom_data = list()
+  local action_map = tree_map()
   local action_data = list()
+  local merged_data = list()
 
   local data = list()
   for k, v in pairs(that) do
@@ -153,7 +161,7 @@ return function (that)
     if v.name ~= nil then
       custom_data:append("local ", v.name, "=", i, "\n")
     end
-    generate(v.machine.start_state, v.machine.guard_action, shared_map, shared_data, static_data, action_data)
+    generate(v.machine.start_state, v.machine.guard_action, shared_map, shared_data, static_data, action_map, action_data, merged_data)
   end
 
   return table.concat(runtime {
@@ -161,5 +169,6 @@ return function (that)
     static_data = table.concat(static_data);
     custom_data = table.concat(custom_data);
     action_data = table.concat(action_data);
+    merged_data = table.concat(merged_data);
   })
 end
