@@ -122,6 +122,7 @@ return function (source, source_name, fn)
 
   local function execute(action)
     -- TODO コルーチンを作るかどうか前もってわかるはず。
+    -- 継続かどうか、つまり、途中でfcallを呼ぶ場合だけ必要
     jumped = false
     local thread = coroutine.create(action)
     assert(coroutine.resume(thread))
