@@ -35,11 +35,9 @@ return function (source, source_name, fn)
     local source
     local source_name
     local fn
-
     ]];
 context.custom_data;
 [[
-
 
     return { ]];
 context.action_data;

@@ -44,9 +44,7 @@ return function (source, source_name, fn)
     local source
     local source_name
     local fn
-
     $custom_data
-
     return { $action_data }
   end)()
 
