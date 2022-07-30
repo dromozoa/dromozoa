@@ -98,6 +98,68 @@ function metatable:__add(that)
   end
 end
 
+function metatable:__mul(that)
+  if self[0] == "A" then
+    error "not supported"
+  else
+    if that == "*" or that == 0 then
+      return construct("*", self)
+    elseif that == "+" or that == 1 then
+      return construct("+", self)
+    elseif that == "?" or that == -1 then
+      return construct("?", self)
+    end
+
+    local m
+    local n
+    if type(that) == "number" then
+      if that < 0 then
+        m = 0
+        n = -that
+      else
+        m = that
+      end
+    else
+      m = that[1]
+      n = that[2]
+      -- if n == nil then
+      --   n = m
+      -- end
+    end
+
+    if n == nil then
+      if m == 0 then
+        return construct("*", self)
+      elseif m == 1 then
+        return construct("+", self)
+      else
+        local result = self
+        for i = 3, m do
+          result = result + self
+        end
+        return result + construct("+", self)
+      end
+    else
+      if m == 0 then
+        local result = construct("?", self)
+        for i = 2, n do
+          result = result + construct("?", self)
+        end
+        return result
+      else
+        local result = self
+        for i = 2, m do
+          result = result + self
+        end
+        for i = m + 1, n do
+          result = result + construct("?", self)
+        end
+        return result
+      end
+    end
+  end
+end
+
 function metatable:__sub(that)
   local self = pattern(self)
   local that = pattern(that)
@@ -149,45 +211,6 @@ function metatable:__unm()
     return construct("[", set)
   else
     error "not supported"
-  end
-end
-
-function metatable:__call(that)
-  if self[0] == "A" then
-    error "not supported"
-  else
-    local m = that[1]
-    local n = that[2]
-    if n == nil then
-      if m == 0 then
-        return construct("*", self)
-      elseif m == 1 then
-        return construct("+", self)
-      else
-        local result = self
-        for i = 3, m do
-          result = result + self
-        end
-        return result + construct("+", self)
-      end
-    else
-      if m == 0 then
-        local result = construct("?", self)
-        for i = 2, n do
-          result = result + construct("?", self)
-        end
-        return result
-      else
-        local result = self
-        for i = 2, m do
-          result = result + self
-        end
-        for i = m + 1, n do
-          result = result + construct("?", self)
-        end
-        return result
-      end
-    end
   end
 end
 

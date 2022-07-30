@@ -28,7 +28,7 @@ local lexer = machine.lexer
 local tokens = list()
 
 
---[[
+--[=[
 
   -_{"\n"}
   ~_{"\n"}
@@ -41,43 +41,67 @@ local tokens = list()
 
   _"abc" "!"
 
---]]
+
+  ..     (left)
+  + -
+  * / %
+  # -    (unary)
+  ^      (left)
+  index call
+
+  正規表現の優先順位
+  |
+  concat
+  qunatifier *, +, ?, ...
+
+  -- foo(bar+)baz
+  _("foo", _"bar"{1}, "baz")
+
+
+ _{ _{" \t\f\v"}
+  ; _"\n"^[[ln=ln+1 lp=fp]] + _"\r"^[[lp=fp]]*{0,1}
+  ; _"\r"^[[ln=ln+1 lp=fp]] + _"\n"^[[lp=fp]]*{0,1}
+  }
+
+    -_"\n\r"/[[lp=fp]]*{0,1}
+
+--]=]
 
 local code = compile {
   [[local ra]];
 
   digit = union {
-    (_["09"]/[[ra=ra*10+fc-0x30]]){0,2} %[[fret()]];
+    (_["09"]/[[ra=ra*10+fc-0x30]])*{0,2} %[[fret()]];
   };
 
   comment = guard([[fret()]], {
-    _"\n"/[[ln=ln+1 lp=fp]] + (_"\r"/[[lp=fp]]){0,1};
-    _"\r"/[[ln=ln+1 lp=fp]] + (_"\n"/[[lp=fp]]){0,1};
+    _"\n"/[[ln=ln+1 lp=fp]] + (_"\r"/[[lp=fp]])*"?";
+    _"\r"/[[ln=ln+1 lp=fp]] + (_"\n"/[[lp=fp]])*"?";
 
     _"]";
-    (-_{"]\n\r"}){1};
+    (-_{"]\n\r"})*"+";
   });
 
   lexer(tokens, {
     _{  _{" \t\f\v"}
-      ; _"\n"/[[ln=ln+1 lp=fp]] + (_"\r"/[[lp=fp]]){0,1}
-      ; _"\r"/[[ln=ln+1 lp=fp]] + (_"\n"/[[lp=fp]]){0,1}
-      }{1};
+      ; _"\n"/[[ln=ln+1 lp=fp]] + (_"\r"/[[lp=fp]])*"?"
+      ; _"\r"/[[ln=ln+1 lp=fp]] + (_"\n"/[[lp=fp]])*"?"
+      }*"+";
 
-    _"--" + _"["/[[print"[" append(fg,0x5D)]] + (_"="/[[print"=" append(fg,fc)]]){0} + _"["/[[print"[" append(fg,0x5D) fcall(comment)]];
-    _"--" + (-_{"\n\r"}){0};
+    _"--" + _"["/[[print"[" append(fg,0x5D)]] + (_"="/[[print"=" append(fg,fc)]])*"*" + _"["/[[print"[" append(fg,0x5D) fcall(comment)]];
+    _"--" + (-_{"\n\r"})*"*";
 
     string = (_[["]]/[[clear(fb)]]
       + _{  _[[\]] + _["09"]/[[ra=fc-0x30 fcall(digit) append(fb,ra)]]
           ; _[[\]] + _[[\]]/[[append(fb,0x5C)]]
           ; _[[\]] + _[["]]/[[append(fb,0x22)]]
           ; (-_{[["\]]})/[[append(fb,fc)]]
-          }{0}
+          }*"*"
       + _[["]]) %[[push_token(fb)]];
 
     _"*";
     _"+";
-    integer = _["09"]{1};
+    integer = _["09"]*"+";
   });
 }
 
