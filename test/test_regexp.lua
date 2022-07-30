@@ -54,10 +54,20 @@ local m3 = machine.lexer(tokens, {
   _"else";
   _"elseif";
   _"end";
-  integer = (_["09"]/"print'i'")*"+";
-  string = _"\"" + (-_["\""]/"print'c'")*"*" + "\"";
-  _{" \t\r\n"}*"+";
+  integer = (_["09"]/"print'i'")*1;
+  string = _"\"" + (-_["\""]/"print'c'")*0 + "\"";
+  _{" \t\r\n"}*1;
+  line_comment = ("--" + -_{"\n\r"}*0) - ("--[[" + _["\0\255"]*0);
+  -- line_comment = "--" + (-_{"\n\r"}*0 - ("[[" + _["\0\255"]*0));
 })
+
+-- _(0)
+-- CRLF
+-- _{any=1}, _{space=1}
+-- space
+-- _(any) _()
+-- _:any()
+
 
 local out = assert(io.open("test-m3.dot", "w"))
 write_graphviz(out, m3.start_state)
