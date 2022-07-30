@@ -19,16 +19,20 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.list" }
 
 function class:append(...)
+  local n = #self
   for i = 1, select("#", ...) do
-    self[#self + 1] = select(i, ...)
+    n = n + 1
+    self[n] = select(i, ...)
   end
   return self
 end
 
 function class:slice(i, j)
   local that = class()
+  local n = 0
   for i = i == nil and 1 or i, j == nil and #self or j do
-    that[#that + 1] = self[i]
+    n = n + 1
+    that[n] = self[i]
   end
   return that
 end
