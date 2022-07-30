@@ -17,8 +17,6 @@
 
 local metatable = { __name = "dromozoa.regexp.pattern" }
 
--- construct, patternのつかいわけ
--- patternだけ、前にもってきて、あとはうしろのほうがきれいなのではないか。
 -- TODO DSLを調整する。とくに、negateを関数呼び出しで優先度をあげる（anyのかきかたも）
 
 local timestamp = 0

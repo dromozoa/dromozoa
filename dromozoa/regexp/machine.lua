@@ -494,9 +494,12 @@ end
 
 ---------------------------------------------------------------------------
 
--- TODO metanameをつける
-
 local module = {}
+local metatable = { __name = "dromozoa.regexp.machine" }
+
+local function machine(timestamp, start_state)
+  return setmetatable({ timestamp = timestamp, start_state = start_state }, metatable)
+end
 
 function module.union(that)
   table.sort(that, function (a, b) return a.timestamp < b.timestamp end)
@@ -504,16 +507,13 @@ function module.union(that)
   for _, node in ipairs(that) do
     transition(s, (tree_to_nfa(node, "")))
   end
-  return {
-    timestamp = that[1].timestamp;
-    start_state = minimize(nfa_to_dfa(s));
-  }
+  return machine(that[1].timestamp, minimize(nfa_to_dfa(s)))
 end
 
 function module.guard(guard_action, that)
-  local machine = module.union(that)
-  machine.guard_action = guard_action
-  return machine
+  local self = module.union(that)
+  self.guard_action = guard_action
+  return self
 end
 
 function module.lexer(tokens, that)
@@ -546,10 +546,7 @@ function module.lexer(tokens, that)
     end
   end
 
-  return {
-    timestamp = data[1].timestamp;
-    start_state = minimize(nfa_to_dfa(s));
-  }
+  return machine(data[1].timestamp, minimize(nfa_to_dfa(s)))
 end
 
 return module
