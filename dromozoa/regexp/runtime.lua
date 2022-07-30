@@ -14,7 +14,6 @@ return function (source, source_name, fn)
   local fcall
   local fret
   local push_token
-  -- local skip_token
   local clear
   local append
 
