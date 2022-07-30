@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local module_list = require "dromozoa.list"
+local list = require "dromozoa.list"
 
 local module = {}
 
@@ -152,7 +152,7 @@ end
 ---------------------------------------------------------------------------
 
 function module.grammar(token_names, that)
-  local symbol_names = module_list()
+  local symbol_names = list()
   local symbol_table = module.map()
   for _, name in ipairs(token_names) do
     if symbol_table[name] then
@@ -162,7 +162,7 @@ function module.grammar(token_names, that)
   end
   local max_terminal_symbol = #symbol_names:append "$"
 
-  local data = module_list()
+  local data = list()
   for k, v in pairs(that) do
     data:append { k = k, v = v }
   end
@@ -171,7 +171,7 @@ function module.grammar(token_names, that)
   local augumented_start_head = #symbol_names:append ""
   local augumented_start_body = augumented_start_head + 1
 
-  local productions = module_list { head = augumented_start_head, body = module_list() }
+  local productions = list { head = augumented_start_head, body = list() }
   local precedence = 0
   local precedence_table = module.map()
   local symbol_precedences = module.map()
@@ -231,7 +231,7 @@ function module.grammar(token_names, that)
     end
     semantic_actions[i] = production.body.semantic_action
 
-    local body = module_list()
+    local body = list()
     for _, name in ipairs(production.body) do
       local symbol = symbol_table[name];
       if not symbol then
@@ -322,12 +322,12 @@ function module.eliminate_left_recursion(grammar)
   local max_nonterminal_symbol = grammar.max_nonterminal_symbol
 
   local new_symbol_names = symbol_names:slice()
-  local new_productions = module_list()
+  local new_productions = list()
 
   for i = max_terminal_symbol + 1, max_nonterminal_symbol do
     local n = #new_symbol_names + 1
-    local n_bodies = module_list()
-    local i_bodies = module_list()
+    local n_bodies = list()
+    local i_bodies = list()
 
     for _, body in module.each_production(productions, i) do
       local symbol = body[1]
@@ -349,7 +349,7 @@ function module.eliminate_left_recursion(grammar)
 
     if n_bodies[1] then
       new_symbol_names:append(symbol_names[i] .. "'")
-      n_bodies:append(module_list())
+      n_bodies:append(list())
       for _, body in ipairs(i_bodies) do
         body:append(n)
       end
@@ -501,7 +501,7 @@ function module.lr0_goto(grammar, items)
   for _, item in ipairs(items) do
     local symbol = productions[item.index].body[item.dot]
     if symbol then
-      map_of_to_items(symbol, module_list):append { index = item.index, dot = item.dot + 1 }
+      map_of_to_items(symbol, list):append { index = item.index, dot = item.dot + 1 }
     end
   end
 
@@ -513,7 +513,7 @@ function module.lr0_goto(grammar, items)
 end
 
 function module.lr0_items(grammar)
-  local set_of_items = module_set(module.lr0_closure(grammar, module_list { index = 1, dot = 1 }))
+  local set_of_items = module_set(module.lr0_closure(grammar, list { index = 1, dot = 1 }))
   local transitions = module.map()
 
   local m = 1
@@ -579,11 +579,11 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
 
-  local set_of_kernel_items = module_list()
-  local map_of_kernel_items = module_list()
+  local set_of_kernel_items = list()
+  local map_of_kernel_items = list()
 
   for i, items in ipairs(set_of_items) do
-    local kernel_items = module_list()
+    local kernel_items = list()
     local kernel_table = module.map()
     for j, item in ipairs(items) do
       if item.index == 1 or item.dot > 1 then
@@ -599,12 +599,12 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
     map_of_kernel_items[i] = kernel_table
   end
 
-  local propagations = module_list()
+  local propagations = list()
 
   for from_i, from_items in ipairs(set_of_items) do
     for from_j, from_item in ipairs(from_items) do
       if productions[from_item.index].head == max_terminal_symbol + 1 or from_item.dot > 1 then
-        local items = module_list { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
+        local items = list { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
         module.lr1_closure(grammar, items)
         for _, item in ipairs(items) do
           local symbol = productions[item.index].body[item.dot]
@@ -636,9 +636,9 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
     end
   until done
 
-  local new_set_of_kernel_items = module_list()
+  local new_set_of_kernel_items = list()
   for _, items in ipairs(set_of_kernel_items) do
-    local new_items = module_list()
+    local new_items = list()
     for _, item in ipairs(items) do
       for la in pairs(item.la) do
         new_items:append { index = item.index, dot = item.dot, la = la }
@@ -677,7 +677,7 @@ function module.lr1_construct_table(grammar, set_of_items, transitions, fn)
     local error_table = module.map()
     for _, item in ipairs(items) do
       if not productions[item.index].body[item.dot] then
-        local buffer = module_list(false, false)
+        local buffer = list(false, false)
 
         local action = data[item.la]
         if action then
@@ -735,8 +735,8 @@ function module.lr1_construct_table(grammar, set_of_items, transitions, fn)
     actions[i] = data
   end
 
-  local heads = module_list()
-  local sizes = module_list()
+  local heads = list()
+  local sizes = list()
   for i, production in ipairs(productions) do
     heads[i] = production.head
     sizes[i] = #production.body
