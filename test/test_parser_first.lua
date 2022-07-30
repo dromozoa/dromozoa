@@ -17,6 +17,7 @@
 
 local list = require "dromozoa.list"
 local grammar = require "dromozoa.parser.grammar"
+local generate = require "dromozoa.parser.generate"
 
 local _ = grammar.body
 
@@ -33,7 +34,7 @@ local g = grammar({ "+", "*", "(", ")", "id" }, {
   F = _"(" "E" ")"
     + _"id";
 })
-local first_table = grammar.first_table(g)
+local first_table = generate.first_table(g)
 
 local buffer = list()
 for _, name in ipairs { "F", "T", "E", "E'", "T'" } do

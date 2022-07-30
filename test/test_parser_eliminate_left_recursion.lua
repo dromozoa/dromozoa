@@ -17,6 +17,7 @@
 
 local list = require "dromozoa.list"
 local grammar = require "dromozoa.parser.grammar"
+local generate = require "dromozoa.parser.generate"
 
 local _ = grammar.body
 
@@ -28,7 +29,7 @@ local g = grammar({ "a", "b", "c", "d" }, {
     + _"S" "d"
     + _();
 })
-local g = grammar.eliminate_left_recursion(g)
+local g = generate.eliminate_left_recursion(g)
 
 local buffer = list()
 for _, production in ipairs(g.productions) do
