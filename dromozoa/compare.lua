@@ -108,7 +108,7 @@ local function compare(a, b, n)
   if t == 5 then
     n = n + 1
     if n > 2000 then
-      error "too much recursion; possible loop"
+      error "too much recursion; possible loop detected"
     end
 
     local f, t, k, v = stable_pairs(b, compare, n)

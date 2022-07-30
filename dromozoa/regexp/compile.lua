@@ -19,14 +19,26 @@ local list = require "dromozoa.list"
 local tree_map = require "dromozoa.tree_map"
 local runtime = require "dromozoa.regexp.runtime"
 
-local function update_state_indices_accept(u, accept_actions, color)
+local function make_shared(shared_map, shared_data, v)
+  return shared_map(v, function ()
+    return #shared_data:append("{" .. table.concat(v, ",") .. "};\n")
+  end)
+end
+
+local function make_action(action_map, action_data, v)
+  return action_map(v, function ()
+    return #action_data:append(v)
+  end)
+end
+
+local function update_state_indices_accept(u, action_map, action_data, accept_actions, color)
   color[u] = 1
   if u.accept_action ~= nil then
-    u.index = #accept_actions:append(u.accept_action)
+    u.index = #accept_actions:append(make_action(action_map, action_data, u.accept_action))
   end
   for _, t in ipairs(u.transitions) do
     if color[t.v] == nil then
-      update_state_indices_accept(t.v, accept_actions, color)
+      update_state_indices_accept(t.v, action_map, action_data, accept_actions, color)
     end
   end
   color[u] = 2
@@ -47,40 +59,27 @@ local function update_state_indices_nonaccept(u, index, color)
   return index
 end
 
-local function construct_table(u, max_state, transitions, transition_actions, transition_states, color)
+local function construct_table(u, max_state, transitions, action_map, action_data, transition_actions, transition_states, color)
   color[u] = 1
   for _, t in ipairs(u.transitions) do
     local code = t.v.index
     if t.action ~= nil then
-      transition_actions:append(t.action)
+      code = max_state + #transition_actions:append(make_action(action_map, action_data, t.action))
       transition_states:append(t.v.index)
-      code = max_state + #transition_actions
     end
     for byte in pairs(t.set) do
       transitions[byte][u.index] = code
     end
     if color[t.v] == nil then
-      construct_table(t.v, max_state, transitions, transition_actions, transition_states, color)
+      construct_table(t.v, max_state, transitions, action_map, action_data, transition_actions, transition_states, color)
     end
   end
   color[u] = 2
 end
 
-local function make_shared(shared_map, shared_data, data)
-  return shared_map(data, function ()
-    return #shared_data:append("{" .. table.concat(data, ",") .. "};\n")
-  end)
-end
-
-local function make_action(action_map, action_data, data)
-  return action_map(data, function ()
-    return #action_data:append("function()" .. data .. "\nend;\n")
-  end)
-end
-
-local function generate(index, u, guard_action, shared_map, shared_data, static_data, action_map, action_data, merged_data)
+local function generate(index, u, guard_action, shared_map, shared_data, static_data, action_map, action_data)
   local accept_actions = list()
-  update_state_indices_accept(u, accept_actions, {})
+  update_state_indices_accept(u, action_map, action_data, accept_actions, {})
   local max_state = update_state_indices_nonaccept(u, #accept_actions, {})
 
   local transitions = {}
@@ -93,42 +92,26 @@ local function generate(index, u, guard_action, shared_map, shared_data, static_
   local transition_actions = list()
   local transition_states = list()
 
-  construct_table(u, max_state, transitions, transition_actions, transition_states, {})
+  construct_table(u, max_state, transitions, action_map, action_data, transition_actions, transition_states, {})
 
   static_data:append(
     "{\n",
+    "start_state=", u.index, ";\n",
+    "max_accept_state=", #accept_actions, ";\n",
+    "max_state=", max_state, ";\n",
     "transitions={[0]=")
   for byte = 0x00, 0xFF do
     static_data:append("_[", make_shared(shared_map, shared_data, transitions[byte]), "],")
   end
   static_data:append(
     "};\n",
+    "transition_actions=_[", make_shared(shared_map, shared_data, transition_actions), "];\n",
     "transition_states=_[", make_shared(shared_map, shared_data, transition_states), "];\n",
-    "};\n")
-
-  merged_data:append(
-    "{\n",
-    "start_state=", u.index, ";\n",
-    "max_accept_state=", #accept_actions, ";\n",
-    "max_state=", max_state, ";\n",
-    "transitions=S[", index, "].transitions;\n",
-    "transition_actions={")
-  for _, transition_action in ipairs(transition_actions) do
-    merged_data:append("_[", make_action(action_map, action_data, transition_action), "],")
-  end
-  merged_data:append(
-    "};\n",
-    "transition_states=S[", index, "].transition_states;\n",
-    "accept_actions={")
-  for _, accept_action in ipairs(accept_actions) do
-    merged_data:append("_[", make_action(action_map, action_data, accept_action), "],")
-  end
-  merged_data:append(
-    "};\n")
+    "accept_actions=_[", make_shared(shared_map, shared_data, accept_actions), "];\n")
   if guard_action ~= nil then
-    merged_data:append("guard_action=_[", make_action(action_map, action_data, guard_action), "];\n")
+    static_data:append("guard_action=", make_action(action_map, action_data, guard_action), ";\n")
   end
-  merged_data:append(
+  static_data:append(
     "};\n")
 end
 
@@ -139,7 +122,6 @@ return function (that)
   local custom_data = list()
   local action_map = tree_map()
   local action_data = list()
-  local merged_data = list()
 
   local data = list()
   for k, v in pairs(that) do
@@ -160,19 +142,37 @@ return function (that)
 
   for i, v in ipairs(data) do
     if v.main then
-      merged_data:append("main=", i, ";\n")
+      static_data:append("main=", i, ";\n")
     end
     if v.name ~= nil then
       custom_data:append("local ", v.name, "=", i, "\n")
     end
-    generate(i, v.machine.start_state, v.machine.guard_action, shared_map, shared_data, static_data, action_map, action_data, merged_data)
+    generate(i, v.machine.start_state, v.machine.guard_action, shared_map, shared_data, static_data, action_map, action_data)
   end
+
+  local action_threads = list()
+  for i, action in ipairs(action_data) do
+    action_data[i] = "function()" .. action .. "\nend;\n"
+
+    -- コルーチンの必要性をおおまかに検査する。
+    -- 1. 単語境界を調べやすくするために番兵を置く。
+    local s = " " .. action .. " "
+    -- 2. fcallという単語が最初に出現する位置を調べる。
+    local p = s:find "[^%w_](fcall)[^%w_]"
+    -- 3. fcallという単語が最後に出現する位置を調べる。
+    local q = s:find "[^%w_](fcall)%s*%b()%s*$"
+    if p == q then
+      action_threads:append(0)
+    else
+      action_threads:append(1)
+    end
+  end
+  static_data:append("action_threads=_[", make_shared(shared_map, shared_data, action_threads), "];\n")
 
   return table.concat(runtime {
     shared_data = table.concat(shared_data);
     static_data = table.concat(static_data);
     custom_data = table.concat(custom_data);
     action_data = table.concat(action_data);
-    merged_data = table.concat(merged_data);
   })
 end
