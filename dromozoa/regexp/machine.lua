@@ -75,6 +75,9 @@ local function node_to_nfa(node, timestamp)
   if rawget(node, "timestamp") ~= nil then
     timestamp = rawget(node, "timestamp")
   end
+  if timestamp == nil then
+    error "not supported"
+  end
 
   local code = node[0]
   if code == "[" then
@@ -135,9 +138,12 @@ local function node_to_nfa(node, timestamp)
 end
 
 local function tree_to_nfa(node)
-  local timestamp = assert(rawget(node, "timestamp"))
+  local timestamp = rawget(node, "timestamp")
   local u, v = node_to_nfa(node, timestamp)
   if v.accept_action == nil then
+    if timestamp == nil then
+      error "not supported"
+    end
     v:update(timestamp, "")
   end
   return u, v
@@ -511,7 +517,11 @@ function module.union(that)
   for _, node in ipairs(that) do
     transition(s, (tree_to_nfa(node)))
   end
-  return machine(rawget(that[1], "timestamp"), minimize(nfa_to_dfa(s)))
+  local timestamp = rawget(that[1], "timestamp")
+  if timestamp == nil then
+    error "not supported"
+  end
+  return machine(timestamp, minimize(nfa_to_dfa(s)))
 end
 
 function module.guard(guard_action, that)
@@ -526,7 +536,11 @@ function module.lexer(tokens, that)
     if type(name) ~= "string" then
       name = rawget(node, "literal")
     end
-    data:append { timestamp = rawget(node, "timestamp"), node = node, name = name }
+    local timestamp = rawget(node, "timestamp")
+    if timestamp == nil then
+      error "not supported"
+    end
+    data:append { timestamp = timestamp, node = node, name = name }
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 

@@ -39,6 +39,7 @@ out:close()
 local tokens = list()
 
 local m2 = machine.union {
+  -- _;
   _"aaa" %"print'a'";
   _"aba" %"print'b'";
   _{"ab"}*{3} %"print'b'";
