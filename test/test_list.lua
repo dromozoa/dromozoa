@@ -36,9 +36,9 @@ end
 assert(compare(list(1,2,3,4,5), {1,2,3,4,5}) == 0)
 assert(compare(list(1,nil,3,nil,5), {1,nil,3,nil,5}) == 0)
 assert(compare(list(nil,2,nil,4,nil), {nil,2,nil,4}) == 0)
-assert(compare(list():append(1,2,3,4,5), {1,2,3,4,5}) == 0)
-assert(compare(list():append(1,nil,3,nil,5), {1,nil,3,nil,5}) == 0)
-assert(compare(list():append(nil,2,nil,4,nil), {nil,2,nil,4}) == 0)
+assert(compare(list(1,2,3,4,5):append(6,7,8,9), {1,2,3,4,5,6,7,8,9}) == 0)
+assert(compare(list(1,nil,3,nil,5):append(6,nil,8,nil), {1,6,nil,8}) == 0)
+assert(compare(list(nil,2,nil,4,nil):append(nil,6,nil), {nil,6,nil,4}) == 0)
 
 for _, t in ipairs { list(1,2,3,4,5), list(1,nil,3,nil,5), list(nil,2,nil,4,nil) } do
   local u = {}

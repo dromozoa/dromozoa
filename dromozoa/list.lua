@@ -28,17 +28,28 @@ function class:append(...)
 end
 
 function class:slice(i, j)
-  local that = class()
-  local n = 0
-  for i = i == nil and 1 or i, j == nil and #self or j do
-    n = n + 1
-    that[n] = self[i]
+  if i == nil then
+    i = 1
   end
-  return that
+  if j == nil then
+    j = #self
+  end
+
+  local result = class()
+  local n = 0
+  for i = i, j do
+    n = n + 1
+    result[n] = self[i]
+  end
+  return result
 end
 
 return setmetatable(class, {
   __call = function (_, ...)
-    return setmetatable({}, metatable):append(...)
+    local self = setmetatable({}, metatable)
+    for i = 1, select("#", ...) do
+      self[i] = select(i, ...)
+    end
+    return self
   end
 })
