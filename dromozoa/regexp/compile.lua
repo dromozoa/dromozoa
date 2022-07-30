@@ -27,7 +27,7 @@ end
 
 local function make_action(action_map, action_data, v)
   return action_map(v, function ()
-    return #action_data:append("function()" .. v .. "\nend;\n")
+    return #action_data:append(v)
   end)
 end
 
@@ -150,10 +150,24 @@ return function (that)
     generate(i, v.machine.start_state, v.machine.guard_action, shared_map, shared_data, static_data, action_map, action_data)
   end
 
-  local action_types = list()
+  local action_threads = list()
+  for i, action in ipairs(action_data) do
+    action_data[i] = "function()" .. action .. "\nend;\n"
 
-
-
+    -- コルーチンの必要性をおおまかに調べる。
+    -- 1. 単語境界を調べやすくするために番兵を置く。
+    local s = " " .. action .. " "
+    -- 2. fcallという単語が最初に出現する位置を調べる。
+    local p = s:find "[^%w_](fcall)[^%w_]"
+    -- 3. fcallという単語が最後に出現する位置を調べる。
+    local q = s:find "[^%w_](fcall)%b()%s*$"
+    if p == q then
+      action_threads:append(0)
+    else
+      action_threads:append(1)
+    end
+  end
+  static_data:append("action_threads=_[", make_shared(shared_map, shared_data, action_threads), "];\n")
 
   return table.concat(runtime {
     shared_data = table.concat(shared_data);

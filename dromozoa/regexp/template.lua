@@ -50,7 +50,6 @@ return function (source, source_name, fn)
   local current_position = 1
   local current_index = _.main
   local current_state = _[current_index].start_state
-  local current_loop
 
   local stack = {}
   local jumped = false
