@@ -154,13 +154,13 @@ return function (that)
   for i, action in ipairs(action_data) do
     action_data[i] = "function()" .. action .. "\nend;\n"
 
-    -- コルーチンの必要性をおおまかに調べる。
+    -- コルーチンの必要性をおおまかに検査する。
     -- 1. 単語境界を調べやすくするために番兵を置く。
     local s = " " .. action .. " "
     -- 2. fcallという単語が最初に出現する位置を調べる。
     local p = s:find "[^%w_](fcall)[^%w_]"
     -- 3. fcallという単語が最後に出現する位置を調べる。
-    local q = s:find "[^%w_](fcall)%b()%s*$"
+    local q = s:find "[^%w_](fcall)%s*%b()%s*$"
     if p == q then
       action_threads:append(0)
     else

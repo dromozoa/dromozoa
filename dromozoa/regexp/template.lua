@@ -45,11 +45,15 @@ return function (source, source_name, fn)
 
   local table_unpack = table.unpack or unpack
 
+  local main = _.main
+  local action_threads = _.action_threads
+
   local start_line = 1
   local start_column = 1
   local current_position = 1
-  local current_index = _.main
+  local current_index = main
   local current_state = _[current_index].start_state
+  local current_thread
 
   local stack = {}
   local jumped = false
@@ -62,7 +66,10 @@ return function (source, source_name, fn)
       start_column = start_column;
       current_index = current_index;
       current_state = current_state;
+      current_thread = current_thread;
     }
+
+    jumped = true
 
     tk = nil
     fs = current_position
@@ -71,15 +78,18 @@ return function (source, source_name, fn)
     current_index = index
     current_state = _[current_index].start_state
 
-    jumped = true
-    coroutine.yield()
+    if current_thread ~= nil then
+      current_thread = nil
+      coroutine.yield()
+    end
   end
 
   function fret()
     local item = stack[#stack]
     stack[#stack] = nil
 
-    local thread = assert(item.thread)
+    jumped = true
+
     tk = item.token_symbol
     fs = item.start_position
     start_line = item.start_line
@@ -87,8 +97,10 @@ return function (source, source_name, fn)
     current_index = item.current_index
     current_state = item.current_state
 
-    jumped = true
-    assert(coroutine.resume(thread))
+    current_thread = item.current_thread
+    if current_thread ~= nil then
+      assert(coroutine.resume(current_thread))
+    end
   end
 
   function push_token(value)
@@ -118,14 +130,14 @@ return function (source, source_name, fn)
   end
 
   local function execute(action_index)
-    -- TODO コルーチンを作るかどうか前もってわかるはず。
-    -- 継続かどうか、つまり、途中でfcallを呼ぶ場合だけ必要
     local action = action_data[action_index]
     jumped = false
-    local thread = coroutine.create(action)
-    assert(coroutine.resume(thread))
-    if coroutine.status(thread) == "suspended" then
-      stack[#stack].thread = thread
+    if action_threads[action_index] == 0 then
+      current_thread = nil
+      action()
+    else
+      current_thread = coroutine.create(action)
+      assert(coroutine.resume(current_thread))
     end
     return jumped
   end
@@ -166,7 +178,7 @@ return function (source, source_name, fn)
         return
       end
       if current_byte == nil then
-        if current_index == _.main then
+        if current_index == main then
           -- push eof
           fn()
           return true
