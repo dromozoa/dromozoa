@@ -122,9 +122,9 @@ function metatable:__mul(that)
     else
       m = that[1]
       n = that[2]
-      -- if n == nil then
-      --   n = m
-      -- end
+      if n == nil then
+        n = m
+      end
     end
 
     if n == nil then
