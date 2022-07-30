@@ -71,6 +71,10 @@ return function (source, source_name, fn)
       current_thread = current_thread;
     }
 
+    if #stack > 2000 then
+      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (too much recursion; possible loop detected)")
+    end
+
     jumped = true
 
     tk = nil
@@ -112,6 +116,7 @@ return function (source, source_name, fn)
     elseif type(v) == "table" then
       v = string.char(table_unpack(v))
     end
+    -- TODO フォーマットを修正する
     fn {
       symbol = tk;
       i = fs;
@@ -131,10 +136,10 @@ return function (source, source_name, fn)
     buffer[#buffer + 1] = v
   end
 
-  local function execute(action_index)
-    local action = action_data[action_index]
+  local function execute(index)
+    local action = action_data[index]
     jumped = false
-    if action_threads[action_index] == 0 then
+    if action_threads[index] == 0 then
       current_thread = nil
       action()
     else
@@ -144,22 +149,44 @@ return function (source, source_name, fn)
     return jumped
   end
 
-  local function guard(current_byte)
-    if _[current_index].guard_action ~= nil and current_state == _[current_index].start_state then
-      -- TODO あとで効率化する
-      local guard = string.char(table_unpack(fg))
-      local p = current_position + #guard - 1
-      if string.sub(source, current_position, p) == guard then
-        current_position = p + 1
-        fp = p
-        fc = string.byte(source, p)
-        execute(_[current_index].guard_action)
+  local function accept(current_byte)
+    if current_state > _[current_index].max_accept_state then
+      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (cannot transition)")
+    end
+
+    if execute(_[current_index].accept_actions[current_state]) then
+      return
+    end
+
+    if current_byte == nil then
+      if current_index == main then
+        fn()
         return true
       end
+      return error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (unexpected eof)")
     end
+
+    if current_state == _[current_index].start_state then
+      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (loop detected)")
+    end
+
+    tk = nil
+    fs = current_position
+    start_line = ln
+    start_column = fs - lp
+    current_state = _[current_index].start_state
   end
 
-  local function transition(current_byte, s)
+  local function transition()
+    local current_byte = string.byte(source, current_position)
+    if current_byte == nil then
+      return accept(current_byte)
+    end
+    local s = _[current_index].transitions[current_byte][current_state]
+    if s == 0 then
+      return accept(current_byte)
+    end
+
     fp = current_position
     fc = current_byte
     if s > _[current_index].max_state then
@@ -171,50 +198,27 @@ return function (source, source_name, fn)
       current_position = current_position + 1
       current_state = s
     end
-    return true
   end
 
-  local function accept(current_byte)
-    if current_state <= _[current_index].max_accept_state then
-      if execute(_[current_index].accept_actions[current_state]) then
-        return
-      end
-      if current_byte == nil then
-        if current_index == main then
-          -- push eof
-          fn()
-          return true
-        end
-        error(source_name .. ":" .. start_line .. ":" .. start_column .. ": unexpected eof")
-      else
-        -- 初期状態でなければ、再度を実行する。
-        if current_state ~= _[current_index].start_state then
-          tk = nil
-          fs = current_position
-          start_line = ln
-          start_column = fs - lp
-          current_state = _[current_index].start_state
-          return
-        end
+  local function guard()
+    if _[current_index].guard_action == nil then
+      return transition()
+    end
+    if current_state ~= _[current_index].start_state then
+      return transition()
+    end
+
+    for i = 1, #fg do
+      if string.byte(source, current_position + i - 1) ~= fg[i] then
+        return transition()
       end
     end
-    error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error")
+
+    current_position = current_position + #fg
+    fp = current_position - 1
+    fc = fg[#fg]
+    execute(_[current_index].guard_action)
   end
 
-  while true do
-    local current_byte = string.byte(source, current_position)
-    if not guard(current_byte) then
-      local s = 0
-      if current_byte ~= nil then
-        s = _[current_index].transitions[current_byte][current_state]
-      end
-      if s ~= 0 then
-        transition(current_byte, s)
-      else
-        if accept(current_byte) then
-          break
-        end
-      end
-    end
-  end
+  repeat until guard()
 end
