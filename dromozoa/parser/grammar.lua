@@ -15,28 +15,9 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local module_list = require "dromozoa.list"
+
 local module = {}
-
----------------------------------------------------------------------------
-
-local class = {}
-local metatable = { __index = class, __name = "dromozoa.parser.grammar.list" }
-
-function class:append(...)
-  local n = #self
-  for i = 1, select("#", ...) do
-    self[n + i] = select(i, ...)
-  end
-  return self
-end
-
-local function module_list(...)
-  return setmetatable({...}, metatable)
-end
-
-function class:slice(i, j)
-  return module_list(table.unpack(self, i, j))
-end
 
 ---------------------------------------------------------------------------
 
