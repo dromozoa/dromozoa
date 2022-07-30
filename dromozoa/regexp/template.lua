@@ -21,18 +21,21 @@ local _ = { $static_data }
 return function (source, source_name, fn)
   local fcall
   local fret
-  local push_token -- TODO pushでよいかも？
+  local push
   local clear
   local append
 
-  local fs = 1  -- start position
-  local fp      -- current position
-  local fc      -- current character
-  local fb = {} -- string buffer
-  local fg = {} -- guard buffer
-  local ln = 1  -- line number
-  local lp = 0  -- line position
-  local tk      -- token symbol
+                -- save/restore
+                --  | read only
+                --  |  |
+  local tk      --  x  x  token symbol
+  local fs = 1  --  x  x  start position
+  local fp      --     x  current position
+  local fc      --     x  current character
+  local fb = {} --        buffer
+  local fg = {} --        guard buffer
+  local ln = 1  --        line number
+  local lp = 0  --        line position
 
   local action_data = (function ()
     local _
@@ -44,7 +47,6 @@ return function (source, source_name, fn)
   end)()
 
   local table_unpack = table.unpack or unpack
-
   local main = _.main
   local action_threads = _.action_threads
 
@@ -103,12 +105,12 @@ return function (source, source_name, fn)
     end
   end
 
-  function push_token(value)
+  function push(v)
     local source = string.sub(source, fs, fp)
-    if value == nil then
-      value = source
-    elseif type(value) == "table" then
-      value = string.char(table_unpack(value))
+    if v == nil then
+      v = source
+    elseif type(v) == "table" then
+      v = string.char(table_unpack(v))
     end
     fn {
       symbol = tk;
@@ -117,7 +119,7 @@ return function (source, source_name, fn)
       source = source;
       line = start_line;
       column = start_column;
-      value = value;
+      value = v;
     }
   end
 
@@ -125,8 +127,8 @@ return function (source, source_name, fn)
     buffer = {}
   end
 
-  function append(buffer, value)
-    buffer[#buffer + 1] = value
+  function append(buffer, v)
+    buffer[#buffer + 1] = v
   end
 
   local function execute(action_index)

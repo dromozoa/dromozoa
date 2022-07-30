@@ -552,7 +552,7 @@ function module.lexer(tokens, that)
     end
 
     if v.accept_action == "" then
-      v.accept_action = "tk=" .. symbol .. ";push_token()"
+      v.accept_action = "tk=" .. symbol .. " push()"
     else
       v.accept_action = "tk=" .. symbol .. ";" .. v.accept_action
     end

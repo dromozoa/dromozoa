@@ -100,7 +100,7 @@ local code = compile {
         _[[\]] + _[["]]/[[append(fb,0x22)]];
         -_{[["\]]}/[[append(fb,fc)]]
       }*"*" + _[["]]
-    ) %[[push_token(fb)]];
+    ) %[[push(fb)]];
 
     _"*";
     _"+";
