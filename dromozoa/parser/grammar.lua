@@ -16,63 +16,9 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local list = require "dromozoa.list"
+local tree_map = require "dromozoa.tree_map"
 
 local module = {}
-
----------------------------------------------------------------------------
-
-local private = setmetatable({}, { __mode = "k" })
-local metatable = { __name = "dromozoa.parser.grammar.map" }
-
-function metatable:__newindex(k, v)
-  if v ~= nil then
-    local priv = private[self]
-    local priv_set = priv.set
-    if not priv_set[k] then
-      priv[#priv + 1] = k
-      priv_set[k] = true
-    end
-  end
-  rawset(self, k, v)
-end
-
-function metatable:__call(k, fn)
-  local v = self[k]
-  if v ~= nil then
-    return v
-  end
-  if fn ~= nil then
-    v = fn()
-  else
-    v = module.map()
-  end
-  self[k] = v
-  return v
-end
-
-function metatable:__pairs()
-  local priv = private[self]
-  local index = 0
-  return function (self)
-    for i = index + 1, #priv do
-      local k = priv[i]
-      local v = self[k]
-      if v ~= nil then
-        index = i
-        return k, v
-      end
-    end
-  end, self
-end
-
-function module.map(...)
-  local self = setmetatable({}, metatable)
-  private[self] = { set = {} }
-  for i = 1, select("#", ...), 2 do
-    self[select(i, ...)] = select(i + 1, ...)
-  end
-  return self
-end
 
 ---------------------------------------------------------------------------
 
@@ -151,9 +97,64 @@ end
 
 ---------------------------------------------------------------------------
 
+local private = setmetatable({}, { __mode = "k" })
+local metatable = { __name = "dromozoa.parser.grammar.map" }
+
+local function module_map(...)
+  local self = setmetatable({}, metatable)
+  private[self] = { set = {} }
+  for i = 1, select("#", ...), 2 do
+    self[select(i, ...)] = select(i + 1, ...)
+  end
+  return self
+end
+
+function metatable:__newindex(k, v)
+  if v ~= nil then
+    local priv = private[self]
+    local priv_set = priv.set
+    if not priv_set[k] then
+      priv[#priv + 1] = k
+      priv_set[k] = true
+    end
+  end
+  rawset(self, k, v)
+end
+
+function metatable:__call(k, fn)
+  local v = self[k]
+  if v ~= nil then
+    return v
+  end
+  if fn ~= nil then
+    v = fn()
+  else
+    v = module_map()
+  end
+  self[k] = v
+  return v
+end
+
+function metatable:__pairs()
+  local priv = private[self]
+  local index = 0
+  return function (self)
+    for i = index + 1, #priv do
+      local k = priv[i]
+      local v = self[k]
+      if v ~= nil then
+        index = i
+        return k, v
+      end
+    end
+  end, self
+end
+
+---------------------------------------------------------------------------
+
 function module.grammar(token_names, that)
   local symbol_names = list()
-  local symbol_table = module.map()
+  local symbol_table = {}
   for _, name in ipairs(token_names) do
     if symbol_table[name] then
       error("symbol " .. name .. " redefined as a terminal")
@@ -173,8 +174,8 @@ function module.grammar(token_names, that)
 
   local productions = list { head = augumented_start_head, body = list() }
   local precedence = 0
-  local precedence_table = module.map()
-  local symbol_precedences = module.map()
+  local precedence_table = {}
+  local symbol_precedences = {}
 
   for _, u in ipairs(data) do
     local k = u.k
@@ -214,10 +215,10 @@ function module.grammar(token_names, that)
     end
   end
 
-  local production_precedences = module.map()
-  local semantic_actions = module.map()
-  local used_symbols = module.map()
-  local used_precedences = module.map()
+  local production_precedences = {}
+  local semantic_actions = {}
+  local used_symbols = {}
+  local used_precedences = {}
 
   for i, production in ipairs(productions) do
     local name = production.body.precedence
@@ -377,13 +378,13 @@ local marker_epsilon = 0
 
 function module.first_symbol(grammar, symbol)
   if symbol <= grammar.max_terminal_symbol then
-    return module.map(symbol, true)
+    return module_map(symbol, true)
   else
     local first_table = grammar.first_table
     if first_table then
       return first_table[symbol]
     end
-    local first = module.map()
+    local first = module_map()
     for _, body in module.each_production(grammar.productions, symbol) do
       if body[1] then
         for symbol in pairs(module.first_symbols(grammar, body)) do
@@ -398,7 +399,7 @@ function module.first_symbol(grammar, symbol)
 end
 
 function module.first_symbols(grammar, symbols)
-  local first = module.map()
+  local first = module_map()
   for _, symbol in ipairs(symbols) do
     for symbol in pairs(module.first_symbol(grammar, symbol)) do
       first[symbol] = true
@@ -414,7 +415,7 @@ function module.first_symbols(grammar, symbols)
 end
 
 function module.first_table(grammar)
-  local first_table = module.map()
+  local first_table = module_map()
   for symbol = grammar.max_terminal_symbol + 1, grammar.max_nonterminal_symbol do
     first_table[symbol] = module.first_symbol(grammar, symbol)
   end
@@ -471,7 +472,7 @@ function module.lr0_closure(grammar, items)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
 
-  local added = module.map()
+  local added = module_map()
   local m = 1
   while true do
     local n = #items
@@ -496,7 +497,7 @@ end
 
 function module.lr0_goto(grammar, items)
   local productions = grammar.productions
-  local map_of_to_items = module.map()
+  local map_of_to_items = module_map()
 
   for _, item in ipairs(items) do
     local symbol = productions[item.index].body[item.dot]
@@ -514,7 +515,7 @@ end
 
 function module.lr0_items(grammar)
   local set_of_items = module_set(module.lr0_closure(grammar, list { index = 1, dot = 1 }))
-  local transitions = module.map()
+  local transitions = module_map()
 
   local m = 1
   while true do
@@ -542,7 +543,7 @@ function module.lr1_closure(grammar, items)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
 
-  local added = module.map()
+  local added = module_map()
   local m = 1
   while true do
     local n = #items
@@ -584,12 +585,12 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
 
   for i, items in ipairs(set_of_items) do
     local kernel_items = list()
-    local kernel_table = module.map()
+    local kernel_table = module_map()
     for j, item in ipairs(items) do
       if item.index == 1 or item.dot > 1 then
         kernel_table(item.index)[item.dot] = j
       end
-      local la = module.map()
+      local la = module_map()
       if item.index == 1 and item.dot == 1 then
         la[max_terminal_symbol] = true
       end
@@ -665,16 +666,16 @@ function module.lr1_construct_table(grammar, set_of_items, transitions, fn)
   local max_terminal_symbol = grammar.max_terminal_symbol
 
   local max_state = #set_of_items
-  local actions = module.map()
+  local actions = module_map()
 
   for i, items in ipairs(set_of_items) do
-    local data = module.map()
+    local data = module_map()
 
     for symbol, j in pairs(transitions[i]) do
       data[symbol] = j
     end
 
-    local error_table = module.map()
+    local error_table = module_map()
     for _, item in ipairs(items) do
       if not productions[item.index].body[item.dot] then
         local buffer = list(false, false)
