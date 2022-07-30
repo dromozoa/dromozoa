@@ -15,6 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local list = require "dromozoa.list"
 local grammar = require "dromozoa.parser.grammar"
 
 local _ = grammar.body
@@ -26,9 +27,9 @@ local g = grammar({ "c", "d" }, {
     + _"d";
 })
 
-local items = grammar.lr1_closure(g, grammar.list { index = 1, dot = 1, la = g.max_terminal_symbol })
+local items = grammar.lr1_closure(g, list { index = 1, dot = 1, la = g.max_terminal_symbol })
 
-local buffer = grammar.list()
+local buffer = list()
 for _, item in ipairs(items) do
   local production = g.productions[item.index]
   buffer:append(g.symbol_names[production.head], " ->")

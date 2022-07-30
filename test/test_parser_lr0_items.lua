@@ -15,6 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local list = require "dromozoa.list"
 local grammar = require "dromozoa.parser.grammar"
 
 local _ = grammar.body
@@ -31,7 +32,7 @@ local g = grammar({ "+", "*", "(", ")", "id" }, {
 
 local set_of_items, transitions = grammar.lr0_items(g)
 
-local buffer = grammar.list()
+local buffer = list()
 for i, items in ipairs(set_of_items) do
   buffer:append(("="):rep(75), "\n")
   buffer:append("I_", i - 1, "\n")

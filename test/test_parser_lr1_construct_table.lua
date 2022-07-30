@@ -15,6 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local list = require "dromozoa.list"
 local grammar = require "dromozoa.parser.grammar"
 
 local _ = grammar.body
@@ -47,7 +48,7 @@ local G = {
   })
 }
 
-local buffer = grammar.list()
+local buffer = list()
 
 for _, g in ipairs(G) do
   buffer:append(("-"):rep(75), "\n")

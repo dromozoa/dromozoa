@@ -15,6 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local list = require "dromozoa.list"
 local grammar = require "dromozoa.parser.grammar"
 
 local _ = grammar.body
@@ -34,7 +35,7 @@ local g = grammar({ "+", "*", "(", ")", "id" }, {
 })
 local first_table = grammar.first_table(g)
 
-local buffer = grammar.list()
+local buffer = list()
 for _, name in ipairs { "F", "T", "E", "E'", "T'" } do
   buffer:append("FIRST(", name, ") = { ")
   local first = first_table[g.symbol_table[name]]

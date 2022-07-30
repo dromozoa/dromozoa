@@ -15,6 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local list = require "dromozoa.list"
 local grammar = require "dromozoa.parser.grammar"
 
 local _ = grammar.body
@@ -29,7 +30,7 @@ local g = grammar({ "a", "b", "c", "d" }, {
 })
 local g = grammar.eliminate_left_recursion(g)
 
-local buffer = grammar.list()
+local buffer = list()
 for _, production in ipairs(g.productions) do
   buffer:append(g.symbol_names[production.head], " ->")
   for _, symbol in ipairs(production.body) do
