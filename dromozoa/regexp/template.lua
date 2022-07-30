@@ -45,16 +45,12 @@ return function (source, source_name, fn)
     local source_name
     local fn
 
-    -- TODO カスタム初期化ルーチン
-    -- local ra
-    -- local rb
-    -- local rc
-    -- local rd
-
     $custom_data
 
     return { $action_data }
   end)()
+
+  local table_unpack = table.unpack or unpack
 
   for i, u in ipairs(static_data) do
     for k, v in pairs(u) do
@@ -113,7 +109,7 @@ return function (source, source_name, fn)
       value = source
     elseif type(value) == "table" then
       -- TODO あとできれいにする
-      value = string.char((table.unpack or unpack)(value))
+      value = string.char(table_unpack(value))
     end
     fn {
       symbol = token_symbol;
@@ -157,7 +153,7 @@ return function (source, source_name, fn)
   local function guard(current_byte)
     if _[current_index].guard_action ~= nil and current_state == _[current_index].start_state then
       -- TODO あとできれいにする
-      local guard = string.char((table.unpack or unpack)(fg))
+      local guard = string.char(table_unpack(fg))
       local p = current_position + #guard - 1
       if string.sub(source, current_position, p) == guard then
         current_position = p + 1
