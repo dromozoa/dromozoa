@@ -16,7 +16,7 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local list = require "dromozoa.list"
-local tree_map = require "dromozoa.tree_map"
+-- local tree_map = require "dromozoa.tree_map"
 
 local module = {}
 
@@ -215,8 +215,9 @@ function module.grammar(token_names, that)
     end
   end
 
+  -- TODO このふたつはシークエンスを保証したほうがよい？
   local production_precedences = {}
-  local semantic_actions = {}
+  local semantic_actions = {} -- TODO semantic_actionがnilのときはどうする？
   local used_symbols = {}
   local used_precedences = {}
 
