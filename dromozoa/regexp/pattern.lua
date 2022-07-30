@@ -96,6 +96,7 @@ function metatable:__add(that)
 end
 
 function metatable:__mul(that)
+  local self = pattern(self)
   if self[0] == "%" then
     error "not supported"
   else
