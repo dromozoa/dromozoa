@@ -17,13 +17,11 @@
 
 local metatable = { __name = "dromozoa.regexp.pattern" }
 
--- TODO DSLを調整する。とくに、negateを関数呼び出しで優先度をあげる（anyのかきかたも）
-
 local timestamp = 0
 
 local function construct(code, ...)
   timestamp = timestamp + 1
-  return setmetatable({ timestamp = timestamp, [0] = code, ... }, metatable)
+  return setmetatable({ [-1] = timestamp, [0] = code, ... }, metatable)
 end
 
 local function pattern(that)
@@ -32,7 +30,7 @@ local function pattern(that)
     for i = 2, #that do
       self = self + construct("[", { [that:byte(i)] = true })
     end
-    self.literal = that
+    self[-2] = that
     return self
   else
     return that
@@ -191,7 +189,7 @@ function metatable:__mod(that)
     error "not supported"
   else
     local result = construct("%", self, that)
-    result.literal = self.literal
+    result[-2] = self[-2]
     return result
   end
 end
@@ -211,12 +209,23 @@ function metatable:__unm()
   end
 end
 
-return setmetatable({}, {
-  __index = function (_, that)
-    return range(that)
-  end;
+local module = setmetatable({ [0] = "[", {} }, metatable)
+for byte = 0x00, 0xFF do
+  module[1][byte] = true
+end
 
-  __call = function (_, that)
+function metatable:__index(that)
+  if self == module then
+    return range(that)
+  elseif type(that) == "number" then
+    return nil
+  else
+    error "not supported"
+  end
+end;
+
+function metatable:__call(that)
+  if self == module then
     if type(that) == "table" and getmetatable(that) ~= metatable then
       local result = set(that[1])
       for i = 2, #that do
@@ -226,7 +235,9 @@ return setmetatable({}, {
     else
       return pattern(that)
     end
-  end;
+  else
+    error "not supported"
+  end
+end
 
-  __name = "dromozoa.regexp.pattern.constructor";
-})
+return module

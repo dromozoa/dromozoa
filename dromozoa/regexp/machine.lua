@@ -71,23 +71,29 @@ end
 
 local difference
 
-local function node_to_nfa(node)
+local function node_to_nfa(node, timestamp)
+  assert(timestamp ~= nil)
+  if node[-1] ~= nil then
+    timestamp = node[-1]
+  end
+
   local code = node[0]
   if code == "[" then
     local u = state()
     local v = state()
-    transition(u, v, node[1], node.timestamp)
+    transition(u, v, node[1], timestamp)
     return u, v
   else
-    local au, av = node_to_nfa(node[1])
+    assert(node[-1] ~= nil)
+    local au, av = node_to_nfa(node[1], timestamp)
     if code == "/" then
       au.transitions[1].action = node[2]
       return au, av
     elseif code == "%" then
-      av:update(node.timestamp, node[2])
+      av:update(timestamp, node[2])
       return au, av
     elseif code == "." then
-      local bu, bv = node_to_nfa(node[2])
+      local bu, bv = node_to_nfa(node[2], timestamp)
       transition(av, bu)
       return au, bv
     else
@@ -107,15 +113,15 @@ local function node_to_nfa(node)
         transition(u, au)
         transition(av, v)
       else
-        local bu, bv = node_to_nfa(node[2])
+        local bu, bv = node_to_nfa(node[2], timestamp)
         if code == "|" then
           transition(u, au)
           transition(u, bu)
           transition(av, v)
           transition(bv, v)
         elseif code == "-" then
-          av:update(node.timestamp, "")
-          bv:update(node.timestamp, "")
+          av:update(timestamp, "")
+          bv:update(timestamp, "")
           local cu, accept_states = difference(au, bu)
           transition(u, cu)
           for _, cv in ipairs(accept_states) do
@@ -131,9 +137,10 @@ local function node_to_nfa(node)
 end
 
 local function tree_to_nfa(node, accept_action)
-  local u, v = node_to_nfa(node)
+  local timestamp = assert(node[-1])
+  local u, v = node_to_nfa(node, timestamp)
   if v.accept_action == nil then
-    v:update(node.timestamp, accept_action)
+    v:update(timestamp, accept_action)
   end
   return u, v
 end
@@ -502,12 +509,11 @@ local function machine(timestamp, start_state)
 end
 
 function module.union(that)
-  table.sort(that, function (a, b) return a.timestamp < b.timestamp end)
   local s = state()
   for _, node in ipairs(that) do
     transition(s, (tree_to_nfa(node, "")))
   end
-  return machine(that[1].timestamp, minimize(nfa_to_dfa(s)))
+  return machine(that[1][-1], minimize(nfa_to_dfa(s)))
 end
 
 function module.guard(guard_action, that)
@@ -520,9 +526,9 @@ function module.lexer(tokens, that)
   local data = list()
   for name, node in pairs(that) do
     if type(name) ~= "string" then
-      name = node.literal
+      name = node[-2]
     end
-    data:append { timestamp = node.timestamp, node = node, name = name }
+    data:append { timestamp = node[-1], node = node, name = name }
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
