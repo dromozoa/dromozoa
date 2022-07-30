@@ -61,7 +61,7 @@ local function stable_pairs(t, compare, n)
     i = i + 1
     local k = K[i]
     return k, t[k]
-  end, t
+  end, t, nil
 end
 
 local function compare(a, b, n)

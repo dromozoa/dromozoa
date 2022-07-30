@@ -58,7 +58,7 @@ function metatable:__call(k, fn)
 end
 
 function metatable:__pairs()
-  return tree.next, private[self]
+  return tree.next, private[self], nil
 end
 
 return construct
