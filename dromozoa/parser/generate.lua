@@ -172,50 +172,6 @@ end
 
 ---------------------------------------------------------------------------
 
-local class = {}
-local metatable = { __index = class, __name = "dromozoa.parser.grammar.set" }
-
-local function equal(a, b)
-  if a == b then
-    return true
-  end
-  if type(a) == "table" and type(b) == "table" then
-    for k, u in pairs(a) do
-      if not equal(u, b[k]) then
-        return false
-      end
-    end
-    for k in pairs(b) do
-      if a[k] == nil then
-        return false
-      end
-    end
-    return true
-  end
-  return false
-end
-
-function class:put(v)
-  for i, u in ipairs(self) do
-    if equal(u, v) then
-      return i, u
-    end
-  end
-  local n = #self + 1
-  self[n] = v
-  return n, v
-end
-
-local function module_set(...)
-  local self = setmetatable({}, metatable)
-  for i = 1, select("#", ...) do
-    self:put(select(i, ...))
-  end
-  return self
-end
-
----------------------------------------------------------------------------
-
 function module.lr0_closure(grammar, items)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
@@ -261,9 +217,16 @@ function module.lr0_goto(grammar, items)
   return map_of_to_items
 end
 
+-- TODO リファクタリング
 function module.lr0_items(grammar)
-  local set_of_items = module_set(module.lr0_closure(grammar, list { index = 1, dot = 1 }))
+  local map = tree_map()
+  local set_of_items = list()
   local transitions = tree_map()
+
+  local items = module.lr0_closure(grammar, list { index = 1, dot = 1 })
+  local index = map(items, function ()
+    return #set_of_items:append(items)
+  end)
 
   local m = 1
   while true do
@@ -276,7 +239,9 @@ function module.lr0_items(grammar)
       local map_of_to_items = module.lr0_goto(grammar, items)
       local transition = transitions(i)
       for symbol, to_items in map_of_to_items():each() do
-        transition[symbol] = set_of_items:put(to_items)
+        transition[symbol] = map(to_items, function ()
+          return #set_of_items:append(to_items)
+        end)
       end
     end
     m = n + 1
