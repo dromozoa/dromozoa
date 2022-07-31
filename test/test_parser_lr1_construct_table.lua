@@ -22,6 +22,27 @@ local generate = require "dromozoa.parser.generate"
 local _ = grammar.body
 local left = grammar.left
 
+--[=[
+
+grammar(tokens, {
+  left "+";
+  left "+";
+
+  block
+    = _
+    + _"retstat"
+    + _"statlist"
+    + _"statlist" "retstat"
+    ;
+
+  statlist
+    = _"stat"
+    + _"statlist"
+    + _"statlist" "stat" %[[($1, $2)]]
+
+]=]
+
+
 local G = {
   -- P.269
   grammar({ "c", "d" }, {

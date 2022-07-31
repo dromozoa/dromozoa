@@ -23,9 +23,9 @@ local module = {}
 
 local timestamp = 0
 
-function module.timestamp()
+local function construct(metatable, code, ...)
   timestamp = timestamp + 1
-  return timestamp
+  return setmetatable({ timestamp = timestamp, [0] = code, ... }, metatable)
 end
 
 ---------------------------------------------------------------------------
@@ -37,20 +37,16 @@ function metatable:__call(that)
   return self
 end
 
-function module.precedence(associativity, ...)
-  return setmetatable({ timestamp = module.timestamp(), associativity = associativity, ... }, metatable)
-end
-
 function module.left(...)
-  return module.precedence("left", ...)
+  return construct(metatable, "left", ...)
 end
 
 function module.right(...)
-  return module.precedence("right", ...)
+  return construct(metatable, "right", ...)
 end
 
 function module.nonassoc(...)
-  return module.precedence("nonassoc", ...)
+  return construct(metatable, "nonassoc", ...)
 end
 
 ---------------------------------------------------------------------------
@@ -63,7 +59,7 @@ function metatable:__add(that)
 end
 
 function module.bodies(...)
-  return setmetatable({ timestamp = module.timestamp(), ... }, metatable)
+  return construct(metatable, "bodies", ...)
 end
 
 ---------------------------------------------------------------------------
@@ -91,7 +87,7 @@ function metatable:__call(that)
 end
 
 function module.body(...)
-  return setmetatable({ timestamp = module.timestamp(), ... }, metatable)
+  return construct(metatable, "body", ...)
 end
 
 ---------------------------------------------------------------------------
@@ -133,12 +129,12 @@ function module.grammar(token_names, that)
         if symbol and symbol <= max_terminal_symbol then
           symbol_precedences[symbol] = {
             precedence = precedence;
-            associativity = v.associativity;
+            associativity = v[0];
           }
         else
           precedence_table[name] = {
             precedence = precedence;
-            associativity = v.associativity;
+            associativity = v[0];
           }
         end
       end
