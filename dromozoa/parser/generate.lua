@@ -34,33 +34,6 @@ local function each_production(productions, head)
   end, productions, 0
 end
 
-function module.symbol_precedence(grammar, symbol)
-  local precedence = grammar.symbol_precedences[symbol]
-  if precedence then
-    return precedence.precedence, precedence.associativity
-  else
-    return 0
-  end
-end
-
-function module.production_precedence(grammar, index)
-  local precedence = grammar.production_precedences[index]
-  if precedence then
-    return precedence.precedence, precedence.associativity
-  end
-
-  local max_terminal_symbol = grammar.max_terminal_symbol
-  local production = grammar.productions[index]
-  local body = production.body
-  for i = #body, 1, -1 do
-    local symbol = body[i]
-    if symbol <= max_terminal_symbol then
-      return module.symbol_precedence(grammar, symbol)
-    end
-  end
-  return 0
-end
-
 ---------------------------------------------------------------------------
 
 function module.eliminate_left_recursion(grammar)
@@ -375,6 +348,33 @@ end
 
 ---------------------------------------------------------------------------
 
+local function symbol_precedence(grammar, symbol)
+  local precedence = grammar.symbol_precedences[symbol]
+  if precedence then
+    return precedence.precedence, precedence.associativity
+  else
+    return 0
+  end
+end
+
+local function production_precedence(grammar, index)
+  local precedence = grammar.production_precedences[index]
+  if precedence then
+    return precedence.precedence, precedence.associativity
+  end
+
+  local max_terminal_symbol = grammar.max_terminal_symbol
+  local production = grammar.productions[index]
+  local body = production.body
+  for i = #body, 1, -1 do
+    local symbol = body[i]
+    if symbol <= max_terminal_symbol then
+      return symbol_precedence(grammar, symbol)
+    end
+  end
+  return 0
+end
+
 function module.lr1_construct_table(grammar, set_of_items, transitions, fn)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
@@ -398,9 +398,9 @@ function module.lr1_construct_table(grammar, set_of_items, transitions, fn)
         if action then
           if action <= max_state then
             buffer[1] = "shift(" .. action .. ")"
-            local precedence, associativity = module.production_precedence(grammar, item.index)
+            local precedence, associativity = production_precedence(grammar, item.index)
             if precedence > 0 then
-              local shift_precedence = module.symbol_precedence(grammar, item.la)
+              local shift_precedence = symbol_precedence(grammar, item.la)
               if shift_precedence == precedence then
                 if associativity == "left" then
                   buffer:append "reduce"
