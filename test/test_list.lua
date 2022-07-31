@@ -34,33 +34,19 @@ local function dump(t)
 end
 
 assert(compare(list(1,2,3,4,5), {1,2,3,4,5}) == 0)
-assert(compare(list(1,nil,3,nil,5), {1,nil,3,nil,5}) == 0)
-assert(compare(list(nil,2,nil,4,nil), {nil,2,nil,4}) == 0)
 assert(compare(list(1,2,3,4,5):append(6,7,8,9), {1,2,3,4,5,6,7,8,9}) == 0)
-assert(compare(list(1,nil,3,nil,5):append(6,nil,8,nil), {1,6,nil,8}) == 0)
-print(dump(list(nil,2,nil,4,nil):append(nil,6,nil)))
 
-local x = list(nil,2,nil,4,nil)
--- LuaJITでは、#x == 4になった。
-assert(#x == 0 or #x == 4)
-if #x == 0 then
-  assert(compare(x:append(nil,6,nil), {nil,6,nil,4}) == 0)
-else
-  assert(compare(x:append(nil,6,nil), {nil,2,nil,4,nil,6}) == 0)
-  print(#x)
-end
-
-for _, t in ipairs { list(1,2,3,4,5), list(1,nil,3,nil,5), list(nil,2,nil,4,nil) } do
+for _, t in ipairs { list(1,2,3,4,5) } do
   local u = {}
   for k, v in pairs(t) do
     u[k] = v
   end
 
-  for i = -2, 6 do
-    if i == -2 then
+  for i = 0, 5 do
+    if i == 0 then
       i = nil
     end
-    for j = -2, 6 do
+    for j = 0, 5 do
       if j == -2 then
         j = nil
       end

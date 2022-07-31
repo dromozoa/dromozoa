@@ -286,7 +286,7 @@ end
 function class:each(lower_bound, upper_bound)
   return coroutine.wrap(function (self, t)
     return each(self, lower_bound, upper_bound, t)
-  end), self, self.root, nil
+  end), self, self.root
 end
 
 return setmetatable(class, {

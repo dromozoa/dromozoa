@@ -58,7 +58,8 @@ function metatable:__call(k, fn)
 end
 
 function metatable:__pairs()
-  return tree.next, private[self], nil
+  error "not supported"
+  -- return tree.next, private[self], nil
 end
 
 return tree_map

@@ -19,37 +19,37 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.list" }
 
 function class:append(...)
-  local n = #self
   for i = 1, select("#", ...) do
-    n = n + 1
-    self[n] = select(i, ...)
+    local v = select(i, ...)
+    if v == nil then
+      error("bad argument #" .. i .. " (value expected)")
+    end
+    self[#self + 1] = v
   end
   return self
 end
 
-function class:slice(i, j)
-  if i == nil then
-    i = 1
+function class:slice(m, n)
+  if m == nil then
+    m = 1
   end
-  if j == nil then
-    j = #self
+  if n == nil then
+    n = #self
   end
 
   local result = class()
-  local n = 0
-  for i = i, j do
-    n = n + 1
-    result[n] = self[i]
+  for i = m, n do
+    local v = self[i]
+    if v == nil then
+      error("bad field #" .. i .. " (value expected)")
+    end
+    result[#result + 1] = self[i]
   end
   return result
 end
 
 return setmetatable(class, {
   __call = function (_, ...)
-    local self = setmetatable({}, metatable)
-    for i = 1, select("#", ...) do
-      self[i] = select(i, ...)
-    end
-    return self
+    return setmetatable({}, metatable):append(...)
   end
 })
