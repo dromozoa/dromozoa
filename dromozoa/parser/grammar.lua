@@ -16,7 +16,6 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local list = require "dromozoa.list"
--- local tree_map = require "dromozoa.tree_map"
 
 local module = {}
 
