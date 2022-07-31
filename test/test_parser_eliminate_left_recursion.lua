@@ -27,7 +27,7 @@ local g = grammar({ "a", "b", "c", "d" }, {
     + _"b";
   A = _"A" "c"
     + _"S" "d"
-    + _();
+    + _;
 })
 local g = generate.eliminate_left_recursion(g)
 

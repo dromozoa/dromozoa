@@ -22,7 +22,19 @@ local generate = require "dromozoa.parser.generate"
 local _ = grammar.body
 local left = grammar.left
 
+-- TODO 整理する
+-- compile(parser(grammar()))
+-- compile(regexp(grammar()))
+--
+-- compile(machine(pattern()))
+--
+
 --[=[
+
+  _{}
+
+grammar 
+parser
 
 grammar(tokens, {
   left "+";

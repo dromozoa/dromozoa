@@ -33,20 +33,25 @@ local module = {}
 local metatable = { __name = "dromozoa.parser.grammar.precedence" }
 
 function metatable:__call(that)
+  assert(getmetatable(self) == metatable)
+  assert(type(that) == "string")
   self[#self + 1] = that
   return self
 end
 
-function module.left(...)
-  return construct(metatable, "left", ...)
+function module.left(that)
+  assert(type(that) == "string")
+  return construct(metatable, "left", that)
 end
 
-function module.right(...)
-  return construct(metatable, "right", ...)
+function module.right(that)
+  assert(type(that) == "string")
+  return construct(metatable, "right", that)
 end
 
-function module.nonassoc(...)
-  return construct(metatable, "nonassoc", ...)
+function module.nonassoc(that)
+  assert(type(that) == "string")
+  return construct(metatable, "nonassoc", that)
 end
 
 ---------------------------------------------------------------------------
@@ -54,11 +59,13 @@ end
 local metatable = { __name = "dromozoa.parser.grammar.bodies" }
 
 function metatable:__add(that)
+  assert(getmetatable(self) == metatable)
+  assert(getmetatable(that).__name == "dromozoa.parser.grammar.body")
   self[#self + 1] = that
   return self
 end
 
-function module.bodies(...)
+local function bodies(...)
   return construct(metatable, "bodies", ...)
 end
 
@@ -67,32 +74,55 @@ end
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.grammar.body" }
 
+local function body(that)
+  if that == module.body then
+    return construct(metatable, "body")
+  elseif type(that) == "string" then
+    return construct(metatable, "body", that)
+  else
+    assert(getmetatable(that) == metatable)
+    assert(that.timestamp ~= nil)
+    return that
+  end
+end
+
 function class:prec(that)
+  self = body(self)
+  assert(type(that) == "string")
+  assert(self.precedence == nil)
   self.precedence = that
   return self
 end
 
+function metatable:__add(that)
+  self = body(self)
+  assert(getmetatable(that) == metatable)
+  return bodies(self, that)
+end
+
 function metatable:__mod(that)
+  self = body(self)
+  assert(type(that) == "string")
+  assert(self.semantic_action == nil)
   self.semantic_action = that
   return self
 end
 
-function metatable:__add(that)
-  return module.bodies(self, that)
-end
-
 function metatable:__call(that)
+  self = body(self)
+  assert(type(that) == "string")
   self[#self + 1] = that
   return self
 end
 
-function module.body(...)
-  return construct(metatable, "body", ...)
-end
+module.body = setmetatable({ [0] = "body" }, metatable)
 
 ---------------------------------------------------------------------------
 
-function module.grammar(token_names, that)
+local metatable = { __name = "dromozoa.parser.grammar" }
+
+function metatable:__call(token_names, that)
+  -- TODO symbolsに統合してもよい？
   local symbol_names = list()
   local symbol_table = {}
   for _, name in ipairs(token_names) do
@@ -105,9 +135,12 @@ function module.grammar(token_names, that)
 
   local data = list()
   for k, v in pairs(that) do
-    data:append { k = k, v = v }
+    if v.timestamp == nil then
+      error(getmetatable(v).__name .. " has no timestamp")
+    end
+    data:append { timestamp = v.timestamp, k = k, v = v }
   end
-  table.sort(data, function (a, b) return a.v.timestamp < b.v.timestamp end)
+  table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
   local augumented_start_head = #symbol_names:append ""
   local augumented_start_body = augumented_start_head + 1
@@ -122,7 +155,8 @@ function module.grammar(token_names, that)
     local v = u.v
     local metaname = getmetatable(v).__name
 
-    if metaname == "dromozoa.parser.grammar.precedence" then
+    if type(k) == "number" then
+      assert(getmetatable(v).__name == "dromozoa.parser.grammar.precedence")
       precedence = precedence + 1
       for _, name in ipairs(v) do
         local symbol = symbol_table[name]
@@ -144,10 +178,11 @@ function module.grammar(token_names, that)
       end
       local symbol = #symbol_names:append(k)
       symbol_table[k] = symbol
-
-      if metaname == "dromozoa.parser.grammar.body" then
+      if v[0] == "body" then
+        assert(getmetatable(v).__name == "dromozoa.parser.grammar.body")
         productions:append { head = symbol, body = v }
       else
+        assert(getmetatable(v).__name == "dromozoa.parser.grammar.bodies")
         for _, body in ipairs(v) do
           productions:append { head = symbol, body = body }
         end
@@ -215,4 +250,4 @@ function module.grammar(token_names, that)
   };
 end
 
-return setmetatable(module, { __call = function (_, ...) return module.grammar(...) end })
+return setmetatable(module, metatable)
