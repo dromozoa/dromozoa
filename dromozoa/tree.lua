@@ -258,7 +258,7 @@ function class:insert(k, v, fn)
   if fn == nil then
     V[t] = v
   elseif ok then
-    V[t] = fn(v)
+    V[t] = fn()
   end
 
   return ok, V[t]

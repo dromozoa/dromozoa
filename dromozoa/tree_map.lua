@@ -51,9 +51,9 @@ function metatable:__call(k, fn)
   end
 
   if fn == nil then
-    fn = tree_map
+    fn = function () return tree_map(private[self].compare) end
   end
-  local _, v = private[self]:insert(k, private[self].compare, fn)
+  local _, v = private[self]:insert(k, nil, fn)
   return v
 end
 

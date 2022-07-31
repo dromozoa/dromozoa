@@ -96,37 +96,37 @@ io.write(table.concat(buffer))
 assert(table.concat(buffer) == [[
 ---------------------------------------------------------------------------
 |    |  c  |  d  |  $  |  S' |  S  |  C  |
-|  1 |  s4 |  s5 |     |     |  s2 |  s3 |
-|  2 |     |     | acc |     |     |     |
-|  3 |  s4 |  s5 |     |     |     |  s6 |
-|  4 |  s4 |  s5 |     |     |     |  s7 |
-|  5 |  r4 |  r4 |  r4 |     |     |     |
-|  6 |     |     |  r2 |     |     |     |
-|  7 |  r3 |  r3 |  r3 |     |     |     |
+|  1 |  s2 |  s3 |     |     |  s4 |  s5 |
+|  2 |  s2 |  s3 |     |     |     |  s6 |
+|  3 |  r4 |  r4 |  r4 |     |     |     |
+|  4 |     |     | acc |     |     |     |
+|  5 |  s2 |  s3 |     |     |     |  s7 |
+|  6 |  r3 |  r3 |  r3 |     |     |     |
+|  7 |     |     |  r2 |     |     |     |
 ---------------------------------------------------------------------------
-shift(5) / reduce(2) conflict resolved as reduce: precedence 1 == 1 associativity left at state(8) symbol(+)
-shift(6) / reduce(2) conflict resolved as shift: precedence 2 > 1 at state(8) symbol(*)
-shift(5) / reduce(3) conflict resolved as reduce: precedence 1 < 2 at state(9) symbol(+)
-shift(6) / reduce(3) conflict resolved as reduce: precedence 2 == 2 associativity left at state(9) symbol(*)
+shift(6) / reduce(2) conflict resolved as reduce: precedence 1 == 1 associativity left at state(9) symbol(+)
+shift(7) / reduce(2) conflict resolved as shift: precedence 2 > 1 at state(9) symbol(*)
+shift(6) / reduce(3) conflict resolved as reduce: precedence 1 < 2 at state(10) symbol(+)
+shift(7) / reduce(3) conflict resolved as reduce: precedence 2 == 2 associativity left at state(10) symbol(*)
 |    |  id |  +  |  *  |  (  |  )  |  $  |  E' |  E  |
-|  1 |  s4 |     |     |  s3 |     |     |     |  s2 |
-|  2 |     |  s5 |  s6 |     |     | acc |     |     |
-|  3 |  s4 |     |     |  s3 |     |     |     |  s7 |
-|  4 |     |  r5 |  r5 |     |  r5 |  r5 |     |     |
-|  5 |  s4 |     |     |  s3 |     |     |     |  s8 |
-|  6 |  s4 |     |     |  s3 |     |     |     |  s9 |
-|  7 |     |  s5 |  s6 |     | s10 |     |     |     |
-|  8 |     |  r2 |  s6 |     |  r2 |  r2 |     |     |
-|  9 |     |  r3 |  r3 |     |  r3 |  r3 |     |     |
-| 10 |     |  r4 |  r4 |     |  r4 |  r4 |     |     |
+|  1 |  s2 |     |     |  s3 |     |     |     |  s4 |
+|  2 |     |  r5 |  r5 |     |  r5 |  r5 |     |     |
+|  3 |  s2 |     |     |  s3 |     |     |     |  s5 |
+|  4 |     |  s6 |  s7 |     |     | acc |     |     |
+|  5 |     |  s6 |  s7 |     |  s8 |     |     |     |
+|  6 |  s2 |     |     |  s3 |     |     |     |  s9 |
+|  7 |  s2 |     |     |  s3 |     |     |     | s10 |
+|  8 |     |  r4 |  r4 |     |  r4 |  r4 |     |     |
+|  9 |     |  r2 |  s7 |     |  r2 |  r2 |     |     |
+| 10 |     |  r3 |  r3 |     |  r3 |  r3 |     |     |
 ---------------------------------------------------------------------------
 shift(6) / reduce(3) conflict resolved as shift at state(5) symbol(e)
 |    |  i  |  e  |  a  |  $  |  S' |  S  |
-|  1 |  s3 |     |  s4 |     |     |  s2 |
-|  2 |     |     |     | acc |     |     |
-|  3 |  s3 |     |  s4 |     |     |  s5 |
-|  4 |     |  r4 |     |  r4 |     |     |
+|  1 |  s2 |     |  s3 |     |     |  s4 |
+|  2 |  s2 |     |  s3 |     |     |  s5 |
+|  3 |     |  r4 |     |  r4 |     |     |
+|  4 |     |     |     | acc |     |     |
 |  5 |     |  s6 |     |  r3 |     |     |
-|  6 |  s3 |     |  s4 |     |     |  s7 |
+|  6 |  s2 |     |  s3 |     |     |  s7 |
 |  7 |     |  r2 |     |  r2 |     |     |
 ]])

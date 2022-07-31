@@ -59,6 +59,6 @@ assert(table.concat(buffer) == [[
 FIRST(F) = { (, id }
 FIRST(T) = { (, id }
 FIRST(E) = { (, id }
-FIRST(E') = { +, e }
-FIRST(T') = { *, e }
+FIRST(E') = { e, + }
+FIRST(T') = { e, * }
 ]])

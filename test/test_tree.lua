@@ -208,9 +208,9 @@ assert(t[1][2][3][4] == "qux")
 
 local n = 0
 
-local function f(compare)
+local function f(...)
+  assert(select("#", ...) == 0)
   n = n + 1
-  assert(compare == t().compare)
   return n * 2
 end
 

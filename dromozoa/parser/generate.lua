@@ -16,7 +16,7 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local list = require "dromozoa.list"
--- local tree_map = require "dromozoa.tree_map"
+local tree_map = require "dromozoa.tree_map"
 
 local module = {}
 
@@ -80,7 +80,7 @@ function module.eliminate_left_recursion(grammar)
       local symbol = body[1]
       if symbol and symbol > max_terminal_symbol and symbol < i then
         for _, src_body in module.each_production(new_productions, symbol) do
-          local new_body = src_body:slice():append(table.unpack(body, 2))
+          local new_body = src_body:slice():append((table.unpack or unpack)(body, 2))
           if i == new_body[1] then
             n_bodies:append(new_body:slice(2):append(n))
           else
@@ -179,13 +179,15 @@ local marker_epsilon = 0
 
 function module.first_symbol(grammar, symbol)
   if symbol <= grammar.max_terminal_symbol then
-    return module_map(symbol, true)
+    local first = tree_map()
+    first[symbol] = true
+    return first
   else
     local first_table = grammar.first_table
     if first_table then
       return first_table[symbol]
     end
-    local first = module_map()
+    local first = tree_map()
     for _, body in module.each_production(grammar.productions, symbol) do
       if body[1] then
         for symbol in pairs(module.first_symbols(grammar, body)) do
@@ -200,7 +202,7 @@ function module.first_symbol(grammar, symbol)
 end
 
 function module.first_symbols(grammar, symbols)
-  local first = module_map()
+  local first = tree_map()
   for _, symbol in ipairs(symbols) do
     for symbol in pairs(module.first_symbol(grammar, symbol)) do
       first[symbol] = true
@@ -216,7 +218,7 @@ function module.first_symbols(grammar, symbols)
 end
 
 function module.first_table(grammar)
-  local first_table = module_map()
+  local first_table = tree_map()
   for symbol = grammar.max_terminal_symbol + 1, grammar.max_nonterminal_symbol do
     first_table[symbol] = module.first_symbol(grammar, symbol)
   end
@@ -273,7 +275,7 @@ function module.lr0_closure(grammar, items)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
 
-  local added = module_map()
+  local added = {}
   local m = 1
   while true do
     local n = #items
@@ -298,7 +300,7 @@ end
 
 function module.lr0_goto(grammar, items)
   local productions = grammar.productions
-  local map_of_to_items = module_map()
+  local map_of_to_items = tree_map()
 
   for _, item in ipairs(items) do
     local symbol = productions[item.index].body[item.dot]
@@ -307,7 +309,7 @@ function module.lr0_goto(grammar, items)
     end
   end
 
-  for _, to_items in pairs(map_of_to_items) do
+  for _, to_items in map_of_to_items():each() do
     module.lr0_closure(grammar, to_items)
   end
 
@@ -328,7 +330,7 @@ function module.lr0_items(grammar)
       local items = set_of_items[i]
       local map_of_to_items = module.lr0_goto(grammar, items)
       local transition = transitions(i)
-      for symbol, to_items in pairs(map_of_to_items) do
+      for symbol, to_items in map_of_to_items():each() do
         transition[symbol] = set_of_items:put(to_items)
       end
     end
