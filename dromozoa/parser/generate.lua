@@ -22,7 +22,8 @@ local module = {}
 
 ---------------------------------------------------------------------------
 
-function module.each_production(productions, head)
+-- TODO これは、treeにして、log(n)にしたほうがよい？
+local function each_production(productions, head)
   return function (productions, index)
     for i = index + 1, #productions do
       local production = productions[i]
@@ -76,10 +77,10 @@ function module.eliminate_left_recursion(grammar)
     local n_bodies = list()
     local i_bodies = list()
 
-    for _, body in module.each_production(productions, i) do
+    for _, body in each_production(productions, i) do
       local symbol = body[1]
       if symbol and symbol > max_terminal_symbol and symbol < i then
-        for _, src_body in module.each_production(new_productions, symbol) do
+        for _, src_body in each_production(new_productions, symbol) do
           local new_body = src_body:slice():append((table.unpack or unpack)(body, 2))
           if i == new_body[1] then
             n_bodies:append(new_body:slice(2):append(n))
@@ -133,7 +134,7 @@ function module.first_symbol(grammar, symbol)
       return first_table[symbol]
     end
     local first = tree_map()
-    for _, body in module.each_production(grammar.productions, symbol) do
+    for _, body in each_production(grammar.productions, symbol) do
       if body[1] then
         for symbol in module.first_symbols(grammar, body)():each() do
           first[symbol] = true
@@ -187,7 +188,7 @@ function module.lr0_closure(grammar, items)
       local item = items[i]
       local symbol = productions[item.index].body[item.dot]
       if symbol and symbol > max_terminal_symbol and not added[symbol] then
-        for j in module.each_production(productions, symbol) do
+        for j in each_production(productions, symbol) do
           items:append { index = j, dot = 1 }
         end
         added[symbol] = true
@@ -269,7 +270,7 @@ function module.lr1_closure(grammar, items)
       local symbol = body[item.dot]
       if symbol and symbol > max_terminal_symbol then
         local first = module.first_symbols(grammar, body:slice(item.dot + 1):append(item.la))
-        for j in module.each_production(productions, symbol) do
+        for j in each_production(productions, symbol) do
           for la in first():each() do
             if not added(j)[la] then
               items:append { index = j, dot = 1, la = la }
