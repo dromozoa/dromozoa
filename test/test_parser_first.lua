@@ -41,7 +41,7 @@ for _, name in ipairs { "F", "T", "E", "E'", "T'" } do
   buffer:append("FIRST(", name, ") = { ")
   local first = first_table[g.symbol_table[name]]
   local i = 0
-  for k in pairs(first) do
+  for k in first():each() do
     i = i + 1
     if i > 1 then
       buffer:append ", "
@@ -55,6 +55,7 @@ for _, name in ipairs { "F", "T", "E", "E'", "T'" } do
   buffer:append " }\n"
 end
 
+print(table.concat(buffer))
 assert(table.concat(buffer) == [[
 FIRST(F) = { (, id }
 FIRST(T) = { (, id }
