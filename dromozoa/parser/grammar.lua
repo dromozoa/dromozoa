@@ -17,16 +17,16 @@
 
 local list = require "dromozoa.list"
 
-local module = {}
-
----------------------------------------------------------------------------
-
 local timestamp = 0
 
 local function construct(metatable, code, ...)
   timestamp = timestamp + 1
   return setmetatable({ timestamp = timestamp, [0] = code, ... }, metatable)
 end
+
+---------------------------------------------------------------------------
+
+local module = {}
 
 ---------------------------------------------------------------------------
 

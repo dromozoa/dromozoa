@@ -17,6 +17,10 @@
 
 local tree = require "dromozoa.tree"
 
+-- TODO putやgetを持たせる
+-- TODO pairs, ipairsを持たせる
+-- TODO indexアクセスはやめてもいいんじゃない？
+
 local metatable = { __name = "dromozoa.tree_map" }
 local private = setmetatable({}, { __mode = "k" })
 
