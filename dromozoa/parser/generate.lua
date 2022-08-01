@@ -57,11 +57,61 @@ function metatable:__newindex(i, v)
   error "not supported"
 end
 
+-- TODO ordered_setという名前もよいかも
 local function tree_set(compare)
   local self = setmetatable({}, metatable)
   private[self] = {
     tree = tree(compare);
     list = list();
+  }
+  return self
+end
+
+---------------------------------------------------------------------------
+
+local class = {}
+local metatable = { __index = class, __name = "dromozoa.ordered_map" }
+local private = setmetatable({}, { __mode = "k" })
+
+function class:put(k, v)
+  local _, i = private[self].T:insert(k, nil, function ()
+    private[self].K:append(k)
+    return private[self].V:append(v)
+  end)
+  return i
+end
+
+function class:opt(k, fn)
+  local _, i = private[self].T:insert(k, nil, function ()
+    private[self].K:append(k)
+    return #private[self].V:append(fn())
+  end)
+  return private[self].V[i]
+end
+
+function class:get(k)
+  local _, i = private[self].T:find(k)
+  return i, private[self].K[i], private[self].V[i]
+end
+
+function class:each()
+  return function (self, i)
+    i = i + 1
+    local k = self.K[i]
+    if k == nil then
+      return
+    else
+      return i, self.K[i], self.V[i]
+    end
+  end, private[self], 0
+end
+
+local function ordered_map(compare)
+  local self = setmetatable({}, metatable)
+  private[self] = {
+    T = tree(compare);
+    K = list();
+    V = list();
   }
   return self
 end
@@ -230,16 +280,16 @@ end
 
 function module.lr0_goto(grammar, items)
   local productions = grammar.productions
-  local map_of_to_items = tree_map()
+  local map_of_to_items = ordered_map()
 
   for _, item in ipairs(items) do
     local symbol = productions[item.index].body[item.dot]
     if symbol then
-      map_of_to_items(symbol, list):append { index = item.index, dot = item.dot + 1 }
+      map_of_to_items:opt(symbol, list):append { index = item.index, dot = item.dot + 1 }
     end
   end
 
-  for _, to_items in map_of_to_items():each() do
+  for _, _, to_items in map_of_to_items:each() do
     module.lr0_closure(grammar, to_items)
   end
 
@@ -264,7 +314,7 @@ function module.lr0_items(grammar)
       local items = set_of_items[i]
       local map_of_to_items = module.lr0_goto(grammar, items)
       local transition = transitions(i)
-      for symbol, to_items in map_of_to_items():each() do
+      for _, symbol, to_items in map_of_to_items:each() do
         transition[symbol] = set_of_items:put(to_items)
       end
     end
