@@ -277,14 +277,12 @@ local function lr0_closure(grammar, items)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
 
-  local added = {}
-  for _, item in ipairs(items) do
+  for _, item in items:pairs() do
     local symbol = productions[item.index].body[item.dot]
-    if symbol and symbol > max_terminal_symbol and not added[symbol] then
+    if symbol and symbol > max_terminal_symbol then
       for i in each_production(productions, symbol) do
-        items:append { index = i, dot = 1 }
+        items:put { index = i, dot = 1 }
       end
-      added[symbol] = true
     end
   end
 
@@ -295,10 +293,10 @@ function module.lr0_goto(grammar, items)
   local productions = grammar.productions
   local map_of_to_items = ordered_map()
 
-  for _, item in ipairs(items) do
+  for _, item in items:each() do
     local symbol = productions[item.index].body[item.dot]
     if symbol then
-      map_of_to_items:opt(symbol, list):append { index = item.index, dot = item.dot + 1 }
+      map_of_to_items:opt(symbol, ordered_set):put { index = item.index, dot = item.dot + 1 }
     end
   end
   for _, _, to_items in map_of_to_items:each() do
@@ -312,8 +310,10 @@ function module.lr0_items(grammar)
   local set_of_items = ordered_set()
   local transitions = tree_map()
 
-  local items = lr0_closure(grammar, list { index = 1, dot = 1 })
-  local index = set_of_items:put(items)
+  local items = ordered_set()
+  items:put { index = 1, dot = 1 }
+  lr0_closure(grammar, items)
+  set_of_items:put(items)
 
   for i, items in set_of_items:pairs() do
     local map_of_to_items = module.lr0_goto(grammar, items)
@@ -332,8 +332,7 @@ local function lr1_closure(grammar, items)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
 
-  local added = tree_map()
-  for _, item in ipairs(items) do
+  for _, item in items:pairs() do
     local body = productions[item.index].body
     local symbol = body[item.dot]
     if symbol and symbol > max_terminal_symbol then
@@ -344,10 +343,7 @@ local function lr1_closure(grammar, items)
         -- epsilonが含まれていたら、遷移がどうしようもないのでは？
         assert(not epsilon)
         for _, la in first:each() do
-          if not added(j)[la] then
-            items:append { index = j, dot = 1, la = la }
-            added(j)[la] = true
-          end
+          items:put { index = j, dot = 1, la = la }
         end
       end
     end
@@ -368,9 +364,9 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
   local map_of_kernel_items = list()
 
   for i, items in set_of_items:each() do
-    local kernel_items = list()
+    local kernel_items = ordered_set()
     local kernel_table = tree_map()
-    for j, item in ipairs(items) do
+    for j, item in items:each() do
       if item.index == 1 or item.dot > 1 then
         kernel_table(item.index)[item.dot] = j
       end
@@ -378,7 +374,8 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
       if item.index == 1 and item.dot == 1 then
         la[max_terminal_symbol] = true
       end
-      kernel_items:append { index = item.index, dot = item.dot, la = la }
+      local index = kernel_items:put { index = item.index, dot = item.dot, la = la }
+      assert(j == index)
     end
     set_of_kernel_items[i] = kernel_items
     map_of_kernel_items[i] = kernel_table
@@ -387,14 +384,19 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
   local propagations = list()
 
   for from_i, from_items in set_of_items:each() do
-    for from_j, from_item in ipairs(from_items) do
+    for from_j, from_item in from_items:each() do
       if productions[from_item.index].head == max_terminal_symbol + 1 or from_item.dot > 1 then
-        local items = list { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
+        local items = ordered_set()
+        items:put { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
         lr1_closure(grammar, items)
-        for _, item in ipairs(items) do
+        for _, item in items:each() do
           local symbol = productions[item.index].body[item.dot]
           if symbol then
             local to_i = transitions[from_i][symbol]
+            -- print(from_i, from_j, symbol, to_i, item.index, item.dot)
+            -- print(map_of_kernel_items[to_i])
+            -- print(map_of_kernel_items[to_i][item.index])
+            -- print(map_of_kernel_items[to_i][item.index][item.dot + 1])
             local to_j = map_of_kernel_items[to_i][item.index][item.dot + 1]
             if item.la == marker_lookahead then
               propagations:append { from_i = from_i, from_j = from_j, to_i = to_i, to_j = to_j }
@@ -423,10 +425,10 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
 
   local new_set_of_kernel_items = list()
   for _, items in ipairs(set_of_kernel_items) do
-    local new_items = list()
+    local new_items = ordered_set()
     for _, item in ipairs(items) do
       for la in item.la():each() do
-        new_items:append { index = item.index, dot = item.dot, la = la }
+        new_items:put { index = item.index, dot = item.dot, la = la }
       end
     end
     new_set_of_kernel_items:append(new_items)
@@ -569,6 +571,7 @@ end
 
 ---------------------------------------------------------------------------
 
+module.ordered_set = ordered_set
 module.first_symbol = first_symbol
 module.first_symbols = first_symbols
 module.first_table = first_table

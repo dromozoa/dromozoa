@@ -59,7 +59,7 @@ for _, name in ipairs { "F", "T", "E", "E'", "T'" } do
   buffer:append " }\n"
 end
 
-print(table.concat(buffer))
+-- print(table.concat(buffer))
 assert(table.concat(buffer) == [[
 FIRST(F) = { (, id }
 FIRST(T) = { (, id }

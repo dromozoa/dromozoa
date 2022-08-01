@@ -29,9 +29,15 @@ local typemap = {
 
 local function stable_pairs(t, compare, n)
   local metatable = getmetatable(t)
-  if metatable and metatable.__name == "dromozoa.tree_map" then
-    -- local tree = t()
-    return t():each()
+  if metatable ~= nil then
+    local metaname = metatable.__name
+    if metaname == "dromozoa.tree_map" then
+      -- local tree = t()
+      return t():each()
+    elseif metaname == "dromozoa.ordered_set" or metaname == "dromozoa.ordered_map" then
+      -- local tree = t()
+      return t:each()
+    end
   end
 
   local K = {}
