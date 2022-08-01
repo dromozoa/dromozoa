@@ -17,35 +17,26 @@
 
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.list" }
+local table_unpack = table.unpack or unpack
 
 function class:append(...)
+  local n = #self
   for i = 1, select("#", ...) do
     local v = select(i, ...)
     if v == nil then
       error("bad argument #" .. i .. " (value expected)")
     end
-    self[#self + 1] = v
+    self[n + i] = v
   end
   return self
 end
 
-function class:slice(m, n)
-  if m == nil then
-    m = 1
-  end
-  if n == nil then
-    n = #self
-  end
+function class:unpack(m, n)
+  return table_unpack(self, m, n)
+end
 
-  local result = class()
-  for i = m, n do
-    local v = self[i]
-    if v == nil then
-      error("bad field #" .. i .. " (value expected)")
-    end
-    result[#result + 1] = self[i]
-  end
-  return result
+function class:slice(m, n)
+  return setmetatable({}, metatable):append(self:unpack(m, n))
 end
 
 return setmetatable(class, {

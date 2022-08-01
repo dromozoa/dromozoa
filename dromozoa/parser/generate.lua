@@ -22,8 +22,25 @@ local module = {}
 
 ---------------------------------------------------------------------------
 
--- TODO これは、treeにして、log(n)にしたほうがよい？
+-- TODO これは、binary searchにして、log(n)にしたほうがよい？
+-- productionsはそもそも、headでソートされているはず。
+-- => とは限らない
 local function each_production(productions, head)
+  -- テストのため、productionsがheadでソートされていることを確認する
+  -- local state = 1
+  -- for i, production in ipairs(productions) do
+  --   if state % 2 == 1 then
+  --     if production.head == head then
+  --       state = state + 1
+  --     end
+  --   elseif state == 2 then
+  --     if production.head ~= head then
+  --       state = state + 1
+  --     end
+  --   end
+  -- end
+  -- assert(state == 2)
+
   return function (productions, index)
     for i = index + 1, #productions do
       local production = productions[i]
