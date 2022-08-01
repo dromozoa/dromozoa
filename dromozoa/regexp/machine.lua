@@ -523,7 +523,7 @@ function module.guard(guard_action, that)
   return self
 end
 
-function module.lexer(tokens, that)
+function module.lexer(token_names, that)
   local data = list()
   for name, node in pairs(that) do
     if type(name) ~= "string" then
@@ -538,16 +538,18 @@ function module.lexer(tokens, that)
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
   local s = state()
+  local token_table = {}
+
   for _, item in ipairs(data) do
     local u, v = tree_to_nfa(item.node)
     transition(s, u)
 
     local symbol = "nil"
     if item.name ~= nil then
-      symbol = tokens[item.name]
+      symbol = token_table[item.name]
       if symbol == nil then
-        symbol = #tokens:append(item.name)
-        tokens[item.name] = symbol
+        symbol = #token_names:append(item.name)
+        token_table[item.name] = symbol
       end
     end
 
