@@ -97,9 +97,13 @@ local private = setmetatable({}, { __mode = "k" })
 function class:put(k, v)
   local _, i = private[self].T:insert(k, nil, function ()
     private[self].K:append(k)
-    return private[self].V:append(v)
+    return #private[self].V:append(v)
   end)
   return i
+end
+
+function metatable:__newindex(i, v)
+  error "not supported"
 end
 
 function class:opt(k, fn)
@@ -114,6 +118,12 @@ end
 function class:get(k)
   local _, i = private[self].T:find(k)
   return i, private[self].K[i], private[self].V[i]
+end
+
+-- TODO なんかいいかんじにする
+function class:get_value(k)
+  local _, i = private[self].T:find(k)
+  return private[self].V[i]
 end
 
 -- TODO 値の返しかたを要検討
@@ -316,9 +326,9 @@ function module.lr0_items(grammar)
 
   for i, items in set_of_items:pairs() do
     local map_of_to_items = module.lr0_goto(grammar, items)
-    local transition = tree_map()
+    local transition = ordered_map()
     for _, symbol, to_items in map_of_to_items:each() do
-      transition[symbol] = set_of_items:put(to_items)
+      transition:put(symbol, set_of_items:put(to_items))
     end
     transitions[i] = transition
   end
@@ -392,7 +402,7 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
         for _, item in items:each() do
           local symbol = productions[item.index].body[item.dot]
           if symbol then
-            local to_i = transitions[from_i][symbol]
+            local to_i = assert(transitions[from_i]:get_value(symbol))
             -- print(from_i, from_j, symbol, to_i, item.index, item.dot)
             -- print(map_of_kernel_items[to_i])
             -- print(map_of_kernel_items[to_i][item.index])
@@ -484,7 +494,7 @@ function module.lr1_construct_table(grammar, set_of_items, transitions, fn)
   for i, items in ipairs(set_of_items) do
     local data = {} -- TODO シークエンスを保証する？
 
-    for symbol, j in transitions[i]():each() do
+    for _, symbol, j in transitions[i]:each() do
       data[symbol] = j
     end
 
