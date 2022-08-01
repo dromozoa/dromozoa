@@ -328,47 +328,29 @@ end
 
 ---------------------------------------------------------------------------
 
-function module.lr1_closure(grammar, items)
+local function lr1_closure(grammar, items)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
 
   local added = tree_map()
-  local m = 1
-  while true do
-    local n = #items
-    if m > n then
-      break
-    end
-    for i = m, n do
-      local item = items[i]
-      local body = productions[item.index].body
-      local symbol = body[item.dot]
-      if symbol and symbol > max_terminal_symbol then
-        local first, epsilon = first_symbols(grammar, body:slice(item.dot + 1):append(item.la))
-        for j in each_production(productions, symbol) do
-          -- firstに含まれる文字を調べる
-          -- TODO epsilonが含まれている？
-          -- epsilonが含まれていたら、遷移がどうしようもないのでは？
-          assert(not epsilon)
-          --[[
-          if epsilon then
-            local la = marker_epsilon
-            if not added(j)[la] then
-              items:append { index = j, dot = 1, la = la }
-              added(j)[la] = true
-            end
-          end
-          ]]
-          for _, la in first:each() do
-            if not added(j)[la] then
-              items:append { index = j, dot = 1, la = la }
-              added(j)[la] = true
-            end
+  for _, item in ipairs(items) do
+    local body = productions[item.index].body
+    local symbol = body[item.dot]
+    if symbol and symbol > max_terminal_symbol then
+      local first, epsilon = first_symbols(grammar, body:slice(item.dot + 1):append(item.la))
+      for j in each_production(productions, symbol) do
+        -- firstに含まれる文字を調べる
+        -- TODO epsilonが含まれている？
+        -- epsilonが含まれていたら、遷移がどうしようもないのでは？
+        assert(not epsilon)
+        for _, la in first:each() do
+          if not added(j)[la] then
+            items:append { index = j, dot = 1, la = la }
+            added(j)[la] = true
           end
         end
       end
     end
-    m = n + 1
   end
 
   return items
@@ -408,7 +390,7 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
     for from_j, from_item in ipairs(from_items) do
       if productions[from_item.index].head == max_terminal_symbol + 1 or from_item.dot > 1 then
         local items = list { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
-        module.lr1_closure(grammar, items)
+        lr1_closure(grammar, items)
         for _, item in ipairs(items) do
           local symbol = productions[item.index].body[item.dot]
           if symbol then
@@ -456,7 +438,7 @@ function module.lalr1_items(grammar)
   local set_of_items, transitions = module.lr0_items(grammar)
   local set_of_items = module.lalr1_kernels(grammar, set_of_items, transitions)
   for _, items in ipairs(set_of_items) do
-    module.lr1_closure(grammar, items)
+    lr1_closure(grammar, items)
   end
   return set_of_items, transitions
 end
@@ -590,5 +572,6 @@ end
 module.first_symbol = first_symbol
 module.first_symbols = first_symbols
 module.first_table = first_table
+module.lr1_closure = lr1_closure
 
 return module
