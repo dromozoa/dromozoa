@@ -48,9 +48,12 @@ local metatable = {
 }
 
 -- TODO インターフェースの改良
--- self, handle, insert or updateあたりをかえす
 function class:put(k)
-  assert(k ~= nil)
+  if k == nil then
+    error "table index is nil"
+  elseif type(k) == "number" and k ~= k then
+    error "table index is NaN"
+  end
   local ok, _, i = private[self]:insert(k)
   return i, ok
 end

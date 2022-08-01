@@ -328,8 +328,7 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
       if item.index == 1 and item.dot == 1 then
         la:put(max_terminal_symbol)
       end
-      local index = kernel_items:put { index = item.index, dot = item.dot, la = la }
-      assert(j == index)
+      kernel_items:put { index = item.index, dot = item.dot, la = la }
     end
     set_of_kernel_items[i] = kernel_items
     map_of_kernel_items[i] = kernel_table
