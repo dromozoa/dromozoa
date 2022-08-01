@@ -118,15 +118,16 @@ function class:get(k)
 end
 
 function class:each()
-  return function (self, i)
+  local i = 0
+  return function (self)
     i = i + 1
     local k = self.K[i]
     if k == nil then
       return
     else
-      return i, self.K[i], self.V[i]
+      return self.K[i], self.V[i]
     end
-  end, private[self], 0
+  end, private[self], nil
 end
 
 -- TODO 値の返しかたを要検討
@@ -331,7 +332,7 @@ function module.lr0_goto(grammar, items)
       map_of_to_items:opt(symbol, ordered_set):put { index = item.index, dot = item.dot + 1 }
     end
   end
-  for _, _, to_items in map_of_to_items:each() do
+  for _, to_items in map_of_to_items:each() do
     lr0_closure(grammar, to_items)
   end
 
@@ -350,7 +351,7 @@ function module.lr0_items(grammar)
   for i, items in set_of_items:ipairs() do
     local map_of_to_items = module.lr0_goto(grammar, items)
     local transition = ordered_map()
-    for _, symbol, to_items in map_of_to_items:each() do
+    for symbol, to_items in map_of_to_items:each() do
       transition:put(symbol, set_of_items:put(to_items))
     end
     transitions[i] = transition
@@ -512,7 +513,7 @@ function module.lr1_construct_table(grammar, set_of_items, transitions, fn)
   for i, items in ipairs(set_of_items) do
     local data = {} -- TODO シークエンスを保証する？
 
-    for _, symbol, j in transitions[i]:each() do
+    for symbol, j in transitions[i]:each() do
       data[symbol] = j
     end
 

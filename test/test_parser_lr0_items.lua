@@ -53,7 +53,7 @@ for i, items in set_of_items:ipairs() do
     buffer:append "\n"
   end
   buffer:append(("-"):rep(75), "\n")
-  for _, symbol, j in transitions[i]:each() do
+  for symbol, j in transitions[i]:each() do
     buffer:append("I_", i - 1, " -> I_", j - 1, " ", g.symbol_names[symbol], "\n")
   end
 end
