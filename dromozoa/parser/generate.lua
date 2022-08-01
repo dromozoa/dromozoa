@@ -117,7 +117,7 @@ function module.eliminate_left_recursion(grammar)
   local max_nonterminal_symbol = grammar.max_nonterminal_symbol
 
   local new_symbol_names = symbol_names:slice()
-  local new_productions = list()
+  local new_productions = tree_set()
 
   for i = max_terminal_symbol + 1, max_nonterminal_symbol do
     local n = #new_symbol_names + 1
@@ -151,10 +151,10 @@ function module.eliminate_left_recursion(grammar)
     end
 
     for _, body in ipairs(i_bodies) do
-      new_productions:append { head = i, body = body }
+      new_productions:insert { head = i, body = body }
     end
     for _, body in ipairs(n_bodies) do
-      new_productions:append { head = n, body = body }
+      new_productions:insert { head = n, body = body }
     end
   end
 
@@ -491,7 +491,7 @@ function module.lr1_construct_table(grammar, set_of_items, transitions, fn)
 
   local heads = list()
   local sizes = list()
-  for i, production in ipairs(productions) do
+  for i, production in productions:ipairs() do
     heads[i] = production.head
     sizes[i] = #production.body
   end

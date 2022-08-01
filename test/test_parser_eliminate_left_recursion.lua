@@ -32,7 +32,7 @@ local g = grammar({ "a", "b", "c", "d" }, {
 local g = generate.eliminate_left_recursion(g)
 
 local buffer = list()
-for _, production in ipairs(g.productions) do
+for _, production in g.productions:ipairs() do
   buffer:append(g.symbol_names[production.head], " ->")
   for _, symbol in ipairs(production.body) do
     buffer:append(" ", g.symbol_names[symbol])

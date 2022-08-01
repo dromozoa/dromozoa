@@ -162,28 +162,14 @@ function metatable:__call(token_names, that)
   local data = list()
   for k, v in pairs(that) do
     if type(k) == "string" then
-      if v.timestamp == nil then
-        error(getmetatable(v).__name .. " has no timestamp")
-      end
       data:append { timestamp = v.timestamp, k = k, v = v }
     end
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
-  local augumented_start_head = #symbol_names:append ""
+  local augumented_start_head = #symbol_names:append(data[1].k .. "'")
   local augumented_start_body = augumented_start_head + 1
-
-  -- productionsの中身が途中で変更されちゃう問題
-  -- TODO ループを増やす
-  -- local productions = tree_set(function (a, b)
-  --   local c = compare(a.head, b.head)
-  --   if c ~= 0 then
-  --     return c
-  --   end
-  --   return compare(a.body, b.body)
-  -- end):put { head = augumented_start_head, body = list() }
-
-  local productions = list { head = augumented_start_head, body = list() }
+  local productions = tree_set():insert { head = augumented_start_head, body = list(data[1].k) }
 
   for _, u in ipairs(data) do
     local k = u.k
@@ -197,11 +183,11 @@ function metatable:__call(token_names, that)
     symbol_table[k] = symbol
     if v[0] == "body" then
       assert(getmetatable(v).__name == "dromozoa.parser.grammar.body")
-      productions:append { head = symbol, body = v }
+      productions:insert { head = symbol, body = v }
     else
       assert(getmetatable(v).__name == "dromozoa.parser.grammar.bodies")
       for _, body in ipairs(v) do
-        productions:append { head = symbol, body = body }
+        productions:insert { head = symbol, body = body }
       end
     end
   end
@@ -212,7 +198,7 @@ function metatable:__call(token_names, that)
   local used_symbols = {}
   local used_precedences = {}
 
-  for i, production in ipairs(productions) do
+  for i, production in productions:ipairs() do
     local name = production.body.precedence
     if name then
       local precedence = precedence_table[name]
@@ -236,12 +222,8 @@ function metatable:__call(token_names, that)
     production.body = body
   end
 
-  productions[1].body:append(augumented_start_body)
-  symbol_names[augumented_start_head] = symbol_names[augumented_start_body] .. "'"
-
   used_symbols[max_terminal_symbol] = true
   used_symbols[augumented_start_head] = true
-  used_symbols[augumented_start_body] = true
 
   for i, v in ipairs(symbol_names) do
     if not used_symbols[i] then

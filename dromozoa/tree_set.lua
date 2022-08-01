@@ -62,7 +62,8 @@ function class:ipairs()
 end
 
 function metatable:__len()
-  error "not supported"
+  return #private[self].K
+  -- error "not supported"
 end
 
 function metatable:__index(k)
