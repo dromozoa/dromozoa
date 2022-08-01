@@ -70,8 +70,8 @@ function class:tree_each(lower_bound, upper_bound)
 end
 
 function metatable:__len()
-  return #private[self].K
-  -- error "not supported"
+  -- return #private[self].K
+  error "not supported"
 end
 
 function metatable:__index(k)

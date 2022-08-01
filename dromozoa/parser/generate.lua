@@ -95,23 +95,14 @@ end
 ---------------------------------------------------------------------------
 
 -- TODO これは、binary searchにして、log(n)にしたほうがよい？
--- productionsはそもそも、headでソートされているはず。
--- => とは限らない
--- tree_setに、いいかんじのcompareをわたしておけばできる
+-- tree_setに、いいかんじのcompareをわたしてソートしてある
+-- 最初の検索がO(log n)で、そのあとはO(1)のイテレーションになる
 local function each_production(productions, head)
-
-
-
-
-
-  return function (productions, index)
-    for i = index + 1, #productions do
-      local production = productions[i]
-      if production.head == head then
-        return i, production.body
-      end
+  return coroutine.wrap(function (self)
+    for i, production in productions:tree_each({ head = head }, { head = head + 1 }) do
+      coroutine.yield(i, production.body)
     end
-  end, productions, 0
+  end), productions
 end
 
 ---------------------------------------------------------------------------
