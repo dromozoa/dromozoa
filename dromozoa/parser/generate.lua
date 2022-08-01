@@ -56,14 +56,6 @@ function class:put(v)
 end
 
 function class:each()
-  -- local k = nil
-  -- return function (self)
-  --   local i
-  --   k, i = self.tree:next(k)
-  --   if k ~= nil then
-  --     return i, self.list[i]
-  --   end
-  -- end, private[self]
   return ipairs(private[self].list)
 end
 
@@ -71,9 +63,9 @@ function class:ipairs()
   return ipairs(private[self].list)
 end
 
-function class:pairs()
-  return ipairs(private[self].list)
-end
+-- function class:pairs()
+--   return ipairs(private[self].list)
+-- end
 
 function metatable:__len()
   error "not supported"
@@ -362,7 +354,7 @@ function module.lr0_items(grammar)
   lr0_closure(grammar, items)
   set_of_items:put(items)
 
-  for i, items in set_of_items:pairs() do
+  for i, items in set_of_items:ipairs() do
     local map_of_to_items = module.lr0_goto(grammar, items)
     local transition = ordered_map()
     for _, symbol, to_items in map_of_to_items:each() do
@@ -380,7 +372,7 @@ local function lr1_closure(grammar, items)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
 
-  for _, item in items:pairs() do
+  for _, item in items:ipairs() do
     local body = productions[item.index].body
     local symbol = body[item.dot]
     if symbol and symbol > max_terminal_symbol then
