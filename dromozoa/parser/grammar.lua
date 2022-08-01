@@ -124,7 +124,8 @@ module.body = setmetatable({ [0] = "body" }, metatable)
 local metatable = { __name = "dromozoa.parser.grammar" }
 
 function metatable:__call(token_names, that)
-  -- TODO symbolsに統合してもよい？
+  -- TODO 任意の名前について考えると実装がめんどうになるので、symbol_namesと
+  -- tableをわける→regexpでも実践する
   local symbol_names = list()
   local symbol_table = {}
   for _, name in ipairs(token_names) do
@@ -167,7 +168,6 @@ function metatable:__call(token_names, that)
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
-
   local augumented_start_head = #symbol_names:append(data[1].k .. "'")
   local augumented_start_body = augumented_start_head + 1
   -- TODO いいかんじのcompareの合成もほしい
@@ -178,7 +178,7 @@ function metatable:__call(token_names, that)
       return c
     end
     -- TODO indexという名前はやめておく？
-    local c = compare(a.index, b.index)
+    local c = compare(a.head_index, b.head_index)
     -- local c = compare(a.body, b.body)
     if c ~= 0 then
       return c
@@ -186,7 +186,7 @@ function metatable:__call(token_names, that)
     error "!!!"
     -- return compare(a, b)
   end
-  ):insert { head = augumented_start_head, index = 1, body = list(augumented_start_body) }
+  ):insert { head = augumented_start_head, head_index = 1, body = list(augumented_start_body) }
 
   for _, u in ipairs(data) do
     local k = u.k
@@ -222,8 +222,7 @@ function metatable:__call(token_names, that)
         body:append(symbol)
         used_symbols[symbol] = true
       end
-      local n = select(2, productions:insert { head = k, index = i, body = body })
-      local body
+      local n = select(2, productions:insert { head = k, head_index = i, body = body })
 
       local name = names.precedence
       if name ~= nil then

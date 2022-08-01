@@ -148,10 +148,10 @@ function module.eliminate_left_recursion(grammar)
     end
 
     for j, body in ipairs(i_bodies) do
-      new_productions:insert { head = i, index = j, body = body }
+      new_productions:insert { head = i, head_index = j, body = body }
     end
     for j, body in ipairs(n_bodies) do
-      new_productions:insert { head = n, index = j, body = body }
+      new_productions:insert { head = n, head_index = j, body = body }
     end
   end
 
