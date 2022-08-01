@@ -22,9 +22,12 @@ local tree_map = require "dromozoa.tree_map"
 local module = {}
 
 ---------------------------------------------------------------------------
+-- eachはO(1)が保証されるけれど、途中でコンテナを変更すると、危険かもしれない
+-- pairsはO(log n)が保証されていて、途中でコンテナを変更しても安全
+---------------------------------------------------------------------------
 
 local class = {}
-local metatable = { __index = class, __name = "dromozoa.tree_set" }
+local metatable = { __index = class, __name = "dromozoa.ordered_set" }
 local private = setmetatable({}, { __mode = "k" })
 
 function class:get(v)
@@ -41,7 +44,7 @@ function class:each()
   return ipairs(private[self].list)
 end
 
-function class:ipairs()
+function class:pairs()
   return ipairs(private[self].list)
 end
 
@@ -62,7 +65,7 @@ function metatable:__newindex(i, v)
 end
 
 -- TODO ordered_setという名前もよいかも
-local function tree_set(compare)
+local function ordered_set(compare)
   local self = setmetatable({}, metatable)
   private[self] = {
     tree = tree(compare);
@@ -127,7 +130,7 @@ end
 -- TODO これは、binary searchにして、log(n)にしたほうがよい？
 -- productionsはそもそも、headでソートされているはず。
 -- => とは限らない
--- tree_setに、いいかんじのcompareをわたしておけばできる
+-- ordered_setに、いいかんじのcompareをわたしておけばできる
 local function each_production(productions, head)
   -- テストのため、productionsがheadでソートされていることを確認する
   -- local state = 1
@@ -303,13 +306,13 @@ end
 
 -- TODO リファクタリング
 function module.lr0_items(grammar)
-  local set_of_items = tree_set()
+  local set_of_items = ordered_set()
   local transitions = tree_map()
 
   local items = lr0_closure(grammar, list { index = 1, dot = 1 })
   local index = set_of_items:put(items)
 
-  for i, items in set_of_items:ipairs() do
+  for i, items in set_of_items:pairs() do
     local map_of_to_items = module.lr0_goto(grammar, items)
     local transition = transitions(i)
     for _, symbol, to_items in map_of_to_items:each() do
