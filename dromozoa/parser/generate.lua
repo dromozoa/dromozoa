@@ -75,6 +75,7 @@ end
 -- TODO これは、binary searchにして、log(n)にしたほうがよい？
 -- productionsはそもそも、headでソートされているはず。
 -- => とは限らない
+-- tree_setに、いいかんじのcompareをわたしておけばできる
 local function each_production(productions, head)
   -- テストのため、productionsがheadでソートされていることを確認する
   -- local state = 1
@@ -218,23 +219,14 @@ function module.lr0_closure(grammar, items)
   local max_terminal_symbol = grammar.max_terminal_symbol
 
   local added = {}
-  local m = 1
-  while true do
-    local n = #items
-    if m > n then
-      break
-    end
-    for i = m, n do
-      local item = items[i]
-      local symbol = productions[item.index].body[item.dot]
-      if symbol and symbol > max_terminal_symbol and not added[symbol] then
-        for j in each_production(productions, symbol) do
-          items:append { index = j, dot = 1 }
-        end
-        added[symbol] = true
+  for _, item in ipairs(items) do
+    local symbol = productions[item.index].body[item.dot]
+    if symbol and symbol > max_terminal_symbol and not added[symbol] then
+      for i in each_production(productions, symbol) do
+        items:append { index = i, dot = 1 }
       end
+      added[symbol] = true
     end
-    m = n + 1
   end
 
   return items
