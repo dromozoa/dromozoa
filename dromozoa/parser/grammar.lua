@@ -15,7 +15,9 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local compare = require "dromozoa.compare"
 local list = require "dromozoa.list"
+local tree_set = require "dromozoa.tree_set"
 
 local timestamp = 0
 
@@ -144,6 +146,16 @@ function metatable:__call(token_names, that)
 
   local augumented_start_head = #symbol_names:append ""
   local augumented_start_body = augumented_start_head + 1
+
+  -- productionsの中身が途中で変更されちゃう問題
+  -- TODO ループを増やす
+  -- local productions = tree_set(function (a, b)
+  --   local c = compare(a.head, b.head)
+  --   if c ~= 0 then
+  --     return c
+  --   end
+  --   return compare(a.body, b.body)
+  -- end):put { head = augumented_start_head, body = list() }
 
   local productions = list { head = augumented_start_head, body = list() }
   local precedence = 0
