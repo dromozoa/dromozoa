@@ -234,17 +234,15 @@ function module.first_symbol(grammar, symbol)
     local result = ordered_set()
     local result_epsilon = false
     for _, body in each_production(grammar.productions, symbol) do
+      local first
+      local epsilon = true
       if body[1] then
-        local first, epsilon = module.first_symbols(grammar, body)
+        first, epsilon = module.first_symbols(grammar, body)
         for _, symbol in first:each() do
           result:put(symbol)
         end
-        if epsilon then
-          result_epsilon = true
-        end
-      else
-        result_epsilon = true
       end
+      result_epsilon = result_epsilon or epsilon
     end
     return result, result_epsilon
   end
@@ -252,7 +250,6 @@ end
 
 function module.first_symbols(grammar, symbols)
   local result = ordered_set()
-  local result_epsilon = nil
   for _, symbol in ipairs(symbols) do
     local first, epsilon = module.first_symbol(grammar, symbol)
     for _, symbol in first:each() do
@@ -261,10 +258,8 @@ function module.first_symbols(grammar, symbols)
     if not epsilon then
       return result, false
     end
-    result_epsilon = false
   end
-  result_epsilon = true
-  return result, result_epsilon
+  return result, true
 end
 
 function module.first_table(grammar)
