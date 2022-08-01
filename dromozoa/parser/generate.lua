@@ -357,6 +357,9 @@ function module.lr1_closure(grammar, items)
         for j in each_production(productions, symbol) do
           -- firstに含まれる文字を調べる
           -- TODO epsilonが含まれている？
+          -- epsilonが含まれていたら、遷移がどうしようもないのでは？
+          assert(not epsilon)
+          --[[
           if epsilon then
             local la = marker_epsilon
             if not added(j)[la] then
@@ -364,6 +367,7 @@ function module.lr1_closure(grammar, items)
               added(j)[la] = true
             end
           end
+          ]]
           for _, la in first:each() do
             if not added(j)[la] then
               items:append { index = j, dot = 1, la = la }
