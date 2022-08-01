@@ -59,25 +59,19 @@ function class:ipairs()
   return ipairs(private[self].K)
 end
 
--- TODO tree_eachを実装する
--- TODO treeインターフェースでもいいが、そうすると、k=>iという順序になって混乱する
--- TODO 比較時には挿入順に意味がないことにするべきなので、k=>nilでただしい。
+-- TODO 必要になったら、tree (tree_each) を実装する
 
 function metatable:__len()
   error "not supported"
 end
 
--- TODO getにすることも検討
 function metatable:__index(k)
+  if type(k) == "number" and 1 <= k and k <= #private[self].K then
+    return private[self].K[k]
+  end
   local v = class[k]
   if v ~= nil then
     return v
-  end
-  if type(k) == "number" then
-    local v = private[self].K[k]
-    if v ~= nil then
-      return v
-    end
   end
   error "not supported"
 end
@@ -88,6 +82,10 @@ end
 
 function metatable:__pairs()
   error "not supported"
+end
+
+metatable["dromozoa.stable_pairs"] = function (self)
+  return private[self]:each()
 end
 
 local function ordered_set(compare)
@@ -154,6 +152,10 @@ end
 
 function metatable:__pairs()
   error "not supported"
+end
+
+metatable["dromozoa.stable_pairs"] = function (self)
+  return private[self]:each()
 end
 
 local function ordered_map(compare)
