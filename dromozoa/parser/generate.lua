@@ -58,6 +58,7 @@ function metatable:__len()
   error "not supported"
 end
 
+-- TODO getにすることも検討
 function metatable:__index(k)
   local v = class[k]
   if v ~= nil then
@@ -72,7 +73,11 @@ function metatable:__index(k)
   error "not supported"
 end
 
-function metatable:__newindex(k, v)
+function metatable:__newindex()
+  error "not supported"
+end
+
+function metatable:__pairs()
   error "not supported"
 end
 
@@ -85,35 +90,18 @@ end
 ---------------------------------------------------------------------------
 
 local class = {}
-local metatable = { __index = class, __name = "dromozoa.ordered_map" }
+local metatable = { __name = "dromozoa.ordered_map" }
 local private = setmetatable({}, { __mode = "k" })
 
 function class:put(k, v)
+  assert(k ~= nil)
+  assert(v ~= nil)
   local _, i = private[self].T:insert(k, nil, function ()
     private[self].K:append(k)
     return #private[self].V:append(v)
   end)
+  -- TODO 返り値の検討
   return i
-end
-
-function metatable:__len()
-  error "not supported"
-end
-
-function metatable:__index(k)
-  local v = class[k]
-  if v ~= nil then
-    return v
-  end
-  error "not supported"
-end
-
-function metatable:__newindex(i, v)
-  error "not supported"
-end
-
-function metatable:__pairs()
-  error "not supported"
 end
 
 function class:opt(k, fn)
@@ -124,14 +112,7 @@ function class:opt(k, fn)
   return private[self].V[i]
 end
 
--- TODO 値の返しかたを要検討
 function class:get(k)
-  local _, i = private[self].T:find(k)
-  return i, private[self].K[i], private[self].V[i]
-end
-
--- TODO なんかいいかんじにする
-function class:get_value(k)
   local _, i = private[self].T:find(k)
   return private[self].V[i]
 end
@@ -156,6 +137,26 @@ function class:pairs()
       return k, self.V[i]
     end
   end, private[self], nil
+end
+
+function metatable:__len()
+  error "not supported"
+end
+
+function metatable:__index(k)
+  local v = class[k]
+  if v ~= nil then
+    return v
+  end
+  error "not supported"
+end
+
+function metatable:__newindex()
+  error "not supported"
+end
+
+function metatable:__pairs()
+  error "not supported"
 end
 
 local function ordered_map(compare)
@@ -423,11 +424,7 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
         for _, item in items:ipairs() do
           local symbol = productions[item.index].body[item.dot]
           if symbol then
-            local to_i = assert(transitions[from_i]:get_value(symbol))
-            -- print(from_i, from_j, symbol, to_i, item.index, item.dot)
-            -- print(map_of_kernel_items[to_i])
-            -- print(map_of_kernel_items[to_i][item.index])
-            -- print(map_of_kernel_items[to_i][item.index][item.dot + 1])
+            local to_i = transitions[from_i]:get(symbol)
             local to_j = map_of_kernel_items[to_i][item.index][item.dot + 1]
             if item.la == marker_lookahead then
               propagations:append { from_i = from_i, from_j = from_j, to_i = to_i, to_j = to_j }
