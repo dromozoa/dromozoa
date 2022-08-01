@@ -124,8 +124,6 @@ module.body = setmetatable({ [0] = "body" }, metatable)
 local metatable = { __name = "dromozoa.parser.grammar" }
 
 function metatable:__call(token_names, that)
-  -- TODO 任意の名前について考えると実装がめんどうになるので、symbol_namesと
-  -- tableをわける→regexpでも実践する
   local symbol_names = list()
   local symbol_table = {}
   for _, name in ipairs(token_names) do
@@ -171,22 +169,17 @@ function metatable:__call(token_names, that)
   local augumented_start_head = #symbol_names:append(data[1].k .. "'")
   local augumented_start_body = augumented_start_head + 1
   -- TODO いいかんじのcompareの合成もほしい
-  local productions = tree_set(
-  function (a, b)
+  local productions = tree_set(function (a, b)
     local c = compare(a.head, b.head)
     if c ~= 0 then
       return c
     end
-    -- TODO indexという名前はやめておく？
     local c = compare(a.head_index, b.head_index)
-    -- local c = compare(a.body, b.body)
     if c ~= 0 then
       return c
     end
-    error "!!!"
-    -- return compare(a, b)
-  end
-  ):insert { head = augumented_start_head, head_index = 1, body = list(augumented_start_body) }
+    error "production is not unique"
+  end):insert { head = augumented_start_head, head_index = 1, body = list(augumented_start_body) }
 
   for _, u in ipairs(data) do
     local k = u.k
