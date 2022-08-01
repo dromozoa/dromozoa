@@ -223,46 +223,48 @@ function module.first_symbol(grammar, symbol)
   if symbol <= grammar.max_terminal_symbol then
     local first = tree_map()
     first[symbol] = true
-    return first
+    return first, false
   else
     local first_table = grammar.first_table
     if first_table then
-      return first_table[symbol]
+      local result = first_table[symbol]
+      return result[1], result[2]
+      -- return first_table[symbol]
     end
     local first = tree_map()
+    local epsilon = false
     for _, body in each_production(grammar.productions, symbol) do
       if body[1] then
         for symbol in module.first_symbols(grammar, body)():each() do
           first[symbol] = true
         end
       else
-        first[marker_epsilon] = true
+        epsilon = true
+        -- first[marker_epsilon] = true
       end
     end
-    return first
+    return first, epsilon
   end
 end
 
 function module.first_symbols(grammar, symbols)
-  local first = tree_map()
+  local result = tree_map()
   for _, symbol in ipairs(symbols) do
-    for symbol in module.first_symbol(grammar, symbol)():each() do
-      first[symbol] = true
+    local first, epsilon = module.first_symbol(grammar, symbol)
+    for symbol in first():each() do
+      result[symbol] = true
     end
-    if first[marker_epsilon] then
-      first[marker_epsilon] = nil
-    else
-      return first
+    if not epsilon then
+      return result, false
     end
   end
-  first[marker_epsilon] = true
-  return first
+  return result, true
 end
 
 function module.first_table(grammar)
   local first_table = tree_map()
   for symbol = grammar.max_terminal_symbol + 1, grammar.max_nonterminal_symbol do
-    first_table[symbol] = module.first_symbol(grammar, symbol)
+    first_table[symbol] = { module.first_symbol(grammar, symbol) }
   end
   return first_table
 end
@@ -341,8 +343,17 @@ function module.lr1_closure(grammar, items)
       local body = productions[item.index].body
       local symbol = body[item.dot]
       if symbol and symbol > max_terminal_symbol then
-        local first = module.first_symbols(grammar, body:slice(item.dot + 1):append(item.la))
+        local first, epsilon = module.first_symbols(grammar, body:slice(item.dot + 1):append(item.la))
         for j in each_production(productions, symbol) do
+          -- firstに含まれる文字を調べる
+          -- もちろん、epsilonが含まれているかもしれない
+          if epsilon then
+            local la = marker_epsilon
+            if not added(j)[la] then
+              items:append { index = j, dot = 1, la = la }
+              added(j)[la] = true
+            end
+          end
           for la in first():each() do
             if not added(j)[la] then
               items:append { index = j, dot = 1, la = la }

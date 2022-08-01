@@ -35,22 +35,26 @@ local g = grammar({ "+", "*", "(", ")", "id" }, {
     + _"id";
 })
 local first_table = generate.first_table(g)
+g.first_table = first_table
 
 local buffer = list()
 for _, name in ipairs { "F", "T", "E", "E'", "T'" } do
   buffer:append("FIRST(", name, ") = { ")
-  local first = first_table[g.symbol_table[name]]
+  local first, epsilon = generate.first_symbol(g, g.symbol_table[name])
   local i = 0
+  if epsilon then
+    i = i + 1
+    if i > 1 then
+      buffer:append ", "
+    end
+    buffer:append "e"
+  end
   for k in first():each() do
     i = i + 1
     if i > 1 then
       buffer:append ", "
     end
-    if k == 0 then
-      buffer:append "e"
-    else
-      buffer:append(g.symbol_names[k])
-    end
+    buffer:append(g.symbol_names[k])
   end
   buffer:append " }\n"
 end
