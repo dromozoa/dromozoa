@@ -49,7 +49,7 @@ for _, name in ipairs { "F", "T", "E", "E'", "T'" } do
     end
     buffer:append "e"
   end
-  for k in first():each() do
+  for _, k in first:each() do
     i = i + 1
     if i > 1 then
       buffer:append ", "

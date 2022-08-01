@@ -36,6 +36,7 @@ function class:get(v)
 end
 
 function class:put(v)
+  assert(v ~= nil)
   local _, i = private[self].tree:insert(v, nil, function () return #private[self].list:append(v) end)
   return i
 end
@@ -222,23 +223,22 @@ local marker_epsilon = 0
 function module.first_symbol(grammar, symbol)
   if symbol <= grammar.max_terminal_symbol then
     assert(symbol ~= 0) -- lookaheadの可能性はある
-    local first = tree_map()
-    first[symbol] = true
-    return first, false
+    local result = ordered_set()
+    result:put(symbol)
+    return result, false
   else
     local first_table = grammar.first_table
     if first_table then
       local result = first_table[symbol]
       return result[1], result[2]
     end
-    local result = tree_map()
+    local result = ordered_set()
     local result_epsilon = false
     for _, body in each_production(grammar.productions, symbol) do
       if body[1] then
         local first, epsilon = module.first_symbols(grammar, body)
-        for symbol in first():each() do
-          assert(symbol ~= 0)
-          result[symbol] = true
+        for _, symbol in first:each() do
+          result:put(symbol)
         end
         if epsilon then
           result_epsilon = true
@@ -252,18 +252,23 @@ function module.first_symbol(grammar, symbol)
 end
 
 function module.first_symbols(grammar, symbols)
-  local result = tree_map()
+  local result = ordered_set()
+  local result_epsilon = nil
   for _, symbol in ipairs(symbols) do
     local first, epsilon = module.first_symbol(grammar, symbol)
-    for symbol in first():each() do
+    for _, symbol in first:each() do
       assert(symbol ~= 0)
-      result[symbol] = true
+      result:put(symbol)
     end
-    if not epsilon then
-      return result, false
+    result_epsilon = epsilon
+    if result_epsilon then
+      result_epsilon = false
+    else
+      return result, result_epsilon
     end
   end
-  return result, true
+  result_epsilon = true
+  return result, result_epsilon
 end
 
 function module.first_table(grammar)
@@ -351,7 +356,7 @@ function module.lr1_closure(grammar, items)
         local first, epsilon = module.first_symbols(grammar, body:slice(item.dot + 1):append(item.la))
         for j in each_production(productions, symbol) do
           -- firstに含まれる文字を調べる
-          -- もちろん、epsilonが含まれているかもしれない
+          -- TODO epsilonが含まれている？
           if epsilon then
             local la = marker_epsilon
             if not added(j)[la] then
@@ -359,7 +364,7 @@ function module.lr1_closure(grammar, items)
               added(j)[la] = true
             end
           end
-          for la in first():each() do
+          for _, la in first:each() do
             if not added(j)[la] then
               items:append { index = j, dot = 1, la = la }
               added(j)[la] = true
