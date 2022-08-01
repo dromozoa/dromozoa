@@ -96,25 +96,27 @@ local private = setmetatable({}, { __mode = "k" })
 function class:put(k, v)
   assert(k ~= nil)
   assert(v ~= nil)
-  local _, i = private[self].T:insert(k, nil, function ()
-    private[self].K:append(k)
-    return #private[self].V:append(v)
-  end)
+  local _, _, i = private[self]:insert(k, v)
+  -- local _, i = private[self].T:insert(k, nil, function ()
+  --   private[self].K:append(k)
+  --   return #private[self].V:append(v)
+  -- end)
   -- TODO 返り値の検討
   return i
 end
 
 function class:opt(k, fn)
-  local _, i = private[self].T:insert(k, nil, function ()
-    private[self].K:append(k)
-    return #private[self].V:append(fn())
-  end)
-  return private[self].V[i]
+  local _, v = private[self]:insert(k, nil, fn)
+  -- local _, i = private[self].T:insert(k, nil, function ()
+  --   private[self].K:append(k)
+  --   return #private[self].V:append(fn())
+  -- end)
+  return v
 end
 
 function class:get(k)
-  local _, i = private[self].T:find(k)
-  return private[self].V[i]
+  local _, v = private[self]:find(k)
+  return v
 end
 
 function class:pairs()
@@ -152,11 +154,7 @@ end
 
 local function ordered_map(compare)
   local self = setmetatable({}, metatable)
-  private[self] = {
-    T = tree(compare);
-    K = list();
-    V = list();
-  }
+  private[self] = tree(compare)
   return self
 end
 

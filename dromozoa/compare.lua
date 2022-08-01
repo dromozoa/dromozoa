@@ -34,9 +34,11 @@ local function stable_pairs(t, compare, n)
     if metaname == "dromozoa.tree_map" then
       return t():each()
     elseif metaname == "dromozoa.ordered_set" then
+      -- 本来は、t.tree:each()
       return t:ipairs()
     elseif metaname == "dromozoa.ordered_map" then
-      return t:each()
+      -- 本来は、t.tree:each()
+      return t:pairs()
     end
   end
 
