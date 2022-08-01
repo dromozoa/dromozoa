@@ -169,11 +169,13 @@ function metatable:__call(token_names, that)
 
   local augumented_start_head = #symbol_names:append(data[1].k .. "'")
   local augumented_start_body = augumented_start_head + 1
+  -- TODO いいかんじのcompareの合成もほしい
   local productions = tree_set(function (a, b)
     local c = compare(a.head, b.head)
     if c ~= 0 then
       return c
     end
+    -- TODO indexという名前はやめておく？
     local c = compare(a.index, b.index)
     if c ~= 0 then
       return c
