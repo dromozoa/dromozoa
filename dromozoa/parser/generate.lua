@@ -308,7 +308,6 @@ function module.lr0_goto(grammar, items)
   return map_of_to_items
 end
 
--- TODO リファクタリング
 function module.lr0_items(grammar)
   local set_of_items = ordered_set()
   local transitions = tree_map()
