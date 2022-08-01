@@ -79,6 +79,9 @@ function metatable:__index(k)
   if v ~= nil then
     return v
   end
+  if k == "tree_compare" then
+    return private[self].compare
+  end
   local v = private[self].K[k]
   if v ~= nil then
     return v

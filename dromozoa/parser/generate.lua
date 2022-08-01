@@ -114,19 +114,7 @@ function module.eliminate_left_recursion(grammar)
   local max_nonterminal_symbol = grammar.max_nonterminal_symbol
 
   local new_symbol_names = symbol_names:slice()
-  local new_productions = tree_set(function (a, b)
-    local c = compare(a.head, b.head)
-    if c ~= 0 then
-      return c
-    end
-    local c = compare(a.index, b.index)
-    if c ~= 0 then
-      return c
-    end
-    error "!!!"
-    -- return compare(a, b)
-    -- bodyを検査しないので、bodyの変更は安全
-  end)
+  local new_productions = tree_set(productions.tree_compare)
 
   for i = max_terminal_symbol + 1, max_nonterminal_symbol do
     local n = #new_symbol_names + 1
