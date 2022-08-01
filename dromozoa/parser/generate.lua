@@ -54,6 +54,10 @@ function class:ipairs()
   return ipairs(private[self].K)
 end
 
+-- TODO tree_eachを実装する
+-- TODO treeインターフェースでもいいが、そうすると、k=>iという順序になって混乱する
+-- TODO 比較時には挿入順に意味がないことにするべきなので、k=>nilでただしい。
+
 function metatable:__len()
   error "not supported"
 end
@@ -97,20 +101,12 @@ function class:put(k, v)
   assert(k ~= nil)
   assert(v ~= nil)
   local _, _, i = private[self]:insert(k, v)
-  -- local _, i = private[self].T:insert(k, nil, function ()
-  --   private[self].K:append(k)
-  --   return #private[self].V:append(v)
-  -- end)
   -- TODO 返り値の検討
   return i
 end
 
 function class:opt(k, fn)
   local _, v = private[self]:insert(k, nil, fn)
-  -- local _, i = private[self].T:insert(k, nil, function ()
-  --   private[self].K:append(k)
-  --   return #private[self].V:append(fn())
-  -- end)
   return v
 end
 
@@ -132,11 +128,14 @@ function class:pairs()
   end, private[self], nil
 end
 
+-- TODO tree_eachを実装する
+
 function metatable:__len()
   error "not supported"
 end
 
 function metatable:__index(k)
+  -- TODO 数値キーだけを許す？
   local v = class[k]
   if v ~= nil then
     return v
