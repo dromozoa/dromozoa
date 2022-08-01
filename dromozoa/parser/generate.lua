@@ -37,10 +37,6 @@ function class:put(v)
   return i
 end
 
-function class:pairs()
-  return ipairs(private[self].list)
-end
-
 function class:each()
   return ipairs(private[self].list)
 end
