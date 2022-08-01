@@ -44,11 +44,17 @@ local class = {}
 local metatable = { __name = "dromozoa.ordered_set" }
 local private = setmetatable({}, { __mode = "k" })
 
+-- TODO インターフェースの改良
+-- self, handle, insert or updateあたりをかえす
 function class:put(k)
   assert(k ~= nil)
-  local _, _, i = private[self]:insert(k)
-  return i
+  local ok, _, i = private[self]:insert(k)
+  return i, ok
 end
+
+-- function class:find(k)
+--   return private[self]:find(k) ~= nil
+-- end
 
 function class:ipairs()
   return ipairs(private[self].K)
@@ -390,9 +396,9 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
       if item.index == 1 or item.dot > 1 then
         kernel_table(item.index)[item.dot] = j
       end
-      local la = tree_map()
+      local la = ordered_set()
       if item.index == 1 and item.dot == 1 then
-        la[max_terminal_symbol] = true
+        la:put(max_terminal_symbol)
       end
       local index = kernel_items:put { index = item.index, dot = item.dot, la = la }
       assert(j == index)
@@ -417,7 +423,7 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
             if item.la == marker_lookahead then
               propagations:append { from_i = from_i, from_j = from_j, to_i = to_i, to_j = to_j }
             else
-              set_of_kernel_items[to_i][to_j].la[item.la] = true
+              set_of_kernel_items[to_i][to_j].la:put(item.la)
             end
           end
         end
@@ -430,9 +436,9 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
     for _, propagation in ipairs(propagations) do
       local from_la = set_of_kernel_items[propagation.from_i][propagation.from_j].la
       local to_la = set_of_kernel_items[propagation.to_i][propagation.to_j].la
-      for la in from_la():each() do
-        if not to_la[la] then
-          to_la[la] = true
+      for _, la in from_la:ipairs() do
+        local _, inserted = to_la:put(la)
+        if inserted then
           done = false
         end
       end
@@ -443,7 +449,7 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
   for _, items in ipairs(set_of_kernel_items) do
     local new_items = ordered_set()
     for _, item in items:ipairs() do
-      for la in item.la():each() do
+      for _, la in item.la:ipairs() do
         new_items:put { index = item.index, dot = item.dot, la = la }
       end
     end
