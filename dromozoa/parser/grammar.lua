@@ -169,7 +169,18 @@ function metatable:__call(token_names, that)
 
   local augumented_start_head = #symbol_names:append(data[1].k .. "'")
   local augumented_start_body = augumented_start_head + 1
-  local productions = tree_set():insert { head = augumented_start_head, body = { data[1].k } }
+  local productions = tree_set(function (a, b)
+    local c = compare(a.head, b.head)
+    if c ~= 0 then
+      return c
+    end
+    local c = compare(a.index, b.index)
+    if c ~= 0 then
+      return c
+    end
+    error "!!!"
+    -- bodyを検査しないので、bodyの変更は安全
+  end):insert { head = augumented_start_head, index = 1, body = { data[1].k } }
 
   for _, u in ipairs(data) do
     local k = u.k
@@ -183,11 +194,11 @@ function metatable:__call(token_names, that)
     symbol_table[k] = symbol
     if v[0] == "body" then
       assert(getmetatable(v).__name == "dromozoa.parser.grammar.body")
-      productions:insert { head = symbol, body = v }
+      productions:insert { head = symbol, index = 1, body = v }
     else
       assert(getmetatable(v).__name == "dromozoa.parser.grammar.bodies")
       for i, body in ipairs(v) do
-        productions:insert { head = symbol, body = body, index = i }
+        productions:insert { head = symbol, index = i, body = body }
       end
     end
   end

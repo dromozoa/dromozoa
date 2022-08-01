@@ -61,6 +61,14 @@ function class:ipairs()
   return ipairs(private[self].K)
 end
 
+function class:tree_each(lower_bound, upper_bound)
+  return coroutine.wrap(function (self)
+    for k, _, i in self:each(lower_bound, upper_bound) do
+      coroutine.yield(i, k)
+    end
+  end), private[self]
+end
+
 function metatable:__len()
   return #private[self].K
   -- error "not supported"

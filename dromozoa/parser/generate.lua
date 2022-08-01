@@ -15,6 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local compare = require "dromozoa.compare"
 local list = require "dromozoa.list"
 local tree = require "dromozoa.tree"
 local tree_set = require "dromozoa.tree_set"
@@ -98,6 +99,11 @@ end
 -- => とは限らない
 -- tree_setに、いいかんじのcompareをわたしておけばできる
 local function each_production(productions, head)
+
+
+
+
+
   return function (productions, index)
     for i = index + 1, #productions do
       local production = productions[i]
@@ -117,7 +123,18 @@ function module.eliminate_left_recursion(grammar)
   local max_nonterminal_symbol = grammar.max_nonterminal_symbol
 
   local new_symbol_names = symbol_names:slice()
-  local new_productions = tree_set()
+  local new_productions = tree_set(function (a, b)
+    local c = compare(a.head, b.head)
+    if c ~= 0 then
+      return c
+    end
+    local c = compare(a.index, b.index)
+    if c ~= 0 then
+      return c
+    end
+    error "!!!"
+    -- bodyを検査しないので、bodyの変更は安全
+  end)
 
   for i = max_terminal_symbol + 1, max_nonterminal_symbol do
     local n = #new_symbol_names + 1
@@ -150,11 +167,11 @@ function module.eliminate_left_recursion(grammar)
       end
     end
 
-    for _, body in ipairs(i_bodies) do
-      new_productions:insert { head = i, body = body }
+    for j, body in ipairs(i_bodies) do
+      new_productions:insert { head = i, index = j, body = body }
     end
-    for _, body in ipairs(n_bodies) do
-      new_productions:insert { head = n, body = body }
+    for j, body in ipairs(n_bodies) do
+      new_productions:insert { head = n, index = j, body = body }
     end
   end
 

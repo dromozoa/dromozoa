@@ -233,12 +233,12 @@ local function each(self, x, y, t)
     if c < 0 then
       each(self, x, y, L[t])
       if y == nil or compare(K[t], y) < 0 then
-        coroutine.yield(K[t], V[t])
+        coroutine.yield(K[t], V[t], t)
         return each(self, x, y, R[t])
       end
     elseif y == nil or compare(K[t], y) < 0 then
       if c == 0 then
-        coroutine.yield(K[t], V[t])
+        coroutine.yield(K[t], V[t], t)
       end
       return each(self, x, y, R[t])
     end
