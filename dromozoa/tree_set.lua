@@ -57,15 +57,9 @@ function class:put(k)
   return self, i, ok
 end
 
--- function class:find(k)
---   return private[self]:find(k) ~= nil
--- end
-
 function class:ipairs()
   return ipairs(private[self].K)
 end
-
--- TODO 必要になったら、tree (tree_each) を実装する
 
 function metatable:__len()
   error "not supported"
