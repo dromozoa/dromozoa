@@ -41,6 +41,10 @@ function class:each()
   return ipairs(private[self].list)
 end
 
+function class:ipairs()
+  return ipairs(private[self].list)
+end
+
 function metatable:__len()
   return #private[self].list
 end
@@ -305,21 +309,12 @@ function module.lr0_items(grammar)
   local items = lr0_closure(grammar, list { index = 1, dot = 1 })
   local index = set_of_items:put(items)
 
-  local m = 1
-  while true do
-    local n = #set_of_items
-    if m > n then
-      break
+  for i, items in set_of_items:ipairs() do
+    local map_of_to_items = module.lr0_goto(grammar, items)
+    local transition = transitions(i)
+    for _, symbol, to_items in map_of_to_items:each() do
+      transition[symbol] = set_of_items:put(to_items)
     end
-    for i = m, n do
-      local items = set_of_items[i]
-      local map_of_to_items = module.lr0_goto(grammar, items)
-      local transition = transitions(i)
-      for _, symbol, to_items in map_of_to_items:each() do
-        transition[symbol] = set_of_items:put(to_items)
-      end
-    end
-    m = n + 1
   end
 
   return set_of_items, transitions
