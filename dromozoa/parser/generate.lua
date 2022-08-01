@@ -24,14 +24,22 @@ local module = {}
 ---------------------------------------------------------------------------
 -- eachはO(1)が保証されるけれど、途中でコンテナを変更すると、危険かもしれない
 -- pairsはO(log n)が保証されていて、途中でコンテナを変更しても安全
+-- ipairsはどうしよう？
+--
+-- TODO 最終的には、tree_set/tree_mapと名乗る
+-- ipairs, pairsは、定義通りの意味をとるべき。
+-- index orderとtree orderのふたつのeachを用意する
+-- そのほかに、編集安全なeachも用意する
+-- indexじゃなくて、handle/pointerと呼ぶ案
+-- index/handle/pointerは、deleteが行われるまで使うことができる
 ---------------------------------------------------------------------------
 
 local class = {}
-local metatable = { __index = class, __name = "dromozoa.ordered_set" }
+local metatable = { __name = "dromozoa.ordered_set" }
 local private = setmetatable({}, { __mode = "k" })
 
 function class:get(v)
-  local _, i = private[self].tree:find(k)
+  local _, i = private[self].tree:find(v)
   return i
 end
 
@@ -45,6 +53,10 @@ function class:each()
   return ipairs(private[self].list)
 end
 
+function class:ipairs()
+  return ipairs(private[self].list)
+end
+
 function class:pairs()
   return ipairs(private[self].list)
 end
@@ -54,11 +66,12 @@ function metatable:__len()
 end
 
 function metatable:__index(k)
-  local v = private[self].list[k]
-  if v ~= nil then
-    return v
+  -- listにeachを定義すると、class.eachより先にヒットしちゃう
+  if type(k) == "number" then
+    return private[self].list[k]
+  else
+    return class[k]
   end
-  return class[k]
 end
 
 function metatable:__newindex(i, v)
@@ -252,7 +265,7 @@ end
 function first_symbols(grammar, symbols)
   local result = ordered_set()
   for _, symbol in ipairs(symbols) do
-    local first, epsilon = module.first_symbol(grammar, symbol)
+    local first, epsilon = first_symbol(grammar, symbol)
     for _, symbol in first:each() do
       result:put(symbol)
     end
@@ -266,7 +279,7 @@ end
 local function first_table(grammar)
   local result = tree_map()
   for symbol = grammar.max_terminal_symbol + 1, grammar.max_nonterminal_symbol do
-    result[symbol] = { module.first_symbol(grammar, symbol) }
+    result[symbol] = { first_symbol(grammar, symbol) }
   end
   return result
 end
@@ -571,6 +584,7 @@ end
 
 ---------------------------------------------------------------------------
 
+-- テスト用
 module.ordered_set = ordered_set
 module.first_symbol = first_symbol
 module.first_symbols = first_symbols

@@ -39,6 +39,10 @@ function class:slice(m, n)
   return setmetatable({}, metatable):append(self:unpack(m, n))
 end
 
+function class:ipairs()
+  return ipairs(self)
+end
+
 return setmetatable(class, {
   __call = function (_, ...)
     return setmetatable({}, metatable):append(...)
