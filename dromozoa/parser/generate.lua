@@ -17,7 +17,6 @@
 
 local list = require "dromozoa.list"
 local tree = require "dromozoa.tree"
-local tree_map = require "dromozoa.tree_map"
 
 local module = {}
 
@@ -394,7 +393,6 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
     local kernel_table = ordered_map()
     for j, item in items:ipairs() do
       if item.index == 1 or item.dot > 1 then
-        -- kernel_table(item.index)[item.dot] = j
         kernel_table:opt(item.index, function () return {} end)[item.dot] = j
       end
       local la = ordered_set()
@@ -420,7 +418,6 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
           local symbol = productions[item.index].body[item.dot]
           if symbol then
             local to_i = transitions[from_i]:get(symbol)
-            -- local to_j = map_of_kernel_items[to_i][item.index][item.dot + 1]
             local to_j = map_of_kernel_items[to_i]:get(item.index)[item.dot + 1]
             if item.la == marker_lookahead then
               propagations:append { from_i = from_i, from_j = from_j, to_i = to_i, to_j = to_j }
