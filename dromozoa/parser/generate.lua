@@ -124,6 +124,7 @@ function module.eliminate_left_recursion(grammar)
       return c
     end
     error "!!!"
+    -- return compare(a, b)
     -- bodyを検査しないので、bodyの変更は安全
   end)
 

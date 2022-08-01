@@ -167,48 +167,66 @@ function metatable:__call(token_names, that)
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
+
   local augumented_start_head = #symbol_names:append(data[1].k .. "'")
   local augumented_start_body = augumented_start_head + 1
   -- TODO いいかんじのcompareの合成もほしい
-  local productions = tree_set(function (a, b)
+  local productions = tree_set(
+  function (a, b)
     local c = compare(a.head, b.head)
     if c ~= 0 then
       return c
     end
     -- TODO indexという名前はやめておく？
     local c = compare(a.index, b.index)
+    -- local c = compare(a.body, b.body)
     if c ~= 0 then
       return c
     end
     error "!!!"
-    -- bodyを検査しないので、bodyの変更は安全
-  end):insert { head = augumented_start_head, index = 1, body = { data[1].k } }
+    -- return compare(a, b)
+  end
+  ):insert { head = augumented_start_head, index = 1, body = list(augumented_start_body) }
 
   for _, u in ipairs(data) do
     local k = u.k
-    local v = u.v
-    local metaname = getmetatable(v).__name
-
     if symbol_table[k] then
       error("symbol " .. k .. " redefined as a nonterminal")
     end
     local symbol = #symbol_names:append(k)
     symbol_table[k] = symbol
+    u.k = symbol
+  end
+
+  local used_symbols = {}
+
+  for _, u in ipairs(data) do
+    local k = u.k
+    local v = u.v
+    assert(type(k) == "number")
     if v[0] == "body" then
       assert(getmetatable(v).__name == "dromozoa.parser.grammar.body")
-      productions:insert { head = symbol, index = 1, body = v }
-    else
-      assert(getmetatable(v).__name == "dromozoa.parser.grammar.bodies")
-      for i, body in ipairs(v) do
-        productions:insert { head = symbol, index = i, body = body }
+      v = bodies(v)
+    end
+    for i, names in ipairs(v) do
+      local body = list()
+      for _, name in ipairs(names) do
+        local symbol = symbol_table[name]
+        if symbol == nil then
+          error("symbol " .. name .. " not defined")
+        end
+        body:append(symbol)
+        used_symbols[symbol] = true
       end
+      body.precedence = body.precedence
+      body.semantic_action = body.semantic_action
+      productions:insert { head = k, index = i, body = body }
     end
   end
 
   -- TODO このふたつはシークエンスを保証したほうがよい？
   local production_precedences = {}
   local semantic_actions = {} -- TODO semantic_actionがnilのときはどうする？
-  local used_symbols = {}
   local used_precedences = {}
 
   for i, production in productions:ipairs() do
@@ -223,20 +241,21 @@ function metatable:__call(token_names, that)
     end
     semantic_actions[i] = production.body.semantic_action
 
-    local body = list()
-    for _, name in ipairs(production.body) do
-      local symbol = symbol_table[name];
-      if not symbol then
-        error("symbol " .. name .. " not defined")
-      end
-      body:append(symbol)
-      used_symbols[symbol] = true
-    end
-    production.body = body
+    -- local body = list()
+    -- for _, name in ipairs(production.body) do
+    --   local symbol = symbol_table[name]
+    --   if not symbol then
+    --     error("symbol " .. name .. " not defined")
+    --   end
+    --   body:append(symbol)
+    --   used_symbols[symbol] = true
+    -- end
+    -- production.body = body
   end
 
   used_symbols[max_terminal_symbol] = true
   used_symbols[augumented_start_head] = true
+  used_symbols[augumented_start_body] = true
 
   for i, v in ipairs(symbol_names) do
     if not used_symbols[i] then
