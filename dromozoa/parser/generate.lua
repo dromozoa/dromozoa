@@ -33,6 +33,11 @@ local module = {}
 -- indexじゃなくて、handle/pointerと呼ぶ案
 -- index/handle/pointerは、deleteが行われるまで使うことができる
 -- indexのK,Vはtreeのものをつかえる
+--
+-- pairsは、handle順を返す
+-- eachは、tree順を返す、レンジ指定子もつけられる
+--
+--
 ---------------------------------------------------------------------------
 
 local class = {}
@@ -51,6 +56,14 @@ function class:put(v)
 end
 
 function class:each()
+  -- local k = nil
+  -- return function (self)
+  --   local i
+  --   k, i = self.tree:next(k)
+  --   if k ~= nil then
+  --     return i, self.list[i]
+  --   end
+  -- end, private[self]
   return ipairs(private[self].list)
 end
 
@@ -63,6 +76,7 @@ function class:pairs()
 end
 
 function metatable:__len()
+  error "not supported"
   return #private[self].list
 end
 
@@ -102,7 +116,19 @@ function class:put(k, v)
   return i
 end
 
+function metatable:__index(k)
+  local v = class[k]
+  if v ~= nil then
+    return v
+  end
+  error "not supported"
+end
+
 function metatable:__newindex(i, v)
+  error "not supported"
+end
+
+function metatable:__pairs()
   error "not supported"
 end
 
@@ -126,7 +152,6 @@ function class:get_value(k)
   return private[self].V[i]
 end
 
--- TODO 値の返しかたを要検討
 function class:each()
   return function (self, i)
     i = i + 1
@@ -137,6 +162,16 @@ function class:each()
       return i, self.K[i], self.V[i]
     end
   end, private[self], 0
+end
+
+-- TODO 値の返しかたを要検討
+function class:pairs()
+  return function (self, k)
+    local k, i = self.T:next(k)
+    if k ~= nil then
+      return k, self.V[i]
+    end
+  end, private[self], nil
 end
 
 local function ordered_map(compare)
@@ -289,7 +324,7 @@ local function lr0_closure(grammar, items)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
 
-  for _, item in items:pairs() do
+  for _, item in items:ipairs() do
     local symbol = productions[item.index].body[item.dot]
     if symbol and symbol > max_terminal_symbol then
       for i in each_production(productions, symbol) do
@@ -305,7 +340,7 @@ function module.lr0_goto(grammar, items)
   local productions = grammar.productions
   local map_of_to_items = ordered_map()
 
-  for _, item in items:each() do
+  for _, item in items:ipairs() do
     local symbol = productions[item.index].body[item.dot]
     if symbol then
       map_of_to_items:opt(symbol, ordered_set):put { index = item.index, dot = item.dot + 1 }

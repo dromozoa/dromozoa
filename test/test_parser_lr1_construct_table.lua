@@ -124,7 +124,7 @@ for _, g in ipairs(G) do
 
 end
 
-print(table.concat(buffer))
+-- print(table.concat(buffer))
 assert(table.concat(buffer) == [[
 ---------------------------------------------------------------------------
 |    |  c  |  d  |  $  |  S' |  S  |  C  |
