@@ -221,6 +221,7 @@ local marker_epsilon = 0
 
 function module.first_symbol(grammar, symbol)
   if symbol <= grammar.max_terminal_symbol then
+    assert(symbol ~= 0) -- lookaheadの可能性はある
     local first = tree_map()
     first[symbol] = true
     return first, false
@@ -229,21 +230,24 @@ function module.first_symbol(grammar, symbol)
     if first_table then
       local result = first_table[symbol]
       return result[1], result[2]
-      -- return first_table[symbol]
     end
-    local first = tree_map()
-    local epsilon = false
+    local result = tree_map()
+    local result_epsilon = false
     for _, body in each_production(grammar.productions, symbol) do
       if body[1] then
-        for symbol in module.first_symbols(grammar, body)():each() do
-          first[symbol] = true
+        local first, epsilon = module.first_symbols(grammar, body)
+        for symbol in first():each() do
+          assert(symbol ~= 0)
+          result[symbol] = true
+        end
+        if epsilon then
+          result_epsilon = true
         end
       else
-        epsilon = true
-        -- first[marker_epsilon] = true
+        result_epsilon = true
       end
     end
-    return first, epsilon
+    return result, result_epsilon
   end
 end
 
@@ -252,6 +256,7 @@ function module.first_symbols(grammar, symbols)
   for _, symbol in ipairs(symbols) do
     local first, epsilon = module.first_symbol(grammar, symbol)
     for symbol in first():each() do
+      assert(symbol ~= 0)
       result[symbol] = true
     end
     if not epsilon then
