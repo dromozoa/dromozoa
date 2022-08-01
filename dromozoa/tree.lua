@@ -263,7 +263,7 @@ function class:insert(k, v, fn)
     V[t] = fn()
   end
 
-  return ok, V[t]
+  return ok, V[t], t
 end
 
 function class:delete(k)

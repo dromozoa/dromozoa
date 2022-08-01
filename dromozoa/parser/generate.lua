@@ -46,12 +46,13 @@ local private = setmetatable({}, { __mode = "k" })
 
 function class:put(v)
   assert(v ~= nil)
-  local _, i = private[self].T:insert(v, nil, function () return #private[self].K:append(v) end)
+  local _, _, i = private[self].T:insert(v, true)
+  -- local _, i = private[self].T:insert(v, nil, function () return #private[self].K:append(v) end)
   return i
 end
 
 function class:ipairs()
-  return ipairs(private[self].K)
+  return ipairs(private[self].T.K)
 end
 
 function metatable:__len()
@@ -64,7 +65,7 @@ function metatable:__index(k)
     return v
   end
   if type(k) == "number" then
-    local v = private[self].K[k]
+    local v = private[self].T.K[k]
     if v ~= nil then
       return v
     end
@@ -78,10 +79,7 @@ end
 
 local function ordered_set(compare)
   local self = setmetatable({}, metatable)
-  private[self] = {
-    T = tree(compare);
-    K = list();
-  }
+  private[self] = { T = tree(compare) }
   return self
 end
 
