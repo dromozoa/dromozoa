@@ -44,15 +44,14 @@ local class = {}
 local metatable = { __name = "dromozoa.ordered_set" }
 local private = setmetatable({}, { __mode = "k" })
 
-function class:put(v)
-  assert(v ~= nil)
-  local _, _, i = private[self].T:insert(v, true)
-  -- local _, i = private[self].T:insert(v, nil, function () return #private[self].K:append(v) end)
+function class:put(k)
+  assert(k ~= nil)
+  local _, _, i = private[self]:insert(k)
   return i
 end
 
 function class:ipairs()
-  return ipairs(private[self].T.K)
+  return ipairs(private[self].K)
 end
 
 function metatable:__len()
@@ -65,7 +64,7 @@ function metatable:__index(k)
     return v
   end
   if type(k) == "number" then
-    local v = private[self].T.K[k]
+    local v = private[self].K[k]
     if v ~= nil then
       return v
     end
@@ -79,7 +78,7 @@ end
 
 local function ordered_set(compare)
   local self = setmetatable({}, metatable)
-  private[self] = { T = tree(compare) }
+  private[self] = tree(compare)
   return self
 end
 
@@ -95,6 +94,10 @@ function class:put(k, v)
     return #private[self].V:append(v)
   end)
   return i
+end
+
+function metatable:__len()
+  error "not supported"
 end
 
 function metatable:__index(k)
