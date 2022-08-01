@@ -89,11 +89,13 @@ function class:opt(k, fn)
   return private[self].V[i]
 end
 
+-- TODO 値の返しかたを要検討
 function class:get(k)
   local _, i = private[self].T:find(k)
   return i, private[self].K[i], private[self].V[i]
 end
 
+-- TODO 値の返しかたを要検討
 function class:each()
   return function (self, i)
     i = i + 1
@@ -260,7 +262,7 @@ end
 
 ---------------------------------------------------------------------------
 
-function module.lr0_closure(grammar, items)
+local function lr0_closure(grammar, items)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
 
@@ -288,9 +290,8 @@ function module.lr0_goto(grammar, items)
       map_of_to_items:opt(symbol, list):append { index = item.index, dot = item.dot + 1 }
     end
   end
-
   for _, _, to_items in map_of_to_items:each() do
-    module.lr0_closure(grammar, to_items)
+    lr0_closure(grammar, to_items)
   end
 
   return map_of_to_items
@@ -301,7 +302,7 @@ function module.lr0_items(grammar)
   local set_of_items = tree_set()
   local transitions = tree_map()
 
-  local items = module.lr0_closure(grammar, list { index = 1, dot = 1 })
+  local items = lr0_closure(grammar, list { index = 1, dot = 1 })
   local index = set_of_items:put(items)
 
   local m = 1
