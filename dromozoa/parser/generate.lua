@@ -40,7 +40,7 @@ local module = {}
 ---------------------------------------------------------------------------
 
 local class = {}
-local metatable = { __name = "dromozoa.ordered_set" }
+local metatable = { __name = "dromozoa.tree_set" }
 local private = setmetatable({}, { __mode = "k" })
 
 -- TODO インターフェースの改良
@@ -88,7 +88,7 @@ metatable["dromozoa.stable_pairs"] = function (self)
   return private[self]:each()
 end
 
-local function ordered_set(compare)
+local function tree_set(compare)
   local self = setmetatable({}, metatable)
   private[self] = tree(compare)
   return self
@@ -169,7 +169,7 @@ end
 -- TODO これは、binary searchにして、log(n)にしたほうがよい？
 -- productionsはそもそも、headでソートされているはず。
 -- => とは限らない
--- ordered_setに、いいかんじのcompareをわたしておけばできる
+-- tree_setに、いいかんじのcompareをわたしておけばできる
 local function each_production(productions, head)
   return function (productions, index)
     for i = index + 1, #productions do
@@ -247,7 +247,7 @@ local first_symbols
 
 local function first_symbol(grammar, symbol)
   if symbol <= grammar.max_terminal_symbol then
-    local result = ordered_set()
+    local result = tree_set()
     result:put(symbol)
     return result
   else
@@ -255,7 +255,7 @@ local function first_symbol(grammar, symbol)
     if first_table then
       return first_table[symbol]
     end
-    local result = ordered_set()
+    local result = tree_set()
     local epsilon = false
     for _, body in each_production(grammar.productions, symbol) do
       if body[1] then
@@ -272,7 +272,7 @@ local function first_symbol(grammar, symbol)
 end
 
 function first_symbols(grammar, symbols)
-  local result = ordered_set()
+  local result = tree_set()
   for _, symbol in ipairs(symbols) do
     local epsilon = false
     for _, symbol in first_symbol(grammar, symbol):ipairs() do
@@ -323,7 +323,7 @@ function module.lr0_goto(grammar, items)
   for _, item in items:ipairs() do
     local symbol = productions[item.index].body[item.dot]
     if symbol then
-      map_of_to_items:opt(symbol, ordered_set):put { index = item.index, dot = item.dot + 1 }
+      map_of_to_items:opt(symbol, tree_set):put { index = item.index, dot = item.dot + 1 }
     end
   end
   for _, to_items in map_of_to_items:pairs() do
@@ -334,10 +334,10 @@ function module.lr0_goto(grammar, items)
 end
 
 function module.lr0_items(grammar)
-  local set_of_items = ordered_set()
+  local set_of_items = tree_set()
   local transitions = {}
 
-  local items = ordered_set()
+  local items = tree_set()
   items:put { index = 1, dot = 1 }
   lr0_closure(grammar, items)
   set_of_items:put(items)
@@ -391,13 +391,13 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
   local map_of_kernel_items = list()
 
   for i, items in set_of_items:ipairs() do
-    local kernel_items = ordered_set()
+    local kernel_items = tree_set()
     local kernel_table = ordered_map()
     for j, item in items:ipairs() do
       if item.index == 1 or item.dot > 1 then
         kernel_table:opt(item.index, function () return {} end)[item.dot] = j
       end
-      local la = ordered_set()
+      local la = tree_set()
       if item.index == 1 and item.dot == 1 then
         la:put(max_terminal_symbol)
       end
@@ -413,7 +413,7 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
   for from_i, from_items in set_of_items:ipairs() do
     for from_j, from_item in from_items:ipairs() do
       if productions[from_item.index].head == max_terminal_symbol + 1 or from_item.dot > 1 then
-        local items = ordered_set()
+        local items = tree_set()
         items:put { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
         lr1_closure(grammar, items)
         for _, item in items:ipairs() do
@@ -448,7 +448,7 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
 
   local new_set_of_kernel_items = list()
   for _, items in ipairs(set_of_kernel_items) do
-    local new_items = ordered_set()
+    local new_items = tree_set()
     for _, item in items:ipairs() do
       for _, la in item.la:ipairs() do
         new_items:put { index = item.index, dot = item.dot, la = la }
@@ -595,7 +595,7 @@ end
 ---------------------------------------------------------------------------
 
 -- テスト用
-module.ordered_set = ordered_set
+module.tree_set = tree_set
 module.first_symbol = first_symbol
 module.first_symbols = first_symbols
 module.first_table = first_table

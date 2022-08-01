@@ -28,7 +28,7 @@ local g = grammar({ "c", "d" }, {
     + _"d";
 })
 
-local items = generate.ordered_set()
+local items = generate.tree_set()
 items:put { index = 1, dot = 1, la = g.max_terminal_symbol }
 local items = generate.lr1_closure(g, items)
 
