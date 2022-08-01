@@ -65,7 +65,6 @@ function metatable:__newindex(i, v)
   error "not supported"
 end
 
--- TODO ordered_setという名前もよいかも
 local function ordered_set(compare)
   local self = setmetatable({}, metatable)
   private[self] = {
