@@ -45,51 +45,51 @@ local metatable = { __name = "dromozoa.ordered_set" }
 local private = setmetatable({}, { __mode = "k" })
 
 function class:get(v)
-  local _, i = private[self].tree:find(v)
+  local _, i = private[self].T:find(v)
   return i
 end
 
 function class:put(v)
   assert(v ~= nil)
-  local _, i = private[self].tree:insert(v, nil, function () return #private[self].list:append(v) end)
+  local _, i = private[self].T:insert(v, nil, function () return #private[self].K:append(v) end)
   return i
 end
 
 function class:each()
-  return ipairs(private[self].list)
+  return ipairs(private[self].K)
 end
 
 function class:ipairs()
-  return ipairs(private[self].list)
+  return ipairs(private[self].K)
 end
-
--- function class:pairs()
---   return ipairs(private[self].list)
--- end
 
 function metatable:__len()
   error "not supported"
-  return #private[self].list
 end
 
 function metatable:__index(k)
-  -- listにeachを定義すると、class.eachより先にヒットしちゃう
-  if type(k) == "number" then
-    return private[self].list[k]
-  else
-    return class[k]
+  local v = class[k]
+  if v ~= nil then
+    return v
   end
+  if type(k) == "number" then
+    local v = private[self].K[k]
+    if v ~= nil then
+      return v
+    end
+  end
+  error "not supported"
 end
 
-function metatable:__newindex(i, v)
+function metatable:__newindex(k, v)
   error "not supported"
 end
 
 local function ordered_set(compare)
   local self = setmetatable({}, metatable)
   private[self] = {
-    tree = tree(compare);
-    list = list();
+    T = tree(compare);
+    K = list();
   }
   return self
 end
