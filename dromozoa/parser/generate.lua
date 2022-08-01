@@ -426,7 +426,7 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
   local new_set_of_kernel_items = list()
   for _, items in ipairs(set_of_kernel_items) do
     local new_items = ordered_set()
-    for _, item in ipairs(items) do
+    for _, item in items:each() do
       for la in item.la():each() do
         new_items:put { index = item.index, dot = item.dot, la = la }
       end
@@ -489,7 +489,7 @@ function module.lr1_construct_table(grammar, set_of_items, transitions, fn)
     end
 
     local error_table = {}
-    for _, item in ipairs(items) do
+    for _, item in items:each() do
       if not productions[item.index].body[item.dot] then
         local buffer = list(false, false)
 

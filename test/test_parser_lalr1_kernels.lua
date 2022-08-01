@@ -39,7 +39,7 @@ for i, items in ipairs(set_of_items) do
   buffer:append(("="):rep(75), "\n")
   buffer:append("I_", i - 1, "\n")
   buffer:append(("-"):rep(75), "\n")
-  for _, item in ipairs(items) do
+  for _, item in items:each() do
     local production = g.productions[item.index]
     buffer:append(g.symbol_names[production.head], " ->")
     for j, symbol in ipairs(production.body) do
