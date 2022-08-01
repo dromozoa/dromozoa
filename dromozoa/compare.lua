@@ -32,10 +32,10 @@ local function stable_pairs(t, compare, n)
   if metatable ~= nil then
     local metaname = metatable.__name
     if metaname == "dromozoa.tree_map" then
-      -- local tree = t()
       return t():each()
-    elseif metaname == "dromozoa.ordered_set" or metaname == "dromozoa.ordered_map" then
-      -- local tree = t()
+    elseif metaname == "dromozoa.ordered_set" then
+      return t:ipairs()
+    elseif metaname == "dromozoa.ordered_map" then
       return t:each()
     end
   end

@@ -44,19 +44,10 @@ local class = {}
 local metatable = { __name = "dromozoa.ordered_set" }
 local private = setmetatable({}, { __mode = "k" })
 
-function class:get(v)
-  local _, i = private[self].T:find(v)
-  return i
-end
-
 function class:put(v)
   assert(v ~= nil)
   local _, i = private[self].T:insert(v, nil, function () return #private[self].K:append(v) end)
   return i
-end
-
-function class:each()
-  return ipairs(private[self].K)
 end
 
 function class:ipairs()
@@ -272,7 +263,7 @@ local function first_symbol(grammar, symbol)
     for _, body in each_production(grammar.productions, symbol) do
       if body[1] then
         local first = first_symbols(grammar, body)
-        for _, symbol in first:each() do
+        for _, symbol in first:ipairs() do
           result:put(symbol)
         end
       else
@@ -287,7 +278,7 @@ function first_symbols(grammar, symbols)
   local result = ordered_set()
   for _, symbol in ipairs(symbols) do
     local epsilon = false
-    for _, symbol in first_symbol(grammar, symbol):each() do
+    for _, symbol in first_symbol(grammar, symbol):ipairs() do
       if symbol == marker_epsilon then
         epsilon = true
       else
@@ -381,7 +372,7 @@ local function lr1_closure(grammar, items)
         -- firstに含まれる文字を調べる
         -- TODO epsilonが含まれている？
         -- epsilonが含まれていたら、遷移がどうしようもないのでは？
-        for _, la in first:each() do
+        for _, la in first:ipairs() do
           items:put { index = j, dot = 1, la = la }
         end
       end
@@ -402,10 +393,10 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
   local set_of_kernel_items = list()
   local map_of_kernel_items = list()
 
-  for i, items in set_of_items:each() do
+  for i, items in set_of_items:ipairs() do
     local kernel_items = ordered_set()
     local kernel_table = tree_map()
-    for j, item in items:each() do
+    for j, item in items:ipairs() do
       if item.index == 1 or item.dot > 1 then
         kernel_table(item.index)[item.dot] = j
       end
@@ -422,13 +413,13 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
 
   local propagations = list()
 
-  for from_i, from_items in set_of_items:each() do
-    for from_j, from_item in from_items:each() do
+  for from_i, from_items in set_of_items:ipairs() do
+    for from_j, from_item in from_items:ipairs() do
       if productions[from_item.index].head == max_terminal_symbol + 1 or from_item.dot > 1 then
         local items = ordered_set()
         items:put { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
         lr1_closure(grammar, items)
-        for _, item in items:each() do
+        for _, item in items:ipairs() do
           local symbol = productions[item.index].body[item.dot]
           if symbol then
             local to_i = assert(transitions[from_i]:get_value(symbol))
@@ -465,7 +456,7 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
   local new_set_of_kernel_items = list()
   for _, items in ipairs(set_of_kernel_items) do
     local new_items = ordered_set()
-    for _, item in items:each() do
+    for _, item in items:ipairs() do
       for la in item.la():each() do
         new_items:put { index = item.index, dot = item.dot, la = la }
       end
@@ -528,7 +519,7 @@ function module.lr1_construct_table(grammar, set_of_items, transitions, fn)
     end
 
     local error_table = {}
-    for _, item in items:each() do
+    for _, item in items:ipairs() do
       if not productions[item.index].body[item.dot] then
         local buffer = list(false, false)
 

@@ -34,11 +34,11 @@ local g = grammar({ "+", "*", "(", ")", "id" }, {
 local set_of_items, transitions = generate.lr0_items(g)
 
 local buffer = list()
-for i, items in set_of_items:each() do
+for i, items in set_of_items:ipairs() do
   buffer:append(("="):rep(75), "\n")
   buffer:append("I_", i - 1, "\n")
   buffer:append(("-"):rep(75), "\n")
-  for _, item in items:each() do
+  for _, item in items:ipairs() do
     local production = g.productions[item.index]
     buffer:append(g.symbol_names[production.head], " ->")
     for j, symbol in ipairs(production.body) do

@@ -33,7 +33,7 @@ items:put { index = 1, dot = 1, la = g.max_terminal_symbol }
 local items = generate.lr1_closure(g, items)
 
 local buffer = list()
-for _, item in items:each() do
+for _, item in items:ipairs() do
   local production = g.productions[item.index]
   buffer:append(g.symbol_names[production.head], " ->")
   for j, symbol in ipairs(production.body) do
