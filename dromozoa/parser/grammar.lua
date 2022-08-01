@@ -197,8 +197,12 @@ function metatable:__call(token_names, that)
     symbol_table[k] = symbol
     u.k = symbol
   end
+  -- このふたつはシークエンスではない。
+  local production_precedences = {}
+  local semantic_actions = {}
 
   local used_symbols = {}
+  local used_precedences = {}
 
   for _, u in ipairs(data) do
     local k = u.k
@@ -218,39 +222,20 @@ function metatable:__call(token_names, that)
         body:append(symbol)
         used_symbols[symbol] = true
       end
-      body.precedence = body.precedence
-      body.semantic_action = body.semantic_action
-      productions:insert { head = k, index = i, body = body }
-    end
-  end
+      local n = select(2, productions:insert { head = k, index = i, body = body })
+      local body
 
-  -- TODO このふたつはシークエンスを保証したほうがよい？
-  local production_precedences = {}
-  local semantic_actions = {} -- TODO semantic_actionがnilのときはどうする？
-  local used_precedences = {}
-
-  for i, production in productions:ipairs() do
-    local name = production.body.precedence
-    if name then
-      local precedence = precedence_table[name]
-      if not precedence then
-        error("precedence " .. name .. " not defined")
+      local name = names.precedence
+      if name ~= nil then
+        local precedence = precedence_table[name]
+        if not precedence then
+          error("precedence " .. name .. " not defined")
+        end
+        production_precedences[n] = precedence
+        used_precedences[name] = true
       end
-      production_precedences[i] = precedence
-      used_precedences[name] = true
+      semantic_actions[n] = names.semantic_action
     end
-    semantic_actions[i] = production.body.semantic_action
-
-    -- local body = list()
-    -- for _, name in ipairs(production.body) do
-    --   local symbol = symbol_table[name]
-    --   if not symbol then
-    --     error("symbol " .. name .. " not defined")
-    --   end
-    --   body:append(symbol)
-    --   used_symbols[symbol] = true
-    -- end
-    -- production.body = body
   end
 
   used_symbols[max_terminal_symbol] = true
