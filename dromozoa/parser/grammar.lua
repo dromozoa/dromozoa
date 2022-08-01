@@ -169,7 +169,7 @@ function metatable:__call(token_names, that)
 
   local augumented_start_head = #symbol_names:append(data[1].k .. "'")
   local augumented_start_body = augumented_start_head + 1
-  local productions = tree_set():insert { head = augumented_start_head, body = list(data[1].k) }
+  local productions = tree_set():insert { head = augumented_start_head, body = { data[1].k } }
 
   for _, u in ipairs(data) do
     local k = u.k
@@ -186,8 +186,8 @@ function metatable:__call(token_names, that)
       productions:insert { head = symbol, body = v }
     else
       assert(getmetatable(v).__name == "dromozoa.parser.grammar.bodies")
-      for _, body in ipairs(v) do
-        productions:insert { head = symbol, body = body }
+      for i, body in ipairs(v) do
+        productions:insert { head = symbol, body = body, index = i }
       end
     end
   end
