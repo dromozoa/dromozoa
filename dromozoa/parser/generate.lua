@@ -219,7 +219,9 @@ end
 
 local marker_epsilon = 0
 
-function module.first_symbol(grammar, symbol)
+local first_symbols
+
+local function first_symbol(grammar, symbol)
   if symbol <= grammar.max_terminal_symbol then
     local result = ordered_set()
     result:put(symbol)
@@ -236,7 +238,7 @@ function module.first_symbol(grammar, symbol)
       local first
       local epsilon = true
       if body[1] then
-        first, epsilon = module.first_symbols(grammar, body)
+        first, epsilon = first_symbols(grammar, body)
         for _, symbol in first:each() do
           result:put(symbol)
         end
@@ -247,7 +249,7 @@ function module.first_symbol(grammar, symbol)
   end
 end
 
-function module.first_symbols(grammar, symbols)
+function first_symbols(grammar, symbols)
   local result = ordered_set()
   for _, symbol in ipairs(symbols) do
     local first, epsilon = module.first_symbol(grammar, symbol)
@@ -261,12 +263,12 @@ function module.first_symbols(grammar, symbols)
   return result, true
 end
 
-function module.first_table(grammar)
-  local first_table = tree_map()
+local function first_table(grammar)
+  local result = tree_map()
   for symbol = grammar.max_terminal_symbol + 1, grammar.max_nonterminal_symbol do
-    first_table[symbol] = { module.first_symbol(grammar, symbol) }
+    result[symbol] = { module.first_symbol(grammar, symbol) }
   end
-  return first_table
+  return result
 end
 
 ---------------------------------------------------------------------------
@@ -343,7 +345,7 @@ function module.lr1_closure(grammar, items)
       local body = productions[item.index].body
       local symbol = body[item.dot]
       if symbol and symbol > max_terminal_symbol then
-        local first, epsilon = module.first_symbols(grammar, body:slice(item.dot + 1):append(item.la))
+        local first, epsilon = first_symbols(grammar, body:slice(item.dot + 1):append(item.la))
         for j in each_production(productions, symbol) do
           -- firstに含まれる文字を調べる
           -- TODO epsilonが含まれている？
@@ -585,5 +587,9 @@ function module.lr1_construct_table(grammar, set_of_items, transitions, fn)
 end
 
 ---------------------------------------------------------------------------
+
+module.first_symbol = first_symbol
+module.first_symbols = first_symbols
+module.first_table = first_table
 
 return module
