@@ -16,6 +16,7 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local list = require "dromozoa.list"
+local tree_set = require "dromozoa.tree_set"
 local grammar = require "dromozoa.parser.grammar"
 local generate = require "dromozoa.parser.generate"
 
@@ -28,7 +29,7 @@ local g = grammar({ "c", "d" }, {
     + _"d";
 })
 
-local items = generate.tree_set()
+local items = tree_set()
 items:put { index = 1, dot = 1, la = g.max_terminal_symbol }
 local items = generate.lr1_closure(g, items)
 

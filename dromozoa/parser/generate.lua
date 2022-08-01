@@ -17,82 +17,9 @@
 
 local list = require "dromozoa.list"
 local tree = require "dromozoa.tree"
+local tree_set = require "dromozoa.tree_set"
 
 local module = {}
-
----------------------------------------------------------------------------
--- eachはO(1)が保証されるけれど、途中でコンテナを変更すると、危険かもしれない
--- pairsはO(log n)が保証されていて、途中でコンテナを変更しても安全
--- ipairsはどうしよう？
---
--- TODO 最終的には、tree_set/tree_mapと名乗る
--- ipairs, pairsは、定義通りの意味をとるべき。
--- index orderとtree orderのふたつのeachを用意する
--- そのほかに、編集安全なeachも用意する
--- indexじゃなくて、handle/pointerと呼ぶ案
--- index/handle/pointerは、deleteが行われるまで使うことができる
--- indexのK,Vはtreeのものをつかえる
---
--- pairsは、handle順を返す
--- eachは、tree順を返す、レンジ指定子もつけられる
---
---
----------------------------------------------------------------------------
-
-local class = {}
-local metatable = { __name = "dromozoa.tree_set" }
-local private = setmetatable({}, { __mode = "k" })
-
--- TODO インターフェースの改良
--- self, handle, insert or updateあたりをかえす
-function class:put(k)
-  assert(k ~= nil)
-  local ok, _, i = private[self]:insert(k)
-  return i, ok
-end
-
--- function class:find(k)
---   return private[self]:find(k) ~= nil
--- end
-
-function class:ipairs()
-  return ipairs(private[self].K)
-end
-
--- TODO 必要になったら、tree (tree_each) を実装する
-
-function metatable:__len()
-  error "not supported"
-end
-
-function metatable:__index(k)
-  if type(k) == "number" and 1 <= k and k <= #private[self].K then
-    return private[self].K[k]
-  end
-  local v = class[k]
-  if v ~= nil then
-    return v
-  end
-  error "not supported"
-end
-
-function metatable:__newindex()
-  error "not supported"
-end
-
-function metatable:__pairs()
-  error "not supported"
-end
-
-metatable["dromozoa.stable_pairs"] = function (self)
-  return private[self]:each()
-end
-
-local function tree_set(compare)
-  local self = setmetatable({}, metatable)
-  private[self] = tree(compare)
-  return self
-end
 
 ---------------------------------------------------------------------------
 
@@ -595,7 +522,6 @@ end
 ---------------------------------------------------------------------------
 
 -- テスト用
-module.tree_set = tree_set
 module.first_symbol = first_symbol
 module.first_symbols = first_symbols
 module.first_table = first_table
