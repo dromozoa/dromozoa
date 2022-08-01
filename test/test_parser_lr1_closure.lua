@@ -29,9 +29,7 @@ local g = grammar({ "c", "d" }, {
     + _"d";
 })
 
-local items = tree_set()
-items:put { index = 1, dot = 1, la = g.max_terminal_symbol }
-local items = generate.lr1_closure(g, items)
+local items = generate.lr1_closure(g, tree_set():put { index = 1, dot = 1, la = g.max_terminal_symbol })
 
 local buffer = list()
 for _, item in items:ipairs() do

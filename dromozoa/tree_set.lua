@@ -47,7 +47,6 @@ local metatable = {
   ["dromozoa.stable_pairs"] = function (self) return private[self]:each() end;
 }
 
--- TODO インターフェースの改良
 function class:put(k)
   if k == nil then
     error "table index is nil"
@@ -55,7 +54,7 @@ function class:put(k)
     error "table index is NaN"
   end
   local ok, _, i = private[self]:insert(k)
-  return i, ok
+  return self, i, ok
 end
 
 -- function class:find(k)

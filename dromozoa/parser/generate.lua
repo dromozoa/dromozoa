@@ -174,9 +174,7 @@ local first_symbols
 
 local function first_symbol(grammar, symbol)
   if symbol <= grammar.max_terminal_symbol then
-    local result = tree_set()
-    result:put(symbol)
-    return result
+    return tree_set():put(symbol)
   else
     local first_table = grammar.first_table
     if first_table then
@@ -213,8 +211,7 @@ function first_symbols(grammar, symbols)
       return result
     end
   end
-  result:put(marker_epsilon)
-  return result
+  return result:put(marker_epsilon)
 end
 
 local function first_table(grammar)
@@ -261,19 +258,14 @@ function module.lr0_goto(grammar, items)
 end
 
 function module.lr0_items(grammar)
-  local set_of_items = tree_set()
   local transitions = {}
-
-  local items = tree_set()
-  items:put { index = 1, dot = 1 }
-  lr0_closure(grammar, items)
-  set_of_items:put(items)
+  local set_of_items = tree_set():put(lr0_closure(grammar, tree_set():put { index = 1, dot = 1 }))
 
   for i, items in set_of_items:ipairs() do
     local map_of_to_items = module.lr0_goto(grammar, items)
     local transition = ordered_map()
     for symbol, to_items in map_of_to_items:pairs() do
-      transition:put(symbol, set_of_items:put(to_items))
+      transition:put(symbol, select(2, set_of_items:put(to_items)))
     end
     transitions[i] = transition
   end
@@ -364,8 +356,7 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
       local from_la = set_of_kernel_items[propagation.from_i][propagation.from_j].la
       local to_la = set_of_kernel_items[propagation.to_i][propagation.to_j].la
       for _, la in from_la:ipairs() do
-        local _, inserted = to_la:put(la)
-        if inserted then
+        if select(3, to_la:put(la)) then
           done = false
         end
       end
