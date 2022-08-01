@@ -135,12 +135,38 @@ function metatable:__call(token_names, that)
   end
   local max_terminal_symbol = #symbol_names:append "$"
 
+  local precedence = 0
+  local precedence_table = {}
+  local symbol_precedences = {}
+
+  for i, v in ipairs(that) do
+    assert(getmetatable(v).__name == "dromozoa.parser.grammar.precedence")
+    precedence = precedence + 1
+    assert(precedence == i)
+    for _, name in ipairs(v) do
+      local symbol = symbol_table[name]
+      if symbol and symbol <= max_terminal_symbol then
+        symbol_precedences[symbol] = {
+          precedence = precedence;
+          associativity = v[0];
+        }
+      else
+        precedence_table[name] = {
+          precedence = precedence;
+          associativity = v[0];
+        }
+      end
+    end
+  end
+
   local data = list()
   for k, v in pairs(that) do
-    if v.timestamp == nil then
-      error(getmetatable(v).__name .. " has no timestamp")
+    if type(k) == "string" then
+      if v.timestamp == nil then
+        error(getmetatable(v).__name .. " has no timestamp")
+      end
+      data:append { timestamp = v.timestamp, k = k, v = v }
     end
-    data:append { timestamp = v.timestamp, k = k, v = v }
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
@@ -158,46 +184,24 @@ function metatable:__call(token_names, that)
   -- end):put { head = augumented_start_head, body = list() }
 
   local productions = list { head = augumented_start_head, body = list() }
-  local precedence = 0
-  local precedence_table = {}
-  local symbol_precedences = {}
 
   for _, u in ipairs(data) do
     local k = u.k
     local v = u.v
     local metaname = getmetatable(v).__name
 
-    if type(k) == "number" then
-      assert(getmetatable(v).__name == "dromozoa.parser.grammar.precedence")
-      precedence = precedence + 1
-      for _, name in ipairs(v) do
-        local symbol = symbol_table[name]
-        if symbol and symbol <= max_terminal_symbol then
-          symbol_precedences[symbol] = {
-            precedence = precedence;
-            associativity = v[0];
-          }
-        else
-          precedence_table[name] = {
-            precedence = precedence;
-            associativity = v[0];
-          }
-        end
-      end
+    if symbol_table[k] then
+      error("symbol " .. k .. " redefined as a nonterminal")
+    end
+    local symbol = #symbol_names:append(k)
+    symbol_table[k] = symbol
+    if v[0] == "body" then
+      assert(getmetatable(v).__name == "dromozoa.parser.grammar.body")
+      productions:append { head = symbol, body = v }
     else
-      if symbol_table[k] then
-        error("symbol " .. k .. " redefined as a nonterminal")
-      end
-      local symbol = #symbol_names:append(k)
-      symbol_table[k] = symbol
-      if v[0] == "body" then
-        assert(getmetatable(v).__name == "dromozoa.parser.grammar.body")
-        productions:append { head = symbol, body = v }
-      else
-        assert(getmetatable(v).__name == "dromozoa.parser.grammar.bodies")
-        for _, body in ipairs(v) do
-          productions:append { head = symbol, body = body }
-        end
+      assert(getmetatable(v).__name == "dromozoa.parser.grammar.bodies")
+      for _, body in ipairs(v) do
+        productions:append { head = symbol, body = body }
       end
     end
   end
