@@ -40,30 +40,27 @@ g.first_table = first_table
 local buffer = list()
 for _, name in ipairs { "F", "T", "E", "E'", "T'" } do
   buffer:append("FIRST(", name, ") = { ")
-  local first, epsilon = generate.first_symbol(g, g.symbol_table[name])
+  local first = generate.first_symbol(g, g.symbol_table[name])
   local i = 0
-  if epsilon then
-    i = i + 1
-    if i > 1 then
-      buffer:append ", "
-    end
-    buffer:append "e"
-  end
   for _, k in first:each() do
     i = i + 1
     if i > 1 then
       buffer:append ", "
     end
-    buffer:append(g.symbol_names[k])
+    if k == 0 then
+      buffer:append "e"
+    else
+      buffer:append(g.symbol_names[k])
+    end
   end
   buffer:append " }\n"
 end
 
--- print(table.concat(buffer))
+print(table.concat(buffer))
 assert(table.concat(buffer) == [[
 FIRST(F) = { (, id }
 FIRST(T) = { (, id }
 FIRST(E) = { (, id }
-FIRST(E') = { e, + }
-FIRST(T') = { e, * }
+FIRST(E') = { +, e }
+FIRST(T') = { *, e }
 ]])
