@@ -222,7 +222,6 @@ local marker_epsilon = 0
 
 function module.first_symbol(grammar, symbol)
   if symbol <= grammar.max_terminal_symbol then
-    assert(symbol ~= 0) -- lookaheadの可能性はある
     local result = ordered_set()
     result:put(symbol)
     return result, false
@@ -257,15 +256,12 @@ function module.first_symbols(grammar, symbols)
   for _, symbol in ipairs(symbols) do
     local first, epsilon = module.first_symbol(grammar, symbol)
     for _, symbol in first:each() do
-      assert(symbol ~= 0)
       result:put(symbol)
     end
-    result_epsilon = epsilon
-    if result_epsilon then
-      result_epsilon = false
-    else
-      return result, result_epsilon
+    if not epsilon then
+      return result, false
     end
+    result_epsilon = false
   end
   result_epsilon = true
   return result, result_epsilon
