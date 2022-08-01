@@ -174,7 +174,7 @@ local first_symbols
 
 local function first_symbol(grammar, symbol)
   if symbol <= grammar.max_terminal_symbol then
-    return tree_set():put(symbol)
+    return tree_set():insert(symbol)
   else
     local first_table = grammar.first_table
     if first_table then
@@ -186,10 +186,10 @@ local function first_symbol(grammar, symbol)
       if body[1] then
         local first = first_symbols(grammar, body)
         for _, symbol in first:ipairs() do
-          result:put(symbol)
+          result:insert(symbol)
         end
       else
-        result:put(marker_epsilon)
+        result:insert(marker_epsilon)
       end
     end
     return result
@@ -204,14 +204,14 @@ function first_symbols(grammar, symbols)
       if symbol == marker_epsilon then
         epsilon = true
       else
-        result:put(symbol)
+        result:insert(symbol)
       end
     end
     if not epsilon then
       return result
     end
   end
-  return result:put(marker_epsilon)
+  return result:insert(marker_epsilon)
 end
 
 local function first_table(grammar)
@@ -232,7 +232,7 @@ local function lr0_closure(grammar, items)
     local symbol = productions[item.index].body[item.dot]
     if symbol and symbol > max_terminal_symbol then
       for i in each_production(productions, symbol) do
-        items:put { index = i, dot = 1 }
+        items:insert { index = i, dot = 1 }
       end
     end
   end
@@ -247,7 +247,7 @@ function module.lr0_goto(grammar, items)
   for _, item in items:ipairs() do
     local symbol = productions[item.index].body[item.dot]
     if symbol then
-      map_of_to_items:opt(symbol, tree_set):put { index = item.index, dot = item.dot + 1 }
+      map_of_to_items:opt(symbol, tree_set):insert { index = item.index, dot = item.dot + 1 }
     end
   end
   for _, to_items in map_of_to_items:pairs() do
@@ -259,13 +259,13 @@ end
 
 function module.lr0_items(grammar)
   local transitions = {}
-  local set_of_items = tree_set():put(lr0_closure(grammar, tree_set():put { index = 1, dot = 1 }))
+  local set_of_items = tree_set():insert(lr0_closure(grammar, tree_set():insert { index = 1, dot = 1 }))
 
   for i, items in set_of_items:ipairs() do
     local map_of_to_items = module.lr0_goto(grammar, items)
     local transition = ordered_map()
     for symbol, to_items in map_of_to_items:pairs() do
-      transition:put(symbol, select(2, set_of_items:put(to_items)))
+      transition:put(symbol, select(2, set_of_items:insert(to_items)))
     end
     transitions[i] = transition
   end
@@ -289,7 +289,7 @@ local function lr1_closure(grammar, items)
         -- TODO epsilonが含まれている？
         -- epsilonが含まれていたら、遷移がどうしようもないのでは？
         for _, la in first:ipairs() do
-          items:put { index = j, dot = 1, la = la }
+          items:insert { index = j, dot = 1, la = la }
         end
       end
     end
@@ -318,9 +318,9 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
       end
       local la = tree_set()
       if item.index == 1 and item.dot == 1 then
-        la:put(max_terminal_symbol)
+        la:insert(max_terminal_symbol)
       end
-      kernel_items:put { index = item.index, dot = item.dot, la = la }
+      kernel_items:insert { index = item.index, dot = item.dot, la = la }
     end
     set_of_kernel_items[i] = kernel_items
     map_of_kernel_items[i] = kernel_table
@@ -332,7 +332,7 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
     for from_j, from_item in from_items:ipairs() do
       if productions[from_item.index].head == max_terminal_symbol + 1 or from_item.dot > 1 then
         local items = tree_set()
-        items:put { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
+        items:insert { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
         lr1_closure(grammar, items)
         for _, item in items:ipairs() do
           local symbol = productions[item.index].body[item.dot]
@@ -342,7 +342,7 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
             if item.la == marker_lookahead then
               propagations:append { from_i = from_i, from_j = from_j, to_i = to_i, to_j = to_j }
             else
-              set_of_kernel_items[to_i][to_j].la:put(item.la)
+              set_of_kernel_items[to_i][to_j].la:insert(item.la)
             end
           end
         end
@@ -356,7 +356,7 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
       local from_la = set_of_kernel_items[propagation.from_i][propagation.from_j].la
       local to_la = set_of_kernel_items[propagation.to_i][propagation.to_j].la
       for _, la in from_la:ipairs() do
-        if select(3, to_la:put(la)) then
+        if select(3, to_la:insert(la)) then
           done = false
         end
       end
@@ -368,7 +368,7 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
     local new_items = tree_set()
     for _, item in items:ipairs() do
       for _, la in item.la:ipairs() do
-        new_items:put { index = item.index, dot = item.dot, la = la }
+        new_items:insert { index = item.index, dot = item.dot, la = la }
       end
     end
     new_set_of_kernel_items:append(new_items)

@@ -47,7 +47,7 @@ local metatable = {
   ["dromozoa.stable_pairs"] = function (self) return private[self]:each() end;
 }
 
-function class:put(k)
+function class:insert(k)
   if k == nil then
     error "table index is nil"
   elseif type(k) == "number" and k ~= k then
@@ -66,10 +66,11 @@ function metatable:__len()
 end
 
 function metatable:__index(k)
-  if type(k) == "number" and 1 <= k and k <= #private[self].K then
-    return private[self].K[k]
-  end
   local v = class[k]
+  if v ~= nil then
+    return v
+  end
+  local v = private[self].K[k]
   if v ~= nil then
     return v
   end
