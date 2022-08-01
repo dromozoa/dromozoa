@@ -71,7 +71,7 @@ function module.eliminate_left_recursion(grammar)
       local symbol = body[1]
       if symbol and symbol > max_terminal_symbol and symbol < i then
         for _, src_body in each_production(new_productions, symbol) do
-          local new_body = src_body:slice():append((table.unpack or unpack)(body, 2))
+          local new_body = src_body:slice():append(body:unpack(2))
           if i == new_body[1] then
             n_bodies:append(new_body:slice(2):append(n))
           else
