@@ -15,22 +15,24 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local list = require "dromozoa.list"
 local grammar = require "dromozoa.parser.grammar"
+local generate = require "dromozoa.parser.generate"
 
 local _ = grammar.body
 
 -- P.214
 local g = grammar({ "a", "b", "c", "d" }, {
   S = _"A" "a"
-    | _"b";
+    + _"b";
   A = _"A" "c"
-    | _"S" "d"
-    | _();
+    + _"S" "d"
+    + _;
 })
-local g = grammar.eliminate_left_recursion(g)
+local g = generate.eliminate_left_recursion(g)
 
-local buffer = grammar.list()
-for _, production in ipairs(g.productions) do
+local buffer = list()
+for _, production in g.productions:ipairs() do
   buffer:append(g.symbol_names[production.head], " ->")
   for _, symbol in ipairs(production.body) do
     buffer:append(" ", g.symbol_names[symbol])

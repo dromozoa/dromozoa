@@ -17,6 +17,10 @@
 
 local tree = require "dromozoa.tree"
 
+-- TODO putやgetを持たせる
+-- TODO pairs, ipairsを持たせる
+-- TODO indexアクセスはやめてもいいんじゃない？
+
 local metatable = { __name = "dromozoa.tree_map" }
 local private = setmetatable({}, { __mode = "k" })
 
@@ -51,14 +55,15 @@ function metatable:__call(k, fn)
   end
 
   if fn == nil then
-    fn = tree_map
+    fn = function () return tree_map(private[self].compare) end
   end
-  local _, v = private[self]:insert(k, private[self].compare, fn)
+  local _, v = private[self]:insert(k, nil, fn)
   return v
 end
 
 function metatable:__pairs()
-  return tree.next, private[self], nil
+  error "not supported"
+  -- return tree.next, private[self], nil
 end
 
 return tree_map

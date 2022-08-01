@@ -15,7 +15,10 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local list = require "dromozoa.list"
+local tree_set = require "dromozoa.tree_set"
 local grammar = require "dromozoa.parser.grammar"
+local generate = require "dromozoa.parser.generate"
 
 local _ = grammar.body
 
@@ -23,13 +26,13 @@ local _ = grammar.body
 local g = grammar({ "c", "d" }, {
   S = _"C" "C";
   C = _"c" "C"
-    | _"d";
+    + _"d";
 })
 
-local items = grammar.lr1_closure(g, grammar.list { index = 1, dot = 1, la = g.max_terminal_symbol })
+local items = generate.lr1_closure(g, tree_set():insert { index = 1, dot = 1, la = g.max_terminal_symbol })
 
-local buffer = grammar.list()
-for _, item in ipairs(items) do
+local buffer = list()
+for _, item in items:ipairs() do
   local production = g.productions[item.index]
   buffer:append(g.symbol_names[production.head], " ->")
   for j, symbol in ipairs(production.body) do

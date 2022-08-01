@@ -15,7 +15,9 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local list = require "dromozoa.list"
 local grammar = require "dromozoa.parser.grammar"
+local generate = require "dromozoa.parser.generate"
 
 local _ = grammar.body
 
@@ -24,22 +26,23 @@ local g = grammar({ "+", "*", "(", ")", "id" }, {
   E = _"T" "E'";
   ["E'"]
     = _"+" "T" "E'"
-    | _();
+    + _;
   T = _"F" "T'";
   ["T'"]
     = _"*" "F" "T'"
-    | _();
+    + _;
   F = _"(" "E" ")"
-    | _"id";
+    + _"id";
 })
-local first_table = grammar.first_table(g)
+local first_table = generate.first_table(g)
+g.first_table = first_table
 
-local buffer = grammar.list()
+local buffer = list()
 for _, name in ipairs { "F", "T", "E", "E'", "T'" } do
   buffer:append("FIRST(", name, ") = { ")
-  local first = first_table[g.symbol_table[name]]
+  local first = generate.first_symbol(g, g.symbol_table[name])
   local i = 0
-  for k in pairs(first) do
+  for _, k in first:ipairs() do
     i = i + 1
     if i > 1 then
       buffer:append ", "
@@ -53,6 +56,7 @@ for _, name in ipairs { "F", "T", "E", "E'", "T'" } do
   buffer:append " }\n"
 end
 
+-- print(table.concat(buffer))
 assert(table.concat(buffer) == [[
 FIRST(F) = { (, id }
 FIRST(T) = { (, id }

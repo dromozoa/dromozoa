@@ -166,12 +166,8 @@ assert(t[nan] == nil)
 assert(t.compare == nil)
 assert(t.size == nil)
 
-local function pairs(t)
-  return getmetatable(t).__pairs(t)
-end
-
 local buffer = {}
-for k, v in pairs(t) do
+for k, v in t().next, t() do
   buffer[#buffer + 1] = k .. "=" .. v
 end
 assert(table.concat(buffer, ";") == "baz=3;foo=1;qux=4")
@@ -189,7 +185,7 @@ end
 assert(table.concat(buffer, ";") == "baz=3;foo=1")
 
 local buffer = {}
-for k, v in pairs(t) do
+for k, v in t().next, t() do
   buffer[#buffer + 1] = k .. "=" .. v
   t[k] = nil
 end
@@ -208,9 +204,9 @@ assert(t[1][2][3][4] == "qux")
 
 local n = 0
 
-local function f(compare)
+local function f(...)
+  assert(select("#", ...) == 0)
   n = n + 1
-  assert(compare == t().compare)
   return n * 2
 end
 

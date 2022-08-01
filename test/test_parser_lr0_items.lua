@@ -15,28 +15,30 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local list = require "dromozoa.list"
 local grammar = require "dromozoa.parser.grammar"
+local generate = require "dromozoa.parser.generate"
 
 local _ = grammar.body
 
 -- P.246
 local g = grammar({ "+", "*", "(", ")", "id" }, {
   E = _"E" "+" "T"
-    | _"T";
+    + _"T";
   T = _"T" "*" "F"
-    | _"F";
+    + _"F";
   F = _"(" "E" ")"
-    | _"id";
+    + _"id";
 })
 
-local set_of_items, transitions = grammar.lr0_items(g)
+local set_of_items, transitions = generate.lr0_items(g)
 
-local buffer = grammar.list()
-for i, items in ipairs(set_of_items) do
+local buffer = list()
+for i, items in set_of_items:ipairs() do
   buffer:append(("="):rep(75), "\n")
   buffer:append("I_", i - 1, "\n")
   buffer:append(("-"):rep(75), "\n")
-  for _, item in ipairs(items) do
+  for _, item in items:ipairs() do
     local production = g.productions[item.index]
     buffer:append(g.symbol_names[production.head], " ->")
     for j, symbol in ipairs(production.body) do
@@ -51,12 +53,13 @@ for i, items in ipairs(set_of_items) do
     buffer:append "\n"
   end
   buffer:append(("-"):rep(75), "\n")
-  for symbol, j in pairs(transitions[i]) do
+  for symbol, j in transitions[i]:pairs() do
     buffer:append("I_", i - 1, " -> I_", j - 1, " ", g.symbol_names[symbol], "\n")
   end
 end
 buffer:append(("="):rep(75), "\n")
 
+-- print(table.concat(buffer))
 assert(table.concat(buffer) == [[
 ===========================================================================
 I_0

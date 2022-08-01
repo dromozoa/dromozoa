@@ -233,12 +233,12 @@ local function each(self, x, y, t)
     if c < 0 then
       each(self, x, y, L[t])
       if y == nil or compare(K[t], y) < 0 then
-        coroutine.yield(K[t], V[t])
+        coroutine.yield(K[t], V[t], t)
         return each(self, x, y, R[t])
       end
     elseif y == nil or compare(K[t], y) < 0 then
       if c == 0 then
-        coroutine.yield(K[t], V[t])
+        coroutine.yield(K[t], V[t], t)
       end
       return each(self, x, y, R[t])
     end
@@ -250,6 +250,9 @@ end
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.tree" }
 
+-- TODO 戻り値の順序を検討する
+-- TODO eachの戻り値も
+
 function class:insert(k, v, fn)
   local root, ok, t = insert(self, k, self.root, false, 0)
   self.root = root
@@ -258,10 +261,10 @@ function class:insert(k, v, fn)
   if fn == nil then
     V[t] = v
   elseif ok then
-    V[t] = fn(v)
+    V[t] = fn()
   end
 
-  return ok, V[t]
+  return ok, V[t], t
 end
 
 function class:delete(k)
@@ -286,7 +289,7 @@ end
 function class:each(lower_bound, upper_bound)
   return coroutine.wrap(function (self, t)
     return each(self, lower_bound, upper_bound, t)
-  end), self, self.root, nil
+  end), self, self.root
 end
 
 return setmetatable(class, {

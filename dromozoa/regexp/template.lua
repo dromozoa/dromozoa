@@ -114,6 +114,7 @@ return function (source, source_name, fn)
     if v == nil then
       v = source
     elseif type(v) == "table" then
+      -- TODO unpackの利用をやめる？
       v = string.char(table_unpack(v))
     end
     -- TODO フォーマットを修正する
@@ -133,6 +134,7 @@ return function (source, source_name, fn)
   end
 
   function append(buffer, v)
+    -- TODO 文字列にも対応する？
     buffer[#buffer + 1] = v
   end
 

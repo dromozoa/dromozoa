@@ -74,6 +74,6 @@ local r = compile {
   m2 = m2;
   m3;
 }
-local out = assert(io.open("test-lexer.lua", "w"))
+local out = assert(io.open("test-gen.lua", "w"))
 out:write(r)
 out:close()

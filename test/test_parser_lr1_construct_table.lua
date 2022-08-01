@@ -15,17 +15,52 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local list = require "dromozoa.list"
 local grammar = require "dromozoa.parser.grammar"
+local generate = require "dromozoa.parser.generate"
 
 local _ = grammar.body
 local left = grammar.left
+
+-- TODO 整理する
+-- compile(parser(grammar()))
+-- compile(regexp(grammar()))
+--
+-- compile(machine(pattern()))
+--
+
+--[=[
+
+  _{}
+
+grammar 
+parser
+
+grammar(tokens, {
+  left "+";
+  left "+";
+
+  block
+    = _
+    + _"retstat"
+    + _"statlist"
+    + _"statlist" "retstat"
+    ;
+
+  statlist
+    = _"stat"
+    + _"statlist"
+    + _"statlist" "stat" %[[($1, $2)]]
+
+]=]
+
 
 local G = {
   -- P.269
   grammar({ "c", "d" }, {
     S = _"C" "C";
     C = _"c" "C"
-      | _"d";
+      + _"d";
   });
 
   -- P.281
@@ -34,26 +69,26 @@ local G = {
     left "*";
 
     E = _"E" "+" "E"
-      | _"E" "*" "E"
-      | _"(" "E" ")"
-      | _"id";
+      + _"E" "*" "E"
+      + _"(" "E" ")"
+      + _"id";
   });
 
   -- P.282
   grammar({ "i", "e", "a" }, {
     S = _"i" "S" "e" "S"
-      | _"i" "S"
-      | _"a";
+      + _"i" "S"
+      + _"a";
   })
 }
 
-local buffer = grammar.list()
+local buffer = list()
 
 for _, g in ipairs(G) do
   buffer:append(("-"):rep(75), "\n")
-  g.first_table = grammar.first_table(grammar.eliminate_left_recursion(g))
-  local set_of_items, transitions = grammar.lalr1_items(g)
-  local t = grammar.lr1_construct_table(g, set_of_items, transitions, function (...)
+  g.first_table = generate.first_table(generate.eliminate_left_recursion(g))
+  local set_of_items, transitions = generate.lalr1_items(g)
+  local t = generate.lr1_construct_table(g, set_of_items, transitions, function (...)
     buffer:append(...):append "\n"
   end)
 
@@ -89,8 +124,7 @@ for _, g in ipairs(G) do
 
 end
 
-io.write(table.concat(buffer))
-
+-- print(table.concat(buffer))
 assert(table.concat(buffer) == [[
 ---------------------------------------------------------------------------
 |    |  c  |  d  |  $  |  S' |  S  |  C  |

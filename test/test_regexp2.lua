@@ -27,46 +27,6 @@ local lexer = machine.lexer
 
 local tokens = list()
 
-
---[=[
-
-  -_{"\n"}
-  ~_{"\n"}
-
-  -_["09"]
-  ~_["09"]
-
-
-  _["09"]
-
-  _"abc" "!"
-
-
-  ..     (left)
-  + -
-  * / %
-  # -    (unary)
-  ^      (left)
-  index call
-
-  正規表現の優先順位
-  |
-  concat
-  qunatifier *, +, ?, ...
-
-  -- foo(bar+)baz
-  _("foo", _"bar"{1}, "baz")
-
-
- _{ _{" \t\f\v"}
-  ; _"\n"^[[ln=ln+1 lp=fp]] + _"\r"^[[lp=fp]]*{0,1}
-  ; _"\r"^[[ln=ln+1 lp=fp]] + _"\n"^[[lp=fp]]*{0,1}
-  }
-
-    -_"\n\r"/[[lp=fp]]*{0,1}
-
---]=]
-
 local code = compile {
   [[local ra]];
 
@@ -108,7 +68,7 @@ local code = compile {
   });
 }
 
-local filename = "test-lexer.lua"
+local filename = "test-gen2.lua"
 local out = assert(io.open(filename, "w"))
 out:write(code)
 out:close()

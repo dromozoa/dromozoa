@@ -192,6 +192,7 @@ function metatable:__mod(that)
   end
 end
 
+-- TODO pattern(self)は呼んでおくべき？
 function metatable:__unm()
   if self[0] == "[" then
     local neg = self[1]
@@ -211,6 +212,9 @@ local module = setmetatable({ [0] = "[", {} }, metatable)
 for byte = 0x00, 0xFF do
   module[1][byte] = true
 end
+
+-- TODO self == moduleを調べるのと、timestamp==nilを調べるのはおなじ？
+-- TODO pattern(self)で、timestampがなければ、なにかするのは？
 
 function metatable:__index(that)
   if self == module then
