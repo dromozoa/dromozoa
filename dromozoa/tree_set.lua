@@ -40,9 +40,12 @@ local private = setmetatable({}, { __mode = "k" })
 --
 ---------------------------------------------------------------------------
 
-local class = {}
-local metatable = { __name = "dromozoa.tree_set" }
 local private = setmetatable({}, { __mode = "k" })
+local class = {}
+local metatable = {
+  __name = "dromozoa.tree_set";
+  ["dromozoa.stable_pairs"] = function (self) return private[self]:each() end;
+}
 
 -- TODO インターフェースの改良
 -- self, handle, insert or updateあたりをかえす
@@ -83,10 +86,6 @@ end
 
 function metatable:__pairs()
   error "not supported"
-end
-
-metatable["dromozoa.stable_pairs"] = function (self)
-  return private[self]:each()
 end
 
 return function (compare)
