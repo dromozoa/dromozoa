@@ -16,9 +16,59 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local list = require "dromozoa.list"
+local tree = require "dromozoa.tree"
 local tree_map = require "dromozoa.tree_map"
 
 local module = {}
+
+---------------------------------------------------------------------------
+
+local class = {}
+local metatable = { __index = class, __name = "dromozoa.tree_set" }
+local private = setmetatable({}, { __mode = "k" })
+
+function class:get(v)
+  local _, i = private[self].tree:find(k)
+  return i
+end
+
+function class:put(v)
+  local _, i = private[self].tree:insert(v, nil, function () return #private[self].list:append(v) end)
+  return i
+end
+
+function class:pairs()
+  return ipairs(private[self].list)
+end
+
+function class:each()
+  return ipairs(private[self].list)
+end
+
+function metatable:__len()
+  return #private[self].list
+end
+
+function metatable:__index(k)
+  local v = private[self].list[k]
+  if v ~= nil then
+    return v
+  end
+  return class[k]
+end
+
+function metatable:__newindex(i, v)
+  error "not supported"
+end
+
+local function tree_set(compare)
+  local self = setmetatable({}, metatable)
+  private[self] = {
+    tree = tree(compare);
+    list = list();
+  }
+  return self
+end
 
 ---------------------------------------------------------------------------
 
@@ -210,14 +260,11 @@ end
 
 -- TODO リファクタリング
 function module.lr0_items(grammar)
-  local map = tree_map()
-  local set_of_items = list()
+  local set_of_items = tree_set()
   local transitions = tree_map()
 
   local items = module.lr0_closure(grammar, list { index = 1, dot = 1 })
-  local index = map(items, function ()
-    return #set_of_items:append(items)
-  end)
+  local index = set_of_items:put(items)
 
   local m = 1
   while true do
@@ -230,9 +277,7 @@ function module.lr0_items(grammar)
       local map_of_to_items = module.lr0_goto(grammar, items)
       local transition = transitions(i)
       for symbol, to_items in map_of_to_items():each() do
-        transition[symbol] = map(to_items, function ()
-          return #set_of_items:append(to_items)
-        end)
+        transition[symbol] = set_of_items:put(to_items)
       end
     end
     m = n + 1
@@ -287,7 +332,7 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
   local set_of_kernel_items = list()
   local map_of_kernel_items = list()
 
-  for i, items in ipairs(set_of_items) do
+  for i, items in set_of_items:each() do
     local kernel_items = list()
     local kernel_table = tree_map()
     for j, item in ipairs(items) do
@@ -306,7 +351,7 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
 
   local propagations = list()
 
-  for from_i, from_items in ipairs(set_of_items) do
+  for from_i, from_items in set_of_items:each() do
     for from_j, from_item in ipairs(from_items) do
       if productions[from_item.index].head == max_terminal_symbol + 1 or from_item.dot > 1 then
         local items = list { index = from_item.index, dot = from_item.dot, la = marker_lookahead }

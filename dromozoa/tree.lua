@@ -250,6 +250,8 @@ end
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.tree" }
 
+-- TODO 戻り値の順序を検討する
+
 function class:insert(k, v, fn)
   local root, ok, t = insert(self, k, self.root, false, 0)
   self.root = root
