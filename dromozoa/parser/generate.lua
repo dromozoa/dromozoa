@@ -32,6 +32,7 @@ local module = {}
 -- そのほかに、編集安全なeachも用意する
 -- indexじゃなくて、handle/pointerと呼ぶ案
 -- index/handle/pointerは、deleteが行われるまで使うことができる
+-- indexのK,Vはtreeのものをつかえる
 ---------------------------------------------------------------------------
 
 local class = {}
@@ -145,21 +146,6 @@ end
 -- => とは限らない
 -- ordered_setに、いいかんじのcompareをわたしておけばできる
 local function each_production(productions, head)
-  -- テストのため、productionsがheadでソートされていることを確認する
-  -- local state = 1
-  -- for i, production in ipairs(productions) do
-  --   if state % 2 == 1 then
-  --     if production.head == head then
-  --       state = state + 1
-  --     end
-  --   elseif state == 2 then
-  --     if production.head ~= head then
-  --       state = state + 1
-  --     end
-  --   end
-  -- end
-  -- assert(state == 2)
-
   return function (productions, index)
     for i = index + 1, #productions do
       local production = productions[i]
@@ -277,7 +263,7 @@ function first_symbols(grammar, symbols)
 end
 
 local function first_table(grammar)
-  local result = tree_map()
+  local result = {}
   for symbol = grammar.max_terminal_symbol + 1, grammar.max_nonterminal_symbol do
     result[symbol] = { first_symbol(grammar, symbol) }
   end
@@ -321,7 +307,7 @@ end
 
 function module.lr0_items(grammar)
   local set_of_items = ordered_set()
-  local transitions = tree_map()
+  local transitions = {}
 
   local items = ordered_set()
   items:put { index = 1, dot = 1 }
@@ -330,10 +316,11 @@ function module.lr0_items(grammar)
 
   for i, items in set_of_items:pairs() do
     local map_of_to_items = module.lr0_goto(grammar, items)
-    local transition = transitions(i)
+    local transition = tree_map()
     for _, symbol, to_items in map_of_to_items:each() do
       transition[symbol] = set_of_items:put(to_items)
     end
+    transitions[i] = transition
   end
 
   return set_of_items, transitions
