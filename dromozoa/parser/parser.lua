@@ -438,6 +438,7 @@ end
 local metatable = { __name = "dromozoa.parser.parser" }
 
 function metatable:__call(grammar, fn)
+  -- TODO テスト用に途中のデータを保存しておく
   local eliminated = eliminate_left_recursion(grammar)
   grammar.first_table = first_table(eliminated)
   local set_of_items, transitions = lalr1_items(grammar)
