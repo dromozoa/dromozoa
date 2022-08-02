@@ -15,10 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local _ = { $shared_data }
-local _ = { $static_data }
-
-return function (source, source_name, fn)
+local main = function ()
   local fcall
   local fret
   local push
@@ -37,14 +34,10 @@ return function (source, source_name, fn)
   local ln = 1  --        line number
   local lp = 0  --        line position
 
-  local action_data = (function ()
-    local _
-    local source
-    local source_name
-    local fn
-    $custom_data
-    return { $action_data }
-  end)()
+  $custom_data
+  local action_data = { $action_data }
+
+  local _, source, source_name, fn = coroutine.yield()
 
   local table_unpack = table.unpack or unpack
   local main = _.main
@@ -224,4 +217,13 @@ return function (source, source_name, fn)
   end
 
   repeat until guard()
+end
+
+local _ = { $shared_data }
+local _ = { $static_data }
+
+return function (source, source_name, fn)
+  local thread = coroutine.create(main)
+  assert(coroutine.resume(thread))
+  assert(coroutine.resume(thread, _, source, source_name, fn))
 end

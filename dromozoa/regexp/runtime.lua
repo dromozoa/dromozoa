@@ -1,14 +1,6 @@
 return function (context) return {
 [[
-local _ = { ]];
-context.shared_data;
-[[
- }
-local _ = { ]];
-context.static_data;
-[[
- }
-return function (source, source_name, fn)
+local main = function ()
   local fcall
   local fret
   local push
@@ -22,20 +14,15 @@ return function (source, source_name, fn)
   local fg = {}
   local ln = 1
   local lp = 0
-  local action_data = (function ()
-    local _
-    local source
-    local source_name
-    local fn
-    ]];
+  ]];
 context.custom_data;
 [[
 
-    return { ]];
+  local action_data = { ]];
 context.action_data;
 [[
  }
-  end)()
+  local _, source, source_name, fn = coroutine.yield()
   local table_unpack = table.unpack or unpack
   local main = _.main
   local action_threads = _.action_threads
@@ -183,6 +170,19 @@ context.action_data;
     execute(_[current_index].guard_action)
   end
   repeat until guard()
+end
+local _ = { ]];
+context.shared_data;
+[[
+ }
+local _ = { ]];
+context.static_data;
+[[
+ }
+return function (source, source_name, fn)
+  local thread = coroutine.create(main)
+  assert(coroutine.resume(thread))
+  assert(coroutine.resume(thread, _, source, source_name, fn))
 end
 ]];
 } end
