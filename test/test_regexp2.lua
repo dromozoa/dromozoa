@@ -73,6 +73,8 @@ local out = assert(io.open(filename, "w"))
 out:write(code)
 out:close()
 
+local buffer = list()
+
 local execute = assert(assert(loadfile(filename))())
 execute([[
 --[=[
@@ -84,12 +86,36 @@ execute([[
 ]], filename, function (token)
   if token ~= nil then
     if token.symbol then
-      print("push", token.symbol, token.i, token.j, token.line, token.column, ("%q"):format(token.value))
+      buffer:append(table.concat({ "push", token.symbol, token.i, token.j, token.line, token.column, ("%q"):format(token.value) }, "\t") .. "\n")
     else
-      print("skip", "", token.i, token.j, token.line, token.column, ("%q"):format(token.source))
+      buffer:append(table.concat({ "skip", "", token.i, token.j, token.line, token.column, ("%q"):format(token.source) }, "\t") .. "\n")
     end
   else
-    print("push", "$")
+    buffer:append "push\t$\n"
   end
 end)
 
+-- print(table.concat(buffer))
+assert(table.concat(buffer) == [[
+skip		1	19	1	1	"--[=[\
+123] ]==]\
+]=]"
+skip		20	20	3	4	"\
+"
+skip		21	27	4	1	"-- test"
+skip		28	28	4	8	"\
+"
+push	3	29	29	5	1	"+"
+skip		30	30	5	2	" "
+push	4	31	33	5	3	"456"
+skip		34	36	5	6	"\
+  "
+push	2	37	37	6	3	"*"
+skip		38	38	6	4	" "
+push	1	39	49	6	5	"foo#abc"
+skip		50	50	6	16	" "
+push	4	51	53	6	17	"111"
+skip		54	54	6	20	"\
+"
+push	$
+]])
