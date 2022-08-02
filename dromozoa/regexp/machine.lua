@@ -19,6 +19,8 @@ local compare = require "dromozoa.compare"
 local list = require "dromozoa.list"
 local tree_map = require "dromozoa.tree_map"
 
+-- TODO machine => regexpはどうかな
+
 ---------------------------------------------------------------------------
 
 local class = {}
