@@ -95,7 +95,7 @@ execute([[
   end
 end)
 
-print(table.concat(buffer))
+-- print(table.concat(buffer))
 assert(table.concat(buffer) == [[
 skip		1	19	1	1	"--[=[\
 123] ]==]\
