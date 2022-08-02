@@ -344,7 +344,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
   local max_terminal_symbol = grammar.max_terminal_symbol
 
   local max_state = #set_of_items
-  local actions = {} -- TODO シークエンスを保証する？
+  local actions = {}
 
   for i, items in ipairs(set_of_items) do
     local data = {} -- TODO シークエンスを保証する？
@@ -408,6 +408,12 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
           buffer:append(" at state(", i, ") symbol(", grammar.symbol_names[item.la], ")")
           fn(table.concat(buffer))
         end
+      end
+    end
+
+    for symbol = 1, grammar.max_nonterminal_symbol do
+      if data[symbol] == nil then
+        data[symbol] = 0
       end
     end
 

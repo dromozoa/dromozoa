@@ -197,7 +197,9 @@ function metatable:__call(token_names, that)
   end
 
   local production_precedences = {}
-  local semantic_actions = {}
+  -- シークエンスを保証する
+  -- TODO 先に足してるからわかりにくい
+  local semantic_actions = { "" }
 
   local used_symbols = {
     [max_terminal_symbol] = true;
