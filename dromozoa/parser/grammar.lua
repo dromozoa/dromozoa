@@ -235,7 +235,7 @@ function metatable:__call(token_names, that)
       error("symbol " .. v .. " not used")
     end
   end
-  -- TODO precedence_tableが順不同になるけど？
+  -- TODO エラーの出力順序が安定にならないがよいか？
   for k in pairs(precedence_table) do
     if used_precedences[k] == nil then
       error("precedence " .. k .. " not used")
