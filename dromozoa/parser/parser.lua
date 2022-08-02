@@ -339,6 +339,7 @@ local function production_precedence(grammar, index)
 end
 
 -- TODO 衝突の情報はまとめておいて返す
+-- TODO これはcompileにうつす？
 local function lr1_construct_table(grammar, set_of_items, transitions, fn)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
