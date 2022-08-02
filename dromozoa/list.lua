@@ -19,6 +19,8 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.list" }
 local table_unpack = table.unpack or unpack
 
+-- TODO シークエンスを強制したい
+
 function class:append(...)
   local n = #self
   for i = 1, select("#", ...) do
