@@ -18,7 +18,7 @@
 local list = require "dromozoa.list"
 local tree_set = require "dromozoa.tree_set"
 local grammar = require "dromozoa.parser.grammar"
-local generate = require "dromozoa.parser.generate"
+local parser = require "dromozoa.parser.parser"
 
 local _ = grammar.body
 
@@ -29,7 +29,7 @@ local g = grammar({ "c", "d" }, {
     + _"d";
 })
 
-local items = generate.lr1_closure(g, tree_set():insert { index = 1, dot = 1, la = g.max_terminal_symbol })
+local items = parser.lr1_closure(g, tree_set():insert { index = 1, dot = 1, la = g.max_terminal_symbol })
 
 local buffer = list()
 for _, item in items:ipairs() do

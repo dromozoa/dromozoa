@@ -17,7 +17,7 @@
 
 local list = require "dromozoa.list"
 local grammar = require "dromozoa.parser.grammar"
-local generate = require "dromozoa.parser.generate"
+local parser = require "dromozoa.parser.parser"
 
 local _ = grammar.body
 local left = grammar.left
@@ -86,7 +86,7 @@ local buffer = list()
 
 for _, g in ipairs(G) do
   buffer:append(("-"):rep(75), "\n")
-  local t = generate(g, function (...)
+  local t = parser(g, function (...)
     buffer:append(...):append "\n"
   end)
 
