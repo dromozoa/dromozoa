@@ -30,7 +30,6 @@ local private = setmetatable({}, { __mode = "k" })
 
 -- insertedかどうかを調べる必要はある？
 -- TODO ゆくゆくは削除もできるようにする
--- TODO ハンドルは見えないことにする
 
 function class:insert(k, v)
   assert(k ~= nil)
@@ -62,6 +61,9 @@ function class:get(k, fn)
   end
 end
 
+-- i,k,v
+-- function class:ipairs
+
 function class:pairs()
   local i = 0
   return function (self)
@@ -86,6 +88,7 @@ function metatable:__index(k)
   if v ~= nil then
     return v
   end
+  -- { K[i], V[i] }を返す？
   error "not supported"
 end
 
