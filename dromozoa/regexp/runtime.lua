@@ -33,17 +33,17 @@ return function (source, source_name, fn)
   local clear
   local append
 
-                
-                
-                
-  local tk      
-  local fs = 1  
-  local fp      
-  local fc      
-  local fb = {} 
-  local fg = {} 
-  local ln = 1  
-  local lp = 0  
+
+
+
+  local tk
+  local fs = 1
+  local fp
+  local fc
+  local fb = {}
+  local fg = {}
+  local ln = 1
+  local lp = 0
 
   local action_data = (function ()
     local _
@@ -128,10 +128,10 @@ context.action_data;
     if v == nil then
       v = source
     elseif type(v) == "table" then
-      
+
       v = string.char(table_unpack(v))
     end
-    
+
     fn {
       symbol = tk;
       i = fs;
@@ -148,7 +148,7 @@ context.action_data;
   end
 
   function append(buffer, v)
-    
+
     buffer[#buffer + 1] = v
   end
 
