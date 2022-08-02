@@ -17,86 +17,13 @@
 
 local compare = require "dromozoa.compare"
 local list = require "dromozoa.list"
-local tree = require "dromozoa.tree"
+local tree_map2 = require "dromozoa.tree_map2"
 local tree_set = require "dromozoa.tree_set"
 
 local module = {}
 
 ---------------------------------------------------------------------------
 
-local class = {}
-local metatable = { __name = "dromozoa.ordered_map" }
-local private = setmetatable({}, { __mode = "k" })
-
-function class:put(k, v)
-  assert(k ~= nil)
-  assert(v ~= nil)
-  local _, _, i = private[self]:insert(k, v)
-  -- TODO 返り値の検討
-  return i
-end
-
-function class:opt(k, fn)
-  local _, v = private[self]:insert(k, nil, fn)
-  return v
-end
-
-function class:get(k)
-  local _, v = private[self]:find(k)
-  return v
-end
-
-function class:pairs()
-  local i = 0
-  return function (self)
-    i = i + 1
-    local k = self.K[i]
-    if k == nil then
-      return
-    else
-      return self.K[i], self.V[i]
-    end
-  end, private[self], nil
-end
-
--- TODO tree_eachを実装する
-
-function metatable:__len()
-  error "not supported"
-end
-
-function metatable:__index(k)
-  -- TODO 数値キーだけを許す？
-  local v = class[k]
-  if v ~= nil then
-    return v
-  end
-  error "not supported"
-end
-
-function metatable:__newindex()
-  error "not supported"
-end
-
-function metatable:__pairs()
-  error "not supported"
-end
-
-metatable["dromozoa.stable_pairs"] = function (self)
-  return private[self]:each()
-end
-
-local function ordered_map(compare)
-  local self = setmetatable({}, metatable)
-  private[self] = tree(compare)
-  return self
-end
-
----------------------------------------------------------------------------
-
--- TODO これは、binary searchにして、log(n)にしたほうがよい？
--- tree_setに、いいかんじのcompareをわたしてソートしてある
--- 最初の検索がO(log n)で、そのあとはO(1)のイテレーションになる
 local function each_production(productions, head)
   return coroutine.wrap(function (self)
     for i, production in productions:tree_each({ head = head, head_index = 0 }, { head = head + 1, head_index = 0 }) do
@@ -107,7 +34,7 @@ end
 
 ---------------------------------------------------------------------------
 
-function module.eliminate_left_recursion(grammar)
+local function eliminate_left_recursion(grammar)
   local symbol_names = grammar.symbol_names
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
@@ -237,14 +164,14 @@ local function lr0_closure(grammar, items)
   return items
 end
 
-function module.lr0_goto(grammar, items)
+local function lr0_goto(grammar, items)
   local productions = grammar.productions
-  local map_of_to_items = ordered_map()
+  local map_of_to_items = tree_map2()
 
   for _, item in items:ipairs() do
     local symbol = productions[item.index].body[item.dot]
     if symbol then
-      map_of_to_items:opt(symbol, tree_set):insert { index = item.index, dot = item.dot + 1 }
+      map_of_to_items:get(symbol, tree_set):insert { index = item.index, dot = item.dot + 1 }
     end
   end
   for _, to_items in map_of_to_items:pairs() do
@@ -254,15 +181,15 @@ function module.lr0_goto(grammar, items)
   return map_of_to_items
 end
 
-function module.lr0_items(grammar)
+local function lr0_items(grammar)
   local transitions = {}
   local set_of_items = tree_set():insert(lr0_closure(grammar, tree_set():insert { index = 1, dot = 1 }))
 
   for i, items in set_of_items:ipairs() do
-    local map_of_to_items = module.lr0_goto(grammar, items)
-    local transition = ordered_map()
+    local map_of_to_items = lr0_goto(grammar, items)
+    local transition = tree_map2()
     for symbol, to_items in map_of_to_items:pairs() do
-      transition:put(symbol, select(2, set_of_items:insert(to_items)))
+      transition:insert(symbol, select(2, set_of_items:insert(to_items)))
     end
     transitions[i] = transition
   end
@@ -299,7 +226,7 @@ end
 
 local marker_lookahead = -1
 
-function module.lalr1_kernels(grammar, set_of_items, transitions)
+local function lalr1_kernels(grammar, set_of_items, transitions)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
 
@@ -308,10 +235,10 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
 
   for i, items in set_of_items:ipairs() do
     local kernel_items = tree_set()
-    local kernel_table = ordered_map()
+    local kernel_table = tree_map2()
     for j, item in items:ipairs() do
       if item.index == 1 or item.dot > 1 then
-        kernel_table:opt(item.index, function () return {} end)[item.dot] = j
+        kernel_table:get(item.index, function () return {} end)[item.dot] = j
       end
       local la = tree_set()
       if item.index == 1 and item.dot == 1 then
@@ -373,9 +300,9 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
   return new_set_of_kernel_items
 end
 
-function module.lalr1_items(grammar)
-  local set_of_items, transitions = module.lr0_items(grammar)
-  local set_of_items = module.lalr1_kernels(grammar, set_of_items, transitions)
+local function lalr1_items(grammar)
+  local set_of_items, transitions = lr0_items(grammar)
+  local set_of_items = lalr1_kernels(grammar, set_of_items, transitions)
   for _, items in ipairs(set_of_items) do
     lr1_closure(grammar, items)
   end
@@ -411,7 +338,8 @@ local function production_precedence(grammar, index)
   return 0
 end
 
-function module.lr1_construct_table(grammar, set_of_items, transitions, fn)
+-- TODO 衝突の情報はまとめておいて返す
+local function lr1_construct_table(grammar, set_of_items, transitions, fn)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
 
@@ -508,10 +436,28 @@ end
 
 ---------------------------------------------------------------------------
 
+local metatable = { __name = "dromozoa.parser.parser" }
+
+function metatable:__call(grammar, fn)
+  -- TODO テスト用に途中のデータを保存しておく
+  local eliminated = eliminate_left_recursion(grammar)
+  grammar.first_table = first_table(eliminated)
+  local set_of_items, transitions = lalr1_items(grammar)
+  local table = lr1_construct_table(grammar, set_of_items, transitions, fn)
+  return table
+end
+
+---------------------------------------------------------------------------
+
 -- テスト用
+module.eliminate_left_recursion = eliminate_left_recursion
 module.first_symbol = first_symbol
 module.first_symbols = first_symbols
 module.first_table = first_table
+module.lr0_items = lr0_items
 module.lr1_closure = lr1_closure
+module.lalr1_kernels = lalr1_kernels
+module.lalr1_items = lalr1_items
+module.lr1_construct_table = lr1_construct_table
 
-return module
+return setmetatable(module, metatable)

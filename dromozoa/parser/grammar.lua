@@ -17,6 +17,7 @@
 
 local compare = require "dromozoa.compare"
 local list = require "dromozoa.list"
+local tree_map2 = require "dromozoa.tree_map2"
 local tree_set = require "dromozoa.tree_set"
 
 ---------------------------------------------------------------------------
@@ -137,7 +138,7 @@ function metatable:__call(token_names, that)
   local max_terminal_symbol = #symbol_names:append "$"
 
   local precedence = 0
-  local precedence_table = {}
+  local precedence_table = tree_map2()
   local symbol_precedences = {}
 
   for i, v in ipairs(that) do
@@ -152,10 +153,10 @@ function metatable:__call(token_names, that)
           associativity = v[0];
         }
       else
-        precedence_table[name] = {
+        precedence_table:insert(name, {
           precedence = precedence;
           associativity = v[0];
-        }
+        })
       end
     end
   end
@@ -219,7 +220,7 @@ function metatable:__call(token_names, that)
       local n = select(2, productions:insert { head = u.k, head_index = i, body = body })
 
       if v.precedence ~= nil then
-        local precedence = precedence_table[v.precedence]
+        local precedence = precedence_table:get(v.precedence)
         if precedence == nil then
           error("precedence " .. v.precedence .. " not defined")
         end
@@ -235,8 +236,7 @@ function metatable:__call(token_names, that)
       error("symbol " .. v .. " not used")
     end
   end
-  -- TODO エラーの出力順序が安定にならないがよいか？
-  for k in pairs(precedence_table) do
+  for k in precedence_table:pairs() do
     if used_precedences[k] == nil then
       error("precedence " .. k .. " not used")
     end

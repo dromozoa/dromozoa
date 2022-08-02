@@ -18,25 +18,16 @@
 local list = require "dromozoa.list"
 
 local function build(source, result)
-  local buffer = list()
-
   local handle = assert(io.open(source))
-  local state = 1
-  for line in handle:lines() do
-    if state == 1 and not line:find "^%-%-" then
-      state = 2
-    end
-    if state == 2 and line ~= "" then
-      state = 3
-    end
-    if state == 3 then
-      buffer:append(line)
-    end
-  end
+  local buffer = handle:read "*a"
   handle:close()
 
-  buffer:append "$"
-  local buffer = table.concat(buffer, "\n")
+  local buffer = (buffer .. "\n$")
+    :gsub("%-%-%[(%=)*%[.-%]%1%]", "")
+    :gsub("%-%-[^\n]*", "")
+    :gsub("[ \t]+\n", "\n")
+    :gsub("\n\n+", "\n")
+    :gsub("^\n+", "")
 
   local out = assert(io.open(result, "w"))
   out:write "return function (context) return {\n"
@@ -54,4 +45,5 @@ local function build(source, result)
   out:close()
 end
 
+build("dromozoa/parser/template.lua", "dromozoa/parser/runtime.lua")
 build("dromozoa/regexp/template.lua", "dromozoa/regexp/runtime.lua")

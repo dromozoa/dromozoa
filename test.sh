@@ -20,7 +20,7 @@
 LUA_PATH="?.lua;ext/?.lua;;"
 export LUA_PATH
 
-for i in test/test*.lua
+for i in build_runtime.lua test/test*.lua
 do
   case X$# in
     X0) lua "$i";;

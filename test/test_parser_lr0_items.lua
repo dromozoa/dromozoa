@@ -17,7 +17,7 @@
 
 local list = require "dromozoa.list"
 local grammar = require "dromozoa.parser.grammar"
-local generate = require "dromozoa.parser.generate"
+local parser = require "dromozoa.parser.parser"
 
 local _ = grammar.body
 
@@ -31,7 +31,7 @@ local g = grammar({ "+", "*", "(", ")", "id" }, {
     + _"id";
 })
 
-local set_of_items, transitions = generate.lr0_items(g)
+local set_of_items, transitions = parser.lr0_items(g)
 
 local buffer = list()
 for i, items in set_of_items:ipairs() do
