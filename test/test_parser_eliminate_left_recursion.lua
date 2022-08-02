@@ -40,6 +40,7 @@ for _, production in g.productions:ipairs() do
   buffer:append "\n"
 end
 
+-- print(table.concat(buffer))
 assert(table.concat(buffer) == [[
 S' -> S
 S -> A a

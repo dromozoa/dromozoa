@@ -61,6 +61,8 @@ function class:ipairs()
   return ipairs(private[self].K)
 end
 
+-- TODO tree_compare, tree_eachからtree_をはずす？
+
 function class:tree_each(lower_bound, upper_bound)
   return coroutine.wrap(function (self)
     for k, _, i in self:each(lower_bound, upper_bound) do
@@ -74,10 +76,14 @@ function metatable:__len()
   error "not supported"
 end
 
+-- TODO 順序を再考する
 function metatable:__index(k)
   local v = class[k]
   if v ~= nil then
     return v
+  end
+  if k == "tree_compare" then
+    return private[self].compare
   end
   local v = private[self].K[k]
   if v ~= nil then

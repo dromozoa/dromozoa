@@ -19,16 +19,18 @@ local compare = require "dromozoa.compare"
 local list = require "dromozoa.list"
 local tree_set = require "dromozoa.tree_set"
 
+---------------------------------------------------------------------------
+
+local module = {}
+
+---------------------------------------------------------------------------
+
 local timestamp = 0
 
 local function construct(metatable, code, ...)
   timestamp = timestamp + 1
   return setmetatable({ timestamp = timestamp, [0] = code, ... }, metatable)
 end
-
----------------------------------------------------------------------------
-
-local module = {}
 
 ---------------------------------------------------------------------------
 
@@ -60,15 +62,15 @@ end
 
 local metatable = { __name = "dromozoa.parser.grammar.bodies" }
 
+local function bodies(...)
+  return construct(metatable, "bodies", ...)
+end
+
 function metatable:__add(that)
   assert(getmetatable(self) == metatable)
   assert(getmetatable(that).__name == "dromozoa.parser.grammar.body")
   self[#self + 1] = that
   return self
-end
-
-local function bodies(...)
-  return construct(metatable, "bodies", ...)
 end
 
 ---------------------------------------------------------------------------
@@ -124,11 +126,10 @@ module.body = setmetatable({ [0] = "body" }, metatable)
 local metatable = { __name = "dromozoa.parser.grammar" }
 
 function metatable:__call(token_names, that)
-  -- TODO symbolsに統合してもよい？
   local symbol_names = list()
   local symbol_table = {}
   for _, name in ipairs(token_names) do
-    if symbol_table[name] then
+    if symbol_table[name] ~= nil then
       error("symbol " .. name .. " redefined as a terminal")
     end
     symbol_table[name] = #symbol_names:append(name)
@@ -145,7 +146,7 @@ function metatable:__call(token_names, that)
     assert(precedence == i)
     for _, name in ipairs(v) do
       local symbol = symbol_table[name]
-      if symbol and symbol <= max_terminal_symbol then
+      if symbol ~= nil and symbol <= max_terminal_symbol then
         symbol_precedences[symbol] = {
           precedence = precedence;
           associativity = v[0];
@@ -169,82 +170,74 @@ function metatable:__call(token_names, that)
 
   local augumented_start_head = #symbol_names:append(data[1].k .. "'")
   local augumented_start_body = augumented_start_head + 1
-  -- TODO いいかんじのcompareの合成もほしい
   local productions = tree_set(function (a, b)
-    local c = compare(a.head, b.head)
-    if c ~= 0 then
-      return c
+    if a.head ~= b.head then
+      return a.head < b.head and -1 or 1
     end
-    -- TODO indexという名前はやめておく？
-    local c = compare(a.index, b.index)
-    if c ~= 0 then
-      return c
+    if a.head_index ~= b.head_index then
+      return a.head_index < b.head_index and -1 or 1
     end
-    error "!!!"
-    -- bodyを検査しないので、bodyの変更は安全
-  end):insert { head = augumented_start_head, index = 1, body = { data[1].k } }
+    error "production is not unique"
+  end):insert { head = augumented_start_head, head_index = 1, body = list(augumented_start_body) }
 
   for _, u in ipairs(data) do
     local k = u.k
     local v = u.v
-    local metaname = getmetatable(v).__name
-
-    if symbol_table[k] then
+    if symbol_table[k] ~= nil then
       error("symbol " .. k .. " redefined as a nonterminal")
     end
     local symbol = #symbol_names:append(k)
     symbol_table[k] = symbol
+    u.k = symbol
     if v[0] == "body" then
       assert(getmetatable(v).__name == "dromozoa.parser.grammar.body")
-      productions:insert { head = symbol, index = 1, body = v }
-    else
-      assert(getmetatable(v).__name == "dromozoa.parser.grammar.bodies")
-      for i, body in ipairs(v) do
-        productions:insert { head = symbol, index = i, body = body }
-      end
+      u.v = bodies(v)
     end
   end
 
-  -- TODO このふたつはシークエンスを保証したほうがよい？
   local production_precedences = {}
-  local semantic_actions = {} -- TODO semantic_actionがnilのときはどうする？
-  local used_symbols = {}
+  local semantic_actions = {}
+
+  local used_symbols = {
+    [max_terminal_symbol] = true;
+    [augumented_start_head] = true;
+    [augumented_start_body] = true;
+  }
   local used_precedences = {}
 
-  for i, production in productions:ipairs() do
-    local name = production.body.precedence
-    if name then
-      local precedence = precedence_table[name]
-      if not precedence then
-        error("precedence " .. name .. " not defined")
+  for _, u in ipairs(data) do
+    for i, v in ipairs(u.v) do
+      local body = list()
+      for _, name in ipairs(v) do
+        local symbol = symbol_table[name]
+        if symbol == nil then
+          error("symbol " .. name .. " not defined")
+        end
+        body:append(symbol)
+        used_symbols[symbol] = true
       end
-      production_precedences[i] = precedence
-      used_precedences[name] = true
-    end
-    semantic_actions[i] = production.body.semantic_action
+      local n = select(2, productions:insert { head = u.k, head_index = i, body = body })
 
-    local body = list()
-    for _, name in ipairs(production.body) do
-      local symbol = symbol_table[name];
-      if not symbol then
-        error("symbol " .. name .. " not defined")
+      if v.precedence ~= nil then
+        local precedence = precedence_table[v.precedence]
+        if precedence == nil then
+          error("precedence " .. v.precedence .. " not defined")
+        end
+        production_precedences[n] = precedence
+        used_precedences[v.precedence] = true
       end
-      body:append(symbol)
-      used_symbols[symbol] = true
+      semantic_actions[n] = v.semantic_action
     end
-    production.body = body
   end
 
-  used_symbols[max_terminal_symbol] = true
-  used_symbols[augumented_start_head] = true
-
   for i, v in ipairs(symbol_names) do
-    if not used_symbols[i] then
+    if used_symbols[i] == nil then
       error("symbol " .. v .. " not used")
     end
   end
+  -- TODO エラーの出力順序が安定にならないがよいか？
   for k in pairs(precedence_table) do
-    if not used_precedences[k] then
+    if used_precedences[k] == nil then
       error("precedence " .. k .. " not used")
     end
   end

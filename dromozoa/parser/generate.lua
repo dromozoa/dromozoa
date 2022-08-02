@@ -99,7 +99,7 @@ end
 -- 最初の検索がO(log n)で、そのあとはO(1)のイテレーションになる
 local function each_production(productions, head)
   return coroutine.wrap(function (self)
-    for i, production in productions:tree_each({ head = head }, { head = head + 1 }) do
+    for i, production in productions:tree_each({ head = head, head_index = 0 }, { head = head + 1, head_index = 0 }) do
       coroutine.yield(i, production.body)
     end
   end), productions
@@ -114,18 +114,7 @@ function module.eliminate_left_recursion(grammar)
   local max_nonterminal_symbol = grammar.max_nonterminal_symbol
 
   local new_symbol_names = symbol_names:slice()
-  local new_productions = tree_set(function (a, b)
-    local c = compare(a.head, b.head)
-    if c ~= 0 then
-      return c
-    end
-    local c = compare(a.index, b.index)
-    if c ~= 0 then
-      return c
-    end
-    error "!!!"
-    -- bodyを検査しないので、bodyの変更は安全
-  end)
+  local new_productions = tree_set(productions.tree_compare)
 
   for i = max_terminal_symbol + 1, max_nonterminal_symbol do
     local n = #new_symbol_names + 1
@@ -159,10 +148,10 @@ function module.eliminate_left_recursion(grammar)
     end
 
     for j, body in ipairs(i_bodies) do
-      new_productions:insert { head = i, index = j, body = body }
+      new_productions:insert { head = i, head_index = j, body = body }
     end
     for j, body in ipairs(n_bodies) do
-      new_productions:insert { head = n, index = j, body = body }
+      new_productions:insert { head = n, head_index = j, body = body }
     end
   end
 
