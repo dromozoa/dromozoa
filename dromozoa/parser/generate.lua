@@ -435,6 +435,18 @@ end
 
 ---------------------------------------------------------------------------
 
+local metatable = { __name = "dromozoa.parser.parser" }
+
+function metatable:__call(grammar, fn)
+  local eliminated = eliminate_left_recursion(grammar)
+  grammar.first_table = first_table(eliminated)
+  local set_of_items, transitions = lalr1_items(grammar)
+  local table = lr1_construct_table(grammar, set_of_items, transitions, fn)
+  return table
+end
+
+---------------------------------------------------------------------------
+
 -- テスト用
 module.eliminate_left_recursion = eliminate_left_recursion
 module.first_symbol = first_symbol
@@ -446,4 +458,4 @@ module.lalr1_kernels = lalr1_kernels
 module.lalr1_items = lalr1_items
 module.lr1_construct_table = lr1_construct_table
 
-return module
+return setmetatable(module, metatable)
