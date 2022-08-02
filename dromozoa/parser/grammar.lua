@@ -19,16 +19,18 @@ local compare = require "dromozoa.compare"
 local list = require "dromozoa.list"
 local tree_set = require "dromozoa.tree_set"
 
+---------------------------------------------------------------------------
+
+local module = {}
+
+---------------------------------------------------------------------------
+
 local timestamp = 0
 
 local function construct(metatable, code, ...)
   timestamp = timestamp + 1
   return setmetatable({ timestamp = timestamp, [0] = code, ... }, metatable)
 end
-
----------------------------------------------------------------------------
-
-local module = {}
 
 ---------------------------------------------------------------------------
 
@@ -60,15 +62,15 @@ end
 
 local metatable = { __name = "dromozoa.parser.grammar.bodies" }
 
+local function bodies(...)
+  return construct(metatable, "bodies", ...)
+end
+
 function metatable:__add(that)
   assert(getmetatable(self) == metatable)
   assert(getmetatable(that).__name == "dromozoa.parser.grammar.body")
   self[#self + 1] = that
   return self
-end
-
-local function bodies(...)
-  return construct(metatable, "bodies", ...)
 end
 
 ---------------------------------------------------------------------------
@@ -127,7 +129,7 @@ function metatable:__call(token_names, that)
   local symbol_names = list()
   local symbol_table = {}
   for _, name in ipairs(token_names) do
-    if symbol_table[name] then
+    if symbol_table[name] ~= nil then
       error("symbol " .. name .. " redefined as a terminal")
     end
     symbol_table[name] = #symbol_names:append(name)
@@ -144,7 +146,7 @@ function metatable:__call(token_names, that)
     assert(precedence == i)
     for _, name in ipairs(v) do
       local symbol = symbol_table[name]
-      if symbol and symbol <= max_terminal_symbol then
+      if symbol ~= nil and symbol <= max_terminal_symbol then
         symbol_precedences[symbol] = {
           precedence = precedence;
           associativity = v[0];
@@ -181,7 +183,7 @@ function metatable:__call(token_names, that)
   for _, u in ipairs(data) do
     local k = u.k
     local v = u.v
-    if symbol_table[k] then
+    if symbol_table[k] ~= nil then
       error("symbol " .. k .. " redefined as a nonterminal")
     end
     local symbol = #symbol_names:append(k)
@@ -196,7 +198,11 @@ function metatable:__call(token_names, that)
   local production_precedences = {}
   local semantic_actions = {}
 
-  local used_symbols = {}
+  local used_symbols = {
+    [max_terminal_symbol] = true;
+    [augumented_start_head] = true;
+    [augumented_start_body] = true;
+  }
   local used_precedences = {}
 
   for _, u in ipairs(data) do
@@ -214,7 +220,7 @@ function metatable:__call(token_names, that)
 
       if v.precedence ~= nil then
         local precedence = precedence_table[v.precedence]
-        if not precedence then
+        if precedence == nil then
           error("precedence " .. v.precedence .. " not defined")
         end
         production_precedences[n] = precedence
@@ -224,17 +230,14 @@ function metatable:__call(token_names, that)
     end
   end
 
-  used_symbols[max_terminal_symbol] = true
-  used_symbols[augumented_start_head] = true
-  used_symbols[augumented_start_body] = true
-
   for i, v in ipairs(symbol_names) do
-    if not used_symbols[i] then
+    if used_symbols[i] == nil then
       error("symbol " .. v .. " not used")
     end
   end
+  -- TODO precedence_tableが順不同になるけど？
   for k in pairs(precedence_table) do
-    if not used_precedences[k] then
+    if used_precedences[k] == nil then
       error("precedence " .. k .. " not used")
     end
   end
