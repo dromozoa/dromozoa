@@ -122,7 +122,7 @@ end
 
 ---------------------------------------------------------------------------
 
-function module.eliminate_left_recursion(grammar)
+local function eliminate_left_recursion(grammar)
   local symbol_names = grammar.symbol_names
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
@@ -252,7 +252,7 @@ local function lr0_closure(grammar, items)
   return items
 end
 
-function module.lr0_goto(grammar, items)
+local function lr0_goto(grammar, items)
   local productions = grammar.productions
   local map_of_to_items = tree_map2()
 
@@ -269,12 +269,12 @@ function module.lr0_goto(grammar, items)
   return map_of_to_items
 end
 
-function module.lr0_items(grammar)
+local function lr0_items(grammar)
   local transitions = {}
   local set_of_items = tree_set():insert(lr0_closure(grammar, tree_set():insert { index = 1, dot = 1 }))
 
   for i, items in set_of_items:ipairs() do
-    local map_of_to_items = module.lr0_goto(grammar, items)
+    local map_of_to_items = lr0_goto(grammar, items)
     local transition = tree_map2()
     for symbol, to_items in map_of_to_items:pairs() do
       transition:insert(symbol, select(2, set_of_items:insert(to_items)))
@@ -314,7 +314,7 @@ end
 
 local marker_lookahead = -1
 
-function module.lalr1_kernels(grammar, set_of_items, transitions)
+local function lalr1_kernels(grammar, set_of_items, transitions)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
 
@@ -388,9 +388,9 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
   return new_set_of_kernel_items
 end
 
-function module.lalr1_items(grammar)
-  local set_of_items, transitions = module.lr0_items(grammar)
-  local set_of_items = module.lalr1_kernels(grammar, set_of_items, transitions)
+local function lalr1_items(grammar)
+  local set_of_items, transitions = lr0_items(grammar)
+  local set_of_items = lalr1_kernels(grammar, set_of_items, transitions)
   for _, items in ipairs(set_of_items) do
     lr1_closure(grammar, items)
   end
@@ -426,7 +426,7 @@ local function production_precedence(grammar, index)
   return 0
 end
 
-function module.lr1_construct_table(grammar, set_of_items, transitions, fn)
+local function lr1_construct_table(grammar, set_of_items, transitions, fn)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
 
@@ -524,9 +524,14 @@ end
 ---------------------------------------------------------------------------
 
 -- テスト用
+module.eliminate_left_recursion = eliminate_left_recursion
 module.first_symbol = first_symbol
 module.first_symbols = first_symbols
 module.first_table = first_table
+module.lr0_items = lr0_items
 module.lr1_closure = lr1_closure
+module.lalr1_kernels = lalr1_kernels
+module.lalr1_items = lalr1_items
+module.lr1_construct_table = lr1_construct_table
 
 return module
