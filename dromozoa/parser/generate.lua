@@ -17,98 +17,10 @@
 
 local compare = require "dromozoa.compare"
 local list = require "dromozoa.list"
-local tree = require "dromozoa.tree"
+local tree_map2 = require "dromozoa.tree_map2"
 local tree_set = require "dromozoa.tree_set"
 
 local module = {}
-
----------------------------------------------------------------------------
-
-local class = {}
-local metatable = { __name = "dromozoa.tree_map2" }
-local private = setmetatable({}, { __mode = "k" })
-
--- insertedかどうかを調べる必要はある？
--- TODO ゆくゆくは削除もできるようにする
-
-function class:insert(k, v)
-  assert(k ~= nil)
-  assert(v ~= nil)
-  local ok, _, i = private[self]:insert(k, v)
-  return self, i, ok
-end
-
--- function class:insert_or_assign(k, v)
---   if k == nil then
---     error "table index is nil"
---   elseif type(k) == "number" and k ~= k then
---     error "table index is NaN"
---   elseif v == nil then
---     -- 削除はできない
---     error "table value is nil"
---   end
---   local ok, _, i = private[self]:insert(k, v)
---   return self, i, ok
--- end
-
-function class:get(k, fn)
-  if fn == nil then
-    local _, v = private[self]:find(k)
-    return v
-  else
-    local _, v = private[self]:insert(k, nil, fn)
-    return v
-  end
-end
-
--- i,k,v
--- function class:ipairs
-
-function class:pairs()
-  local i = 0
-  return function (self)
-    i = i + 1
-    local k = self.K[i]
-    if k == nil then
-      return
-    else
-      return self.K[i], self.V[i]
-    end
-  end, private[self], nil
-end
-
--- TODO tree_eachを実装する
-
-function metatable:__len()
-  error "not supported"
-end
-
-function metatable:__index(k)
-  local v = class[k]
-  if v ~= nil then
-    return v
-  end
-  -- { K[i], V[i] }を返す？
-  error "not supported"
-end
-
-function metatable:__newindex()
-  error "not supported"
-end
-
-function metatable:__pairs()
-  error "not supported"
-end
-
-metatable["dromozoa.stable_pairs"] = function (self)
-  return private[self]:each()
-end
-
-local function tree_map2(compare)
-  local self = setmetatable({}, metatable)
-  private[self] = tree(compare)
-  return self
-end
 
 ---------------------------------------------------------------------------
 
