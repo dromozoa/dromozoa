@@ -227,7 +227,11 @@ function metatable:__call(token_names, that)
         production_precedences[n] = precedence
         used_precedences[v.precedence] = true
       end
-      semantic_actions[n] = v.semantic_action
+      if v.semantic_action == nil then
+        semantic_actions[n] = ""
+      else
+        semantic_actions[n] = v.semantic_action
+      end
     end
   end
 
