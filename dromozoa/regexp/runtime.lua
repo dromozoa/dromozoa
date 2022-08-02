@@ -1,5 +1,22 @@
 return function (context) return {
 [[
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 local _ = { ]];
 context.shared_data;
 [[
@@ -16,17 +33,17 @@ return function (source, source_name, fn)
   local clear
   local append
 
-                -- save/restore
-                --  | read only
-                --  |  |
-  local tk      --  x  x  token symbol
-  local fs = 1  --  x  x  start position
-  local fp      --     x  current position
-  local fc      --     x  current character
-  local fb = {} --        buffer
-  local fg = {} --        guard buffer
-  local ln = 1  --        line number
-  local lp = 0  --        line position
+                
+                
+                
+  local tk      
+  local fs = 1  
+  local fp      
+  local fc      
+  local fb = {} 
+  local fg = {} 
+  local ln = 1  
+  local lp = 0  
 
   local action_data = (function ()
     local _
@@ -111,9 +128,10 @@ context.action_data;
     if v == nil then
       v = source
     elseif type(v) == "table" then
+      
       v = string.char(table_unpack(v))
     end
-    -- TODO フォーマットを修正する
+    
     fn {
       symbol = tk;
       i = fs;
@@ -130,6 +148,7 @@ context.action_data;
   end
 
   function append(buffer, v)
+    
     buffer[#buffer + 1] = v
   end
 
@@ -220,5 +239,6 @@ context.action_data;
 
   repeat until guard()
 end
+
 ]];
 } end
