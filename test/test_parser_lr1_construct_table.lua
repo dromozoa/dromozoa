@@ -86,11 +86,6 @@ local buffer = list()
 
 for _, g in ipairs(G) do
   buffer:append(("-"):rep(75), "\n")
-  -- g.first_table = generate.first_table(generate.eliminate_left_recursion(g))
-  -- local set_of_items, transitions = generate.lalr1_items(g)
-  -- local t = generate.lr1_construct_table(g, set_of_items, transitions, function (...)
-  --   buffer:append(...):append "\n"
-  -- end)
   local t = generate(g, function (...)
     buffer:append(...):append "\n"
   end)
