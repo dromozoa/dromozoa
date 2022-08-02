@@ -27,8 +27,15 @@ return function (that)
   local action_data = list()
 
   static_data:append(
+    "symbol_names={")
+  for _, v in ipairs(that.symbol_names) do
+    static_data:append(("%q,"):format(v))
+  end
+  static_data:append(
+    "};\n")
+
+  static_data:append(
     "max_state=", that.max_state, ";\n",
-    "max_terminal_symbol=", that.max_terminal_symbol, ";\n",
     "actions={")
     -- max_nonterminal_symbolは必要？
 

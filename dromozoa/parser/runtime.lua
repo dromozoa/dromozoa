@@ -1,21 +1,16 @@
 return function (context) return {
 [[
 local main = function ()
-  local _
   local action_data = { ]];
 context["action_data"];
 [=[
  }
   local static_data = coroutine.yield()
-  local symbol_names = static_data.symbol_names
-  local symbol_table = static_data.symbol_table
   local max_state = static_data.max_state
-  local max_terminal_symbol = static_data.max_terminal_symbol
-  local max_nonterminal_symbol = static_data.max_nonterminal_symbol
-  local actions = _static_data.actions
+  local actions = static_data.actions
   local heads = static_data.heads
   local sizes = static_data.sizes
-  local semantic_actions = static_actions.semantic_actions
+  local semantic_actions = static_data.semantic_actions
   local stack = { 1 }
   local nodes = {}
   while true do
@@ -49,12 +44,11 @@ context["action_data"];
         stack[#stack] = nil
         nodes[#nodes] = nil
       end
-      reduced_nodes[0] = node(head)
-      _ = setmetatable(reduced_nodes, metatable)
+      reduced_nodes[0] = head
       action_data[semantic_actions[index]]()
       local state = stack[#stack]
       stack[#stack + 1] = actions[state][head]
-      nodes[#nodes + 1] = current_node
+      nodes[#nodes + 1] = reduced_nodes
     end
   end
 end
@@ -74,7 +68,10 @@ return function ()
   local thread = coroutine.create(main)
   assert(coroutine.resume(thread))
   assert(coroutine.resume(thread, static_data))
-  return setmetatable({ thread = thread }, metatable)
+  return setmetatable({
+    thread = thread;
+    symbol_names = static_data.symbol_names;
+  }, metatable)
 end
 ]];
 } end
