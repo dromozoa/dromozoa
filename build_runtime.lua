@@ -31,14 +31,14 @@ local function build(source, result)
 
   local out = assert(io.open(result, "w"))
   out:write "return function (context) return {\n"
-  for text, variable in buffer:gmatch "([^$]*)$([%w%_%.]*)" do
+  for text, variable in buffer:gmatch "([^$]*)$([%w%_]*)" do
     local s = ""
     while text:find("%]" .. s .. "%]") do
       s = s .. "="
     end
     out:write("[", s, "[\n", text, "]", s, "];\n")
     if variable ~= "" then
-      out:write("context.", variable, ";\n")
+      out:write(("context[%q];\n"):format(variable))
     end
   end
   out:write "} end\n"

@@ -15,11 +15,11 @@ local main = function ()
   local ln = 1
   local lp = 0
   ]];
-context.custom_data;
+context["custom_data"];
 [[
 
   local action_data = { ]];
-context.action_data;
+context["action_data"];
 [[
  }
   local _, source, source_name, fn = coroutine.yield()
@@ -172,11 +172,11 @@ context.action_data;
   repeat until guard()
 end
 local _ = { ]];
-context.shared_data;
+context["shared_data"];
 [[
  }
 local _ = { ]];
-context.static_data;
+context["static_data"];
 [[
  }
 return function (source, source_name, fn)

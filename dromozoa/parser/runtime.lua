@@ -3,7 +3,7 @@ return function (context) return {
 local main = function ()
   local _
   local action_data = { ]];
-context.action_data;
+context["action_data"];
 [=[
  }
   local static_data = coroutine.yield()
@@ -59,11 +59,11 @@ context.action_data;
   end
 end
 local _ = { ]=];
-context.shared_data;
+context["shared_data"];
 [[
  }
 local static_data = { ]];
-context.static_data;
+context["static_data"];
 [[
  }
 local metatable = {}
