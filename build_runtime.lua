@@ -23,7 +23,7 @@ local function build(source, result)
   handle:close()
 
   local buffer = (buffer .. "\n$")
-    :gsub("%-%-%[(%=)*%[.-%]%1%]", "")
+    :gsub("%-%-%[(%=*)%[.-%]%1%]", "")
     :gsub("%-%-[^\n]*", "")
     :gsub("[ \t]+\n", "\n")
     :gsub("\n\n+", "\n")
