@@ -168,29 +168,31 @@ function metatable:__call(token_names, that)
 
   local augumented_start_head = #symbol_names:append(data[1].k .. "'")
   local augumented_start_body = augumented_start_head + 1
-  -- TODO いいかんじのcompareの合成もほしい
   local productions = tree_set(function (a, b)
-    local c = compare(a.head, b.head)
-    if c ~= 0 then
-      return c
+    if a.head ~= b.head then
+      return a.head < b.head and -1 or 1
     end
-    local c = compare(a.head_index, b.head_index)
-    if c ~= 0 then
-      return c
+    if a.head_index ~= b.head_index then
+      return a.head_index < b.head_index and -1 or 1
     end
     error "production is not unique"
   end):insert { head = augumented_start_head, head_index = 1, body = list(augumented_start_body) }
 
   for _, u in ipairs(data) do
     local k = u.k
+    local v = u.v
     if symbol_table[k] then
       error("symbol " .. k .. " redefined as a nonterminal")
     end
     local symbol = #symbol_names:append(k)
     symbol_table[k] = symbol
     u.k = symbol
+    if v[0] == "body" then
+      assert(getmetatable(v).__name == "dromozoa.parser.grammar.body")
+      u.v = bodies(v)
+    end
   end
-  -- このふたつはシークエンスではない。
+
   local production_precedences = {}
   local semantic_actions = {}
 
@@ -198,16 +200,9 @@ function metatable:__call(token_names, that)
   local used_precedences = {}
 
   for _, u in ipairs(data) do
-    local k = u.k
-    local v = u.v
-    assert(type(k) == "number")
-    if v[0] == "body" then
-      assert(getmetatable(v).__name == "dromozoa.parser.grammar.body")
-      v = bodies(v)
-    end
-    for i, names in ipairs(v) do
+    for i, v in ipairs(u.v) do
       local body = list()
-      for _, name in ipairs(names) do
+      for _, name in ipairs(v) do
         local symbol = symbol_table[name]
         if symbol == nil then
           error("symbol " .. name .. " not defined")
@@ -215,18 +210,17 @@ function metatable:__call(token_names, that)
         body:append(symbol)
         used_symbols[symbol] = true
       end
-      local n = select(2, productions:insert { head = k, head_index = i, body = body })
+      local n = select(2, productions:insert { head = u.k, head_index = i, body = body })
 
-      local name = names.precedence
-      if name ~= nil then
-        local precedence = precedence_table[name]
+      if v.precedence ~= nil then
+        local precedence = precedence_table[v.precedence]
         if not precedence then
-          error("precedence " .. name .. " not defined")
+          error("precedence " .. v.precedence .. " not defined")
         end
         production_precedences[n] = precedence
-        used_precedences[name] = true
+        used_precedences[v.precedence] = true
       end
-      semantic_actions[n] = names.semantic_action
+      semantic_actions[n] = v.semantic_action
     end
   end
 

@@ -99,7 +99,7 @@ end
 -- 最初の検索がO(log n)で、そのあとはO(1)のイテレーションになる
 local function each_production(productions, head)
   return coroutine.wrap(function (self)
-    for i, production in productions:tree_each({ head = head }, { head = head + 1 }) do
+    for i, production in productions:tree_each({ head = head, head_index = 0 }, { head = head + 1, head_index = 0 }) do
       coroutine.yield(i, production.body)
     end
   end), productions
