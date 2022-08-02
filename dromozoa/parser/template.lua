@@ -15,4 +15,27 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local _ = { $shared_data }
+local _ = { $static_data }
 
+return setmetatable({}, {
+  __call = function ()
+    local thread = coroutine.create(function ()
+      -- initialize semantic actions
+      local action_data = (function ()
+        local _
+        return { $action_data }
+      end)()
+
+      while true do
+        local token = coroutine.yield()
+      end
+    end);
+    assert(thread.resume(thread))
+    setmetatable({ thread = thread }, {
+      __call = function (self, token)
+        return assert(coroutine.resume(self.thread, token))
+      end;
+    })
+  end;
+})
