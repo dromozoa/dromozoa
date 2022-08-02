@@ -25,25 +25,41 @@ local module = {}
 ---------------------------------------------------------------------------
 
 local class = {}
-local metatable = { __name = "dromozoa.ordered_map" }
+local metatable = { __name = "dromozoa.tree_map2" }
 local private = setmetatable({}, { __mode = "k" })
 
-function class:put(k, v)
+-- insertedかどうかを調べる必要はある？
+-- TODO ゆくゆくは削除もできるようにする
+-- TODO ハンドルは見えないことにする
+
+function class:insert(k, v)
   assert(k ~= nil)
   assert(v ~= nil)
-  local _, _, i = private[self]:insert(k, v)
-  -- TODO 返り値の検討
-  return i
+  local ok, _, i = private[self]:insert(k, v)
+  return self, i, ok
 end
 
-function class:opt(k, fn)
-  local _, v = private[self]:insert(k, nil, fn)
-  return v
-end
+-- function class:insert_or_assign(k, v)
+--   if k == nil then
+--     error "table index is nil"
+--   elseif type(k) == "number" and k ~= k then
+--     error "table index is NaN"
+--   elseif v == nil then
+--     -- 削除はできない
+--     error "table value is nil"
+--   end
+--   local ok, _, i = private[self]:insert(k, v)
+--   return self, i, ok
+-- end
 
-function class:get(k)
-  local _, v = private[self]:find(k)
-  return v
+function class:get(k, fn)
+  if fn == nil then
+    local _, v = private[self]:find(k)
+    return v
+  else
+    local _, v = private[self]:insert(k, nil, fn)
+    return v
+  end
 end
 
 function class:pairs()
@@ -66,7 +82,6 @@ function metatable:__len()
 end
 
 function metatable:__index(k)
-  -- TODO 数値キーだけを許す？
   local v = class[k]
   if v ~= nil then
     return v
@@ -86,7 +101,7 @@ metatable["dromozoa.stable_pairs"] = function (self)
   return private[self]:each()
 end
 
-local function ordered_map(compare)
+local function tree_map2(compare)
   local self = setmetatable({}, metatable)
   private[self] = tree(compare)
   return self
@@ -94,9 +109,6 @@ end
 
 ---------------------------------------------------------------------------
 
--- TODO これは、binary searchにして、log(n)にしたほうがよい？
--- tree_setに、いいかんじのcompareをわたしてソートしてある
--- 最初の検索がO(log n)で、そのあとはO(1)のイテレーションになる
 local function each_production(productions, head)
   return coroutine.wrap(function (self)
     for i, production in productions:tree_each({ head = head, head_index = 0 }, { head = head + 1, head_index = 0 }) do
@@ -239,12 +251,12 @@ end
 
 function module.lr0_goto(grammar, items)
   local productions = grammar.productions
-  local map_of_to_items = ordered_map()
+  local map_of_to_items = tree_map2()
 
   for _, item in items:ipairs() do
     local symbol = productions[item.index].body[item.dot]
     if symbol then
-      map_of_to_items:opt(symbol, tree_set):insert { index = item.index, dot = item.dot + 1 }
+      map_of_to_items:get(symbol, tree_set):insert { index = item.index, dot = item.dot + 1 }
     end
   end
   for _, to_items in map_of_to_items:pairs() do
@@ -260,9 +272,9 @@ function module.lr0_items(grammar)
 
   for i, items in set_of_items:ipairs() do
     local map_of_to_items = module.lr0_goto(grammar, items)
-    local transition = ordered_map()
+    local transition = tree_map2()
     for symbol, to_items in map_of_to_items:pairs() do
-      transition:put(symbol, select(2, set_of_items:insert(to_items)))
+      transition:insert(symbol, select(2, set_of_items:insert(to_items)))
     end
     transitions[i] = transition
   end
@@ -308,10 +320,10 @@ function module.lalr1_kernels(grammar, set_of_items, transitions)
 
   for i, items in set_of_items:ipairs() do
     local kernel_items = tree_set()
-    local kernel_table = ordered_map()
+    local kernel_table = tree_map2()
     for j, item in items:ipairs() do
       if item.index == 1 or item.dot > 1 then
-        kernel_table:opt(item.index, function () return {} end)[item.dot] = j
+        kernel_table:get(item.index, function () return {} end)[item.dot] = j
       end
       local la = tree_set()
       if item.index == 1 and item.dot == 1 then
