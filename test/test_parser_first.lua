@@ -21,7 +21,7 @@ local lalr = require "dromozoa.parser.lalr"
 
 local _ = grammar.body
 
--- P.222
+-- P.222 Example 4.30
 local g = grammar({ "+", "*", "(", ")", "id" }, {
   E = _"T" "E'";
   ["E'"]
@@ -34,18 +34,24 @@ local g = grammar({ "+", "*", "(", ")", "id" }, {
   F = _"(" "E" ")"
     + _"id";
 })
-local first_table = lalr.first_table(g)
-g.first_table = first_table
 
-local symbol_table = {}
-for i, v in ipairs(g.symbol_names) do
-  symbol_table[v] = i
+local actions, conflictions, data = lalr(g)
+local buffer = list()
+for _, message in ipairs(conflictions) do
+  buffer:append(message, "\n")
 end
 
-local buffer = list()
+local max_terminal_symbol = g.max_terminal_symbol
+local symbol_names = g.symbol_names
+local symbol_table = {}
+for i = max_terminal_symbol + 2, #symbol_names do
+  symbol_table[symbol_names[i]] = i
+end
+local first_table = g.first_table
+
 for _, name in ipairs { "F", "T", "E", "E'", "T'" } do
   buffer:append("FIRST(", name, ") = { ")
-  local first = lalr.first_symbol(g, symbol_table[name])
+  local first = first_table[symbol_table[name]]
   local i = 0
   for _, k in first:ipairs() do
     i = i + 1

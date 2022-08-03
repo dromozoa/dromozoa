@@ -30,8 +30,8 @@ local g = grammar({ "a", "b", "c", "d" }, {
     + _;
 })
 
-local buffer = list()
 local actions, conflictions, data = lalr(g)
+local buffer = list()
 for _, message in ipairs(conflictions) do
   buffer:append(message, "\n")
 end
