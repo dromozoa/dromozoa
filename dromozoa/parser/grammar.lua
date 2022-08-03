@@ -154,7 +154,7 @@ function metatable:__call(token_names, that)
   local data = list()
   for k, v in pairs(that) do
     if type(k) == "string" then
-      data:append { timestamp = assert(v.timestamp), k = k, v = v }
+      data:append { timestamp = v.timestamp, k = k, v = v }
     end
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
@@ -240,7 +240,6 @@ function metatable:__call(token_names, that)
 
   return {
     symbol_names = symbol_names;
-    symbol_table = symbol_table;
     max_terminal_symbol = max_terminal_symbol;
     max_nonterminal_symbol = #symbol_names;
     productions = productions;

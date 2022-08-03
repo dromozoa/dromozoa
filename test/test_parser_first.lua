@@ -37,10 +37,15 @@ local g = grammar({ "+", "*", "(", ")", "id" }, {
 local first_table = parser.first_table(g)
 g.first_table = first_table
 
+local symbol_table = {}
+for i, v in ipairs(g.symbol_names) do
+  symbol_table[v] = i
+end
+
 local buffer = list()
 for _, name in ipairs { "F", "T", "E", "E'", "T'" } do
   buffer:append("FIRST(", name, ") = { ")
-  local first = parser.first_symbol(g, g.symbol_table[name])
+  local first = parser.first_symbol(g, symbol_table[name])
   local i = 0
   for _, k in first:ipairs() do
     i = i + 1

@@ -438,7 +438,6 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
   return {
     conflictions = conflictions;
     symbol_names = grammar.symbol_names;
-    symbol_table = grammar.symbol_table;
     max_state = max_state;
     max_terminal_symbol = max_terminal_symbol;
     max_nonterminal_symbol = grammar.max_nonterminal_symbol;
