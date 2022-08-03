@@ -40,9 +40,10 @@ local g = grammar(token_names, {
 })
 
 local buffer = list()
-local p = parser(g, function (message)
+local p = parser(g)
+for _, message in ipairs(p.conflictions) do
   buffer:append(message, "\n")
-end)
+end
 
 local code = compile(p)
 

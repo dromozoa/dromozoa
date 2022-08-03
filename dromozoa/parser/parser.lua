@@ -341,11 +341,13 @@ end
 -- TODO 衝突の情報はまとめておいて返す
 -- TODO これはcompileにうつす？
 local function lr1_construct_table(grammar, set_of_items, transitions, fn)
+  assert(fn == nil)
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
 
   local max_state = #set_of_items
   local actions = {}
+  local conflictions = list()
 
   for i, items in ipairs(set_of_items) do
     local data = {} -- TODO シークエンスを保証する？
@@ -407,7 +409,8 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
         if buffer[1] then
           buffer[2] = " / reduce(" .. item.index .. ") conflict resolved as "
           buffer:append(" at state(", i, ") symbol(", grammar.symbol_names[item.la], ")")
-          fn(table.concat(buffer))
+          conflictions:append(table.concat(buffer))
+          -- fn(table.concat(buffer))
         end
       end
     end
@@ -429,6 +432,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
   end
 
   return {
+    conflictions = conflictions;
     symbol_names = grammar.symbol_names;
     symbol_table = grammar.symbol_table;
     max_state = max_state;
@@ -445,12 +449,12 @@ end
 
 local metatable = { __name = "dromozoa.parser.parser" }
 
-function metatable:__call(grammar, fn)
+function metatable:__call(grammar)
   -- TODO テスト用に途中のデータを保存しておく
   local eliminated = eliminate_left_recursion(grammar)
   grammar.first_table = first_table(eliminated)
   local set_of_items, transitions = lalr1_items(grammar)
-  local table = lr1_construct_table(grammar, set_of_items, transitions, fn)
+  local table = lr1_construct_table(grammar, set_of_items, transitions)
   return table
 end
 

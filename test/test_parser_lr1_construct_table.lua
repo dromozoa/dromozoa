@@ -86,9 +86,10 @@ local buffer = list()
 
 for _, g in ipairs(G) do
   buffer:append(("-"):rep(75), "\n")
-  local t = parser(g, function (...)
-    buffer:append(...):append "\n"
-  end)
+  local t = parser(g)
+  for _, message in ipairs(t.conflictions) do
+    buffer:append(message, "\n")
+  end
 
   buffer:append "|    |"
   for i = 1, t.max_nonterminal_symbol do
