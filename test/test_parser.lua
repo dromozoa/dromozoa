@@ -82,10 +82,10 @@ dump(x)
 
 -- print(table.concat(buffer))
 assert(table.concat(buffer) == [[
-shift(5) / reduce(2) conflict resolved as reduce(2): precedence 1 == 1 associativity left at state(8) symbol(+)
-shift(6) / reduce(2) conflict resolved as shift(6): precedence 2 > 1 at state(8) symbol(*)
-shift(5) / reduce(3) conflict resolved as reduce(3): precedence 1 < 2 at state(9) symbol(+)
-shift(6) / reduce(3) conflict resolved as reduce(3): precedence 2 == 2 associativity left at state(9) symbol(*)
+shift(5) / reduce(2) conflict resolved as reduce(2): precedence 1 == 1 associativity left at state(8) production(2) symbol(+)
+shift(6) / reduce(2) conflict resolved as shift(6): precedence 2 > 1 at state(8) production(2) symbol(*)
+shift(5) / reduce(3) conflict resolved as reduce(3): precedence 1 < 2 at state(9) production(3) symbol(+)
+shift(6) / reduce(3) conflict resolved as reduce(3): precedence 2 == 2 associativity left at state(9) production(3) symbol(*)
 E
   E
     id

@@ -391,7 +391,6 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
 
     for _, item in items:ipairs() do
       if productions[item.index].body[item.dot] == nil then
-
         local action = data[item.la]
         if action == nil then
           data[item.la] = item.index + max_state
@@ -412,7 +411,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
           if message ~= nil then
             buffer:append(message)
           end
-          buffer:append(" at state(", i, ") symbol(", grammar.symbol_names[item.la], ")")
+          buffer:append(" at state(", i, ") production(", item.index, ") symbol(", grammar.symbol_names[item.la], ")")
           conflictions:append(table.concat(buffer))
         end
       end
