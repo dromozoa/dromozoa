@@ -29,11 +29,13 @@ local g = grammar({ "=", "*", "id" }, {
     + _"id";
   R = _"L";
 })
+
 local actions, conflictions, data = lalr(g)
 local buffer = list()
 for _, message in ipairs(conflictions) do
   buffer:append(message, "\n")
 end
+
 local set_of_items = data.lalr1_set_of_items
 
 for i, items in ipairs(set_of_items) do
@@ -58,8 +60,8 @@ for i, items in ipairs(set_of_items) do
 end
 buffer:append(("="):rep(75), "\n")
 
--- print(table.concat(buffer))
-assert(table.concat(buffer) == [[
+-- print(buffer:concat())
+assert(buffer:concat() == [[
 ===========================================================================
 I_1
   S' -> . S, $

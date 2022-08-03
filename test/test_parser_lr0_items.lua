@@ -66,7 +66,7 @@ for i, items in set_of_items:ipairs() do
 end
 buffer:append(("="):rep(75), "\n")
 
-print(table.concat(buffer))
+-- print(table.concat(buffer))
 assert(table.concat(buffer) == [[
 ===========================================================================
 I_1
