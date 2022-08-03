@@ -461,10 +461,12 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
   end
 
   return {
-    conflictions = conflictions;
     symbol_names = symbol_names;
     max_terminal_symbol = grammar.max_terminal_symbol;
+
+    conflictions = conflictions;
     actions = actions;
+
     heads = heads;
     sizes = sizes;
     semantic_actions = semantic_actions;
