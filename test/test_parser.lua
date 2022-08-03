@@ -23,6 +23,9 @@ local parser = require "dromozoa.parser.parser"
 local _ = grammar.body
 local left = grammar.left
 
+-- local g = grammar({}):???():compile()
+-- compile(g)
+
 local token_names = list("id", "+", "*", "(", ")")
 local token_table = {}
 for i, v in token_names:ipairs() do
