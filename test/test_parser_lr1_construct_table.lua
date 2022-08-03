@@ -20,6 +20,7 @@ local grammar = require "dromozoa.parser.grammar"
 local parser = require "dromozoa.parser.parser"
 
 local _ = grammar.body
+local expect = grammar.expect
 local left = grammar.left
 local right = grammar.right
 local nonassoc = grammar.nonassoc
@@ -50,6 +51,8 @@ local G = {
 
   -- P.282
   grammar({ "i", "e", "a" }, {
+    expect(1);
+
     S = _"i" "S" "e" "S"
       + _"i" "S"
       + _"a";
@@ -70,6 +73,8 @@ local G = {
   -- https://www.gnu.org/software/bison/manual/html_node/Reduce_002fReduce.html
 
   grammar({"id"}, {
+    expect(3);
+
     S = _
       + _"K"
       + _"S" "id";
@@ -152,7 +157,8 @@ assert(table.concat(buffer) == [[
 |  9 |     |  r3 |  r3 |     |  r3 |  r3 |     |     |
 | 10 |     |  r4 |  r4 |     |  r4 |  r4 |     |     |
 ---------------------------------------------------------------------------
-[warn] state 5 conflicts: 1 shift/reduce
+[info] state 5 conflicts: 1 shift/reduce
+[info] shift/reduce conflicts: 1 found, 1 expected
 |    |  i  |  e  |  a  |  $  |  S' |  S  |
 |  1 |  s3 |     |  s4 |     |     |  s2 |
 |  2 |     |     |     | acc |     |     |
@@ -179,6 +185,8 @@ assert(table.concat(buffer) == [[
 |  5 |     |     |  r2 |     |     |
 ---------------------------------------------------------------------------
 [warn] state 1 conflicts: 2 shift/reduce, 1 reduce/reduce
+[warn] shift/reduce conflicts: 2 found, 3 expected
+[warn] reduce/reduce conflicts: 1 found
 |    |  id |  $  |  S' |  S  |  K  |
 |  1 |  s4 |  r2 |     |  s2 |  s3 |
 |  2 |  s5 | acc |     |     |     |

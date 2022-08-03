@@ -60,6 +60,15 @@ end
 
 ---------------------------------------------------------------------------
 
+local metatable = { __name = "dromozoa.parser.grammar.expect" }
+
+function module.expect(that)
+  assert(type(that) == "number")
+  return construct(metatable, "expect", that)
+end
+
+---------------------------------------------------------------------------
+
 local metatable = { __name = "dromozoa.parser.grammar.bodies" }
 
 local function bodies(...)
@@ -136,16 +145,24 @@ function metatable:__call(token_names, that)
   end
   local max_terminal_symbol = #symbol_names:append "$"
 
+  local expect_sr
+  local precedence = 0
   local precedence_table = tree_map2()
   local symbol_precedences = {}
-  for i, v in ipairs(that) do
-    assert(getmetatable(v).__name == "dromozoa.parser.grammar.precedence")
-    for _, name in ipairs(v) do
-      local symbol = symbol_table[name]
-      if symbol == nil then
-        precedence_table:insert(name, { precedence = i, associativity = v[0] })
-      else
-        symbol_precedences[symbol] = { precedence = i, associativity = v[0] }
+  for _, v in ipairs(that) do
+    if v[0] == "expect" then
+      assert(getmetatable(v).__name == "dromozoa.parser.grammar.expect")
+      expect_sr = v[1]
+    else
+      assert(getmetatable(v).__name == "dromozoa.parser.grammar.precedence")
+      precedence = precedence + 1
+      for _, name in ipairs(v) do
+        local symbol = symbol_table[name]
+        if symbol == nil then
+          precedence_table:insert(name, { precedence = precedence, associativity = v[0] })
+        else
+          symbol_precedences[symbol] = { precedence = precedence, associativity = v[0] }
+        end
       end
     end
   end
@@ -240,8 +257,9 @@ function metatable:__call(token_names, that)
   return {
     symbol_names = symbol_names;
     max_terminal_symbol = max_terminal_symbol;
-    productions = productions;
+    expect_sr = expect_sr;
     symbol_precedences = symbol_precedences;
+    productions = productions;
     production_precedences = production_precedences;
     semantic_actions = semantic_actions;
   }

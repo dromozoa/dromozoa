@@ -359,10 +359,10 @@ local function resolve_sr(grammar, item)
 end
 
 -- TODO これはcompileにうつす？
-local function lr1_construct_table(grammar, set_of_items, transitions, fn)
-  assert(fn == nil)
-  local productions = grammar.productions
+local function lr1_construct_table(grammar, set_of_items, transitions)
   local max_terminal_symbol = grammar.max_terminal_symbol
+  local expect_sr = grammar.expect_sr
+  local productions = grammar.productions
 
   local max_state = #set_of_items
   local actions = {}
@@ -378,7 +378,6 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
       data[symbol] = j
     end
 
-    -- TODO %expectを実装する
     -- TODO semantic_actionとprecedenceをproductionsにもちまわる
 
     local sr = 0
@@ -421,12 +420,29 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
       end
     end
 
-    if sr > 0 and rr > 0 then
-      conflictions:append("[warn] state " .. i .. " conflicts: " .. sr .. " shift/reduce, " .. rr .. " reduce/reduce")
-    elseif sr > 0 then
-      conflictions:append("[warn] state " .. i .. " conflicts: " .. sr .. " shift/reduce")
-    elseif rr > 0 then
-      conflictions:append("[warn] state " .. i .. " conflicts: " .. rr .. " reduce/reduce")
+    total_sr = total_sr + sr
+    total_rr = total_rr + rr
+
+    if sr > 0 or rr > 0 then
+      local buffer = list()
+      if (expect_sr == nil or expect_sr < total_sr) or rr > 0 then
+        buffer:append "[warn]"
+      else
+        buffer:append "[info]"
+      end
+      buffer:append(" state ", i, " conflicts: ")
+
+      if sr > 0 then
+        buffer:append(sr, " shift/reduce")
+      end
+      if sr > 0 and rr > 0 then
+        buffer:append ", "
+      end
+      if rr > 0 then
+        buffer:append(rr, " reduce/reduce")
+      end
+
+      conflictions:append(table.concat(buffer))
     end
 
     for symbol = 1, #grammar.symbol_names do
@@ -436,6 +452,23 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
     end
 
     actions[i] = data
+  end
+
+  if total_sr > 0 then
+    local buffer = list()
+    if expect_sr ~= total_sr then
+      buffer:append "[warn]"
+    else
+      buffer:append "[info]"
+    end
+    buffer:append(" shift/reduce conflicts: ", total_sr, " found")
+    if expect_sr ~= nil then
+      buffer:append(", ", expect_sr, " expected")
+    end
+    conflictions:append(table.concat(buffer))
+  end
+  if total_rr > 0 then
+    conflictions:append("[warn] reduce/reduce conflicts: " .. total_rr .. " found")
   end
 
   local heads = list()
