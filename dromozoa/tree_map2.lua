@@ -58,6 +58,10 @@ function class:get(k, fn)
   end
 end
 
+function class:empty()
+  return private[self].size == 0
+end
+
 -- i,k,v
 -- function class:ipairs
 

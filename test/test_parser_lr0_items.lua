@@ -56,9 +56,8 @@ for i, items in set_of_items:ipairs() do
     end
     buffer:append "\n"
   end
-  for _ in transitions[i]:pairs() do
+  if not transitions[i]:empty() then
     buffer:append "\n"
-    break
   end
   for symbol, j in transitions[i]:pairs() do
     buffer:append("  I_", i, " -> I_", j, " ", g.symbol_names[symbol], "\n")
