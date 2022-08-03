@@ -399,6 +399,8 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
         if action == nil then
           data[item.la] = item.index + max_state
         else
+
+--[[
           local overwrite, a, message = resolve(grammar, max_state, action, item)
           local b = "reduce(" .. item.index .. ")"
           local buffer = list(a .. " / " .. b .. " conflict resolved as ")
@@ -417,8 +419,8 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
           end
           buffer:append(" at state(", i, ") symbol(", grammar.symbol_names[item.la], ")")
           conflictions:append(table.concat(buffer))
+]]
 
---[[
           local buffer = list()
           local a
           local b = "reduce(" .. item.index .. ")"
@@ -466,7 +468,6 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
 
           buffer:append(" at state(", i, ") symbol(", grammar.symbol_names[item.la], ")")
           conflictions:append(a .. " / " .. b .. " conflict resolved as " .. table.concat(buffer))
-]]
 
         end
       end
