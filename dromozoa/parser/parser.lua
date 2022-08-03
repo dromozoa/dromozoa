@@ -339,11 +339,7 @@ local function production_precedence(grammar, index)
 end
 
 -- return overwrite, a
-local function resolve(action, max_state, item, grammar)
-  if action == nil then
-    return true
-  end
-
+local function resolve(grammar, max_state, action, item)
   if action == 0 then
     return false, "error"
   end
@@ -361,14 +357,13 @@ local function resolve(action, max_state, item, grammar)
 
   local shift_precedence = symbol_precedence(grammar, item.la)
   if shift_precedence < precedence then
-    return true, a, "precedence " .. shift_precedence .. " < " .. precedence
+    return true, a, ": precedence " .. shift_precedence .. " < " .. precedence
   end
   if shift_precedence > precedence then
-    return false, a, "precedence " .. shift_precedence .. " > " .. precedence
+    return false, a, ": precedence " .. shift_precedence .. " > " .. precedence
   end
 
-  local message = "precedence " .. shift_precedence .. " == " .. precedence .. " associativity " .. associativity
-
+  local message = ": precedence " .. shift_precedence .. " == " .. precedence .. " associativity " .. associativity
   if associativity == "left" then
     return true, a, message
   end
@@ -404,6 +399,26 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
         if action == nil then
           data[item.la] = item.index + max_state
         else
+          local overwrite, a, message = resolve(grammar, max_state, action, item)
+          local b = "reduce(" .. item.index .. ")"
+          local buffer = list(a .. " / " .. b .. " conflict resolved as ")
+
+          if overwrite == nil then
+            data[item.la] = 0
+            buffer:append "error"
+          elseif overwrite then
+            data[item.la] = item.index + max_state
+            buffer:append(b)
+          else
+            buffer:append(a)
+          end
+          if message ~= nil then
+            buffer:append(message)
+          end
+          buffer:append(" at state(", i, ") symbol(", grammar.symbol_names[item.la], ")")
+          conflictions:append(table.concat(buffer))
+
+--[[
           local buffer = list()
           local a
           local b = "reduce(" .. item.index .. ")"
@@ -451,6 +466,8 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
 
           buffer:append(" at state(", i, ") symbol(", grammar.symbol_names[item.la], ")")
           conflictions:append(a .. " / " .. b .. " conflict resolved as " .. table.concat(buffer))
+]]
+
         end
       end
     end
