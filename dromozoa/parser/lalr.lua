@@ -455,9 +455,7 @@ end
 
 ---------------------------------------------------------------------------
 
-local metatable = { __name = "dromozoa.parser.lalr" }
-
-function metatable:__call(grammar)
+return function (grammar)
   local grammar_without_left_recursion = eliminate_left_recursion(grammar)
   grammar.first_table = first_table(grammar_without_left_recursion)
   local lr0_set_of_items, transitions = lr0_items(grammar)
@@ -475,20 +473,3 @@ function metatable:__call(grammar)
     transitions = transitions;
   }
 end
-
----------------------------------------------------------------------------
-
-local module = {}
-
--- テスト用
-module.eliminate_left_recursion = eliminate_left_recursion
-module.first_symbol = first_symbol
-module.first_symbols = first_symbols
-module.first_table = first_table
-module.lr0_items = lr0_items
-module.lr1_closure = lr1_closure
-module.lalr1_kernels = lalr1_kernels
-module.lalr1_items = lalr1_items
-module.lr1_construct_table = lr1_construct_table
-
-return setmetatable(module, metatable)
