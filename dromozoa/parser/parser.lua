@@ -331,7 +331,7 @@ local function production_precedence(grammar, index)
   return 0
 end
 
-local function resolve_sr(grammar, item)
+local function resolve_sr(grammar, item, buffer)
   local rp, rname, associativity = production_precedence(grammar, item.index)
   if rp == 0 then
     return
@@ -339,18 +339,18 @@ local function resolve_sr(grammar, item)
   local sp, sname = symbol_precedence(grammar, item.la)
 
   if sp < rp then
-    return true, " (" .. sname .. " < " .. rname .. ")"
+    return true, buffer:append("reduce (", sname, " < ", rname, ")")
   elseif rp < sp then
-    return false, " (" .. rname .. " < " .. sname .. ")"
+    return false, buffer:append("shift (", rname, " < ", sname, ")")
   end
 
   if associativity == "left" then
-    return true, " (left " .. rname .. ")"
+    return true, buffer:append("reduce (left ", rname, ")")
   elseif associativity == "right" then
-    return false, " (right " .. rname .. ")"
+    return false, buffer:append("shift (right ", rname, ")")
   else
     assert(associativity == "nonassoc")
-    return nil, " (nonassoc " .. rname  .. ")"
+    return 0, buffer:append("an error (nonassoc ", rname, ")")
   end
 end
 
@@ -389,22 +389,17 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
           rr = rr + 1
         elseif action ~= 0 then
           -- shift/reduce
-          local reduce, resolver = resolve_sr(grammar, item)
-          if resolver == nil then
+          local buffer = list("[info] conflict between production ", item.index, " and symbol ", symbol_names[item.la], " resolved as ")
+          local mode = resolve_sr(grammar, item, buffer)
+          if mode == nil then
             sr = sr + 1
           else
-            local buffer = list("[info] conflict between production ", item.index, " and symbol ", symbol_names[item.la], " resolved as ")
-            if reduce == nil then
+            if mode == 0 then
               data[item.la] = 0
-              buffer:append "an error"
-            elseif reduce then
+            elseif mode then
               data[item.la] = item.index + max_state
-              buffer:append "reduce"
-            else
-              buffer:append "shift"
             end
-            buffer:append(resolver)
-            conflictions:append(table.concat(buffer))
+            conflictions:append(buffer:concat())
           end
         end
       end
@@ -415,24 +410,21 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
 
     if sr > 0 or rr > 0 then
       local buffer = list()
-      if (expect_sr == nil or expect_sr < total_sr) or rr > 0 then
+      if expect_sr == nil or expect_sr < total_sr or rr > 0 then
         buffer:append "[warn]"
       else
         buffer:append "[info]"
       end
       buffer:append(" state ", i, " conflicts: ")
-
       if sr > 0 then
         buffer:append(sr, " shift/reduce")
-      end
-      if sr > 0 and rr > 0 then
-        buffer:append ", "
-      end
-      if rr > 0 then
+        if rr > 0 then
+          buffer:append(", ", rr, " reduce/reduce")
+        end
+      elseif rr > 0 then
         buffer:append(rr, " reduce/reduce")
       end
-
-      conflictions:append(table.concat(buffer))
+      conflictions:append(buffer:concat())
     end
 
     for symbol = 1, #symbol_names do
@@ -454,7 +446,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
     if expect_sr ~= nil then
       buffer:append(", ", expect_sr, " expected")
     end
-    conflictions:append(table.concat(buffer))
+    conflictions:append(buffer:concat())
   end
   if total_rr > 0 then
     conflictions:append("[warn] reduce/reduce conflicts: " .. total_rr .. " found")
