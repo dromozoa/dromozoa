@@ -455,14 +455,27 @@ end
 
 ---------------------------------------------------------------------------
 
-local metatable = { __name = "dromozoa.parser.parser" }
+local metatable = { __name = "dromozoa.parser.lalr" }
 
 function metatable:__call(grammar)
-  -- TODO テスト用に途中のデータを保存しておく
-  local eliminated = eliminate_left_recursion(grammar)
-  grammar.first_table = first_table(eliminated)
-  local set_of_items, transitions = lalr1_items(grammar)
-  return lr1_construct_table(grammar, set_of_items, transitions)
+  local grammar_without_left_recursion = eliminate_left_recursion(grammar)
+  grammar.first_table = first_table(grammar_without_left_recursion)
+  local lr0_set_of_items, transitions = lr0_items(grammar)
+  local lalr1_set_of_items = lalr1_kernels(grammar, lr0_set_of_items, transitions)
+  for _, items in ipairs(lalr1_set_of_items) do
+    lr1_closure(grammar, items)
+  end
+  local actions, conflictions = lr1_construct_table(grammar, lalr1_set_of_items, transitions)
+  return actions, conflictions, {
+    grammar = grammar;
+    actions = actions;
+    conflictions = conflictions;
+
+    grammar_without_left_recursion = grammar_without_left_recursion;
+    lr0_set_of_items = lr0_set_of_items;
+    lalr1_set_of_items = lalr1_set_of_items;
+    transitions = transitions;
+  }
 end
 
 ---------------------------------------------------------------------------
