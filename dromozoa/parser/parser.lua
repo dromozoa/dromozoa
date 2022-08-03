@@ -338,7 +338,6 @@ local function production_precedence(grammar, index)
   return 0
 end
 
--- return overwrite, a
 local function resolve(grammar, max_state, action, item)
   if action == 0 then
     return false, "error"
@@ -373,7 +372,6 @@ local function resolve(grammar, max_state, action, item)
   return false, a, message
 end
 
--- TODO 衝突の情報はまとめておいて返す
 -- TODO これはcompileにうつす？
 local function lr1_construct_table(grammar, set_of_items, transitions, fn)
   assert(fn == nil)
