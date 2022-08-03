@@ -29,9 +29,14 @@ local g = grammar({ "a", "b", "c", "d" }, {
     + _"S" "d"
     + _;
 })
-local g = lalr.eliminate_left_recursion(g)
 
 local buffer = list()
+local actions, conflictions, data = lalr(g)
+for _, message in ipairs(conflictions) do
+  buffer:append(message, "\n")
+end
+
+local g = data.grammar_without_left_recursion
 for _, production in g.productions:ipairs() do
   buffer:append(g.symbol_names[production.head], " ->")
   for _, symbol in ipairs(production.body) do
