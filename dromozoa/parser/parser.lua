@@ -33,8 +33,8 @@ end
 
 local function eliminate_left_recursion(grammar)
   local symbol_names = grammar.symbol_names
-  local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
+  local productions = grammar.productions
 
   local new_symbol_names = symbol_names:slice()
   local new_productions = tree_set(productions.tree_compare)
@@ -144,8 +144,8 @@ end
 ---------------------------------------------------------------------------
 
 local function lr0_closure(grammar, items)
-  local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
+  local productions = grammar.productions
 
   for _, item in items:ipairs() do
     local symbol = productions[item.index].body[item.dot]
@@ -195,8 +195,8 @@ end
 ---------------------------------------------------------------------------
 
 local function lr1_closure(grammar, items)
-  local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
+  local productions = grammar.productions
 
   for _, item in items:ipairs() do
     local body = productions[item.index].body
@@ -222,8 +222,8 @@ end
 local marker_lookahead = -1
 
 local function lalr1_kernels(grammar, set_of_items, transitions)
-  local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
+  local productions = grammar.productions
 
   local set_of_kernel_items = list()
   local map_of_kernel_items = list()
@@ -359,6 +359,7 @@ end
 
 -- TODO これはcompileにうつす？
 local function lr1_construct_table(grammar, set_of_items, transitions)
+  local symbol_names = grammar.symbol_names
   local max_terminal_symbol = grammar.max_terminal_symbol
   local expect_sr = grammar.expect_sr
   local productions = grammar.productions
@@ -400,7 +401,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
           if message == nil then
             sr = sr + 1
           else
-            local buffer = list("[info] conflict between production ", item.index, " and symbol ", grammar.symbol_names[item.la], " resolved as ")
+            local buffer = list("[info] conflict between production ", item.index, " and symbol ", symbol_names[item.la], " resolved as ")
             if reduce == nil then
               data[item.la] = 0
               buffer:append "an error"
@@ -442,7 +443,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
       conflictions:append(table.concat(buffer))
     end
 
-    for symbol = 1, #grammar.symbol_names do
+    for symbol = 1, #symbol_names do
       if data[symbol] == nil then
         data[symbol] = 0
       end
@@ -484,7 +485,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
 
   return {
     conflictions = conflictions;
-    symbol_names = grammar.symbol_names;
+    symbol_names = symbol_names;
     max_state = max_state;
     max_terminal_symbol = max_terminal_symbol;
     actions = actions;
