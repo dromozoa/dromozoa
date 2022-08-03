@@ -334,7 +334,7 @@ end
 local function resolve_sr(grammar, item)
   local rp, rname, associativity = production_precedence(grammar, item.index)
   if rp == 0 then
-    return false
+    return
   end
   local sp, sname = symbol_precedence(grammar, item.la)
 
@@ -383,17 +383,14 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
           data[item.la] = item.index + max_state
         elseif action > max_state then
           -- reduce/reduce
-          local index = action - max_state
-          if item.index < index then
+          if item.index < action - max_state then
             data[item.la] = item.index + max_state
           end
           rr = rr + 1
-        elseif action == 0 then
-          -- error/reduce
-          -- なにもしない
-        else
-          local reduce, message = resolve_sr(grammar, item)
-          if message == nil then
+        elseif action ~= 0 then
+          -- shift/reduce
+          local reduce, resolver = resolve_sr(grammar, item)
+          if resolver == nil then
             sr = sr + 1
           else
             local buffer = list("[info] conflict between production ", item.index, " and symbol ", symbol_names[item.la], " resolved as ")
@@ -406,7 +403,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
             else
               buffer:append "shift"
             end
-            buffer:append(message)
+            buffer:append(resolver)
             conflictions:append(table.concat(buffer))
           end
         end
