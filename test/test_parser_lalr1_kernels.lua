@@ -29,38 +29,40 @@ local g = grammar({ "=", "*", "id" }, {
     + _"id";
   R = _"L";
 })
-
-g.first_table = lalr.first_table(lalr.eliminate_left_recursion(g))
-local set_of_items, transitions = lalr.lr0_items(g)
-local set_of_items = lalr.lalr1_kernels(g, set_of_items, transitions)
-
+local actions, conflictions, data = lalr(g)
 local buffer = list()
+for _, message in ipairs(conflictions) do
+  buffer:append(message, "\n")
+end
+local set_of_items = data.lalr1_set_of_items
+
 for i, items in ipairs(set_of_items) do
-  buffer:append(("="):rep(75), "\n")
-  buffer:append("I_", i - 1, "\n")
-  buffer:append(("-"):rep(75), "\n")
+  buffer:append(("="):rep(75), "\nI_", i - 1, "\n", ("-"):rep(75), "\n")
   for _, item in items:ipairs() do
-    local production = g.productions[item.index]
-    buffer:append(g.symbol_names[production.head], " ->")
-    for j, symbol in ipairs(production.body) do
-      if j == item.dot then
+    -- カーネル項だけを出力する
+    if item.index == 1 or item.dot > 1 then
+      local production = g.productions[item.index]
+      buffer:append(g.symbol_names[production.head], " ->")
+      for j, symbol in ipairs(production.body) do
+        if j == item.dot then
+          buffer:append " ."
+        end
+        buffer:append(" ", g.symbol_names[symbol])
+      end
+      if not production.body[item.dot] then
         buffer:append " ."
       end
-      buffer:append(" ", g.symbol_names[symbol])
+      buffer:append(", ", g.symbol_names[item.la], "\n")
     end
-    if not production.body[item.dot] then
-      buffer:append " ."
-    end
-    buffer:append(", ", g.symbol_names[item.la], "\n")
   end
   buffer:append(("-"):rep(75), "\n")
-  for symbol, j in transitions[i]:pairs() do
+  for symbol, j in data.transitions[i]:pairs() do
     buffer:append("I_", i - 1, " -> I_", j - 1, " ", g.symbol_names[symbol], "\n")
   end
 end
 buffer:append(("="):rep(75), "\n")
 
--- print(table.concat(buffer))
+print(table.concat(buffer))
 assert(table.concat(buffer) == [[
 ===========================================================================
 I_0
