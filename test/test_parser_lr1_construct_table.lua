@@ -135,10 +135,10 @@ assert(table.concat(buffer) == [[
 |  6 |     |     |  r2 |     |     |     |
 |  7 |  r3 |  r3 |  r3 |     |     |     |
 ---------------------------------------------------------------------------
-shift(5) / reduce(2) conflict resolved as reduce: precedence 1 == 1 associativity left at state(8) symbol(+)
-shift(6) / reduce(2) conflict resolved as shift: precedence 2 > 1 at state(8) symbol(*)
-shift(5) / reduce(3) conflict resolved as reduce: precedence 1 < 2 at state(9) symbol(+)
-shift(6) / reduce(3) conflict resolved as reduce: precedence 2 == 2 associativity left at state(9) symbol(*)
+shift(5) / reduce(2) conflict resolved as reduce(2): precedence 1 == 1 associativity left at state(8) symbol(+)
+shift(6) / reduce(2) conflict resolved as shift(6): precedence 2 > 1 at state(8) symbol(*)
+shift(5) / reduce(3) conflict resolved as reduce(3): precedence 1 < 2 at state(9) symbol(+)
+shift(6) / reduce(3) conflict resolved as reduce(3): precedence 2 == 2 associativity left at state(9) symbol(*)
 |    |  id |  +  |  *  |  (  |  )  |  $  |  E' |  E  |
 |  1 |  s4 |     |     |  s3 |     |     |     |  s2 |
 |  2 |     |  s5 |  s6 |     |     | acc |     |     |
@@ -151,7 +151,7 @@ shift(6) / reduce(3) conflict resolved as reduce: precedence 2 == 2 associativit
 |  9 |     |  r3 |  r3 |     |  r3 |  r3 |     |     |
 | 10 |     |  r4 |  r4 |     |  r4 |  r4 |     |     |
 ---------------------------------------------------------------------------
-shift(6) / reduce(3) conflict resolved as shift at state(5) symbol(e)
+shift(6) / reduce(3) conflict resolved as shift(6) at state(5) symbol(e)
 |    |  i  |  e  |  a  |  $  |  S' |  S  |
 |  1 |  s3 |     |  s4 |     |     |  s2 |
 |  2 |     |     |     | acc |     |     |

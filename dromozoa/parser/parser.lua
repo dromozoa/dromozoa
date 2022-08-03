@@ -338,6 +338,46 @@ local function production_precedence(grammar, index)
   return 0
 end
 
+-- return overwrite, a
+local function resolve(action, max_state, item, grammar)
+  if action == nil then
+    return true
+  end
+
+  if action == 0 then
+    return false, "error"
+  end
+
+  if action > max_state then
+    local index = action - max_state
+    return item.index < index, "reduce(" .. index .. ")"
+  end
+
+  local a = "shift(" .. action .. ")"
+  local precedence, associativity = production_precedence(grammar, item.index)
+  if precedence == 0 then
+    return false, a
+  end
+
+  local shift_precedence = symbol_precedence(grammar, item.la)
+  if shift_precedence < precedence then
+    return true, a, "precedence " .. shift_precedence .. " < " .. precedence
+  end
+  if shift_precedence > precedence then
+    return false, a, "precedence " .. shift_precedence .. " > " .. precedence
+  end
+
+  local message = "precedence " .. shift_precedence .. " == " .. precedence .. " associativity " .. associativity
+
+  if associativity == "left" then
+    return true, a, message
+  end
+  if associativity == "nonassoc" then
+    return nil, a, message
+  end
+  return false, a, message
+end
+
 -- TODO 衝突の情報はまとめておいて返す
 -- TODO これはcompileにうつす？
 local function lr1_construct_table(grammar, set_of_items, transitions, fn)
@@ -370,7 +410,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
 
           if action == 0 then
             a = "error"
-            buffer:append "an error"
+            buffer:append(a)
           elseif action <= max_state then
             a  = "shift(" .. action .. ")"
             local precedence, associativity = production_precedence(grammar, item.index)
@@ -378,23 +418,25 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
               local shift_precedence = symbol_precedence(grammar, item.la)
               if shift_precedence == precedence then
                 if associativity == "left" then
-                  buffer:append "reduce"
+                  buffer:append(b)
                   data[item.la] = item.index + max_state
                 elseif associativity == "nonassoc" then
-                  buffer:append "an error"
+                  buffer:append "error"
                   data[item.la] = 0
                 else
-                  buffer:append "shift"
+                  buffer:append(a)
                 end
                 buffer:append(": precedence ", shift_precedence, " == ", precedence, " associativity ", associativity)
               elseif shift_precedence < precedence then
-                buffer:append("reduce: precedence ", shift_precedence, " < ", precedence)
+                buffer:append(b)
+                buffer:append(": precedence ", shift_precedence, " < ", precedence)
                 data[item.la] = item.index + max_state
               else
-                buffer:append("shift: precedence ", shift_precedence, " > ", precedence)
+                buffer:append(a)
+                buffer:append(": precedence ", shift_precedence, " > ", precedence)
               end
             else
-              buffer:append "shift"
+              buffer:append(a)
             end
           else
             local index = action - max_state
