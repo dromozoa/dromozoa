@@ -359,12 +359,15 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
 
     for _, item in items:ipairs() do
       if productions[item.index].body[item.dot] == nil then
-        local buffer = list(false, false)
 
         local action = data[item.la]
-        if action ~= nil then
+        if action == nil then
+          data[item.la] = item.index + max_state
+        else
+          local buffer = list(false)
+          buffer:append(" / reduce(" .. item.index .. ") conflict resolved as ")
+
           if action == 0 then
-            -- TODO 一回エラーにしたやつをもっかい触らない
             buffer[1] = "error"
             buffer:append "an error"
           elseif action <= max_state then
@@ -402,15 +405,9 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
               buffer:append "the former"
             end
           end
-        else
-          data[item.la] = item.index + max_state
-        end
 
-        if buffer[1] then
-          buffer[2] = " / reduce(" .. item.index .. ") conflict resolved as "
           buffer:append(" at state(", i, ") symbol(", grammar.symbol_names[item.la], ")")
           conflictions:append(table.concat(buffer))
-          -- fn(table.concat(buffer))
         end
       end
     end
