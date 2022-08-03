@@ -25,56 +25,50 @@ local left = grammar.left
 local right = grammar.right
 local nonassoc = grammar.nonassoc
 
--- TODO 整理する
--- compile(parser(grammar()))
--- compile(regexp(grammar()))
--- compile(machine(pattern()))
-
 local G = {
-  -- P.269
+  -- P.269 Example 4.60
   grammar({ "c", "d" }, {
     S = _"C" "C";
     C = _"c" "C"
       + _"d";
   });
 
-  -- P.281
+  -- P.281 Figure 4.49
   grammar({ "id", "+", "*", "(", ")" }, {
     left "+";
     left "*";
-
     E = _"E" "+" "E"
       + _"E" "*" "E"
       + _"(" "E" ")"
       + _"id";
   });
 
-  -- P.282
+  -- P.282 Figure 4.51
   grammar({ "i", "e", "a" }, {
     expect(1);
-
     S = _"i" "S" "e" "S"
       + _"i" "S"
       + _"a";
   });
 
+  -- 右結合のテスト
   grammar({ "id", ".." }, {
     right "..";
     E = _"E" ".." "E"
       + _"id";
   });
 
+  -- 無結合のテスト
   grammar({ "id", "==" }, {
     nonassoc "==";
     E = _"E" "==" "E"
       + _"id";
   });
 
+  -- reduce/reduce衝突のテスト
   -- https://www.gnu.org/software/bison/manual/html_node/Reduce_002fReduce.html
-
   grammar({ "id" }, {
-    expect(3);
-
+    expect(3); -- おおすぎるexpectのテスト
     S = _
       + _"K"
       + _"S" "id";
@@ -82,13 +76,13 @@ local G = {
       + _"id";
   });
 
+  -- reduce/reduceが起こらない文法
   grammar({ "id" }, {
     S = _
       + _"S" "id"
   });
 
-  -- production precedence
-
+  -- 生成規則の優先順位のテスト
   grammar({ "id", "-" } , {
     left "-";
     right "UNM";
@@ -98,6 +92,7 @@ local G = {
       + _"id";
   });
 
+  -- 二項演算子の優先順位を定義しわすれた場合のテスト
   grammar({ "id", "-" } , {
     right "UNM";
 
