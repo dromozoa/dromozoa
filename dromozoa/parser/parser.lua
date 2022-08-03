@@ -91,6 +91,9 @@ local marker_epsilon = 0
 
 local first_symbols
 
+-- TODO 途中の情報を保存する
+-- 高速化
+-- 再帰の検出
 local function first_symbol(grammar, symbol)
   if symbol <= grammar.max_terminal_symbol then
     return tree_set():insert(symbol)
@@ -194,6 +197,8 @@ end
 
 ---------------------------------------------------------------------------
 
+-- TODO lr1_closure_cache
+-- 高速化
 local function lr1_closure(grammar, items)
   local max_terminal_symbol = grammar.max_terminal_symbol
   local productions = grammar.productions
@@ -445,33 +450,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
     conflictions:append("[warn] reduce/reduce conflicts: " .. total_rr .. " found")
   end
 
-  -- TODO この部分はcompileでよい
-  local heads = list()
-  local sizes = list()
-  local semantic_actions = list()
-  for i, production in productions:ipairs() do
-    heads[i] = production.head
-    sizes[i] = #production.body
-    if production.semantic_action == nil then
-      semantic_actions[i] = ""
-    else
-      semantic_actions[i] = production.semantic_action
-    end
-  end
-
   return actions, conflictions
-
-  -- return {
-  --   symbol_names = symbol_names;
-  --   max_terminal_symbol = grammar.max_terminal_symbol;
-
-  --   conflictions = conflictions;
-  --   actions = actions;
-
-  --   heads = heads;
-  --   sizes = sizes;
-  --   semantic_actions = semantic_actions;
-  -- }
 end
 
 ---------------------------------------------------------------------------
