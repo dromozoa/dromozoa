@@ -37,6 +37,7 @@ for _, message in ipairs(conflictions) do
 end
 
 local g = data.grammar_without_left_recursion
+
 for _, production in g.productions:ipairs() do
   buffer:append(g.symbol_names[production.head], " ->")
   for _, symbol in ipairs(production.body) do

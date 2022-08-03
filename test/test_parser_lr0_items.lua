@@ -30,11 +30,13 @@ local g = grammar({ "+", "*", "(", ")", "id" }, {
   F = _"(" "E" ")"
     + _"id";
 })
+
 local actions, conflictions, data = lalr(g)
 local buffer = list()
 for _, message in ipairs(conflictions) do
   buffer:append(message, "\n")
 end
+
 local set_of_items = data.lr0_set_of_items
 local transitions = data.transitions
 
