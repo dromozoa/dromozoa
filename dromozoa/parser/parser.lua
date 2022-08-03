@@ -313,7 +313,7 @@ end
 
 local function symbol_precedence(grammar, symbol)
   local precedence = grammar.symbol_precedences[symbol]
-  if precedence then
+  if precedence ~= nil then
     return precedence.precedence, precedence.associativity
   else
     return 0
@@ -322,7 +322,7 @@ end
 
 local function production_precedence(grammar, index)
   local precedence = grammar.production_precedences[index]
-  if precedence then
+  if precedence ~= nil then
     return precedence.precedence, precedence.associativity
   end
 
@@ -395,6 +395,8 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
         if action == nil then
           data[item.la] = item.index + max_state
         else
+          -- shiftとreduceは関数なので()にする
+          -- それ以外は？
           local overwrite, a, message = resolve(grammar, max_state, action, item)
           local b = "reduce(" .. item.index .. ")"
           local buffer = list(a, " / ", b, " conflict resolved as ")

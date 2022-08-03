@@ -137,26 +137,16 @@ function metatable:__call(token_names, that)
   end
   local max_terminal_symbol = #symbol_names:append "$"
 
-  local precedence = 0
   local precedence_table = tree_map2()
   local symbol_precedences = {}
-
   for i, v in ipairs(that) do
     assert(getmetatable(v).__name == "dromozoa.parser.grammar.precedence")
-    precedence = precedence + 1
-    assert(precedence == i)
     for _, name in ipairs(v) do
       local symbol = symbol_table[name]
-      if symbol ~= nil and symbol <= max_terminal_symbol then
-        symbol_precedences[symbol] = {
-          precedence = precedence;
-          associativity = v[0];
-        }
+      if symbol == nil then
+        precedence_table:insert(name, { precedence = i, associativity = v[0] })
       else
-        precedence_table:insert(name, {
-          precedence = precedence;
-          associativity = v[0];
-        })
+        symbol_precedences[symbol] = { precedence = i, associativity = v[0] }
       end
     end
   end
@@ -164,22 +154,13 @@ function metatable:__call(token_names, that)
   local data = list()
   for k, v in pairs(that) do
     if type(k) == "string" then
-      data:append { timestamp = v.timestamp, k = k, v = v }
+      data:append { timestamp = assert(v.timestamp), k = k, v = v }
     end
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
-  local augumented_start_head = #symbol_names:append(data[1].k .. "'")
-  local augumented_start_body = augumented_start_head + 1
-  local productions = tree_set(function (a, b)
-    if a.head ~= b.head then
-      return a.head < b.head and -1 or 1
-    end
-    if a.head_index ~= b.head_index then
-      return a.head_index < b.head_index and -1 or 1
-    end
-    error "production is not unique"
-  end):insert { head = augumented_start_head, head_index = 1, body = list(augumented_start_body) }
+  local start_head = #symbol_names:append(data[1].k .. "'")
+  local start_body = start_head + 1
 
   for _, u in ipairs(data) do
     local k = u.k
@@ -193,18 +174,26 @@ function metatable:__call(token_names, that)
     if v[0] == "body" then
       assert(getmetatable(v).__name == "dromozoa.parser.grammar.body")
       u.v = bodies(v)
+    else
+      assert(getmetatable(v).__name == "dromozoa.parser.grammar.bodies")
     end
   end
 
+  local productions = tree_set(function (a, b)
+    if a.head ~= b.head then
+      return a.head < b.head and -1 or 1
+    end
+    assert(a.head_index ~= b.head_index)
+    return a.head_index < b.head_index and -1 or 1
+  end):insert { head = start_head, head_index = 1, body = list(start_body) }
+
   local production_precedences = {}
-  -- シークエンスを保証する
-  -- TODO 先に足してるからわかりにくい
   local semantic_actions = { "" }
 
   local used_symbols = {
     [max_terminal_symbol] = true;
-    [augumented_start_head] = true;
-    [augumented_start_body] = true;
+    [start_head] = true;
+    [start_body] = true;
   }
   local used_precedences = {}
 
@@ -229,6 +218,7 @@ function metatable:__call(token_names, that)
         production_precedences[n] = precedence
         used_precedences[v.precedence] = true
       end
+
       if v.semantic_action == nil then
         semantic_actions[n] = ""
       else
