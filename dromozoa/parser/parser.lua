@@ -364,14 +364,15 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
         if action == nil then
           data[item.la] = item.index + max_state
         else
-          local buffer = list(false)
-          buffer:append(" / reduce(" .. item.index .. ") conflict resolved as ")
+          local buffer = list()
+          local a
+          local b = "reduce(" .. item.index .. ")"
 
           if action == 0 then
-            buffer[1] = "error"
+            a = "error"
             buffer:append "an error"
           elseif action <= max_state then
-            buffer[1] = "shift(" .. action .. ")"
+            a  = "shift(" .. action .. ")"
             local precedence, associativity = production_precedence(grammar, item.index)
             if precedence > 0 then
               local shift_precedence = symbol_precedence(grammar, item.la)
@@ -397,17 +398,17 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
             end
           else
             local index = action - max_state
-            buffer[1] = "reduce(" .. index .. ")"
+            a = "reduce(" .. index .. ")"
             if item.index < index then
-              buffer:append "the latter"
+              buffer:append(b)
               data[item.la] = item.index + max_state
             else
-              buffer:append "the former"
+              buffer:append(a)
             end
           end
 
           buffer:append(" at state(", i, ") symbol(", grammar.symbol_names[item.la], ")")
-          conflictions:append(table.concat(buffer))
+          conflictions:append(a .. " / " .. b .. " conflict resolved as " .. table.concat(buffer))
         end
       end
     end
