@@ -38,12 +38,11 @@ local function eliminate_left_recursion(grammar)
   local symbol_names = grammar.symbol_names
   local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
-  local max_nonterminal_symbol = grammar.max_nonterminal_symbol
 
   local new_symbol_names = symbol_names:slice()
   local new_productions = tree_set(productions.tree_compare)
 
-  for i = max_terminal_symbol + 1, max_nonterminal_symbol do
+  for i = max_terminal_symbol + 1, #symbol_names do
     local n = #new_symbol_names + 1
     local n_bodies = list()
     local i_bodies = list()
@@ -85,7 +84,6 @@ local function eliminate_left_recursion(grammar)
   return {
     symbol_names = new_symbol_names;
     max_terminal_symbol = max_terminal_symbol;
-    max_nonterminal_symbol = #new_symbol_names;
     productions = new_productions;
   }
 end
@@ -140,7 +138,7 @@ end
 
 local function first_table(grammar)
   local result = {}
-  for symbol = grammar.max_terminal_symbol + 1, grammar.max_nonterminal_symbol do
+  for symbol = grammar.max_terminal_symbol + 1, #grammar.symbol_names do
     result[symbol] = first_symbol(grammar, symbol)
   end
   return result
@@ -419,7 +417,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
       end
     end
 
-    for symbol = 1, grammar.max_nonterminal_symbol do
+    for symbol = 1, #grammar.symbol_names do
       if data[symbol] == nil then
         data[symbol] = 0
       end
@@ -440,7 +438,6 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
     symbol_names = grammar.symbol_names;
     max_state = max_state;
     max_terminal_symbol = max_terminal_symbol;
-    max_nonterminal_symbol = grammar.max_nonterminal_symbol;
     actions = actions;
     heads = heads;
     sizes = sizes;

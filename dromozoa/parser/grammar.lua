@@ -241,7 +241,6 @@ function metatable:__call(token_names, that)
   return {
     symbol_names = symbol_names;
     max_terminal_symbol = max_terminal_symbol;
-    max_nonterminal_symbol = #symbol_names;
     productions = productions;
     symbol_precedences = symbol_precedences;
     production_precedences = production_precedences;
