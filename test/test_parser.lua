@@ -83,7 +83,7 @@ local function dump(x, depth)
 end
 dump(x)
 
-print(table.concat(buffer))
+-- print(table.concat(buffer))
 assert(table.concat(buffer) == [[
 [info] conflict between production 2 and symbol + resolved as reduce (left +)
 [info] conflict between production 2 and symbol * resolved as shift (+ < *)

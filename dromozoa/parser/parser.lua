@@ -309,9 +309,9 @@ end
 local function symbol_precedence(grammar, symbol)
   local precedence = grammar.symbol_precedences[symbol]
   if precedence ~= nil then
-    return precedence.name, precedence.precedence, precedence.associativity
+    return precedence.precedence, precedence.name, precedence.associativity
   end
-  return grammar.symbol_names[symbol], 0
+  return 0, grammar.symbol_names[symbol]
 end
 
 local function production_precedence(grammar, index)
@@ -319,7 +319,7 @@ local function production_precedence(grammar, index)
 
   local precedence = production.precedence
   if precedence ~= nil then
-    return precedence.name, precedence.precedence, precedence.associativity
+    return precedence.precedence, precedence.name, precedence.associativity
   end
 
   local max_terminal_symbol = grammar.max_terminal_symbol
@@ -331,15 +331,15 @@ local function production_precedence(grammar, index)
     end
   end
 
-  return nil, 0
+  return 0
 end
 
 local function resolve_sr(grammar, item)
-  local rname, rp, associativity = production_precedence(grammar, item.index)
+  local rp, rname, associativity = production_precedence(grammar, item.index)
   if rp == 0 then
     return false
   end
-  local sname, sp = symbol_precedence(grammar, item.la)
+  local sp, sname = symbol_precedence(grammar, item.la)
 
   if sp < rp then
     return true, " (" .. sname .. " < " .. rname .. ")"
