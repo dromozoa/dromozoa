@@ -23,13 +23,7 @@ local lalr = require "dromozoa.parser.lalr"
 local _ = grammar.body
 local left = grammar.left
 
-local token_names = list("id", "+", "*", "(", ")")
-local token_table = {}
-for i, v in token_names:ipairs() do
-  token_table[v] = i
-end
-
-local g = grammar(token_names, {
+local g = grammar({ "id", "+", "*", "(", ")" }, {
   left "+";
   left "*";
 
@@ -40,29 +34,36 @@ local g = grammar(token_names, {
 })
 
 local actions, conflictions = lalr(g)
+local buffer = list()
+for _, message in ipairs(conflictions) do
+  buffer:append(message, "\n")
+end
+
 local code = compile(g, actions)
 local filename = "test-gen-parser.lua"
 local out = assert(io.open(filename, "w"))
 out:write(code)
 out:close()
 
-local buffer = list()
-for _, message in ipairs(conflictions) do
-  buffer:append(message, "\n")
+local parser = assert(assert(loadfile(filename))())
+local max_terminal_symbol = parser.max_terminal_symbol
+local symbol_names = parser.symbol_names
+local symbol_table = {}
+for i = 1, max_terminal_symbol - 1 do
+  symbol_table[symbol_names[i]] = i
 end
 
-local parser = assert(assert(loadfile(filename))())
 local p = parser()
-p { [0] = token_table["id"] }
-p { [0] = token_table["+"] }
-p { [0] = token_table["("] }
-p { [0] = token_table["id"] }
-p { [0] = token_table["+"] }
-p { [0] = token_table["id"] }
-p { [0] = token_table[")"] }
-p { [0] = token_table["*"] }
-p { [0] = token_table["id"] }
-local tree = p { [0] = #token_names + 1 }
+p { [0] = symbol_table["id"] }
+p { [0] = symbol_table["+"] }
+p { [0] = symbol_table["("] }
+p { [0] = symbol_table["id"] }
+p { [0] = symbol_table["+"] }
+p { [0] = symbol_table["id"] }
+p { [0] = symbol_table[")"] }
+p { [0] = symbol_table["*"] }
+p { [0] = symbol_table["id"] }
+local tree = p { [0] = max_terminal_symbol }
 
 local function dump(u, depth)
   depth = depth == nil and 0 or depth + 1

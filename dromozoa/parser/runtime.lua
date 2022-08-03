@@ -60,18 +60,18 @@ local static_data = { ]];
 context["static_data"];
 [[
  }
-local metatable = {}
+local metatable = { __index = static_data }
 function metatable:__call(token)
   return select(2, assert(coroutine.resume(self.thread, token)))
 end
-return function ()
-  local thread = coroutine.create(main)
-  assert(coroutine.resume(thread))
-  assert(coroutine.resume(thread, static_data))
-  return setmetatable({
-    thread = thread;
-    symbol_names = static_data.symbol_names;
-  }, metatable)
-end
+return setmetatable({}, {
+  __index = static_data;
+  __call = function ()
+    local thread = coroutine.create(main)
+    assert(coroutine.resume(thread))
+    assert(coroutine.resume(thread, static_data))
+    return setmetatable({ thread = thread }, metatable)
+  end;
+})
 ]];
 } end

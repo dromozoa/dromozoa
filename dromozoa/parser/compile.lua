@@ -51,6 +51,7 @@ return function (grammar, actions)
     "};\n")
 
   static_data:append(
+    "max_terminal_symbol=", grammar.max_terminal_symbol, ";\n",
     "max_state=", #actions, ";\n",
     "actions={")
 
