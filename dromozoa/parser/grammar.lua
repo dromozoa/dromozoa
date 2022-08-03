@@ -159,7 +159,7 @@ function metatable:__call(token_names, that)
       for _, name in ipairs(v) do
         local symbol = symbol_table[name]
         if symbol == nil then
-          precedence_table:insert(name, { precedence = precedence, associativity = v[0] })
+          precedence_table:insert(name, { precedence = precedence, associativity = v[0], name = name })
         else
           symbol_precedences[symbol] = { precedence = precedence, associativity = v[0] }
         end
@@ -203,9 +203,6 @@ function metatable:__call(token_names, that)
     return a.head_index < b.head_index and -1 or 1
   end):insert { head = start_head, head_index = 1, body = list(start_body) }
 
-  local production_precedences = {}
-  local semantic_actions = { "" }
-
   local used_symbols = {
     [max_terminal_symbol] = true;
     [start_head] = true;
@@ -224,23 +221,16 @@ function metatable:__call(token_names, that)
         body:append(symbol)
         used_symbols[symbol] = true
       end
-      local production = { head = u.k, head_index = i, body = body }
-      local n = select(2, productions:insert(production))
-
+      local production = { head = u.k, head_index = i, body = body, semantic_action = v.semantic_action }
       if v.precedence ~= nil then
         local precedence = precedence_table:get(v.precedence)
         if precedence == nil then
           error("precedence " .. v.precedence .. " not defined")
         end
-        production_precedences[n] = precedence
+        production.precedence = precedence
         used_precedences[v.precedence] = true
       end
-
-      if v.semantic_action == nil then
-        semantic_actions[n] = ""
-      else
-        semantic_actions[n] = v.semantic_action
-      end
+      productions:insert(production)
     end
   end
 
@@ -261,8 +251,6 @@ function metatable:__call(token_names, that)
     expect_sr = expect_sr;
     symbol_precedences = symbol_precedences;
     productions = productions;
-    production_precedences = production_precedences;
-    semantic_actions = semantic_actions;
   }
 end
 

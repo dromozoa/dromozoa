@@ -316,9 +316,11 @@ local function symbol_precedence(grammar, symbol)
 end
 
 local function production_precedence(grammar, index)
-  local precedence = grammar.production_precedences[index]
+  local production = grammar.productions[index]
+
+  local precedence = production.precedence
   if precedence ~= nil then
-    return precedence.precedence, precedence.associativity, grammar.productions[index].body.precedence
+    return precedence.precedence, precedence.associativity, precedence.name
   end
 
   local max_terminal_symbol = grammar.max_terminal_symbol
@@ -377,8 +379,6 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
     for symbol, j in transitions[i]:pairs() do
       data[symbol] = j
     end
-
-    -- TODO semantic_actionとprecedenceをproductionsにもちまわる
 
     local sr = 0
     local rr = 0
@@ -471,11 +471,18 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
     conflictions:append("[warn] reduce/reduce conflicts: " .. total_rr .. " found")
   end
 
+  -- TODO この部分はcompileでよい
   local heads = list()
   local sizes = list()
+  local semantic_actions = list()
   for i, production in productions:ipairs() do
     heads[i] = production.head
     sizes[i] = #production.body
+    if production.semantic_action == nil then
+      semantic_actions[i] = ""
+    else
+      semantic_actions[i] = production.semantic_action
+    end
   end
 
   return {
@@ -486,7 +493,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
     actions = actions;
     heads = heads;
     sizes = sizes;
-    semantic_actions = grammar.semantic_actions;
+    semantic_actions = semantic_actions;
   }
 end
 
