@@ -400,7 +400,6 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
           data[item.la] = item.index + max_state
         else
 
---[[
           local overwrite, a, message = resolve(grammar, max_state, action, item)
           local b = "reduce(" .. item.index .. ")"
           local buffer = list(a .. " / " .. b .. " conflict resolved as ")
@@ -419,55 +418,6 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
           end
           buffer:append(" at state(", i, ") symbol(", grammar.symbol_names[item.la], ")")
           conflictions:append(table.concat(buffer))
-]]
-
-          local buffer = list()
-          local a
-          local b = "reduce(" .. item.index .. ")"
-
-          if action == 0 then
-            a = "error"
-            buffer:append(a)
-          elseif action <= max_state then
-            a  = "shift(" .. action .. ")"
-            local precedence, associativity = production_precedence(grammar, item.index)
-            if precedence > 0 then
-              local shift_precedence = symbol_precedence(grammar, item.la)
-              if shift_precedence == precedence then
-                if associativity == "left" then
-                  buffer:append(b)
-                  data[item.la] = item.index + max_state
-                elseif associativity == "nonassoc" then
-                  buffer:append "error"
-                  data[item.la] = 0
-                else
-                  buffer:append(a)
-                end
-                buffer:append(": precedence ", shift_precedence, " == ", precedence, " associativity ", associativity)
-              elseif shift_precedence < precedence then
-                buffer:append(b)
-                buffer:append(": precedence ", shift_precedence, " < ", precedence)
-                data[item.la] = item.index + max_state
-              else
-                buffer:append(a)
-                buffer:append(": precedence ", shift_precedence, " > ", precedence)
-              end
-            else
-              buffer:append(a)
-            end
-          else
-            local index = action - max_state
-            a = "reduce(" .. index .. ")"
-            if item.index < index then
-              buffer:append(b)
-              data[item.la] = item.index + max_state
-            else
-              buffer:append(a)
-            end
-          end
-
-          buffer:append(" at state(", i, ") symbol(", grammar.symbol_names[item.la], ")")
-          conflictions:append(a .. " / " .. b .. " conflict resolved as " .. table.concat(buffer))
 
         end
       end
