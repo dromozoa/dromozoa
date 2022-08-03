@@ -413,7 +413,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
           ]]
           local overwrite, a, message = resolve(grammar, max_state, action, item)
           local b = "reduce(" .. item.index .. ")"
-          local buffer = list(a, " / ", b, " conflict resolved as ")
+          local buffer = list("conflict between ", a, " and ", b, " resolved as ")
 
           if overwrite == nil then
             data[item.la] = 0
