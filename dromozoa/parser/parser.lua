@@ -357,14 +357,17 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
       data[symbol] = j
     end
 
-    local error_table = {}
     for _, item in items:ipairs() do
       if productions[item.index].body[item.dot] == nil then
         local buffer = list(false, false)
 
         local action = data[item.la]
         if action ~= nil then
-          if action <= max_state then
+          if action == 0 then
+            -- TODO 一回エラーにしたやつをもっかい触らない
+            buffer[1] = "error"
+            buffer:append "an error"
+          elseif action <= max_state then
             buffer[1] = "shift(" .. action .. ")"
             local precedence, associativity = production_precedence(grammar, item.index)
             if precedence > 0 then
@@ -375,8 +378,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
                   data[item.la] = item.index + max_state
                 elseif associativity == "nonassoc" then
                   buffer:append "an error"
-                  data[item.la] = nil
-                  error_table[item.la] = true
+                  data[item.la] = 0
                 else
                   buffer:append "shift"
                 end
@@ -400,10 +402,6 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
               buffer:append "the former"
             end
           end
-        -- 一回エラーにしたやつをもっかい触らないように (0か-1をいれておけば？）
-        elseif error_table[item.la] then
-          buffer[1] = "error"
-          buffer:append "an error"
         else
           data[item.la] = item.index + max_state
         end
