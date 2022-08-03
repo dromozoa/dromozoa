@@ -383,9 +383,8 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
   local conflictions = list()
 
   for i, items in ipairs(set_of_items) do
-    local data = {} -- シークエンスが保証される
+    local data = {} -- 配列を保証する
 
-    -- shiftを埋める
     for symbol, j in transitions[i]:pairs() do
       data[symbol] = j
     end
@@ -397,14 +396,13 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
         if action == nil then
           data[item.la] = item.index + max_state
         else
-
           local overwrite, a, message = resolve(grammar, max_state, action, item)
           local b = "reduce(" .. item.index .. ")"
-          local buffer = list(a .. " / " .. b .. " conflict resolved as ")
+          local buffer = list(a, " / ", b, " conflict resolved as ")
 
           if overwrite == nil then
             data[item.la] = 0
-            buffer:append "error"
+            buffer:append "an error"
           elseif overwrite then
             data[item.la] = item.index + max_state
             buffer:append(b)
@@ -416,7 +414,6 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
           end
           buffer:append(" at state(", i, ") symbol(", grammar.symbol_names[item.la], ")")
           conflictions:append(table.concat(buffer))
-
         end
       end
     end
