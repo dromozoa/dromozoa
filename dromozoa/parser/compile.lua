@@ -37,7 +37,6 @@ return function (that)
   static_data:append(
     "max_state=", that.max_state, ";\n",
     "actions={")
-    -- max_nonterminal_symbolは必要？
 
   for _, action in ipairs(that.actions) do
     static_data:append("_[", select(2, shared_set:insert(action)), "],")
