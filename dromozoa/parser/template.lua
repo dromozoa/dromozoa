@@ -141,11 +141,11 @@ end
 local _ = { $shared_data }
 local static_data = { $static_data }
 
-local metatable = { __index = static_data }
-
-function metatable:__call(token)
-  return select(2, assert(coroutine.resume(self.thread, token)))
-end
+local metatable = {
+  __call = function (self, token)
+    return select(2, assert(coroutine.resume(self.thread, token)))
+  end;
+}
 
 return setmetatable({}, {
   __index = static_data;

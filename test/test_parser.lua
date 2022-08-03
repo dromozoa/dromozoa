@@ -67,7 +67,7 @@ local tree = p { [0] = max_terminal_symbol }
 
 local function dump(u, depth)
   depth = depth == nil and 0 or depth + 1
-  buffer:append(("  "):rep(depth), p.symbol_names[u[0]], "\n")
+  buffer:append(("  "):rep(depth), symbol_names[u[0]], "\n")
   for _, v in ipairs(u) do
     dump(v, depth)
   end
