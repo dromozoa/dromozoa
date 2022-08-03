@@ -354,7 +354,6 @@ local function resolve_sr(grammar, item, saction, raction, buffer)
   end
 end
 
--- TODO これはcompileにうつす？
 local function lr1_construct_table(grammar, set_of_items, transitions)
   local symbol_names = grammar.symbol_names
   local expect_sr = grammar.expect_sr
@@ -460,17 +459,19 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
     end
   end
 
-  return {
-    symbol_names = symbol_names;
-    max_terminal_symbol = grammar.max_terminal_symbol;
+  return actions, conflictions
 
-    conflictions = conflictions;
-    actions = actions;
+  -- return {
+  --   symbol_names = symbol_names;
+  --   max_terminal_symbol = grammar.max_terminal_symbol;
 
-    heads = heads;
-    sizes = sizes;
-    semantic_actions = semantic_actions;
-  }
+  --   conflictions = conflictions;
+  --   actions = actions;
+
+  --   heads = heads;
+  --   sizes = sizes;
+  --   semantic_actions = semantic_actions;
+  -- }
 end
 
 ---------------------------------------------------------------------------
@@ -482,8 +483,7 @@ function metatable:__call(grammar)
   local eliminated = eliminate_left_recursion(grammar)
   grammar.first_table = first_table(eliminated)
   local set_of_items, transitions = lalr1_items(grammar)
-  local table = lr1_construct_table(grammar, set_of_items, transitions)
-  return table
+  return lr1_construct_table(grammar, set_of_items, transitions)
 end
 
 ---------------------------------------------------------------------------

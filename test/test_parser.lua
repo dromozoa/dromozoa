@@ -43,12 +43,12 @@ local g = grammar(token_names, {
 })
 
 local buffer = list()
-local p = parser(g)
-for _, message in ipairs(p.conflictions) do
+local actions, conflictions = parser(g)
+for _, message in ipairs(conflictions) do
   buffer:append(message, "\n")
 end
 
-local code = compile(p)
+local code = compile(g, actions)
 
 local filename = "test-gen-parser.lua"
 local out = assert(io.open(filename, "w"))

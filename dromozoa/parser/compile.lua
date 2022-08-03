@@ -19,36 +19,52 @@ local list = require "dromozoa.list"
 local tree_set = require "dromozoa.tree_set"
 local runtime = require "dromozoa.parser.runtime"
 
-return function (that)
+return function (grammar, actions)
   local shared_set = tree_set()
   local shared_data = list()
   local static_data = list()
   local action_set = tree_set()
   local action_data = list()
 
+  local symbol_names = grammar.symbol_names
+  local productions = grammar.productions
+
+  local heads = list()
+  local sizes = list()
+  local semantic_actions = list()
+  for i, production in productions:ipairs() do
+    heads[i] = production.head
+    sizes[i] = #production.body
+    if production.semantic_action == nil then
+      semantic_actions[i] = ""
+    else
+      semantic_actions[i] = production.semantic_action
+    end
+  end
+
   static_data:append(
     "symbol_names={")
-  for _, v in ipairs(that.symbol_names) do
+  for _, v in ipairs(symbol_names) do
     static_data:append(("%q,"):format(v))
   end
   static_data:append(
     "};\n")
 
   static_data:append(
-    "max_state=", #that.actions, ";\n",
+    "max_state=", #actions, ";\n",
     "actions={")
 
-  for _, action in ipairs(that.actions) do
+  for _, action in ipairs(actions) do
     static_data:append("_[", select(2, shared_set:insert(action)), "],")
   end
 
   static_data:append(
     "};\n",
-    "heads=_[", select(2, shared_set:insert(that.heads)), "];\n",
-    "sizes=_[", select(2, shared_set:insert(that.sizes)), "];\n",
+    "heads=_[", select(2, shared_set:insert(heads)), "];\n",
+    "sizes=_[", select(2, shared_set:insert(sizes)), "];\n",
     "semantic_actions={")
 
-  for _, semantic_action in ipairs(that.semantic_actions) do
+  for _, semantic_action in ipairs(semantic_actions) do
     static_data:append(select(2, action_set:insert(semantic_action)), ",")
   end
 

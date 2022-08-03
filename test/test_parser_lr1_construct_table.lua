@@ -111,29 +111,29 @@ local buffer = list()
 
 for _, g in ipairs(G) do
   buffer:append(("-"):rep(75), "\n")
-  local t = parser(g)
-  for _, message in ipairs(t.conflictions) do
+  local actions, conflictions = parser(g)
+  for _, message in ipairs(conflictions) do
     buffer:append(message, "\n")
   end
 
   buffer:append "|    |"
-  for i = 1, #t.symbol_names do
-    buffer:append(("  %-2s |"):format(t.symbol_names[i]))
+  for i = 1, #g.symbol_names do
+    buffer:append(("  %-2s |"):format(g.symbol_names[i]))
   end
   buffer:append "\n"
 
-  for i, data in ipairs(t.actions) do
+  for i, data in ipairs(actions) do
     buffer:append(("| %2d |"):format(i))
-    for j = 1, #t.symbol_names do
+    for j = 1, #g.symbol_names do
       local v = data[j]
       if v == 0 then
         buffer:append "     |"
       else
         buffer:append " "
-        if v <= #t.actions then
+        if v <= #actions then
           buffer:append(("%3s"):format("s" .. v))
         else
-          local v = v - #t.actions
+          local v = v - #actions
           if v == 1 then
             buffer:append "acc"
           else
