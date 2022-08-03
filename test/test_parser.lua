@@ -23,9 +23,6 @@ local lalr = require "dromozoa.parser.lalr"
 local _ = grammar.body
 local left = grammar.left
 
--- local g = grammar({}):???():compile()
--- compile(g)
-
 local token_names = list("id", "+", "*", "(", ")")
 local token_table = {}
 for i, v in token_names:ipairs() do
@@ -42,21 +39,20 @@ local g = grammar(token_names, {
     + _"id";
 })
 
-local buffer = list()
 local actions, conflictions = lalr(g)
-for _, message in ipairs(conflictions) do
-  buffer:append(message, "\n")
-end
-
 local code = compile(g, actions)
-
 local filename = "test-gen-parser.lua"
 local out = assert(io.open(filename, "w"))
 out:write(code)
 out:close()
 
-local P = assert(assert(loadfile(filename))())
-local p = P()
+local buffer = list()
+for _, message in ipairs(conflictions) do
+  buffer:append(message, "\n")
+end
+
+local parser = assert(assert(loadfile(filename))())
+local p = parser()
 p { [0] = token_table["id"] }
 p { [0] = token_table["+"] }
 p { [0] = token_table["("] }
@@ -66,22 +62,16 @@ p { [0] = token_table["id"] }
 p { [0] = token_table[")"] }
 p { [0] = token_table["*"] }
 p { [0] = token_table["id"] }
-local x = p { [0] = #token_names + 1 }
+local tree = p { [0] = #token_names + 1 }
 
-local function dump(x, depth)
-  if depth == nil then
-    depth = 0
-  else
-    depth = depth + 1
-  end
-  buffer:append(("  "):rep(depth))
-  buffer:append(p.symbol_names[x[0]])
-  buffer:append("\n")
-  for _, y in ipairs(x) do
-    dump(y, depth)
+local function dump(u, depth)
+  depth = depth == nil and 0 or depth + 1
+  buffer:append(("  "):rep(depth), p.symbol_names[u[0]], "\n")
+  for _, v in ipairs(u) do
+    dump(v, depth)
   end
 end
-dump(x)
+dump(tree)
 
 -- print(table.concat(buffer))
 assert(table.concat(buffer) == [[

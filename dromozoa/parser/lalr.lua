@@ -466,11 +466,9 @@ function metatable:__call(grammar)
     lr1_closure(grammar, items)
   end
   local actions, conflictions = lr1_construct_table(grammar, lalr1_set_of_items, transitions)
+
   return actions, conflictions, {
     grammar = grammar;
-    actions = actions;
-    conflictions = conflictions;
-
     grammar_without_left_recursion = grammar_without_left_recursion;
     lr0_set_of_items = lr0_set_of_items;
     lalr1_set_of_items = lalr1_set_of_items;
