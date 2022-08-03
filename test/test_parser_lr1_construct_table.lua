@@ -124,7 +124,7 @@ for _, g in ipairs(G) do
 
 end
 
--- print(table.concat(buffer))
+print(table.concat(buffer))
 assert(table.concat(buffer) == [[
 ---------------------------------------------------------------------------
 |    |  c  |  d  |  $  |  S' |  S  |  C  |
@@ -136,10 +136,10 @@ assert(table.concat(buffer) == [[
 |  6 |     |     |  r2 |     |     |     |
 |  7 |  r3 |  r3 |  r3 |     |     |     |
 ---------------------------------------------------------------------------
-conflict between shift(5) and reduce(2) resolved as reduce(2): precedence 1 == 1 associativity left at state 8 production 2 symbol +
-conflict between shift(6) and reduce(2) resolved as shift(6): precedence 2 > 1 at state 8 production 2 symbol *
-conflict between shift(5) and reduce(3) resolved as reduce(3): precedence 1 < 2 at state 9 production 3 symbol +
-conflict between shift(6) and reduce(3) resolved as reduce(3): precedence 2 == 2 associativity left at state 9 production 3 symbol *
+[info] conflict between production 2 and symbol + resolved as reduce (left +)
+[info] conflict between production 2 and symbol * resolved as shift (+ < *)
+[info] conflict between production 3 and symbol + resolved as reduce (+ < *)
+[info] conflict between production 3 and symbol * resolved as reduce (left *)
 |    |  id |  +  |  *  |  (  |  )  |  $  |  E' |  E  |
 |  1 |  s4 |     |     |  s3 |     |     |     |  s2 |
 |  2 |     |  s5 |  s6 |     |     | acc |     |     |
@@ -152,7 +152,7 @@ conflict between shift(6) and reduce(3) resolved as reduce(3): precedence 2 == 2
 |  9 |     |  r3 |  r3 |     |  r3 |  r3 |     |     |
 | 10 |     |  r4 |  r4 |     |  r4 |  r4 |     |     |
 ---------------------------------------------------------------------------
-conflict between shift(6) and reduce(3) resolved as shift(6) at state 5 production 3 symbol e
+[warn] state 5 conflicts: 1 shift/reduce
 |    |  i  |  e  |  a  |  $  |  S' |  S  |
 |  1 |  s3 |     |  s4 |     |     |  s2 |
 |  2 |     |     |     | acc |     |     |
@@ -162,7 +162,7 @@ conflict between shift(6) and reduce(3) resolved as shift(6) at state 5 producti
 |  6 |  s3 |     |  s4 |     |     |  s7 |
 |  7 |     |  r2 |     |  r2 |     |     |
 ---------------------------------------------------------------------------
-conflict between shift(4) and reduce(2) resolved as shift(4): precedence 1 == 1 associativity right at state 5 production 2 symbol ..
+[info] conflict between production 2 and symbol .. resolved as shift (right ..)
 |    |  id |  .. |  $  |  E' |  E  |
 |  1 |  s3 |     |     |     |  s2 |
 |  2 |     |  s4 | acc |     |     |
@@ -170,7 +170,7 @@ conflict between shift(4) and reduce(2) resolved as shift(4): precedence 1 == 1 
 |  4 |  s3 |     |     |     |  s5 |
 |  5 |     |  s4 |  r2 |     |     |
 ---------------------------------------------------------------------------
-conflict between shift(4) and reduce(2) resolved as an error: precedence 1 == 1 associativity nonassoc at state 5 production 2 symbol ==
+[info] conflict between production 2 and symbol == resolved as an error (nonassoc ==)
 |    |  id |  == |  $  |  E' |  E  |
 |  1 |  s3 |     |     |     |  s2 |
 |  2 |     |  s4 | acc |     |     |
@@ -178,9 +178,7 @@ conflict between shift(4) and reduce(2) resolved as an error: precedence 1 == 1 
 |  4 |  s3 |     |     |     |  s5 |
 |  5 |     |     |  r2 |     |     |
 ---------------------------------------------------------------------------
-conflict between reduce(2) and reduce(5) resolved as reduce(2) at state 1 production 5 symbol $
-conflict between shift(4) and reduce(2) resolved as shift(4) at state 1 production 2 symbol id
-conflict between shift(4) and reduce(5) resolved as shift(4) at state 1 production 5 symbol id
+[warn] state 1 conflicts: 2 shift/reduce, 1 reduce/reduce
 |    |  id |  $  |  S' |  S  |  K  |
 |  1 |  s4 |  r2 |     |  s2 |  s3 |
 |  2 |  s5 | acc |     |     |     |

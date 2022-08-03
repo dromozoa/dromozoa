@@ -309,7 +309,7 @@ end
 local function symbol_precedence(grammar, symbol)
   local precedence = grammar.symbol_precedences[symbol]
   if precedence ~= nil then
-    return precedence.precedence, precedence.associativity
+    return precedence.precedence, precedence.associativity, grammar.symbol_names[symbol]
   else
     return 0
   end
@@ -318,7 +318,7 @@ end
 local function production_precedence(grammar, index)
   local precedence = grammar.production_precedences[index]
   if precedence ~= nil then
-    return precedence.precedence, precedence.associativity
+    return precedence.precedence, precedence.associativity, grammar.productions[index].body.precedence
   end
 
   local max_terminal_symbol = grammar.max_terminal_symbol
@@ -333,38 +333,29 @@ local function production_precedence(grammar, index)
   return 0
 end
 
-local function resolve(grammar, max_state, action, item)
-  if action == 0 then
-    return false, "error"
-  end
-
-  if action > max_state then
-    local index = action - max_state
-    return item.index < index, "reduce(" .. index .. ")"
-  end
-
-  local a = "shift(" .. action .. ")"
-  local precedence, associativity = production_precedence(grammar, item.index)
+local function resolve_sr(grammar, item)
+  local precedence, associativity, n1 = production_precedence(grammar, item.index)
   if precedence == 0 then
-    return false, a
+    return false
   end
 
-  local shift_precedence = symbol_precedence(grammar, item.la)
+  local shift_precedence, _, n2 = symbol_precedence(grammar, item.la)
+  local message = " precedence " .. shift_precedence .. " / " .. precedence .. " " .. associativity
+
   if shift_precedence < precedence then
-    return true, a, ": precedence " .. shift_precedence .. " < " .. precedence
+    return true, " (" .. n2 .. " < " .. n1 .. ")"
   end
   if shift_precedence > precedence then
-    return false, a, ": precedence " .. shift_precedence .. " > " .. precedence
+    return false, " (" .. n1 .. " < " .. n2 .. ")"
   end
 
-  local message = ": precedence " .. shift_precedence .. " == " .. precedence .. " associativity " .. associativity
   if associativity == "left" then
-    return true, a, message
+    return true, " (left " .. n1 .. ")"
   end
   if associativity == "nonassoc" then
-    return nil, a, message
+    return nil, " (nonassoc " .. n1 .. ")"
   end
-  return false, a, message
+  return false, " (right " .. n1 .. ")"
 end
 
 -- TODO これはcompileにうつす？
@@ -377,6 +368,9 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
   local actions = {}
   local conflictions = list()
 
+  local total_sr = 0
+  local total_rr = 0
+
   for i, items in ipairs(set_of_items) do
     local data = {} -- 配列を保証する
 
@@ -384,53 +378,55 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
       data[symbol] = j
     end
 
+    -- TODO %expectを実装する
+    -- TODO semantic_actionとprecedenceをproductionsにもちまわる
+
+    local sr = 0
+    local rr = 0
+
     for _, item in items:ipairs() do
       if productions[item.index].body[item.dot] == nil then
         local action = data[item.la]
         if action == nil then
           data[item.la] = item.index + max_state
-        else
-          -- shiftとreduceは関数なので()にする
-          -- それ以外は？
-          --
-          -- rule = production
-          -- "Conflict between rule %d and token %s resolved as shift"
-          -- "Conflict between rule %d and token %s resolved as reduce"
-          -- "Conflict between rule %d and token %s resolved as an error"
-          -- "conflict between production %d and symbol %s resolved as {shift,reduce,an error}"
-          -- "conflict between production %d s1 and symbol %s r2 resolved as {...}
-          -- productionを文字列化する？→しない
-          --[[
-
-            precedence
-
-            using precedence %d / %d %s
-
-            : shift precedence %d, precedence %d associativity %s
-            at state %d production %d symbol %s
-
-
-          ]]
-          local overwrite, a, message = resolve(grammar, max_state, action, item)
-          local b = "reduce(" .. item.index .. ")"
-          local buffer = list("conflict between ", a, " and ", b, " resolved as ")
-
-          if overwrite == nil then
-            data[item.la] = 0
-            buffer:append "an error"
-          elseif overwrite then
+        elseif action > max_state then
+          -- reduce/reduce
+          local index = action - max_state
+          if item.index < index then
             data[item.la] = item.index + max_state
-            buffer:append(b)
+          end
+          rr = rr + 1
+        elseif action == 0 then
+          -- error/reduce
+          -- なにもしない
+        else
+          local reduce, message = resolve_sr(grammar, item)
+          if message == nil then
+            sr = sr + 1
           else
-            buffer:append(a)
-          end
-          if message ~= nil then
+            local buffer = list("[info] conflict between production ", item.index, " and symbol ", grammar.symbol_names[item.la], " resolved as ")
+            if reduce == nil then
+              data[item.la] = 0
+              buffer:append "an error"
+            elseif reduce then
+              data[item.la] = item.index + max_state
+              buffer:append "reduce"
+            else
+              buffer:append "shift"
+            end
             buffer:append(message)
+            conflictions:append(table.concat(buffer))
           end
-          buffer:append(" at state ", i, " production ", item.index, " symbol ", grammar.symbol_names[item.la])
-          conflictions:append(table.concat(buffer))
         end
       end
+    end
+
+    if sr > 0 and rr > 0 then
+      conflictions:append("[warn] state " .. i .. " conflicts: " .. sr .. " shift/reduce, " .. rr .. " reduce/reduce")
+    elseif sr > 0 then
+      conflictions:append("[warn] state " .. i .. " conflicts: " .. sr .. " shift/reduce")
+    elseif rr > 0 then
+      conflictions:append("[warn] state " .. i .. " conflicts: " .. rr .. " reduce/reduce")
     end
 
     for symbol = 1, #grammar.symbol_names do
