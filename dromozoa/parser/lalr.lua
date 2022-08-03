@@ -297,15 +297,6 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
   return new_set_of_kernel_items
 end
 
-local function lalr1_items(grammar)
-  local set_of_items, transitions = lr0_items(grammar)
-  local set_of_items = lalr1_kernels(grammar, set_of_items, transitions)
-  for _, items in ipairs(set_of_items) do
-    lr1_closure(grammar, items)
-  end
-  return set_of_items, transitions
-end
-
 ---------------------------------------------------------------------------
 
 local function symbol_precedence(grammar, symbol)
