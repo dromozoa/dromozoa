@@ -307,24 +307,17 @@ end
 ---------------------------------------------------------------------------
 
 local function symbol_precedence(grammar, symbol)
-  local precedence = grammar.symbol_precedences[symbol]
-  if precedence ~= nil then
-    return precedence.precedence, precedence.associativity, grammar.symbol_names[symbol]
-  else
-    return 0
-  end
+  return grammar.symbol_precedences[symbol]
 end
 
 local function production_precedence(grammar, index)
   local production = grammar.productions[index]
 
-  local precedence = production.precedence
-  if precedence ~= nil then
-    return precedence.precedence, precedence.associativity, precedence.name
+  if production.precedence ~= nil then
+    return production.precedence
   end
 
   local max_terminal_symbol = grammar.max_terminal_symbol
-  local production = grammar.productions[index]
   local body = production.body
   for i = #body, 1, -1 do
     local symbol = body[i]
@@ -332,32 +325,28 @@ local function production_precedence(grammar, index)
       return symbol_precedence(grammar, symbol)
     end
   end
-  return 0
 end
 
 local function resolve_sr(grammar, item)
-  local precedence, associativity, n1 = production_precedence(grammar, item.index)
-  if precedence == 0 then
+  local precedence = production_precedence(grammar, item.index)
+  if precedence == nil then
     return false
   end
+  local shift_precedence = symbol_precedence(grammar, item.la)
 
-  local shift_precedence, _, n2 = symbol_precedence(grammar, item.la)
-  local message = " precedence " .. shift_precedence .. " / " .. precedence .. " " .. associativity
-
-  if shift_precedence < precedence then
-    return true, " (" .. n2 .. " < " .. n1 .. ")"
-  end
-  if shift_precedence > precedence then
-    return false, " (" .. n1 .. " < " .. n2 .. ")"
+  if shift_precedence.precedence < precedence.precedence then
+    return true, " (" .. shift_precedence.name .. " < " .. precedence.name .. ")"
+  elseif shift_precedence.precedence > precedence.precedence then
+    return false, " (" .. precedence.name .. " < " .. shift_precedence.name .. ")"
   end
 
-  if associativity == "left" then
-    return true, " (left " .. n1 .. ")"
+  if precedence.associativity == "left" then
+    return true, " (left " .. precedence.name .. ")"
+  elseif precedence.associativity == "nonassoc" then
+    return nil, " (nonassoc " .. precedence.name  .. ")"
+  else
+    return false, " (right " .. precedence.name .. ")"
   end
-  if associativity == "nonassoc" then
-    return nil, " (nonassoc " .. n1 .. ")"
-  end
-  return false, " (right " .. n1 .. ")"
 end
 
 -- TODO これはcompileにうつす？

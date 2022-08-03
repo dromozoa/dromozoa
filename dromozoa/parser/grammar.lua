@@ -161,7 +161,7 @@ function metatable:__call(token_names, that)
         if symbol == nil then
           precedence_table:insert(name, { precedence = precedence, associativity = v[0], name = name })
         else
-          symbol_precedences[symbol] = { precedence = precedence, associativity = v[0] }
+          symbol_precedences[symbol] = { precedence = precedence, associativity = v[0], name = name  }
         end
       end
     end
