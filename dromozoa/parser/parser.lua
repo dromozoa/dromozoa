@@ -392,6 +392,25 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
         else
           -- shiftとreduceは関数なので()にする
           -- それ以外は？
+          --
+          -- rule = production
+          -- "Conflict between rule %d and token %s resolved as shift"
+          -- "Conflict between rule %d and token %s resolved as reduce"
+          -- "Conflict between rule %d and token %s resolved as an error"
+          -- "conflict between production %d and symbol %s resolved as {shift,reduce,an error}"
+          -- "conflict between production %d s1 and symbol %s r2 resolved as {...}
+          -- productionを文字列化する？→しない
+          --[[
+
+            precedence
+
+            using precedence %d / %d %s
+
+            : shift precedence %d, precedence %d associativity %s
+            at state %d production %d symbol %s
+
+
+          ]]
           local overwrite, a, message = resolve(grammar, max_state, action, item)
           local b = "reduce(" .. item.index .. ")"
           local buffer = list(a, " / ", b, " conflict resolved as ")
