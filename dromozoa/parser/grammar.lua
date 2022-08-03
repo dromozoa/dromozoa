@@ -224,7 +224,8 @@ function metatable:__call(token_names, that)
         body:append(symbol)
         used_symbols[symbol] = true
       end
-      local n = select(2, productions:insert { head = u.k, head_index = i, body = body })
+      local production = { head = u.k, head_index = i, body = body }
+      local n = select(2, productions:insert(production))
 
       if v.precedence ~= nil then
         local precedence = precedence_table:get(v.precedence)
