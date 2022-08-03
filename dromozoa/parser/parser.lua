@@ -204,9 +204,6 @@ local function lr1_closure(grammar, items)
     if symbol and symbol > max_terminal_symbol then
       local first = first_symbols(grammar, body:slice(item.dot + 1):append(item.la))
       for j in each_production(productions, symbol) do
-        -- firstに含まれる文字を調べる
-        -- TODO epsilonが含まれている？
-        -- epsilonが含まれていたら、遷移がどうしようもないのでは？
         for _, la in first:ipairs() do
           items:insert { index = j, dot = 1, la = la }
         end
@@ -367,19 +364,17 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
   local max_state = #set_of_items
   local actions = {}
   local conflictions = list()
-
   local total_sr = 0
   local total_rr = 0
 
   for i, items in ipairs(set_of_items) do
-    local data = {} -- 配列を保証する
+    local sr = 0
+    local rr = 0
 
+    local data = {}
     for symbol, j in transitions[i]:pairs() do
       data[symbol] = j
     end
-
-    local sr = 0
-    local rr = 0
 
     for _, item in items:ipairs() do
       if productions[item.index].body[item.dot] == nil then
@@ -448,7 +443,6 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
         data[symbol] = 0
       end
     end
-
     actions[i] = data
   end
 
