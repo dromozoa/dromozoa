@@ -17,7 +17,7 @@
 
 local list = require "dromozoa.list"
 local grammar = require "dromozoa.parser.grammar"
-local parser = require "dromozoa.parser.parser"
+local lalr = require "dromozoa.parser.lalr"
 
 local _ = grammar.body
 
@@ -34,7 +34,7 @@ local g = grammar({ "+", "*", "(", ")", "id" }, {
   F = _"(" "E" ")"
     + _"id";
 })
-local first_table = parser.first_table(g)
+local first_table = lalr.first_table(g)
 g.first_table = first_table
 
 local symbol_table = {}
@@ -45,7 +45,7 @@ end
 local buffer = list()
 for _, name in ipairs { "F", "T", "E", "E'", "T'" } do
   buffer:append("FIRST(", name, ") = { ")
-  local first = parser.first_symbol(g, symbol_table[name])
+  local first = lalr.first_symbol(g, symbol_table[name])
   local i = 0
   for _, k in first:ipairs() do
     i = i + 1

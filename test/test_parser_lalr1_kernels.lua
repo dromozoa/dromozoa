@@ -17,7 +17,7 @@
 
 local list = require "dromozoa.list"
 local grammar = require "dromozoa.parser.grammar"
-local parser = require "dromozoa.parser.parser"
+local lalr = require "dromozoa.parser.lalr"
 
 local _ = grammar.body
 
@@ -30,9 +30,9 @@ local g = grammar({ "=", "*", "id" }, {
   R = _"L";
 })
 
-g.first_table = parser.first_table(parser.eliminate_left_recursion(g))
-local set_of_items, transitions = parser.lr0_items(g)
-local set_of_items = parser.lalr1_kernels(g, set_of_items, transitions)
+g.first_table = lalr.first_table(lalr.eliminate_left_recursion(g))
+local set_of_items, transitions = lalr.lr0_items(g)
+local set_of_items = lalr.lalr1_kernels(g, set_of_items, transitions)
 
 local buffer = list()
 for i, items in ipairs(set_of_items) do

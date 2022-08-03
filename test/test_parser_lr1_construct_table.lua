@@ -17,7 +17,7 @@
 
 local list = require "dromozoa.list"
 local grammar = require "dromozoa.parser.grammar"
-local parser = require "dromozoa.parser.parser"
+local lalr = require "dromozoa.parser.lalr"
 
 local _ = grammar.body
 local expect = grammar.expect
@@ -111,7 +111,7 @@ local buffer = list()
 
 for _, g in ipairs(G) do
   buffer:append(("-"):rep(75), "\n")
-  local actions, conflictions = parser(g)
+  local actions, conflictions = lalr(g)
   for _, message in ipairs(conflictions) do
     buffer:append(message, "\n")
   end

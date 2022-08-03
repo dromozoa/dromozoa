@@ -18,7 +18,7 @@
 local list = require "dromozoa.list"
 local compile = require "dromozoa.parser.compile"
 local grammar = require "dromozoa.parser.grammar"
-local parser = require "dromozoa.parser.parser"
+local lalr = require "dromozoa.parser.lalr"
 
 local _ = grammar.body
 local left = grammar.left
@@ -43,7 +43,7 @@ local g = grammar(token_names, {
 })
 
 local buffer = list()
-local actions, conflictions = parser(g)
+local actions, conflictions = lalr(g)
 for _, message in ipairs(conflictions) do
   buffer:append(message, "\n")
 end
