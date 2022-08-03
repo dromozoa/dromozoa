@@ -245,7 +245,7 @@ function metatable:__call(token_names, that)
     symbol_precedences = symbol_precedences;
     production_precedences = production_precedences;
     semantic_actions = semantic_actions;
-  };
+  }
 end
 
 return setmetatable(module, metatable)
