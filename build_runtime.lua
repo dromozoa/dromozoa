@@ -38,7 +38,7 @@ local function build(source, result)
     end
     out:write("[", s, "[\n", text, "]", s, "];\n")
     if variable ~= "" then
-      out:write(("context[%q];\n"):format(variable))
+      out:write("context[\"", variable, "\"];\n")
     end
   end
   out:write "} end\n"
