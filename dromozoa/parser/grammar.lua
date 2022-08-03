@@ -159,9 +159,9 @@ function metatable:__call(token_names, that)
       for _, name in ipairs(v) do
         local symbol = symbol_table[name]
         if symbol == nil then
-          precedence_table:insert(name, { precedence = precedence, associativity = v[0], name = name })
+          precedence_table:insert(name, { name = name, precedence = precedence, associativity = v[0] })
         else
-          symbol_precedences[symbol] = { precedence = precedence, associativity = v[0], name = name  }
+          symbol_precedences[symbol] = { name = name, precedence = precedence, associativity = v[0] }
         end
       end
     end

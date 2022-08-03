@@ -307,14 +307,19 @@ end
 ---------------------------------------------------------------------------
 
 local function symbol_precedence(grammar, symbol)
-  return grammar.symbol_precedences[symbol]
+  local precedence = grammar.symbol_precedences[symbol]
+  if precedence ~= nil then
+    return precedence.name, precedence.precedence, precedence.associativity
+  end
+  return grammar.symbol_names[symbol], 0
 end
 
 local function production_precedence(grammar, index)
   local production = grammar.productions[index]
 
-  if production.precedence ~= nil then
-    return production.precedence
+  local precedence = production.precedence
+  if precedence ~= nil then
+    return precedence.name, precedence.precedence, precedence.associativity
   end
 
   local max_terminal_symbol = grammar.max_terminal_symbol
@@ -325,27 +330,30 @@ local function production_precedence(grammar, index)
       return symbol_precedence(grammar, symbol)
     end
   end
+
+  return nil, 0
 end
 
 local function resolve_sr(grammar, item)
-  local precedence = production_precedence(grammar, item.index)
-  if precedence == nil then
+  local rname, rp, associativity = production_precedence(grammar, item.index)
+  if rp == 0 then
     return false
   end
-  local shift_precedence = symbol_precedence(grammar, item.la)
+  local sname, sp = symbol_precedence(grammar, item.la)
 
-  if shift_precedence.precedence < precedence.precedence then
-    return true, " (" .. shift_precedence.name .. " < " .. precedence.name .. ")"
-  elseif shift_precedence.precedence > precedence.precedence then
-    return false, " (" .. precedence.name .. " < " .. shift_precedence.name .. ")"
+  if sp < rp then
+    return true, " (" .. sname .. " < " .. rname .. ")"
+  elseif rp < sp then
+    return false, " (" .. rname .. " < " .. sname .. ")"
   end
 
-  if precedence.associativity == "left" then
-    return true, " (left " .. precedence.name .. ")"
-  elseif precedence.associativity == "nonassoc" then
-    return nil, " (nonassoc " .. precedence.name  .. ")"
+  if associativity == "left" then
+    return true, " (left " .. rname .. ")"
+  elseif associativity == "right" then
+    return false, " (right " .. rname .. ")"
   else
-    return false, " (right " .. precedence.name .. ")"
+    assert(associativity == "nonassoc")
+    return nil, " (nonassoc " .. rname  .. ")"
   end
 end
 

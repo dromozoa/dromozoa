@@ -58,13 +58,13 @@ local G = {
       + _"a";
   });
 
-  grammar({"id", ".."}, {
+  grammar({ "id", ".." }, {
     right "..";
     E = _"E" ".." "E"
       + _"id";
   });
 
-  grammar({"id", "=="}, {
+  grammar({ "id", "==" }, {
     nonassoc "==";
     E = _"E" "==" "E"
       + _"id";
@@ -72,7 +72,7 @@ local G = {
 
   -- https://www.gnu.org/software/bison/manual/html_node/Reduce_002fReduce.html
 
-  grammar({"id"}, {
+  grammar({ "id" }, {
     expect(3);
 
     S = _
@@ -82,9 +82,28 @@ local G = {
       + _"id";
   });
 
-  grammar({"id"}, {
+  grammar({ "id" }, {
     S = _
       + _"S" "id"
+  });
+
+  -- production precedence
+
+  grammar({ "id", "-" } , {
+    left "-";
+    right "UNM";
+
+    E = _"E" "-" "E"
+      + _"-" "E" :prec "UNM"
+      + _"id";
+  });
+
+  grammar({ "id", "-" } , {
+    right "UNM";
+
+    E = _"E" "-" "E"
+      + _"-" "E" :prec "UNM"
+      + _"id";
   });
 }
 
@@ -198,4 +217,27 @@ assert(table.concat(buffer) == [[
 |  1 |  r2 |  r2 |     |  s2 |
 |  2 |  s3 | acc |     |     |
 |  3 |  r3 |  r3 |     |     |
+---------------------------------------------------------------------------
+[info] conflict between production 3 and symbol - resolved as reduce (- < UNM)
+[info] conflict between production 2 and symbol - resolved as reduce (left -)
+|    |  id |  -  |  $  |  E' |  E  |
+|  1 |  s4 |  s3 |     |     |  s2 |
+|  2 |     |  s5 | acc |     |     |
+|  3 |  s4 |  s3 |     |     |  s6 |
+|  4 |     |  r4 |  r4 |     |     |
+|  5 |  s4 |  s3 |     |     |  s7 |
+|  6 |     |  r3 |  r3 |     |     |
+|  7 |     |  r2 |  r2 |     |     |
+---------------------------------------------------------------------------
+[info] conflict between production 3 and symbol - resolved as reduce (- < UNM)
+[warn] state 7 conflicts: 1 shift/reduce
+[warn] shift/reduce conflicts: 1 found
+|    |  id |  -  |  $  |  E' |  E  |
+|  1 |  s4 |  s3 |     |     |  s2 |
+|  2 |     |  s5 | acc |     |     |
+|  3 |  s4 |  s3 |     |     |  s6 |
+|  4 |     |  r4 |  r4 |     |     |
+|  5 |  s4 |  s3 |     |     |  s7 |
+|  6 |     |  r3 |  r3 |     |     |
+|  7 |     |  s5 |  r2 |     |     |
 ]])
