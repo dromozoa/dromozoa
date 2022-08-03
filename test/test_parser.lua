@@ -74,8 +74,8 @@ local function dump(u, depth)
 end
 dump(tree)
 
--- print(table.concat(buffer))
-assert(table.concat(buffer) == [[
+-- print(buffer:concat())
+assert(buffer:concat() == [[
 [info] conflict between production 2 and symbol + resolved as reduce (left +)
 [info] conflict between production 2 and symbol * resolved as shift (+ < *)
 [info] conflict between production 3 and symbol + resolved as reduce (+ < *)
