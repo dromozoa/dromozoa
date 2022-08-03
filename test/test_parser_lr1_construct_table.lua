@@ -130,10 +130,10 @@ for _, g in ipairs(G) do
         buffer:append "     |"
       else
         buffer:append " "
-        if v <= t.max_state then
+        if v <= #t.actions then
           buffer:append(("%3s"):format("s" .. v))
         else
-          local v = v - t.max_state
+          local v = v - #t.actions
           if v == 1 then
             buffer:append "acc"
           else

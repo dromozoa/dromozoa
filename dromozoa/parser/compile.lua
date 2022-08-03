@@ -35,7 +35,7 @@ return function (that)
     "};\n")
 
   static_data:append(
-    "max_state=", that.max_state, ";\n",
+    "max_state=", #that.actions, ";\n",
     "actions={")
 
   for _, action in ipairs(that.actions) do

@@ -331,23 +331,23 @@ local function production_precedence(grammar, index)
   return 0
 end
 
-local function resolve_sr(grammar, item, buffer)
+local function resolve_sr(grammar, item, saction, raction, buffer)
   local rp, rname, associativity = production_precedence(grammar, item.index)
   if rp == 0 then
-    return
+    return saction
   end
   local sp, sname = symbol_precedence(grammar, item.la)
 
   if sp < rp then
-    return true, buffer:append("reduce (", sname, " < ", rname, ")")
+    return raction, buffer:append("reduce (", sname, " < ", rname, ")")
   elseif rp < sp then
-    return false, buffer:append("shift (", rname, " < ", sname, ")")
+    return saction, buffer:append("shift (", rname, " < ", sname, ")")
   end
 
   if associativity == "left" then
-    return true, buffer:append("reduce (left ", rname, ")")
+    return raction, buffer:append("reduce (left ", rname, ")")
   elseif associativity == "right" then
-    return false, buffer:append("shift (right ", rname, ")")
+    return saction, buffer:append("shift (right ", rname, ")")
   else
     assert(associativity == "nonassoc")
     return 0, buffer:append("an error (nonassoc ", rname, ")")
@@ -357,7 +357,6 @@ end
 -- TODO これはcompileにうつす？
 local function lr1_construct_table(grammar, set_of_items, transitions)
   local symbol_names = grammar.symbol_names
-  local max_terminal_symbol = grammar.max_terminal_symbol
   local expect_sr = grammar.expect_sr
   local productions = grammar.productions
 
@@ -389,17 +388,12 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
           rr = rr + 1
         elseif action ~= 0 then
           -- shift/reduce
-          local buffer = list("[info] conflict between production ", item.index, " and symbol ", symbol_names[item.la], " resolved as ")
-          local mode = resolve_sr(grammar, item, buffer)
-          if mode == nil then
+          local buffer = list()
+          data[item.la] = resolve_sr(grammar, item, action, item.index + max_state, buffer)
+          if #buffer == 0 then
             sr = sr + 1
           else
-            if mode == 0 then
-              data[item.la] = 0
-            elseif mode then
-              data[item.la] = item.index + max_state
-            end
-            conflictions:append(buffer:concat())
+            conflictions:append("[info] conflict between production " .. item.index .. " and symbol " .. symbol_names[item.la] .. " resolved as " .. buffer:concat())
           end
         end
       end
@@ -407,7 +401,6 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
 
     total_sr = total_sr + sr
     total_rr = total_rr + rr
-
     if sr > 0 or rr > 0 then
       local buffer = list()
       if expect_sr == nil or expect_sr < total_sr or rr > 0 then
@@ -419,9 +412,10 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
       if sr > 0 then
         buffer:append(sr, " shift/reduce")
         if rr > 0 then
-          buffer:append(", ", rr, " reduce/reduce")
+          buffer:append ", "
         end
-      elseif rr > 0 then
+      end
+      if rr > 0 then
         buffer:append(rr, " reduce/reduce")
       end
       conflictions:append(buffer:concat())
@@ -469,8 +463,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
   return {
     conflictions = conflictions;
     symbol_names = symbol_names;
-    max_state = max_state;
-    max_terminal_symbol = max_terminal_symbol;
+    max_terminal_symbol = grammar.max_terminal_symbol;
     actions = actions;
     heads = heads;
     sizes = sizes;
