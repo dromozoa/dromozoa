@@ -21,7 +21,7 @@ local lalr = require "dromozoa.parser.lalr"
 
 local _ = grammar.body
 
--- P.214
+-- P.214 Example 4.20
 local g = grammar({ "a", "b", "c", "d" }, {
   S = _"A" "a"
     + _"b";
