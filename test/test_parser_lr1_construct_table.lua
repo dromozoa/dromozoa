@@ -21,6 +21,8 @@ local parser = require "dromozoa.parser.parser"
 
 local _ = grammar.body
 local left = grammar.left
+local right = grammar.right
+local nonassoc = grammar.nonassoc
 
 -- TODO 整理する
 -- compile(parser(grammar()))
@@ -51,7 +53,34 @@ local G = {
     S = _"i" "S" "e" "S"
       + _"i" "S"
       + _"a";
-  })
+  });
+
+  grammar({"id", ".."}, {
+    right "..";
+    E = _"E" ".." "E"
+      + _"id";
+  });
+
+  grammar({"id", "=="}, {
+    nonassoc "==";
+    E = _"E" "==" "E"
+      + _"id";
+  });
+
+  -- https://www.gnu.org/software/bison/manual/html_node/Reduce_002fReduce.html
+
+  grammar({"id"}, {
+    S = _
+      + _"K"
+      + _"S" "id";
+    K = _
+      + _"id";
+  });
+
+  grammar({"id"}, {
+    S = _
+      + _"S" "id"
+  });
 }
 
 local buffer = list()
@@ -132,4 +161,35 @@ shift(6) / reduce(3) conflict resolved as shift(6) at state(5) symbol(e)
 |  5 |     |  s6 |     |  r3 |     |     |
 |  6 |  s3 |     |  s4 |     |     |  s7 |
 |  7 |     |  r2 |     |  r2 |     |     |
+---------------------------------------------------------------------------
+shift(4) / reduce(2) conflict resolved as shift(4): precedence 1 == 1 associativity right at state(5) symbol(..)
+|    |  id |  .. |  $  |  E' |  E  |
+|  1 |  s3 |     |     |     |  s2 |
+|  2 |     |  s4 | acc |     |     |
+|  3 |     |  r3 |  r3 |     |     |
+|  4 |  s3 |     |     |     |  s5 |
+|  5 |     |  s4 |  r2 |     |     |
+---------------------------------------------------------------------------
+shift(4) / reduce(2) conflict resolved as error: precedence 1 == 1 associativity nonassoc at state(5) symbol(==)
+|    |  id |  == |  $  |  E' |  E  |
+|  1 |  s3 |     |     |     |  s2 |
+|  2 |     |  s4 | acc |     |     |
+|  3 |     |  r3 |  r3 |     |     |
+|  4 |  s3 |     |     |     |  s5 |
+|  5 |     |     |  r2 |     |     |
+---------------------------------------------------------------------------
+reduce(2) / reduce(5) conflict resolved as reduce(2) at state(1) symbol($)
+shift(4) / reduce(2) conflict resolved as shift(4) at state(1) symbol(id)
+shift(4) / reduce(5) conflict resolved as shift(4) at state(1) symbol(id)
+|    |  id |  $  |  S' |  S  |  K  |
+|  1 |  s4 |  r2 |     |  s2 |  s3 |
+|  2 |  s5 | acc |     |     |     |
+|  3 |  r3 |  r3 |     |     |     |
+|  4 |  r6 |  r6 |     |     |     |
+|  5 |  r4 |  r4 |     |     |     |
+---------------------------------------------------------------------------
+|    |  id |  $  |  S' |  S  |
+|  1 |  r2 |  r2 |     |  s2 |
+|  2 |  s3 | acc |     |     |
+|  3 |  r3 |  r3 |     |     |
 ]])
