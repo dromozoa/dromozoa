@@ -350,19 +350,20 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
   local conflictions = list()
 
   for i, items in ipairs(set_of_items) do
-    local data = {} -- TODO シークエンスを保証する？
+    local data = {} -- シークエンスが保証される
 
+    -- shiftを埋める
     for symbol, j in transitions[i]:pairs() do
       data[symbol] = j
     end
 
     local error_table = {}
     for _, item in items:ipairs() do
-      if not productions[item.index].body[item.dot] then
+      if productions[item.index].body[item.dot] == nil then
         local buffer = list(false, false)
 
         local action = data[item.la]
-        if action then
+        if action ~= nil then
           if action <= max_state then
             buffer[1] = "shift(" .. action .. ")"
             local precedence, associativity = production_precedence(grammar, item.index)
@@ -399,6 +400,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions, fn)
               buffer:append "the former"
             end
           end
+        -- 一回エラーにしたやつをもっかい触らないように (0か-1をいれておけば？）
         elseif error_table[item.la] then
           buffer[1] = "error"
           buffer:append "an error"
