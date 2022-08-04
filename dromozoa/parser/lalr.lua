@@ -286,7 +286,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
     end
   until done
 
-  local new_set_of_kernel_items = list()
+  local new_set_of_kernel_items = array()
   for _, items in set_of_kernel_items:ipairs() do
     local new_items = tree_set()
     for _, item in items:ipairs() do
@@ -357,13 +357,13 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
   local expect_sr = grammar.expect_sr
   local productions = grammar.productions
 
-  local max_state = #set_of_items
+  local max_state = set_of_items:size()
   local actions = {}
   local conflictions = list()
   local total_sr = 0
   local total_rr = 0
 
-  for i, items in ipairs(set_of_items) do
+  for i, items in set_of_items:ipairs() do
     local sr = 0
     local rr = 0
 
@@ -453,7 +453,7 @@ return function (grammar)
   grammar.first_table = first_table(grammar_without_left_recursion)
   local lr0_set_of_items, transitions = lr0_items(grammar)
   local lalr1_set_of_items = lalr1_kernels(grammar, lr0_set_of_items, transitions)
-  for _, items in ipairs(lalr1_set_of_items) do
+  for _, items in lalr1_set_of_items:ipairs() do
     lr1_closure(grammar, items)
   end
   local actions, conflictions = lr1_construct_table(grammar, lalr1_set_of_items, transitions)

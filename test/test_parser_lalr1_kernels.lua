@@ -37,7 +37,7 @@ end
 
 local set_of_items = data.lalr1_set_of_items
 
-for i, items in ipairs(set_of_items) do
+for i, items in set_of_items:ipairs() do
   buffer:append(("="):rep(75), "\nI_", i, "\n")
   for _, item in items:ipairs() do
     -- カーネル項だけを出力する
