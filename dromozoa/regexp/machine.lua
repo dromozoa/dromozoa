@@ -517,6 +517,7 @@ function module.lexer(token_names, that)
   end
   data:sort(function (a, b) return a.timestamp < b.timestamp end)
 
+  -- TODO 複数のレキサを定義できるか？
   local token_table = {}
   for symbol, name in token_names:ipairs() do
     token_table[name] = symbol
