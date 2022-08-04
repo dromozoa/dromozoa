@@ -53,6 +53,10 @@ local function insert_action(context, action)
   return i
 end
 
+local function insert_shared(context, shared)
+  return (select(2, context.shared.set:insert(shared)))
+end
+
 local function update_state_indices_accept(context, u, accept_actions, color)
   color[u] = 1
   if u.accept_action ~= nil then
@@ -100,9 +104,6 @@ local function construct_table(context, u, max_state, transitions, transition_ac
 end
 
 local function generate(context, index, u, guard_action)
-  local static_out = context.static.out
-  local shared_set = context.shared.set
-
   local accept_actions = array()
   update_state_indices_accept(context, u, accept_actions, {})
   local max_state = update_state_indices_nonaccept(u, accept_actions:size(), {})
@@ -116,24 +117,24 @@ local function generate(context, index, u, guard_action)
 
   construct_table(context, u, max_state, transitions, transition_actions, transition_states, {})
 
-  static_out:append(
+  context.static.out:append(
     "{\n",
     "start_state=", u.index, ";\n",
     "max_accept_state=", accept_actions:size(), ";\n",
     "max_state=", max_state, ";\n",
     "transitions={[0]=")
   for _, v in transitions:ipairs() do
-    static_out:append("_[", select(2, shared_set:insert(v)), "],")
+    context.static.out:append("_[", insert_shared(context, v), "],")
   end
-  static_out:append(
+  context.static.out:append(
     "};\n",
-    "transition_actions=_[", select(2, shared_set:insert(transition_actions)), "];\n",
-    "transition_states=_[", select(2, shared_set:insert(transition_states)), "];\n",
-    "accept_actions=_[", select(2, shared_set:insert(accept_actions)), "];\n")
+    "transition_actions=_[", insert_shared(context, transition_actions), "];\n",
+    "transition_states=_[", insert_shared(context, transition_states), "];\n",
+    "accept_actions=_[", insert_shared(context, accept_actions), "];\n")
   if guard_action ~= nil then
-    static_out:append("guard_action=", insert_action(context, guard_action), ";\n")
+    context.static.out:append("guard_action=", insert_action(context, guard_action), ";\n")
   end
-  static_out:append(
+  context.static.out:append(
     "};\n")
 end
 
@@ -174,7 +175,7 @@ return function (that)
   for i, v in data:ipairs() do
     generate(context, i, v.machine.start_state, v.machine.guard_action)
   end
-  context.static.out:append("action_threads=_[", select(2, context.shared.set:insert(context.action.threads)), "];\n")
+  context.static.out:append("action_threads=_[", insert_shared(context, context.action.threads), "];\n")
 
   for _, v in context.shared.set:ipairs() do
     context.shared.out:append("{", v:concat ",", "};\n")
