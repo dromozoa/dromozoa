@@ -22,6 +22,8 @@ local class = {}
 local metatable = { __name = "dromozoa.tree_set" }
 local table_unpack = table.unpack or unpack
 
+---------------------------------------------------------------------------
+
 function class:insert(k)
   if k == nil then
     error "key is nil"
