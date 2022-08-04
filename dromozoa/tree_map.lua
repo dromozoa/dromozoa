@@ -75,22 +75,9 @@ function class:insert_or_update(k, insert_fn, update_fn)
   return self, v, inserted
 end
 
-function class:get(k, fn)
-  assert(fn == nil)
-  if fn == nil then
-    local _, v = private[self]:find(k)
-    return v
-  else
-    local priv = private[self]
-    local inserted, t = priv:insert2(k)
-    if inserted then
-      local v = fn()
-      priv.V[t] = v
-      return v
-    else
-      return priv.V[t]
-    end
-  end
+function class:get(k)
+  local _, v = private[self]:find(k)
+  return v
 end
 
 function class:empty()
