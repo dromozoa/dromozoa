@@ -15,12 +15,12 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local list = require "dromozoa.list"
+local array = require "dromozoa.array"
 local tree_set = require "dromozoa.tree_set"
 local runtime = require "dromozoa.parser.runtime"
 
 return function (grammar, actions)
-  local static_data = list()
+  local static_data = array()
   local action_data = tree_set()
 
   local symbol_names = grammar.symbol_names

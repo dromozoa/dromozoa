@@ -108,6 +108,6 @@ end
 
 return setmetatable(class, {
   __call = function (_, ...)
-    return setmetatable({}, metatable):append(...)
+    return construct():append(...)
   end
 })
