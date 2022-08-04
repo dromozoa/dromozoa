@@ -21,9 +21,12 @@ local tree_set = require "dromozoa.tree_set"
 local runtime = require "dromozoa.regexp.runtime"
 
 local function make_shared(shared_map, shared_data, v)
-  return shared_map(v, function ()
-    return #shared_data:append("{" .. table.concat(v, ",") .. "};\n")
-  end)
+  local _, i, ok = shared_map:insert(v)
+  if ok then
+    shared_data:append("{" .. table.concat(v, ",") .. "};\n")
+    assert(i == #shared_data)
+  end
+  return i
 end
 
 local function make_action(action_data, action_threads, v)
@@ -132,7 +135,7 @@ local function generate(index, u, guard_action, shared_map, shared_data, static_
 end
 
 return function (that)
-  local shared_map = tree_map()
+  local shared_map = tree_set()
   local shared_data = list()
   local static_data = list()
   local custom_data = list()
