@@ -17,6 +17,8 @@
 
 local compare = require "dromozoa.compare"
 
+---------------------------------------------------------------------------
+
 -- Balanced search trees made simple.
 -- https://user.it.uu.se/%7Earnea/abs/simp.html
 
@@ -256,14 +258,14 @@ local metatable = { __index = class, __name = "dromozoa.tree" }
 
 -- inserted, index
 function class:insert(k)
-  local root, ok, t = insert(self, k, self.root, false, 0)
+  local root, ok, t = insert(self, k, self.root)
   self.root = root
   return ok, t
 end
 
 -- deleted, key, value
 function class:delete(k)
-  local root, ok, t, _, k, v = delete(self, k, self.root, false, 0, 0)
+  local root, ok, t, _, k, v = delete(self, k, self.root)
   self.root = root
   if ok then
     dispose(self, t)
