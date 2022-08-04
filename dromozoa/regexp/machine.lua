@@ -171,7 +171,7 @@ end
 local function epsilon_closure_impl(u, closure)
   for _, t in ipairs(u.transitions) do
     if t.set == nil then
-      closure[t.v.index] = t.v
+      closure:insert(t.v.index, t.v)
       epsilon_closure_impl(t.v, closure)
     end
   end
@@ -180,8 +180,8 @@ end
 local function epsilon_closure(u, epsilon_closures)
   local closure = epsilon_closures[u]
   if closure == nil then
-    closure = tree_map()
-    closure[u.index] = u
+    closure = tree_map2()
+    closure:insert(u.index, u)
     epsilon_closure_impl(u, closure)
     epsilon_closures[u] = closure
   end
@@ -189,15 +189,13 @@ local function epsilon_closure(u, epsilon_closures)
 end
 
 local function closure_to_state(closure, states)
-  local u = states[closure]
-  if u == nil then
-    u = state()
-    for _, v in closure():each() do
+  return states:get(closure, function ()
+    local u = state()
+    for _, v in closure:pairs() do
       u:update(v.timestamp, v.accept_action)
     end
-    states[closure] = u
-  end
-  return u
+    return u
+  end)
 end
 
 local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
@@ -208,17 +206,17 @@ local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
 
   for byte = 0x00, 0xFF do
     local resolved = {}
-    local v_closure = tree_map()
-    for _, u in u_closure():each() do
+    local v_closure = tree_map2()
+    for _, u in u_closure:pairs() do
       local to = u:simulate(byte, resolved)
       if to ~= nil then
-        for k, v in epsilon_closure(to, epsilon_closures)():each() do
-          v_closure[k] = v
+        for k, v in epsilon_closure(to, epsilon_closures):pairs() do
+          v_closure:insert(k, v)
         end
       end
     end
 
-    if v_closure():next() ~= nil then
+    if not v_closure:empty() then
       local v = closure_to_state(v_closure, states)
       state_map:insert(v_closure, v)
 
@@ -240,7 +238,7 @@ end
 local function nfa_to_dfa(u)
   update_state_indices(u)
   local epsilon_closures = {}
-  local states = tree_map()
+  local states = tree_map2()
   local u_closure = epsilon_closure(u, epsilon_closures)
   local u = closure_to_state(u_closure, states)
   nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, tree_map2())
