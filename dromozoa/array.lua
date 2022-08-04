@@ -20,9 +20,9 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.array" }
 local table_unpack = table.unpack or unpack
 
-local function construct()
+local function construct(priv)
   local self = setmetatable({}, metatable)
-  private[self] = {}
+  private[self] = priv
   return self
 end
 
@@ -58,7 +58,7 @@ function class:set(i, v)
 end
 
 function class:slice(...)
-  return construct():append(self:unpack(...))
+  return construct {}:append(self:unpack(...))
 end
 
 ---------------------------------------------------------------------------
@@ -119,8 +119,22 @@ end
 
 ---------------------------------------------------------------------------
 
-return setmetatable(class, {
+local module = {}
+
+function module.fill(n, v)
+  if v == nil then
+    error "value is nil"
+  end
+  local priv = {}
+  for i = 1, n do
+    priv[i] = v
+  end
+  return construct(priv)
+end
+
+return setmetatable(module, {
+  __index = class;
   __call = function (_, ...)
-    return construct():append(...)
+    return construct {}:append(...)
   end
 })

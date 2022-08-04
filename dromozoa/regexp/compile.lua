@@ -64,7 +64,7 @@ local function construct_table(u, max_state, action_set, transitions, transition
       transition_states:append(t.v.index)
     end
     for byte in pairs(t.set) do
-      transitions[byte]:set(u.index, code)
+      transitions:get(byte + 1):set(u.index, code)
     end
     if color[t.v] == nil then
       construct_table(t.v, max_state, action_set, transitions, transition_actions, transition_states, color)
@@ -78,13 +78,9 @@ local function generate(index, u, guard_action, static_out, shared_set, action_s
   update_state_indices_accept(u, action_set, accept_actions, {})
   local max_state = update_state_indices_nonaccept(u, accept_actions:size(), {})
 
-  local transitions = {}
-  for byte = 0x00, 0xFF do
-    local transition = array()
-    for i = 1, max_state do
-      transition:append(0)
-    end
-    transitions[byte] = transition
+  local transitions = array.fill(256, false)
+  for i in transitions:ipairs() do
+    transitions:set(i, array.fill(max_state, 0))
   end
   local transition_actions = array()
   local transition_states = array()
@@ -97,8 +93,8 @@ local function generate(index, u, guard_action, static_out, shared_set, action_s
     "max_accept_state=", accept_actions:size(), ";\n",
     "max_state=", max_state, ";\n",
     "transitions={[0]=")
-  for byte = 0x00, 0xFF do
-    static_out:append("_[", make_shared(shared_set, transitions[byte]), "],")
+  for i = 1, 256 do
+    static_out:append("_[", make_shared(shared_set, transitions:get(i)), "],")
   end
   static_out:append(
     "};\n",
