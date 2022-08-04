@@ -53,14 +53,14 @@ local function insert_action(context, action)
   return i
 end
 
-local function update_state_indices_accept(u, context, accept_actions, color)
+local function update_state_indices_accept(context, u, accept_actions, color)
   color[u] = 1
   if u.accept_action ~= nil then
     u.index = accept_actions:append(insert_action(context, u.accept_action)):size()
   end
   for _, t in u.transitions:ipairs() do
     if color[t.v] == nil then
-      update_state_indices_accept(t.v, context, accept_actions, color)
+      update_state_indices_accept(context, t.v, accept_actions, color)
     end
   end
   color[u] = 2
@@ -81,7 +81,7 @@ local function update_state_indices_nonaccept(u, index, color)
   return index
 end
 
-local function construct_table(u, max_state, context, transitions, transition_actions, transition_states, color)
+local function construct_table(context, u, max_state, transitions, transition_actions, transition_states, color)
   color[u] = 1
   for _, t in u.transitions:ipairs() do
     local v = t.v.index
@@ -93,7 +93,7 @@ local function construct_table(u, max_state, context, transitions, transition_ac
       transitions:get(byte + 1):set(u.index, v)
     end
     if color[t.v] == nil then
-      construct_table(t.v, max_state, context, transitions, transition_actions, transition_states, color)
+      construct_table(context, t.v, max_state, transitions, transition_actions, transition_states, color)
     end
   end
   color[u] = 2
@@ -104,7 +104,7 @@ local function generate(context, index, u, guard_action)
   local shared_set = context.shared.set
 
   local accept_actions = array()
-  update_state_indices_accept(u, context, accept_actions, {})
+  update_state_indices_accept(context, u, accept_actions, {})
   local max_state = update_state_indices_nonaccept(u, accept_actions:size(), {})
 
   local transitions = array()
@@ -114,7 +114,7 @@ local function generate(context, index, u, guard_action)
   local transition_actions = array()
   local transition_states = array()
 
-  construct_table(u, max_state, context, transitions, transition_actions, transition_states, {})
+  construct_table(context, u, max_state, transitions, transition_actions, transition_states, {})
 
   static_out:append(
     "{\n",
