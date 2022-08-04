@@ -15,12 +15,12 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local list = require "dromozoa.list"
+local array = require "dromozoa.array"
 local tree_set = require "dromozoa.tree_set"
 local runtime = require "dromozoa.parser.runtime"
 
 return function (grammar, actions)
-  local static_data = list()
+  local static_data = array()
   local action_data = tree_set()
 
   local symbol_names = grammar.symbol_names
@@ -29,7 +29,7 @@ return function (grammar, actions)
 
   static_data:append(
     "symbol_names={")
-  for _, v in ipairs(symbol_names) do
+  for _, v in symbol_names:ipairs() do
     static_data:append(("%q,"):format(v))
   end
   static_data:append(
@@ -49,7 +49,7 @@ return function (grammar, actions)
     "};\n",
     "sizes={")
   for _, production in productions:ipairs() do
-    static_data:append(#production.body, ",")
+    static_data:append(production.body:size(), ",")
   end
   static_data:append(
     "};\n",

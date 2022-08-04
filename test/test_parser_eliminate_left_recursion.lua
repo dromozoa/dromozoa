@@ -15,33 +15,32 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local list = require "dromozoa.list"
+local array = require "dromozoa.array"
 local grammar = require "dromozoa.parser.grammar"
 local lalr = require "dromozoa.parser.lalr"
 
 local _ = grammar.body
 
 -- P.214 Example 4.20
-local g = grammar({ "a", "b", "c", "d" }, {
+local g, actions, conflictions, data = lalr(grammar({ "a", "b", "c", "d" }, {
   S = _"A" "a"
     + _"b";
   A = _"A" "c"
     + _"S" "d"
     + _;
-})
+}))
 
-local actions, conflictions, data = lalr(g)
-local buffer = list()
-for _, message in ipairs(conflictions) do
+local buffer = array()
+for _, message in conflictions:ipairs() do
   buffer:append(message, "\n")
 end
 
 local g = data.grammar_without_left_recursion
 
 for _, production in g.productions:ipairs() do
-  buffer:append(g.symbol_names[production.head], " ->")
-  for _, symbol in ipairs(production.body) do
-    buffer:append(" ", g.symbol_names[symbol])
+  buffer:append(g.symbol_names:get(production.head), " ->")
+  for _, symbol in production.body:ipairs() do
+    buffer:append(" ", g.symbol_names:get(symbol))
   end
   buffer:append "\n"
 end

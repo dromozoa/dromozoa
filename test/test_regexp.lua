@@ -17,7 +17,7 @@
 
 local write_graphviz = require "dromozoa.regexp.write_graphviz"
 
-local list = require "dromozoa.list"
+local array = require "dromozoa.array"
 local pattern = require "dromozoa.regexp.pattern"
 local machine = require "dromozoa.regexp.machine"
 local compile = require "dromozoa.regexp.compile"
@@ -35,7 +35,7 @@ local out = assert(io.open("test-m1.dot", "w"))
 write_graphviz(out, m1.start_state)
 out:close()
 
-local tokens = list()
+local tokens = array()
 
 local m2 = machine.union {
   -- _;

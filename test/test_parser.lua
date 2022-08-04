@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local list = require "dromozoa.list"
+local array = require "dromozoa.array"
 local compile = require "dromozoa.parser.compile"
 local grammar = require "dromozoa.parser.grammar"
 local lalr = require "dromozoa.parser.lalr"
@@ -23,7 +23,7 @@ local lalr = require "dromozoa.parser.lalr"
 local _ = grammar.body
 local left = grammar.left
 
-local g = grammar({ "id", "+", "*", "(", ")" }, {
+local g, actions, conflictions = lalr(grammar({ "id", "+", "*", "(", ")" }, {
   left "+";
   left "*";
 
@@ -31,11 +31,10 @@ local g = grammar({ "id", "+", "*", "(", ")" }, {
     + _"E" "*" "E"
     + _"(" "E" ")"
     + _"id";
-})
+}))
 
-local actions, conflictions = lalr(g)
-local buffer = list()
-for _, message in ipairs(conflictions) do
+local buffer = array()
+for _, message in conflictions:ipairs() do
   buffer:append(message, "\n")
 end
 

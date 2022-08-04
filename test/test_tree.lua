@@ -16,7 +16,7 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local tree = require "dromozoa.tree"
-local tree_map = require "dromozoa.tree_map"
+-- local tree_map = require "dromozoa.tree_map"
 
 ---------------------------------------------------------------------------
 
@@ -132,6 +132,7 @@ assert(i == 256)
 assert(t.size == 0)
 
 ---------------------------------------------------------------------------
+--[====[
 
 local nan = math.huge / math.huge
 
@@ -215,3 +216,5 @@ assert(t("xxx", f) == 2)
 assert(n == 1)
 assert(t("xxx", f) == 2)
 assert(n == 1)
+
+]====]

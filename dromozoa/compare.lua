@@ -34,8 +34,8 @@ local function stable_pairs(t, compare, n)
     if metamethod ~= nil then
       return metamethod(t)
     end
-    if metatable.__name == "dromozoa.tree_map" then
-      return t():each()
+    if metatable.__name == "dromozoa.array" then
+      return t:ipairs()
     end
   end
 

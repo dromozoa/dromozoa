@@ -15,14 +15,14 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local list = require "dromozoa.list"
+local array = require "dromozoa.array"
 local grammar = require "dromozoa.parser.grammar"
 local lalr = require "dromozoa.parser.lalr"
 
 local _ = grammar.body
 
 -- P.222 Example 4.30
-local g = grammar({ "+", "*", "(", ")", "id" }, {
+local g, actions, conflictions, data = lalr(grammar({ "+", "*", "(", ")", "id" }, {
   E = _"T" "E'";
   ["E'"]
     = _"+" "T" "E'"
@@ -33,19 +33,18 @@ local g = grammar({ "+", "*", "(", ")", "id" }, {
     + _;
   F = _"(" "E" ")"
     + _"id";
-})
+}))
 
-local actions, conflictions, data = lalr(g)
-local buffer = list()
-for _, message in ipairs(conflictions) do
+local buffer = array()
+for _, message in conflictions:ipairs() do
   buffer:append(message, "\n")
 end
 
 local max_terminal_symbol = g.max_terminal_symbol
 local symbol_names = g.symbol_names
 local symbol_table = {}
-for i = max_terminal_symbol + 2, #symbol_names do
-  symbol_table[symbol_names[i]] = i
+for i = max_terminal_symbol + 2, symbol_names:size() do
+  symbol_table[symbol_names:get(i)] = i
 end
 local first_table = g.first_table
 
@@ -61,7 +60,7 @@ for _, name in ipairs { "F", "T", "E", "E'", "T'" } do
     if k == 0 then
       buffer:append "e"
     else
-      buffer:append(g.symbol_names[k])
+      buffer:append(g.symbol_names:get(k))
     end
   end
   buffer:append " }\n"

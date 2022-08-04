@@ -15,25 +15,24 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local list = require "dromozoa.list"
+local array = require "dromozoa.array"
 local grammar = require "dromozoa.parser.grammar"
 local lalr = require "dromozoa.parser.lalr"
 
 local _ = grammar.body
 
 -- P.244 Example 4.40
-local g = grammar({ "+", "*", "(", ")", "id" }, {
+local g, actions, conflictions, data = lalr(grammar({ "+", "*", "(", ")", "id" }, {
   E = _"E" "+" "T"
     + _"T";
   T = _"T" "*" "F"
     + _"F";
   F = _"(" "E" ")"
     + _"id";
-})
+}))
 
-local actions, conflictions, data = lalr(g)
-local buffer = list()
-for _, message in ipairs(conflictions) do
+local buffer = array()
+for _, message in conflictions:ipairs() do
   buffer:append(message, "\n")
 end
 
@@ -44,14 +43,14 @@ for i, items in set_of_items:ipairs() do
   buffer:append(("="):rep(75), "\nI_", i, "\n")
   for _, item in items:ipairs() do
     local production = g.productions[item.index]
-    buffer:append("  ", g.symbol_names[production.head], " ->")
-    for j, symbol in ipairs(production.body) do
+    buffer:append("  ", g.symbol_names:get(production.head), " ->")
+    for j, symbol in production.body:ipairs() do
       if j == item.dot then
         buffer:append " ."
       end
-      buffer:append(" ", g.symbol_names[symbol])
+      buffer:append(" ", g.symbol_names:get(symbol))
     end
-    if not production.body[item.dot] then
+    if production.body:get(item.dot) == nil then
       buffer:append " ."
     end
     buffer:append "\n"
@@ -60,13 +59,13 @@ for i, items in set_of_items:ipairs() do
     buffer:append "\n"
   end
   for symbol, j in transitions[i]:pairs() do
-    buffer:append("  I_", i, " -> I_", j, " ", g.symbol_names[symbol], "\n")
+    buffer:append("  I_", i, " -> I_", j, " ", g.symbol_names:get(symbol), "\n")
   end
 end
 buffer:append(("="):rep(75), "\n")
 
--- print(table.concat(buffer))
-assert(table.concat(buffer) == [[
+-- print(buffer:concat())
+assert(buffer:concat() == [[
 ===========================================================================
 I_1
   E' -> . E

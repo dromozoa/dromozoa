@@ -15,8 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local list = require "dromozoa.list"
-local tree_map2 = require "dromozoa.tree_map2"
+local array = require "dromozoa.array"
+local tree_map = require "dromozoa.tree_map"
 local tree_set = require "dromozoa.tree_set"
 
 ---------------------------------------------------------------------------
@@ -135,19 +135,19 @@ module.body = setmetatable({ [0] = "body" }, metatable)
 local metatable = { __name = "dromozoa.parser.grammar" }
 
 function metatable:__call(token_names, that)
-  local symbol_names = list()
+  local symbol_names = array()
   local symbol_table = {}
   for _, name in ipairs(token_names) do
     if symbol_table[name] ~= nil then
       error("symbol " .. name .. " redefined as a terminal")
     end
-    symbol_table[name] = #symbol_names:append(name)
+    symbol_table[name] = symbol_names:append(name):size()
   end
-  local max_terminal_symbol = #symbol_names:append "$"
+  local max_terminal_symbol = symbol_names:append "$":size()
 
   local expect_sr
   local precedence = 0
-  local precedence_table = tree_map2()
+  local precedence_table = tree_map()
   local symbol_precedences = {}
   for _, v in ipairs(that) do
     if v[0] == "expect" then
@@ -167,24 +167,24 @@ function metatable:__call(token_names, that)
     end
   end
 
-  local data = list()
+  local data = array()
   for k, v in pairs(that) do
     if type(k) == "string" then
       data:append { timestamp = v.timestamp, k = k, v = v }
     end
   end
-  table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
+  data:sort(function (a, b) return a.timestamp < b.timestamp end)
 
-  local start_head = #symbol_names:append(data[1].k .. "'")
+  local start_head = symbol_names:append(data:get(1).k .. "'"):size()
   local start_body = start_head + 1
 
-  for _, u in ipairs(data) do
+  for _, u in data:ipairs() do
     local k = u.k
     local v = u.v
     if symbol_table[k] ~= nil then
       error("symbol " .. k .. " redefined as a nonterminal")
     end
-    local symbol = #symbol_names:append(k)
+    local symbol = symbol_names:append(k):size()
     symbol_table[k] = symbol
     u.k = symbol
     if v[0] == "body" then
@@ -201,7 +201,7 @@ function metatable:__call(token_names, that)
     end
     assert(a.head_index ~= b.head_index)
     return a.head_index < b.head_index and -1 or 1
-  end):insert { head = start_head, head_index = 1, body = list(start_body) }
+  end):insert { head = start_head, head_index = 1, body = array(start_body) }
 
   local used_symbols = {
     [max_terminal_symbol] = true;
@@ -210,9 +210,9 @@ function metatable:__call(token_names, that)
   }
   local used_precedences = {}
 
-  for _, u in ipairs(data) do
+  for _, u in data:ipairs() do
     for i, v in ipairs(u.v) do
-      local body = list()
+      local body = array()
       for _, name in ipairs(v) do
         local symbol = symbol_table[name]
         if symbol == nil then
@@ -234,7 +234,7 @@ function metatable:__call(token_names, that)
     end
   end
 
-  for i, v in ipairs(symbol_names) do
+  for i, v in symbol_names:ipairs() do
     if used_symbols[i] == nil then
       error("symbol " .. v .. " not used")
     end

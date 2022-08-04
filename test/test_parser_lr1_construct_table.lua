@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local list = require "dromozoa.list"
+local array = require "dromozoa.array"
 local grammar = require "dromozoa.parser.grammar"
 local lalr = require "dromozoa.parser.lalr"
 
@@ -102,24 +102,24 @@ local G = {
   });
 }
 
-local buffer = list()
+local buffer = array()
 
 for _, g in ipairs(G) do
   buffer:append(("-"):rep(75), "\n")
-  local actions, conflictions = lalr(g)
-  for _, message in ipairs(conflictions) do
+  local g, actions, conflictions = lalr(g)
+  for _, message in conflictions:ipairs() do
     buffer:append(message, "\n")
   end
 
   buffer:append "|    |"
-  for i = 1, #g.symbol_names do
-    buffer:append(("  %-2s |"):format(g.symbol_names[i]))
+  for i, name in g.symbol_names:ipairs() do
+    buffer:append(("  %-2s |"):format(name))
   end
   buffer:append "\n"
 
   for i, data in ipairs(actions) do
     buffer:append(("| %2d |"):format(i))
-    for j = 1, #g.symbol_names do
+    for j in g.symbol_names:ipairs() do
       local v = data[j]
       if v == 0 then
         buffer:append "     |"
@@ -143,8 +143,8 @@ for _, g in ipairs(G) do
 
 end
 
--- print(table.concat(buffer))
-assert(table.concat(buffer) == [[
+-- print(buffer:concat())
+assert(buffer:concat() == [[
 ---------------------------------------------------------------------------
 |    |  c  |  d  |  $  |  S' |  S  |  C  |
 |  1 |  s4 |  s5 |     |     |  s2 |  s3 |

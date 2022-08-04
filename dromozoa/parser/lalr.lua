@@ -15,8 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local list = require "dromozoa.list"
-local tree_map2 = require "dromozoa.tree_map2"
+local array = require "dromozoa.array"
+local tree_map = require "dromozoa.tree_map"
 local tree_set = require "dromozoa.tree_set"
 
 ---------------------------------------------------------------------------
@@ -39,41 +39,41 @@ local function eliminate_left_recursion(grammar)
   local new_symbol_names = symbol_names:slice()
   local new_productions = tree_set(productions.tree_compare)
 
-  for i = max_terminal_symbol + 1, #symbol_names do
-    local n = #new_symbol_names + 1
-    local n_bodies = list()
-    local i_bodies = list()
+  for i = max_terminal_symbol + 1, symbol_names:size() do
+    local n = new_symbol_names:size() + 1
+    local n_bodies = array()
+    local i_bodies = array()
 
     for _, body in each_production(productions, i) do
-      local symbol = body[1]
-      if symbol and symbol > max_terminal_symbol and symbol < i then
+      local symbol = body:get(1)
+      if symbol ~= nil and symbol > max_terminal_symbol and symbol < i then
         for _, src_body in each_production(new_productions, symbol) do
           local new_body = src_body:slice():append(body:unpack(2))
-          if i == new_body[1] then
+          if i == new_body:get(1) then
             n_bodies:append(new_body:slice(2):append(n))
           else
             i_bodies:append(new_body)
           end
         end
-      elseif i == body[1] then
+      elseif i == symbol then
         n_bodies:append(body:slice(2):append(n))
       else
         i_bodies:append(body:slice())
       end
     end
 
-    if n_bodies[1] then
-      new_symbol_names:append(symbol_names[i] .. "'")
-      n_bodies:append(list())
-      for _, body in ipairs(i_bodies) do
+    if not n_bodies:empty() then
+      new_symbol_names:append(symbol_names:get(i) .. "'")
+      n_bodies:append(array())
+      for _, body in i_bodies:ipairs() do
         body:append(n)
       end
     end
 
-    for j, body in ipairs(i_bodies) do
+    for j, body in i_bodies:ipairs() do
       new_productions:insert { head = i, head_index = j, body = body }
     end
-    for j, body in ipairs(n_bodies) do
+    for j, body in n_bodies:ipairs() do
       new_productions:insert { head = n, head_index = j, body = body }
     end
   end
@@ -105,7 +105,8 @@ local function first_symbol(grammar, symbol)
     local result = tree_set()
     local epsilon = false
     for _, body in each_production(grammar.productions, symbol) do
-      if body[1] then
+      if not body:empty() then
+      -- if body:get(1) ~= nil then
         local first = first_symbols(grammar, body)
         for _, symbol in first:ipairs() do
           result:insert(symbol)
@@ -120,7 +121,7 @@ end
 
 function first_symbols(grammar, symbols)
   local result = tree_set()
-  for _, symbol in ipairs(symbols) do
+  for _, symbol in symbols:ipairs() do
     local epsilon = false
     for _, symbol in first_symbol(grammar, symbol):ipairs() do
       if symbol == marker_epsilon then
@@ -138,7 +139,7 @@ end
 
 local function first_table(grammar)
   local result = {}
-  for symbol = grammar.max_terminal_symbol + 1, #grammar.symbol_names do
+  for symbol = grammar.max_terminal_symbol + 1, grammar.symbol_names:size() do
     result[symbol] = first_symbol(grammar, symbol)
   end
   return result
@@ -151,8 +152,8 @@ local function lr0_closure(grammar, items)
   local productions = grammar.productions
 
   for _, item in items:ipairs() do
-    local symbol = productions[item.index].body[item.dot]
-    if symbol and symbol > max_terminal_symbol then
+    local symbol = productions[item.index].body:get(item.dot)
+    if symbol ~= nil and symbol > max_terminal_symbol then
       for i in each_production(productions, symbol) do
         items:insert { index = i, dot = 1 }
       end
@@ -164,11 +165,11 @@ end
 
 local function lr0_goto(grammar, items)
   local productions = grammar.productions
-  local map_of_to_items = tree_map2()
+  local map_of_to_items = tree_map()
 
   for _, item in items:ipairs() do
-    local symbol = productions[item.index].body[item.dot]
-    if symbol then
+    local symbol = productions[item.index].body:get(item.dot)
+    if symbol ~= nil then
       map_of_to_items:get(symbol, tree_set):insert { index = item.index, dot = item.dot + 1 }
     end
   end
@@ -185,7 +186,7 @@ local function lr0_items(grammar)
 
   for i, items in set_of_items:ipairs() do
     local map_of_to_items = lr0_goto(grammar, items)
-    local transition = tree_map2()
+    local transition = tree_map()
     for symbol, to_items in map_of_to_items:pairs() do
       transition:insert(symbol, select(2, set_of_items:insert(to_items)))
     end
@@ -205,8 +206,8 @@ local function lr1_closure(grammar, items)
 
   for _, item in items:ipairs() do
     local body = productions[item.index].body
-    local symbol = body[item.dot]
-    if symbol and symbol > max_terminal_symbol then
+    local symbol = body:get(item.dot)
+    if symbol ~= nil and symbol > max_terminal_symbol then
       local first = first_symbols(grammar, body:slice(item.dot + 1):append(item.la))
       for j in each_production(productions, symbol) do
         for _, la in first:ipairs() do
@@ -227,12 +228,12 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
   local max_terminal_symbol = grammar.max_terminal_symbol
   local productions = grammar.productions
 
-  local set_of_kernel_items = list()
-  local map_of_kernel_items = list()
+  local set_of_kernel_items = array()
+  local map_of_kernel_items = array()
 
   for i, items in set_of_items:ipairs() do
     local kernel_items = tree_set()
-    local kernel_table = tree_map2()
+    local kernel_table = tree_map()
     for j, item in items:ipairs() do
       if item.index == 1 or item.dot > 1 then
         kernel_table:get(item.index, function () return {} end)[item.dot] = j
@@ -243,11 +244,11 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
       end
       kernel_items:insert { index = item.index, dot = item.dot, la = la }
     end
-    set_of_kernel_items[i] = kernel_items
-    map_of_kernel_items[i] = kernel_table
+    set_of_kernel_items:append(kernel_items)
+    map_of_kernel_items:append(kernel_table)
   end
 
-  local propagations = list()
+  local propagations = array()
 
   for from_i, from_items in set_of_items:ipairs() do
     for from_j, from_item in from_items:ipairs() do
@@ -256,14 +257,14 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
         items:insert { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
         lr1_closure(grammar, items)
         for _, item in items:ipairs() do
-          local symbol = productions[item.index].body[item.dot]
-          if symbol then
+          local symbol = productions[item.index].body:get(item.dot)
+          if symbol ~= nil then
             local to_i = transitions[from_i]:get(symbol)
-            local to_j = map_of_kernel_items[to_i]:get(item.index)[item.dot + 1]
+            local to_j = map_of_kernel_items:get(to_i):get(item.index)[item.dot + 1]
             if item.la == marker_lookahead then
               propagations:append { from_i = from_i, from_j = from_j, to_i = to_i, to_j = to_j }
             else
-              set_of_kernel_items[to_i][to_j].la:insert(item.la)
+              set_of_kernel_items:get(to_i)[to_j].la:insert(item.la)
             end
           end
         end
@@ -273,9 +274,9 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
 
   repeat
     local done = true
-    for _, propagation in ipairs(propagations) do
-      local from_la = set_of_kernel_items[propagation.from_i][propagation.from_j].la
-      local to_la = set_of_kernel_items[propagation.to_i][propagation.to_j].la
+    for _, propagation in propagations:ipairs() do
+      local from_la = set_of_kernel_items:get(propagation.from_i)[propagation.from_j].la
+      local to_la = set_of_kernel_items:get(propagation.to_i)[propagation.to_j].la
       for _, la in from_la:ipairs() do
         if select(3, to_la:insert(la)) then
           done = false
@@ -284,8 +285,8 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
     end
   until done
 
-  local new_set_of_kernel_items = list()
-  for _, items in ipairs(set_of_kernel_items) do
+  local new_set_of_kernel_items = array()
+  for _, items in set_of_kernel_items:ipairs() do
     local new_items = tree_set()
     for _, item in items:ipairs() do
       for _, la in item.la:ipairs() do
@@ -304,7 +305,7 @@ local function symbol_precedence(grammar, symbol)
   if precedence ~= nil then
     return precedence.precedence, precedence.name, precedence.associativity
   end
-  return 0, grammar.symbol_names[symbol]
+  return 0, grammar.symbol_names:get(symbol)
 end
 
 local function production_precedence(grammar, index)
@@ -317,8 +318,8 @@ local function production_precedence(grammar, index)
 
   local max_terminal_symbol = grammar.max_terminal_symbol
   local body = production.body
-  for i = #body, 1, -1 do
-    local symbol = body[i]
+  for i = body:size(), 1, -1 do
+    local symbol = body:get(i)
     if symbol <= max_terminal_symbol then
       return symbol_precedence(grammar, symbol)
     end
@@ -355,13 +356,13 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
   local expect_sr = grammar.expect_sr
   local productions = grammar.productions
 
-  local max_state = #set_of_items
+  local max_state = set_of_items:size()
   local actions = {}
-  local conflictions = list()
+  local conflictions = array()
   local total_sr = 0
   local total_rr = 0
 
-  for i, items in ipairs(set_of_items) do
+  for i, items in set_of_items:ipairs() do
     local sr = 0
     local rr = 0
 
@@ -371,7 +372,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
     end
 
     for _, item in items:ipairs() do
-      if productions[item.index].body[item.dot] == nil then
+      if productions[item.index].body:get(item.dot) == nil then
         local action = data[item.la]
         if action == nil then
           data[item.la] = item.index + max_state
@@ -383,12 +384,12 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
           rr = rr + 1
         elseif action ~= 0 then
           -- shift/reduce
-          local buffer = list()
+          local buffer = array()
           data[item.la] = resolve_sr(grammar, item, action, item.index + max_state, buffer)
-          if #buffer == 0 then
+          if buffer:empty() then
             sr = sr + 1
           else
-            conflictions:append("[info] conflict between production " .. item.index .. " and symbol " .. symbol_names[item.la] .. " resolved as " .. buffer:concat())
+            conflictions:append("[info] conflict between production " .. item.index .. " and symbol " .. symbol_names:get(item.la) .. " resolved as " .. buffer:concat())
           end
         end
       end
@@ -397,7 +398,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
     total_sr = total_sr + sr
     total_rr = total_rr + rr
     if sr > 0 or rr > 0 then
-      local buffer = list()
+      local buffer = array()
       if expect_sr == nil or expect_sr < total_sr or rr > 0 then
         buffer:append "[warn]"
       else
@@ -416,7 +417,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
       conflictions:append(buffer:concat())
     end
 
-    for symbol = 1, #symbol_names do
+    for symbol in symbol_names:ipairs() do
       if data[symbol] == nil then
         data[symbol] = 0
       end
@@ -425,7 +426,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
   end
 
   if total_sr > 0 then
-    local buffer = list()
+    local buffer = array()
     if expect_sr ~= total_sr then
       buffer:append "[warn]"
     else
@@ -451,12 +452,12 @@ return function (grammar)
   grammar.first_table = first_table(grammar_without_left_recursion)
   local lr0_set_of_items, transitions = lr0_items(grammar)
   local lalr1_set_of_items = lalr1_kernels(grammar, lr0_set_of_items, transitions)
-  for _, items in ipairs(lalr1_set_of_items) do
+  for _, items in lalr1_set_of_items:ipairs() do
     lr1_closure(grammar, items)
   end
   local actions, conflictions = lr1_construct_table(grammar, lalr1_set_of_items, transitions)
 
-  return actions, conflictions, {
+  return grammar, actions, conflictions, {
     grammar = grammar;
     grammar_without_left_recursion = grammar_without_left_recursion;
     lr0_set_of_items = lr0_set_of_items;
