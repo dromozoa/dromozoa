@@ -133,6 +133,8 @@ local function delete(self, x, t, ok, last, deleted, k, v)
   return t, ok, last, deleted, k, v
 end
 
+---------------------------------------------------------------------------
+
 local function dispose(self, t)
   local K = self.K
   local V = self.V
@@ -252,12 +254,14 @@ end
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.tree" }
 
+-- inserted, index
 function class:insert(k)
   local root, ok, t = insert(self, k, self.root, false, 0)
   self.root = root
   return ok, t
 end
 
+-- deleted, key, value
 function class:delete(k)
   local root, ok, t, _, k, v = delete(self, k, self.root, false, 0, 0)
   self.root = root
@@ -267,14 +271,17 @@ function class:delete(k)
   return ok, k, v
 end
 
+-- key, value, index
 function class:find(k)
   return find(self, k)
 end
 
+-- key, value, index
 function class:next(k)
   return next(self, k, self.root)
 end
 
+-- key, value, index
 function class:each(lower_bound, upper_bound)
   return coroutine.wrap(function (self, t)
     return each(self, lower_bound, upper_bound, t)
