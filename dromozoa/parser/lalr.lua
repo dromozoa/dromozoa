@@ -229,8 +229,8 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
   local max_terminal_symbol = grammar.max_terminal_symbol
   local productions = grammar.productions
 
-  local set_of_kernel_items = list()
-  local map_of_kernel_items = list()
+  local set_of_kernel_items = array()
+  local map_of_kernel_items = array()
 
   for i, items in set_of_items:ipairs() do
     local kernel_items = tree_set()
@@ -245,8 +245,8 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
       end
       kernel_items:insert { index = item.index, dot = item.dot, la = la }
     end
-    set_of_kernel_items[i] = kernel_items
-    map_of_kernel_items[i] = kernel_table
+    set_of_kernel_items:append(kernel_items)
+    map_of_kernel_items:append(kernel_table)
   end
 
   local propagations = list()
@@ -287,7 +287,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
   until done
 
   local new_set_of_kernel_items = list()
-  for _, items in ipairs(set_of_kernel_items) do
+  for _, items in set_of_kernel_items:ipairs() do
     local new_items = tree_set()
     for _, item in items:ipairs() do
       for _, la in item.la:ipairs() do
