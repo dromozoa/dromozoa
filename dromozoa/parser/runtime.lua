@@ -6,8 +6,8 @@ context["action_data"];
 [=[
  }
   local static_data = coroutine.yield()
-  local max_state = static_data.max_state
   local actions = static_data.actions
+  local max_state = #actions
   local heads = static_data.heads
   local sizes = static_data.sizes
   local semantic_actions = static_data.semantic_actions
