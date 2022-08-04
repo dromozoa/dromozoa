@@ -72,8 +72,8 @@ end
 local difference
 
 local function node_to_nfa(node)
-  assert(rawget(node, "timestamp") ~= nil)
   local timestamp = rawget(node, "timestamp")
+  assert(timestamp ~= nil)
 
   local code = node[0]
   if code == "[" then
@@ -136,9 +136,6 @@ end
 local function tree_to_nfa(node)
   local timestamp = rawget(node, "timestamp")
   assert(timestamp ~= nil)
-  -- if timestamp == nil then
-  --   error "pattern has no timestamp"
-  -- end
   local u, v = node_to_nfa(node)
   if v.accept_action == nil then
     v:update(timestamp, "")
