@@ -26,8 +26,6 @@ local function construct()
   return setmetatable(self, metatable)
 end
 
----------------------------------------------------------------------------
-
 function class:empty()
   return next(private[self]) == nil
 end
@@ -69,8 +67,6 @@ function class:set(i, v)
   return self
 end
 
----------------------------------------------------------------------------
-
 function class:ipairs()
   return ipairs(private[self])
 end
@@ -86,8 +82,6 @@ end
 function class:unpack(...)
   return table_unpack(private[self], ...)
 end
-
----------------------------------------------------------------------------
 
 function metatable:__len()
   error "not supported"
@@ -112,8 +106,6 @@ end
 function metatable:__tostring()
   error "not supported"
 end
-
----------------------------------------------------------------------------
 
 return setmetatable(class, {
   __call = function (_, ...)
