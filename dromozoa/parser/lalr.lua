@@ -23,7 +23,7 @@ local tree_set = require "dromozoa.tree_set"
 
 local function each_production(productions, head)
   return coroutine.wrap(function (self)
-    for i, production in productions:tree_each({ head = head, head_index = 0 }, { head = head + 1, head_index = 0 }) do
+    for i, production in productions:each({ head = head, head_index = 0 }, { head = head + 1, head_index = 0 }) do
       coroutine.yield(i, production.body)
     end
   end), productions
@@ -37,7 +37,7 @@ local function eliminate_left_recursion(grammar)
   local productions = grammar.productions
 
   local new_symbol_names = symbol_names:slice()
-  local new_productions = tree_set(productions.tree_compare)
+  local new_productions = tree_set(productions.compare)
 
   for i = max_terminal_symbol + 1, symbol_names:size() do
     local n = new_symbol_names:size() + 1

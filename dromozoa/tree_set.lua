@@ -36,7 +36,7 @@ function class:find(k)
   return private[self]:find(k) ~= nil
 end
 
-function class:tree_each(lower_bound, upper_bound)
+function class:each(lower_bound, upper_bound)
   return coroutine.wrap(function (self)
     for k, _, i in self:each(lower_bound, upper_bound) do
       coroutine.yield(i, k)
@@ -77,7 +77,7 @@ function metatable:__len()
 end
 
 function metatable:__index(k)
-  if k == "tree_compare" then
+  if k == "compare" then
     return private[self].compare
   end
   local v = class[k]
