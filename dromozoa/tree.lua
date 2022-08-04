@@ -82,7 +82,7 @@ local function insert(self, x, t, ok, last)
   return t, ok, last
 end
 
-local function delete(self, x, t, ok, last, deleted)
+local function delete(self, x, t, ok, last, deleted, k, v)
   ok = false
 
   if t ~= 0 then
@@ -98,16 +98,18 @@ local function delete(self, x, t, ok, last, deleted)
 
     local c = compare(x, K[t])
     if c < 0 then
-      L[t], ok, last, deleted = delete(self, x, L[t], ok, last, deleted)
+      L[t], ok, last, deleted, k, v = delete(self, x, L[t], ok, last, deleted, k, v)
     else
       if c == 0 then
         deleted = t
       end
-      R[t], ok, last, deleted = delete(self, x, R[t], ok, last, deleted)
+      R[t], ok, last, deleted, k, v = delete(self, x, R[t], ok, last, deleted, k, v)
     end
 
     -- 2. At the bottom of the tree we remove the element (if it is present).
     if t == last and deleted ~= 0 then
+      k = K[deleted]
+      v = V[deleted]
       K[deleted] = K[t]
       V[deleted] = V[t]
       deleted = 0
@@ -128,7 +130,7 @@ local function delete(self, x, t, ok, last, deleted)
     end
   end
 
-  return t, ok, last, deleted
+  return t, ok, last, deleted, k, v
 end
 
 local function dispose(self, t)
@@ -196,7 +198,7 @@ local function find(self, x)
   end
 end
 
-local function next(self, x, t, k, v)
+local function next(self, x, t, k, v, u)
   if t ~= 0 then
     local K = self.K
     local V = self.V
@@ -205,17 +207,17 @@ local function next(self, x, t, k, v)
     local compare = self.compare
 
     if x == nil or compare(x, K[t]) < 0 then
-      k, v = next(self, x, L[t], k, v)
+      k, v, u = next(self, x, L[t], k, v, u)
       if k == nil then
-        return K[t], V[t]
+        return K[t], V[t], t
       else
-        return k, v
+        return k, v, u
       end
     end
-    return next(self, x, R[t], k, v)
+    return next(self, x, R[t], k, v, u)
   end
 
-  return k, v
+  return k, v, u
 end
 
 local function each(self, x, y, t)
@@ -257,12 +259,12 @@ function class:insert(k)
 end
 
 function class:delete(k)
-  local root, ok, t = delete(self, k, self.root, false, 0, 0)
+  local root, ok, t, _, k, v = delete(self, k, self.root, false, 0, 0)
   self.root = root
   if ok then
     dispose(self, t)
   end
-  return ok
+  return ok, k, v
 end
 
 function class:find(k)

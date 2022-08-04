@@ -16,55 +16,71 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local tree = require "dromozoa.tree"
--- local tree_map = require "dromozoa.tree_map"
 
 ---------------------------------------------------------------------------
---[====[
+
+local function insert(t, k, v)
+  local ok, i = t:insert(k)
+  if ok then
+    t.V[i] = v
+  end
+  return ok
+end
 
 local t = tree()
 for i = 1, 256 do
-  assert(t:insert(i, i * 2))
+  assert(insert(t, i, i * 2))
 end
 assert(t.size == 256)
 
 local i = 0
-for k, v in t:each() do
+for k, v, j in t:each() do
   i = i + 1
   assert(k == i)
   assert(v == i * 2)
+  assert(j == i)
 end
 assert(i == 256)
 
 local i = 0
-for k, v in t.next, t do
+for k, v, j in t.next, t do
   i = i + 1
   assert(k == i)
   assert(v == i * 2)
+  assert(j == i)
 end
 assert(i == 256)
 
 local i = 0
-for k, v in t.next, t do
+for k, v, j in t.next, t do
   i = i + 1
   assert(k == i)
   assert(v == i * 2)
+  -- 削除により、jは不定になる
+  assert(j <= 256)
   if k % 2 == 1 then
-    assert(t:delete(k))
+    local _, k, v = assert(t:delete(k))
+    assert(k == i)
+    assert(v == i * 2)
   end
 end
 assert(i == 256)
 assert(t.size == 128)
 
 for i = 1, 256 do
-  local k, v = t:find(i)
+  local k, v, j = t:find(i)
   if i % 2 == 1 then
     assert(k == nil)
     assert(v == nil)
+    assert(j == nil)
   else
     assert(k == i)
     assert(v == i * 2)
+    assert(j <= 128)
   end
 end
+
+---------------------------------------------------------------------------
 
 local i = 0
 for k, v in t:each(nil, 6) do
@@ -122,99 +138,17 @@ for k, v in t:each(254) do
 end
 assert(i == 256)
 
+---------------------------------------------------------------------------
+
 local i = 0
-for k, v in t.next, t do
+for k, v, j in t.next, t do
   i = i + 2
   assert(k == i)
   assert(v == i * 2)
-  assert(t:delete(k))
+  assert(j <= 256)
+  local _, k, v = assert(t:delete(k))
+  assert(k == i)
+  assert(v == i * 2)
 end
 assert(i == 256)
 assert(t.size == 0)
-
----------------------------------------------------------------------------
-
-local nan = math.huge / math.huge
-
-local status, message = pcall(function ()
-  tree_map()[nil] = nil
-end)
--- print(message)
-assert(not status)
-
-local status, message = pcall(function ()
-  tree_map()[nan] = nan
-end)
--- print(message)
-assert(not status)
-
-local t = tree_map()
-t.foo = 1
-t.bar = 2
-t.baz = 3
-t.qux = 4
-assert(t().size == 4)
-
-t.bar = nil
-assert(t().size == 3)
-
-assert(t.foo == 1)
-assert(t.bar == nil)
-assert(t.baz == 3)
-assert(t.qux == 4)
-assert(t[nil] == nil)
-assert(t[nan] == nil)
-assert(t.compare == nil)
-assert(t.size == nil)
-
-local buffer = {}
-for k, v in t().next, t() do
-  buffer[#buffer + 1] = k .. "=" .. v
-end
-assert(table.concat(buffer, ";") == "baz=3;foo=1;qux=4")
-
-local buffer = {}
-for k, v in t():each("c") do
-  buffer[#buffer + 1] = k .. "=" .. v
-end
-assert(table.concat(buffer, ";") == "foo=1;qux=4")
-
-local buffer = {}
-for k, v in t():each(nil, "q") do
-  buffer[#buffer + 1] = k .. "=" .. v
-end
-assert(table.concat(buffer, ";") == "baz=3;foo=1")
-
-local buffer = {}
-for k, v in t().next, t() do
-  buffer[#buffer + 1] = k .. "=" .. v
-  t[k] = nil
-end
-assert(table.concat(buffer, ";") == "baz=3;foo=1;qux=4")
-
----------------------------------------------------------------------------
-
-local t = tree_map()
-t"foo""bar".baz = 42
-assert(t.foo.bar.baz == 42)
-
-t(1)(2)(3)[4] = "qux"
-assert(t[1][2][3][4] == "qux")
-
----------------------------------------------------------------------------
-
-local n = 0
-
-local function f(...)
-  assert(select("#", ...) == 0)
-  n = n + 1
-  return n * 2
-end
-
-assert(n == 0)
-assert(t("xxx", f) == 2)
-assert(n == 1)
-assert(t("xxx", f) == 2)
-assert(n == 1)
-
-]====]
