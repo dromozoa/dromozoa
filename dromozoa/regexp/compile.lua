@@ -16,7 +16,6 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local list = require "dromozoa.list"
-local tree_map = require "dromozoa.tree_map"
 local tree_set = require "dromozoa.tree_set"
 local runtime = require "dromozoa.regexp.runtime"
 
@@ -31,6 +30,7 @@ end
 
 local function make_action(action_data, action_threads, v)
   local _, i, ok = action_data:insert("function()" .. v .. "\nend;\n")
+  -- 最後にやったほうがよいかもしれない
   if ok then
     -- コルーチンの必要性をおおまかに検査する。
     -- 1. 単語境界を調べやすくするために番兵を置く。
