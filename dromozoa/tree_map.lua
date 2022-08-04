@@ -23,15 +23,15 @@ local metatable = { __name = "dromozoa.tree_map" }
 
 function class:insert(k, v)
   if k == nil then
-    error "index is nil"
+    error "key is nil"
   elseif type(k) == "number" and k ~= k then
-    error "index is NaN"
+    error "key is NaN"
   elseif v == nil then
     error "value is nil"
   end
   local priv = private[self]
   local V = priv.V
-  local inserted, i = priv:insert2(k)
+  local inserted, i = priv:insert(k)
   if inserted then
     V[i] = v
   end
@@ -40,28 +40,28 @@ end
 
 function class:assign(k, v)
   if k == nil then
-    error "index is nil"
+    error "key is nil"
   elseif type(k) == "number" and k ~= k then
-    error "index is NaN"
+    error "key is NaN"
   elseif v == nil then
     error "value is nil"
   end
   local priv = private[self]
   local V = priv.V
-  local inserted, i = priv:insert2(k)
+  local inserted, i = priv:insert(k)
   V[i] = v
   return self, v, inserted
 end
 
 function class:insert_or_update(k, insert_fn, update_fn)
   if k == nil then
-    error "index is nil"
+    error "key is nil"
   elseif type(k) == "number" and k ~= k then
-    error "index is NaN"
+    error "key is NaN"
   end
   local priv = private[self]
   local V = priv.V
-  local inserted, i = priv:insert2(k)
+  local inserted, i = priv:insert(k)
   local v = V[i]
   if inserted then
     v = insert_fn()

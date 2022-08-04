@@ -250,37 +250,18 @@ end
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.tree" }
 
--- TODO 戻り値の順序を検討する
--- TODO eachの戻り値も
-
-function class:insert2(k)
-  local root, inserted, t = insert(self, k, self.root, false, 0)
-  self.root = root
-  return inserted, t
-end
-
-function class:insert(k, v, fn)
+function class:insert(k)
   local root, ok, t = insert(self, k, self.root, false, 0)
   self.root = root
-
-  local V = self.V
-  if fn == nil then
-    V[t] = v
-  elseif ok then
-    V[t] = fn()
-  end
-
-  return ok, V[t], t
+  return ok, t
 end
 
 function class:delete(k)
   local root, ok, t = delete(self, k, self.root, false, 0, 0)
-
   self.root = root
   if ok then
     dispose(self, t)
   end
-
   return ok
 end
 

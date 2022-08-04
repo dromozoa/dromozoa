@@ -22,6 +22,16 @@ local class = {}
 local metatable = { __name = "dromozoa.tree_set" }
 local table_unpack = table.unpack or unpack
 
+function class:insert(k)
+  if k == nil then
+    error "key is nil"
+  elseif type(k) == "number" and k ~= k then
+    error "key is NaN"
+  end
+  local inserted, i = private[self]:insert(k)
+  return self, i, inserted
+end
+
 function class:empty()
   return private[self].size == 0
 end
@@ -32,16 +42,6 @@ end
 
 function class:get(i)
   return private[self].K[i]
-end
-
-function class:insert(k)
-  if k == nil then
-    error "index is nil"
-  elseif type(k) == "number" and k ~= k then
-    error "index is NaN"
-  end
-  local inserted, i = private[self]:insert2(k)
-  return self, i, inserted
 end
 
 function class:ipairs()
