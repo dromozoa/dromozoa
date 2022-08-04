@@ -21,7 +21,7 @@ local tree = require "dromozoa.tree"
 local private = setmetatable({}, { __mode = "k" })
 local class = {}
 local metatable = {
-  __name = "dromozoa.tree_map2";
+  __name = "dromozoa.tree_map";
   ["dromozoa.stable_pairs"] = function (self) return private[self]:each() end;
 }
 

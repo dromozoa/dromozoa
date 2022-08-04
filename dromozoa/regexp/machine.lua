@@ -17,7 +17,7 @@
 
 local compare = require "dromozoa.compare"
 local list = require "dromozoa.list"
-local tree_map2 = require "dromozoa.tree_map2"
+local tree_map = require "dromozoa.tree_map"
 
 ---------------------------------------------------------------------------
 
@@ -179,7 +179,7 @@ end
 local function epsilon_closure(u, epsilon_closures)
   local closure = epsilon_closures[u]
   if closure == nil then
-    closure = tree_map2()
+    closure = tree_map()
     closure:insert(u.index, u)
     epsilon_closure_impl(u, closure)
     epsilon_closures[u] = closure
@@ -200,12 +200,12 @@ end
 local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
   color:insert(u_closure, 1)
 
-  local state_map = tree_map2()
-  local transition_map = tree_map2()
+  local state_map = tree_map()
+  local transition_map = tree_map()
 
   for byte = 0x00, 0xFF do
     local resolved = {}
-    local v_closure = tree_map2()
+    local v_closure = tree_map()
     for _, u in u_closure:pairs() do
       local to = u:simulate(byte, resolved)
       if to ~= nil then
@@ -237,10 +237,10 @@ end
 local function nfa_to_dfa(u)
   update_state_indices(u)
   local epsilon_closures = {}
-  local states = tree_map2()
+  local states = tree_map()
   local u_closure = epsilon_closure(u, epsilon_closures)
   local u = closure_to_state(u_closure, states)
-  nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, tree_map2())
+  nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, tree_map())
   return u
 end
 
@@ -273,7 +273,7 @@ local function create_initial_partitions(u, accept_partition_map, nonaccept_part
 end
 
 local function minimize(u)
-  local accept_partition_map = tree_map2()
+  local accept_partition_map = tree_map()
   local partition = list()
   local partition_map = {}
   create_initial_partitions(u, accept_partition_map, partition, partition_map, {})
@@ -358,7 +358,7 @@ local function minimize(u)
 
   for i, partition in ipairs(partitions) do
     local u = states[partition]
-    local transition_map = tree_map2()
+    local transition_map = tree_map()
 
     for byte = 0x00, 0xFF do
       local resolved = {}
@@ -464,7 +464,7 @@ local function difference_impl(x, y)
       local y_u = y_states[j]
       local z_u = z_states[i * n + j]
 
-      local transition_map = tree_map2()
+      local transition_map = tree_map()
       for byte = 0x00, 0xFF do
         local x_v, timestamp, action = simulate(x_u, byte, nil, null)
         local y_v, timestamp = simulate(y_u, byte, timestamp, null)

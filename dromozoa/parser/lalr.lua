@@ -16,7 +16,7 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local list = require "dromozoa.list"
-local tree_map2 = require "dromozoa.tree_map2"
+local tree_map = require "dromozoa.tree_map"
 local tree_set = require "dromozoa.tree_set"
 
 ---------------------------------------------------------------------------
@@ -164,7 +164,7 @@ end
 
 local function lr0_goto(grammar, items)
   local productions = grammar.productions
-  local map_of_to_items = tree_map2()
+  local map_of_to_items = tree_map()
 
   for _, item in items:ipairs() do
     local symbol = productions[item.index].body[item.dot]
@@ -185,7 +185,7 @@ local function lr0_items(grammar)
 
   for i, items in set_of_items:ipairs() do
     local map_of_to_items = lr0_goto(grammar, items)
-    local transition = tree_map2()
+    local transition = tree_map()
     for symbol, to_items in map_of_to_items:pairs() do
       transition:insert(symbol, select(2, set_of_items:insert(to_items)))
     end
@@ -232,7 +232,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
 
   for i, items in set_of_items:ipairs() do
     local kernel_items = tree_set()
-    local kernel_table = tree_map2()
+    local kernel_table = tree_map()
     for j, item in items:ipairs() do
       if item.index == 1 or item.dot > 1 then
         kernel_table:get(item.index, function () return {} end)[item.dot] = j

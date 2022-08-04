@@ -16,7 +16,7 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local list = require "dromozoa.list"
-local tree_map2 = require "dromozoa.tree_map2"
+local tree_map = require "dromozoa.tree_map"
 local tree_set = require "dromozoa.tree_set"
 
 ---------------------------------------------------------------------------
@@ -147,7 +147,7 @@ function metatable:__call(token_names, that)
 
   local expect_sr
   local precedence = 0
-  local precedence_table = tree_map2()
+  local precedence_table = tree_map()
   local symbol_precedences = {}
   for _, v in ipairs(that) do
     if v[0] == "expect" then
