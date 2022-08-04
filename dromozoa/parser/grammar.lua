@@ -15,7 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local compare = require "dromozoa.compare"
 local list = require "dromozoa.list"
 local tree_map2 = require "dromozoa.tree_map2"
 local tree_set = require "dromozoa.tree_set"
@@ -57,6 +56,15 @@ end
 function module.nonassoc(that)
   assert(type(that) == "string")
   return construct(metatable, "nonassoc", that)
+end
+
+---------------------------------------------------------------------------
+
+local metatable = { __name = "dromozoa.parser.grammar.expect" }
+
+function module.expect(that)
+  assert(type(that) == "number")
+  return construct(metatable, "expect", that)
 end
 
 ---------------------------------------------------------------------------
@@ -137,26 +145,24 @@ function metatable:__call(token_names, that)
   end
   local max_terminal_symbol = #symbol_names:append "$"
 
+  local expect_sr
   local precedence = 0
   local precedence_table = tree_map2()
   local symbol_precedences = {}
-
-  for i, v in ipairs(that) do
-    assert(getmetatable(v).__name == "dromozoa.parser.grammar.precedence")
-    precedence = precedence + 1
-    assert(precedence == i)
-    for _, name in ipairs(v) do
-      local symbol = symbol_table[name]
-      if symbol ~= nil and symbol <= max_terminal_symbol then
-        symbol_precedences[symbol] = {
-          precedence = precedence;
-          associativity = v[0];
-        }
-      else
-        precedence_table:insert(name, {
-          precedence = precedence;
-          associativity = v[0];
-        })
+  for _, v in ipairs(that) do
+    if v[0] == "expect" then
+      assert(getmetatable(v).__name == "dromozoa.parser.grammar.expect")
+      expect_sr = v[1]
+    else
+      assert(getmetatable(v).__name == "dromozoa.parser.grammar.precedence")
+      precedence = precedence + 1
+      for _, name in ipairs(v) do
+        local symbol = symbol_table[name]
+        if symbol == nil then
+          precedence_table:insert(name, { name = name, precedence = precedence, associativity = v[0] })
+        else
+          symbol_precedences[symbol] = { name = name, precedence = precedence, associativity = v[0] }
+        end
       end
     end
   end
@@ -169,17 +175,8 @@ function metatable:__call(token_names, that)
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
-  local augumented_start_head = #symbol_names:append(data[1].k .. "'")
-  local augumented_start_body = augumented_start_head + 1
-  local productions = tree_set(function (a, b)
-    if a.head ~= b.head then
-      return a.head < b.head and -1 or 1
-    end
-    if a.head_index ~= b.head_index then
-      return a.head_index < b.head_index and -1 or 1
-    end
-    error "production is not unique"
-  end):insert { head = augumented_start_head, head_index = 1, body = list(augumented_start_body) }
+  local start_head = #symbol_names:append(data[1].k .. "'")
+  local start_body = start_head + 1
 
   for _, u in ipairs(data) do
     local k = u.k
@@ -193,16 +190,23 @@ function metatable:__call(token_names, that)
     if v[0] == "body" then
       assert(getmetatable(v).__name == "dromozoa.parser.grammar.body")
       u.v = bodies(v)
+    else
+      assert(getmetatable(v).__name == "dromozoa.parser.grammar.bodies")
     end
   end
 
-  local production_precedences = {}
-  local semantic_actions = {}
+  local productions = tree_set(function (a, b)
+    if a.head ~= b.head then
+      return a.head < b.head and -1 or 1
+    end
+    assert(a.head_index ~= b.head_index)
+    return a.head_index < b.head_index and -1 or 1
+  end):insert { head = start_head, head_index = 1, body = list(start_body) }
 
   local used_symbols = {
     [max_terminal_symbol] = true;
-    [augumented_start_head] = true;
-    [augumented_start_body] = true;
+    [start_head] = true;
+    [start_body] = true;
   }
   local used_precedences = {}
 
@@ -217,17 +221,16 @@ function metatable:__call(token_names, that)
         body:append(symbol)
         used_symbols[symbol] = true
       end
-      local n = select(2, productions:insert { head = u.k, head_index = i, body = body })
-
+      local production = { head = u.k, head_index = i, body = body, semantic_action = v.semantic_action }
       if v.precedence ~= nil then
         local precedence = precedence_table:get(v.precedence)
         if precedence == nil then
           error("precedence " .. v.precedence .. " not defined")
         end
-        production_precedences[n] = precedence
+        production.precedence = precedence
         used_precedences[v.precedence] = true
       end
-      semantic_actions[n] = v.semantic_action
+      productions:insert(production)
     end
   end
 
@@ -244,14 +247,11 @@ function metatable:__call(token_names, that)
 
   return {
     symbol_names = symbol_names;
-    symbol_table = symbol_table;
     max_terminal_symbol = max_terminal_symbol;
-    max_nonterminal_symbol = #symbol_names;
-    productions = productions;
+    expect_sr = expect_sr;
     symbol_precedences = symbol_precedences;
-    production_precedences = production_precedences;
-    semantic_actions = semantic_actions;
-  };
+    productions = productions;
+  }
 end
 
 return setmetatable(module, metatable)

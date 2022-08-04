@@ -19,6 +19,8 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.list" }
 local table_unpack = table.unpack or unpack
 
+-- TODO シークエンスを強制したい: arrayを作成して移行する？
+
 function class:append(...)
   local n = #self
   for i = 1, select("#", ...) do
@@ -35,12 +37,16 @@ function class:unpack(m, n)
   return table_unpack(self, m, n)
 end
 
-function class:slice(m, n)
-  return setmetatable({}, metatable):append(self:unpack(m, n))
+function class:concat(separator)
+  return table.concat(self, separator)
 end
 
 function class:ipairs()
   return ipairs(self)
+end
+
+function class:slice(m, n)
+  return setmetatable({}, metatable):append(self:unpack(m, n))
 end
 
 return setmetatable(class, {

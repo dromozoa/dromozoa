@@ -15,12 +15,9 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local compare = require "dromozoa.compare"
 local list = require "dromozoa.list"
 local tree_map2 = require "dromozoa.tree_map2"
 local tree_set = require "dromozoa.tree_set"
-
-local module = {}
 
 ---------------------------------------------------------------------------
 
@@ -36,14 +33,13 @@ end
 
 local function eliminate_left_recursion(grammar)
   local symbol_names = grammar.symbol_names
-  local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
-  local max_nonterminal_symbol = grammar.max_nonterminal_symbol
+  local productions = grammar.productions
 
   local new_symbol_names = symbol_names:slice()
   local new_productions = tree_set(productions.tree_compare)
 
-  for i = max_terminal_symbol + 1, max_nonterminal_symbol do
+  for i = max_terminal_symbol + 1, #symbol_names do
     local n = #new_symbol_names + 1
     local n_bodies = list()
     local i_bodies = list()
@@ -85,7 +81,6 @@ local function eliminate_left_recursion(grammar)
   return {
     symbol_names = new_symbol_names;
     max_terminal_symbol = max_terminal_symbol;
-    max_nonterminal_symbol = #new_symbol_names;
     productions = new_productions;
   }
 end
@@ -96,6 +91,9 @@ local marker_epsilon = 0
 
 local first_symbols
 
+-- TODO 途中の情報を保存する
+-- 高速化
+-- 再帰の検出
 local function first_symbol(grammar, symbol)
   if symbol <= grammar.max_terminal_symbol then
     return tree_set():insert(symbol)
@@ -140,7 +138,7 @@ end
 
 local function first_table(grammar)
   local result = {}
-  for symbol = grammar.max_terminal_symbol + 1, grammar.max_nonterminal_symbol do
+  for symbol = grammar.max_terminal_symbol + 1, #grammar.symbol_names do
     result[symbol] = first_symbol(grammar, symbol)
   end
   return result
@@ -149,8 +147,8 @@ end
 ---------------------------------------------------------------------------
 
 local function lr0_closure(grammar, items)
-  local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
+  local productions = grammar.productions
 
   for _, item in items:ipairs() do
     local symbol = productions[item.index].body[item.dot]
@@ -199,9 +197,11 @@ end
 
 ---------------------------------------------------------------------------
 
+-- TODO lr1_closure_cache
+-- 高速化
 local function lr1_closure(grammar, items)
-  local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
+  local productions = grammar.productions
 
   for _, item in items:ipairs() do
     local body = productions[item.index].body
@@ -209,9 +209,6 @@ local function lr1_closure(grammar, items)
     if symbol and symbol > max_terminal_symbol then
       local first = first_symbols(grammar, body:slice(item.dot + 1):append(item.la))
       for j in each_production(productions, symbol) do
-        -- firstに含まれる文字を調べる
-        -- TODO epsilonが含まれている？
-        -- epsilonが含まれていたら、遷移がどうしようもないのでは？
         for _, la in first:ipairs() do
           items:insert { index = j, dot = 1, la = la }
         end
@@ -227,8 +224,8 @@ end
 local marker_lookahead = -1
 
 local function lalr1_kernels(grammar, set_of_items, transitions)
-  local productions = grammar.productions
   local max_terminal_symbol = grammar.max_terminal_symbol
+  local productions = grammar.productions
 
   local set_of_kernel_items = list()
   local map_of_kernel_items = list()
@@ -300,34 +297,25 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
   return new_set_of_kernel_items
 end
 
-local function lalr1_items(grammar)
-  local set_of_items, transitions = lr0_items(grammar)
-  local set_of_items = lalr1_kernels(grammar, set_of_items, transitions)
-  for _, items in ipairs(set_of_items) do
-    lr1_closure(grammar, items)
-  end
-  return set_of_items, transitions
-end
-
 ---------------------------------------------------------------------------
 
 local function symbol_precedence(grammar, symbol)
   local precedence = grammar.symbol_precedences[symbol]
-  if precedence then
-    return precedence.precedence, precedence.associativity
-  else
-    return 0
+  if precedence ~= nil then
+    return precedence.precedence, precedence.name, precedence.associativity
   end
+  return 0, grammar.symbol_names[symbol]
 end
 
 local function production_precedence(grammar, index)
-  local precedence = grammar.production_precedences[index]
-  if precedence then
-    return precedence.precedence, precedence.associativity
+  local production = grammar.productions[index]
+
+  local precedence = production.precedence
+  if precedence ~= nil then
+    return precedence.precedence, precedence.name, precedence.associativity
   end
 
   local max_terminal_symbol = grammar.max_terminal_symbol
-  local production = grammar.productions[index]
   local body = production.body
   for i = #body, 1, -1 do
     local symbol = body[i]
@@ -335,129 +323,144 @@ local function production_precedence(grammar, index)
       return symbol_precedence(grammar, symbol)
     end
   end
+
   return 0
 end
 
--- TODO 衝突の情報はまとめておいて返す
-local function lr1_construct_table(grammar, set_of_items, transitions, fn)
+local function resolve_sr(grammar, item, saction, raction, buffer)
+  local rp, rname, associativity = production_precedence(grammar, item.index)
+  if rp == 0 then
+    return saction
+  end
+  local sp, sname = symbol_precedence(grammar, item.la)
+
+  if sp < rp then
+    return raction, buffer:append("reduce (", sname, " < ", rname, ")")
+  elseif rp < sp then
+    return saction, buffer:append("shift (", rname, " < ", sname, ")")
+  end
+
+  if associativity == "left" then
+    return raction, buffer:append("reduce (left ", rname, ")")
+  elseif associativity == "right" then
+    return saction, buffer:append("shift (right ", rname, ")")
+  else
+    assert(associativity == "nonassoc")
+    return 0, buffer:append("an error (nonassoc ", rname, ")")
+  end
+end
+
+local function lr1_construct_table(grammar, set_of_items, transitions)
+  local symbol_names = grammar.symbol_names
+  local expect_sr = grammar.expect_sr
   local productions = grammar.productions
-  local max_terminal_symbol = grammar.max_terminal_symbol
 
   local max_state = #set_of_items
-  local actions = {} -- TODO シークエンスを保証する？
+  local actions = {}
+  local conflictions = list()
+  local total_sr = 0
+  local total_rr = 0
 
   for i, items in ipairs(set_of_items) do
-    local data = {} -- TODO シークエンスを保証する？
+    local sr = 0
+    local rr = 0
 
+    local data = {}
     for symbol, j in transitions[i]:pairs() do
       data[symbol] = j
     end
 
-    local error_table = {}
     for _, item in items:ipairs() do
-      if not productions[item.index].body[item.dot] then
-        local buffer = list(false, false)
-
+      if productions[item.index].body[item.dot] == nil then
         local action = data[item.la]
-        if action then
-          if action <= max_state then
-            buffer[1] = "shift(" .. action .. ")"
-            local precedence, associativity = production_precedence(grammar, item.index)
-            if precedence > 0 then
-              local shift_precedence = symbol_precedence(grammar, item.la)
-              if shift_precedence == precedence then
-                if associativity == "left" then
-                  buffer:append "reduce"
-                  data[item.la] = item.index + max_state
-                elseif associativity == "nonassoc" then
-                  buffer:append "an error"
-                  data[item.la] = nil
-                  error_table[item.la] = true
-                else
-                  buffer:append "shift"
-                end
-                buffer:append(": precedence ", shift_precedence, " == ", precedence, " associativity ", associativity)
-              elseif shift_precedence < precedence then
-                buffer:append("reduce: precedence ", shift_precedence, " < ", precedence)
-                data[item.la] = item.index + max_state
-              else
-                buffer:append("shift: precedence ", shift_precedence, " > ", precedence)
-              end
-            else
-              buffer:append "shift"
-            end
-          else
-            local index = action - max_state
-            buffer[1] = "reduce(" .. index .. ")"
-            if item.index < index then
-              buffer:append "the latter"
-              data[item.la] = item.index + max_state
-            else
-              buffer:append "the former"
-            end
-          end
-        elseif error_table[item.la] then
-          buffer[1] = "error"
-          buffer:append "an error"
-        else
+        if action == nil then
           data[item.la] = item.index + max_state
-        end
-
-        if buffer[1] then
-          buffer[2] = " / reduce(" .. item.index .. ") conflict resolved as "
-          buffer:append(" at state(", i, ") symbol(", grammar.symbol_names[item.la], ")")
-          fn(table.concat(buffer))
+        elseif action > max_state then
+          -- reduce/reduce
+          if item.index < action - max_state then
+            data[item.la] = item.index + max_state
+          end
+          rr = rr + 1
+        elseif action ~= 0 then
+          -- shift/reduce
+          local buffer = list()
+          data[item.la] = resolve_sr(grammar, item, action, item.index + max_state, buffer)
+          if #buffer == 0 then
+            sr = sr + 1
+          else
+            conflictions:append("[info] conflict between production " .. item.index .. " and symbol " .. symbol_names[item.la] .. " resolved as " .. buffer:concat())
+          end
         end
       end
     end
 
+    total_sr = total_sr + sr
+    total_rr = total_rr + rr
+    if sr > 0 or rr > 0 then
+      local buffer = list()
+      if expect_sr == nil or expect_sr < total_sr or rr > 0 then
+        buffer:append "[warn]"
+      else
+        buffer:append "[info]"
+      end
+      buffer:append(" state ", i, " conflicts: ")
+      if sr > 0 then
+        buffer:append(sr, " shift/reduce")
+        if rr > 0 then
+          buffer:append ", "
+        end
+      end
+      if rr > 0 then
+        buffer:append(rr, " reduce/reduce")
+      end
+      conflictions:append(buffer:concat())
+    end
+
+    for symbol = 1, #symbol_names do
+      if data[symbol] == nil then
+        data[symbol] = 0
+      end
+    end
     actions[i] = data
   end
 
-  local heads = list()
-  local sizes = list()
-  for i, production in productions:ipairs() do
-    heads[i] = production.head
-    sizes[i] = #production.body
+  if total_sr > 0 then
+    local buffer = list()
+    if expect_sr ~= total_sr then
+      buffer:append "[warn]"
+    else
+      buffer:append "[info]"
+    end
+    buffer:append(" shift/reduce conflicts: ", total_sr, " found")
+    if expect_sr ~= nil then
+      buffer:append(", ", expect_sr, " expected")
+    end
+    conflictions:append(buffer:concat())
+  end
+  if total_rr > 0 then
+    conflictions:append("[warn] reduce/reduce conflicts: " .. total_rr .. " found")
   end
 
-  return {
-    symbol_names = grammar.symbol_names;
-    symbol_table = grammar.symbol_table;
-    max_state = max_state;
-    max_terminal_symbol = max_terminal_symbol;
-    max_nonterminal_symbol = grammar.max_nonterminal_symbol;
-    actions = actions;
-    heads = heads;
-    sizes = sizes;
-    semantic_actions = grammar.semantic_actions;
+  return actions, conflictions
+end
+
+---------------------------------------------------------------------------
+
+return function (grammar)
+  local grammar_without_left_recursion = eliminate_left_recursion(grammar)
+  grammar.first_table = first_table(grammar_without_left_recursion)
+  local lr0_set_of_items, transitions = lr0_items(grammar)
+  local lalr1_set_of_items = lalr1_kernels(grammar, lr0_set_of_items, transitions)
+  for _, items in ipairs(lalr1_set_of_items) do
+    lr1_closure(grammar, items)
+  end
+  local actions, conflictions = lr1_construct_table(grammar, lalr1_set_of_items, transitions)
+
+  return actions, conflictions, {
+    grammar = grammar;
+    grammar_without_left_recursion = grammar_without_left_recursion;
+    lr0_set_of_items = lr0_set_of_items;
+    lalr1_set_of_items = lalr1_set_of_items;
+    transitions = transitions;
   }
 end
-
----------------------------------------------------------------------------
-
-local metatable = { __name = "dromozoa.parser.parser" }
-
-function metatable:__call(grammar, fn)
-  -- TODO テスト用に途中のデータを保存しておく
-  local eliminated = eliminate_left_recursion(grammar)
-  grammar.first_table = first_table(eliminated)
-  local set_of_items, transitions = lalr1_items(grammar)
-  local table = lr1_construct_table(grammar, set_of_items, transitions, fn)
-  return table
-end
-
----------------------------------------------------------------------------
-
--- テスト用
-module.eliminate_left_recursion = eliminate_left_recursion
-module.first_symbol = first_symbol
-module.first_symbols = first_symbols
-module.first_table = first_table
-module.lr0_items = lr0_items
-module.lr1_closure = lr1_closure
-module.lalr1_kernels = lalr1_kernels
-module.lalr1_items = lalr1_items
-module.lr1_construct_table = lr1_construct_table
-
-return setmetatable(module, metatable)

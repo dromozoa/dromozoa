@@ -17,11 +17,11 @@
 
 local list = require "dromozoa.list"
 local grammar = require "dromozoa.parser.grammar"
-local parser = require "dromozoa.parser.parser"
+local lalr = require "dromozoa.parser.lalr"
 
 local _ = grammar.body
 
--- P.214
+-- P.214 Example 4.20
 local g = grammar({ "a", "b", "c", "d" }, {
   S = _"A" "a"
     + _"b";
@@ -29,9 +29,15 @@ local g = grammar({ "a", "b", "c", "d" }, {
     + _"S" "d"
     + _;
 })
-local g = parser.eliminate_left_recursion(g)
 
+local actions, conflictions, data = lalr(g)
 local buffer = list()
+for _, message in ipairs(conflictions) do
+  buffer:append(message, "\n")
+end
+
+local g = data.grammar_without_left_recursion
+
 for _, production in g.productions:ipairs() do
   buffer:append(g.symbol_names[production.head], " ->")
   for _, symbol in ipairs(production.body) do
@@ -40,8 +46,8 @@ for _, production in g.productions:ipairs() do
   buffer:append "\n"
 end
 
--- print(table.concat(buffer))
-assert(table.concat(buffer) == [[
+-- print(buffer:concat())
+assert(buffer:concat() == [[
 S' -> S
 S -> A a
 S -> b

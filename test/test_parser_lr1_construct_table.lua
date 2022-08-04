@@ -17,97 +17,118 @@
 
 local list = require "dromozoa.list"
 local grammar = require "dromozoa.parser.grammar"
-local parser = require "dromozoa.parser.parser"
+local lalr = require "dromozoa.parser.lalr"
 
 local _ = grammar.body
+local expect = grammar.expect
 local left = grammar.left
-
--- TODO 整理する
--- compile(parser(grammar()))
--- compile(regexp(grammar()))
---
--- compile(machine(pattern()))
---
-
---[=[
-
-  _{}
-
-grammar 
-parser
-
-grammar(tokens, {
-  left "+";
-  left "+";
-
-  block
-    = _
-    + _"retstat"
-    + _"statlist"
-    + _"statlist" "retstat"
-    ;
-
-  statlist
-    = _"stat"
-    + _"statlist"
-    + _"statlist" "stat" %[[($1, $2)]]
-
-]=]
-
+local right = grammar.right
+local nonassoc = grammar.nonassoc
 
 local G = {
-  -- P.269
+  -- P.269 Example 4.60
   grammar({ "c", "d" }, {
     S = _"C" "C";
     C = _"c" "C"
       + _"d";
   });
 
-  -- P.281
+  -- P.281 Figure 4.49
   grammar({ "id", "+", "*", "(", ")" }, {
     left "+";
     left "*";
-
     E = _"E" "+" "E"
       + _"E" "*" "E"
       + _"(" "E" ")"
       + _"id";
   });
 
-  -- P.282
+  -- P.282 Figure 4.51
   grammar({ "i", "e", "a" }, {
+    expect(1);
     S = _"i" "S" "e" "S"
       + _"i" "S"
       + _"a";
-  })
+  });
+
+  -- 右結合のテスト
+  grammar({ "id", ".." }, {
+    right "..";
+    E = _"E" ".." "E"
+      + _"id";
+  });
+
+  -- 無結合のテスト
+  grammar({ "id", "==" }, {
+    nonassoc "==";
+    E = _"E" "==" "E"
+      + _"id";
+  });
+
+  -- reduce/reduce衝突のテスト
+  -- https://www.gnu.org/software/bison/manual/html_node/Reduce_002fReduce.html
+  grammar({ "id" }, {
+    expect(3); -- おおすぎるexpectのテスト
+    S = _
+      + _"K"
+      + _"S" "id";
+    K = _
+      + _"id";
+  });
+
+  -- reduce/reduceが起こらない文法
+  grammar({ "id" }, {
+    S = _
+      + _"S" "id"
+  });
+
+  -- 生成規則の優先順位のテスト
+  grammar({ "id", "-" } , {
+    left "-";
+    right "UNM";
+
+    E = _"E" "-" "E"
+      + _"-" "E" :prec "UNM"
+      + _"id";
+  });
+
+  -- 二項演算子の優先順位を定義しわすれた場合のテスト
+  grammar({ "id", "-" } , {
+    right "UNM";
+
+    E = _"E" "-" "E"
+      + _"-" "E" :prec "UNM"
+      + _"id";
+  });
 }
 
 local buffer = list()
 
 for _, g in ipairs(G) do
   buffer:append(("-"):rep(75), "\n")
-  local t = parser(g, function (...)
-    buffer:append(...):append "\n"
-  end)
+  local actions, conflictions = lalr(g)
+  for _, message in ipairs(conflictions) do
+    buffer:append(message, "\n")
+  end
 
   buffer:append "|    |"
-  for i = 1, t.max_nonterminal_symbol do
-    buffer:append(("  %-2s |"):format(t.symbol_names[i]))
+  for i = 1, #g.symbol_names do
+    buffer:append(("  %-2s |"):format(g.symbol_names[i]))
   end
   buffer:append "\n"
 
-  for i, data in ipairs(t.actions) do
+  for i, data in ipairs(actions) do
     buffer:append(("| %2d |"):format(i))
-    for j = 1, t.max_nonterminal_symbol do
+    for j = 1, #g.symbol_names do
       local v = data[j]
-      if not v then
+      if v == 0 then
         buffer:append "     |"
       else
         buffer:append " "
-        if v <= t.max_state then
+        if v <= #actions then
           buffer:append(("%3s"):format("s" .. v))
         else
-          local v = v - t.max_state
+          local v = v - #actions
           if v == 1 then
             buffer:append "acc"
           else
@@ -134,10 +155,10 @@ assert(table.concat(buffer) == [[
 |  6 |     |     |  r2 |     |     |     |
 |  7 |  r3 |  r3 |  r3 |     |     |     |
 ---------------------------------------------------------------------------
-shift(5) / reduce(2) conflict resolved as reduce: precedence 1 == 1 associativity left at state(8) symbol(+)
-shift(6) / reduce(2) conflict resolved as shift: precedence 2 > 1 at state(8) symbol(*)
-shift(5) / reduce(3) conflict resolved as reduce: precedence 1 < 2 at state(9) symbol(+)
-shift(6) / reduce(3) conflict resolved as reduce: precedence 2 == 2 associativity left at state(9) symbol(*)
+[info] conflict between production 2 and symbol + resolved as reduce (left +)
+[info] conflict between production 2 and symbol * resolved as shift (+ < *)
+[info] conflict between production 3 and symbol + resolved as reduce (+ < *)
+[info] conflict between production 3 and symbol * resolved as reduce (left *)
 |    |  id |  +  |  *  |  (  |  )  |  $  |  E' |  E  |
 |  1 |  s4 |     |     |  s3 |     |     |     |  s2 |
 |  2 |     |  s5 |  s6 |     |     | acc |     |     |
@@ -150,7 +171,8 @@ shift(6) / reduce(3) conflict resolved as reduce: precedence 2 == 2 associativit
 |  9 |     |  r3 |  r3 |     |  r3 |  r3 |     |     |
 | 10 |     |  r4 |  r4 |     |  r4 |  r4 |     |     |
 ---------------------------------------------------------------------------
-shift(6) / reduce(3) conflict resolved as shift at state(5) symbol(e)
+[info] state 5 conflicts: 1 shift/reduce
+[info] shift/reduce conflicts: 1 found, 1 expected
 |    |  i  |  e  |  a  |  $  |  S' |  S  |
 |  1 |  s3 |     |  s4 |     |     |  s2 |
 |  2 |     |     |     | acc |     |     |
@@ -159,4 +181,58 @@ shift(6) / reduce(3) conflict resolved as shift at state(5) symbol(e)
 |  5 |     |  s6 |     |  r3 |     |     |
 |  6 |  s3 |     |  s4 |     |     |  s7 |
 |  7 |     |  r2 |     |  r2 |     |     |
+---------------------------------------------------------------------------
+[info] conflict between production 2 and symbol .. resolved as shift (right ..)
+|    |  id |  .. |  $  |  E' |  E  |
+|  1 |  s3 |     |     |     |  s2 |
+|  2 |     |  s4 | acc |     |     |
+|  3 |     |  r3 |  r3 |     |     |
+|  4 |  s3 |     |     |     |  s5 |
+|  5 |     |  s4 |  r2 |     |     |
+---------------------------------------------------------------------------
+[info] conflict between production 2 and symbol == resolved as an error (nonassoc ==)
+|    |  id |  == |  $  |  E' |  E  |
+|  1 |  s3 |     |     |     |  s2 |
+|  2 |     |  s4 | acc |     |     |
+|  3 |     |  r3 |  r3 |     |     |
+|  4 |  s3 |     |     |     |  s5 |
+|  5 |     |     |  r2 |     |     |
+---------------------------------------------------------------------------
+[warn] state 1 conflicts: 2 shift/reduce, 1 reduce/reduce
+[warn] shift/reduce conflicts: 2 found, 3 expected
+[warn] reduce/reduce conflicts: 1 found
+|    |  id |  $  |  S' |  S  |  K  |
+|  1 |  s4 |  r2 |     |  s2 |  s3 |
+|  2 |  s5 | acc |     |     |     |
+|  3 |  r3 |  r3 |     |     |     |
+|  4 |  r6 |  r6 |     |     |     |
+|  5 |  r4 |  r4 |     |     |     |
+---------------------------------------------------------------------------
+|    |  id |  $  |  S' |  S  |
+|  1 |  r2 |  r2 |     |  s2 |
+|  2 |  s3 | acc |     |     |
+|  3 |  r3 |  r3 |     |     |
+---------------------------------------------------------------------------
+[info] conflict between production 3 and symbol - resolved as reduce (- < UNM)
+[info] conflict between production 2 and symbol - resolved as reduce (left -)
+|    |  id |  -  |  $  |  E' |  E  |
+|  1 |  s4 |  s3 |     |     |  s2 |
+|  2 |     |  s5 | acc |     |     |
+|  3 |  s4 |  s3 |     |     |  s6 |
+|  4 |     |  r4 |  r4 |     |     |
+|  5 |  s4 |  s3 |     |     |  s7 |
+|  6 |     |  r3 |  r3 |     |     |
+|  7 |     |  r2 |  r2 |     |     |
+---------------------------------------------------------------------------
+[info] conflict between production 3 and symbol - resolved as reduce (- < UNM)
+[warn] state 7 conflicts: 1 shift/reduce
+[warn] shift/reduce conflicts: 1 found
+|    |  id |  -  |  $  |  E' |  E  |
+|  1 |  s4 |  s3 |     |     |  s2 |
+|  2 |     |  s5 | acc |     |     |
+|  3 |  s4 |  s3 |     |     |  s6 |
+|  4 |     |  r4 |  r4 |     |     |
+|  5 |  s4 |  s3 |     |     |  s7 |
+|  6 |     |  r3 |  r3 |     |     |
+|  7 |     |  s5 |  r2 |     |     |
 ]])

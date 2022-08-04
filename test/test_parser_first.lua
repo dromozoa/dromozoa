@@ -17,11 +17,11 @@
 
 local list = require "dromozoa.list"
 local grammar = require "dromozoa.parser.grammar"
-local parser = require "dromozoa.parser.parser"
+local lalr = require "dromozoa.parser.lalr"
 
 local _ = grammar.body
 
--- P.222
+-- P.222 Example 4.30
 local g = grammar({ "+", "*", "(", ")", "id" }, {
   E = _"T" "E'";
   ["E'"]
@@ -34,13 +34,24 @@ local g = grammar({ "+", "*", "(", ")", "id" }, {
   F = _"(" "E" ")"
     + _"id";
 })
-local first_table = parser.first_table(g)
-g.first_table = first_table
 
+local actions, conflictions, data = lalr(g)
 local buffer = list()
+for _, message in ipairs(conflictions) do
+  buffer:append(message, "\n")
+end
+
+local max_terminal_symbol = g.max_terminal_symbol
+local symbol_names = g.symbol_names
+local symbol_table = {}
+for i = max_terminal_symbol + 2, #symbol_names do
+  symbol_table[symbol_names[i]] = i
+end
+local first_table = g.first_table
+
 for _, name in ipairs { "F", "T", "E", "E'", "T'" } do
   buffer:append("FIRST(", name, ") = { ")
-  local first = parser.first_symbol(g, g.symbol_table[name])
+  local first = first_table[symbol_table[name]]
   local i = 0
   for _, k in first:ipairs() do
     i = i + 1
@@ -56,8 +67,8 @@ for _, name in ipairs { "F", "T", "E", "E'", "T'" } do
   buffer:append " }\n"
 end
 
--- print(table.concat(buffer))
-assert(table.concat(buffer) == [[
+-- print(buffer:concat())
+assert(buffer:concat() == [[
 FIRST(F) = { (, id }
 FIRST(T) = { (, id }
 FIRST(E) = { (, id }
