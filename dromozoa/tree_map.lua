@@ -25,9 +25,6 @@ local metatable = {
   ["dromozoa.stable_pairs"] = function (self) return private[self]:each() end;
 }
 
--- insertedかどうかを調べる必要はある？
--- TODO ゆくゆくは削除もできるようにする
--- TODO 上書きするのはよいのか？
 function class:insert(k, v)
   assert(k ~= nil)
   assert(v ~= nil)
@@ -35,21 +32,9 @@ function class:insert(k, v)
   return self, i, ok
 end
 
--- insert(k, v)
--- assign(k, v)
-
 -- TODO SQL的なインターフェース
 -- insert ... where key = :key
 -- update ... where key = :key
---
--- insert(key, fn)
--- insert_or_update(key, fn, fn)
--- update(key, fn)
--- 成功したら、valueを返す
---   assert(insert(key, fn))
---
---
---
 
 -- put
 -- set / assign
@@ -58,20 +43,7 @@ end
 class.insert_or_assign = class.insert
 class.assign = class.insert
 
--- function class:insert_or_assign(k, v)
---   if k == nil then
---     error "table index is nil"
---   elseif type(k) == "number" and k ~= k then
---     error "table index is NaN"
---   elseif v == nil then
---     -- 削除はできない
---     error "table value is nil"
---   end
---   local ok, _, i = private[self]:insert(k, v)
---   return self, i, ok
--- end
-
--- TODO getはfindにするべき
+-- TODO getはfindにするべき？
 function class:get(k, fn)
   if fn == nil then
     local _, v = private[self]:find(k)
@@ -102,18 +74,26 @@ function class:pairs()
   end, private[self], nil
 end
 
--- TODO tree_eachを実装する
+function class:tree_each(lower_bound, upper_bound)
+  return coroutine.wrap(function (self)
+    for k, v in self:each(lower_bound, upper_bound) do
+      coroutine.yield(k, v)
+    end
+  end), private[self]
+end
 
 function metatable:__len()
   error "not supported"
 end
 
 function metatable:__index(k)
+  if k == "tree_compare" then
+    return private[self].compare
+  end
   local v = class[k]
   if v ~= nil then
     return v
   end
-  -- { K[i], V[i] }を返す？
   error "not supported"
 end
 
@@ -125,12 +105,18 @@ function metatable:__pairs()
   error "not supported"
 end
 
+function metatable:__tostring()
+  error "not supported"
+end
+
 metatable["dromozoa.stable_pairs"] = function (self)
   return private[self]:each()
 end
 
-return function (compare)
-  local self = setmetatable({}, metatable)
-  private[self] = tree(compare)
-  return self
-end
+return setmetatable(class, {
+  __call = function (_, compare)
+    local self = setmetatable({}, metatable)
+    private[self] = tree(compare)
+    return self
+  end;
+})
