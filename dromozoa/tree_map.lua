@@ -21,6 +21,8 @@ local private = setmetatable({}, { __mode = "k" })
 local class = {}
 local metatable = { __name = "dromozoa.tree_map" }
 
+---------------------------------------------------------------------------
+
 function class:insert(k, v)
   if k == nil then
     error "key is nil"
