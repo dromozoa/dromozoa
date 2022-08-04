@@ -42,8 +42,8 @@ local function eliminate_left_recursion(grammar)
 
   for i = max_terminal_symbol + 1, symbol_names:size() do
     local n = new_symbol_names:size() + 1
-    local n_bodies = list()
-    local i_bodies = list()
+    local n_bodies = array()
+    local i_bodies = array()
 
     for _, body in each_production(productions, i) do
       local symbol = body:get(1)
@@ -56,25 +56,25 @@ local function eliminate_left_recursion(grammar)
             i_bodies:append(new_body)
           end
         end
-      elseif i == body:get(1) then
+      elseif i == symbol then
         n_bodies:append(body:slice(2):append(n))
       else
         i_bodies:append(body:slice())
       end
     end
 
-    if n_bodies[1] then
+    if not n_bodies:empty() then
       new_symbol_names:append(symbol_names[i] .. "'")
       n_bodies:append(array())
-      for _, body in ipairs(i_bodies) do
+      for _, body in i_bodies:ipairs() do
         body:append(n)
       end
     end
 
-    for j, body in ipairs(i_bodies) do
+    for j, body in i_bodies:ipairs() do
       new_productions:insert { head = i, head_index = j, body = body }
     end
-    for j, body in ipairs(n_bodies) do
+    for j, body in n_bodies:ipairs() do
       new_productions:insert { head = n, head_index = j, body = body }
     end
   end
@@ -106,7 +106,8 @@ local function first_symbol(grammar, symbol)
     local result = tree_set()
     local epsilon = false
     for _, body in each_production(grammar.productions, symbol) do
-      if body:get(1) ~= nil then
+      if not body:empty() then
+      -- if body:get(1) ~= nil then
         local first = first_symbols(grammar, body)
         for _, symbol in first:ipairs() do
           result:insert(symbol)
