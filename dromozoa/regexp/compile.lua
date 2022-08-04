@@ -25,20 +25,32 @@ local function make_shared(shared_map, shared_data, v)
   end)
 end
 
-local function make_action(action_map, action_data, v)
+local function make_action(action_map, action_data, action_threads, v)
   return action_map(v, function ()
-    return #action_data:append(v)
+    -- コルーチンの必要性をおおまかに検査する。
+    -- 1. 単語境界を調べやすくするために番兵を置く。
+    local s = " " .. v .. " "
+    -- 2. fcallという単語が最初に出現する位置を調べる。
+    local p = s:find "[^%w_](fcall)[^%w_]"
+    -- 3. fcallという単語が最後に出現する位置を調べる。
+    local q = s:find "[^%w_](fcall)%s*%b()%s*$"
+    if p == q then
+      action_threads:append(0)
+    else
+      action_threads:append(1)
+    end
+    return #action_data:append("function()" .. v .. "\nend;\n")
   end)
 end
 
-local function update_state_indices_accept(u, action_map, action_data, accept_actions, color)
+local function update_state_indices_accept(u, action_map, action_data, action_threads, accept_actions, color)
   color[u] = 1
   if u.accept_action ~= nil then
-    u.index = #accept_actions:append(make_action(action_map, action_data, u.accept_action))
+    u.index = #accept_actions:append(make_action(action_map, action_data, action_threads, u.accept_action))
   end
   for _, t in ipairs(u.transitions) do
     if color[t.v] == nil then
-      update_state_indices_accept(t.v, action_map, action_data, accept_actions, color)
+      update_state_indices_accept(t.v, action_map, action_data, action_threads, accept_actions, color)
     end
   end
   color[u] = 2
@@ -59,27 +71,27 @@ local function update_state_indices_nonaccept(u, index, color)
   return index
 end
 
-local function construct_table(u, max_state, transitions, action_map, action_data, transition_actions, transition_states, color)
+local function construct_table(u, max_state, transitions, action_map, action_data, action_threads, transition_actions, transition_states, color)
   color[u] = 1
   for _, t in ipairs(u.transitions) do
     local code = t.v.index
     if t.action ~= nil then
-      code = max_state + #transition_actions:append(make_action(action_map, action_data, t.action))
+      code = max_state + #transition_actions:append(make_action(action_map, action_data, action_threads, t.action))
       transition_states:append(t.v.index)
     end
     for byte in pairs(t.set) do
       transitions[byte][u.index] = code
     end
     if color[t.v] == nil then
-      construct_table(t.v, max_state, transitions, action_map, action_data, transition_actions, transition_states, color)
+      construct_table(t.v, max_state, transitions, action_map, action_data, action_threads, transition_actions, transition_states, color)
     end
   end
   color[u] = 2
 end
 
-local function generate(index, u, guard_action, shared_map, shared_data, static_data, action_map, action_data)
+local function generate(index, u, guard_action, shared_map, shared_data, static_data, action_map, action_data, action_threads)
   local accept_actions = list()
-  update_state_indices_accept(u, action_map, action_data, accept_actions, {})
+  update_state_indices_accept(u, action_map, action_data, action_threads, accept_actions, {})
   local max_state = update_state_indices_nonaccept(u, #accept_actions, {})
 
   local transitions = {}
@@ -92,7 +104,7 @@ local function generate(index, u, guard_action, shared_map, shared_data, static_
   local transition_actions = list()
   local transition_states = list()
 
-  construct_table(u, max_state, transitions, action_map, action_data, transition_actions, transition_states, {})
+  construct_table(u, max_state, transitions, action_map, action_data, action_threads, transition_actions, transition_states, {})
 
   static_data:append(
     "{\n",
@@ -109,7 +121,7 @@ local function generate(index, u, guard_action, shared_map, shared_data, static_
     "transition_states=_[", make_shared(shared_map, shared_data, transition_states), "];\n",
     "accept_actions=_[", make_shared(shared_map, shared_data, accept_actions), "];\n")
   if guard_action ~= nil then
-    static_data:append("guard_action=", make_action(action_map, action_data, guard_action), ";\n")
+    static_data:append("guard_action=", make_action(action_map, action_data, action_threads, guard_action), ";\n")
   end
   static_data:append(
     "};\n")
@@ -122,6 +134,7 @@ return function (that)
   local custom_data = list()
   local action_map = tree_map()
   local action_data = list()
+  local action_threads = list()
 
   local data = list()
   for k, v in pairs(that) do
@@ -147,26 +160,9 @@ return function (that)
     if v.name ~= nil then
       custom_data:append("local ", v.name, "=", i, "\n")
     end
-    generate(i, v.machine.start_state, v.machine.guard_action, shared_map, shared_data, static_data, action_map, action_data)
+    generate(i, v.machine.start_state, v.machine.guard_action, shared_map, shared_data, static_data, action_map, action_data, action_threads)
   end
 
-  local action_threads = list()
-  for i, action in ipairs(action_data) do
-    action_data[i] = "function()" .. action .. "\nend;\n"
-
-    -- コルーチンの必要性をおおまかに検査する。
-    -- 1. 単語境界を調べやすくするために番兵を置く。
-    local s = " " .. action .. " "
-    -- 2. fcallという単語が最初に出現する位置を調べる。
-    local p = s:find "[^%w_](fcall)[^%w_]"
-    -- 3. fcallという単語が最後に出現する位置を調べる。
-    local q = s:find "[^%w_](fcall)%s*%b()%s*$"
-    if p == q then
-      action_threads:append(0)
-    else
-      action_threads:append(1)
-    end
-  end
   static_data:append("action_threads=_[", make_shared(shared_map, shared_data, action_threads), "];\n")
 
   return table.concat(runtime {
