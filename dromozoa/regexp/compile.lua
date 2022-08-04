@@ -147,7 +147,9 @@ return function (that)
   local action_out = list()
   local action_threads = list()
   for _, v in action_set:ipairs() do
+    -- TODO テンプレートマクロで文字列を数値化する
     action_out:append("function()", v, "\nend;\n")
+
     -- コルーチンの必要性をおおまかに検査する。
     -- 1. 単語境界を調べやすくするために番兵を置く。
     local s = " " .. v .. " "
