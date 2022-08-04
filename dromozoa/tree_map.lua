@@ -68,7 +68,7 @@ function class:pairs()
     else
       return self.K[i], self.V[i]
     end
-  end, private[self], nil
+  end, private[self]
 end
 
 function class:tree_each(lower_bound, upper_bound)
