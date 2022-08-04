@@ -51,8 +51,7 @@ local function visit(out, u, indices, index, start, color)
   end
 
   local transitions = u.transitions
-  for i = 1, #transitions do
-    local transition = transitions[i]
+  for i, transition in transitions:ipairs() do
     local v = transition.v
     if not color[v] then
       index = visit(out, v, indices, index, start, color)

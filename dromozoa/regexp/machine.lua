@@ -26,7 +26,7 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.regexp.machine.state" }
 
 function class:simulate(byte, resolved)
-  for _, t in ipairs(self.transitions) do
+  for _, t in self.transitions:ipairs() do
     if t.set ~= nil and t.set[byte] then
       if resolved ~= nil and (resolved.timestamp == nil or resolved.timestamp > t.timestamp) then
         resolved.timestamp = t.timestamp
@@ -46,7 +46,7 @@ function class:update(timestamp, accept_action)
 end
 
 local function state()
-  return setmetatable({ transitions = list() }, metatable)
+  return setmetatable({ transitions = array() }, metatable)
 end
 
 ---------------------------------------------------------------------------
@@ -86,7 +86,7 @@ local function node_to_nfa(node, timestamp)
   else
     local au, av = node_to_nfa(node[1], timestamp)
     if code == "/" then
-      au.transitions[1].action = node[2]
+      au.transitions:get(1).action = node[2]
       return au, av
     elseif code == "%" then
       av:update(timestamp, node[2])
@@ -152,7 +152,7 @@ end
 local function update_state_indices_impl(u, states, color)
   color[u] = 1
   u.index = #states:append(u)
-  for _, t in ipairs(u.transitions) do
+  for _, t in u.transitions:ipairs() do
     if color[t.v] == nil then
       update_state_indices_impl(t.v, states, color)
     end
@@ -169,7 +169,7 @@ end
 ---------------------------------------------------------------------------
 
 local function epsilon_closure_impl(u, closure)
-  for _, t in ipairs(u.transitions) do
+  for _, t in u.transitions:ipairs() do
     if t.set == nil then
       closure:insert(t.v.index, t.v)
       epsilon_closure_impl(t.v, closure)
@@ -264,7 +264,7 @@ local function create_initial_partitions(u, accept_partition_map, nonaccept_part
   partition:append(u)
   partition_map[u] = partition
 
-  for _, t in ipairs(u.transitions) do
+  for _, t in u.transitions:ipairs() do
     if color[t.v] == nil then
       create_initial_partitions(t.v, accept_partition_map, nonaccept_partition, partition_map, color)
     end
@@ -393,7 +393,7 @@ local function collect_living_states(u, living_states, color)
     living_states[u] = true
   end
 
-  for _, t in ipairs(u.transitions) do
+  for _, t in u.transitions:ipairs() do
     if not color[t.v] then
       collect_living_states(t.v, living_states, color)
     end
@@ -410,8 +410,8 @@ local function remove_dead_states(u)
   collect_living_states(u, living_states, {})
 
   for v in pairs(living_states) do
-    local new_transitions = list()
-    for _, t in ipairs(v.transitions) do
+    local new_transitions = array()
+    for _, t in v.transitions:ipairs() do
       if living_states[t.v] then
         new_transitions:append(t)
       end

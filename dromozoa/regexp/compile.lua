@@ -32,7 +32,7 @@ local function update_state_indices_accept(u, action_set, accept_actions, color)
   if u.accept_action ~= nil then
     u.index = accept_actions:append(make_action(action_set, u.accept_action)):size()
   end
-  for _, t in ipairs(u.transitions) do
+  for _, t in u.transitions:ipairs() do
     if color[t.v] == nil then
       update_state_indices_accept(t.v, action_set, accept_actions, color)
     end
@@ -46,7 +46,7 @@ local function update_state_indices_nonaccept(u, index, color)
     index = index + 1
     u.index = index
   end
-  for _, t in ipairs(u.transitions) do
+  for _, t in u.transitions:ipairs() do
     if color[t.v] == nil then
       index = update_state_indices_nonaccept(t.v, index, color)
     end
@@ -57,7 +57,7 @@ end
 
 local function construct_table(u, max_state, action_set, transitions, transition_actions, transition_states, color)
   color[u] = 1
-  for _, t in ipairs(u.transitions) do
+  for _, t in u.transitions:ipairs() do
     local code = t.v.index
     if t.action ~= nil then
       code = max_state + transition_actions:append(make_action(action_set, t.action)):size()
