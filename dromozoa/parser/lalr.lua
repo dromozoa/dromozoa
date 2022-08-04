@@ -359,7 +359,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
 
   local max_state = set_of_items:size()
   local actions = {}
-  local conflictions = list()
+  local conflictions = array()
   local total_sr = 0
   local total_rr = 0
 

@@ -107,7 +107,7 @@ local buffer = list()
 for _, g in ipairs(G) do
   buffer:append(("-"):rep(75), "\n")
   local g, actions, conflictions = lalr(g)
-  for _, message in ipairs(conflictions) do
+  for _, message in conflictions:ipairs() do
     buffer:append(message, "\n")
   end
 

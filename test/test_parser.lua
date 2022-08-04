@@ -34,7 +34,7 @@ local g, actions, conflictions = lalr(grammar({ "id", "+", "*", "(", ")" }, {
 }))
 
 local buffer = list()
-for _, message in ipairs(conflictions) do
+for _, message in conflictions:ipairs() do
   buffer:append(message, "\n")
 end
 
