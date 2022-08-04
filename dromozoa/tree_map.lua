@@ -79,6 +79,16 @@ function class:find(k)
   return select(2, private[self]:find(k))
 end
 
+function class:tree_each(lower_bound, upper_bound)
+  return coroutine.wrap(function (self)
+    for k, v in self:each(lower_bound, upper_bound) do
+      coroutine.yield(k, v)
+    end
+  end), private[self]
+end
+
+---------------------------------------------------------------------------
+
 function class:empty()
   return private[self].size == 0
 end
@@ -91,13 +101,7 @@ function class:pairs()
   end), private[self]
 end
 
-function class:tree_each(lower_bound, upper_bound)
-  return coroutine.wrap(function (self)
-    for k, v in self:each(lower_bound, upper_bound) do
-      coroutine.yield(k, v)
-    end
-  end), private[self]
-end
+---------------------------------------------------------------------------
 
 function metatable:__len()
   error "not supported"
@@ -125,6 +129,8 @@ end
 function metatable:__tostring()
   error "not supported"
 end
+
+---------------------------------------------------------------------------
 
 return setmetatable(class, {
   __call = function (_, compare)
