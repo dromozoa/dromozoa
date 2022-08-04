@@ -23,18 +23,18 @@ local function make_shared(shared_set, v)
   return select(2, shared_set:insert(v))
 end
 
-local function make_action(action_set, action_threads, v)
+local function make_action(action_set, v)
   return (select(2, action_set:insert(v)))
 end
 
-local function update_state_indices_accept(u, action_set, action_threads, accept_actions, color)
+local function update_state_indices_accept(u, action_set, accept_actions, color)
   color[u] = 1
   if u.accept_action ~= nil then
-    u.index = #accept_actions:append(make_action(action_set, action_threads, u.accept_action))
+    u.index = #accept_actions:append(make_action(action_set, u.accept_action))
   end
   for _, t in ipairs(u.transitions) do
     if color[t.v] == nil then
-      update_state_indices_accept(t.v, action_set, action_threads, accept_actions, color)
+      update_state_indices_accept(t.v, action_set, accept_actions, color)
     end
   end
   color[u] = 2
@@ -55,27 +55,27 @@ local function update_state_indices_nonaccept(u, index, color)
   return index
 end
 
-local function construct_table(u, max_state, transitions, action_set, action_threads, transition_actions, transition_states, color)
+local function construct_table(u, max_state, transitions, action_set, transition_actions, transition_states, color)
   color[u] = 1
   for _, t in ipairs(u.transitions) do
     local code = t.v.index
     if t.action ~= nil then
-      code = max_state + #transition_actions:append(make_action(action_set, action_threads, t.action))
+      code = max_state + #transition_actions:append(make_action(action_set, t.action))
       transition_states:append(t.v.index)
     end
     for byte in pairs(t.set) do
       transitions[byte][u.index] = code
     end
     if color[t.v] == nil then
-      construct_table(t.v, max_state, transitions, action_set, action_threads, transition_actions, transition_states, color)
+      construct_table(t.v, max_state, transitions, action_set, transition_actions, transition_states, color)
     end
   end
   color[u] = 2
 end
 
-local function generate(index, u, guard_action, shared_set, static_out, action_set, action_threads)
+local function generate(index, u, guard_action, shared_set, static_out, action_set)
   local accept_actions = list()
-  update_state_indices_accept(u, action_set, action_threads, accept_actions, {})
+  update_state_indices_accept(u, action_set, accept_actions, {})
   local max_state = update_state_indices_nonaccept(u, #accept_actions, {})
 
   local transitions = {}
@@ -88,7 +88,7 @@ local function generate(index, u, guard_action, shared_set, static_out, action_s
   local transition_actions = list()
   local transition_states = list()
 
-  construct_table(u, max_state, transitions, action_set, action_threads, transition_actions, transition_states, {})
+  construct_table(u, max_state, transitions, action_set, transition_actions, transition_states, {})
 
   static_out:append(
     "{\n",
@@ -105,7 +105,7 @@ local function generate(index, u, guard_action, shared_set, static_out, action_s
     "transition_states=_[", make_shared(shared_set, transition_states), "];\n",
     "accept_actions=_[", make_shared(shared_set, accept_actions), "];\n")
   if guard_action ~= nil then
-    static_out:append("guard_action=", make_action(action_set, action_threads, guard_action), ";\n")
+    static_out:append("guard_action=", make_action(action_set, guard_action), ";\n")
   end
   static_out:append(
     "};\n")
@@ -118,7 +118,6 @@ return function (that)
   local custom_out = list()
   local action_set = tree_set()
   local action_out = list()
-  local action_threads = list()
 
   local data = list()
   for k, v in pairs(that) do
@@ -144,9 +143,10 @@ return function (that)
     if v.name ~= nil then
       custom_out:append("local ", v.name, "=", i, "\n")
     end
-    generate(i, v.machine.start_state, v.machine.guard_action, shared_set, static_out, action_set, action_threads)
+    generate(i, v.machine.start_state, v.machine.guard_action, shared_set, static_out, action_set)
   end
 
+  local action_threads = list()
   for _, v in action_set:ipairs() do
     -- コルーチンの必要性をおおまかに検査する。
     -- 1. 単語境界を調べやすくするために番兵を置く。
