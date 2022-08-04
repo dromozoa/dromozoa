@@ -28,33 +28,6 @@ end
 
 ---------------------------------------------------------------------------
 
--- TODO 引数のチェックどうする？
-
-function class:append(...)
-  local priv = private[self]
-  local n = #priv
-  for i = 1, select("#", ...) do
-    local v = select(i, ...)
-    if v == nil then
-      error("bad argument #" .. i + 1 .. " (value expected)")
-    end
-    priv[n + i] = v
-  end
-  return self
-end
-
-function class:set(i, u)
-  if u == nil then
-    error "bad argument #3 (value expected)"
-  end
-  local priv = private[self]
-  if priv[i] == nil then
-    error "not supported"
-  end
-  priv[i] = u
-  return self
-end
-
 function class:empty()
   return next(private[self]) == nil
 end
@@ -67,10 +40,33 @@ function class:get(i)
   return private[self][i]
 end
 
----------------------------------------------------------------------------
-
 function class:slice(...)
   return construct():append(self:unpack(...))
+end
+
+function class:append(...)
+  local priv = private[self]
+  local n = #priv
+  for i = 1, select("#", ...) do
+    local v = select(i, ...)
+    if v == nil then
+      error "array value is nil"
+    end
+    priv[n + i] = v
+  end
+  return self
+end
+
+function class:set(i, v)
+  if v == nil then
+    error "array value is nil"
+  end
+  local priv = private[self]
+  if priv[i] == nil then
+    error "out of range"
+  end
+  priv[i] = v
+  return self
 end
 
 ---------------------------------------------------------------------------
