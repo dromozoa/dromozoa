@@ -18,15 +18,15 @@
 local typemap = {
   ["nil"]      = 0;
   ["boolean"]  = 1;
-  ["string"]   = 3;
-  ["number"]   = 4;
-  ["table"]    = 6;
-  ["function"] = 7;
-  ["userdata"] = 8;
-  ["thread"]   = 9;
+  ["string"]   = 2;
+  ["number"]   = 3;
+  ["table"]    = 4;
+  ["function"] = 5;
+  ["userdata"] = 6;
+  ["thread"]   = 7;
 }
 
-local function stable_pairs(t, compare, n)
+local function each(t, compare, n)
   local metatable = getmetatable(t)
   if metatable ~= nil then
     local metaname = metatable.__name
@@ -84,15 +84,13 @@ local function compare(a, b, n)
 
   if t == 1 then
     return b and -1 or 1
-  elseif t == 3 then
+  elseif t == 2 then
     return a < b and -1 or 1
-  elseif t == 4 then
+  elseif t == 3 then
     -- NaNは数値とテーブルのあいだに位置するものとして扱う。NaN同士は同値とみなす。
-    local a_is_nan = a ~= a
-    local b_is_nan = b ~= b
-    if b_is_nan then
-      return a_is_nan and 0 or -1
-    elseif a_is_nan then
+    if b ~= b then
+      return a ~= a and 0 or -1
+    elseif a ~= a then
       return 1
     end
     return a < b and -1 or 1
@@ -111,14 +109,14 @@ local function compare(a, b, n)
     return c
   end
 
-  if t == 6 then
+  if t == 4 then
     n = n + 1
     if n > 2000 then
       error "too much recursion; possible loop detected"
     end
 
-    local f, t, k, v = stable_pairs(b, compare, n)
-    for j, u in stable_pairs(a, compare, n) do
+    local f, t, k, v = each(b, compare, n)
+    for j, u in each(a, compare, n) do
       k, v = f(t, k)
 
       local c = compare(j, k, n)
