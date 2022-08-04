@@ -71,10 +71,9 @@ end
 
 local difference
 
-local function node_to_nfa(node, timestamp)
-  if rawget(node, "timestamp") ~= nil then
-    timestamp = rawget(node, "timestamp")
-  end
+local function node_to_nfa(node)
+  assert(rawget(node, "timestamp") ~= nil)
+  local timestamp = rawget(node, "timestamp")
 
   local code = node[0]
   if code == "[" then
@@ -83,7 +82,7 @@ local function node_to_nfa(node, timestamp)
     transition(u, v, node[1], timestamp)
     return u, v
   else
-    local au, av = node_to_nfa(node[1], timestamp)
+    local au, av = node_to_nfa(node[1])
     if code == "/" then
       au.transitions:get(1).action = node[2]
       return au, av
@@ -91,7 +90,7 @@ local function node_to_nfa(node, timestamp)
       av:update(timestamp, node[2])
       return au, av
     elseif code == "." then
-      local bu, bv = node_to_nfa(node[2], timestamp)
+      local bu, bv = node_to_nfa(node[2])
       transition(av, bu)
       return au, bv
     else
@@ -111,7 +110,7 @@ local function node_to_nfa(node, timestamp)
         transition(u, au)
         transition(av, v)
       else
-        local bu, bv = node_to_nfa(node[2], timestamp)
+        local bu, bv = node_to_nfa(node[2])
         if code == "|" then
           transition(u, au)
           transition(u, bu)
@@ -136,10 +135,11 @@ end
 
 local function tree_to_nfa(node)
   local timestamp = rawget(node, "timestamp")
-  if timestamp == nil then
-    error "pattern has no timestamp"
-  end
-  local u, v = node_to_nfa(node, timestamp)
+  assert(timestamp ~= nil)
+  -- if timestamp == nil then
+  --   error "pattern has no timestamp"
+  -- end
+  local u, v = node_to_nfa(node)
   if v.accept_action == nil then
     v:update(timestamp, "")
   end
