@@ -18,6 +18,7 @@
 local compare = require "dromozoa.compare"
 local list = require "dromozoa.list"
 local tree_map = require "dromozoa.tree_map"
+local tree_map2 = require "dromozoa.tree_map2"
 
 ---------------------------------------------------------------------------
 
@@ -474,7 +475,7 @@ local function difference_impl(x, y)
       local y_u = y_states[j]
       local z_u = z_states[i * n + j]
 
-      local transition_map = tree_map()
+      local transition_map = tree_map2()
       for byte = 0x00, 0xFF do
         local x_v, timestamp, action = simulate(x_u, byte, nil, null)
         local y_v, timestamp = simulate(y_u, byte, timestamp, null)
@@ -482,9 +483,10 @@ local function difference_impl(x, y)
         if index ~= 0 then
           local z_v = z_states[index]
           local key = { index = index, action = action }
-          local t = transition_map[key]
+          local t = transition_map:get(key)
           if t == nil then
-            transition_map[key] = transition(z_u, z_v, { [byte] = true }, timestamp, action)
+            -- transition_map[key] = transition(z_u, z_v, { [byte] = true }, timestamp, action)
+            transition_map:insert(key, transition(z_u, z_v, { [byte] = true }, timestamp, action))
           else
             t:update(timestamp, byte)
           end
