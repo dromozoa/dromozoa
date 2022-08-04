@@ -35,6 +35,27 @@ function class:insert(k, v)
   return self, i, ok
 end
 
+-- insert(k, v)
+-- assign(k, v)
+
+-- TODO SQL的なインターフェース
+-- insert ... where key = :key
+-- update ... where key = :key
+--
+-- insert(key, fn)
+-- insert_or_update(key, fn, fn)
+-- update(key, fn)
+-- 成功したら、valueを返す
+--   assert(insert(key, fn))
+--
+--
+--
+
+-- put
+-- set / assign
+-- get(key, fn)
+
+
 class.insert_or_assign = class.insert
 class.assign = class.insert
 
