@@ -78,9 +78,9 @@ local function generate(index, u, guard_action, static_out, shared_set, action_s
   update_state_indices_accept(u, action_set, accept_actions, {})
   local max_state = update_state_indices_nonaccept(u, accept_actions:size(), {})
 
-  local transitions = array.fill(256, false)
-  for i in transitions:ipairs() do
-    transitions:set(i, array.fill(max_state, 0))
+  local transitions = array()
+  for i = 1, 256 do
+    transitions:append(array.fill(max_state, 0))
   end
   local transition_actions = array()
   local transition_states = array()
