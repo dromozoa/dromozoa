@@ -24,8 +24,7 @@ local function make_shared(shared_set, v)
 end
 
 local function make_action(action_set, action_threads, v)
-  local _, i, ok = action_set:insert(v)
-  return i
+  return (select(2, action_set:insert(v)))
 end
 
 local function update_state_indices_accept(u, action_set, action_threads, accept_actions, color)
