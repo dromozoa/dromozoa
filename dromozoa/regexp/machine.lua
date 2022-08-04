@@ -528,7 +528,8 @@ function module.lexer(token_names, that)
     if item.name ~= nil then
       symbol = token_table[item.name]
       if symbol == nil then
-        symbol = #token_names:append(item.name)
+        -- TODO これは型を仮定するべきでない？
+        symbol = token_names:append(item.name):size()
         token_table[item.name] = symbol
       end
     end

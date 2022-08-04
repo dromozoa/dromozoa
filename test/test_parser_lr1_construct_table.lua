@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local list = require "dromozoa.list"
+local array = require "dromozoa.array"
 local grammar = require "dromozoa.parser.grammar"
 local lalr = require "dromozoa.parser.lalr"
 
@@ -102,7 +102,7 @@ local G = {
   });
 }
 
-local buffer = list()
+local buffer = array()
 
 for _, g in ipairs(G) do
   buffer:append(("-"):rep(75), "\n")
@@ -143,8 +143,8 @@ for _, g in ipairs(G) do
 
 end
 
--- print(table.concat(buffer))
-assert(table.concat(buffer) == [[
+-- print(buffer:concat())
+assert(buffer:concat() == [[
 ---------------------------------------------------------------------------
 |    |  c  |  d  |  $  |  S' |  S  |  C  |
 |  1 |  s4 |  s5 |     |     |  s2 |  s3 |

@@ -15,8 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local list = require "dromozoa.list"
-
 local function build(source, result)
   local handle = assert(io.open(source))
   local buffer = handle:read "*a"

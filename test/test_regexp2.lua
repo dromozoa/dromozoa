@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local list = require "dromozoa.list"
+local array = require "dromozoa.array"
 local pattern = require "dromozoa.regexp.pattern"
 local machine = require "dromozoa.regexp.machine"
 local compile = require "dromozoa.regexp.compile"
@@ -25,7 +25,7 @@ local union = machine.union
 local guard = machine.guard
 local lexer = machine.lexer
 
-local tokens = list()
+local tokens = array()
 
 local code = compile {
   [[local ra]];
@@ -73,7 +73,7 @@ local out = assert(io.open(filename, "w"))
 out:write(code)
 out:close()
 
-local buffer = list()
+local buffer = array()
 
 local execute = assert(assert(loadfile(filename))())
 execute([[
@@ -95,8 +95,8 @@ execute([[
   end
 end)
 
--- print(table.concat(buffer))
-assert(table.concat(buffer) == [[
+-- print(buffer:concat())
+assert(buffer:concat() == [[
 skip		1	19	1	1	"--[=[\
 123] ]==]\
 ]=]"

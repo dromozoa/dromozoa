@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local list = require "dromozoa.list"
+local array = require "dromozoa.array"
 local grammar = require "dromozoa.parser.grammar"
 local lalr = require "dromozoa.parser.lalr"
 
@@ -31,7 +31,7 @@ local g, actions, conflictions, data = lalr(grammar({ "+", "*", "(", ")", "id" }
     + _"id";
 }))
 
-local buffer = list()
+local buffer = array()
 for _, message in conflictions:ipairs() do
   buffer:append(message, "\n")
 end
@@ -64,8 +64,8 @@ for i, items in set_of_items:ipairs() do
 end
 buffer:append(("="):rep(75), "\n")
 
--- print(table.concat(buffer))
-assert(table.concat(buffer) == [[
+-- print(buffer:concat())
+assert(buffer:concat() == [[
 ===========================================================================
 I_1
   E' -> . E
