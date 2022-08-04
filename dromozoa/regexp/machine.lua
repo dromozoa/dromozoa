@@ -15,6 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local array = require "dromozoa.array"
 local compare = require "dromozoa.compare"
 local list = require "dromozoa.list"
 local tree_map = require "dromozoa.tree_map"
@@ -122,7 +123,7 @@ local function node_to_nfa(node, timestamp)
           bv:update(timestamp, "")
           local cu, accept_states = difference(au, bu)
           transition(u, cu)
-          for _, cv in ipairs(accept_states) do
+          for _, cv in accept_states:ipairs() do
             cv.timestamp = nil
             cv.accept_action = nil
             transition(cv, v)
@@ -343,7 +344,7 @@ local function minimize(u)
   end
 
   local states = {}
-  local accept_states = list()
+  local accept_states = array()
 
   for i, partition in ipairs(partitions) do
     local u = state()
@@ -510,7 +511,7 @@ function module.guard(guard_action, that)
 end
 
 function module.lexer(token_names, that)
-  local data = list()
+  local data = array()
   for name, node in pairs(that) do
     if type(name) ~= "string" then
       name = rawget(node, "literal")
@@ -521,12 +522,12 @@ function module.lexer(token_names, that)
     end
     data:append { timestamp = timestamp, node = node, name = name }
   end
-  table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
+  data:sort(function (a, b) return a.timestamp < b.timestamp end)
 
   local s = state()
   local token_table = {}
 
-  for _, item in ipairs(data) do
+  for _, item in data:ipairs() do
     local u, v = tree_to_nfa(item.node)
     transition(s, u)
 
@@ -546,7 +547,7 @@ function module.lexer(token_names, that)
     end
   end
 
-  return machine(data[1].timestamp, minimize(nfa_to_dfa(s)))
+  return machine(data:get(1).timestamp, minimize(nfa_to_dfa(s)))
 end
 
 return module
