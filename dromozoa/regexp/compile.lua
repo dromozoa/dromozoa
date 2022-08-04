@@ -20,21 +20,37 @@ local tree_set = require "dromozoa.tree_set"
 local runtime = require "dromozoa.regexp.runtime"
 
 local function insert_action(action_ctx, action)
-  -- local action = action:gsub("$([%a_][%w%_]*)", function (name)
-  --   local result = context[name]
-  --   if result == nil then
-  --     error("name " .. name .. " not defined")
-  --   end
-  --   return result
-  -- end):gsub([[${([^%s<>\]*)<(..-)>%1}]], function (_, s)
-  --   local buffer = {}
-  --   for i, v in ipairs { s:byte(1, #s) } do
-  --     buffer[i] = ("0x%X"):format(v)
-  --   end
-  --   return table.concat(buffer, ",")
-  -- end)
+  local action = action:gsub("$([%a_][%w%_]*)", function (name)
+    local result = action_ctx.variables[name]
+    if result == nil then
+      error("name " .. name .. " not defined")
+    end
+    return result
+  end):gsub([[${([^%s<>\]*)<(..-)>%1}]], function (_, s)
+    local buffer = {}
+    for i, v in ipairs { s:byte(1, #s) } do
+      buffer[i] = ("0x%X"):format(v)
+    end
+    return table.concat(buffer, ",")
+  end)
 
-  return (select(2, action_ctx.set:insert(action)))
+  local _, i, inserted = action_ctx.set:insert("function()" .. action .. "\nend;\n")
+  if inserted then
+    -- コルーチンの必要性をおおまかに検査する。
+    -- 1. 単語境界を調べやすくするために番兵を置く。
+    local s = " " .. action .. " "
+    -- 2. fcallという単語が最初に出現する位置を調べる。
+    local p = s:find "[^%w_](fcall)[^%w_]"
+    -- 3. fcallという単語が最後に出現する位置を調べる。
+    local q = s:find "[^%w_](fcall)%s*%b()%s*$"
+    if p == q then
+      action_ctx.threads:append(0)
+    else
+      action_ctx.threads:append(1)
+    end
+  end
+
+  return i
 end
 
 local function update_state_indices_accept(u, action_ctx, accept_actions, color)
@@ -156,35 +172,9 @@ return function (that)
 
   local action_out = array()
   for _, v in action_ctx.set:ipairs() do
-    -- TODO 展開後のコードが同じ文字列になることがあるかもしれない
-    -- TODO 展開後のコードでコルーチンの必要性判定を行うべき？
-    action_out:append("function()", v:gsub("$([%a_][%w%_]*)", function (name)
-      local result = action_ctx.variables[name]
-      if result == nil then
-        error("name " .. name .. " not defined")
-      end
-      return result
-    end):gsub([[${([^%s<>\]*)<(..-)>%1}]], function (_, s)
-      local buffer = {}
-      for i, v in ipairs { s:byte(1, #s) } do
-        buffer[i] = ("0x%X"):format(v)
-      end
-      return table.concat(buffer, ",")
-    end), "\nend;\n")
-
-    -- コルーチンの必要性をおおまかに検査する。
-    -- 1. 単語境界を調べやすくするために番兵を置く。
-    local s = " " .. v .. " "
-    -- 2. fcallという単語が最初に出現する位置を調べる。
-    local p = s:find "[^%w_](fcall)[^%w_]"
-    -- 3. fcallという単語が最後に出現する位置を調べる。
-    local q = s:find "[^%w_](fcall)%s*%b()%s*$"
-    if p == q then
-      action_ctx.threads:append(0)
-    else
-      action_ctx.threads:append(1)
-    end
+    action_out:append(v)
   end
+
   static_out:append("action_threads=_[", select(2, shared_set:insert(action_ctx.threads)), "];\n")
 
   local shared_out = array()
