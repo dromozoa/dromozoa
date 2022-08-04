@@ -482,14 +482,9 @@ local function difference_impl(x, y)
         local index = x_v.index * n + y_v.index
         if index ~= 0 then
           local z_v = z_states[index]
-          local key = { index = index, action = action }
-          local t = transition_map:get(key)
-          if t == nil then
-            -- transition_map[key] = transition(z_u, z_v, { [byte] = true }, timestamp, action)
-            transition_map:insert(key, transition(z_u, z_v, { [byte] = true }, timestamp, action))
-          else
-            t:update(timestamp, byte)
-          end
+          transition_map:get({ index = index, action = action }, function ()
+            return transition(z_u, z_v, {}, timestamp, action)
+          end):update(timestamp, byte)
         end
       end
     end
