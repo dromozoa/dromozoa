@@ -149,12 +149,18 @@ return function (that)
       action_threads:append(1)
     end
 
-    local v = v:gsub("$([%w%_]*)", function (variable)
-      local value = context[variable]
-      if value == nil then
-        error("variable " .. variable .. " not defined")
+    local v = v:gsub("$([%a_][%w%_]*)", function (name)
+      local result = context[name]
+      if result == nil then
+        error("name " .. name .. " not defined")
       end
-      return value
+      return result
+    end):gsub([[${([^%s<>\]*)<(..-)>%1}]], function (_, s)
+      local buffer = {}
+      for i, v in ipairs { s:byte(1, #s) } do
+        buffer[i] = ("0x%X"):format(v)
+      end
+      return table.concat(buffer, ",")
     end)
 
     action_out:append("function()", v, "\nend;\n")

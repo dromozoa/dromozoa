@@ -55,9 +55,9 @@ local code = compile {
 
     string = (
       _[["]]/[[clear(fb)]] + _{
-        _[[\]] + _["09"]/[[ra=fc-0x30 fcall($digit) append(fb,ra)]];
-        _[[\]] + _[[\]]/[[append(fb,0x5C)]];
-        _[[\]] + _[["]]/[[append(fb,0x22)]];
+        _[[\]] + _["09"]/[[ra=fc-${<0>} fcall($digit) append(fb,ra)]];
+        _[[\]] + _[[\]]/[[append(fb,${<\>})]];
+        _[[\]] + _[["]]/[[append(fb,${<">})]];
         -_{[["\]]}/[[append(fb,fc)]]
       }*"*" + _[["]]
     ) %[[push(fb)]];

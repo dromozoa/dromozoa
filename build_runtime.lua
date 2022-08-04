@@ -20,7 +20,7 @@ local function build(source, result)
   local buffer = handle:read "*a"
   handle:close()
 
-  local buffer = (buffer .. "\n$")
+  local buffer = (buffer .. "\n$$")
     :gsub("%-%-%[(%=*)%[.-%]%1%]", "")
     :gsub("%-%-[^\n]*", "")
     :gsub("[ \t]+\n", "\n")
@@ -29,13 +29,13 @@ local function build(source, result)
 
   local out = assert(io.open(result, "w"))
   out:write "return function (context) return {\n"
-  for text, variable in buffer:gmatch "([^$]*)$([%w%_]*)" do
+  for text, variable in buffer:gmatch "([^$]*)$([$%a_][%w_]*)" do
     local s = ""
     while text:find("%]" .. s .. "%]") do
       s = s .. "="
     end
     out:write("[", s, "[\n", text, "]", s, "];\n")
-    if variable ~= "" then
+    if variable ~= "$" then
       out:write("context[\"", variable, "\"];\n")
     end
   end
