@@ -68,21 +68,14 @@ function metatable:__len()
   error "not supported"
 end
 
--- TODO 順序を再考する
 function metatable:__index(k)
+  if k == "tree_compare" then
+    return private[self].compare
+  end
   local v = class[k]
   if v ~= nil then
     return v
   end
-  if k == "tree_compare" then
-    return private[self].compare
-  end
-
-  -- local v = private[self].K[k]
-  -- if v ~= nil then
-  --   return v
-  -- end
-
   error "not supported"
 end
 
