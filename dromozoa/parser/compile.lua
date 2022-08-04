@@ -21,8 +21,7 @@ local runtime = require "dromozoa.parser.runtime"
 
 return function (grammar, actions)
   local static_data = list()
-  local action_set = tree_set()
-  local action_data = list()
+  local action_data = tree_set()
 
   local symbol_names = grammar.symbol_names
   local max_terminal_symbol = grammar.max_terminal_symbol
@@ -60,14 +59,10 @@ return function (grammar, actions)
     if semantic_action == nil then
       semantic_action = ""
     end
-    static_data:append(select(2, action_set:insert("function ()" .. semantic_action .. "\nend;\n")), ",")
+    static_data:append(select(2, action_data:insert("function ()" .. semantic_action .. "\nend;\n")), ",")
   end
   static_data:append(
     "};\n")
-
-  for _, v in action_set:ipairs() do
-    action_data:append(v)
-  end
 
   return table.concat(runtime {
     action_data = action_data:concat();

@@ -57,6 +57,10 @@ function class:insert(k)
   return self, i, ok
 end
 
+function class:concat(separator)
+  return table.concat(private[self].K, separator)
+end
+
 function class:ipairs()
   return ipairs(private[self].K)
 end
