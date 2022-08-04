@@ -58,7 +58,7 @@ end
 
 function class:tree_each(lower_bound, upper_bound)
   return coroutine.wrap(function (self)
-    for k, _, i in self:each(lower_bound, upper_bound) do
+    for k, v, i in self:each(lower_bound, upper_bound) do
       coroutine.yield(i, k)
     end
   end), private[self]

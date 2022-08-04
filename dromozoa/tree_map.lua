@@ -49,8 +49,15 @@ function class:get(k, fn)
     local _, v = private[self]:find(k)
     return v
   else
-    local _, v = private[self]:insert(k, nil, fn)
-    return v
+    local priv = private[self]
+    local inserted, t = priv:insert2(k)
+    if inserted then
+      local v = fn()
+      priv.V[t] = v
+      return v
+    else
+      return priv.V[t]
+    end
   end
 end
 
@@ -59,21 +66,16 @@ function class:empty()
 end
 
 function class:pairs()
-  local i = 0
-  return function (self)
-    i = i + 1
-    local k = self.K[i]
-    if k == nil then
-      return
-    else
-      return self.K[i], self.V[i]
+  return coroutine.wrap(function (self)
+    for i, k in ipairs(self.K) do
+      coroutine.yield(k, self.V[i])
     end
-  end, private[self]
+  end), private[self]
 end
 
 function class:tree_each(lower_bound, upper_bound)
   return coroutine.wrap(function (self)
-    for k, v in self:each(lower_bound, upper_bound) do
+    for k, v, i in self:each(lower_bound, upper_bound) do
       coroutine.yield(k, v)
     end
   end), private[self]
