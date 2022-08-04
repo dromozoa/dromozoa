@@ -133,9 +133,23 @@ return function (that)
     generate(i, v.machine.start_state, v.machine.guard_action, static_out, shared_set, action_set)
   end
 
-  local action_threads = array()
   local action_out = array()
+  local action_threads = array()
   for _, v in action_set:ipairs() do
+    action_out:append("function()", v:gsub("$([%a_][%w%_]*)", function (name)
+      local result = context[name]
+      if result == nil then
+        error("name " .. name .. " not defined")
+      end
+      return result
+    end):gsub([[${([^%s<>\]*)<(..-)>%1}]], function (_, s)
+      local buffer = {}
+      for i, v in ipairs { s:byte(1, #s) } do
+        buffer[i] = ("0x%X"):format(v)
+      end
+      return table.concat(buffer, ",")
+    end), "\nend;\n")
+
     -- コルーチンの必要性をおおまかに検査する。
     -- 1. 単語境界を調べやすくするために番兵を置く。
     local s = " " .. v .. " "
@@ -148,22 +162,6 @@ return function (that)
     else
       action_threads:append(1)
     end
-
-    local v = v:gsub("$([%a_][%w%_]*)", function (name)
-      local result = context[name]
-      if result == nil then
-        error("name " .. name .. " not defined")
-      end
-      return result
-    end):gsub([[${([^%s<>\]*)<(..-)>%1}]], function (_, s)
-      local buffer = {}
-      for i, v in ipairs { s:byte(1, #s) } do
-        buffer[i] = ("0x%X"):format(v)
-      end
-      return table.concat(buffer, ",")
-    end)
-
-    action_out:append("function()", v, "\nend;\n")
   end
   static_out:append("action_threads=_[", select(2, shared_set:insert(action_threads)), "];\n")
 
