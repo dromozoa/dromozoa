@@ -249,7 +249,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
     map_of_kernel_items:append(kernel_table)
   end
 
-  local propagations = list()
+  local propagations = array()
 
   for from_i, from_items in set_of_items:ipairs() do
     for from_j, from_item in from_items:ipairs() do
@@ -275,7 +275,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
 
   repeat
     local done = true
-    for _, propagation in ipairs(propagations) do
+    for _, propagation in propagations:ipairs() do
       local from_la = set_of_kernel_items[propagation.from_i][propagation.from_j].la
       local to_la = set_of_kernel_items[propagation.to_i][propagation.to_j].la
       for _, la in from_la:ipairs() do
