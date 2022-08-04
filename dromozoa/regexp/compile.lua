@@ -24,25 +24,8 @@ local function make_shared(shared_set, v)
 end
 
 local function make_action(action_set, action_threads, v)
-  local _, i, ok = action_set:insert("function()" .. v .. "\nend;\n")
-  -- 最後にやったほうがよいかもしれない
-  if ok then
-    -- コルーチンの必要性をおおまかに検査する。
-    -- 1. 単語境界を調べやすくするために番兵を置く。
-    local s = " " .. v .. " "
-    -- 2. fcallという単語が最初に出現する位置を調べる。
-    local p = s:find "[^%w_](fcall)[^%w_]"
-    -- 3. fcallという単語が最後に出現する位置を調べる。
-    local q = s:find "[^%w_](fcall)%s*%b()%s*$"
-    if p == q then
-      action_threads:append(0)
-    else
-      action_threads:append(1)
-    end
-    assert(i == #action_threads)
-  end
+  local _, i, ok = action_set:insert(v)
   return i
-
 end
 
 local function update_state_indices_accept(u, action_set, action_threads, accept_actions, color)
@@ -135,6 +118,7 @@ return function (that)
   local static_out = list()
   local custom_out = list()
   local action_set = tree_set()
+  local action_out = list()
   local action_threads = list()
 
   local data = list()
@@ -164,6 +148,21 @@ return function (that)
     generate(i, v.machine.start_state, v.machine.guard_action, shared_set, static_out, action_set, action_threads)
   end
 
+  for _, v in action_set:ipairs() do
+    -- コルーチンの必要性をおおまかに検査する。
+    -- 1. 単語境界を調べやすくするために番兵を置く。
+    local s = " " .. v .. " "
+    -- 2. fcallという単語が最初に出現する位置を調べる。
+    local p = s:find "[^%w_](fcall)[^%w_]"
+    -- 3. fcallという単語が最後に出現する位置を調べる。
+    local q = s:find "[^%w_](fcall)%s*%b()%s*$"
+    if p == q then
+      action_threads:append(0)
+    else
+      action_threads:append(1)
+    end
+    action_out:append("function()", v, "\nend;\n")
+  end
   static_out:append("action_threads=_[", make_shared(shared_set, action_threads), "];\n")
 
   for _, v in shared_set:ipairs() do
@@ -174,6 +173,6 @@ return function (that)
     shared_data = shared_out:concat();
     static_data = static_out:concat();
     custom_data = custom_out:concat();
-    action_data = action_set:concat();
+    action_data = action_out:concat();
   })
 end
