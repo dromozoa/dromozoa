@@ -15,6 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local array = require "dromozoa.array"
 local list = require "dromozoa.list"
 local tree_set = require "dromozoa.tree_set"
 local runtime = require "dromozoa.regexp.runtime"
@@ -30,7 +31,7 @@ end
 local function update_state_indices_accept(u, action_set, accept_actions, color)
   color[u] = 1
   if u.accept_action ~= nil then
-    u.index = #accept_actions:append(make_action(action_set, u.accept_action))
+    u.index = accept_actions:append(make_action(action_set, u.accept_action)):size()
   end
   for _, t in ipairs(u.transitions) do
     if color[t.v] == nil then
@@ -60,7 +61,7 @@ local function construct_table(u, max_state, action_set, transitions, transition
   for _, t in ipairs(u.transitions) do
     local code = t.v.index
     if t.action ~= nil then
-      code = max_state + #transition_actions:append(make_action(action_set, t.action))
+      code = max_state + transition_actions:append(make_action(action_set, t.action)):size()
       transition_states:append(t.v.index)
     end
     for byte in pairs(t.set) do
@@ -74,9 +75,9 @@ local function construct_table(u, max_state, action_set, transitions, transition
 end
 
 local function generate(index, u, guard_action, static_out, shared_set, action_set)
-  local accept_actions = list()
+  local accept_actions = array()
   update_state_indices_accept(u, action_set, accept_actions, {})
-  local max_state = update_state_indices_nonaccept(u, #accept_actions, {})
+  local max_state = update_state_indices_nonaccept(u, accept_actions:size(), {})
 
   local transitions = {}
   for byte = 0x00, 0xFF do
@@ -85,15 +86,15 @@ local function generate(index, u, guard_action, static_out, shared_set, action_s
       transitions[byte][i] = 0
     end
   end
-  local transition_actions = list()
-  local transition_states = list()
+  local transition_actions = array()
+  local transition_states = array()
 
   construct_table(u, max_state, action_set, transitions, transition_actions, transition_states, {})
 
   static_out:append(
     "{\n",
     "start_state=", u.index, ";\n",
-    "max_accept_state=", #accept_actions, ";\n",
+    "max_accept_state=", accept_actions:size(), ";\n",
     "max_state=", max_state, ";\n",
     "transitions={[0]=")
   for byte = 0x00, 0xFF do
@@ -112,8 +113,8 @@ local function generate(index, u, guard_action, static_out, shared_set, action_s
 end
 
 return function (that)
-  local data = list()
-  local custom_out = list()
+  local data = array()
+  local custom_out = array()
   for k, v in pairs(that) do
     if type(k) == "string" then
       data:append { timestamp = v.timestamp, machine = v, name = k }
@@ -128,12 +129,12 @@ return function (that)
       data:append { timestamp = v.timestamp, machine = v, main = j == 1 }
     end
   end
-  table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
+  data:sort(function (a, b) return a.timestamp < b.timestamp end)
 
-  local static_out = list()
+  local static_out = array()
   local shared_set = tree_set()
   local action_set = tree_set()
-  for i, v in ipairs(data) do
+  for i, v in data:ipairs() do
     if v.main then
       static_out:append("main=", i, ";\n")
     end
@@ -144,8 +145,8 @@ return function (that)
     generate(i, v.machine.start_state, v.machine.guard_action, static_out, shared_set, action_set)
   end
 
-  local action_out = list()
-  local action_threads = list()
+  local action_out = array()
+  local action_threads = array()
   for _, v in action_set:ipairs() do
     -- TODO テンプレートマクロで文字列を数値化する
     action_out:append("function()", v, "\nend;\n")
@@ -167,7 +168,11 @@ return function (that)
 
   local shared_out = list()
   for _, v in shared_set:ipairs() do
-    shared_out:append("{", table.concat(v, ","), "};\n")
+    if v.concat then
+      shared_out:append("{", v:concat ",", "};\n")
+    else
+      shared_out:append("{", table.concat(v, ","), "};\n")
+    end
   end
 
   return table.concat(runtime {
