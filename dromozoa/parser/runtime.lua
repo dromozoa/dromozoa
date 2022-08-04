@@ -52,11 +52,7 @@ context["action_data"];
     end
   end
 end
-local _ = { ]=];
-context["shared_data"];
-[[
- }
-local static_data = { ]];
+local static_data = { ]=];
 context["static_data"];
 [[
  }

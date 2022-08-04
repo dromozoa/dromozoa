@@ -20,27 +20,12 @@ local tree_set = require "dromozoa.tree_set"
 local runtime = require "dromozoa.parser.runtime"
 
 return function (grammar, actions)
-  local shared_set = tree_set()
-  local shared_data = list()
   local static_data = list()
   local action_set = tree_set()
   local action_data = list()
 
   local symbol_names = grammar.symbol_names
   local productions = grammar.productions
-
-  local heads = list()
-  local sizes = list()
-  local semantic_actions = list()
-  for i, production in productions:ipairs() do
-    heads[i] = production.head
-    sizes[i] = #production.body
-    if production.semantic_action == nil then
-      semantic_actions[i] = ""
-    else
-      semantic_actions[i] = production.semantic_action
-    end
-  end
 
   static_data:append(
     "symbol_names={")
@@ -53,28 +38,42 @@ return function (grammar, actions)
   static_data:append(
     "max_terminal_symbol=", grammar.max_terminal_symbol, ";\n",
     "max_state=", #actions, ";\n",
-    "actions={")
+    "actions={\n")
 
   for _, action in ipairs(actions) do
-    static_data:append("_[", select(2, shared_set:insert(action)), "],")
+    static_data:append("{", table.concat(action, ","), "};\n")
   end
 
   static_data:append(
     "};\n",
-    "heads=_[", select(2, shared_set:insert(heads)), "];\n",
-    "sizes=_[", select(2, shared_set:insert(sizes)), "];\n",
+    "heads={")
+
+  for _, production in productions:ipairs() do
+    static_data:append(production.head, ",")
+  end
+
+  static_data:append(
+    "};\n",
+    "sizes={")
+
+  for _, production in productions:ipairs() do
+    static_data:append(#production.body, ",")
+  end
+
+  static_data:append(
+    "};\n",
     "semantic_actions={")
 
-  for _, semantic_action in ipairs(semantic_actions) do
+  for i, production in productions:ipairs() do
+    local semantic_action = production.semantic_action
+    if semantic_action == nil then
+      semantic_action = ""
+    end
     static_data:append(select(2, action_set:insert(semantic_action)), ",")
   end
 
   static_data:append(
     "};\n")
-
-  for _, v in shared_set:ipairs() do
-    shared_data:append("{", table.concat(v, ","), "};\n")
-  end
 
   for _, v in action_set:ipairs() do
     action_data:append("function ()", v, "\nend;\n")
@@ -82,7 +81,6 @@ return function (grammar, actions)
 
   return table.concat(runtime {
     action_data = table.concat(action_data);
-    shared_data = table.concat(shared_data);
     static_data = table.concat(static_data);
   })
 end

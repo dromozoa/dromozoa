@@ -37,16 +37,16 @@ function class:unpack(m, n)
   return table_unpack(self, m, n)
 end
 
-function class:slice(m, n)
-  return setmetatable({}, metatable):append(self:unpack(m, n))
-end
-
 function class:concat(separator)
   return table.concat(self, separator)
 end
 
 function class:ipairs()
   return ipairs(self)
+end
+
+function class:slice(m, n)
+  return setmetatable({}, metatable):append(self:unpack(m, n))
 end
 
 return setmetatable(class, {

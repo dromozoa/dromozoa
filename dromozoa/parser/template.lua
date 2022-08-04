@@ -138,7 +138,6 @@ local main = function ()
   end
 end
 
-local _ = { $shared_data }
 local static_data = { $static_data }
 
 local metatable = {
