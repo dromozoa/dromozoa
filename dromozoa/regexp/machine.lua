@@ -203,8 +203,8 @@ end
 local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
   color:insert(u_closure, 1)
 
-  local state_map = tree_map()
-  local transition_map = tree_map()
+  local state_map = tree_map2()
+  local transition_map = tree_map2()
 
   for byte = 0x00, 0xFF do
     local resolved = {}
@@ -220,19 +220,15 @@ local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
 
     if v_closure():next() ~= nil then
       local v = closure_to_state(v_closure, states)
-      state_map[v_closure] = v
+      state_map:insert(v_closure, v)
 
-      local key = { closure = v_closure, action = resolved.action }
-      local t = transition_map[key]
-      if t == nil then
-        transition_map[key] = transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
-      else
-        t:update(resolved.timestamp, byte)
-      end
+      transition_map:get({ closure = v_closure, action = resolved.action }, function ()
+        return transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
+      end):update(resolved.timestamp, byte)
     end
   end
 
-  for v_closure, v in state_map():each() do
+  for v_closure, v in state_map:pairs() do
     if color:get(v_closure) == nil then
       nfa_to_dfa_impl(v_closure, v, epsilon_closures, states, color)
     end
