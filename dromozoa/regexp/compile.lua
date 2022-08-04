@@ -19,7 +19,7 @@ local array = require "dromozoa.array"
 local tree_set = require "dromozoa.tree_set"
 local runtime = require "dromozoa.regexp.runtime"
 
-local function insert_action(action_set, action)
+local function insert_action(action_ctx, action)
   -- local action = action:gsub("$([%a_][%w%_]*)", function (name)
   --   local result = context[name]
   --   if result == nil then
@@ -34,21 +34,17 @@ local function insert_action(action_set, action)
   --   return table.concat(buffer, ",")
   -- end)
 
-
-
-
-
-  return (select(2, action_set:insert(action)))
+  return (select(2, action_ctx.set:insert(action)))
 end
 
-local function update_state_indices_accept(u, action_set, accept_actions, color)
+local function update_state_indices_accept(u, action_ctx, accept_actions, color)
   color[u] = 1
   if u.accept_action ~= nil then
-    u.index = accept_actions:append(insert_action(action_set, u.accept_action)):size()
+    u.index = accept_actions:append(insert_action(action_ctx, u.accept_action)):size()
   end
   for _, t in u.transitions:ipairs() do
     if color[t.v] == nil then
-      update_state_indices_accept(t.v, action_set, accept_actions, color)
+      update_state_indices_accept(t.v, action_ctx, accept_actions, color)
     end
   end
   color[u] = 2
@@ -69,27 +65,27 @@ local function update_state_indices_nonaccept(u, index, color)
   return index
 end
 
-local function construct_table(u, max_state, action_set, transitions, transition_actions, transition_states, color)
+local function construct_table(u, max_state, action_ctx, transitions, transition_actions, transition_states, color)
   color[u] = 1
   for _, t in u.transitions:ipairs() do
     local v = t.v.index
     if t.action ~= nil then
-      v = max_state + transition_actions:append(insert_action(action_set, t.action)):size()
+      v = max_state + transition_actions:append(insert_action(action_ctx, t.action)):size()
       transition_states:append(t.v.index)
     end
     for byte in pairs(t.set) do
       transitions:get(byte + 1):set(u.index, v)
     end
     if color[t.v] == nil then
-      construct_table(t.v, max_state, action_set, transitions, transition_actions, transition_states, color)
+      construct_table(t.v, max_state, action_ctx, transitions, transition_actions, transition_states, color)
     end
   end
   color[u] = 2
 end
 
-local function generate(index, u, guard_action, static_out, shared_set, action_set)
+local function generate(index, u, guard_action, static_out, shared_set, action_ctx)
   local accept_actions = array()
-  update_state_indices_accept(u, action_set, accept_actions, {})
+  update_state_indices_accept(u, action_ctx, accept_actions, {})
   local max_state = update_state_indices_nonaccept(u, accept_actions:size(), {})
 
   local transitions = array()
@@ -99,7 +95,7 @@ local function generate(index, u, guard_action, static_out, shared_set, action_s
   local transition_actions = array()
   local transition_states = array()
 
-  construct_table(u, max_state, action_set, transitions, transition_actions, transition_states, {})
+  construct_table(u, max_state, action_ctx, transitions, transition_actions, transition_states, {})
 
   static_out:append(
     "{\n",
@@ -116,7 +112,7 @@ local function generate(index, u, guard_action, static_out, shared_set, action_s
     "transition_states=_[", select(2, shared_set:insert(transition_states)), "];\n",
     "accept_actions=_[", select(2, shared_set:insert(accept_actions)), "];\n")
   if guard_action ~= nil then
-    static_out:append("guard_action=", insert_action(action_set, guard_action), ";\n")
+    static_out:append("guard_action=", insert_action(action_ctx, guard_action), ";\n")
   end
   static_out:append(
     "};\n")
@@ -141,30 +137,29 @@ return function (that)
   end
   data:sort(function (a, b) return a.timestamp < b.timestamp end)
 
-  local action_context = { variables = {}, threads = array() }
+  local action_ctx = { set = tree_set(), variables = {}, threads = array() }
   for i, v in data:ipairs() do
     if v.name ~= nil then
-      action_context.variables[v.name] = i
+      action_ctx.variables[v.name] = i
     end
   end
 
   local static_out = array()
   local shared_set = tree_set()
-  local action_set = tree_set()
+  -- local action_set = tree_set()
   for i, v in data:ipairs() do
     if v.main then
       static_out:append("main=", i, ";\n")
     end
-    generate(i, v.machine.start_state, v.machine.guard_action, static_out, shared_set, action_set)
+    generate(i, v.machine.start_state, v.machine.guard_action, static_out, shared_set, action_ctx)
   end
 
   local action_out = array()
-  local action_threads = array()
-  for _, v in action_set:ipairs() do
+  for _, v in action_ctx.set:ipairs() do
     -- TODO 展開後のコードが同じ文字列になることがあるかもしれない
     -- TODO 展開後のコードでコルーチンの必要性判定を行うべき？
     action_out:append("function()", v:gsub("$([%a_][%w%_]*)", function (name)
-      local result = action_context.variables[name]
+      local result = action_ctx.variables[name]
       if result == nil then
         error("name " .. name .. " not defined")
       end
@@ -185,12 +180,12 @@ return function (that)
     -- 3. fcallという単語が最後に出現する位置を調べる。
     local q = s:find "[^%w_](fcall)%s*%b()%s*$"
     if p == q then
-      action_context.threads:append(0)
+      action_ctx.threads:append(0)
     else
-      action_context.threads:append(1)
+      action_ctx.threads:append(1)
     end
   end
-  static_out:append("action_threads=_[", select(2, shared_set:insert(action_context.threads)), "];\n")
+  static_out:append("action_threads=_[", select(2, shared_set:insert(action_ctx.threads)), "];\n")
 
   local shared_out = array()
   for _, v in shared_set:ipairs() do
