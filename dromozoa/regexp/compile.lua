@@ -19,13 +19,8 @@ local list = require "dromozoa.list"
 local tree_set = require "dromozoa.tree_set"
 local runtime = require "dromozoa.regexp.runtime"
 
-local function make_shared(shared_map, shared_data, v)
-  local _, i, ok = shared_map:insert(v)
-  if ok then
-    shared_data:append("{" .. table.concat(v, ",") .. "};\n")
-    assert(i == #shared_data)
-  end
-  return i
+local function make_shared(shared_set, v)
+  return select(2, shared_set:insert(v))
 end
 
 local function make_action(action_data, action_threads, v)
@@ -96,7 +91,7 @@ local function construct_table(u, max_state, transitions, action_data, action_th
   color[u] = 2
 end
 
-local function generate(index, u, guard_action, shared_map, shared_data, static_data, action_data, action_threads)
+local function generate(index, u, guard_action, shared_set, static_out, action_data, action_threads)
   local accept_actions = list()
   update_state_indices_accept(u, action_data, action_threads, accept_actions, {})
   local max_state = update_state_indices_nonaccept(u, #accept_actions, {})
@@ -113,31 +108,30 @@ local function generate(index, u, guard_action, shared_map, shared_data, static_
 
   construct_table(u, max_state, transitions, action_data, action_threads, transition_actions, transition_states, {})
 
-  static_data:append(
+  static_out:append(
     "{\n",
     "start_state=", u.index, ";\n",
     "max_accept_state=", #accept_actions, ";\n",
     "max_state=", max_state, ";\n",
     "transitions={[0]=")
   for byte = 0x00, 0xFF do
-    static_data:append("_[", make_shared(shared_map, shared_data, transitions[byte]), "],")
+    static_out:append("_[", make_shared(shared_set, transitions[byte]), "],")
   end
-  static_data:append(
+  static_out:append(
     "};\n",
-    "transition_actions=_[", make_shared(shared_map, shared_data, transition_actions), "];\n",
-    "transition_states=_[", make_shared(shared_map, shared_data, transition_states), "];\n",
-    "accept_actions=_[", make_shared(shared_map, shared_data, accept_actions), "];\n")
+    "transition_actions=_[", make_shared(shared_set, transition_actions), "];\n",
+    "transition_states=_[", make_shared(shared_set, transition_states), "];\n",
+    "accept_actions=_[", make_shared(shared_set, accept_actions), "];\n")
   if guard_action ~= nil then
-    static_data:append("guard_action=", make_action(action_data, action_threads, guard_action), ";\n")
+    static_out:append("guard_action=", make_action(action_data, action_threads, guard_action), ";\n")
   end
-  static_data:append(
+  static_out:append(
     "};\n")
 end
 
 return function (that)
-  local shared_map = tree_set()
-  local shared_data = list()
-  local static_data = list()
+  local shared_set = tree_set()
+  local static_out = list()
   local custom_data = list()
   local action_data = tree_set()
   local action_threads = list()
@@ -161,19 +155,24 @@ return function (that)
 
   for i, v in ipairs(data) do
     if v.main then
-      static_data:append("main=", i, ";\n")
+      static_out:append("main=", i, ";\n")
     end
     if v.name ~= nil then
       custom_data:append("local ", v.name, "=", i, "\n")
     end
-    generate(i, v.machine.start_state, v.machine.guard_action, shared_map, shared_data, static_data, action_data, action_threads)
+    generate(i, v.machine.start_state, v.machine.guard_action, shared_set, static_out, action_data, action_threads)
   end
 
-  static_data:append("action_threads=_[", make_shared(shared_map, shared_data, action_threads), "];\n")
+  static_out:append("action_threads=_[", make_shared(shared_set, action_threads), "];\n")
+
+  local shared_out = list()
+  for _, v in shared_set:ipairs() do
+    shared_out:append("{", table.concat(v, ","), "};\n")
+  end
 
   return table.concat(runtime {
-    shared_data = table.concat(shared_data);
-    static_data = table.concat(static_data);
+    shared_data = shared_out:concat();
+    static_data = static_out:concat();
     custom_data = table.concat(custom_data);
     action_data = action_data:concat();
   })
