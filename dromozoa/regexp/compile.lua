@@ -16,7 +16,6 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local array = require "dromozoa.array"
-local list = require "dromozoa.list"
 local tree_set = require "dromozoa.tree_set"
 local runtime = require "dromozoa.regexp.runtime"
 
@@ -167,7 +166,7 @@ return function (that)
   end
   static_out:append("action_threads=_[", make_shared(shared_set, action_threads), "];\n")
 
-  local shared_out = list()
+  local shared_out = array()
   for _, v in shared_set:ipairs() do
     shared_out:append("{", v:concat ",", "};\n")
   end
