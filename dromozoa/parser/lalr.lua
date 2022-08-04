@@ -16,7 +16,6 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local array = require "dromozoa.array"
-local list = require "dromozoa.list"
 local tree_map = require "dromozoa.tree_map"
 local tree_set = require "dromozoa.tree_set"
 
@@ -50,7 +49,7 @@ local function eliminate_left_recursion(grammar)
       if symbol ~= nil and symbol > max_terminal_symbol and symbol < i then
         for _, src_body in each_production(new_productions, symbol) do
           local new_body = src_body:slice():append(body:unpack(2))
-          if i == new_body[1] then
+          if i == new_body:get(1) then
             n_bodies:append(new_body:slice(2):append(n))
           else
             i_bodies:append(new_body)
@@ -64,7 +63,7 @@ local function eliminate_left_recursion(grammar)
     end
 
     if not n_bodies:empty() then
-      new_symbol_names:append(symbol_names[i] .. "'")
+      new_symbol_names:append(symbol_names:get(i) .. "'")
       n_bodies:append(array())
       for _, body in i_bodies:ipairs() do
         body:append(n)
@@ -261,11 +260,11 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
           local symbol = productions[item.index].body:get(item.dot)
           if symbol ~= nil then
             local to_i = transitions[from_i]:get(symbol)
-            local to_j = map_of_kernel_items[to_i]:get(item.index)[item.dot + 1]
+            local to_j = map_of_kernel_items:get(to_i):get(item.index)[item.dot + 1]
             if item.la == marker_lookahead then
               propagations:append { from_i = from_i, from_j = from_j, to_i = to_i, to_j = to_j }
             else
-              set_of_kernel_items[to_i][to_j].la:insert(item.la)
+              set_of_kernel_items:get(to_i)[to_j].la:insert(item.la)
             end
           end
         end
@@ -276,8 +275,8 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
   repeat
     local done = true
     for _, propagation in propagations:ipairs() do
-      local from_la = set_of_kernel_items[propagation.from_i][propagation.from_j].la
-      local to_la = set_of_kernel_items[propagation.to_i][propagation.to_j].la
+      local from_la = set_of_kernel_items:get(propagation.from_i)[propagation.from_j].la
+      local to_la = set_of_kernel_items:get(propagation.to_i)[propagation.to_j].la
       for _, la in from_la:ipairs() do
         if select(3, to_la:insert(la)) then
           done = false
@@ -306,7 +305,7 @@ local function symbol_precedence(grammar, symbol)
   if precedence ~= nil then
     return precedence.precedence, precedence.name, precedence.associativity
   end
-  return 0, grammar.symbol_names[symbol]
+  return 0, grammar.symbol_names:get(symbol)
 end
 
 local function production_precedence(grammar, index)
@@ -320,7 +319,7 @@ local function production_precedence(grammar, index)
   local max_terminal_symbol = grammar.max_terminal_symbol
   local body = production.body
   for i = body:size(), 1, -1 do
-    local symbol = body[i]
+    local symbol = body:get(i)
     if symbol <= max_terminal_symbol then
       return symbol_precedence(grammar, symbol)
     end
@@ -390,7 +389,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
           if buffer:empty() then
             sr = sr + 1
           else
-            conflictions:append("[info] conflict between production " .. item.index .. " and symbol " .. symbol_names[item.la] .. " resolved as " .. buffer:concat())
+            conflictions:append("[info] conflict between production " .. item.index .. " and symbol " .. symbol_names:get(item.la) .. " resolved as " .. buffer:concat())
           end
         end
       end

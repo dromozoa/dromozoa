@@ -55,7 +55,6 @@ end
 -- set / assign
 -- get(key, fn)
 
-
 class.insert_or_assign = class.insert
 class.assign = class.insert
 
