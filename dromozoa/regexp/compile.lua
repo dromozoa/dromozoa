@@ -20,10 +20,8 @@ local tree_set = require "dromozoa.tree_set"
 local runtime = require "dromozoa.regexp.runtime"
 
 local function insert_action(context, action)
-  local action_ctx = context.action
-
   local action = action:gsub("$([%a_][%w%_]*)", function (name)
-    local result = action_ctx.variables[name]
+    local result = context.action.variables[name]
     if result == nil then
       error("name " .. name .. " not defined")
     end
@@ -36,7 +34,7 @@ local function insert_action(context, action)
     return table.concat(buffer, ",")
   end)
 
-  local _, i, inserted = action_ctx.set:insert("function()" .. action .. "\nend;\n")
+  local _, i, inserted = context.action.set:insert("function()" .. action .. "\nend;\n")
   if inserted then
     -- コルーチンの必要性をおおまかに検査する。
     -- 1. 単語境界を調べやすくするために番兵を置く。
@@ -46,9 +44,9 @@ local function insert_action(context, action)
     -- 3. fcallという単語が最後に出現する位置を調べる。
     local q = s:find "[^%w_](fcall)%s*%b()%s*$"
     if p == q then
-      action_ctx.threads:append(0)
+      context.action.threads:append(0)
     else
-      action_ctx.threads:append(1)
+      context.action.threads:append(1)
     end
   end
 
