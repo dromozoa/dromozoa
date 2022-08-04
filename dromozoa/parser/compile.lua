@@ -60,17 +60,17 @@ return function (grammar, actions)
     if semantic_action == nil then
       semantic_action = ""
     end
-    static_data:append(select(2, action_set:insert(semantic_action)), ",")
+    static_data:append(select(2, action_set:insert("function ()" .. semantic_action .. "\nend;\n")), ",")
   end
   static_data:append(
     "};\n")
 
   for _, v in action_set:ipairs() do
-    action_data:append("function ()", v, "\nend;\n")
+    action_data:append(v)
   end
 
   return table.concat(runtime {
-    action_data = table.concat(action_data);
-    static_data = table.concat(static_data);
+    action_data = action_data:concat();
+    static_data = static_data:concat();
   })
 end
