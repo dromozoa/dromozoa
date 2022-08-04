@@ -135,8 +135,12 @@ local function generate(index, u, guard_action, static_out, shared_set, action_c
 end
 
 return function (that)
-  local data = array()
   local custom_out = array()
+  local action_ctx = { set = tree_set(), variables = {}, threads = array() }
+  local shared_set = tree_set()
+  local static_out = array()
+
+  local data = array()
   for k, v in pairs(that) do
     if type(k) == "string" then
       data:append { timestamp = v.timestamp, machine = v, name = k }
@@ -153,28 +157,18 @@ return function (that)
   end
   data:sort(function (a, b) return a.timestamp < b.timestamp end)
 
-  local action_ctx = { set = tree_set(), variables = {}, threads = array() }
   for i, v in data:ipairs() do
     if v.name ~= nil then
       action_ctx.variables[v.name] = i
     end
   end
 
-  local static_out = array()
-  local shared_set = tree_set()
-  -- local action_set = tree_set()
   for i, v in data:ipairs() do
     if v.main then
       static_out:append("main=", i, ";\n")
     end
     generate(i, v.machine.start_state, v.machine.guard_action, static_out, shared_set, action_ctx)
   end
-
-  local action_out = array()
-  for _, v in action_ctx.set:ipairs() do
-    action_out:append(v)
-  end
-
   static_out:append("action_threads=_[", select(2, shared_set:insert(action_ctx.threads)), "];\n")
 
   local shared_out = array()
@@ -183,9 +177,9 @@ return function (that)
   end
 
   return table.concat(runtime {
+    custom_data = custom_out:concat();
+    action_data = action_ctx.set:concat();
     shared_data = shared_out:concat();
     static_data = static_out:concat();
-    custom_data = custom_out:concat();
-    action_data = action_out:concat();
   })
 end
