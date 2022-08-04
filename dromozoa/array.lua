@@ -41,6 +41,10 @@ function class:append(...)
   return self
 end
 
+function class:get(i)
+  return private[self][i]
+end
+
 function class:empty()
   return next(private[self]) == nil
 end

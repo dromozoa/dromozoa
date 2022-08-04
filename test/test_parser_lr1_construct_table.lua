@@ -112,14 +112,14 @@ for _, g in ipairs(G) do
   end
 
   buffer:append "|    |"
-  for i = 1, #g.symbol_names do
-    buffer:append(("  %-2s |"):format(g.symbol_names[i]))
+  for i, name in g.symbol_names:ipairs() do
+    buffer:append(("  %-2s |"):format(name))
   end
   buffer:append "\n"
 
   for i, data in ipairs(actions) do
     buffer:append(("| %2d |"):format(i))
-    for j = 1, #g.symbol_names do
+    for j in g.symbol_names:ipairs() do
       local v = data[j]
       if v == 0 then
         buffer:append "     |"

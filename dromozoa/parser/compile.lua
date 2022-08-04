@@ -29,7 +29,7 @@ return function (grammar, actions)
 
   static_data:append(
     "symbol_names={")
-  for _, v in ipairs(symbol_names) do
+  for _, v in symbol_names:ipairs() do
     static_data:append(("%q,"):format(v))
   end
   static_data:append(
@@ -49,7 +49,7 @@ return function (grammar, actions)
     "};\n",
     "sizes={")
   for _, production in productions:ipairs() do
-    static_data:append(#production.body, ",")
+    static_data:append(production.body:size(), ",")
   end
   static_data:append(
     "};\n",

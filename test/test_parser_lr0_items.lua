@@ -44,13 +44,13 @@ for i, items in set_of_items:ipairs() do
   for _, item in items:ipairs() do
     local production = g.productions[item.index]
     buffer:append("  ", g.symbol_names[production.head], " ->")
-    for j, symbol in ipairs(production.body) do
+    for j, symbol in production.body:ipairs() do
       if j == item.dot then
         buffer:append " ."
       end
       buffer:append(" ", g.symbol_names[symbol])
     end
-    if not production.body[item.dot] then
+    if production.body:get(item.dot) == nil then
       buffer:append " ."
     end
     buffer:append "\n"

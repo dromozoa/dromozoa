@@ -72,6 +72,7 @@ class.assign = class.insert
 --   return self, i, ok
 -- end
 
+-- TODO getはfindにするべき
 function class:get(k, fn)
   if fn == nil then
     local _, v = private[self]:find(k)
