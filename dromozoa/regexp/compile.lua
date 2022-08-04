@@ -73,7 +73,7 @@ local function construct_table(u, max_state, transitions, action_set, transition
   color[u] = 2
 end
 
-local function generate(index, u, guard_action, shared_set, static_out, action_set)
+local function generate(index, u, guard_action, static_out, shared_set, action_set)
   local accept_actions = list()
   update_state_indices_accept(u, action_set, accept_actions, {})
   local max_state = update_state_indices_nonaccept(u, #accept_actions, {})
@@ -112,14 +112,8 @@ local function generate(index, u, guard_action, shared_set, static_out, action_s
 end
 
 return function (that)
-  local shared_set = tree_set()
-  local shared_out = list()
-  local static_out = list()
-  local custom_out = list()
-  local action_set = tree_set()
-  local action_out = list()
-
   local data = list()
+  local custom_out = list()
   for k, v in pairs(that) do
     if type(k) == "string" then
       data:append { timestamp = v.timestamp, machine = v, name = k }
@@ -136,18 +130,24 @@ return function (that)
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
+  local static_out = list()
+  local shared_set = tree_set()
+  local action_set = tree_set()
   for i, v in ipairs(data) do
     if v.main then
       static_out:append("main=", i, ";\n")
     end
     if v.name ~= nil then
+      -- TODO テンプレートマクロで置き換える
       custom_out:append("local ", v.name, "=", i, "\n")
     end
-    generate(i, v.machine.start_state, v.machine.guard_action, shared_set, static_out, action_set)
+    generate(i, v.machine.start_state, v.machine.guard_action, static_out, shared_set, action_set)
   end
 
+  local action_out = list()
   local action_threads = list()
   for _, v in action_set:ipairs() do
+    action_out:append("function()", v, "\nend;\n")
     -- コルーチンの必要性をおおまかに検査する。
     -- 1. 単語境界を調べやすくするために番兵を置く。
     local s = " " .. v .. " "
@@ -160,10 +160,10 @@ return function (that)
     else
       action_threads:append(1)
     end
-    action_out:append("function()", v, "\nend;\n")
   end
   static_out:append("action_threads=_[", make_shared(shared_set, action_threads), "];\n")
 
+  local shared_out = list()
   for _, v in shared_set:ipairs() do
     shared_out:append("{", table.concat(v, ","), "};\n")
   end
