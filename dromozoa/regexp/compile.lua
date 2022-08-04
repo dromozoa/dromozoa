@@ -35,6 +35,7 @@ local function insert_action(context, action)
   end)
 
   local _, i, inserted = context.action.set:insert("function()" .. action .. "\nend;\n")
+
   if inserted then
     -- コルーチンの必要性をおおまかに検査する。
     -- 1. 単語境界を調べやすくするために番兵を置く。
@@ -88,13 +89,13 @@ end
 local function construct_table(context, u, max_state, transitions, transition_actions, transition_states, color)
   color[u] = 1
   for _, t in u.transitions:ipairs() do
-    local v = t.v.index
+    local code = t.v.index
     if t.action ~= nil then
-      v = max_state + transition_actions:append(insert_action(context, t.action)):size()
+      code = max_state + transition_actions:append(insert_action(context, t.action)):size()
       transition_states:append(t.v.index)
     end
     for byte in pairs(t.set) do
-      transitions:get(byte + 1):set(u.index, v)
+      transitions:get(byte + 1):set(u.index, code)
     end
     if color[t.v] == nil then
       construct_table(context, t.v, max_state, transitions, transition_actions, transition_states, color)
@@ -114,7 +115,6 @@ local function generate(context, index, u, guard_action)
   end
   local transition_actions = array()
   local transition_states = array()
-
   construct_table(context, u, max_state, transitions, transition_actions, transition_states, {})
 
   context.static.out:append(
