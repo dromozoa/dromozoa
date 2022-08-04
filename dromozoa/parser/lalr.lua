@@ -385,9 +385,9 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
           rr = rr + 1
         elseif action ~= 0 then
           -- shift/reduce
-          local buffer = list()
+          local buffer = array()
           data[item.la] = resolve_sr(grammar, item, action, item.index + max_state, buffer)
-          if #buffer == 0 then
+          if buffer:empty() then
             sr = sr + 1
           else
             conflictions:append("[info] conflict between production " .. item.index .. " and symbol " .. symbol_names[item.la] .. " resolved as " .. buffer:concat())
@@ -399,7 +399,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
     total_sr = total_sr + sr
     total_rr = total_rr + rr
     if sr > 0 or rr > 0 then
-      local buffer = list()
+      local buffer = array()
       if expect_sr == nil or expect_sr < total_sr or rr > 0 then
         buffer:append "[warn]"
       else
@@ -427,7 +427,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
   end
 
   if total_sr > 0 then
-    local buffer = list()
+    local buffer = array()
     if expect_sr ~= total_sr then
       buffer:append "[warn]"
     else
