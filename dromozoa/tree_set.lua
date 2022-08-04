@@ -17,10 +17,6 @@
 
 local tree = require "dromozoa.tree"
 
-local class = {}
-local metatable = { __name = "dromozoa.tree_set" }
-local private = setmetatable({}, { __mode = "k" })
-
 ---------------------------------------------------------------------------
 -- eachはO(1)が保証されるけれど、途中でコンテナを変更すると、危険かもしれない
 -- pairsはO(log n)が保証されていて、途中でコンテナを変更しても安全
@@ -42,10 +38,20 @@ local private = setmetatable({}, { __mode = "k" })
 
 local private = setmetatable({}, { __mode = "k" })
 local class = {}
-local metatable = {
-  __name = "dromozoa.tree_set";
-  ["dromozoa.stable_pairs"] = function (self) return private[self]:each() end;
-}
+local metatable = { __name = "dromozoa.tree_set" }
+local table_unpack = table.unpack or unpack
+
+function class:empty()
+  return private[self].size == 0
+end
+
+function class:size()
+  return private[self].size
+end
+
+function class:get(i)
+  return private[self].K[i]
+end
 
 function class:insert(k)
   if k == nil then
@@ -57,15 +63,17 @@ function class:insert(k)
   return self, i, ok
 end
 
-function class:concat(separator)
-  return table.concat(private[self].K, separator)
-end
-
 function class:ipairs()
   return ipairs(private[self].K)
 end
 
--- TODO tree_compare, tree_eachからtree_をはずす？
+function class:concat(...)
+  return table.concat(private[self].K, ...)
+end
+
+function class:unpack(...)
+  return table_unpack(private[self].K, ...)
+end
 
 function class:tree_each(lower_bound, upper_bound)
   return coroutine.wrap(function (self)
@@ -76,7 +84,6 @@ function class:tree_each(lower_bound, upper_bound)
 end
 
 function metatable:__len()
-  -- return #private[self].K
   error "not supported"
 end
 
@@ -89,10 +96,12 @@ function metatable:__index(k)
   if k == "tree_compare" then
     return private[self].compare
   end
+
   local v = private[self].K[k]
   if v ~= nil then
     return v
   end
+
   error "not supported"
 end
 
@@ -104,8 +113,14 @@ function metatable:__pairs()
   error "not supported"
 end
 
-return function (compare)
-  local self = setmetatable({}, metatable)
-  private[self] = tree(compare)
-  return self
+function metatable:__tostring()
+  error "not supported"
 end
+
+return setmetatable(class, {
+  __call = function (_, compare)
+    local self = setmetatable({}, metatable)
+    private[self] = tree(compare)
+    return self
+  end;
+})

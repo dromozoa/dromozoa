@@ -56,6 +56,7 @@ function class:append(...)
 end
 
 function class:set(i, v)
+  -- TODO iはチェックする？
   if v == nil then
     error "array value is nil"
   end
