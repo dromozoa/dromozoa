@@ -517,9 +517,12 @@ function module.lexer(token_names, that)
   end
   data:sort(function (a, b) return a.timestamp < b.timestamp end)
 
-  local s = state()
   local token_table = {}
+  for symbol, name in token_names:ipairs() do
+    token_table[name] = symbol
+  end
 
+  local s = state()
   for _, item in data:ipairs() do
     local u, v = tree_to_nfa(item.node)
     transition(s, u)
@@ -528,7 +531,6 @@ function module.lexer(token_names, that)
     if item.name ~= nil then
       symbol = token_table[item.name]
       if symbol == nil then
-        -- TODO これは型を仮定するべきでない？
         symbol = token_names:append(item.name):size()
         token_table[item.name] = symbol
       end
