@@ -34,7 +34,7 @@ local function stable_pairs(t, compare, n)
     if metaname == "dromozoa.array" then
       return t:ipairs()
     elseif metaname == "dromozoa.tree_map" then
-      return t:pairs()
+      return t:each()
     elseif metaname == "dromozoa.tree_set" then
       return t:ipairs()
     end
