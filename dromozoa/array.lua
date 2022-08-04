@@ -41,16 +41,16 @@ function class:append(...)
   return self
 end
 
-function class:get(i)
-  return private[self][i]
-end
-
 function class:empty()
   return next(private[self]) == nil
 end
 
 function class:size()
   return #private[self]
+end
+
+function class:get(i)
+  return private[self][i]
 end
 
 ---------------------------------------------------------------------------
@@ -84,12 +84,7 @@ function metatable:__len()
 end
 
 function metatable:__index(k)
-  local v
-  if type(k) == "number" then
-    -- v = private[self][k]
-  else
-    v = class[k]
-  end
+  local v = class[k]
   if v ~= nil then
     return v
   end
