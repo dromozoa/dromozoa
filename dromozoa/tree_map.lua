@@ -76,8 +76,7 @@ function class:insert_or_update(k, insert_fn, update_fn)
 end
 
 function class:get(k)
-  local _, v = private[self]:find(k)
-  return v
+  return select(2, private[self]:find(k))
 end
 
 function class:empty()

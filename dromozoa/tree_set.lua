@@ -32,6 +32,10 @@ function class:insert(k)
   return self, i, inserted
 end
 
+function class:find(k)
+  return private[self]:find(k) ~= nil
+end
+
 function class:empty()
   return private[self].size == 0
 end
