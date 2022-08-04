@@ -170,7 +170,11 @@ local function lr0_goto(grammar, items)
   for _, item in items:ipairs() do
     local symbol = productions:get(item.index).body:get(item.dot)
     if symbol ~= nil then
-      map_of_to_items:get(symbol, tree_set):insert { index = item.index, dot = item.dot + 1 }
+      map_of_to_items:insert_or_update(symbol, function ()
+        return tree_set():insert { index = item.index, dot = item.dot + 1 }
+      end, function (items)
+        return items:insert { index = item.index, dot = item.dot + 1 }
+      end)
     end
   end
   for _, to_items in map_of_to_items:pairs() do
@@ -188,7 +192,7 @@ local function lr0_items(grammar)
     local map_of_to_items = lr0_goto(grammar, items)
     local transition = tree_map()
     for symbol, to_items in map_of_to_items:pairs() do
-      transition:checked_insert(symbol, select(2, set_of_items:insert(to_items)))
+      transition:assign(symbol, select(2, set_of_items:insert(to_items)))
     end
     transitions[i] = transition
   end
