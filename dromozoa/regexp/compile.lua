@@ -135,10 +135,17 @@ local function generate(index, u, guard_action, static_out, shared_set, action_c
 end
 
 return function (that)
-  local custom_out = array()
-  local action_ctx = { set = tree_set(), variables = {}, threads = array() }
-  local shared_set = tree_set()
-  local static_out = array()
+  local context = {
+    custom = { out = array() };
+    action = { set = tree_set(), variables = {}, threads = array() };
+    shared = { set = tree_set(), out = array() };
+    static = { out = array() };
+  }
+
+  -- local custom_out = array()
+  -- local action_ctx = { set = tree_set(), variables = {}, threads = array() }
+  -- local shared_set = tree_set()
+  -- local static_out = array()
 
   local data = array()
   for k, v in pairs(that) do
@@ -149,7 +156,7 @@ return function (that)
   local j = 0
   for i, v in ipairs(that) do
     if type(v) == "string" then
-      custom_out:append(v, "\n")
+      context.custom.out:append(v, "\n")
     else
       j = j + 1
       data:append { timestamp = v.timestamp, machine = v, main = j == 1 }
@@ -159,27 +166,26 @@ return function (that)
 
   for i, v in data:ipairs() do
     if v.name ~= nil then
-      action_ctx.variables[v.name] = i
+      context.action.variables[v.name] = i
     end
   end
 
   for i, v in data:ipairs() do
     if v.main then
-      static_out:append("main=", i, ";\n")
+      context.static.out:append("main=", i, ";\n")
     end
-    generate(i, v.machine.start_state, v.machine.guard_action, static_out, shared_set, action_ctx)
+    generate(i, v.machine.start_state, v.machine.guard_action, context.static.out, context.shared.set, context.action)
   end
-  static_out:append("action_threads=_[", select(2, shared_set:insert(action_ctx.threads)), "];\n")
+  context.static.out:append("action_threads=_[", select(2, context.shared.set:insert(context.action.threads)), "];\n")
 
-  local shared_out = array()
-  for _, v in shared_set:ipairs() do
-    shared_out:append("{", v:concat ",", "};\n")
+  for _, v in context.shared.set:ipairs() do
+    context.shared.out:append("{", v:concat ",", "};\n")
   end
 
   return table.concat(runtime {
-    custom_data = custom_out:concat();
-    action_data = action_ctx.set:concat();
-    shared_data = shared_out:concat();
-    static_data = static_out:concat();
+    custom_data = context.custom.out:concat();
+    action_data = context.action.set:concat();
+    shared_data = context.shared.out:concat();
+    static_data = context.static.out:concat();
   })
 end
