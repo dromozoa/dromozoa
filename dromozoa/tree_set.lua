@@ -36,6 +36,16 @@ function class:find(k)
   return private[self]:find(k) ~= nil
 end
 
+function class:tree_each(lower_bound, upper_bound)
+  return coroutine.wrap(function (self)
+    for k, _, i in self:each(lower_bound, upper_bound) do
+      coroutine.yield(i, k)
+    end
+  end), private[self]
+end
+
+---------------------------------------------------------------------------
+
 function class:empty()
   return private[self].size == 0
 end
@@ -60,13 +70,7 @@ function class:unpack(...)
   return table_unpack(private[self].K, ...)
 end
 
-function class:tree_each(lower_bound, upper_bound)
-  return coroutine.wrap(function (self)
-    for k, _, i in self:each(lower_bound, upper_bound) do
-      coroutine.yield(i, k)
-    end
-  end), private[self]
-end
+---------------------------------------------------------------------------
 
 function metatable:__len()
   error "not supported"
@@ -94,6 +98,8 @@ end
 function metatable:__tostring()
   error "not supported"
 end
+
+---------------------------------------------------------------------------
 
 return setmetatable(class, {
   __call = function (_, compare)

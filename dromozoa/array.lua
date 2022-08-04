@@ -26,21 +26,7 @@ local function construct()
   return self
 end
 
-function class:empty()
-  return next(private[self]) == nil
-end
-
-function class:size()
-  return #private[self]
-end
-
-function class:get(i)
-  return private[self][i]
-end
-
-function class:slice(...)
-  return construct():append(self:unpack(...))
-end
+---------------------------------------------------------------------------
 
 function class:append(...)
   local priv = private[self]
@@ -71,6 +57,24 @@ function class:set(i, v)
   return self
 end
 
+function class:slice(...)
+  return construct():append(self:unpack(...))
+end
+
+---------------------------------------------------------------------------
+
+function class:empty()
+  return next(private[self]) == nil
+end
+
+function class:size()
+  return #private[self]
+end
+
+function class:get(i)
+  return private[self][i]
+end
+
 function class:ipairs()
   return ipairs(private[self])
 end
@@ -86,6 +90,8 @@ end
 function class:unpack(...)
   return table_unpack(private[self], ...)
 end
+
+---------------------------------------------------------------------------
 
 function metatable:__len()
   error "not supported"
@@ -110,6 +116,8 @@ end
 function metatable:__tostring()
   error "not supported"
 end
+
+---------------------------------------------------------------------------
 
 return setmetatable(class, {
   __call = function (_, ...)
