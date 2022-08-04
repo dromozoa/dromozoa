@@ -19,18 +19,10 @@ local array = require "dromozoa.array"
 local tree_set = require "dromozoa.tree_set"
 local runtime = require "dromozoa.regexp.runtime"
 
-local function make_shared(shared_set, v)
-  return select(2, shared_set:insert(v))
-end
-
-local function make_action(action_set, v)
-  return (select(2, action_set:insert(v)))
-end
-
 local function update_state_indices_accept(u, action_set, accept_actions, color)
   color[u] = 1
   if u.accept_action ~= nil then
-    u.index = accept_actions:append(make_action(action_set, u.accept_action)):size()
+    u.index = accept_actions:append((select(2, action_set:insert(u.accept_action)))):size()
   end
   for _, t in u.transitions:ipairs() do
     if color[t.v] == nil then
@@ -60,7 +52,7 @@ local function construct_table(u, max_state, action_set, transitions, transition
   for _, t in u.transitions:ipairs() do
     local code = t.v.index
     if t.action ~= nil then
-      code = max_state + transition_actions:append(make_action(action_set, t.action)):size()
+      code = max_state + transition_actions:append((select(2, action_set:insert(t.action)))):size()
       transition_states:append(t.v.index)
     end
     for byte in pairs(t.set) do
@@ -94,15 +86,15 @@ local function generate(index, u, guard_action, static_out, shared_set, action_s
     "max_state=", max_state, ";\n",
     "transitions={[0]=")
   for i = 1, 256 do
-    static_out:append("_[", make_shared(shared_set, transitions:get(i)), "],")
+    static_out:append("_[", select(2, shared_set:insert(transitions:get(i))), "],")
   end
   static_out:append(
     "};\n",
-    "transition_actions=_[", make_shared(shared_set, transition_actions), "];\n",
-    "transition_states=_[", make_shared(shared_set, transition_states), "];\n",
-    "accept_actions=_[", make_shared(shared_set, accept_actions), "];\n")
+    "transition_actions=_[", select(2, shared_set:insert(transition_actions)), "];\n",
+    "transition_states=_[", select(2, shared_set:insert(transition_states)), "];\n",
+    "accept_actions=_[", select(2, shared_set:insert(accept_actions)), "];\n")
   if guard_action ~= nil then
-    static_out:append("guard_action=", make_action(action_set, guard_action), ";\n")
+    static_out:append("guard_action=", select(2, action_set:insert(guard_action)), ";\n")
   end
   static_out:append(
     "};\n")
@@ -160,7 +152,7 @@ return function (that)
       action_threads:append(1)
     end
   end
-  static_out:append("action_threads=_[", make_shared(shared_set, action_threads), "];\n")
+  static_out:append("action_threads=_[", select(2, shared_set:insert(action_threads)), "];\n")
 
   local shared_out = array()
   for _, v in shared_set:ipairs() do
