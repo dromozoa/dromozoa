@@ -258,11 +258,11 @@ local function create_initial_partitions(u, accept_partition_map, nonaccept_part
 
   local partition = nonaccept_partition
   if u.accept_action ~= nil then
-    partition = accept_partition_map[u.accept_action]
+    partition = accept_partition_map:get(u.accept_action)
     if partition == nil then
       partition = list()
       partition.timestamp = u.timestamp
-      accept_partition_map[u.accept_action] = partition
+      accept_partition_map:insert(u.accept_action, partition)
     elseif partition.timestamp > u.timestamp then
       partition.timestamp = u.timestamp
     end
@@ -280,13 +280,13 @@ local function create_initial_partitions(u, accept_partition_map, nonaccept_part
 end
 
 local function minimize(u)
-  local accept_partition_map = tree_map()
+  local accept_partition_map = tree_map2()
   local partition = list()
   local partition_map = {}
   create_initial_partitions(u, accept_partition_map, partition, partition_map, {})
 
   local partitions = list()
-  for _, partition in accept_partition_map():each() do
+  for _, partition in accept_partition_map:pairs() do
     partition.index = #partitions:append(partition)
   end
   if next(partition) ~= nil then
@@ -365,7 +365,7 @@ local function minimize(u)
 
   for i, partition in ipairs(partitions) do
     local u = states[partition]
-    local transition_map = tree_map()
+    local transition_map = tree_map2()
 
     for byte = 0x00, 0xFF do
       local resolved = {}
@@ -380,13 +380,9 @@ local function minimize(u)
         end
 
         local v = states[p]
-        local key = { index = p.index, action = resolved.action }
-        local t = transition_map[key]
-        if t == nil then
-          transition_map[key] = transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
-        else
-          t:update(resolved.timestamp, byte)
-        end
+        transition_map:get({ index = p.index, action = resolved.action }, function ()
+          return transition(u, v, {}, resolved.timestamp, resolved.action)
+        end):update(resolved.timestamp, byte)
       end
     end
   end
