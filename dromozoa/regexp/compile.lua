@@ -65,7 +65,7 @@ local function construct_table(u, max_state, action_set, transitions, transition
       transition_states:append(t.v.index)
     end
     for byte in pairs(t.set) do
-      transitions[byte][u.index] = code
+      transitions[byte]:set(u.index, code)
     end
     if color[t.v] == nil then
       construct_table(t.v, max_state, action_set, transitions, transition_actions, transition_states, color)
@@ -81,10 +81,11 @@ local function generate(index, u, guard_action, static_out, shared_set, action_s
 
   local transitions = {}
   for byte = 0x00, 0xFF do
-    transitions[byte] = {}
+    local transition = array()
     for i = 1, max_state do
-      transitions[byte][i] = 0
+      transition:append(0)
     end
+    transitions[byte] = transition
   end
   local transition_actions = array()
   local transition_states = array()
@@ -168,11 +169,7 @@ return function (that)
 
   local shared_out = list()
   for _, v in shared_set:ipairs() do
-    if v.concat then
-      shared_out:append("{", v:concat ",", "};\n")
-    else
-      shared_out:append("{", table.concat(v, ","), "};\n")
-    end
+    shared_out:append("{", v:concat ",", "};\n")
   end
 
   return table.concat(runtime {

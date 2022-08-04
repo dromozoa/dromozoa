@@ -40,10 +40,22 @@ function class:append(...)
   for i = 1, select("#", ...) do
     local v = select(i, ...)
     if v == nil then
-      error("bad argument #" .. i .. " (value expected)")
+      error("bad argument #" .. i + 1 .. " (value expected)")
     end
     priv[n + i] = v
   end
+  return self
+end
+
+function class:set(i, u)
+  if u == nil then
+    error "bad argument #3 (value expected)"
+  end
+  local priv = private[self]
+  if priv[i] == nil then
+    error "not supported"
+  end
+  priv[i] = u
   return self
 end
 
