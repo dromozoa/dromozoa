@@ -252,7 +252,7 @@ local function create_initial_partitions(u, accept_partition_map, nonaccept_part
 
   local partition = nonaccept_partition
   if u.accept_action ~= nil then
-    partition = accept_partition_map:get(u.accept_action, list)
+    partition = accept_partition_map:get(u.accept_action, array)
   end
   partition:append(u)
   partition_map[u] = partition
@@ -268,7 +268,7 @@ end
 
 local function minimize(u)
   local accept_partition_map = tree_map()
-  local partition = list()
+  local partition = array()
   local partition_map = {}
   create_initial_partitions(u, accept_partition_map, partition, partition_map, {})
 
@@ -277,7 +277,7 @@ local function minimize(u)
   for _, partition in accept_partition_map:pairs() do
     partition_indices[partition] = partitions:append(partition):size()
   end
-  if next(partition) ~= nil then
+  if not partition:empty() then
     partition_indices[partition] = partitions:append(partition):size()
   end
 
@@ -289,9 +289,9 @@ local function minimize(u)
     for _, partition in partitions:ipairs() do
       -- パーティション内の状態の組(x,y)について同じ遷移をするか調べる。同じ遷
       -- 移をする場合、ひとつのパーティションにまとめる。
-      for i, x in ipairs(partition) do
+      for i, x in partition:ipairs() do
         for j = 1, i - 1 do
-          local y = partition[j]
+          local y = partition:get(j)
           -- 全ての文字について下記の条件が満たされていたら、同じ遷移をするとみ
           -- なす。
           -- 1. 遷移先の状態が同じパーティションに含まれている。
@@ -323,9 +323,9 @@ local function minimize(u)
         end
 
         if new_partition_map[x] == nil then
-          local new_partition = list(x)
-          new_partition_indices[new_partition] = new_partitions:append(new_partition):size()
+          local new_partition = array(x)
           new_partition_map[x] = new_partition
+          new_partition_indices[new_partition] = new_partitions:append(new_partition):size()
         end
       end
     end
@@ -334,8 +334,8 @@ local function minimize(u)
       break
     end
 
-    partitions = new_partitions
     partition_map = new_partition_map
+    partitions = new_partitions
     partition_indices = new_partition_indices
   end
 
@@ -344,7 +344,7 @@ local function minimize(u)
 
   for i, partition in partitions:ipairs() do
     local u = state()
-    for _, x in ipairs(partition) do
+    for _, x in partition:ipairs() do
       u:update(x.timestamp, x.accept_action)
     end
     states[partition] = u
@@ -359,12 +359,12 @@ local function minimize(u)
 
     for byte = 0x00, 0xFF do
       local resolved = {}
-      local x_to, _, x_action = partition[1]:simulate(byte, resolved)
+      local x_to, _, x_action = partition:get(1):simulate(byte, resolved)
       if x_to ~= nil then
         local p = partition_map[x_to]
 
-        for j = 2, #partition do
-          local y_to, _, y_action = partition[j]:simulate(byte, resolved)
+        for j = 2, partition:size() do
+          local y_to, _, y_action = partition:get(j):simulate(byte, resolved)
           assert(p == partition_map[y_to])
           assert(compare(x_action, y_action) == 0)
         end
