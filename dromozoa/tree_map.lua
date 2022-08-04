@@ -75,26 +75,8 @@ function class:insert_or_update(k, insert_fn, update_fn)
   return self, v, inserted
 end
 
--- TODO SQL的なインターフェース
--- insert ... where key = :key
--- update ... where key = :key
-
--- put
--- set / assign
--- get(key, fn)
-
--- class.insert_or_assign = class.insert
--- class.assign = class.insert
-
-
-
-
-
-
-
--- TODO getはfindにするべき？
-
 function class:get(k, fn)
+  assert(fn == nil)
   if fn == nil then
     local _, v = private[self]:find(k)
     return v

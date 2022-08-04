@@ -240,7 +240,12 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
     local kernel_table = tree_map()
     for j, item in items:ipairs() do
       if item.index == 1 or item.dot > 1 then
-        kernel_table:get(item.index, function () return {} end)[item.dot] = j
+        kernel_table:insert_or_update(item.index, function ()
+          return { [item.dot] = j }
+        end, function (t)
+          t[item.dot] = j
+          return t
+        end)
       end
       local la = tree_set()
       if item.index == 1 and item.dot == 1 then
