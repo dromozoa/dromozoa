@@ -55,7 +55,7 @@ local function update_state_indices_nonaccept(u, index, color)
   return index
 end
 
-local function construct_table(u, max_state, transitions, action_set, transition_actions, transition_states, color)
+local function construct_table(u, max_state, action_set, transitions, transition_actions, transition_states, color)
   color[u] = 1
   for _, t in ipairs(u.transitions) do
     local code = t.v.index
@@ -67,7 +67,7 @@ local function construct_table(u, max_state, transitions, action_set, transition
       transitions[byte][u.index] = code
     end
     if color[t.v] == nil then
-      construct_table(t.v, max_state, transitions, action_set, transition_actions, transition_states, color)
+      construct_table(t.v, max_state, action_set, transitions, transition_actions, transition_states, color)
     end
   end
   color[u] = 2
@@ -88,7 +88,7 @@ local function generate(index, u, guard_action, static_out, shared_set, action_s
   local transition_actions = list()
   local transition_states = list()
 
-  construct_table(u, max_state, transitions, action_set, transition_actions, transition_states, {})
+  construct_table(u, max_state, action_set, transitions, transition_actions, transition_states, {})
 
   static_out:append(
     "{\n",
