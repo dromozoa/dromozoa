@@ -22,6 +22,3 @@ assert(x:size() == 16)
 for _, v in x:ipairs() do
   assert(v == 42)
 end
-
-
-
