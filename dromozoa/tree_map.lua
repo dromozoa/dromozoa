@@ -21,11 +21,51 @@ local private = setmetatable({}, { __mode = "k" })
 local class = {}
 local metatable = { __name = "dromozoa.tree_map" }
 
+-- TODO そもそもイテレータインターフェースは露出する？
+-- →しない
+
 function class:insert(k, v)
   assert(k ~= nil)
   assert(v ~= nil)
   local ok, _, i = private[self]:insert(k, v)
   return self, i, ok
+end
+
+function class:checked_insert(k, v)
+  if k == nil then
+    error "index is nil"
+  elseif type(k) == "number" and k ~= k then
+    error "index is NaN"
+  elseif v == nil then
+    error "value is nil"
+  end
+  local priv = private[self]
+  local inserted, i = priv:insert2(k, v)
+  assert(inserted)
+  priv.V[i] = v
+  return inserted
+end
+
+function class:insert_or_update(k, insert_fn, update_fn)
+  if k == nil then
+    error "index is nil"
+  elseif type(k) == "number" and k ~= k then
+    error "index is NaN"
+  end
+  local priv = private[self]
+  local V = priv.V
+  local inserted, i = priv:insert2(k)
+  local v = V[i]
+  if inserted then
+    v = insert_fn()
+  elseif update_fn ~= nil then
+    v = update_fn(v)
+  end
+  if v == nil then
+    error "value is nil"
+  end
+  V[i] = v
+  return v
 end
 
 -- TODO SQL的なインターフェース
@@ -36,10 +76,17 @@ end
 -- set / assign
 -- get(key, fn)
 
-class.insert_or_assign = class.insert
+-- class.insert_or_assign = class.insert
 class.assign = class.insert
 
+
+
+
+
+
+
 -- TODO getはfindにするべき？
+
 function class:get(k, fn)
   if fn == nil then
     local _, v = private[self]:find(k)

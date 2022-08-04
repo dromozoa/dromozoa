@@ -188,7 +188,7 @@ local function lr0_items(grammar)
     local map_of_to_items = lr0_goto(grammar, items)
     local transition = tree_map()
     for symbol, to_items in map_of_to_items:pairs() do
-      transition:insert(symbol, select(2, set_of_items:insert(to_items)))
+      transition:checked_insert(symbol, select(2, set_of_items:insert(to_items)))
     end
     transitions[i] = transition
   end

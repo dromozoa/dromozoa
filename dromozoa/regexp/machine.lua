@@ -188,7 +188,7 @@ local function epsilon_closure(u, epsilon_closures)
 end
 
 local function closure_to_state(closure, states)
-  return states:get(closure, function ()
+  return states:insert_or_update(closure, function ()
     local u = state()
     for _, v in closure:pairs() do
       u:update(v.timestamp, v.accept_action)
@@ -219,9 +219,11 @@ local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
       local v = closure_to_state(v_closure, states)
       state_map:insert(v_closure, v)
 
-      transition_map:get({ closure = v_closure, action = resolved.action }, function ()
+      transition_map:insert_or_update({ closure = v_closure, action = resolved.action }, function ()
         return transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
-      end):update(resolved.timestamp, byte)
+      end, function (t)
+        return t:update(resolved.timestamp, byte)
+      end)
     end
   end
 
@@ -251,7 +253,7 @@ local function create_initial_partitions(u, accept_partition_map, nonaccept_part
 
   local partition = nonaccept_partition
   if u.accept_action ~= nil then
-    partition = accept_partition_map:get(u.accept_action, array)
+    partition = accept_partition_map:insert_or_update(u.accept_action, array)
   end
   partition:append(u)
   partition_map[u] = partition
@@ -369,9 +371,11 @@ local function minimize(u)
         end
 
         local v = states[p]
-        transition_map:get({ index = partition_indices[p], action = resolved.action }, function ()
-          return transition(u, v, {}, resolved.timestamp, resolved.action)
-        end):update(resolved.timestamp, byte)
+        transition_map:insert_or_update({ index = partition_indices[p], action = resolved.action }, function ()
+          return transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
+        end, function (t)
+          return t:update(resolved.timestamp, byte)
+        end)
       end
     end
   end
@@ -465,9 +469,11 @@ local function difference_impl(x, y)
         local index = x_v.index * n + y_v.index
         if index ~= 0 then
           local z_v = z_states[index]
-          transition_map:get({ index = index, action = action }, function ()
+          transition_map:insert_or_update({ index = index, action = action }, function ()
             return transition(z_u, z_v, {}, timestamp, action)
-          end):update(timestamp, byte)
+          end, function (t)
+            return t:update(timestamp, byte)
+          end)
         end
       end
     end
