@@ -17,10 +17,11 @@
 
 local metatable = { __name = "dromozoa.regexp.pattern" }
 
-local module = setmetatable({ [0] = "[", {} }, metatable)
+local any = {}
 for byte = 0x00, 0xFF do
-  module[1][byte] = true
+  any[byte] = true
 end
+local module = setmetatable({ [0] = "[", any }, metatable)
 
 local timestamp = 0
 
