@@ -258,12 +258,12 @@ local function create_initial_partitions(u, accept_partition_map, nonaccept_part
 
   local partition = nonaccept_partition
   if u.accept_action ~= nil then
-    partition = accept_partition_map:get(u.accept_action)
-    if partition == nil then
-      partition = list()
+    partition = accept_partition_map:get(u.accept_action, function ()
+      local partition = list()
       partition.timestamp = u.timestamp
-      accept_partition_map:insert(u.accept_action, partition)
-    elseif partition.timestamp > u.timestamp then
+      return partition
+    end)
+    if partition.timestamp > u.timestamp then
       partition.timestamp = u.timestamp
     end
   end
