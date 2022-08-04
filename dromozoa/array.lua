@@ -21,9 +21,9 @@ local metatable = { __index = class, __name = "dromozoa.array" }
 local table_unpack = table.unpack or unpack
 
 local function construct()
-  local self = {}
+  local self = setmetatable({}, metatable)
   private[self] = {}
-  return setmetatable(self, metatable)
+  return self
 end
 
 function class:empty()
