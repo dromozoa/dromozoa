@@ -17,6 +17,8 @@
 
 local compare = require "dromozoa.compare"
 
+local verbose = os.getenv "VERBOSE" == "1"
+
 local function check_lt(a, b)
   assert(compare(a, b) < 0)
   assert(compare(b, a) > 0)
@@ -78,7 +80,9 @@ check_lt({aaa=1}, {abc=1})
 local status, message = pcall(function ()
   compare({[{}]=1,[{}]=2}, {[{}]=1,[{}]=2})
 end)
--- print(message)
+if verbose then
+  print(message)
+end
 assert(not status)
 
 local f = function () end
@@ -88,7 +92,9 @@ assert(compare(f, f) == 0)
 local status, message = pcall(function ()
   compare(f, g)
 end)
--- print(message)
+if verbose then
+  print(message)
+end
 assert(not status)
 
 local u = {}
@@ -98,5 +104,7 @@ v[1] = u
 local status, message = pcall(function ()
   compare(u, v)
 end)
--- print(message)
+if verbose then
+  print(message)
+end
 assert(not status)

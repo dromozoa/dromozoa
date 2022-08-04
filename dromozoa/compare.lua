@@ -58,7 +58,7 @@ local function stable_pairs(t, compare, n)
     local c = compare(a, b, n)
     if c == 0 then
       -- 同値なオブジェクトの重複はエラーとする。
-      error "table index is not unique"
+      error "index is not unique"
     end
     return c < 0
   end)
@@ -68,7 +68,7 @@ local function stable_pairs(t, compare, n)
     i = i + 1
     local k = K[i]
     return k, t[k]
-  end, t, nil
+  end, t
 end
 
 local function compare(a, b, n)
