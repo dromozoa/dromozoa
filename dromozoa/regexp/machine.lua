@@ -17,7 +17,6 @@
 
 local compare = require "dromozoa.compare"
 local list = require "dromozoa.list"
-local tree_map = require "dromozoa.tree_map"
 local tree_map2 = require "dromozoa.tree_map2"
 
 ---------------------------------------------------------------------------
