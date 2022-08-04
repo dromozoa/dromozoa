@@ -39,15 +39,19 @@ check_lt(nil, true)
 check_lt(nil, 1)
 check_lt(nil, "1")
 check_lt(nil, {1})
+
 check_eq(true, true)
 check_lt(true, 1)
 check_lt(true, "1")
 check_lt(true, {1})
-check_eq(1, 1)
-check_lt(1, "1")
-check_lt(1, {1})
+
 check_eq("1", "1")
+check_lt("1", 1)
 check_lt("1", {1})
+
+check_eq(1, 1)
+check_lt(1, {1})
+
 check_eq({1}, {1})
 
 check_eq(false, false)
@@ -58,15 +62,15 @@ local zero = 0.0
 local pinf = math.huge
 local nan = pinf / pinf
 
+check_eq("", "")
+check_lt("", "\0")
+check_eq("\0", "\0")
+
 check_lt(minf, zero)
 check_lt(zero, pinf)
 check_lt(pinf, nan)
 check_eq(nan,  nan)
-check_lt(nan,  "")
-
-check_eq("", "")
-check_lt("", "\0")
-check_eq("\0", "\0")
+check_lt(nan,  {})
 
 check_eq({}, {})
 check_lt({}, {17})

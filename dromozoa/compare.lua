@@ -16,15 +16,14 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local typemap = {
-  ["nil"]      = 0; -- LUA_TNIL
-  ["boolean"]  = 1; -- LUA_TBOOLEAN
-                    -- LUA_TLIGHTUSERDATA
-  ["number"]   = 3; -- LUA_TNUMBER
-  ["string"]   = 4; -- LUA_TSTRING
-  ["table"]    = 5; -- LUA_TTABLE
-  ["function"] = 6; -- LUA_TFUNCTION
-  ["userdata"] = 7; -- LUA_TUSERDATA
-  ["thread"]   = 8; -- LUA_TTHREAD
+  ["nil"]      = 0;
+  ["boolean"]  = 1;
+  ["string"]   = 3;
+  ["number"]   = 4;
+  ["table"]    = 5;
+  ["function"] = 6;
+  ["userdata"] = 7;
+  ["thread"]   = 8;
 }
 
 local function stable_pairs(t, compare, n)
@@ -86,6 +85,8 @@ local function compare(a, b, n)
   if t == 1 then
     return b and -1 or 1
   elseif t == 3 then
+    return a < b and -1 or 1
+  elseif t == 4 then
     -- NaNは数値と文字列のあいだに位置するものとして扱う。NaN同士は同値とみなす。
     local a_is_nan = a ~= a
     local b_is_nan = b ~= b
@@ -94,8 +95,6 @@ local function compare(a, b, n)
     elseif a_is_nan then
       return 1
     end
-    return a < b and -1 or 1
-  elseif t == 4 then
     return a < b and -1 or 1
   end
 
