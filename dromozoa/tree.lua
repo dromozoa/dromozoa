@@ -191,7 +191,7 @@ local function find(self, x)
     elseif c > 0 then
       t = R[t]
     else
-      return K[t], V[t]
+      return K[t], V[t], t
     end
   end
 end
