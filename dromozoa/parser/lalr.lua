@@ -106,7 +106,6 @@ local function first_symbol(grammar, symbol)
     local epsilon = false
     for _, body in each_production(grammar.productions, symbol) do
       if not body:empty() then
-      -- if body:get(1) ~= nil then
         local first = first_symbols(grammar, body)
         for _, symbol in first:ipairs() do
           result:insert(symbol)
@@ -268,8 +267,8 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
         for _, item in items:ipairs() do
           local symbol = productions:get(item.index).body:get(item.dot)
           if symbol ~= nil then
-            local to_i = transitions[from_i]:get(symbol)
-            local to_j = map_of_kernel_items:get(to_i):get(item.index)[item.dot + 1]
+            local to_i = transitions[from_i]:find(symbol)
+            local to_j = map_of_kernel_items:get(to_i):find(item.index)[item.dot + 1]
             if item.la == marker_lookahead then
               propagations:append { from_i = from_i, from_j = from_j, to_i = to_i, to_j = to_j }
             else

@@ -227,7 +227,7 @@ local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
   end
 
   for v_closure, v in state_map:pairs() do
-    if color:get(v_closure) == nil then
+    if color:find(v_closure) == nil then
       nfa_to_dfa_impl(v_closure, v, epsilon_closures, states, color)
     end
   end

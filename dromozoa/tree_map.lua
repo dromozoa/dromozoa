@@ -75,7 +75,7 @@ function class:insert_or_update(k, insert_fn, update_fn)
   return self, v, inserted
 end
 
-function class:get(k)
+function class:find(k)
   return select(2, private[self]:find(k))
 end
 

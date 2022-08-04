@@ -223,7 +223,7 @@ function metatable:__call(token_names, that)
       end
       local production = { head = u.k, head_index = i, body = body, semantic_action = v.semantic_action }
       if v.precedence ~= nil then
-        local precedence = precedence_table:get(v.precedence)
+        local precedence = precedence_table:find(v.precedence)
         if precedence == nil then
           error("precedence " .. v.precedence .. " not defined")
         end
