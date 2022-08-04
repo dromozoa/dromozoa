@@ -42,7 +42,7 @@ local transitions = data.transitions
 for i, items in set_of_items:ipairs() do
   buffer:append(("="):rep(75), "\nI_", i, "\n")
   for _, item in items:ipairs() do
-    local production = g.productions[item.index]
+    local production = g.productions:get(item.index)
     buffer:append("  ", g.symbol_names:get(production.head), " ->")
     for j, symbol in production.body:ipairs() do
       if j == item.dot then

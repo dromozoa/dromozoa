@@ -17,25 +17,6 @@
 
 local tree = require "dromozoa.tree"
 
----------------------------------------------------------------------------
--- eachはO(1)が保証されるけれど、途中でコンテナを変更すると、危険かもしれない
--- pairsはO(log n)が保証されていて、途中でコンテナを変更しても安全
--- ipairsはどうしよう？
---
--- TODO 最終的には、tree_set/tree_mapと名乗る
--- ipairs, pairsは、定義通りの意味をとるべき。
--- index orderとtree orderのふたつのeachを用意する
--- そのほかに、編集安全なeachも用意する
--- indexじゃなくて、handle/pointerと呼ぶ案
--- index/handle/pointerは、deleteが行われるまで使うことができる
--- indexのK,Vはtreeのものをつかえる
---
--- pairsは、handle順を返す
--- eachは、tree順を返す、レンジ指定子もつけられる
---
---
----------------------------------------------------------------------------
-
 local private = setmetatable({}, { __mode = "k" })
 local class = {}
 local metatable = { __name = "dromozoa.tree_set" }
@@ -97,10 +78,10 @@ function metatable:__index(k)
     return private[self].compare
   end
 
-  local v = private[self].K[k]
-  if v ~= nil then
-    return v
-  end
+  -- local v = private[self].K[k]
+  -- if v ~= nil then
+  --   return v
+  -- end
 
   error "not supported"
 end

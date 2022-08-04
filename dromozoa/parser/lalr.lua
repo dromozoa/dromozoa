@@ -152,7 +152,7 @@ local function lr0_closure(grammar, items)
   local productions = grammar.productions
 
   for _, item in items:ipairs() do
-    local symbol = productions[item.index].body:get(item.dot)
+    local symbol = productions:get(item.index).body:get(item.dot)
     if symbol ~= nil and symbol > max_terminal_symbol then
       for i in each_production(productions, symbol) do
         items:insert { index = i, dot = 1 }
@@ -168,7 +168,7 @@ local function lr0_goto(grammar, items)
   local map_of_to_items = tree_map()
 
   for _, item in items:ipairs() do
-    local symbol = productions[item.index].body:get(item.dot)
+    local symbol = productions:get(item.index).body:get(item.dot)
     if symbol ~= nil then
       map_of_to_items:get(symbol, tree_set):insert { index = item.index, dot = item.dot + 1 }
     end
@@ -205,7 +205,7 @@ local function lr1_closure(grammar, items)
   local productions = grammar.productions
 
   for _, item in items:ipairs() do
-    local body = productions[item.index].body
+    local body = productions:get(item.index).body
     local symbol = body:get(item.dot)
     if symbol ~= nil and symbol > max_terminal_symbol then
       local first = first_symbols(grammar, body:slice(item.dot + 1):append(item.la))
@@ -252,19 +252,19 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
 
   for from_i, from_items in set_of_items:ipairs() do
     for from_j, from_item in from_items:ipairs() do
-      if productions[from_item.index].head == max_terminal_symbol + 1 or from_item.dot > 1 then
+      if productions:get(from_item.index).head == max_terminal_symbol + 1 or from_item.dot > 1 then
         local items = tree_set()
         items:insert { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
         lr1_closure(grammar, items)
         for _, item in items:ipairs() do
-          local symbol = productions[item.index].body:get(item.dot)
+          local symbol = productions:get(item.index).body:get(item.dot)
           if symbol ~= nil then
             local to_i = transitions[from_i]:get(symbol)
             local to_j = map_of_kernel_items:get(to_i):get(item.index)[item.dot + 1]
             if item.la == marker_lookahead then
               propagations:append { from_i = from_i, from_j = from_j, to_i = to_i, to_j = to_j }
             else
-              set_of_kernel_items:get(to_i)[to_j].la:insert(item.la)
+              set_of_kernel_items:get(to_i):get(to_j).la:insert(item.la)
             end
           end
         end
@@ -275,8 +275,8 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
   repeat
     local done = true
     for _, propagation in propagations:ipairs() do
-      local from_la = set_of_kernel_items:get(propagation.from_i)[propagation.from_j].la
-      local to_la = set_of_kernel_items:get(propagation.to_i)[propagation.to_j].la
+      local from_la = set_of_kernel_items:get(propagation.from_i):get(propagation.from_j).la
+      local to_la = set_of_kernel_items:get(propagation.to_i):get(propagation.to_j).la
       for _, la in from_la:ipairs() do
         if select(3, to_la:insert(la)) then
           done = false
@@ -309,7 +309,7 @@ local function symbol_precedence(grammar, symbol)
 end
 
 local function production_precedence(grammar, index)
-  local production = grammar.productions[index]
+  local production = grammar.productions:get(index)
 
   local precedence = production.precedence
   if precedence ~= nil then
@@ -372,7 +372,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
     end
 
     for _, item in items:ipairs() do
-      if productions[item.index].body:get(item.dot) == nil then
+      if productions:get(item.index).body:get(item.dot) == nil then
         local action = data[item.la]
         if action == nil then
           data[item.la] = item.index + max_state
