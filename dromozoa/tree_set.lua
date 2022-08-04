@@ -36,12 +36,12 @@ end
 
 function class:insert(k)
   if k == nil then
-    error "table index is nil"
+    error "tree_set key is nil"
   elseif type(k) == "number" and k ~= k then
-    error "table index is NaN"
+    error "tree_set key is NaN"
   end
-  local ok, _, i = private[self]:insert(k)
-  return self, i, ok
+  local inserted, i = private[self]:insert2(k)
+  return self, i, inserted
 end
 
 function class:ipairs()
@@ -58,7 +58,7 @@ end
 
 function class:tree_each(lower_bound, upper_bound)
   return coroutine.wrap(function (self)
-    for k, v, i in self:each(lower_bound, upper_bound) do
+    for k, _, i in self:each(lower_bound, upper_bound) do
       coroutine.yield(i, k)
     end
   end), private[self]
