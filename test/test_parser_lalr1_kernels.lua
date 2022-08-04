@@ -22,15 +22,14 @@ local lalr = require "dromozoa.parser.lalr"
 local _ = grammar.body
 
 -- P.273 Example 4.64
-local g = grammar({ "=", "*", "id" }, {
+local g, actions, conflictions, data = lalr(grammar({ "=", "*", "id" }, {
   S = _"L" "=" "R"
     + _"R";
   L = _"*" "R"
     + _"id";
   R = _"L";
-})
+}))
 
-local actions, conflictions, data = lalr(g)
 local buffer = list()
 for _, message in ipairs(conflictions) do
   buffer:append(message, "\n")

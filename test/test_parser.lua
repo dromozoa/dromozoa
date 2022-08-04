@@ -23,7 +23,7 @@ local lalr = require "dromozoa.parser.lalr"
 local _ = grammar.body
 local left = grammar.left
 
-local g = grammar({ "id", "+", "*", "(", ")" }, {
+local g, actions, conflictions = lalr(grammar({ "id", "+", "*", "(", ")" }, {
   left "+";
   left "*";
 
@@ -31,9 +31,8 @@ local g = grammar({ "id", "+", "*", "(", ")" }, {
     + _"E" "*" "E"
     + _"(" "E" ")"
     + _"id";
-})
+}))
 
-local actions, conflictions = lalr(g)
 local buffer = list()
 for _, message in ipairs(conflictions) do
   buffer:append(message, "\n")
