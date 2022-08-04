@@ -253,6 +253,12 @@ local metatable = { __index = class, __name = "dromozoa.tree" }
 -- TODO 戻り値の順序を検討する
 -- TODO eachの戻り値も
 
+function class:insert2(k)
+  local root, inserted, t = insert(self, k, self.root, false, 0)
+  self.root = root
+  return inserted, t
+end
+
 function class:insert(k, v, fn)
   local root, ok, t = insert(self, k, self.root, false, 0)
   self.root = root

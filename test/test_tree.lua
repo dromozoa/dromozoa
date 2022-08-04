@@ -19,6 +19,7 @@ local tree = require "dromozoa.tree"
 -- local tree_map = require "dromozoa.tree_map"
 
 ---------------------------------------------------------------------------
+--[====[
 
 local t = tree()
 for i = 1, 256 do
@@ -132,7 +133,6 @@ assert(i == 256)
 assert(t.size == 0)
 
 ---------------------------------------------------------------------------
---[====[
 
 local nan = math.huge / math.huge
 

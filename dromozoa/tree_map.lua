@@ -15,105 +15,103 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local compare = require "dromozoa.compare"
 local tree = require "dromozoa.tree"
 
 local private = setmetatable({}, { __mode = "k" })
 local class = {}
-local metatable = {
-  __name = "dromozoa.tree_map";
-  ["dromozoa.stable_pairs"] = function (self) return private[self]:each() end;
-}
+local metatable = { __name = "dromozoa.tree_map" }
 
--- insertedかどうかを調べる必要はある？
--- TODO ゆくゆくは削除もできるようにする
--- TODO 上書きするのはよいのか？
 function class:insert(k, v)
-  assert(k ~= nil)
-  assert(v ~= nil)
-  local ok, _, i = private[self]:insert(k, v)
-  return self, i, ok
+  if k == nil then
+    error "index is nil"
+  elseif type(k) == "number" and k ~= k then
+    error "index is NaN"
+  elseif v == nil then
+    error "value is nil"
+  end
+  local priv = private[self]
+  local V = priv.V
+  local inserted, i = priv:insert2(k)
+  if inserted then
+    V[i] = v
+  end
+  return self, V[i], inserted
 end
 
--- insert(k, v)
--- assign(k, v)
-
--- TODO SQL的なインターフェース
--- insert ... where key = :key
--- update ... where key = :key
---
--- insert(key, fn)
--- insert_or_update(key, fn, fn)
--- update(key, fn)
--- 成功したら、valueを返す
---   assert(insert(key, fn))
---
---
---
-
--- put
--- set / assign
--- get(key, fn)
-
-class.insert_or_assign = class.insert
-class.assign = class.insert
-
--- function class:insert_or_assign(k, v)
---   if k == nil then
---     error "table index is nil"
---   elseif type(k) == "number" and k ~= k then
---     error "table index is NaN"
---   elseif v == nil then
---     -- 削除はできない
---     error "table value is nil"
---   end
---   local ok, _, i = private[self]:insert(k, v)
---   return self, i, ok
--- end
-
--- TODO getはfindにするべき
-function class:get(k, fn)
-  if fn == nil then
-    local _, v = private[self]:find(k)
-    return v
-  else
-    local _, v = private[self]:insert(k, nil, fn)
-    return v
+function class:assign(k, v)
+  if k == nil then
+    error "index is nil"
+  elseif type(k) == "number" and k ~= k then
+    error "index is NaN"
+  elseif v == nil then
+    error "value is nil"
   end
+  local priv = private[self]
+  local V = priv.V
+  local inserted, i = priv:insert2(k)
+  V[i] = v
+  return self, v, inserted
+end
+
+function class:insert_or_update(k, insert_fn, update_fn)
+  if k == nil then
+    error "index is nil"
+  elseif type(k) == "number" and k ~= k then
+    error "index is NaN"
+  end
+  local priv = private[self]
+  local V = priv.V
+  local inserted, i = priv:insert2(k)
+  local v = V[i]
+  if inserted then
+    v = insert_fn()
+  elseif update_fn ~= nil then
+    v = update_fn(v)
+  end
+  if v == nil then
+    error "value is nil"
+  end
+  V[i] = v
+  return self, v, inserted
+end
+
+function class:get(k)
+  local _, v = private[self]:find(k)
+  return v
 end
 
 function class:empty()
   return private[self].size == 0
 end
 
--- i,k,v
--- function class:ipairs
-
 function class:pairs()
-  local i = 0
-  return function (self)
-    i = i + 1
-    local k = self.K[i]
-    if k == nil then
-      return
-    else
-      return self.K[i], self.V[i]
+  return coroutine.wrap(function (self)
+    for i, k in ipairs(self.K) do
+      coroutine.yield(k, self.V[i])
     end
-  end, private[self], nil
+  end), private[self]
 end
 
--- TODO tree_eachを実装する
+function class:tree_each(lower_bound, upper_bound)
+  return coroutine.wrap(function (self)
+    for k, v in self:each(lower_bound, upper_bound) do
+      coroutine.yield(k, v)
+    end
+  end), private[self]
+end
 
 function metatable:__len()
   error "not supported"
 end
 
 function metatable:__index(k)
+  if k == "tree_compare" then
+    return private[self].compare
+  end
   local v = class[k]
   if v ~= nil then
     return v
   end
-  -- { K[i], V[i] }を返す？
   error "not supported"
 end
 
@@ -125,12 +123,14 @@ function metatable:__pairs()
   error "not supported"
 end
 
-metatable["dromozoa.stable_pairs"] = function (self)
-  return private[self]:each()
+function metatable:__tostring()
+  error "not supported"
 end
 
-return function (compare)
-  local self = setmetatable({}, metatable)
-  private[self] = tree(compare)
-  return self
-end
+return setmetatable(class, {
+  __call = function (_, compare)
+    local self = setmetatable({}, metatable)
+    private[self] = tree(compare)
+    return self
+  end;
+})

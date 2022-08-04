@@ -170,7 +170,7 @@ end
 local function epsilon_closure_impl(u, closure)
   for _, t in u.transitions:ipairs() do
     if t.set == nil then
-      closure:insert(t.v.index, t.v)
+      closure:assign(t.v.index, t.v)
       epsilon_closure_impl(t.v, closure)
     end
   end
@@ -179,8 +179,7 @@ end
 local function epsilon_closure(u, epsilon_closures)
   local closure = epsilon_closures[u]
   if closure == nil then
-    closure = tree_map()
-    closure:insert(u.index, u)
+    closure = tree_map():assign(u.index, u)
     epsilon_closure_impl(u, closure)
     epsilon_closures[u] = closure
   end
@@ -188,17 +187,17 @@ local function epsilon_closure(u, epsilon_closures)
 end
 
 local function closure_to_state(closure, states)
-  return states:get(closure, function ()
+  return select(2, states:insert_or_update(closure, function ()
     local u = state()
     for _, v in closure:pairs() do
       u:update(v.timestamp, v.accept_action)
     end
     return u
-  end)
+  end))
 end
 
 local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
-  color:insert(u_closure, 1)
+  color:assign(u_closure, 1)
 
   local state_map = tree_map()
   local transition_map = tree_map()
@@ -210,18 +209,20 @@ local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
       local to = u:simulate(byte, resolved)
       if to ~= nil then
         for k, v in epsilon_closure(to, epsilon_closures):pairs() do
-          v_closure:insert(k, v)
+          v_closure:assign(k, v)
         end
       end
     end
 
     if not v_closure:empty() then
       local v = closure_to_state(v_closure, states)
-      state_map:insert(v_closure, v)
+      state_map:assign(v_closure, v)
 
-      transition_map:get({ closure = v_closure, action = resolved.action }, function ()
+      transition_map:insert_or_update({ closure = v_closure, action = resolved.action }, function ()
         return transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
-      end):update(resolved.timestamp, byte)
+      end, function (t)
+        return t:update(resolved.timestamp, byte)
+      end)
     end
   end
 
@@ -251,7 +252,7 @@ local function create_initial_partitions(u, accept_partition_map, nonaccept_part
 
   local partition = nonaccept_partition
   if u.accept_action ~= nil then
-    partition = accept_partition_map:get(u.accept_action, array)
+    partition = select(2, accept_partition_map:insert_or_update(u.accept_action, array))
   end
   partition:append(u)
   partition_map[u] = partition
@@ -369,9 +370,11 @@ local function minimize(u)
         end
 
         local v = states[p]
-        transition_map:get({ index = partition_indices[p], action = resolved.action }, function ()
-          return transition(u, v, {}, resolved.timestamp, resolved.action)
-        end):update(resolved.timestamp, byte)
+        transition_map:insert_or_update({ index = partition_indices[p], action = resolved.action }, function ()
+          return transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
+        end, function (t)
+          return t:update(resolved.timestamp, byte)
+        end)
       end
     end
   end
@@ -465,9 +468,11 @@ local function difference_impl(x, y)
         local index = x_v.index * n + y_v.index
         if index ~= 0 then
           local z_v = z_states[index]
-          transition_map:get({ index = index, action = action }, function ()
+          transition_map:insert_or_update({ index = index, action = action }, function ()
             return transition(z_u, z_v, {}, timestamp, action)
-          end):update(timestamp, byte)
+          end, function (t)
+            return t:update(timestamp, byte)
+          end)
         end
       end
     end

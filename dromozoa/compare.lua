@@ -30,11 +30,12 @@ local typemap = {
 local function stable_pairs(t, compare, n)
   local metatable = getmetatable(t)
   if metatable ~= nil then
-    local metamethod = metatable["dromozoa.stable_pairs"]
-    if metamethod ~= nil then
-      return metamethod(t)
-    end
-    if metatable.__name == "dromozoa.array" then
+    local metaname = metatable.__name
+    if metaname == "dromozoa.array" then
+      return t:ipairs()
+    elseif metaname == "dromozoa.tree_map" then
+      return t:pairs()
+    elseif metaname == "dromozoa.tree_set" then
       return t:ipairs()
     end
   end

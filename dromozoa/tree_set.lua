@@ -17,55 +17,44 @@
 
 local tree = require "dromozoa.tree"
 
+local private = setmetatable({}, { __mode = "k" })
 local class = {}
 local metatable = { __name = "dromozoa.tree_set" }
-local private = setmetatable({}, { __mode = "k" })
+local table_unpack = table.unpack or unpack
 
----------------------------------------------------------------------------
--- eachはO(1)が保証されるけれど、途中でコンテナを変更すると、危険かもしれない
--- pairsはO(log n)が保証されていて、途中でコンテナを変更しても安全
--- ipairsはどうしよう？
---
--- TODO 最終的には、tree_set/tree_mapと名乗る
--- ipairs, pairsは、定義通りの意味をとるべき。
--- index orderとtree orderのふたつのeachを用意する
--- そのほかに、編集安全なeachも用意する
--- indexじゃなくて、handle/pointerと呼ぶ案
--- index/handle/pointerは、deleteが行われるまで使うことができる
--- indexのK,Vはtreeのものをつかえる
---
--- pairsは、handle順を返す
--- eachは、tree順を返す、レンジ指定子もつけられる
---
---
----------------------------------------------------------------------------
+function class:empty()
+  return private[self].size == 0
+end
 
-local private = setmetatable({}, { __mode = "k" })
-local class = {}
-local metatable = {
-  __name = "dromozoa.tree_set";
-  ["dromozoa.stable_pairs"] = function (self) return private[self]:each() end;
-}
+function class:size()
+  return private[self].size
+end
+
+function class:get(i)
+  return private[self].K[i]
+end
 
 function class:insert(k)
   if k == nil then
-    error "table index is nil"
+    error "index is nil"
   elseif type(k) == "number" and k ~= k then
-    error "table index is NaN"
+    error "index is NaN"
   end
-  local ok, _, i = private[self]:insert(k)
-  return self, i, ok
-end
-
-function class:concat(separator)
-  return table.concat(private[self].K, separator)
+  local inserted, i = private[self]:insert2(k)
+  return self, i, inserted
 end
 
 function class:ipairs()
   return ipairs(private[self].K)
 end
 
--- TODO tree_compare, tree_eachからtree_をはずす？
+function class:concat(...)
+  return table.concat(private[self].K, ...)
+end
+
+function class:unpack(...)
+  return table_unpack(private[self].K, ...)
+end
 
 function class:tree_each(lower_bound, upper_bound)
   return coroutine.wrap(function (self)
@@ -76,20 +65,14 @@ function class:tree_each(lower_bound, upper_bound)
 end
 
 function metatable:__len()
-  -- return #private[self].K
   error "not supported"
 end
 
--- TODO 順序を再考する
 function metatable:__index(k)
-  local v = class[k]
-  if v ~= nil then
-    return v
-  end
   if k == "tree_compare" then
     return private[self].compare
   end
-  local v = private[self].K[k]
+  local v = class[k]
   if v ~= nil then
     return v
   end
@@ -104,8 +87,14 @@ function metatable:__pairs()
   error "not supported"
 end
 
-return function (compare)
-  local self = setmetatable({}, metatable)
-  private[self] = tree(compare)
-  return self
+function metatable:__tostring()
+  error "not supported"
 end
+
+return setmetatable(class, {
+  __call = function (_, compare)
+    local self = setmetatable({}, metatable)
+    private[self] = tree(compare)
+    return self
+  end;
+})
