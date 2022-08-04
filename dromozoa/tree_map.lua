@@ -58,9 +58,6 @@ function class:empty()
   return private[self].size == 0
 end
 
--- i,k,v
--- function class:ipairs
-
 function class:pairs()
   local i = 0
   return function (self)
