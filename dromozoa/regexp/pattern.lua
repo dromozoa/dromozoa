@@ -17,11 +17,12 @@
 
 local metatable = { __name = "dromozoa.regexp.pattern" }
 
+local module = setmetatable({}, metatable)
+
 local any = {}
 for byte = 0x00, 0xFF do
   any[byte] = true
 end
-local module = setmetatable({ [0] = "[", any }, metatable)
 
 local timestamp = 0
 
@@ -38,7 +39,7 @@ local function pattern(that)
     end
     return rawset(self, "literal", that)
   elseif that == module then
-    return construct("[", module[1])
+    return construct("[", any)
   else
     assert(getmetatable(that) == metatable)
     assert(that.timestamp ~= nil)

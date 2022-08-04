@@ -87,6 +87,8 @@ end
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.grammar.body" }
 
+module.body = setmetatable({}, metatable)
+
 local function body(that)
   if that == module.body then
     return construct(metatable, "body")
@@ -127,8 +129,6 @@ function metatable:__call(that)
   self[#self + 1] = that
   return self
 end
-
-module.body = setmetatable({ [0] = "body" }, metatable)
 
 ---------------------------------------------------------------------------
 
