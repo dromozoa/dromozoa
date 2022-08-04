@@ -119,6 +119,7 @@ return function (that)
   end
   data:sort(function (a, b) return a.timestamp < b.timestamp end)
 
+  local context = {}
   local static_out = array()
   local shared_set = tree_set()
   local action_set = tree_set()
@@ -127,18 +128,14 @@ return function (that)
       static_out:append("main=", i, ";\n")
     end
     if v.name ~= nil then
-      -- TODO テンプレートマクロで置き換える
-      custom_out:append("local ", v.name, "=", i, "\n")
+      context[v.name] = i
     end
     generate(i, v.machine.start_state, v.machine.guard_action, static_out, shared_set, action_set)
   end
 
-  local action_out = array()
   local action_threads = array()
+  local action_out = array()
   for _, v in action_set:ipairs() do
-    -- TODO テンプレートマクロで文字列を数値化する
-    action_out:append("function()", v, "\nend;\n")
-
     -- コルーチンの必要性をおおまかに検査する。
     -- 1. 単語境界を調べやすくするために番兵を置く。
     local s = " " .. v .. " "
@@ -151,6 +148,16 @@ return function (that)
     else
       action_threads:append(1)
     end
+
+    local v = v:gsub("$([%w%_]*)", function (variable)
+      local value = context[variable]
+      if value == nil then
+        error("variable " .. variable .. " not defined")
+      end
+      return value
+    end)
+
+    action_out:append("function()", v, "\nend;\n")
   end
   static_out:append("action_threads=_[", select(2, shared_set:insert(action_threads)), "];\n")
 
