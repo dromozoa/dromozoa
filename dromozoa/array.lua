@@ -48,7 +48,7 @@ function class:append(...)
   for i = 1, select("#", ...) do
     local v = select(i, ...)
     if v == nil then
-      error "array value is nil"
+      error "value is nil"
     end
     priv[n + i] = v
   end
@@ -56,9 +56,12 @@ function class:append(...)
 end
 
 function class:set(i, v)
-  -- TODO iはチェックする？
-  if v == nil then
-    error "array value is nil"
+  if i == nil then
+    error "index is nil"
+  elseif type(i) == "number" and i ~= i then
+    error "index is NaN"
+  elseif v == nil then
+    error "value is nil"
   end
   local priv = private[self]
   if priv[i] == nil then

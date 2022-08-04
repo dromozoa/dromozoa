@@ -36,9 +36,9 @@ end
 
 function class:insert(k)
   if k == nil then
-    error "tree_set key is nil"
+    error "index is nil"
   elseif type(k) == "number" and k ~= k then
-    error "tree_set key is NaN"
+    error "index is NaN"
   end
   local inserted, i = private[self]:insert2(k)
   return self, i, inserted
