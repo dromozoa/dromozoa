@@ -15,15 +15,11 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local compare = require "dromozoa.compare"
 local tree = require "dromozoa.tree"
 
 local private = setmetatable({}, { __mode = "k" })
 local class = {}
-local metatable = {
-  __name = "dromozoa.tree_map";
-  ["dromozoa.stable_pairs"] = function (self) return private[self]:each() end;
-}
+local metatable = { __name = "dromozoa.tree_map" }
 
 function class:insert(k, v)
   assert(k ~= nil)
@@ -75,7 +71,7 @@ end
 
 function class:tree_each(lower_bound, upper_bound)
   return coroutine.wrap(function (self)
-    for k, v, i in self:each(lower_bound, upper_bound) do
+    for k, v in self:each(lower_bound, upper_bound) do
       coroutine.yield(k, v)
     end
   end), private[self]
@@ -106,10 +102,6 @@ end
 
 function metatable:__tostring()
   error "not supported"
-end
-
-metatable["dromozoa.stable_pairs"] = function (self)
-  return private[self]:each()
 end
 
 return setmetatable(class, {
