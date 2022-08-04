@@ -43,17 +43,17 @@ for i, items in set_of_items:ipairs() do
     -- カーネル項だけを出力する
     if item.index == 1 or item.dot > 1 then
       local production = g.productions[item.index]
-      buffer:append("  ", g.symbol_names[production.head], " ->")
+      buffer:append("  ", g.symbol_names:get(production.head), " ->")
       for j, symbol in production.body:ipairs() do
         if j == item.dot then
           buffer:append " ."
         end
-        buffer:append(" ", g.symbol_names[symbol])
+        buffer:append(" ", g.symbol_names:get(symbol))
       end
       if production.body:get(item.dot) == nil then
         buffer:append " ."
       end
-      buffer:append(", ", g.symbol_names[item.la], "\n")
+      buffer:append(", ", g.symbol_names:get(item.la), "\n")
     end
   end
 end

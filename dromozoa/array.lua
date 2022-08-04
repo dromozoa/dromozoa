@@ -86,7 +86,7 @@ end
 function metatable:__index(k)
   local v
   if type(k) == "number" then
-    v = private[self][k]
+    -- v = private[self][k]
   else
     v = class[k]
   end

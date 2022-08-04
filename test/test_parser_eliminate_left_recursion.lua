@@ -38,9 +38,9 @@ end
 local g = data.grammar_without_left_recursion
 
 for _, production in g.productions:ipairs() do
-  buffer:append(g.symbol_names[production.head], " ->")
+  buffer:append(g.symbol_names:get(production.head), " ->")
   for _, symbol in production.body:ipairs() do
-    buffer:append(" ", g.symbol_names[symbol])
+    buffer:append(" ", g.symbol_names:get(symbol))
   end
   buffer:append "\n"
 end

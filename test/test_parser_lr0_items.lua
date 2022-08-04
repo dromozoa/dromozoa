@@ -43,12 +43,12 @@ for i, items in set_of_items:ipairs() do
   buffer:append(("="):rep(75), "\nI_", i, "\n")
   for _, item in items:ipairs() do
     local production = g.productions[item.index]
-    buffer:append("  ", g.symbol_names[production.head], " ->")
+    buffer:append("  ", g.symbol_names:get(production.head), " ->")
     for j, symbol in production.body:ipairs() do
       if j == item.dot then
         buffer:append " ."
       end
-      buffer:append(" ", g.symbol_names[symbol])
+      buffer:append(" ", g.symbol_names:get(symbol))
     end
     if production.body:get(item.dot) == nil then
       buffer:append " ."
@@ -59,7 +59,7 @@ for i, items in set_of_items:ipairs() do
     buffer:append "\n"
   end
   for symbol, j in transitions[i]:pairs() do
-    buffer:append("  I_", i, " -> I_", j, " ", g.symbol_names[symbol], "\n")
+    buffer:append("  I_", i, " -> I_", j, " ", g.symbol_names:get(symbol), "\n")
   end
 end
 buffer:append(("="):rep(75), "\n")

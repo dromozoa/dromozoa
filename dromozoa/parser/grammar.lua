@@ -175,7 +175,7 @@ function metatable:__call(token_names, that)
   end
   data:sort(function (a, b) return a.timestamp < b.timestamp end)
 
-  local start_head = symbol_names:append(data[1].k .. "'"):size()
+  local start_head = symbol_names:append(data:get(1).k .. "'"):size()
   local start_body = start_head + 1
 
   for _, u in data:ipairs() do

@@ -44,7 +44,7 @@ local max_terminal_symbol = g.max_terminal_symbol
 local symbol_names = g.symbol_names
 local symbol_table = {}
 for i = max_terminal_symbol + 2, symbol_names:size() do
-  symbol_table[symbol_names[i]] = i
+  symbol_table[symbol_names:get(i)] = i
 end
 local first_table = g.first_table
 
@@ -60,7 +60,7 @@ for _, name in ipairs { "F", "T", "E", "E'", "T'" } do
     if k == 0 then
       buffer:append "e"
     else
-      buffer:append(g.symbol_names[k])
+      buffer:append(g.symbol_names:get(k))
     end
   end
   buffer:append " }\n"
