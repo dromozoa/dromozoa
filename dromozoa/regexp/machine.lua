@@ -201,7 +201,7 @@ local function closure_to_state(closure, states)
 end
 
 local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
-  color[u_closure] = 1
+  color:insert(u_closure, 1)
 
   local state_map = tree_map()
   local transition_map = tree_map()
@@ -233,12 +233,12 @@ local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
   end
 
   for v_closure, v in state_map():each() do
-    if color[v_closure] == nil then
+    if color:get(v_closure) == nil then
       nfa_to_dfa_impl(v_closure, v, epsilon_closures, states, color)
     end
   end
 
-  color[u_closure] = 2
+  color:assign(u_closure, 2)
 end
 
 local function nfa_to_dfa(u)
@@ -247,7 +247,7 @@ local function nfa_to_dfa(u)
   local states = tree_map()
   local u_closure = epsilon_closure(u, epsilon_closures)
   local u = closure_to_state(u_closure, states)
-  nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, tree_map())
+  nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, tree_map2())
   return u
 end
 

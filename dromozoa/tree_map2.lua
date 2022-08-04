@@ -27,13 +27,16 @@ local metatable = {
 
 -- insertedかどうかを調べる必要はある？
 -- TODO ゆくゆくは削除もできるようにする
-
+-- TODO 上書きするのはよいのか？
 function class:insert(k, v)
   assert(k ~= nil)
   assert(v ~= nil)
   local ok, _, i = private[self]:insert(k, v)
   return self, i, ok
 end
+
+class.insert_or_assign = class.insert
+class.assign = class.insert
 
 -- function class:insert_or_assign(k, v)
 --   if k == nil then
