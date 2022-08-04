@@ -50,13 +50,13 @@ end
 local function construct_table(u, max_state, action_set, transitions, transition_actions, transition_states, color)
   color[u] = 1
   for _, t in u.transitions:ipairs() do
-    local code = t.v.index
+    local v = t.v.index
     if t.action ~= nil then
-      code = max_state + transition_actions:append((select(2, action_set:insert(t.action)))):size()
+      v = max_state + transition_actions:append((select(2, action_set:insert(t.action)))):size()
       transition_states:append(t.v.index)
     end
     for byte in pairs(t.set) do
-      transitions:get(byte + 1):set(u.index, code)
+      transitions:get(byte + 1):set(u.index, v)
     end
     if color[t.v] == nil then
       construct_table(t.v, max_state, action_set, transitions, transition_actions, transition_states, color)
@@ -85,8 +85,8 @@ local function generate(index, u, guard_action, static_out, shared_set, action_s
     "max_accept_state=", accept_actions:size(), ";\n",
     "max_state=", max_state, ";\n",
     "transitions={[0]=")
-  for i = 1, 256 do
-    static_out:append("_[", select(2, shared_set:insert(transitions:get(i))), "],")
+  for _, v in transitions:ipairs() do
+    static_out:append("_[", select(2, shared_set:insert(v)), "],")
   end
   static_out:append(
     "};\n",
