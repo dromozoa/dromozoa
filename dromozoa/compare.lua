@@ -20,10 +20,10 @@ local typemap = {
   ["boolean"]  = 1;
   ["string"]   = 3;
   ["number"]   = 4;
-  ["table"]    = 5;
-  ["function"] = 6;
-  ["userdata"] = 7;
-  ["thread"]   = 8;
+  ["table"]    = 6;
+  ["function"] = 7;
+  ["userdata"] = 8;
+  ["thread"]   = 9;
 }
 
 local function stable_pairs(t, compare, n)
@@ -87,7 +87,7 @@ local function compare(a, b, n)
   elseif t == 3 then
     return a < b and -1 or 1
   elseif t == 4 then
-    -- NaNは数値と文字列のあいだに位置するものとして扱う。NaN同士は同値とみなす。
+    -- NaNは数値とテーブルのあいだに位置するものとして扱う。NaN同士は同値とみなす。
     local a_is_nan = a ~= a
     local b_is_nan = b ~= b
     if b_is_nan then
@@ -111,7 +111,7 @@ local function compare(a, b, n)
     return c
   end
 
-  if t == 5 then
+  if t == 6 then
     n = n + 1
     if n > 2000 then
       error "too much recursion; possible loop detected"
