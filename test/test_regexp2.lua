@@ -31,7 +31,7 @@ local code = compile {
   [[local ra]];
 
   digit = union {
-    _["09"]/[[ra=ra*10+fc-0x30]]*-2 %[[fret()]];
+    _["09"]/[[ra=ra*10+fc-${<0>}]]*-2 %[[fret()]];
   };
 
   comment = guard([[fret()]], {
@@ -50,7 +50,7 @@ local code = compile {
       _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
     }*"+";
 
-    _"--" + _"["/[[append(fg,0x5D)]] + _"="/[[append(fg,fc)]]*"*" + _"["/[[append(fg,0x5D) fcall($comment)]];
+    _"--" + _"["/[[append(fg,${<]>})]] + _"="/[[append(fg,fc)]]*"*" + _"["/[[append(fg,${<]>}) fcall($comment)]];
     _"--" + -_{"\n\r"}*"*";
 
     string = (
