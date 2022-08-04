@@ -142,11 +142,6 @@ return function (that)
     static = { out = array() };
   }
 
-  -- local custom_out = array()
-  -- local action_ctx = { set = tree_set(), variables = {}, threads = array() }
-  -- local shared_set = tree_set()
-  -- local static_out = array()
-
   local data = array()
   for k, v in pairs(that) do
     if type(k) == "string" then
@@ -165,15 +160,15 @@ return function (that)
   data:sort(function (a, b) return a.timestamp < b.timestamp end)
 
   for i, v in data:ipairs() do
+    if v.main then
+      context.static.out:append("main=", i, ";\n")
+    end
     if v.name ~= nil then
       context.action.variables[v.name] = i
     end
   end
 
   for i, v in data:ipairs() do
-    if v.main then
-      context.static.out:append("main=", i, ";\n")
-    end
     generate(i, v.machine.start_state, v.machine.guard_action, context.static.out, context.shared.set, context.action)
   end
   context.static.out:append("action_threads=_[", select(2, context.shared.set:insert(context.action.threads)), "];\n")
