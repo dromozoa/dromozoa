@@ -23,8 +23,8 @@ local function make_shared(shared_set, v)
   return select(2, shared_set:insert(v))
 end
 
-local function make_action(action_data, action_threads, v)
-  local _, i, ok = action_data:insert("function()" .. v .. "\nend;\n")
+local function make_action(action_set, action_threads, v)
+  local _, i, ok = action_set:insert("function()" .. v .. "\nend;\n")
   -- 最後にやったほうがよいかもしれない
   if ok then
     -- コルーチンの必要性をおおまかに検査する。
@@ -45,14 +45,14 @@ local function make_action(action_data, action_threads, v)
 
 end
 
-local function update_state_indices_accept(u, action_data, action_threads, accept_actions, color)
+local function update_state_indices_accept(u, action_set, action_threads, accept_actions, color)
   color[u] = 1
   if u.accept_action ~= nil then
-    u.index = #accept_actions:append(make_action(action_data, action_threads, u.accept_action))
+    u.index = #accept_actions:append(make_action(action_set, action_threads, u.accept_action))
   end
   for _, t in ipairs(u.transitions) do
     if color[t.v] == nil then
-      update_state_indices_accept(t.v, action_data, action_threads, accept_actions, color)
+      update_state_indices_accept(t.v, action_set, action_threads, accept_actions, color)
     end
   end
   color[u] = 2
@@ -73,27 +73,27 @@ local function update_state_indices_nonaccept(u, index, color)
   return index
 end
 
-local function construct_table(u, max_state, transitions, action_data, action_threads, transition_actions, transition_states, color)
+local function construct_table(u, max_state, transitions, action_set, action_threads, transition_actions, transition_states, color)
   color[u] = 1
   for _, t in ipairs(u.transitions) do
     local code = t.v.index
     if t.action ~= nil then
-      code = max_state + #transition_actions:append(make_action(action_data, action_threads, t.action))
+      code = max_state + #transition_actions:append(make_action(action_set, action_threads, t.action))
       transition_states:append(t.v.index)
     end
     for byte in pairs(t.set) do
       transitions[byte][u.index] = code
     end
     if color[t.v] == nil then
-      construct_table(t.v, max_state, transitions, action_data, action_threads, transition_actions, transition_states, color)
+      construct_table(t.v, max_state, transitions, action_set, action_threads, transition_actions, transition_states, color)
     end
   end
   color[u] = 2
 end
 
-local function generate(index, u, guard_action, shared_set, static_out, action_data, action_threads)
+local function generate(index, u, guard_action, shared_set, static_out, action_set, action_threads)
   local accept_actions = list()
-  update_state_indices_accept(u, action_data, action_threads, accept_actions, {})
+  update_state_indices_accept(u, action_set, action_threads, accept_actions, {})
   local max_state = update_state_indices_nonaccept(u, #accept_actions, {})
 
   local transitions = {}
@@ -106,7 +106,7 @@ local function generate(index, u, guard_action, shared_set, static_out, action_d
   local transition_actions = list()
   local transition_states = list()
 
-  construct_table(u, max_state, transitions, action_data, action_threads, transition_actions, transition_states, {})
+  construct_table(u, max_state, transitions, action_set, action_threads, transition_actions, transition_states, {})
 
   static_out:append(
     "{\n",
@@ -123,7 +123,7 @@ local function generate(index, u, guard_action, shared_set, static_out, action_d
     "transition_states=_[", make_shared(shared_set, transition_states), "];\n",
     "accept_actions=_[", make_shared(shared_set, accept_actions), "];\n")
   if guard_action ~= nil then
-    static_out:append("guard_action=", make_action(action_data, action_threads, guard_action), ";\n")
+    static_out:append("guard_action=", make_action(action_set, action_threads, guard_action), ";\n")
   end
   static_out:append(
     "};\n")
@@ -131,9 +131,10 @@ end
 
 return function (that)
   local shared_set = tree_set()
+  local shared_out = list()
   local static_out = list()
-  local custom_data = list()
-  local action_data = tree_set()
+  local custom_out = list()
+  local action_set = tree_set()
   local action_threads = list()
 
   local data = list()
@@ -145,7 +146,7 @@ return function (that)
   local j = 0
   for i, v in ipairs(that) do
     if type(v) == "string" then
-      custom_data:append(v, "\n")
+      custom_out:append(v, "\n")
     else
       j = j + 1
       data:append { timestamp = v.timestamp, machine = v, main = j == 1 }
@@ -158,14 +159,13 @@ return function (that)
       static_out:append("main=", i, ";\n")
     end
     if v.name ~= nil then
-      custom_data:append("local ", v.name, "=", i, "\n")
+      custom_out:append("local ", v.name, "=", i, "\n")
     end
-    generate(i, v.machine.start_state, v.machine.guard_action, shared_set, static_out, action_data, action_threads)
+    generate(i, v.machine.start_state, v.machine.guard_action, shared_set, static_out, action_set, action_threads)
   end
 
   static_out:append("action_threads=_[", make_shared(shared_set, action_threads), "];\n")
 
-  local shared_out = list()
   for _, v in shared_set:ipairs() do
     shared_out:append("{", table.concat(v, ","), "};\n")
   end
@@ -173,7 +173,7 @@ return function (that)
   return table.concat(runtime {
     shared_data = shared_out:concat();
     static_data = static_out:concat();
-    custom_data = table.concat(custom_data);
-    action_data = action_data:concat();
+    custom_data = custom_out:concat();
+    action_data = action_set:concat();
   })
 end
