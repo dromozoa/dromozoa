@@ -25,7 +25,7 @@ return function (grammar, actions)
 
   static_data:append(
     "symbol_names={")
-  for _, v in grammar.symbol_names:ipairs() do
+  for i, v in grammar.symbol_names:ipairs() do
     static_data:append(("%q,"):format(v))
   end
   static_data:append(
@@ -50,11 +50,23 @@ return function (grammar, actions)
   static_data:append(
     "};\n",
     "semantic_actions={")
+
   for i, production in grammar.productions:ipairs() do
     local semantic_action = production.semantic_action
     if semantic_action == nil then
       semantic_action = ""
     end
+    local semantic_action = semantic_action
+      :gsub("$([1-9]%d*)", "S[%1]")
+      :gsub("$0", "S[0]")
+      :gsub("$%$", "SS")
+      :gsub("$([%a_][%w%_]*)", function (variable)
+        local result = grammar.symbol_table[variable]
+        if result == nil then
+          error("variable " .. variable .. " not defined")
+        end
+        return result
+      end)
     static_data:append(select(2, action_data:insert("function ()" .. semantic_action .. "\nend;\n")), ",")
   end
   static_data:append(

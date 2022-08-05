@@ -253,6 +253,7 @@ function metatable:__call(token_names, that)
 
   return {
     symbol_names = symbol_names;
+    symbol_table = symbol_table;
     max_terminal_symbol = max_terminal_symbol;
     custom_data = custom_data;
     expect_sr = expect_sr;

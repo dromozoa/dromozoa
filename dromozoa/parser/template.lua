@@ -16,41 +16,15 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local main = function ()
-  --[[
-    -- 初期化
-    $0 = create() -- headで作成する
-    $$ = $0
+  local create
+  local append
 
-    -- デフォルトのセットアップ
-    $$.append($1, $2, ...)
-
-    -- collapse
-    $$ = $1
-    $$ = create($E) -- 非終端シンボルで空のノードを作成
-
-    -- 子ノードを設定する
-    $$.append(...)
-
-    -- 属性を設定する
-    $$.attr = $1.attr + $2.attr
-
-    $1.unop = true
-
-    検討項目: $を使うかどうか。
-    $を_で置き換えれば自然なLuaコードになる
-    $をSで置き換えるのはどうか。
-    symbolかな？
-
-    S[0] = create()
-    S[1]
-
-
-  ]]
-
-  local _
+  local S
+  local SS
 
   $custom_data
   local action_data = { $action_data }
+  local table_unpack = table.unpack or unpack
   local static_data, source_name = coroutine.yield()
 
   local actions = static_data.actions
@@ -61,6 +35,16 @@ local main = function ()
 
   local stack = { 1 }
   local nodes = {}
+
+  function create(symbol)
+    return { [0] = symbol }
+  end
+
+  function append(...)
+    for i = 1, select("#", ...) do
+      SS[#SS + 1] = select(i, ...)
+    end
+  end
 
   while true do
     local token_node = coroutine.yield()
@@ -93,25 +77,23 @@ local main = function ()
         local head = heads[index]
         local size = sizes[index]
 
-        local reduced_nodes = {}
+        S = { [0] = create(head) }
         for i = size - 1, 0, -1 do
-          reduced_nodes[#reduced_nodes + 1] = nodes[#nodes - i]
+          S[#S + 1] = nodes[#nodes - i]
         end
+        SS = create(head)
+        append(table_unpack(S))
+
         for i = 1, size do
           stack[#stack] = nil
           nodes[#nodes] = nil
         end
 
-        reduced_nodes[0] = head
-        _ = { [0] = reduced_nodes }
-        for i = 1, #reduced_nodes do
-          _[i] = reduced_nodes[i]
-        end
         action_data[semantic_actions[index]]()
 
         local state = stack[#stack]
         stack[#stack + 1] = actions[state][head]
-        nodes[#nodes + 1] = _[0]
+        nodes[#nodes + 1] = SS
       end
     end
   end
