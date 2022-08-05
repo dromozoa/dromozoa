@@ -90,7 +90,7 @@ local metatable = { __index = class, __name = "dromozoa.parser.grammar.body" }
 module.body = setmetatable({}, metatable)
 
 local function body(that)
-  -- that[0]がnilだったら
+  -- TODO that[0]がnilだったら
   if that == module.body then
     return construct(metatable, "body")
   elseif type(that) == "string" then

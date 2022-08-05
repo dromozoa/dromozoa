@@ -17,8 +17,6 @@
 
 local metatable = { __name = "dromozoa.regexp.pattern" }
 
-local module = setmetatable({}, metatable)
-
 local any = {}
 for byte = 0x00, 0xFF do
   any[byte] = true
@@ -38,13 +36,15 @@ local function pattern(that)
       self = self + construct("[", { [that:byte(i)] = true })
     end
     return rawset(self, "literal", that)
-  -- TODO that[0]がnilだったら
-  elseif that == module then
-    return construct("[", any)
   else
     assert(getmetatable(that) == metatable)
-    assert(that.timestamp ~= nil)
-    return that
+    if rawget(that, 0) == nil then
+      assert(rawget(that, "timestamp") == nil)
+      return construct("[", any)
+    else
+      assert(rawget(that, "timestamp") ~= nil)
+      return that
+    end
   end
 end
 
@@ -221,19 +221,21 @@ function metatable:__unm()
 end
 
 function metatable:__index(that)
-  if self == module then
+  assert(getmetatable(self) == metatable)
+  if rawget(self, 0) == nil then
     return range(that)
   else
     error "not supported"
   end
-end;
+end
 
 function metatable:__newindex(that)
   error "not supported"
-end;
+end
 
 function metatable:__call(that)
-  if self == module then
+  assert(getmetatable(self) == metatable)
+  if rawget(self, 0) == nil then
     if type(that) == "table" and getmetatable(that) ~= metatable then
       local result = set(that[1])
       for i = 2, #that do
@@ -248,4 +250,4 @@ function metatable:__call(that)
   end
 end
 
-return module
+return setmetatable({}, metatable)
