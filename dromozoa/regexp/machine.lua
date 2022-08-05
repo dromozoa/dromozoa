@@ -54,10 +54,10 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.regexp.machine.transition" }
 
 function class:update(timestamp, byte)
-  self.set[byte] = byte
   if self.timestamp > timestamp then
     self.timestamp = timestamp
   end
+  self.set[byte] = byte
   return self
 end
 
@@ -134,11 +134,9 @@ local function node_to_nfa(node)
 end
 
 local function tree_to_nfa(node)
-  local timestamp = rawget(node, "timestamp")
-  assert(timestamp ~= nil)
   local u, v = node_to_nfa(node)
   if v.accept_action == nil then
-    v:update(timestamp, "")
+    v:update(rawget(node, "timestamp"), "")
   end
   return u, v
 end
@@ -167,7 +165,7 @@ end
 local function epsilon_closure_impl(u, closure)
   for _, t in u.transitions:ipairs() do
     if t.set == nil then
-      closure:assign(t.v.index, t.v)
+      closure:insert(t.v.index, t.v)
       epsilon_closure_impl(t.v, closure)
     end
   end
@@ -176,7 +174,7 @@ end
 local function epsilon_closure(u, epsilon_closures)
   local closure = epsilon_closures[u]
   if closure == nil then
-    closure = tree_map():assign(u.index, u)
+    closure = tree_map():insert(u.index, u)
     epsilon_closure_impl(u, closure)
     epsilon_closures[u] = closure
   end
@@ -214,7 +212,6 @@ local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
     if not v_closure:empty() then
       local v = closure_to_state(v_closure, states)
       state_map:assign(v_closure, v)
-
       transition_map:insert_or_update({ closure = v_closure, action = resolved.action }, function ()
         return transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
       end, function (t)
