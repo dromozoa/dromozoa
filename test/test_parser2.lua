@@ -32,7 +32,10 @@ local parser = {
 local _ = regexp.pattern
 
 local token_names = array()
-local regexp_code = regexp.compile {
+
+local regexp_filename = "test-gen-parser2-regexp.lua"
+local out = assert(io.open(regexp_filename, "w"))
+out:write(regexp.compile {
   regexp.machine.lexer(token_names, {
     _{
       _{" \t\f\v"};
@@ -48,11 +51,7 @@ local regexp_code = regexp.compile {
     _"/";
     number = _["09"]*"+";
   });
-}
-
-local regexp_filename = "test-gen-parser2-regexp.lua"
-local out = assert(io.open(regexp_filename, "w"))
-out:write(regexp_code)
+})
 out:close()
 
 local _ = parser.grammar.body
@@ -64,13 +63,13 @@ local g, a, c = parser.lalr(parser.grammar(token_names, {
   left "*" "/";
   right "UNM";
 
-  E = _"E" "+" "E" %[[$$.v = $1.v + $3.v]]
-    + _"E" "-" "E" %[[$$.v = $1.v - $3.v]]
-    + _"E" "*" "E" %[[$$.v = $1.v * $3.v]]
-    + _"E" "/" "E" %[[$$.v = $1.v / $3.v]]
-    + _"(" "E" ")" %[[$$.v = $2.v]]
-    + _"-" "E" :prec "UNM" %[[$$.v = -$2.v]]
-    + _"number" %[[$$.v = tonumber($1.v)]]
+  E = _"E" "+" "E" %[[$$.v=$1.v+$3.v $$.code=$1.code..$3.code.."ADD\n"]]
+    + _"E" "-" "E" %[[$$.v=$1.v-$3.v $$.code=$1.code..$3.code.."SUB\n"]]
+    + _"E" "*" "E" %[[$$.v=$1.v*$3.v $$.code=$1.code..$3.code.."MUL\n"]]
+    + _"E" "/" "E" %[[$$.v=$1.v/$3.v $$.code=$1.code..$3.code.."DIV\n"]]
+    + _"(" "E" ")" %[[$$.v=$2.v $$.code=$2.code]]
+    + _"-" "E" :prec "UNM" %[[$$.v=-$2.v $$.code=$2.code.."NEG\n"]]
+    + _"number" %[[$$.v=tonumber($1.v) $$.code="PUSH "..$1.v.."\n"]]
     ;
 }))
 for _, message in c:ipairs() do
@@ -79,20 +78,37 @@ for _, message in c:ipairs() do
   end
 end
 
-local parser_code = parser.compile(g, a)
 local parser_filename = "test-gen-parser2-parser.lua"
 local out = assert(io.open(parser_filename, "w"))
-out:write(parser_code)
+out:write(parser.compile(g, a))
 out:close()
 
 local R = assert(assert(loadfile(regexp_filename))())
 local P = assert(assert(loadfile(parser_filename))())
 
-local p = P()
 local r = R([[
-2 + 3 * 4 - 6 / -3
-]], "@test", P.max_terminal_symbol, p)
+2 + 3 * 4 - 6 / -3 + (1 + 2) * 3
+]], "@test", P.max_terminal_symbol, P())
 if verbose then
   print(r.v)
+  print(r.code)
 end
-assert(r.v == 16)
+assert(r.v == 25)
+assert(r.code == [[
+PUSH 2
+PUSH 3
+PUSH 4
+MUL
+ADD
+PUSH 6
+PUSH 3
+NEG
+DIV
+SUB
+PUSH 1
+PUSH 2
+ADD
+PUSH 3
+MUL
+ADD
+]])
