@@ -38,7 +38,7 @@ local function pattern(that)
       self = self + construct("[", { [that:byte(i)] = true })
     end
     return rawset(self, "literal", that)
-  -- that[0]がnilだったら
+  -- TODO that[0]がnilだったら
   elseif that == module then
     return construct("[", any)
   else

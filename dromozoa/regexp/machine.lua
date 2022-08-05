@@ -507,9 +507,7 @@ function module.lexer(token_names, that)
       name = rawget(node, "literal")
     end
     local timestamp = rawget(node, "timestamp")
-    if timestamp == nil then
-      error "pattern has no timestamp"
-    end
+    assert(timestamp ~= nil)
     data:append { timestamp = timestamp, node = node, name = name }
   end
   data:sort(function (a, b) return a.timestamp < b.timestamp end)
