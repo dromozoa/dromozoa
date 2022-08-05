@@ -58,19 +58,6 @@ local function insert_shared(context, shared)
   return (select(2, context.shared.set:insert(shared)))
 end
 
-local function update_state_indices_accept(context, u, accept_actions, color)
-  color[u] = 1
-  if u.accept_action ~= nil then
-    u.index = accept_actions:append(insert_action(context, u.accept_action)):size()
-  end
-  for _, t in u.transitions:ipairs() do
-    if color[t.v] == nil then
-      update_state_indices_accept(context, t.v, accept_actions, color)
-    end
-  end
-  color[u] = 2
-end
-
 local function update_state_indices_nonaccept(u, index, color)
   color[u] = 1
   if u.accept_action == nil then
@@ -104,9 +91,13 @@ local function construct_table(context, u, max_state, transitions, transition_ac
   color[u] = 2
 end
 
-local function generate(context, index, u, guard_action)
+local function generate(context, index, machine)
+  local u = machine.start_state
+
   local accept_actions = array()
-  update_state_indices_accept(context, u, accept_actions, {})
+  for _, v in machine.accept_states:ipairs() do
+    v.index = accept_actions:append(insert_action(context, v.accept_action)):size()
+  end
   local max_state = update_state_indices_nonaccept(u, accept_actions:size(), {})
 
   local transitions = array()
@@ -131,8 +122,8 @@ local function generate(context, index, u, guard_action)
     "transition_actions=_[", insert_shared(context, transition_actions), "];\n",
     "transition_states=_[", insert_shared(context, transition_states), "];\n",
     "accept_actions=_[", insert_shared(context, accept_actions), "];\n")
-  if guard_action ~= nil then
-    context.static.out:append("guard_action=", insert_action(context, guard_action), ";\n")
+  if machine.guard_action ~= nil then
+    context.static.out:append("guard_action=", insert_action(context, machine.guard_action), ";\n")
   end
   context.static.out:append(
     "};\n")
@@ -173,7 +164,7 @@ return function (that)
   end
 
   for i, v in data:ipairs() do
-    generate(context, i, v.machine.start_state, v.machine.guard_action)
+    generate(context, i, v.machine)
   end
   context.static.out:append("action_threads=_[", insert_shared(context, context.action.threads), "];\n")
 

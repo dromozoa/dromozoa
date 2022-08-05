@@ -480,10 +480,10 @@ end
 ---------------------------------------------------------------------------
 
 local module = {}
-local metatable = { __name = "dromozoa.regexp.machine" }
 
-local function machine(timestamp, start_state)
-  return setmetatable({ timestamp = timestamp, start_state = start_state }, metatable)
+local function machine(timestamp, s)
+  local start_state, accept_states = minimize(nfa_to_dfa(s))
+  return { timestamp = timestamp, start_state = start_state, accept_states = accept_states }
 end
 
 function module.union(that)
@@ -491,7 +491,7 @@ function module.union(that)
   for _, node in ipairs(that) do
     transition(s, (tree_to_nfa(node)))
   end
-  return machine(rawget(that[1], "timestamp"), minimize(nfa_to_dfa(s)))
+  return machine(rawget(that[1], "timestamp"), s)
 end
 
 function module.guard(guard_action, that)
@@ -514,7 +514,6 @@ function module.lexer(token_names, that)
   end
   data:sort(function (a, b) return a.timestamp < b.timestamp end)
 
-  -- TODO 複数のレキサを定義できるか？
   local token_table = {}
   for symbol, name in token_names:ipairs() do
     token_table[name] = symbol
@@ -541,7 +540,7 @@ function module.lexer(token_names, that)
     end
   end
 
-  return machine(data:get(1).timestamp, minimize(nfa_to_dfa(s)))
+  return machine(data:get(1).timestamp, s)
 end
 
 return module
