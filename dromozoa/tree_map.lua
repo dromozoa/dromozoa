@@ -21,17 +21,19 @@ local private = setmetatable({}, { __mode = "k" })
 local class = {}
 local metatable = { __name = "dromozoa.tree_map" }
 
+---------------------------------------------------------------------------
+
 function class:insert(k, v)
   if k == nil then
-    error "index is nil"
+    error "key is nil"
   elseif type(k) == "number" and k ~= k then
-    error "index is NaN"
+    error "key is NaN"
   elseif v == nil then
     error "value is nil"
   end
   local priv = private[self]
   local V = priv.V
-  local inserted, i = priv:insert2(k)
+  local inserted, i = priv:insert(k)
   if inserted then
     V[i] = v
   end
@@ -40,28 +42,28 @@ end
 
 function class:assign(k, v)
   if k == nil then
-    error "index is nil"
+    error "key is nil"
   elseif type(k) == "number" and k ~= k then
-    error "index is NaN"
+    error "key is NaN"
   elseif v == nil then
     error "value is nil"
   end
   local priv = private[self]
   local V = priv.V
-  local inserted, i = priv:insert2(k)
+  local inserted, i = priv:insert(k)
   V[i] = v
   return self, v, inserted
 end
 
 function class:insert_or_update(k, insert_fn, update_fn)
   if k == nil then
-    error "index is nil"
+    error "key is nil"
   elseif type(k) == "number" and k ~= k then
-    error "index is NaN"
+    error "key is NaN"
   end
   local priv = private[self]
   local V = priv.V
-  local inserted, i = priv:insert2(k)
+  local inserted, i = priv:insert(k)
   local v = V[i]
   if inserted then
     v = insert_fn()
@@ -75,10 +77,19 @@ function class:insert_or_update(k, insert_fn, update_fn)
   return self, v, inserted
 end
 
-function class:get(k)
-  local _, v = private[self]:find(k)
-  return v
+function class:find(k)
+  return select(2, private[self]:find(k))
 end
+
+function class:each(lower_bound, upper_bound)
+  return coroutine.wrap(function (self)
+    for k, v in self:each(lower_bound, upper_bound) do
+      coroutine.yield(k, v)
+    end
+  end), private[self]
+end
+
+---------------------------------------------------------------------------
 
 function class:empty()
   return private[self].size == 0
@@ -92,20 +103,14 @@ function class:pairs()
   end), private[self]
 end
 
-function class:tree_each(lower_bound, upper_bound)
-  return coroutine.wrap(function (self)
-    for k, v in self:each(lower_bound, upper_bound) do
-      coroutine.yield(k, v)
-    end
-  end), private[self]
-end
+---------------------------------------------------------------------------
 
 function metatable:__len()
   error "not supported"
 end
 
 function metatable:__index(k)
-  if k == "tree_compare" then
+  if k == "compare" then
     return private[self].compare
   end
   local v = class[k]
@@ -126,6 +131,8 @@ end
 function metatable:__tostring()
   error "not supported"
 end
+
+---------------------------------------------------------------------------
 
 return setmetatable(class, {
   __call = function (_, compare)

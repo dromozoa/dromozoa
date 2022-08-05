@@ -22,6 +22,32 @@ local class = {}
 local metatable = { __name = "dromozoa.tree_set" }
 local table_unpack = table.unpack or unpack
 
+---------------------------------------------------------------------------
+
+function class:insert(k)
+  if k == nil then
+    error "key is nil"
+  elseif type(k) == "number" and k ~= k then
+    error "key is NaN"
+  end
+  local inserted, i = private[self]:insert(k)
+  return self, i, inserted
+end
+
+function class:find(k)
+  return private[self]:find(k) ~= nil
+end
+
+function class:each(lower_bound, upper_bound)
+  return coroutine.wrap(function (self)
+    for k, _, i in self:each(lower_bound, upper_bound) do
+      coroutine.yield(i, k)
+    end
+  end), private[self]
+end
+
+---------------------------------------------------------------------------
+
 function class:empty()
   return private[self].size == 0
 end
@@ -32,16 +58,6 @@ end
 
 function class:get(i)
   return private[self].K[i]
-end
-
-function class:insert(k)
-  if k == nil then
-    error "index is nil"
-  elseif type(k) == "number" and k ~= k then
-    error "index is NaN"
-  end
-  local inserted, i = private[self]:insert2(k)
-  return self, i, inserted
 end
 
 function class:ipairs()
@@ -56,20 +72,14 @@ function class:unpack(...)
   return table_unpack(private[self].K, ...)
 end
 
-function class:tree_each(lower_bound, upper_bound)
-  return coroutine.wrap(function (self)
-    for k, _, i in self:each(lower_bound, upper_bound) do
-      coroutine.yield(i, k)
-    end
-  end), private[self]
-end
+---------------------------------------------------------------------------
 
 function metatable:__len()
   error "not supported"
 end
 
 function metatable:__index(k)
-  if k == "tree_compare" then
+  if k == "compare" then
     return private[self].compare
   end
   local v = class[k]
@@ -90,6 +100,8 @@ end
 function metatable:__tostring()
   error "not supported"
 end
+
+---------------------------------------------------------------------------
 
 return setmetatable(class, {
   __call = function (_, compare)

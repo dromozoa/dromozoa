@@ -25,13 +25,13 @@ local union = machine.union
 local guard = machine.guard
 local lexer = machine.lexer
 
-local tokens = array()
+local token_names = array()
 
 local code = compile {
   [[local ra]];
 
   digit = union {
-    _["09"]/[[ra=ra*10+fc-0x30]]*-2 %[[fret()]];
+    _["09"]/[[ra=ra*10+fc-${<0>}]]*-2 %[[fret()]];
   };
 
   comment = guard([[fret()]], {
@@ -43,21 +43,22 @@ local code = compile {
     -_{"]\n\r"}*"+";
   });
 
-  lexer(tokens, {
+  lexer(token_names, {
     _{
-      _{" \t\f\v"};
+      -- マクロ展開のテスト
+      _{" \t\f\v"}/"assert('${<\0\n\31あ>}'=='0x00,0x0A,0x1F,0xE3,0x81,0x82')";
       _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
       _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
     }*"+";
 
-    _"--" + _"["/[[append(fg,0x5D)]] + _"="/[[append(fg,fc)]]*"*" + _"["/[[append(fg,0x5D) fcall(comment)]];
+    _"--" + _"["/[[append(fg,${<]>})]] + _"="/[[append(fg,fc)]]*"*" + _"["/[[append(fg,${<]>}) fcall($comment)]];
     _"--" + -_{"\n\r"}*"*";
 
     string = (
       _[["]]/[[clear(fb)]] + _{
-        _[[\]] + _["09"]/[[ra=fc-0x30 fcall(digit) append(fb,ra)]];
-        _[[\]] + _[[\]]/[[append(fb,0x5C)]];
-        _[[\]] + _[["]]/[[append(fb,0x22)]];
+        _[[\]] + _["09"]/[[ra=fc-${<0>} fcall($digit) append(fb,ra)]];
+        _[[\]] + _[[\]]/[[append(fb,${<\>})]];
+        _[[\]] + _[["]]/[[append(fb,${<">})]];
         -_{[["\]]}/[[append(fb,fc)]]
       }*"*" + _[["]]
     ) %[[push(fb)]];

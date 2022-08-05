@@ -54,10 +54,10 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.regexp.machine.transition" }
 
 function class:update(timestamp, byte)
-  self.set[byte] = byte
   if self.timestamp > timestamp then
     self.timestamp = timestamp
   end
+  self.set[byte] = byte
   return self
 end
 
@@ -71,10 +71,9 @@ end
 
 local difference
 
-local function node_to_nfa(node, timestamp)
-  if rawget(node, "timestamp") ~= nil then
-    timestamp = rawget(node, "timestamp")
-  end
+local function node_to_nfa(node)
+  local timestamp = rawget(node, "timestamp")
+  assert(timestamp ~= nil)
 
   local code = node[0]
   if code == "[" then
@@ -83,7 +82,7 @@ local function node_to_nfa(node, timestamp)
     transition(u, v, node[1], timestamp)
     return u, v
   else
-    local au, av = node_to_nfa(node[1], timestamp)
+    local au, av = node_to_nfa(node[1])
     if code == "/" then
       au.transitions:get(1).action = node[2]
       return au, av
@@ -91,7 +90,7 @@ local function node_to_nfa(node, timestamp)
       av:update(timestamp, node[2])
       return au, av
     elseif code == "." then
-      local bu, bv = node_to_nfa(node[2], timestamp)
+      local bu, bv = node_to_nfa(node[2])
       transition(av, bu)
       return au, bv
     else
@@ -111,7 +110,7 @@ local function node_to_nfa(node, timestamp)
         transition(u, au)
         transition(av, v)
       else
-        local bu, bv = node_to_nfa(node[2], timestamp)
+        local bu, bv = node_to_nfa(node[2])
         if code == "|" then
           transition(u, au)
           transition(u, bu)
@@ -135,13 +134,9 @@ local function node_to_nfa(node, timestamp)
 end
 
 local function tree_to_nfa(node)
-  local timestamp = rawget(node, "timestamp")
-  if timestamp == nil then
-    error "pattern has no timestamp"
-  end
-  local u, v = node_to_nfa(node, timestamp)
+  local u, v = node_to_nfa(node)
   if v.accept_action == nil then
-    v:update(timestamp, "")
+    v:update(rawget(node, "timestamp"), "")
   end
   return u, v
 end
@@ -170,7 +165,7 @@ end
 local function epsilon_closure_impl(u, closure)
   for _, t in u.transitions:ipairs() do
     if t.set == nil then
-      closure:assign(t.v.index, t.v)
+      closure:insert(t.v.index, t.v)
       epsilon_closure_impl(t.v, closure)
     end
   end
@@ -179,7 +174,7 @@ end
 local function epsilon_closure(u, epsilon_closures)
   local closure = epsilon_closures[u]
   if closure == nil then
-    closure = tree_map():assign(u.index, u)
+    closure = tree_map():insert(u.index, u)
     epsilon_closure_impl(u, closure)
     epsilon_closures[u] = closure
   end
@@ -217,7 +212,6 @@ local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
     if not v_closure:empty() then
       local v = closure_to_state(v_closure, states)
       state_map:assign(v_closure, v)
-
       transition_map:insert_or_update({ closure = v_closure, action = resolved.action }, function ()
         return transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
       end, function (t)
@@ -227,7 +221,7 @@ local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
   end
 
   for v_closure, v in state_map:pairs() do
-    if color:get(v_closure) == nil then
+    if color:find(v_closure) == nil then
       nfa_to_dfa_impl(v_closure, v, epsilon_closures, states, color)
     end
   end
@@ -273,18 +267,16 @@ local function minimize(u)
   create_initial_partitions(u, accept_partition_map, partition, partition_map, {})
 
   local partitions = array()
-  local partition_indices = {}
   for _, partition in accept_partition_map:pairs() do
-    partition_indices[partition] = partitions:append(partition):size()
+    partitions:append(partition)
   end
   if not partition:empty() then
-    partition_indices[partition] = partitions:append(partition):size()
+    partitions:append(partition)
   end
 
   while true do
     local new_partition_map = {}
     local new_partitions = array()
-    local new_partition_indices = {}
 
     for _, partition in partitions:ipairs() do
       -- パーティション内の状態の組(x,y)について同じ遷移をするか調べる。同じ遷
@@ -325,7 +317,7 @@ local function minimize(u)
         if new_partition_map[x] == nil then
           local new_partition = array(x)
           new_partition_map[x] = new_partition
-          new_partition_indices[new_partition] = new_partitions:append(new_partition):size()
+          new_partitions:append(new_partition)
         end
       end
     end
@@ -336,7 +328,6 @@ local function minimize(u)
 
     partition_map = new_partition_map
     partitions = new_partitions
-    partition_indices = new_partition_indices
   end
 
   local states = {}
@@ -344,6 +335,7 @@ local function minimize(u)
 
   for i, partition in partitions:ipairs() do
     local u = state()
+    u.index = i
     for _, x in partition:ipairs() do
       u:update(x.timestamp, x.accept_action)
     end
@@ -370,7 +362,7 @@ local function minimize(u)
         end
 
         local v = states[p]
-        transition_map:insert_or_update({ index = partition_indices[p], action = resolved.action }, function ()
+        transition_map:insert_or_update({ index = v.index, action = resolved.action }, function ()
           return transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
         end, function (t)
           return t:update(resolved.timestamp, byte)
@@ -488,10 +480,10 @@ end
 ---------------------------------------------------------------------------
 
 local module = {}
-local metatable = { __name = "dromozoa.regexp.machine" }
 
-local function machine(timestamp, start_state)
-  return setmetatable({ timestamp = timestamp, start_state = start_state }, metatable)
+local function machine(timestamp, s)
+  local start_state, accept_states = minimize(nfa_to_dfa(s))
+  return { timestamp = timestamp, start_state = start_state, accept_states = accept_states }
 end
 
 function module.union(that)
@@ -499,7 +491,7 @@ function module.union(that)
   for _, node in ipairs(that) do
     transition(s, (tree_to_nfa(node)))
   end
-  return machine(rawget(that[1], "timestamp"), minimize(nfa_to_dfa(s)))
+  return machine(rawget(that[1], "timestamp"), s)
 end
 
 function module.guard(guard_action, that)
@@ -515,14 +507,11 @@ function module.lexer(token_names, that)
       name = rawget(node, "literal")
     end
     local timestamp = rawget(node, "timestamp")
-    if timestamp == nil then
-      error "pattern has no timestamp"
-    end
+    assert(timestamp ~= nil)
     data:append { timestamp = timestamp, node = node, name = name }
   end
   data:sort(function (a, b) return a.timestamp < b.timestamp end)
 
-  -- TODO 複数のレキサを定義できるか？
   local token_table = {}
   for symbol, name in token_names:ipairs() do
     token_table[name] = symbol
@@ -543,13 +532,13 @@ function module.lexer(token_names, that)
     end
 
     if v.accept_action == "" then
-      v.accept_action = "tk=" .. symbol .. " push()"
+      v.accept_action = "ts=" .. symbol .. " push()"
     else
-      v.accept_action = "tk=" .. symbol .. ";" .. v.accept_action
+      v.accept_action = "ts=" .. symbol .. ";" .. v.accept_action
     end
   end
 
-  return machine(data:get(1).timestamp, minimize(nfa_to_dfa(s)))
+  return machine(data:get(1).timestamp, s)
 end
 
 return module

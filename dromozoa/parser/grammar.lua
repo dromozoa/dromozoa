@@ -87,20 +87,25 @@ end
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.grammar.body" }
 
+module.body = setmetatable({}, metatable)
+
 local function body(that)
-  if that == module.body then
-    return construct(metatable, "body")
-  elseif type(that) == "string" then
+  if type(that) == "string" then
     return construct(metatable, "body", that)
   else
     assert(getmetatable(that) == metatable)
-    assert(that.timestamp ~= nil)
-    return that
+    if that[0] == nil then
+      assert(that.timestamp == nil)
+      return construct(metatable, "body")
+    else
+      assert(that.timestamp ~= nil)
+      return that
+    end
   end
 end
 
 function class:prec(that)
-  self = body(self)
+  local self = body(self)
   assert(type(that) == "string")
   assert(self.precedence == nil)
   self.precedence = that
@@ -108,13 +113,13 @@ function class:prec(that)
 end
 
 function metatable:__add(that)
-  self = body(self)
+  local self = body(self)
   assert(getmetatable(that) == metatable)
   return bodies(self, that)
 end
 
 function metatable:__mod(that)
-  self = body(self)
+  local self = body(self)
   assert(type(that) == "string")
   assert(self.semantic_action == nil)
   self.semantic_action = that
@@ -122,13 +127,11 @@ function metatable:__mod(that)
 end
 
 function metatable:__call(that)
-  self = body(self)
+  local self = body(self)
   assert(type(that) == "string")
   self[#self + 1] = that
   return self
 end
-
-module.body = setmetatable({ [0] = "body" }, metatable)
 
 ---------------------------------------------------------------------------
 
@@ -137,7 +140,7 @@ local metatable = { __name = "dromozoa.parser.grammar" }
 function metatable:__call(token_names, that)
   local symbol_names = array()
   local symbol_table = {}
-  for _, name in ipairs(token_names) do
+  for _, name in token_names:ipairs() do
     if symbol_table[name] ~= nil then
       error("symbol " .. name .. " redefined as a terminal")
     end
@@ -145,12 +148,15 @@ function metatable:__call(token_names, that)
   end
   local max_terminal_symbol = symbol_names:append "$":size()
 
+  local custom_data = array()
   local expect_sr
   local precedence = 0
   local precedence_table = tree_map()
   local symbol_precedences = {}
   for _, v in ipairs(that) do
-    if v[0] == "expect" then
+    if type(v) == "string" then
+      custom_data:append(v, "\n")
+    elseif v[0] == "expect" then
       assert(getmetatable(v).__name == "dromozoa.parser.grammar.expect")
       expect_sr = v[1]
     else
@@ -223,7 +229,7 @@ function metatable:__call(token_names, that)
       end
       local production = { head = u.k, head_index = i, body = body, semantic_action = v.semantic_action }
       if v.precedence ~= nil then
-        local precedence = precedence_table:get(v.precedence)
+        local precedence = precedence_table:find(v.precedence)
         if precedence == nil then
           error("precedence " .. v.precedence .. " not defined")
         end
@@ -248,6 +254,7 @@ function metatable:__call(token_names, that)
   return {
     symbol_names = symbol_names;
     max_terminal_symbol = max_terminal_symbol;
+    custom_data = custom_data;
     expect_sr = expect_sr;
     symbol_precedences = symbol_precedences;
     productions = productions;

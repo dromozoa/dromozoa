@@ -19,25 +19,43 @@ local array = require "dromozoa.array"
 local tree_set = require "dromozoa.tree_set"
 local runtime = require "dromozoa.regexp.runtime"
 
-local function make_shared(shared_set, v)
-  return select(2, shared_set:insert(v))
-end
+local function insert_action(context, action)
+  local action = action:gsub("$([%a_][%w%_]*)", function (variable)
+    local result = context.action.variables[variable]
+    if result == nil then
+      error("variable " .. variable .. " not defined")
+    end
+    return result
+  end):gsub([[${([^%s<>\]*)<(..-)>%1}]], function (_, s)
+    local buffer = {}
+    for i, v in ipairs { s:byte(1, #s) } do
+      buffer[i] = ("0x%02X"):format(v)
+    end
+    return table.concat(buffer, ",")
+  end)
 
-local function make_action(action_set, v)
-  return (select(2, action_set:insert(v)))
-end
+  local _, i, inserted = context.action.set:insert("function()" .. action .. "\nend;\n")
 
-local function update_state_indices_accept(u, action_set, accept_actions, color)
-  color[u] = 1
-  if u.accept_action ~= nil then
-    u.index = accept_actions:append(make_action(action_set, u.accept_action)):size()
-  end
-  for _, t in u.transitions:ipairs() do
-    if color[t.v] == nil then
-      update_state_indices_accept(t.v, action_set, accept_actions, color)
+  if inserted then
+    -- コルーチンの必要性をおおまかに検査する。
+    -- 1. 単語境界を調べやすくするために番兵を置く。
+    local s = " " .. action .. " "
+    -- 2. fcallという単語が最初に出現する位置を調べる。
+    local p = s:find "[^%w_](fcall)[^%w_]"
+    -- 3. fcallという単語が最後に出現する位置を調べる。
+    local q = s:find "[^%w_](fcall)%s*%b()%s*$"
+    if p == q then
+      context.action.threads:append(0)
+    else
+      context.action.threads:append(1)
     end
   end
-  color[u] = 2
+
+  return i
+end
+
+local function insert_shared(context, shared)
+  return (select(2, context.shared.set:insert(shared)))
 end
 
 local function update_state_indices_nonaccept(u, index, color)
@@ -55,66 +73,71 @@ local function update_state_indices_nonaccept(u, index, color)
   return index
 end
 
-local function construct_table(u, max_state, action_set, transitions, transition_actions, transition_states, color)
+local function construct_table(context, u, max_state, transitions, transition_actions, transition_states, color)
   color[u] = 1
   for _, t in u.transitions:ipairs() do
     local code = t.v.index
     if t.action ~= nil then
-      code = max_state + transition_actions:append(make_action(action_set, t.action)):size()
+      code = max_state + transition_actions:append(insert_action(context, t.action)):size()
       transition_states:append(t.v.index)
     end
     for byte in pairs(t.set) do
-      transitions[byte]:set(u.index, code)
+      transitions:get(byte + 1):set(u.index, code)
     end
     if color[t.v] == nil then
-      construct_table(t.v, max_state, action_set, transitions, transition_actions, transition_states, color)
+      construct_table(context, t.v, max_state, transitions, transition_actions, transition_states, color)
     end
   end
   color[u] = 2
 end
 
-local function generate(index, u, guard_action, static_out, shared_set, action_set)
+local function generate(context, index, machine)
+  local u = machine.start_state
+
   local accept_actions = array()
-  update_state_indices_accept(u, action_set, accept_actions, {})
+  for _, v in machine.accept_states:ipairs() do
+    v.index = accept_actions:append(insert_action(context, v.accept_action)):size()
+  end
   local max_state = update_state_indices_nonaccept(u, accept_actions:size(), {})
 
-  local transitions = {}
-  for byte = 0x00, 0xFF do
-    local transition = array()
-    for i = 1, max_state do
-      transition:append(0)
-    end
-    transitions[byte] = transition
+  local transitions = array()
+  for i = 1, 256 do
+    transitions:append(array.fill(max_state, 0))
   end
   local transition_actions = array()
   local transition_states = array()
+  construct_table(context, u, max_state, transitions, transition_actions, transition_states, {})
 
-  construct_table(u, max_state, action_set, transitions, transition_actions, transition_states, {})
-
-  static_out:append(
+  context.static.out:append(
     "{\n",
     "start_state=", u.index, ";\n",
     "max_accept_state=", accept_actions:size(), ";\n",
     "max_state=", max_state, ";\n",
     "transitions={[0]=")
-  for byte = 0x00, 0xFF do
-    static_out:append("_[", make_shared(shared_set, transitions[byte]), "],")
+  for _, v in transitions:ipairs() do
+    context.static.out:append("_[", insert_shared(context, v), "],")
   end
-  static_out:append(
+  context.static.out:append(
     "};\n",
-    "transition_actions=_[", make_shared(shared_set, transition_actions), "];\n",
-    "transition_states=_[", make_shared(shared_set, transition_states), "];\n",
-    "accept_actions=_[", make_shared(shared_set, accept_actions), "];\n")
-  if guard_action ~= nil then
-    static_out:append("guard_action=", make_action(action_set, guard_action), ";\n")
+    "transition_actions=_[", insert_shared(context, transition_actions), "];\n",
+    "transition_states=_[", insert_shared(context, transition_states), "];\n",
+    "accept_actions=_[", insert_shared(context, accept_actions), "];\n")
+  if machine.guard_action ~= nil then
+    context.static.out:append("guard_action=", insert_action(context, machine.guard_action), ";\n")
   end
-  static_out:append(
+  context.static.out:append(
     "};\n")
 end
 
 return function (that)
+  local context = {
+    custom = { out = array() };
+    action = { set = tree_set(), variables = {}, threads = array() };
+    shared = { set = tree_set(), out = array() };
+    static = { out = array() };
+  }
+
   local data = array()
-  local custom_out = array()
   for k, v in pairs(that) do
     if type(k) == "string" then
       data:append { timestamp = v.timestamp, machine = v, name = k }
@@ -123,7 +146,7 @@ return function (that)
   local j = 0
   for i, v in ipairs(that) do
     if type(v) == "string" then
-      custom_out:append(v, "\n")
+      context.custom.out:append(v, "\n")
     else
       j = j + 1
       data:append { timestamp = v.timestamp, machine = v, main = j == 1 }
@@ -131,50 +154,28 @@ return function (that)
   end
   data:sort(function (a, b) return a.timestamp < b.timestamp end)
 
-  local static_out = array()
-  local shared_set = tree_set()
-  local action_set = tree_set()
   for i, v in data:ipairs() do
     if v.main then
-      static_out:append("main=", i, ";\n")
+      context.static.out:append("main=", i, ";\n")
     end
     if v.name ~= nil then
-      -- TODO テンプレートマクロで置き換える
-      custom_out:append("local ", v.name, "=", i, "\n")
-    end
-    generate(i, v.machine.start_state, v.machine.guard_action, static_out, shared_set, action_set)
-  end
-
-  local action_out = array()
-  local action_threads = array()
-  for _, v in action_set:ipairs() do
-    -- TODO テンプレートマクロで文字列を数値化する
-    action_out:append("function()", v, "\nend;\n")
-
-    -- コルーチンの必要性をおおまかに検査する。
-    -- 1. 単語境界を調べやすくするために番兵を置く。
-    local s = " " .. v .. " "
-    -- 2. fcallという単語が最初に出現する位置を調べる。
-    local p = s:find "[^%w_](fcall)[^%w_]"
-    -- 3. fcallという単語が最後に出現する位置を調べる。
-    local q = s:find "[^%w_](fcall)%s*%b()%s*$"
-    if p == q then
-      action_threads:append(0)
-    else
-      action_threads:append(1)
+      context.action.variables[v.name] = i
     end
   end
-  static_out:append("action_threads=_[", make_shared(shared_set, action_threads), "];\n")
 
-  local shared_out = array()
-  for _, v in shared_set:ipairs() do
-    shared_out:append("{", v:concat ",", "};\n")
+  for i, v in data:ipairs() do
+    generate(context, i, v.machine)
+  end
+  context.static.out:append("action_threads=_[", insert_shared(context, context.action.threads), "];\n")
+
+  for _, v in context.shared.set:ipairs() do
+    context.shared.out:append("{", v:concat ",", "};\n")
   end
 
   return table.concat(runtime {
-    shared_data = shared_out:concat();
-    static_data = static_out:concat();
-    custom_data = custom_out:concat();
-    action_data = action_out:concat();
+    custom_data = context.custom.out:concat();
+    action_data = context.action.set:concat();
+    shared_data = context.shared.out:concat();
+    static_data = context.static.out:concat();
   })
 end

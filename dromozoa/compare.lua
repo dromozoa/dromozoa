@@ -16,25 +16,24 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local typemap = {
-  ["nil"]      = 0; -- LUA_TNIL
-  ["boolean"]  = 1; -- LUA_TBOOLEAN
-                    -- LUA_TLIGHTUSERDATA
-  ["number"]   = 3; -- LUA_TNUMBER
-  ["string"]   = 4; -- LUA_TSTRING
-  ["table"]    = 5; -- LUA_TTABLE
-  ["function"] = 6; -- LUA_TFUNCTION
-  ["userdata"] = 7; -- LUA_TUSERDATA
-  ["thread"]   = 8; -- LUA_TTHREAD
+  ["nil"]      = 0;
+  ["boolean"]  = 1;
+  ["string"]   = 2;
+  ["number"]   = 3;
+  ["table"]    = 4;
+  ["function"] = 5;
+  ["userdata"] = 6;
+  ["thread"]   = 7;
 }
 
-local function stable_pairs(t, compare, n)
+local function each(t, compare, n)
   local metatable = getmetatable(t)
   if metatable ~= nil then
     local metaname = metatable.__name
     if metaname == "dromozoa.array" then
       return t:ipairs()
     elseif metaname == "dromozoa.tree_map" then
-      return t:pairs()
+      return t:each()
     elseif metaname == "dromozoa.tree_set" then
       return t:ipairs()
     end
@@ -58,7 +57,7 @@ local function stable_pairs(t, compare, n)
     local c = compare(a, b, n)
     if c == 0 then
       -- 同値なオブジェクトの重複はエラーとする。
-      error "table index is not unique"
+      error "index is not unique"
     end
     return c < 0
   end)
@@ -68,7 +67,7 @@ local function stable_pairs(t, compare, n)
     i = i + 1
     local k = K[i]
     return k, t[k]
-  end, t, nil
+  end, t
 end
 
 local function compare(a, b, n)
@@ -85,17 +84,15 @@ local function compare(a, b, n)
 
   if t == 1 then
     return b and -1 or 1
+  elseif t == 2 then
+    return a < b and -1 or 1
   elseif t == 3 then
-    -- NaNは数値と文字列のあいだに位置するものとして扱う。NaN同士は同値とみなす。
-    local a_is_nan = a ~= a
-    local b_is_nan = b ~= b
-    if b_is_nan then
-      return a_is_nan and 0 or -1
-    elseif a_is_nan then
+    -- NaNは数値とテーブルのあいだに位置するものとして扱う。NaN同士は同値とみなす。
+    if b ~= b then
+      return a ~= a and 0 or -1
+    elseif a ~= a then
       return 1
     end
-    return a < b and -1 or 1
-  elseif t == 4 then
     return a < b and -1 or 1
   end
 
@@ -112,14 +109,14 @@ local function compare(a, b, n)
     return c
   end
 
-  if t == 5 then
+  if t == 4 then
     n = n + 1
     if n > 2000 then
       error "too much recursion; possible loop detected"
     end
 
-    local f, t, k, v = stable_pairs(b, compare, n)
-    for j, u in stable_pairs(a, compare, n) do
+    local f, t, k, v = each(b, compare, n)
+    for j, u in each(a, compare, n) do
       k, v = f(t, k)
 
       local c = compare(j, k, n)

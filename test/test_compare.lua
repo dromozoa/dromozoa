@@ -15,6 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local verbose = os.getenv "VERBOSE" == "1"
+
 local compare = require "dromozoa.compare"
 
 local function check_lt(a, b)
@@ -37,15 +39,19 @@ check_lt(nil, true)
 check_lt(nil, 1)
 check_lt(nil, "1")
 check_lt(nil, {1})
+
 check_eq(true, true)
 check_lt(true, 1)
 check_lt(true, "1")
 check_lt(true, {1})
-check_eq(1, 1)
-check_lt(1, "1")
-check_lt(1, {1})
+
 check_eq("1", "1")
+check_lt("1", 1)
 check_lt("1", {1})
+
+check_eq(1, 1)
+check_lt(1, {1})
+
 check_eq({1}, {1})
 
 check_eq(false, false)
@@ -56,15 +62,15 @@ local zero = 0.0
 local pinf = math.huge
 local nan = pinf / pinf
 
+check_eq("", "")
+check_lt("", "\0")
+check_eq("\0", "\0")
+
 check_lt(minf, zero)
 check_lt(zero, pinf)
 check_lt(pinf, nan)
 check_eq(nan,  nan)
-check_lt(nan,  "")
-
-check_eq("", "")
-check_lt("", "\0")
-check_eq("\0", "\0")
+check_lt(nan,  {})
 
 check_eq({}, {})
 check_lt({}, {17})
@@ -78,7 +84,9 @@ check_lt({aaa=1}, {abc=1})
 local status, message = pcall(function ()
   compare({[{}]=1,[{}]=2}, {[{}]=1,[{}]=2})
 end)
--- print(message)
+if verbose then
+  print(message)
+end
 assert(not status)
 
 local f = function () end
@@ -88,7 +96,9 @@ assert(compare(f, f) == 0)
 local status, message = pcall(function ()
   compare(f, g)
 end)
--- print(message)
+if verbose then
+  print(message)
+end
 assert(not status)
 
 local u = {}
@@ -98,5 +108,7 @@ v[1] = u
 local status, message = pcall(function ()
   compare(u, v)
 end)
--- print(message)
+if verbose then
+  print(message)
+end
 assert(not status)

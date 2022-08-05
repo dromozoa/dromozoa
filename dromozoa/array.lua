@@ -20,27 +20,23 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.array" }
 local table_unpack = table.unpack or unpack
 
-local function construct()
-  local self = {}
-  private[self] = {}
-  return setmetatable(self, metatable)
+---------------------------------------------------------------------------
+
+local function construct(priv, check)
+  if check ~= nil then
+    for i = 1, check do
+      if priv[i] == nil then
+        error "value is nil"
+      end
+    end
+  end
+
+  local self = setmetatable({}, metatable)
+  private[self] = priv
+  return self
 end
 
-function class:empty()
-  return next(private[self]) == nil
-end
-
-function class:size()
-  return #private[self]
-end
-
-function class:get(i)
-  return private[self][i]
-end
-
-function class:slice(...)
-  return construct():append(self:unpack(...))
-end
+---------------------------------------------------------------------------
 
 function class:append(...)
   local priv = private[self]
@@ -71,6 +67,35 @@ function class:set(i, v)
   return self
 end
 
+function class:slice(i, j)
+  local priv = private[self]
+  if i == nil then
+    i = 1
+  elseif i < 1 then
+    error "value is nil"
+  end
+  if j == nil then
+    j = #priv
+  elseif i <= j and j > #priv then
+    error "value is nil"
+  end
+  return construct { table_unpack(priv, i, j) }
+end
+
+---------------------------------------------------------------------------
+
+function class:empty()
+  return next(private[self]) == nil
+end
+
+function class:size()
+  return #private[self]
+end
+
+function class:get(i)
+  return private[self][i]
+end
+
 function class:ipairs()
   return ipairs(private[self])
 end
@@ -86,6 +111,8 @@ end
 function class:unpack(...)
   return table_unpack(private[self], ...)
 end
+
+---------------------------------------------------------------------------
 
 function metatable:__len()
   error "not supported"
@@ -111,8 +138,24 @@ function metatable:__tostring()
   error "not supported"
 end
 
-return setmetatable(class, {
+---------------------------------------------------------------------------
+
+local module = {}
+
+function module.fill(n, v)
+  if v == nil then
+    error "value is nil"
+  end
+  local priv = {}
+  for i = 1, n do
+    priv[i] = v
+  end
+  return construct(priv)
+end
+
+return setmetatable(module, {
+  __index = class;
   __call = function (_, ...)
-    return construct():append(...)
+    return construct({...}, select("#", ...))
   end
 })

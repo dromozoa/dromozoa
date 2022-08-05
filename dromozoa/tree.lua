@@ -17,6 +17,8 @@
 
 local compare = require "dromozoa.compare"
 
+---------------------------------------------------------------------------
+
 -- Balanced search trees made simple.
 -- https://user.it.uu.se/%7Earnea/abs/simp.html
 
@@ -82,7 +84,7 @@ local function insert(self, x, t, ok, last)
   return t, ok, last
 end
 
-local function delete(self, x, t, ok, last, deleted)
+local function delete(self, x, t, ok, last, deleted, k, v)
   ok = false
 
   if t ~= 0 then
@@ -98,16 +100,18 @@ local function delete(self, x, t, ok, last, deleted)
 
     local c = compare(x, K[t])
     if c < 0 then
-      L[t], ok, last, deleted = delete(self, x, L[t], ok, last, deleted)
+      L[t], ok, last, deleted, k, v = delete(self, x, L[t], ok, last, deleted, k, v)
     else
       if c == 0 then
         deleted = t
       end
-      R[t], ok, last, deleted = delete(self, x, R[t], ok, last, deleted)
+      R[t], ok, last, deleted, k, v = delete(self, x, R[t], ok, last, deleted, k, v)
     end
 
     -- 2. At the bottom of the tree we remove the element (if it is present).
     if t == last and deleted ~= 0 then
+      k = K[deleted]
+      v = V[deleted]
       K[deleted] = K[t]
       V[deleted] = V[t]
       deleted = 0
@@ -128,8 +132,10 @@ local function delete(self, x, t, ok, last, deleted)
     end
   end
 
-  return t, ok, last, deleted
+  return t, ok, last, deleted, k, v
 end
+
+---------------------------------------------------------------------------
 
 local function dispose(self, t)
   local K = self.K
@@ -191,12 +197,12 @@ local function find(self, x)
     elseif c > 0 then
       t = R[t]
     else
-      return K[t], V[t]
+      return K[t], V[t], t
     end
   end
 end
 
-local function next(self, x, t, k, v)
+local function next(self, x, t, k, v, u)
   if t ~= 0 then
     local K = self.K
     local V = self.V
@@ -205,17 +211,17 @@ local function next(self, x, t, k, v)
     local compare = self.compare
 
     if x == nil or compare(x, K[t]) < 0 then
-      k, v = next(self, x, L[t], k, v)
+      k, v, u = next(self, x, L[t], k, v, u)
       if k == nil then
-        return K[t], V[t]
+        return K[t], V[t], t
       else
-        return k, v
+        return k, v, u
       end
     end
-    return next(self, x, R[t], k, v)
+    return next(self, x, R[t], k, v, u)
   end
 
-  return k, v
+  return k, v, u
 end
 
 local function each(self, x, y, t)
@@ -250,48 +256,34 @@ end
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.tree" }
 
--- TODO 戻り値の順序を検討する
--- TODO eachの戻り値も
-
-function class:insert2(k)
-  local root, inserted, t = insert(self, k, self.root, false, 0)
+-- inserted, index
+function class:insert(k)
+  local root, ok, t = insert(self, k, self.root)
   self.root = root
-  return inserted, t
+  return ok, t
 end
 
-function class:insert(k, v, fn)
-  local root, ok, t = insert(self, k, self.root, false, 0)
-  self.root = root
-
-  local V = self.V
-  if fn == nil then
-    V[t] = v
-  elseif ok then
-    V[t] = fn()
-  end
-
-  return ok, V[t], t
-end
-
+-- deleted, key, value
 function class:delete(k)
-  local root, ok, t = delete(self, k, self.root, false, 0, 0)
-
+  local root, ok, t, _, k, v = delete(self, k, self.root)
   self.root = root
   if ok then
     dispose(self, t)
   end
-
-  return ok
+  return ok, k, v
 end
 
+-- key, value, index
 function class:find(k)
   return find(self, k)
 end
 
+-- key, value, index
 function class:next(k)
   return next(self, k, self.root)
 end
 
+-- key, value, index
 function class:each(lower_bound, upper_bound)
   return coroutine.wrap(function (self, t)
     return each(self, lower_bound, upper_bound, t)

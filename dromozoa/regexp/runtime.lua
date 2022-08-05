@@ -6,7 +6,7 @@ local main = function ()
   local push
   local clear
   local append
-  local tk
+  local ts
   local fs = 1
   local fp
   local fc
@@ -31,29 +31,32 @@ context["action_data"];
   local current_position = 1
   local current_index = main
   local current_state = _[current_index].start_state
+  local current_cont
   local current_thread
   local stack = {}
   local jumped = false
   function fcall(index)
     stack[#stack + 1] = {
-      token_symbol = tk;
+      token_symbol = ts;
       start_position = fs;
       start_line = start_line;
       start_column = start_column;
       current_index = current_index;
       current_state = current_state;
+      current_cont = current_cont;
       current_thread = current_thread;
     }
     if #stack > 2000 then
       error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (too much recursion; possible loop detected)")
     end
     jumped = true
-    tk = nil
+    ts = nil
     fs = current_position
     start_line = ln
     start_column = fs - lp
     current_index = index
     current_state = _[current_index].start_state
+    current_cont = nil
     if current_thread ~= nil then
       current_thread = nil
       coroutine.yield()
@@ -63,15 +66,19 @@ context["action_data"];
     local item = stack[#stack]
     stack[#stack] = nil
     jumped = true
-    tk = item.token_symbol
+    ts = item.token_symbol
     fs = item.start_position
     start_line = item.start_line
     start_column = item.start_column
     current_index = item.current_index
     current_state = item.current_state
+    current_cont = item.current_cont
     current_thread = item.current_thread
     if current_thread ~= nil then
       assert(coroutine.resume(current_thread))
+    end
+    if current_cont ~= nil then
+      current_cont()
     end
   end
   function push(v)
@@ -82,7 +89,7 @@ context["action_data"];
       v = string.char(table_unpack(v))
     end
     fn {
-      symbol = tk;
+      symbol = ts;
       i = fs;
       j = fp;
       source = source;
@@ -97,8 +104,9 @@ context["action_data"];
   function append(buffer, v)
     buffer[#buffer + 1] = v
   end
-  local function execute(index)
+  local function execute(index, cont)
     local action = action_data[index]
+    current_cont = cont
     jumped = false
     if action_threads[index] == 0 then
       current_thread = nil
@@ -109,11 +117,21 @@ context["action_data"];
     end
     return jumped
   end
+  local function restart()
+    if current_state == _[current_index].start_state then
+      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (loop detected)")
+    end
+    ts = nil
+    fs = current_position
+    start_line = ln
+    start_column = fs - lp
+    current_state = _[current_index].start_state
+  end
   local function accept(current_byte)
     if current_state > _[current_index].max_accept_state then
       error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (cannot transition)")
     end
-    if execute(_[current_index].accept_actions[current_state]) then
+    if execute(_[current_index].accept_actions[current_state], restart) then
       return
     end
     if current_byte == nil then
@@ -121,16 +139,9 @@ context["action_data"];
         fn()
         return true
       end
-      return error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (unexpected eof)")
+      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (unexpected eof)")
     end
-    if current_state == _[current_index].start_state then
-      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (loop detected)")
-    end
-    tk = nil
-    fs = current_position
-    start_line = ln
-    start_column = fs - lp
-    current_state = _[current_index].start_state
+    restart()
   end
   local function transition()
     local current_byte = string.byte(source, current_position)

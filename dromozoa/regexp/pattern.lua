@@ -17,6 +17,11 @@
 
 local metatable = { __name = "dromozoa.regexp.pattern" }
 
+local any = {}
+for byte = 0x00, 0xFF do
+  any[byte] = true
+end
+
 local timestamp = 0
 
 local function construct(code, ...)
@@ -32,7 +37,14 @@ local function pattern(that)
     end
     return rawset(self, "literal", that)
   else
-    return that
+    assert(getmetatable(that) == metatable)
+    if rawget(that, 0) == nil then
+      assert(rawget(that, "timestamp") == nil)
+      return construct("[", any)
+    else
+      assert(rawget(that, "timestamp") ~= nil)
+      return that
+    end
   end
 end
 
@@ -192,8 +204,8 @@ function metatable:__mod(that)
   end
 end
 
--- TODO pattern(self)は呼んでおくべき？
 function metatable:__unm()
+  local self = pattern(self)
   if self[0] == "[" then
     local neg = self[1]
     local set = {}
@@ -208,28 +220,22 @@ function metatable:__unm()
   end
 end
 
-local module = setmetatable({ [0] = "[", {} }, metatable)
-for byte = 0x00, 0xFF do
-  module[1][byte] = true
-end
-
--- TODO self == moduleを調べるのと、timestamp==nilを調べるのはおなじ？
--- TODO pattern(self)で、timestampがなければ、なにかするのは？
-
 function metatable:__index(that)
-  if self == module then
+  assert(getmetatable(self) == metatable)
+  if rawget(self, 0) == nil then
     return range(that)
   else
     error "not supported"
   end
-end;
+end
 
 function metatable:__newindex(that)
   error "not supported"
-end;
+end
 
 function metatable:__call(that)
-  if self == module then
+  assert(getmetatable(self) == metatable)
+  if rawget(self, 0) == nil then
     if type(that) == "table" and getmetatable(that) ~= metatable then
       local result = set(that[1])
       for i = 2, #that do
@@ -244,4 +250,4 @@ function metatable:__call(that)
   end
 end
 
-return module
+return setmetatable({}, metatable)
