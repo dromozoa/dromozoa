@@ -90,15 +90,17 @@ local metatable = { __index = class, __name = "dromozoa.parser.grammar.body" }
 module.body = setmetatable({}, metatable)
 
 local function body(that)
-  -- TODO that[0]がnilだったら
-  if that == module.body then
-    return construct(metatable, "body")
-  elseif type(that) == "string" then
+  if type(that) == "string" then
     return construct(metatable, "body", that)
   else
     assert(getmetatable(that) == metatable)
-    assert(that.timestamp ~= nil)
-    return that
+    if that[0] == nil then
+      assert(that.timestamp == nil)
+      return construct(metatable, "body")
+    else
+      assert(that.timestamp ~= nil)
+      return that
+    end
   end
 end
 
@@ -136,12 +138,11 @@ end
 local metatable = { __name = "dromozoa.parser.grammar" }
 
 function metatable:__call(token_names, that)
-  -- TODO token_namesがarrayの場合は？
   -- TODO $custom_dataに対応する
 
   local symbol_names = array()
   local symbol_table = {}
-  for _, name in ipairs(token_names) do
+  for _, name in token_names:ipairs() do
     if symbol_table[name] ~= nil then
       error("symbol " .. name .. " redefined as a terminal")
     end
