@@ -6,7 +6,7 @@ local main = function ()
   local push
   local clear
   local append
-  local tk
+  local ts
   local fs = 1
   local fp
   local fc
@@ -37,7 +37,7 @@ context["action_data"];
   local jumped = false
   function fcall(index)
     stack[#stack + 1] = {
-      token_symbol = tk;
+      token_symbol = ts;
       start_position = fs;
       start_line = start_line;
       start_column = start_column;
@@ -50,7 +50,7 @@ context["action_data"];
       error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (too much recursion; possible loop detected)")
     end
     jumped = true
-    tk = nil
+    ts = nil
     fs = current_position
     start_line = ln
     start_column = fs - lp
@@ -66,7 +66,7 @@ context["action_data"];
     local item = stack[#stack]
     stack[#stack] = nil
     jumped = true
-    tk = item.token_symbol
+    ts = item.token_symbol
     fs = item.start_position
     start_line = item.start_line
     start_column = item.start_column
@@ -89,7 +89,7 @@ context["action_data"];
       v = string.char(table_unpack(v))
     end
     fn {
-      symbol = tk;
+      symbol = ts;
       i = fs;
       j = fp;
       source = source;
@@ -121,7 +121,7 @@ context["action_data"];
     if current_state == _[current_index].start_state then
       error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (loop detected)")
     end
-    tk = nil
+    ts = nil
     fs = current_position
     start_line = ln
     start_column = fs - lp

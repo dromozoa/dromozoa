@@ -25,7 +25,7 @@ local main = function ()
                 -- save/restore
                 --  | read only
                 --  |  |
-  local tk      --  x  x  token symbol
+  local ts      --  x  x  token symbol
   local fs = 1  --  x  x  start position
   local fp      --     x  current position
   local fc      --     x  current character
@@ -56,7 +56,7 @@ local main = function ()
 
   function fcall(index)
     stack[#stack + 1] = {
-      token_symbol = tk;
+      token_symbol = ts;
       start_position = fs;
       start_line = start_line;
       start_column = start_column;
@@ -72,7 +72,7 @@ local main = function ()
 
     jumped = true
 
-    tk = nil
+    ts = nil
     fs = current_position
     start_line = ln
     start_column = fs - lp
@@ -92,7 +92,7 @@ local main = function ()
 
     jumped = true
 
-    tk = item.token_symbol
+    ts = item.token_symbol
     fs = item.start_position
     start_line = item.start_line
     start_column = item.start_column
@@ -120,7 +120,7 @@ local main = function ()
     end
     -- TODO フォーマットを修正する
     fn {
-      symbol = tk;
+      symbol = ts;
       i = fs;
       j = fp;
       source = source;
@@ -158,7 +158,7 @@ local main = function ()
       error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (loop detected)")
     end
 
-    tk = nil
+    ts = nil
     fs = current_position
     start_line = ln
     start_column = fs - lp
