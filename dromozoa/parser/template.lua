@@ -16,125 +16,90 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local main = function ()
-  --[[
-    create_node
-      { [0] = ????, defs... }
-    collapse_node
-      { [0] = head, defs...}
-    default_node
-      { [0] = head, reduced_nodes... }
+  local create
+  local append
 
-    結果ノードは、
-      { [0] = head }
-      reduced_nodesのどれか (create_node)
-      新規作成ノード
-
-      _[0]
-      _[1] .. _[n]
-      _"if" => { [0] = symbol }
-
-      node(_[0], _[1], _[3])
-
-      return node(0,1,"if"){
-        binop = true
-      }
-
-      node {0,1,2,3,4;binop=1}
-      node {0,"namelist"}
-      node {"namelist"}
-      node {[0]=1,"explist";scope=true}
-
-      _0, _1, _2, ...
-      create(code) => { [0] = code }
-      node:append(node)
-      node:set_attribute(k, v)
-
-      return _0:append(_1,_2):attr("binop")
-
-
-
-      _[0] { ... }
-
-      _"..." { }
-
-      return create("list")
-
-      _0 { _1, _2, binop=true }
-
-      _[0] { _[1], _[2], binop=true }
-
-      _ = _0 { _1, _2, binop=true }
-
-      name=value
-
-      _(_1, _2("key"))
-
-
-
-      _"list"
-  ]]
+  local S
+  local SS
 
   $custom_data
   local action_data = { $action_data }
+  local table_unpack = table.unpack or unpack
   local static_data = coroutine.yield()
 
+  local symbol_names = static_data.symbol_names
   local actions = static_data.actions
   local max_state = #actions
   local heads = static_data.heads
   local sizes = static_data.sizes
   local semantic_actions = static_data.semantic_actions
 
-  local stack = { 1 } -- state stack
+  local stack = { 1 }
   local nodes = {}
 
+  function create(symbol)
+    return { [0] = symbol }
+  end
+
+  function append(...)
+    for i = 1, select("#", ...) do
+      SS[#SS + 1] = select(i, ...)
+    end
+  end
+
   while true do
-    local token_node = coroutine.yield()
-    local symbol = token_node[0]
+    local token = coroutine.yield()
+    local symbol = token[0]
+    if symbol ~= nil then
+      while true do
+        local state = stack[#stack]
+        local action = actions[state][symbol]
+        if action == 0 then
+          local at = ""
+          if token.f ~= nil and token.n ~= nil and token.c ~= nil then
+            at = token.f .. ":" .. token.n .. ":" .. token.c .. ": "
+          end
+          error(at .. "parser error (cannot transition near " .. symbol_names[symbol] .. ")")
+        end
 
-    while true do
-      local state = stack[#stack]
-      local action = actions[state][symbol]
-      if action == 0 then
-        error "???"
-      end
-      if action <= max_state then
         -- shift
-        stack[#stack + 1] = action
-        nodes[#nodes + 1] = token_node
-        break
-      end
-      -- reduce or accept
-      local index = action - max_state
-      if index == 1 then
+        if action <= max_state then
+          stack[#stack + 1] = action
+          nodes[#nodes + 1] = token
+          break
+        end
+
+        local index = action - max_state
         -- accept
-        -- S' -> S
-        local accepted_node = nodes[#nodes]
-        stack[#stack] = nil
-        nodes[#nodes] = nil
-        -- TODO エラーチェック
-        -- #stack == 1
-        -- #nodes == 0
-        return accepted_node
-      end
-      -- reduce
-      local head = heads[index]
-      local size = sizes[index]
+        if index == 1 then
+          local accepted_node = nodes[#nodes]
+          stack[#stack] = nil
+          nodes[#nodes] = nil
+          return accepted_node
+        end
 
-      local reduced_nodes = {}
-      for i = size - 1, 0, -1 do
-        reduced_nodes[#reduced_nodes + 1] = nodes[#nodes - i]
-      end
-      for i = 1, size do
-        stack[#stack] = nil
-        nodes[#nodes] = nil
-      end
+        -- reduce
+        local head = heads[index]
+        local size = sizes[index]
 
-      reduced_nodes[0] = head
-      action_data[semantic_actions[index]]()
+        S = { [0] = create(head) }
+        for i = size - 1, 0, -1 do
+          S[#S + 1] = nodes[#nodes - i]
+        end
+        SS = create(head)
+        append(table_unpack(S))
 
-      local state = stack[#stack]
-      stack[#stack + 1] = actions[state][head]
-      nodes[#nodes + 1] = reduced_nodes
+        for i = 1, size do
+          stack[#stack] = nil
+          nodes[#nodes] = nil
+        end
+
+        action_data[semantic_actions[index]]()
+
+        local state = stack[#stack]
+        stack[#stack + 1] = actions[state][head]
+        nodes[#nodes + 1] = SS
+      end
     end
   end
 end

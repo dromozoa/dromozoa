@@ -62,9 +62,13 @@ local execute = assert(assert(loadfile(filename))())
 execute([[
 a ] b \1 c \[ d \] e
 f [ g \1 h [ i \[ j \] k ] l
-]], filename, function (token)
-  if token ~= nil and token.symbol ~= nil then
-    buffer:append("push ", token.symbol, " ", token_names:get(token.symbol), " ${<", token.value, ">}\n")
+]], "@test", 0, function (token)
+  if token[0] ~= nil then
+    if token[0] ~= 0 then
+      buffer:append("push ", token[0], " ", token_names:get(token[0]), " ${<", token.v, ">}\n")
+    else
+      buffer:append "push eof\n"
+    end
   end
 end)
 
@@ -108,4 +112,5 @@ push 3 char ${<k>}
 push 3 char ${< >}
 push 1 ] ${<]>}
 push 3 char ${<l>}
+push eof
 ]])
