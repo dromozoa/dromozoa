@@ -1,6 +1,10 @@
 return function (context) return {
 [[
 local main = function ()
+  ]];
+context["custom_data"];
+[[
+
   local action_data = { ]];
 context["action_data"];
 [=[

@@ -74,6 +74,7 @@ local main = function ()
       _"list"
   ]]
 
+  $custom_data
   local action_data = { $action_data }
   local static_data = coroutine.yield()
 

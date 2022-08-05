@@ -61,6 +61,7 @@ return function (grammar, actions)
     "};\n")
 
   return table.concat(runtime {
+    custom_data = grammar.custom_data:concat();
     action_data = action_data:concat();
     static_data = static_data:concat();
   })

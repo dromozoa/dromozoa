@@ -138,8 +138,6 @@ end
 local metatable = { __name = "dromozoa.parser.grammar" }
 
 function metatable:__call(token_names, that)
-  -- TODO $custom_dataに対応する
-
   local symbol_names = array()
   local symbol_table = {}
   for _, name in token_names:ipairs() do
@@ -150,12 +148,15 @@ function metatable:__call(token_names, that)
   end
   local max_terminal_symbol = symbol_names:append "$":size()
 
+  local custom_data = array()
   local expect_sr
   local precedence = 0
   local precedence_table = tree_map()
   local symbol_precedences = {}
   for _, v in ipairs(that) do
-    if v[0] == "expect" then
+    if type(v) == "string" then
+      custom_data:append(v, "\n")
+    elseif v[0] == "expect" then
       assert(getmetatable(v).__name == "dromozoa.parser.grammar.expect")
       expect_sr = v[1]
     else
@@ -253,6 +254,7 @@ function metatable:__call(token_names, that)
   return {
     symbol_names = symbol_names;
     max_terminal_symbol = max_terminal_symbol;
+    custom_data = custom_data;
     expect_sr = expect_sr;
     symbol_precedences = symbol_precedences;
     productions = productions;
