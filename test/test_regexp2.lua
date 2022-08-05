@@ -15,6 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local verbose = os.getenv "VERBOSE" == "1"
+
 local array = require "dromozoa.array"
 local pattern = require "dromozoa.regexp.pattern"
 local machine = require "dromozoa.regexp.machine"
@@ -84,19 +86,21 @@ execute([[
 -- test
 + 456
   * "foo\35abc" 111
-]], "@test", function (token)
-  if token ~= nil then
-    if token.symbol then
-      buffer:append(table.concat({ "push", token.symbol, token.i, token.j, token.line, token.column, ("%q"):format(token.value) }, "\t") .. "\n")
+]], "@test", 0, function (token)
+  if token[0] ~= nil then
+    if token[0] == 0 then
+      buffer:append "push\t$\n"
     else
-      buffer:append(table.concat({ "skip", "", token.i, token.j, token.line, token.column, ("%q"):format(token.source) }, "\t") .. "\n")
+      buffer:append(table.concat({ "push", token[0], token.i, token.j, token.line, token.column, ("%q"):format(token.value) }, "\t") .. "\n")
     end
   else
-    buffer:append "push\t$\n"
+    buffer:append(table.concat({ "skip", "", token.i, token.j, token.line, token.column, ("%q"):format(token.source) }, "\t") .. "\n")
   end
 end)
 
--- print(buffer:concat())
+if verbose then
+  print(buffer:concat())
+end
 assert(buffer:concat() == [[
 skip		1	19	1	1	"--[=[\
 123] ]==]\
