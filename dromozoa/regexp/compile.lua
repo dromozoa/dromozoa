@@ -20,10 +20,10 @@ local tree_set = require "dromozoa.tree_set"
 local runtime = require "dromozoa.regexp.runtime"
 
 local function insert_action(context, action)
-  local action = action:gsub("$([%a_][%w%_]*)", function (name)
-    local result = context.action.variables[name]
+  local action = action:gsub("$([%a_][%w%_]*)", function (variable)
+    local result = context.action.variables[variable]
     if result == nil then
-      error("name " .. name .. " not defined")
+      error("variable " .. variable .. " not defined")
     end
     return result
   end):gsub([[${([^%s<>\]*)<(..-)>%1}]], function (_, s)
