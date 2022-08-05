@@ -29,7 +29,7 @@ local function insert_action(context, action)
   end):gsub([[${([^%s<>\]*)<(..-)>%1}]], function (_, s)
     local buffer = {}
     for i, v in ipairs { s:byte(1, #s) } do
-      buffer[i] = ("0x%X"):format(v)
+      buffer[i] = ("0x%02X"):format(v)
     end
     return table.concat(buffer, ",")
   end)

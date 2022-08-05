@@ -45,7 +45,8 @@ local code = compile {
 
   lexer(tokens, {
     _{
-      _{" \t\f\v"};
+      -- マクロ展開のテスト
+      _{" \t\f\v"}/"assert('${<\0\n\31あ>}'=='0x00,0x0A,0x1F,0xE3,0x81,0x82')";
       _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
       _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
     }*"+";
