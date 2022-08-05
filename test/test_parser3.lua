@@ -47,8 +47,16 @@ out:write(regexp.compile {
     _"]";
     _"{";
     _"}";
+    _"(";
+    _")";
     _",";
     _";";
+
+    _"if";
+    _"then";
+    _"else";
+    _"elseif";
+    _"end";
 
     item = _["AZaz"]*"+";
   });
@@ -64,6 +72,7 @@ local g, a, c = parser.lalr(parser.grammar(token_names, {
     = _"exp" ";" %[[
         $$=$0 append($1)
       ]]
+    + _"if_stmt"
     ;
 
   exp
@@ -72,6 +81,9 @@ local g, a, c = parser.lalr(parser.grammar(token_names, {
       ]]
     + _"{" "llist" "}" %[[
         -- $$=$0 append($2)
+        $$=$2
+      ]]
+    + _"(" "lexps" ")" %[[
         $$=$2
       ]]
     + _"item" %[[
@@ -84,7 +96,8 @@ local g, a, c = parser.lalr(parser.grammar(token_names, {
     + _"exp"
     + _"exp" "," "rlist" %[[
         -- $$=$0 append($1, $3)
-        $$=create($rlist) append($1, (table.unpack or unpack)($3))
+        -- $$=create($rlist) append($1, (table.unpack or unpack)($3))
+        -- $$=$0 append($3, $1)
       ]]
     ;
 
@@ -94,6 +107,31 @@ local g, a, c = parser.lalr(parser.grammar(token_names, {
     + _"llist" "," "exp" %[[
         -- $$=$0 append($1, $3)
         $$=$1 append($3)
+      ]]
+    ;
+
+  lexps
+    = _
+    + _"lexps" "exp" %[[
+        $$=$1 append($2)
+      ]]
+    ;
+
+  if_stmt
+    = _"if" "exp" "then" "exp" "elseif_clause" "else_clause" "end"
+    ;
+
+  elseif_clause
+    = _
+    + _"elseif_clause" "elseif" "exp" "then" "exp" %[[
+        $$=$1 append($2, $3, $4, $5, $6)
+      ]]
+    ;
+
+  else_clause
+    = _
+    + _"else" "exp" %[[
+        $$ = $1 append($2)
       ]]
     ;
 
@@ -112,7 +150,7 @@ out:close()
 local R = assert(assert(loadfile(regexp_filename))())
 local P = assert(assert(loadfile(parser_filename))())
 local r = R([[
-[ a, b, c, d, { a, b, c, d } ];
+if () then {a} elseif () then {b} elseif () then {c} else {z} end
 ]], "@test", P.max_terminal_symbol, P())
 local symbol_names = P.symbol_names
 
