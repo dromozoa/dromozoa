@@ -91,10 +91,10 @@ execute([[
     if token[0] == 0 then
       buffer:append "push\t$\n"
     else
-      buffer:append(table.concat({ "push", token[0], token.i, token.j, token.line, token.column, ("%q"):format(token.value) }, "\t") .. "\n")
+      buffer:append(table.concat({ "push", token[0], token.i, token.j, token.n, token.c, ("%q"):format(token.v) }, "\t") .. "\n")
     end
   else
-    buffer:append(table.concat({ "skip", "", token.i, token.j, token.line, token.column, ("%q"):format(token.source) }, "\t") .. "\n")
+    buffer:append(table.concat({ "skip", "", token.i, token.j, token.n, token.c, ("%q"):format(token.s) }, "\t") .. "\n")
   end
 end)
 

@@ -93,10 +93,10 @@ context["action_data"];
       [0] = ts;
       i = fs;
       j = fp;
-      source = source;
-      line = start_line;
-      column = start_column;
-      value = v;
+      n = start_line;
+      c = start_column;
+      s = source;
+      v = v;
     }
   end
   function clear(buffer)

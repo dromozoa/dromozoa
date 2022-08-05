@@ -65,7 +65,7 @@ f [ g \1 h [ i \[ j \] k ] l
 ]], "@test", 0, function (token)
   if token[0] ~= nil then
     if token[0] ~= 0 then
-      buffer:append("push ", token[0], " ", token_names:get(token[0]), " ${<", token.value, ">}\n")
+      buffer:append("push ", token[0], " ", token_names:get(token[0]), " ${<", token.v, ">}\n")
     else
       buffer:append "push eof\n"
     end

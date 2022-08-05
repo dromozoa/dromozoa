@@ -97,7 +97,7 @@ local main = function ()
         local state = stack[#stack]
         local action = actions[state][symbol]
         if action == 0 then
-          error(source_name .. ":" .. token_node.line .. ":" .. token_node.column .. ": parser error (cannot transition)")
+          error(source_name .. ":" .. token_node.n .. ":" .. token_node.c .. ": parser error (cannot transition)")
         end
 
         -- shift

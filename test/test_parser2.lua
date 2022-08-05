@@ -64,13 +64,13 @@ local g, a, c = parser.lalr(parser.grammar(token_names, {
   left "*" "/";
   right "UNM";
 
-  E = _"E" "+" "E" %[[_[0].value = _[1].value + _[3].value]]
-    + _"E" "-" "E" %[[_[0].value = _[1].value - _[3].value]]
-    + _"E" "*" "E" %[[_[0].value = _[1].value * _[3].value]]
-    + _"E" "/" "E" %[[_[0].value = _[1].value / _[3].value]]
-    + _"(" "E" ")" %[[_[0].value = _[2].value]]
-    + _"-" "E" :prec "UNM" %[[_[0].value = -_[2].value]]
-    + _"number" %[[_[0].value = tonumber(_[1].value)]]
+  E = _"E" "+" "E" %[[_[0].v = _[1].v + _[3].v]]
+    + _"E" "-" "E" %[[_[0].v = _[1].v - _[3].v]]
+    + _"E" "*" "E" %[[_[0].v = _[1].v * _[3].v]]
+    + _"E" "/" "E" %[[_[0].v = _[1].v / _[3].v]]
+    + _"(" "E" ")" %[[_[0].v = _[2].v]]
+    + _"-" "E" :prec "UNM" %[[_[0].v = -_[2].v]]
+    + _"number" %[[_[0].v = tonumber(_[1].v)]]
     ;
 }))
 for _, message in c:ipairs() do
@@ -92,5 +92,7 @@ local p = P "@test"
 local r = R([[
 2 + 3 * 4 - 6 / -3
 ]], "@test", P.max_terminal_symbol, p)
-assert(r.value == 16)
-
+if verbose then
+  print(r.v)
+end
+assert(r.v == 16)
