@@ -235,6 +235,9 @@ end
 local _ = { $shared_data }
 local _ = { $static_data }
 
+-- TODO データにアクセスできるようにオブジェクトにする
+-- token_namesを出力する？
+
 return function (source, source_name, fn)
   local thread = coroutine.create(main)
   assert(coroutine.resume(thread))
