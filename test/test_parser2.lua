@@ -50,8 +50,8 @@ local regexp_code = regexp.compile {
   });
 }
 
-local filename = "test-gen-parser2-regexp.lua"
-local out = assert(io.open(filename, "w"))
+local regexp_filename = "test-gen-parser2-regexp.lua"
+local out = assert(io.open(regexp_filename, "w"))
 out:write(regexp_code)
 out:close()
 
@@ -64,13 +64,14 @@ local g, a, c = parser.lalr(parser.grammar(token_names, {
   left "*" "/";
   right "UNM";
 
-  E = _"E" "+" "E"
-    + _"E" "-" "E"
-    + _"E" "*" "E"
-    + _"E" "/" "E"
-    + _"(" "E" ")"
-    + _"number"
-    + _"-" "E" :prec "UNM";
+  E = _"E" "+" "E" %[[_[0].value = _[1].value + _[3].value]]
+    + _"E" "-" "E" %[[_[0].value = _[1].value - _[3].value]]
+    + _"E" "*" "E" %[[_[0].value = _[1].value * _[3].value]]
+    + _"E" "/" "E" %[[_[0].value = _[1].value / _[3].value]]
+    + _"(" "E" ")" %[[_[0].value = _[2].value]]
+    + _"-" "E" :prec "UNM" %[[_[0].value = -_[2].value]]
+    + _"number" %[[_[0].value = tonumber(_[1].value)]]
+    ;
 }))
 for _, message in c:ipairs() do
   if verbose or not message:find "^%[info%]" then
@@ -79,9 +80,21 @@ for _, message in c:ipairs() do
 end
 
 local parser_code = parser.compile(g, a)
-local filename = "test-gen-parser2-parser.lua"
-local out = assert(io.open(filename, "w"))
-out:write(regexp_code)
+local parser_filename = "test-gen-parser2-parser.lua"
+local out = assert(io.open(parser_filename, "w"))
+out:write(parser_code)
 out:close()
 
+local R = assert(assert(loadfile(regexp_filename))())
+local P = assert(assert(loadfile(parser_filename))())
 
+local root
+local p = P "@test"
+R([[
+2 + 3 * 4 - 6 / -3
+]], "@test", P.max_terminal_symbol, function (token)
+  if token[0] ~= nil then
+    root = p(token)
+  end
+end)
+assert(root.value == 16)

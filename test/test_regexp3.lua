@@ -62,7 +62,7 @@ local execute = assert(assert(loadfile(filename))())
 execute([[
 a ] b \1 c \[ d \] e
 f [ g \1 h [ i \[ j \] k ] l
-]], filename, function (token)
+]], "@test", function (token)
   if token ~= nil and token.symbol ~= nil then
     buffer:append("push ", token.symbol, " ", token_names:get(token.symbol), " ${<", token.value, ">}\n")
   end

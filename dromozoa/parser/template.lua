@@ -74,9 +74,11 @@ local main = function ()
       _"list"
   ]]
 
+  local _
+
   $custom_data
   local action_data = { $action_data }
-  local static_data = coroutine.yield()
+  local static_data, source_name = coroutine.yield()
 
   local actions = static_data.actions
   local max_state = #actions
@@ -84,7 +86,7 @@ local main = function ()
   local sizes = static_data.sizes
   local semantic_actions = static_data.semantic_actions
 
-  local stack = { 1 } -- state stack
+  local stack = { 1 }
   local nodes = {}
 
   while true do
@@ -95,27 +97,25 @@ local main = function ()
       local state = stack[#stack]
       local action = actions[state][symbol]
       if action == 0 then
-        error "???"
+        error(source_name .. ":" .. token_node.line .. ":" .. token_node.column .. ": parser error (cannot transition)")
       end
+
+      -- shift
       if action <= max_state then
-        -- shift
         stack[#stack + 1] = action
         nodes[#nodes + 1] = token_node
         break
       end
-      -- reduce or accept
+
       local index = action - max_state
+      -- accept
       if index == 1 then
-        -- accept
-        -- S' -> S
         local accepted_node = nodes[#nodes]
         stack[#stack] = nil
         nodes[#nodes] = nil
-        -- TODO エラーチェック
-        -- #stack == 1
-        -- #nodes == 0
         return accepted_node
       end
+
       -- reduce
       local head = heads[index]
       local size = sizes[index]
@@ -130,11 +130,15 @@ local main = function ()
       end
 
       reduced_nodes[0] = head
+      _ = { [0] = reduced_nodes }
+      for i = 1, #reduced_nodes do
+        _[i] = reduced_nodes[i]
+      end
       action_data[semantic_actions[index]]()
 
       local state = stack[#stack]
       stack[#stack + 1] = actions[state][head]
-      nodes[#nodes + 1] = reduced_nodes
+      nodes[#nodes + 1] = _[0]
     end
   end
 end
@@ -149,10 +153,10 @@ local metatable = {
 
 return setmetatable({}, {
   __index = static_data;
-  __call = function ()
+  __call = function (_, source_name)
     local thread = coroutine.create(main)
     assert(coroutine.resume(thread))
-    assert(coroutine.resume(thread, static_data))
+    assert(coroutine.resume(thread, static_data, source_name))
     return setmetatable({ thread = thread }, metatable)
   end;
 })

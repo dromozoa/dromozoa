@@ -84,7 +84,7 @@ execute([[
 -- test
 + 456
   * "foo\35abc" 111
-]], filename, function (token)
+]], "@test", function (token)
   if token ~= nil then
     if token.symbol then
       buffer:append(table.concat({ "push", token.symbol, token.i, token.j, token.line, token.column, ("%q"):format(token.value) }, "\t") .. "\n")

@@ -22,7 +22,7 @@ context["custom_data"];
 context["action_data"];
 [[
  }
-  local _, source, source_name, fn = coroutine.yield()
+  local _, source, source_name, symbol_eof, fn = coroutine.yield()
   local table_unpack = table.unpack or unpack
   local main = _.main
   local action_threads = _.action_threads
@@ -89,7 +89,7 @@ context["action_data"];
       v = string.char(table_unpack(v))
     end
     fn {
-      symbol = ts;
+      [0] = ts;
       i = fs;
       j = fp;
       source = source;
@@ -136,7 +136,8 @@ context["action_data"];
     end
     if current_byte == nil then
       if current_index == main then
-        fn()
+        ts = symbol_eof
+        push()
         return true
       end
       error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (unexpected eof)")
@@ -190,10 +191,10 @@ local _ = { ]];
 context["static_data"];
 [[
  }
-return function (source, source_name, fn)
+return function (source, source_name, symbol_eof, fn)
   local thread = coroutine.create(main)
   assert(coroutine.resume(thread))
-  assert(coroutine.resume(thread, _, source, source_name, fn))
+  assert(coroutine.resume(thread, _, source, source_name, symbol_eof, fn))
 end
 ]];
 } end
