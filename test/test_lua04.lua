@@ -15,6 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local verbose = os.getenv "VERBOSE" == "1"
+
 local data = {}
 for byte = 0x00, 0xFF do
   data[#data + 1] = byte
@@ -38,8 +40,11 @@ end
 -- つまり、0x00..0x0A, 0x0B..0x1F, 0x7Fで出力が異なる。
 
 local q = string.format("%q", string.char((table.unpack or unpack)(data)))
--- io.write(q)
+if verbose then
+  io.write(q)
+end
 
 local q = string.format("%q", "\0011\0111")
--- io.write(q)
-
+if verbose then
+  io.write(q)
+end

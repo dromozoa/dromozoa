@@ -15,6 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local verbose = os.getenv "VERBOSE" == "1"
+
 local p_inf = math.huge
 local m_inf = -math.huge
 local p_zero = 0/p_inf
@@ -22,99 +24,118 @@ local m_zero = 0/m_inf
 local i_zero = 0
 local nan = p_inf/p_inf
 
-print(type(m_zero), type(i_zero), type(nan))
+if verbose then
+  print(([[
+       | %-8s | %-8s
+-----------------------------
+p_inf  | %-8s | %-8s
+m_inf  | %-8s | %-8s
+p_zero | %-8s | %-8s
+m_zero | %-8s | %-8s
+i_zero | %-8s | %-8s
+nan    | %-8s | %-8s
+-----------------------------
+p_zero == m_zero | %s
+p_zero == i_zero | %s
+m_zero == i_zero | %s
+nan == nan       | %s
+not nan          | %s
+not not nan      | %s
+nan and 1 or 0   | %s
+]]):format(
+    "type", "tostring",
+    type(p_inf),  tostring(p_inf),
+    type(m_inf),  tostring(m_inf),
+    type(p_zero), tostring(p_zero),
+    type(m_zero), tostring(m_zero),
+    type(i_zero), tostring(i_zero),
+    type(nan),    tostring(nan),
+    tostring(p_zero == m_zero),
+    tostring(p_zero == i_zero),
+    tostring(m_zero == i_zero),
+    tostring(nan == nan),
+    tostring(not nan),
+    tostring(not not nan),
+    tostring(nan and 1 or 0)
+    ))
 
-print(p_inf, m_inf, p_zero, m_zero, i_zero, nan)
-print(p_inf == p_inf, m_inf == m_inf)
-print(p_zero == m_zero, p_zero == i_zero, m_zero == i_zero)
-print(p_zero < m_zero, p_zero < i_zero, m_zero < i_zero)
-print(p_zero > m_zero, p_zero > i_zero, m_zero > i_zero)
-print(nan == nan)
-
-local t = {}
-t[p_inf] = "p_inf"
-t[m_inf] = "m_inf"
-
-t[p_zero] = "p_zero"
-print "--"
-for k, v in pairs(t) do
-  print(k, v)
 end
 
-t[m_zero] = "m_zero"
-print "--"
-for k, v in pairs(t) do
-  print(k, v)
+local t = { nan }
+assert(#t == 1)
+
+local status, message = pcall(function () t[nil] = "nil" end)
+if verbose then
+  print(message)
 end
+assert(not status)
 
-t[i_zero] = "i_zero"
-print "--"
-for k, v in pairs(t) do
-  print(k, v)
+local status, message = pcall(function () t[nan] = "nan" end)
+if verbose then
+  print(message)
 end
+assert(not status)
 
-assert(not pcall(function () t[nan] = "nan" end))
-
-t["nil"] = nil
-t["nan"] = nan
-print "--"
-for k, v in pairs(t) do
-  print(k, v)
-end
-
-print "=="
-
-local u = setmetatable({}, {
+local m1 = {
   __eq = function (a, b)
-    print("u.__eq", a, b)
+    if verbose then print("m1.__eq", a, b) end
     return false
   end;
   __lt = function (a, b)
-    print("u.__lt", a, b)
+    if verbose then print("m1.__lt", a, b) end
     return false
   end;
-})
+}
 
-local v = setmetatable({}, {
+local m2 = {
   __eq = function (a, b)
-    print("v.__eq", a, b)
+    if verbose then print("m2.__eq", a, b) end
     return false
   end;
   __lt = function (a, b)
-    print("v.__lt", a, b)
+    if verbose then print("m2.__lt", a, b) end
     return false
   end;
-})
+}
 
+local x = setmetatable({}, m1)
+local y = setmetatable({}, m1)
+local z = setmetatable({}, m2)
 local f = assert(io.open "/dev/null")
 
-local x = u == nil
-local x = u == true
-local x = u == 42
-local x = u == "foo"
-local x = u == v
-local x = u == function () end
-local x = u == f
-local x = u == coroutine.create(function () end)
+-- LuaJITとLua 5.2までは、左右の型が同じで、かつ同じメタメソッドを持っていなけ
+-- ればならない。Lua 5.3以降では、メタメソッドが定義されていれば呼ばれる。
 
--- Lua 5.1/LuaJITでは、左右の型が同じで、かつどちらも同じメタメソッドを持ってい
--- なければならない。
--- Lua 5.2以降では、メタメソッドが定義されていれば呼ばれる
+local _ = x == nil
+local _ = x == true
+local _ = x == 42
+local _ = x == "foo"
+local _ = x == x -- 等値なので呼ばれない。
+local _ = x == y -- メタメソッドが同じなので呼ばれる。
+local _ = x == z -- Lua 5.3以降で呼ばれる。
+local _ = x == function () end
+local _ = x == f
+local _ = x == coroutine.create(function () end)
 
--- local x = u < nil
--- local x = u < true
--- local x = u < 42
--- local x = u < "foo"
--- local x = u < v
--- local x = u < function () end
--- local x = u < f
--- local x = u < coroutine.create(function () end)
+-- LuaJITとLua 5.1では、左右の型が同じで、かつ同じメタメソッドを持っていなけ
+-- ればならない。Lua 5.2以降では、メタメソッドが定義されていれば呼ばれる。
 
--- local x = u > nil
--- local x = u > true
--- local x = u > 42
--- local x = u > "foo"
--- local x = u > v
--- local x = u > function () end
--- local x = u > f
--- local x = u > coroutine.create(function () end)
+local function check(a, b)
+  local status, message = pcall(function () return a < b end)
+  if not status then
+    if verbose then
+      print(message, a, b)
+    end
+  end
+end
+
+check(x, nil)
+check(x, true)
+check(x, 42)
+check(x, "foo")
+check(x, x)
+check(x, y)
+check(x, z)
+check(x, function () end)
+check(x, f)
+check(x, coroutine.create(function () end))
