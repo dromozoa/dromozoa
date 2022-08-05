@@ -332,10 +332,10 @@ local function minimize(u)
 
   local states = {}
   local accept_states = array()
-  local partition_indices = {}
 
   for i, partition in partitions:ipairs() do
     local u = state()
+    u.index = i
     for _, x in partition:ipairs() do
       u:update(x.timestamp, x.accept_action)
     end
@@ -343,7 +343,6 @@ local function minimize(u)
     if u.accept_action ~= nil then
       accept_states:append(u)
     end
-    partition_indices[partition] = i
   end
 
   for i, partition in partitions:ipairs() do
@@ -363,7 +362,7 @@ local function minimize(u)
         end
 
         local v = states[p]
-        transition_map:insert_or_update({ index = partition_indices[p], action = resolved.action }, function ()
+        transition_map:insert_or_update({ index = v.index, action = resolved.action }, function ()
           return transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
         end, function (t)
           return t:update(resolved.timestamp, byte)
