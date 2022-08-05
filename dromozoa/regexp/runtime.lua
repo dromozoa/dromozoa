@@ -32,6 +32,7 @@ context["action_data"];
   local current_index = main
   local current_state = _[current_index].start_state
   local current_thread
+  local action_type
   local stack = {}
   local jumped = false
   function fcall(index)
@@ -43,6 +44,7 @@ context["action_data"];
       current_index = current_index;
       current_state = current_state;
       current_thread = current_thread;
+      action_type = action_type;
     }
     if #stack > 2000 then
       error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (too much recursion; possible loop detected)")
@@ -72,6 +74,13 @@ context["action_data"];
     current_thread = item.current_thread
     if current_thread ~= nil then
       assert(coroutine.resume(current_thread))
+    end
+    if item.action_type == "accept" then
+      tk = nil
+      fs = current_position
+      start_line = ln
+      start_column = fs - lp
+      current_state = _[current_index].start_state
     end
   end
   function push(v)
@@ -109,13 +118,18 @@ context["action_data"];
     end
     return jumped
   end
+  local function accept_continuation()
+  end
   local function accept(current_byte)
     if current_state > _[current_index].max_accept_state then
       error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (cannot transition)")
     end
+    action_type = "accept"
     if execute(_[current_index].accept_actions[current_state]) then
+      action_type = nil
       return
     end
+    action_type = nil
     if current_byte == nil then
       if current_index == main then
         fn()
@@ -126,11 +140,6 @@ context["action_data"];
     if current_state == _[current_index].start_state then
       error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (loop detected)")
     end
-    tk = nil
-    fs = current_position
-    start_line = ln
-    start_column = fs - lp
-    current_state = _[current_index].start_state
   end
   local function transition()
     local current_byte = string.byte(source, current_position)

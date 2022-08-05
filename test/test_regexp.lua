@@ -35,7 +35,7 @@ local out = assert(io.open("test-m1.dot", "w"))
 write_graphviz(out, m1.start_state)
 out:close()
 
-local tokens = array()
+local token_names = array()
 
 local m2 = machine.union {
   -- _;
@@ -48,7 +48,7 @@ local out = assert(io.open("test-m2.dot", "w"))
 write_graphviz(out, m2.start_state)
 out:close()
 
-local m3 = machine.lexer(tokens, {
+local m3 = machine.lexer(token_names, {
   _"if";
   _"then";
   _"else";

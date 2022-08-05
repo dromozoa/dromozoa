@@ -49,6 +49,7 @@ local main = function ()
   local current_index = main
   local current_state = _[current_index].start_state
   local current_thread
+  local action_type
 
   local stack = {}
   local jumped = false
@@ -62,6 +63,7 @@ local main = function ()
       current_index = current_index;
       current_state = current_state;
       current_thread = current_thread;
+      action_type = action_type;
     }
 
     if #stack > 2000 then
@@ -99,6 +101,14 @@ local main = function ()
     current_thread = item.current_thread
     if current_thread ~= nil then
       assert(coroutine.resume(current_thread))
+    end
+
+    if item.action_type == "accept" then
+      tk = nil
+      fs = current_position
+      start_line = ln
+      start_column = fs - lp
+      current_state = _[current_index].start_state
     end
   end
 
@@ -144,15 +154,22 @@ local main = function ()
     return jumped
   end
 
+  local function accept_continuation()
+  end
+
   local function accept(current_byte)
     if current_state > _[current_index].max_accept_state then
       error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (cannot transition)")
     end
 
+    action_type = "accept"
     if execute(_[current_index].accept_actions[current_state]) then
+      action_type = nil
       return
     end
+    action_type = nil
 
+    -- TODO スタックが空であることを確認する
     if current_byte == nil then
       if current_index == main then
         fn()
@@ -165,6 +182,7 @@ local main = function ()
       error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (loop detected)")
     end
 
+    -- acceptからfcall/fretしたら、ここから後の部分を継続で実行してあげる
     tk = nil
     fs = current_position
     start_line = ln

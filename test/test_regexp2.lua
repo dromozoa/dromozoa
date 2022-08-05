@@ -25,7 +25,7 @@ local union = machine.union
 local guard = machine.guard
 local lexer = machine.lexer
 
-local tokens = array()
+local token_names = array()
 
 local code = compile {
   [[local ra]];
@@ -43,7 +43,7 @@ local code = compile {
     -_{"]\n\r"}*"+";
   });
 
-  lexer(tokens, {
+  lexer(token_names, {
     _{
       -- マクロ展開のテスト
       _{" \t\f\v"}/"assert('${<\0\n\31あ>}'=='0x00,0x0A,0x1F,0xE3,0x81,0x82')";
