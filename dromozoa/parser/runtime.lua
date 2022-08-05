@@ -40,14 +40,11 @@ context["action_data"];
         local action = actions[state][symbol]
         if action == 0 then
           local at = ""
-          if token.f ~= nil and token.n ~= nil and token.c ~= nil then
-            at = token.f .. ":" .. token.n .. ":" .. token.c .. ": "
+          if token.f ~= nil and token.n ~= nil and token.c ~= nil and token.s ~= nil then
+            error(token.f .. ":" .. token.n .. ":" .. token.c .. ": parser error (cannot transition near " .. token.s .. ")")
+          else
+            error("parser error (cannot transition near " .. symbol_names[symbol] .. ")")
           end
-          local near = symbol_names[symbol]
-          if token.s ~= nil then
-            near = token.s
-          end
-          error(at .. "parser error (cannot transition near " .. near .. ")")
         end
         if action <= max_state then
           stack[#stack + 1] = action
