@@ -83,9 +83,9 @@ context["action_data"];
     end
   end
   function push(v)
-    local source = string.sub(source, fs, fp)
+    local s = string.sub(source, fs, fp)
     if v == nil then
-      v = source
+      v = s
     elseif type(v) == "table" then
       v = string.char(table_unpack(v))
     end
@@ -95,7 +95,7 @@ context["action_data"];
       j = fp;
       n = start_line;
       c = start_column;
-      s = source;
+      s = s;
       v = v;
     }
   end
