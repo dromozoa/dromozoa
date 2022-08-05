@@ -22,7 +22,7 @@ context["custom_data"];
 context["action_data"];
 [[
  }
-  local _, source, source_name, symbol_eof, fn = coroutine.yield()
+  local _, source, source_name, eof_symbol, fn = coroutine.yield()
   local table_unpack = table.unpack or unpack
   local main = _.main
   local action_threads = _.action_threads
@@ -35,6 +35,7 @@ context["action_data"];
   local current_thread
   local stack = {}
   local jumped = false
+  local result
   function fcall(index)
     stack[#stack + 1] = {
       token_symbol = ts;
@@ -88,7 +89,7 @@ context["action_data"];
     elseif type(v) == "table" then
       v = string.char(table_unpack(v))
     end
-    fn {
+    result = fn {
       [0] = ts;
       i = fs;
       j = fp;
@@ -129,14 +130,15 @@ context["action_data"];
   end
   local function accept(current_byte)
     if current_state > _[current_index].max_accept_state then
-      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (cannot transition)")
+      local near = current_byte == nil and "eof" or string.char(current_byte)
+      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (cannot transition near " .. near .. ")")
     end
     if execute(_[current_index].accept_actions[current_state], restart) then
       return
     end
     if current_byte == nil then
       if current_index == main then
-        ts = symbol_eof
+        ts = eof_symbol
         push()
         return true
       end
@@ -182,19 +184,23 @@ context["action_data"];
     execute(_[current_index].guard_action)
   end
   repeat until guard()
+  return result
 end
 local _ = { ]];
 context["shared_data"];
 [[
  }
-local _ = { ]];
+local static_data = { ]];
 context["static_data"];
 [[
  }
-return function (source, source_name, symbol_eof, fn)
-  local thread = coroutine.create(main)
-  assert(coroutine.resume(thread))
-  assert(coroutine.resume(thread, _, source, source_name, symbol_eof, fn))
-end
+return setmetatable({}, {
+  __index = static_data;
+  __call = function (_, source, source_name, eof_symbol, fn)
+    local thread = coroutine.create(main)
+    assert(coroutine.resume(thread))
+    return select(2, assert(coroutine.resume(thread, static_data, source, source_name, eof_symbol, fn)))
+  end;
+})
 ]];
 } end

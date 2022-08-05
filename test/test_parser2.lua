@@ -88,13 +88,9 @@ out:close()
 local R = assert(assert(loadfile(regexp_filename))())
 local P = assert(assert(loadfile(parser_filename))())
 
-local root
 local p = P "@test"
-R([[
+local r = R([[
 2 + 3 * 4 - 6 / -3
-]], "@test", P.max_terminal_symbol, function (token)
-  if token[0] ~= nil then
-    root = p(token)
-  end
-end)
-assert(root.value == 16)
+]], "@test", P.max_terminal_symbol, p)
+assert(r.value == 16)
+

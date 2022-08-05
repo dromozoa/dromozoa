@@ -21,43 +21,45 @@ context["action_data"];
   while true do
     local token_node = coroutine.yield()
     local symbol = token_node[0]
-    while true do
-      local state = stack[#stack]
-      local action = actions[state][symbol]
-      if action == 0 then
-        error(source_name .. ":" .. token_node.line .. ":" .. token_node.column .. ": parser error (cannot transition)")
+    if symbol ~= nil then
+      while true do
+        local state = stack[#stack]
+        local action = actions[state][symbol]
+        if action == 0 then
+          error(source_name .. ":" .. token_node.line .. ":" .. token_node.column .. ": parser error (cannot transition)")
+        end
+        if action <= max_state then
+          stack[#stack + 1] = action
+          nodes[#nodes + 1] = token_node
+          break
+        end
+        local index = action - max_state
+        if index == 1 then
+          local accepted_node = nodes[#nodes]
+          stack[#stack] = nil
+          nodes[#nodes] = nil
+          return accepted_node
+        end
+        local head = heads[index]
+        local size = sizes[index]
+        local reduced_nodes = {}
+        for i = size - 1, 0, -1 do
+          reduced_nodes[#reduced_nodes + 1] = nodes[#nodes - i]
+        end
+        for i = 1, size do
+          stack[#stack] = nil
+          nodes[#nodes] = nil
+        end
+        reduced_nodes[0] = head
+        _ = { [0] = reduced_nodes }
+        for i = 1, #reduced_nodes do
+          _[i] = reduced_nodes[i]
+        end
+        action_data[semantic_actions[index]]()
+        local state = stack[#stack]
+        stack[#stack + 1] = actions[state][head]
+        nodes[#nodes + 1] = _[0]
       end
-      if action <= max_state then
-        stack[#stack + 1] = action
-        nodes[#nodes + 1] = token_node
-        break
-      end
-      local index = action - max_state
-      if index == 1 then
-        local accepted_node = nodes[#nodes]
-        stack[#stack] = nil
-        nodes[#nodes] = nil
-        return accepted_node
-      end
-      local head = heads[index]
-      local size = sizes[index]
-      local reduced_nodes = {}
-      for i = size - 1, 0, -1 do
-        reduced_nodes[#reduced_nodes + 1] = nodes[#nodes - i]
-      end
-      for i = 1, size do
-        stack[#stack] = nil
-        nodes[#nodes] = nil
-      end
-      reduced_nodes[0] = head
-      _ = { [0] = reduced_nodes }
-      for i = 1, #reduced_nodes do
-        _[i] = reduced_nodes[i]
-      end
-      action_data[semantic_actions[index]]()
-      local state = stack[#stack]
-      stack[#stack + 1] = actions[state][head]
-      nodes[#nodes + 1] = _[0]
     end
   end
 end
