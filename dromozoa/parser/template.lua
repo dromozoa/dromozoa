@@ -17,61 +17,34 @@
 
 local main = function ()
   --[[
-    create_node
-      { [0] = ????, defs... }
-    collapse_node
-      { [0] = head, defs...}
-    default_node
-      { [0] = head, reduced_nodes... }
+    -- 初期化
+    $0 = create() -- headで作成する
+    $$ = $0
 
-    結果ノードは、
-      { [0] = head }
-      reduced_nodesのどれか (create_node)
-      新規作成ノード
+    -- デフォルトのセットアップ
+    $$.append($1, $2, ...)
 
-      _[0]
-      _[1] .. _[n]
-      _"if" => { [0] = symbol }
+    -- collapse
+    $$ = $1
+    $$ = create($E) -- 非終端シンボルで空のノードを作成
 
-      node(_[0], _[1], _[3])
+    -- 子ノードを設定する
+    $$.append(...)
 
-      return node(0,1,"if"){
-        binop = true
-      }
+    -- 属性を設定する
+    $$.attr = $1.attr + $2.attr
 
-      node {0,1,2,3,4;binop=1}
-      node {0,"namelist"}
-      node {"namelist"}
-      node {[0]=1,"explist";scope=true}
+    $1.unop = true
 
-      _0, _1, _2, ...
-      create(code) => { [0] = code }
-      node:append(node)
-      node:set_attribute(k, v)
+    検討項目: $を使うかどうか。
+    $を_で置き換えれば自然なLuaコードになる
+    $をSで置き換えるのはどうか。
+    symbolかな？
 
-      return _0:append(_1,_2):attr("binop")
+    S[0] = create()
+    S[1]
 
 
-
-      _[0] { ... }
-
-      _"..." { }
-
-      return create("list")
-
-      _0 { _1, _2, binop=true }
-
-      _[0] { _[1], _[2], binop=true }
-
-      _ = _0 { _1, _2, binop=true }
-
-      name=value
-
-      _(_1, _2("key"))
-
-
-
-      _"list"
   ]]
 
   local _
