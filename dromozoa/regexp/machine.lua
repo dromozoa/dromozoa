@@ -267,18 +267,16 @@ local function minimize(u)
   create_initial_partitions(u, accept_partition_map, partition, partition_map, {})
 
   local partitions = array()
-  local partition_indices = {}
   for _, partition in accept_partition_map:pairs() do
-    partition_indices[partition] = partitions:append(partition):size()
+    partitions:append(partition)
   end
   if not partition:empty() then
-    partition_indices[partition] = partitions:append(partition):size()
+    partitions:append(partition)
   end
 
   while true do
     local new_partition_map = {}
     local new_partitions = array()
-    local new_partition_indices = {}
 
     for _, partition in partitions:ipairs() do
       -- パーティション内の状態の組(x,y)について同じ遷移をするか調べる。同じ遷
@@ -319,7 +317,7 @@ local function minimize(u)
         if new_partition_map[x] == nil then
           local new_partition = array(x)
           new_partition_map[x] = new_partition
-          new_partition_indices[new_partition] = new_partitions:append(new_partition):size()
+          new_partitions:append(new_partition)
         end
       end
     end
@@ -330,11 +328,11 @@ local function minimize(u)
 
     partition_map = new_partition_map
     partitions = new_partitions
-    partition_indices = new_partition_indices
   end
 
   local states = {}
   local accept_states = array()
+  local partition_indices = {}
 
   for i, partition in partitions:ipairs() do
     local u = state()
@@ -345,6 +343,7 @@ local function minimize(u)
     if u.accept_action ~= nil then
       accept_states:append(u)
     end
+    partition_indices[partition] = i
   end
 
   for i, partition in partitions:ipairs() do
