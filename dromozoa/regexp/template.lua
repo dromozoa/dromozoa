@@ -122,6 +122,7 @@ local main = function ()
       [0] = ts;
       i = fs;
       j = fp;
+      f = source_name;
       n = start_line;
       c = start_column;
       s = s;

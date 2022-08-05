@@ -14,7 +14,8 @@ context["action_data"];
 [=[
  }
   local table_unpack = table.unpack or unpack
-  local static_data, source_name = coroutine.yield()
+  local static_data = coroutine.yield()
+  local symbol_names = static_data.symbol_names
   local actions = static_data.actions
   local max_state = #actions
   local heads = static_data.heads
@@ -31,18 +32,22 @@ context["action_data"];
     end
   end
   while true do
-    local token_node = coroutine.yield()
-    local symbol = token_node[0]
+    local token = coroutine.yield()
+    local symbol = token[0]
     if symbol ~= nil then
       while true do
         local state = stack[#stack]
         local action = actions[state][symbol]
         if action == 0 then
-          error(source_name .. ":" .. token_node.n .. ":" .. token_node.c .. ": parser error (cannot transition)")
+          local at = ""
+          if token.f ~= nil and token.n ~= nil and token.c ~= nil then
+            at = token.f .. ":" .. token.n .. ":" .. token.c .. ": "
+          end
+          error(at .. "parser error (cannot transition near " .. symbol_names[symbol] .. ")")
         end
         if action <= max_state then
           stack[#stack + 1] = action
-          nodes[#nodes + 1] = token_node
+          nodes[#nodes + 1] = token
           break
         end
         local index = action - max_state
@@ -83,10 +88,10 @@ local metatable = {
 }
 return setmetatable({}, {
   __index = static_data;
-  __call = function (_, source_name)
+  __call = function ()
     local thread = coroutine.create(main)
     assert(coroutine.resume(thread))
-    assert(coroutine.resume(thread, static_data, source_name))
+    assert(coroutine.resume(thread, static_data))
     return setmetatable({ thread = thread }, metatable)
   end;
 })

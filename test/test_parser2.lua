@@ -88,7 +88,7 @@ out:close()
 local R = assert(assert(loadfile(regexp_filename))())
 local P = assert(assert(loadfile(parser_filename))())
 
-local p = P "@test"
+local p = P()
 local r = R([[
 2 + 3 * 4 - 6 / -3
 ]], "@test", P.max_terminal_symbol, p)
