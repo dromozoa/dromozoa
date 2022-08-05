@@ -23,18 +23,14 @@ return function (grammar, actions)
   local static_data = array()
   local action_data = tree_set()
 
-  local symbol_names = grammar.symbol_names
-  local max_terminal_symbol = grammar.max_terminal_symbol
-  local productions = grammar.productions
-
   static_data:append(
     "symbol_names={")
-  for _, v in symbol_names:ipairs() do
+  for _, v in grammar.symbol_names:ipairs() do
     static_data:append(("%q,"):format(v))
   end
   static_data:append(
     "};\n",
-    "max_terminal_symbol=", max_terminal_symbol, ";\n",
+    "max_terminal_symbol=", grammar.max_terminal_symbol, ";\n",
     "actions={\n")
   for _, action in ipairs(actions) do
     static_data:append("{", table.concat(action, ","), "};\n")
@@ -42,19 +38,19 @@ return function (grammar, actions)
   static_data:append(
     "};\n",
     "heads={")
-  for _, production in productions:ipairs() do
+  for _, production in grammar.productions:ipairs() do
     static_data:append(production.head, ",")
   end
   static_data:append(
     "};\n",
     "sizes={")
-  for _, production in productions:ipairs() do
+  for _, production in grammar.productions:ipairs() do
     static_data:append(production.body:size(), ",")
   end
   static_data:append(
     "};\n",
     "semantic_actions={")
-  for i, production in productions:ipairs() do
+  for i, production in grammar.productions:ipairs() do
     local semantic_action = production.semantic_action
     if semantic_action == nil then
       semantic_action = ""
