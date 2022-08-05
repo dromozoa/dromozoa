@@ -48,8 +48,8 @@ local main = function ()
   local current_position = 1
   local current_index = main
   local current_state = _[current_index].start_state
+  local current_cont
   local current_thread
-  local action_type
 
   local stack = {}
   local jumped = false
@@ -62,8 +62,8 @@ local main = function ()
       start_column = start_column;
       current_index = current_index;
       current_state = current_state;
+      current_cont = current_cont;
       current_thread = current_thread;
-      action_type = action_type;
     }
 
     if #stack > 2000 then
@@ -78,6 +78,7 @@ local main = function ()
     start_column = fs - lp
     current_index = index
     current_state = _[current_index].start_state
+    current_cont = nil
 
     if current_thread ~= nil then
       current_thread = nil
@@ -97,18 +98,15 @@ local main = function ()
     start_column = item.start_column
     current_index = item.current_index
     current_state = item.current_state
+    current_cont = item.current_cont
 
     current_thread = item.current_thread
     if current_thread ~= nil then
       assert(coroutine.resume(current_thread))
     end
 
-    if item.action_type == "accept" then
-      tk = nil
-      fs = current_position
-      start_line = ln
-      start_column = fs - lp
-      current_state = _[current_index].start_state
+    if current_cont ~= nil then
+      current_cont()
     end
   end
 
@@ -141,8 +139,9 @@ local main = function ()
     buffer[#buffer + 1] = v
   end
 
-  local function execute(index)
+  local function execute(index, cont)
     local action = action_data[index]
+    current_cont = cont
     jumped = false
     if action_threads[index] == 0 then
       current_thread = nil
@@ -154,7 +153,16 @@ local main = function ()
     return jumped
   end
 
-  local function accept_continuation()
+  local function restart()
+    if current_state == _[current_index].start_state then
+      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (loop detected)")
+    end
+
+    tk = nil
+    fs = current_position
+    start_line = ln
+    start_column = fs - lp
+    current_state = _[current_index].start_state
   end
 
   local function accept(current_byte)
@@ -162,32 +170,19 @@ local main = function ()
       error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (cannot transition)")
     end
 
-    action_type = "accept"
-    if execute(_[current_index].accept_actions[current_state]) then
-      action_type = nil
+    if execute(_[current_index].accept_actions[current_state], restart) then
       return
     end
-    action_type = nil
 
-    -- TODO スタックが空であることを確認する
     if current_byte == nil then
       if current_index == main then
         fn()
         return true
       end
-      return error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (unexpected eof)")
+      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (unexpected eof)")
     end
 
-    if current_state == _[current_index].start_state then
-      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (loop detected)")
-    end
-
-    -- acceptからfcall/fretしたら、ここから後の部分を継続で実行してあげる
-    tk = nil
-    fs = current_position
-    start_line = ln
-    start_column = fs - lp
-    current_state = _[current_index].start_state
+    restart()
   end
 
   local function transition()

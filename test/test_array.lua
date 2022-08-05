@@ -15,10 +15,10 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local verbose = os.getenv "VERBOSE" == "1"
+
 local array = require "dromozoa.array"
 local compare = require "dromozoa.compare"
-
-local verbose = os.getenv "VERBOSE" == "1"
 
 local function check_error(fn)
   local status, message = pcall(fn)
