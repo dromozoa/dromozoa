@@ -138,7 +138,7 @@ local g, a, c = parser.lalr(parser.grammar(token_names, {
 
   ["[else]"]
     = _ %[[
-        $$=create(${"else"})
+        $$=create($else)
       ]]
     + _"else" "exp" %[[
         $$=$1 append($2)

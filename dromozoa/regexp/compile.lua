@@ -20,14 +20,17 @@ local tree_set = require "dromozoa.tree_set"
 local runtime = require "dromozoa.regexp.runtime"
 
 local function insert_action(context, action)
+  local function substitute(variable)
+    local result = context.action.variables[variable]
+    if result == nil then
+      error("variable " .. variable .. " not defined")
+    end
+    return result
+  end
+
   local action = action
-    :gsub("$([%a_][%w_]*)", function (variable)
-      local result = context.action.variables[variable]
-      if result == nil then
-        error("variable " .. variable .. " not defined")
-      end
-      return result
-    end)
+    :gsub("$([%a_][%w_]*)", substitute)
+    :gsub([[${"(..-)"}]], substitute)
     :gsub([[${<(..-)>}]], function (s)
       local buffer = {}
       for i, v in ipairs { s:byte(1, #s) } do
