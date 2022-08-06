@@ -118,31 +118,34 @@ local g, a, c = parser.lalr(parser.grammar(token_names, {
     ;
 
   if_stmt
-    = _"if" "exp" "then" "exp" "{elseif_clause}" "[else]" "end"
+    = _"if exp then block" "{elseif exp then block}" "[else block]" "end"
     ;
 
-  ["{elseif_clause}"]
+  ["if exp then block"]
+    = _"if" "exp" "then" "exp"
+    ;
+
+  ["{elseif exp then block}"]
     = _ %[[
-        $$=create($elseif_clause)
+        $$=create(${"elseif exp then block"})
       ]]
-    + _"{elseif_clause}" "elseif_clause" %[[
+    + _"{elseif exp then block}" "elseif exp then block" %[[
         $$=$1 append($2)
       ]]
     ;
 
-  elseif_clause
+  ["elseif exp then block"]
     = _"elseif" "exp" "then" "exp" %[[
         $$=$1 append($2, $4)
       ]]
     ;
 
-  ["[else]"]
+  ["[else block]"]
     = _ %[[
         $$=create($else)
       ]]
     + _"else" "exp" %[[
         $$=$1 append($2)
-        -- $$=$0 append($2)
       ]]
     ;
 
