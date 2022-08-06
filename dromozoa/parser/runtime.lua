@@ -14,8 +14,8 @@ context["custom_data"];
 context["action_data"];
 [=[
  }
-  local table_unpack = table.unpack or unpack
   local static_data = coroutine.yield()
+  local table_unpack = table.unpack or unpack
   local symbol_names = static_data.symbol_names
   local actions = static_data.actions
   local max_state = #actions
@@ -25,7 +25,7 @@ context["action_data"];
   local stack = { 1 }
   local nodes = {}
   function create(symbol)
-    return { [0] = symbol }
+    SS = { [0] = symbol }
   end
   function append(...)
     for i = 1, select("#", ...) do
@@ -59,15 +59,15 @@ context["action_data"];
         end
         local index = action - max_state
         if index == 1 then
-          local accepted_node = nodes[#nodes]
+          local node = nodes[#nodes]
           stack[#stack] = nil
           nodes[#nodes] = nil
-          return accepted_node
+          return node
         end
         local head = heads[index]
         local size = sizes[index]
-        S = { [0] = create(head) }
-        SS = create(head)
+        S = { [0] = { [0] = head } }
+        SS = { [0] = head }
         local sf, si, sj, sn, sc
         local n = #nodes - size
         for i = 1, size do

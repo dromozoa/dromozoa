@@ -96,7 +96,7 @@ local g, a, c = parser.lalr(parser.grammar(token_names, {
     + _"exp"
     + _"exp" "," "rlist" %[[
         -- $$=$0 append($1, $3)
-        -- $$=create($rlist) append($1, (table.unpack or unpack)($3))
+        -- create($rlist) append($1, (table.unpack or unpack)($3))
         -- $$=$0 append($3, $1)
       ]]
     ;
@@ -127,7 +127,7 @@ local g, a, c = parser.lalr(parser.grammar(token_names, {
 
   ["{elseif exp then block}"]
     = _ %[[
-        $$=create(${"elseif exp then block"})
+        create(${"elseif exp then block"})
       ]]
     + _"{elseif exp then block}" "elseif exp then block" %[[
         $$=$1 append($2)
@@ -142,7 +142,7 @@ local g, a, c = parser.lalr(parser.grammar(token_names, {
 
   ["[else block]"]
     = _ %[[
-        $$=create($else)
+        create($else)
       ]]
     + _"else" "exp" %[[
         $$=$1 append($2)

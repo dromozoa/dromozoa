@@ -128,7 +128,7 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     ;
 
   ["[explist]"]
-    = _          %[[$$=create($explist)]]
+    = _          %[[create($explist)]]
     + _"explist" %[[$$=$1]]
     ;
 
@@ -170,7 +170,7 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     ;
 
   ["[fieldlist]"]
-    = _            %[[$$=create($fieldlist)]]
+    = _            %[[create($fieldlist)]]
     + _"fieldlist" %[[$$=$1]]
     ;
 

@@ -25,8 +25,9 @@ local main = function ()
 
   $custom_data
   local action_data = { $action_data }
-  local table_unpack = table.unpack or unpack
+
   local static_data = coroutine.yield()
+  local table_unpack = table.unpack or unpack
 
   local symbol_names = static_data.symbol_names
   local actions = static_data.actions
@@ -39,7 +40,7 @@ local main = function ()
   local nodes = {}
 
   function create(symbol)
-    return { [0] = symbol }
+    SS = { [0] = symbol }
   end
 
   function append(...)
@@ -78,20 +79,21 @@ local main = function ()
         end
 
         local index = action - max_state
+
         -- accept
         if index == 1 then
-          local accepted_node = nodes[#nodes]
+          local node = nodes[#nodes]
           stack[#stack] = nil
           nodes[#nodes] = nil
-          return accepted_node
+          return node
         end
 
         -- reduce
         local head = heads[index]
         local size = sizes[index]
 
-        S = { [0] = create(head) }
-        SS = create(head)
+        S = { [0] = { [0] = head } }
+        SS = { [0] = head }
         local sf, si, sj, sn, sc
 
         local n = #nodes - size
