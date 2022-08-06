@@ -16,5 +16,5 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 a=42
-print(a, 69, 666)
-print(42)
+-- print(a, 69, 666)
+-- print(42)

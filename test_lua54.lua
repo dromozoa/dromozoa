@@ -59,8 +59,8 @@ out:write(regexp.compile {
     _"]";
     _".";
     _":";
-    _"{";
-    _"}";
+--    _"{";
+--    _"}";
 
     -- short comment
     _"--" + -_{"\n\r"}*"*";
@@ -134,52 +134,54 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
 
   exp
     = _"Numeral"
-    + _"prefixexp"
+--    + _"prefixexp"
     ;
 
   prefixexp
     = _"var"
-    + _"functioncall"
+--    + _"functioncall"
     + _"(" "exp" ")"
     ;
 
   functioncall
     = _"prefixexp" "args"
     + _"prefixexp" ":" "Name" "args"
+--    + _"functioncall" "args"
+    + _"functioncall" ":" "Name" "args"
     ;
 
   args
     = _"(" "[explist]" ")" %[[$$=$0 append($2)]]
-    + _"tableconstructor"
+--    + _"tableconstructor"
     ;
 
-  tableconstructor
-    = _"{" "[fieldlist]" "}"
-    ;
-
-  fieldlist
-    = _"field {fieldsep field}"
-    + _"field {fieldsep field}" "fieldsep"
-    ;
-
-  ["[fieldlist]"]
-    = _
-    + _"fieldlist"
-    ;
-
-  ["field {fieldsep field}"]
-    = _"field"
-    + _"fieldlist" "fieldsep" "field"
-    ;
-
-  field
-    = _"exp"
-    ;
-
-  fieldsep
-    = _","
-    + _";"
-    ;
+--  tableconstructor
+--    = _"{" "[fieldlist]" "}"
+--    ;
+--
+--  fieldlist
+--    = _"field {fieldsep field}"
+--    + _"field {fieldsep field}" "fieldsep"
+--    ;
+--
+--  ["[fieldlist]"]
+--    = _
+--    + _"fieldlist"
+--    ;
+--
+--  ["field {fieldsep field}"]
+--    = _"field"
+--    + _"fieldlist" "fieldsep" "field"
+--    ;
+--
+--  field
+--    = _"exp"
+--    ;
+--
+--  fieldsep
+--    = _","
+--    + _";"
+--    ;
 
 }))
 for _, message in conflictions:ipairs() do
