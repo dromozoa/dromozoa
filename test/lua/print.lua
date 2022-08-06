@@ -16,3 +16,4 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 print(42, 69)
+print()
