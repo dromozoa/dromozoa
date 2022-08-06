@@ -39,6 +39,7 @@ local main = function ()
 
   local _, source, source_name, eof_symbol, fn = coroutine.yield()
   local table_unpack = table.unpack or unpack
+
   local main = _.main
   local action_threads = _.action_threads
 

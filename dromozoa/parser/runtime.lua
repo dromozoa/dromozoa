@@ -3,6 +3,7 @@ return function (context) return {
 local main = function ()
   local create
   local append
+  local append_unpack
   local S
   local SS
   ]];
@@ -13,8 +14,8 @@ context["custom_data"];
 context["action_data"];
 [=[
  }
-  local table_unpack = table.unpack or unpack
   local static_data = coroutine.yield()
+  local table_unpack = table.unpack or unpack
   local symbol_names = static_data.symbol_names
   local actions = static_data.actions
   local max_state = #actions
@@ -24,11 +25,16 @@ context["action_data"];
   local stack = { 1 }
   local nodes = {}
   function create(symbol)
-    return { [0] = symbol }
+    SS = { [0] = symbol }
   end
   function append(...)
     for i = 1, select("#", ...) do
       SS[#SS + 1] = select(i, ...)
+    end
+  end
+  function append_unpack(...)
+    for i = 1, select("#", ...) do
+      append(table_unpack((select(i, ...))))
     end
   end
   while true do
@@ -53,24 +59,41 @@ context["action_data"];
         end
         local index = action - max_state
         if index == 1 then
-          local accepted_node = nodes[#nodes]
+          local node = nodes[#nodes]
           stack[#stack] = nil
           nodes[#nodes] = nil
-          return accepted_node
+          return node
         end
         local head = heads[index]
         local size = sizes[index]
-        S = { [0] = create(head) }
-        for i = size - 1, 0, -1 do
-          S[#S + 1] = nodes[#nodes - i]
+        S = { [0] = { [0] = head } }
+        SS = { [0] = head }
+        local sf, si, sj, sn, sc
+        local n = #nodes - size
+        for i = 1, size do
+          local s = nodes[n + i]
+          S[i] = s
+          SS[i] = s
+          if sf == nil then
+            sf, si, sj, sn, sc = s.f, s.i, s.j, s.n, s.c
+          elseif sf == s.f then
+            if si == nil or si > s.i then
+              si = s.i
+            end
+            if sj == nil or sj < s.j then
+              sj = s.j
+            end
+            if sn == nil or sn > s.n or (sn == s.n and (sc == nil or sc > s.c)) then
+              sn, sc = s.n, s.c
+            end
+          end
         end
-        SS = create(head)
-        append(table_unpack(S))
         for i = 1, size do
           stack[#stack] = nil
           nodes[#nodes] = nil
         end
         action_data[semantic_actions[index]]()
+        SS.f, SS.i, SS.j, SS.n, SS.c = sf, si, sj, sn, sc
         local state = stack[#stack]
         stack[#stack + 1] = actions[state][head]
         nodes[#nodes + 1] = SS
