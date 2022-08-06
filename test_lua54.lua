@@ -157,6 +157,10 @@ local lua54_regexp = assert(assert(loadfile(regexp_filename))())
 local lua54_parser = assert(assert(loadfile(parser_filename))())
 local root = lua54_regexp(source, source_filename, lua54_parser.max_terminal_symbol, lua54_parser())
 
+local function quote(s)
+  return [["]] .. string.gsub(s, "[<>&]", { ["<"] = "&lt;", [">"] = "&gt;", ["&"] = "&amp;" }) .. [["]]
+end
+
 local function dump(u, n)
   if n == nil then
     n = 0
@@ -164,18 +168,24 @@ local function dump(u, n)
     n = n + 1
   end
 
-  io.write(("  "):rep(n), ('<node name="%s"'):format(lua54_parser.symbol_names[u[0]]))
+  io.write(("  "):rep(n), "<node name=", quote(lua54_parser.symbol_names[u[0]]))
+  if u.n ~= nil then
+    io.write(" line=", quote(u.n))
+  end
+  if u.c ~= nil then
+    io.write(" column=", quote(u.c))
+  end
   if u.v ~= nil then
-    io.write((' v="%s"'):format(u.v))
+    io.write(" value=", quote(u.v))
   end
   if #u == 0 then
-    io.write '/>\n'
+    io.write "/>\n"
   else
-    io.write '>\n'
+    io.write ">\n"
     for _, v in ipairs(u) do
       dump(v, n)
     end
-    io.write(("  "):rep(n), '</node>\n')
+    io.write(("  "):rep(n), "</node>\n")
   end
 end
 
