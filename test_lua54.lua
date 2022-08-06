@@ -54,6 +54,13 @@ out:write(regexp.compile {
     _")";
     _",";
     _";";
+    _"=";
+    _"[";
+    _"]";
+    _".";
+    _":";
+    _"{";
+    _"}";
 
     -- short comment
     _"--" + -_{"\n\r"}*"*";
@@ -85,16 +92,18 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     ;
 
   stat
-    = _"functioncall"
+    = _"varlist" "=" "explist"
+    + _"functioncall"
     ;
 
   ["{stat}"]
     = _
-    + _"{stat}" "stat"
+    + _"{stat}" "stat" %[[$$=$1 append($2)]]
     ;
 
   retstat
-    = _"return" "[explist]" "[;]"
+    = _"return" "[explist]"
+    + _"return" "[explist]" ";" %[[$$=$0 append($1,$2)]]
     ;
 
   ["[retstat]"]
@@ -102,46 +111,73 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     + _"retstat"
     ;
 
+  varlist
+    = _"var"
+    + _"varlist" "," "var"
+    ;
+
   var
     = _"Name"
+    + _"prefixexp" "[" "exp" "]"
+    + _"prefixexp" "." "Name"
     ;
 
   explist
-    = _"exp" "{, exp}"
+    = _"exp"
+    + _"explist" "," "exp" %[[$$=$1 append($3)]]
     ;
 
   ["[explist]"]
-    = _
-    + _"explist"
+    = _          %[[$$=create($explist)]]
+    + _"explist" %[[$$=$1]]
     ;
 
   exp
     = _"Numeral"
+    + _"prefixexp"
     ;
 
   prefixexp
     = _"var"
+    + _"functioncall"
+    + _"(" "exp" ")"
     ;
 
   functioncall
     = _"prefixexp" "args"
+    + _"prefixexp" ":" "Name" "args"
     ;
 
   args
-    = _"(" "[explist]" ")"
+    = _"(" "[explist]" ")" %[[$$=$0 append($2)]]
+    + _"tableconstructor"
     ;
 
-  ["{, exp}"]
+  tableconstructor
+    = _"{" "[fieldlist]" "}"
+    ;
+
+  fieldlist
+    = _"field {fieldsep field}"
+    + _"field {fieldsep field}" "fieldsep"
+    ;
+
+  ["[fieldlist]"]
     = _
-    + _"{, exp}" ", exp"
+    + _"fieldlist"
     ;
 
-  [", exp"]
-    = _"," "exp"
+  ["field {fieldsep field}"]
+    = _"field"
+    + _"fieldlist" "fieldsep" "field"
     ;
 
-  ["[;]"]
-    = _
+  field
+    = _"exp"
+    ;
+
+  fieldsep
+    = _","
     + _";"
     ;
 

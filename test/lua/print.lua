@@ -15,5 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-print(42, 69)
-print()
+a=42
+print(a, 69, 666)
+print(42)
