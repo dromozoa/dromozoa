@@ -59,8 +59,8 @@ out:write(regexp.compile {
     _"]";
     _".";
     _":";
---    _"{";
---    _"}";
+    _"{";
+    _"}";
 
     -- short comment
     _"--" + -_{"\n\r"}*"*";
@@ -152,36 +152,36 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
 
   args
     = _"(" "[explist]" ")" %[[$$=$0 append($2)]]
---    + _"tableconstructor"
+    + _"tableconstructor"
     ;
 
---  tableconstructor
---    = _"{" "[fieldlist]" "}"
---    ;
---
---  fieldlist
---    = _"field {fieldsep field}"
+  tableconstructor
+    = _"{" "[fieldlist]" "}"
+    ;
+
+  fieldlist
+    = _"field {fieldsep field}"
 --    + _"field {fieldsep field}" "fieldsep"
---    ;
---
---  ["[fieldlist]"]
---    = _
---    + _"fieldlist"
---    ;
---
---  ["field {fieldsep field}"]
---    = _"field"
---    + _"fieldlist" "fieldsep" "field"
---    ;
---
---  field
---    = _"exp"
---    ;
---
---  fieldsep
---    = _","
---    + _";"
---    ;
+    ;
+
+  ["[fieldlist]"]
+    = _
+    + _"fieldlist"
+    ;
+
+  ["field {fieldsep field}"]
+    = _"field"
+    + _"fieldlist" "fieldsep" "field"
+    ;
+
+  field
+    = _"exp"
+    ;
+
+  fieldsep
+    = _","
+    + _";"
+    ;
 
 }))
 for _, message in conflictions:ipairs() do
