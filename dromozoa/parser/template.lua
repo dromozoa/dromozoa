@@ -83,38 +83,30 @@ local main = function ()
         local head = heads[index]
         local size = sizes[index]
 
-        local rf
-        local ri
-        local rj
-        local rn
-        local rc
-
         S = { [0] = create(head) }
         SS = create(head)
+        local sf, si, sj, sn, sc
 
+        local n = #nodes - size
         for i = 1, size do
-          local node = nodes[#nodes - size + i]
-          S[i] = node
-          SS[i] = node
+          local s = nodes[n + i]
+          S[i] = s
+          SS[i] = s
 
-          if rf == nil then
-            rf = node.f
-            ri = node.i
-            rj = node.j
-            rn = node.n
-            rc = node.c
-          elseif rf == node.f then
-            if ri == nil or ri > node.i then
-              ri = node.i
+          if sf == nil then
+            sf, si, sj, sn, sc = s.f, s.i, s.j, s.n, s.c
+          elseif sf == s.f then
+            if si == nil or si > s.i then
+              si = s.i
             end
-            if rj == nil or rj < node.j then
-              rj = node.j
+            if sj == nil or sj < s.j then
+              sj = s.j
             end
-            if rn == nil or rn > node.n then
-              rn = node.n
-              rc = node.c
-            elseif rn == node.n and (rc == nil or rc > node.c) then
-              rc = node.c
+            if sn == nil or sn > s.n then
+              sn = s.n
+              sc = s.c
+            elseif sn == s.n and (sc == nil or sc > s.c) then
+              sc = s.c
             end
           end
         end
@@ -124,13 +116,8 @@ local main = function ()
           nodes[#nodes] = nil
         end
 
-        SS.f = rf
-        SS.i = ri
-        SS.j = rj
-        SS.n = rn
-        SS.c = rc
-
         action_data[semantic_actions[index]]()
+        SS.f, SS.i, SS.j, SS.n, SS.c = sf, si, sj, sn, sc
 
         local state = stack[#stack]
         stack[#stack + 1] = actions[state][head]
