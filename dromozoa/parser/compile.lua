@@ -51,6 +51,14 @@ return function (grammar, actions)
     "};\n",
     "semantic_actions={")
 
+  local function substitute(variable)
+    local result = grammar.symbol_table[variable]
+    if result == nil then
+      error("variable " .. variable .. " not defined")
+    end
+    return result
+  end
+
   for i, production in grammar.productions:ipairs() do
     local semantic_action = production.semantic_action
     if semantic_action == nil then
@@ -60,13 +68,8 @@ return function (grammar, actions)
       :gsub("$([1-9]%d*)", "S[%1]")
       :gsub("$0", "S[0]")
       :gsub("$%$", "SS")
-      :gsub("$([%a_][%w%_]*)", function (variable)
-        local result = grammar.symbol_table[variable]
-        if result == nil then
-          error("variable " .. variable .. " not defined")
-        end
-        return result
-      end)
+      :gsub("$([%a_][%w_]*)", substitute)
+      :gsub([[${"(..-)"}]], substitute)
     static_data:append(select(2, action_data:insert("function ()" .. semantic_action .. "\nend;\n")), ",")
   end
   static_data:append(

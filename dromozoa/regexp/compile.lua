@@ -21,14 +21,14 @@ local runtime = require "dromozoa.regexp.runtime"
 
 local function insert_action(context, action)
   local action = action
-    :gsub("$([%a_][%w%_]*)", function (variable)
+    :gsub("$([%a_][%w_]*)", function (variable)
       local result = context.action.variables[variable]
       if result == nil then
         error("variable " .. variable .. " not defined")
       end
       return result
     end)
-    :gsub([[${([^%s<>\]*)<(..-)>%1}]], function (_, s)
+    :gsub([[${<(..-)>}]], function (s)
       local buffer = {}
       for i, v in ipairs { s:byte(1, #s) } do
         buffer[i] = ("0x%02X"):format(v)
