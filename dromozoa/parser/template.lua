@@ -37,12 +37,6 @@ local main = function ()
   local stack = { 1 }
   local nodes = {}
 
-  local source_name
-  local start_position
-  local end_position
-  local start_line
-  local start_column
-
   function create(symbol)
     return { [0] = symbol }
   end
