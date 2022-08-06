@@ -37,6 +37,12 @@ local main = function ()
   local stack = { 1 }
   local nodes = {}
 
+  local source_name
+  local start_position
+  local end_position
+  local start_line
+  local start_column
+
   function create(symbol)
     return { [0] = symbol }
   end
@@ -83,17 +89,52 @@ local main = function ()
         local head = heads[index]
         local size = sizes[index]
 
+        local rf
+        local ri
+        local rj
+        local rn
+        local rc
+
         S = { [0] = create(head) }
-        for i = size - 1, 0, -1 do
-          S[#S + 1] = nodes[#nodes - i]
-        end
         SS = create(head)
-        append(table_unpack(S))
+
+        for i = 1, size do
+          local node = nodes[#nodes - size + i]
+          S[i] = node
+          SS[i] = node
+
+          if rf == nil then
+            rf = node.f
+            ri = node.i
+            rj = node.j
+            rn = node.n
+            rc = node.c
+          elseif rf == node.f then
+            if ri == nil or ri > node.i then
+              ri = node.i
+            end
+            if rj == nil or rj < node.j then
+              rj = node.j
+            end
+            if rn == nil or rn > node.n then
+              rn = node.n
+              rc = node.c
+            elseif rn == node.n and (rc == nil or rc > node.c) then
+              rc = node.c
+            end
+          end
+        end
 
         for i = 1, size do
           stack[#stack] = nil
           nodes[#nodes] = nil
         end
+
+        SS.f = rf
+        SS.i = ri
+        SS.j = rj
+        SS.n = rn
+        SS.c = rc
 
         action_data[semantic_actions[index]]()
 

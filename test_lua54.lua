@@ -15,6 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local verbose = os.getenv "VERBOSE" == "1"
+
 local source_filename = ...
 local handle = assert(io.open(source_filename, "rb"))
 local source = handle:read "*a"
@@ -169,15 +171,13 @@ local function dump(u, n)
   end
 
   io.write(("  "):rep(n), "<node name=", quote(lua54_parser.symbol_names[u[0]]))
-  if u.n ~= nil then
-    io.write(" line=", quote(u.n))
+  if verbose then
+    if u.i ~= nil then io.write(" i=", quote(u.i)) end
+    if u.j ~= nil then io.write(" j=", quote(u.j)) end
+    if u.n ~= nil then io.write(" n=", quote(u.n)) end
+    if u.c ~= nil then io.write(" c=", quote(u.c)) end
   end
-  if u.c ~= nil then
-    io.write(" column=", quote(u.c))
-  end
-  if u.v ~= nil then
-    io.write(" value=", quote(u.v))
-  end
+  if u.v ~= nil then io.write(" v=", quote(u.v)) end
   if #u == 0 then
     io.write "/>\n"
   else
