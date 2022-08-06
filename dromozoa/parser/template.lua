@@ -18,6 +18,7 @@
 local main = function ()
   local create
   local append
+  local append_unpack
 
   local S
   local SS
@@ -44,6 +45,12 @@ local main = function ()
   function append(...)
     for i = 1, select("#", ...) do
       SS[#SS + 1] = select(i, ...)
+    end
+  end
+
+  function append_unpack(...)
+    for i = 1, select("#", ...) do
+      append(table_unpack((select(i, ...))))
     end
   end
 

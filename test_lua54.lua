@@ -159,19 +159,24 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     = _"{" "[fieldlist]" "}"
     ;
 
+  -- $$=$0 append($1, unpack($2))
+  -- $$=$0 append($1) spread($2)
+  -- $$=$0 append($1) append_spread($2)
+  -- $$=$0 append($1) append_unpack($2)
+  -- $$=$2 prepend($1) $$[0]=$fieldlist
+
   fieldlist
-    = _"field {fieldsep field}"
---    + _"field {fieldsep field}" "fieldsep"
+    = _"field" "{fieldsep field}" "[fieldsep]" %[[$$=$0 append($1) append_unpack($2)]]
     ;
 
   ["[fieldlist]"]
-    = _
-    + _"fieldlist"
+    = _            %[[$$=create($fieldlist)]]
+    + _"fieldlist" %[[$$=$1]]
     ;
 
-  ["field {fieldsep field}"]
-    = _"field"
-    + _"fieldlist" "fieldsep" "field"
+  ["{fieldsep field}"]
+    = _
+    + _"{fieldsep field}" "fieldsep" "field" %[[$$=$1 append($3)]]
     ;
 
   field
@@ -181,6 +186,11 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
   fieldsep
     = _","
     + _";"
+    ;
+
+  ["[fieldsep]"]
+    = _
+    + _"fieldsep"
     ;
 
 }))
