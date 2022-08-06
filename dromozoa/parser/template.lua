@@ -102,11 +102,8 @@ local main = function ()
             if sj == nil or sj < s.j then
               sj = s.j
             end
-            if sn == nil or sn > s.n then
-              sn = s.n
-              sc = s.c
-            elseif sn == s.n and (sc == nil or sc > s.c) then
-              sc = s.c
+            if sn == nil or sn > s.n or (sn == s.n and (sc == nil or sc > s.c)) then
+              sn, sc = s.n, s.c
             end
           end
         end
