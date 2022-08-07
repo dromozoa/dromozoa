@@ -41,11 +41,11 @@ local token_names = array()
 local regexp_filename = "test-gen-lua54-regexp.lua"
 local out = assert(io.open(regexp_filename, "w"))
 out:write(regexp.compile {
-  long_comment = regexp.machine.guard([[freturn()]], {
+  long_comment = regexp.machine.guard([[print("?",string.char(fc),fc) freturn()]], {
     _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
     _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
-    _"[";
-    _(_);
+    _"]" /[[print(string.char(fc))]];
+    _(_) /[[print(string.char(fc))]];
   });
 
   regexp.machine.lexer(token_names, {
@@ -56,11 +56,11 @@ out:write(regexp.compile {
     -- long comment
     (_"--"
       + _"["/[[guard_clear(${<]>})]] + (_"="/[[guard_append(fc)]])*"*" + _"["/[[guard_append(${<]>})]]
-      + _{
-          _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
-          _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
-        }*"?"
-    )%[[fcall($long_comment)]];
+      -- + _{
+      --     _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
+      --     _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
+      --   }*"?"
+    )%[[fcall($long_comment) print("!",string.char(fc),fc)]];
 
     -- short comment
     _"--" + -_{"\n\r"}*"*";
@@ -259,36 +259,50 @@ out:close()
 
 local lua54_regexp = assert(assert(loadfile(regexp_filename))())
 local lua54_parser = assert(assert(loadfile(parser_filename))())
-local root = lua54_regexp(source, source_filename, lua54_parser.max_terminal_symbol, lua54_parser())
 
 local function quote(s)
-  return [["]] .. string.gsub(s, "[<>&]", { ["<"] = "&lt;", [">"] = "&gt;", ["&"] = "&amp;" }) .. [["]]
+  return '"' .. string.gsub(s, '[&<>"]', { ['&'] = '&amp;', ['<'] = '&lt;', ['>'] = '&gt;', ['"'] = '&quot;' }) .. '"'
 end
 
-local function dump(u, n)
+local function dump(out, u, n)
   if n == nil then
     n = 0
   else
     n = n + 1
   end
 
-  io.write(("  "):rep(n), "<node name=", quote(lua54_parser.symbol_names[u[0]]))
+  out:write(("  "):rep(n), "<node")
+  if u[0] ~= nil then out:write(" name=", quote(lua54_parser.symbol_names[u[0]])) end
   if verbose then
-    if u.i ~= nil then io.write(" i=", quote(u.i)) end
-    if u.j ~= nil then io.write(" j=", quote(u.j)) end
-    if u.n ~= nil then io.write(" n=", quote(u.n)) end
-    if u.c ~= nil then io.write(" c=", quote(u.c)) end
+    if u.i ~= nil then out:write(" i=", quote(u.i)) end
+    if u.j ~= nil then out:write(" j=", quote(u.j)) end
+    if u.n ~= nil then out:write(" n=", quote(u.n)) end
+    if u.c ~= nil then out:write(" c=", quote(u.c)) end
   end
-  if u.v ~= nil then io.write(" v=", quote(u.v)) end
+  if u.v ~= nil then out:write(" v=", quote(u.v)) end
   if #u == 0 then
-    io.write "/>\n"
+    out:write "/>\n"
   else
-    io.write ">\n"
+    out:write ">\n"
     for _, v in ipairs(u) do
-      dump(v, n)
+      dump(out, v, n)
     end
-    io.write(("  "):rep(n), "</node>\n")
+    out:write(("  "):rep(n), "</node>\n")
   end
 end
 
-dump(root)
+local out = assert(io.open("test_nodes.xml", "w"))
+out:write "<nodes>\n"
+
+local parse = lua54_parser()
+local root = lua54_regexp(source, source_filename, lua54_parser.max_terminal_symbol, function (token)
+  dump(out, token)
+  return parse(token)
+end)
+
+out:write "</nodes>\n"
+out:close()
+
+local out = assert(io.open("test_tree.xml", "w"))
+dump(out, root)
+out:close()
