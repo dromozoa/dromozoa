@@ -17,10 +17,7 @@
 
 local verbose = os.getenv "VERBOSE" == "1"
 
-local source_filename = ...
-local handle = assert(io.open(source_filename, "rb"))
-local source = handle:read "*a"
-handle:close()
+local dir = assert(...)
 
 local array = require "dromozoa.array"
 local regexp = {
@@ -38,7 +35,7 @@ local _ = regexp.pattern
 
 local token_names = array()
 
-local regexp_filename = "test-gen-lua54-regexp.lua"
+local regexp_filename = dir .. "/test_lua54_regexp.lua"
 local out = assert(io.open(regexp_filename, "w"))
 out:write(regexp.compile {
   long_comment = regexp.machine.guard("freturn()", {
@@ -259,7 +256,7 @@ for _, message in conflictions:ipairs() do
   print(message)
 end
 
-local parser_filename = "test-gen-lua54-parser.lua"
+local parser_filename = dir .. "/test_lua54_parser.lua"
 local out = assert(io.open(parser_filename, "w"))
 out:write(parser.compile(grammar, actions))
 out:close()
@@ -298,18 +295,28 @@ local function dump(out, u, n)
   end
 end
 
-local out = assert(io.open("test_nodes.xml", "w"))
-out:write "<nodes>\n"
+for i = 2, #arg do
+  local source_filename = assert(arg[i])
+  local result_basename = assert(source_filename:match "([^/]+)%.lua$")
+  result_basename = dir .. "/" .. result_basename
 
-local parse = lua54_parser()
-local root = lua54_regexp(source, source_filename, lua54_parser.max_terminal_symbol, function (token)
-  dump(out, token)
-  return parse(token)
-end)
+  local handle = assert(io.open(source_filename))
+  local source = handle:read "*a"
+  handle:close()
 
-out:write "</nodes>\n"
-out:close()
+  local out = assert(io.open(result_basename .. "_list.xml", "w"))
+  out:write "<nodes>\n"
 
-local out = assert(io.open("test_tree.xml", "w"))
-dump(out, root)
-out:close()
+  local parse = lua54_parser()
+  local root = lua54_regexp(source, source_filename, lua54_parser.max_terminal_symbol, function (token)
+    dump(out, token)
+    return parse(token)
+  end)
+
+  out:write "</nodes>\n"
+  out:close()
+
+  local out = assert(io.open(result_basename .. "_tree.xml", "w"))
+  dump(out, root)
+  out:close()
+end
