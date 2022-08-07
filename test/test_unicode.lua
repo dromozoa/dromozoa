@@ -45,6 +45,7 @@ if verbose and utf8 ~= nil and utf8.char ~= nil then
 end
 
 local function append_utf8(a, buffer)
+  --                 0x7F 0111 1111        7F >>  0 = 0x7F
   -- 0xC0 1100 0000  0x1F 0001 1111       7FF >>  6 = 0x1F
   -- 0xE0 1110 0000  0x0F 0000 1111      FFFF >> 12 = 0x0F
   -- 0xF0 1111 0000  0x07 0000 0111    1CFFFF >> 18 = 0x07
@@ -52,37 +53,30 @@ local function append_utf8(a, buffer)
   -- 0xFC 1111 1100  0x01 0000 0001  7FFFFFFF >> 30 = 0x01
 
   local n = #buffer + 1
-
   if a <= 0x7F then
     buffer[n] = a
-  elseif a <= 0x07FF then
+  elseif a <= 0x7FF then
     local b = a % 0x40
     buffer[n] = (a - b) / 0x40 + 0xC0
     buffer[n + 1] = b + 0x80
   elseif a <= 0xFFFF then
-    local c = a % 0x40
-    a = (a - c) / 0x40
+    local c = a % 0x40 a = (a - c) / 0x40
     local b = a % 0x40
     buffer[n] = (a - b) / 0x40 + 0xE0
     buffer[n + 1] = b + 0x80
     buffer[n + 2] = c + 0x80
-  elseif a <= 0x001CFFFF then
-    local d = a % 0x40
-    a = (a - d) / 0x40
-    local c = a % 0x40
-    a = (a - c) / 0x40
+  elseif a <= 0x1CFFFF then
+    local d = a % 0x40 a = (a - d) / 0x40
+    local c = a % 0x40 a = (a - c) / 0x40
     local b = a % 0x40
     buffer[n] = (a - b) / 0x40 + 0xF0
     buffer[n + 1] = b + 0x80
     buffer[n + 2] = c + 0x80
     buffer[n + 3] = d + 0x80
-  elseif a <= 0x03FFFFFF then
-    local e = a % 0x40
-    a = (a - e) / 0x40
-    local d = a % 0x40
-    a = (a - d) / 0x40
-    local c = a % 0x40
-    a = (a - c) / 0x40
+  elseif a <= 0x3FFFFFF then
+    local e = a % 0x40 a = (a - e) / 0x40
+    local d = a % 0x40 a = (a - d) / 0x40
+    local c = a % 0x40 a = (a - c) / 0x40
     local b = a % 0x40
     buffer[n] = (a - b) / 0x40 + 0xF8
     buffer[n + 1] = b + 0x80
@@ -90,14 +84,10 @@ local function append_utf8(a, buffer)
     buffer[n + 3] = d + 0x80
     buffer[n + 4] = e + 0x80
   elseif a <= 0x7FFFFFFF then
-    local f = a % 0x40
-    a = (a - f) / 0x40
-    local e = a % 0x40
-    a = (a - e) / 0x40
-    local d = a % 0x40
-    a = (a - d) / 0x40
-    local c = a % 0x40
-    a = (a - c) / 0x40
+    local f = a % 0x40 a = (a - f) / 0x40
+    local e = a % 0x40 a = (a - e) / 0x40
+    local d = a % 0x40 a = (a - d) / 0x40
+    local c = a % 0x40 a = (a - c) / 0x40
     local b = a % 0x40
     buffer[n] = (a - b) / 0x40 + 0xFC
     buffer[n + 1] = b + 0x80
