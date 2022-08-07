@@ -60,8 +60,8 @@ local main = function ()
   local jumped = false
   local pushed
 
-  local buffer = { n = 0 }
-  local guard_buffer = { n = 0 }
+  local buffer = {}
+  local guard_buffer = {}
 
   function fcall(index)
     stack[#stack + 1] = {
@@ -123,8 +123,7 @@ local main = function ()
     local s = string.sub(source, fs, fp)
     local v = s
     if value_from_buffer then
-      -- TODO unpackを検討する
-      v = string.char(table_unpack(buffer, 1, buffer.n))
+      v = string.char(table_unpack(buffer))
     end
     pushed = fn {
       [0] = ts;
@@ -139,17 +138,13 @@ local main = function ()
   end
 
   function clear(...)
-    buffer.n = 0
-    append(...)
+    buffer = {...}
   end
 
   function append(...)
-    local m = select("#", ...)
-    local n = buffer.n
-    for i = 1, m do
-      buffer[n + i] = select(i, ...)
+    for i = 1, select("#", ...) do
+      buffer[#buffer + 1] = select(i, ...)
     end
-    buffer.n = n + m
   end
 
   function append_range(i, j)
@@ -157,17 +152,13 @@ local main = function ()
   end
 
   function guard_clear(...)
-    guard_buffer.n = 0
-    guard_append(...)
+    guard_buffer = {...}
   end
 
   function guard_append(...)
-    local m = select("#", ...)
-    local n = guard_buffer.n
-    for i = 1, m do
-      guard_buffer[n + i] = select(i, ...)
+    for i = 1, select("#", ...) do
+      guard_buffer[#guard_buffer + 1] = select(i, ...)
     end
-    guard_buffer.n = m + n
   end
 
   function guard_append_range(i, j)
