@@ -18,6 +18,8 @@
 local main = function ()
   local fcall
   local freturn
+  local ferror
+  local fassert
   local push
   local clear
   local append
@@ -56,6 +58,7 @@ local main = function ()
   local current_state = _[current_index].start_state
   local current_cont
   local current_thread
+  local current_byte
   local jumped = false
   local pushed
   local buffer = {}
@@ -74,7 +77,7 @@ local main = function ()
     }
 
     if #stack > 2000 then
-      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (too much recursion; possible loop detected)")
+      ferror "too much recursion; possible loop detected"
     end
 
     jumped = true
@@ -135,6 +138,19 @@ local main = function ()
     }
   end
 
+  function ferror(message)
+    local near = current_byte == nil and "eof" or string.char(current_byte)
+    error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (" .. message .. " near " .. near .. ")")
+  end
+
+  function fassert(v, message, ...)
+    if v then
+      return v, message, ...
+    else
+      ferror(message)
+    end
+  end
+
   function clear(...)
     buffer = {...}
   end
@@ -187,7 +203,7 @@ local main = function ()
         buffer[n + 2] = c + 0x80
         buffer[n + 3] = d + 0x80
         buffer[n + 4] = e + 0x80
-      elseif a <= 0x7FFFFFFF then
+      else
         local f = a % 0x40 a = (a - f) / 0x40
         local e = a % 0x40 a = (a - e) / 0x40
         local d = a % 0x40 a = (a - d) / 0x40
@@ -233,7 +249,7 @@ local main = function ()
 
   local function restart()
     if current_state == _[current_index].start_state then
-      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (loop detected)")
+      ferror "loop detected"
     end
 
     ts = nil
@@ -243,10 +259,9 @@ local main = function ()
     current_state = _[current_index].start_state
   end
 
-  local function accept(current_byte)
+  local function accept()
     if current_state > _[current_index].max_accept_state then
-      local near = current_byte == nil and "eof" or string.char(current_byte)
-      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (cannot transition near " .. near .. ")")
+      ferror "cannot transition"
     end
 
     if execute(_[current_index].accept_actions[current_state], restart) then
@@ -259,20 +274,20 @@ local main = function ()
         push()
         return true
       end
-      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (unexpected eof)")
+      ferror "unexpected eof"
     end
 
     restart()
   end
 
   local function transition()
-    local current_byte = string.byte(source, current_position)
+    current_byte = string.byte(source, current_position)
     if current_byte == nil then
-      return accept(current_byte)
+      return accept()
     end
     local s = _[current_index].transitions[current_byte][current_state]
     if s == 0 then
-      return accept(current_byte)
+      return accept()
     end
 
     fp = current_position

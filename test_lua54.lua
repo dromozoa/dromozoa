@@ -55,7 +55,7 @@ out:write(regexp.compile {
   });
 
   short_literal_string = regexp.machine.guard("freturn()", {
-    _[[\]] + _{
+    _"\\" + _{
       _"a"/"append(0x07)";
       _"f"/"append(0x0C)";
       _"n"/"append(0x0A)";
@@ -85,15 +85,15 @@ out:write(regexp.compile {
         _["09"]/"ra=ra*16+fc-${<0>}";
         _["AF"]/"ra=ra*16+fc-${<A>}+10";
         _["af"]/"ra=ra*16+fc-${<a>}+10";
-      }*"+" + _"}"/"append_unicode(ra)"; -- TODO error check
+      }*"+" + _"}"/"fassert(ra<=0x7FFFFFFF,'UTF-8 value too large') append_unicode(ra)";
     };
-    (_[[\]] + _["09"]/"ra=fc-${<0>}" + _["09"]/"ra=ra*10+fc-${<0>}"*{0,2}) %"append(ra)"; -- TODO error check
+    (_"\\" + _["09"]/"ra=fc-${<0>}" + _["09"]/"ra=ra*10+fc-${<0>}"*{0,2}) %"fassert(ra<=255,'decimal escape too large') append(ra)";
 
     _(_)/"append(fc)";
   });
 
   regexp.machine.lexer(token_names, {
-    _{" \t\f\v"}*"+";
+    _{" \f\t\v"}*"+";
     _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
     _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
 
