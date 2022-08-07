@@ -53,17 +53,17 @@ local code = compile {
       _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
     }*"+";
 
-    _"--" + _"["/[[append(fg,${<]>})]] + _"="/[[append(fg,fc)]]*"*" + _"["/[[append(fg,${<]>}) fcall($comment)]];
+    _"--" + _"["/[[guard_clear(${<]>})]] + _"="/[[guard_append(fc)]]*"*" + _"["/[[guard_append(${<]>}) fcall($comment)]];
     _"--" + -_{"\n\r"}*"*";
 
     string = (
-      _[["]]/[[clear(fb)]] + _{
-        _[[\]] + _["09"]/[[ra=fc-${<0>} fcall($digit) append(fb,ra)]];
-        _[[\]] + _[[\]]/[[append(fb,${<\>})]];
-        _[[\]] + _[["]]/[[append(fb,${<">})]];
-        -_{[["\]]}/[[append(fb,fc)]]
+      _[["]]/[[clear()]] + _{
+        _[[\]] + _["09"]/[[ra=fc-${<0>} fcall($digit) append(ra)]];
+        _[[\]] + _[[\]]/[[append(${<\>})]];
+        _[[\]] + _[["]]/[[append(${<">})]];
+        -_{[["\]]}/[[append(fc)]]
       }*"*" + _[["]]
-    ) %[[push(fb)]];
+    ) %[[push(true)]];
 
     _"*";
     _"+";

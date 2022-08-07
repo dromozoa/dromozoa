@@ -6,12 +6,14 @@ local main = function ()
   local push
   local clear
   local append
+  local append_range
+  local guard_clear
+  local guard_append
+  local guard_append_range
   local ts
   local fs = 1
   local fp
   local fc
-  local fb = {}
-  local fg = {}
   local ln = 1
   local lp = 0
   local action_data = (function ()
@@ -38,6 +40,8 @@ context["action_data"];
   local stack = {}
   local jumped = false
   local result
+  local fb = {}
+  local fg = {}
   function fcall(index)
     stack[#stack + 1] = {
       token_symbol = ts;
@@ -84,12 +88,11 @@ context["action_data"];
       current_cont()
     end
   end
-  function push(v)
+  function push(value_from_buffer)
     local s = string.sub(source, fs, fp)
-    if v == nil then
-      v = s
-    elseif type(v) == "table" then
-      v = string.char(table_unpack(v))
+    local v = s
+    if value_from_buffer then
+      v = string.char(table_unpack(fb))
     end
     result = fn {
       [0] = ts;
@@ -102,11 +105,23 @@ context["action_data"];
       v = v;
     }
   end
-  function clear(buffer)
-    buffer = {}
+  function clear(...)
+    fb = {}
+    append(...)
   end
-  function append(buffer, v)
-    buffer[#buffer + 1] = v
+  function append(...)
+    for i = 1, select("#", ...) do
+      fb[#fb + 1] = select(i, ...)
+    end
+  end
+  function guard_clear(...)
+    fg = {}
+    guard_append(...)
+  end
+  function guard_append(...)
+    for i = 1, select("#", ...) do
+      fg[#fg + 1] = select(i, ...)
+    end
   end
   local function execute(index, cont)
     local action = action_data[index]

@@ -16,11 +16,30 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local main = function ()
+  --[[
+    fcall
+    fret
+    push()
+    push(true) -- use buffer
+
+    clear(byte...)
+    append(byte...)
+    append_range(fs, fp)
+
+    guard_clear(byte...)
+    guard_append(byte...)
+    guard_append_range(fs, fp)
+  ]]
+
   local fcall
   local fret
   local push
   local clear
   local append
+  local append_range
+  local guard_clear
+  local guard_append
+  local guard_append_range
 
                 -- save/restore
                 --  | read only
@@ -29,8 +48,6 @@ local main = function ()
   local fs = 1  --  x  x  start position
   local fp      --     x  current position
   local fc      --     x  current character
-  local fb = {} --        buffer
-  local fg = {} --        guard buffer
   local ln = 1  --        line number
   local lp = 0  --        line position
 
@@ -56,6 +73,9 @@ local main = function ()
   local stack = {}
   local jumped = false
   local result
+
+  local fb = {} --        buffer
+  local fg = {} --        guard buffer
 
   function fcall(index)
     stack[#stack + 1] = {
@@ -113,13 +133,11 @@ local main = function ()
     end
   end
 
-  function push(v)
+  function push(value_from_buffer)
     local s = string.sub(source, fs, fp)
-    if v == nil then
-      v = s
-    elseif type(v) == "table" then
-      -- TODO unpackの利用をやめる？
-      v = string.char(table_unpack(v))
+    local v = s
+    if value_from_buffer then
+      v = string.char(table_unpack(fb))
     end
     result = fn {
       [0] = ts;
@@ -133,14 +151,28 @@ local main = function ()
     }
   end
 
-  function clear(buffer)
-    -- TODO 同時に追加もできるようにする？
-    buffer = {}
+  function clear(...)
+    fb = {}
+    append(...)
   end
 
-  function append(buffer, v)
+  function append(...)
     -- TODO 文字列にも対応する？
-    buffer[#buffer + 1] = v
+    for i = 1, select("#", ...) do
+      fb[#fb + 1] = select(i, ...)
+    end
+  end
+
+  function guard_clear(...)
+    fg = {}
+    guard_append(...)
+  end
+
+  function guard_append(...)
+    -- TODO 文字列にも対応する？
+    for i = 1, select("#", ...) do
+      fg[#fg + 1] = select(i, ...)
+    end
   end
 
   local function execute(index, cont)
