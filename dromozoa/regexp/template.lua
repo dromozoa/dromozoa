@@ -249,7 +249,7 @@ local main = function ()
 
     fp = current_position + #guard_buffer - 1
     fc = guard_buffer[#guard_buffer]
-    current_position = current_position + 1
+    current_position = current_position + #guard_buffer
 
     execute(_[current_index].guard_action)
   end

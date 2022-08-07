@@ -41,11 +41,11 @@ local token_names = array()
 local regexp_filename = "test-gen-lua54-regexp.lua"
 local out = assert(io.open(regexp_filename, "w"))
 out:write(regexp.compile {
-  long_comment = regexp.machine.guard([[print("?",string.char(fc),fc) freturn()]], {
+  long_comment = regexp.machine.guard([[freturn()]], {
     _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
     _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
-    _"]" /[[print(string.char(fc))]];
-    _(_) /[[print(string.char(fc))]];
+    _"]";
+    _(_);
   });
 
   regexp.machine.lexer(token_names, {
@@ -60,7 +60,7 @@ out:write(regexp.compile {
       --     _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
       --     _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
       --   }*"?"
-    )%[[fcall($long_comment) print("!",string.char(fc),fc)]];
+    )%[[fcall($long_comment)]];
 
     -- short comment
     _"--" + -_{"\n\r"}*"*";
