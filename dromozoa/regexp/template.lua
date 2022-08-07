@@ -17,10 +17,14 @@
 
 local main = function ()
   local fcall
-  local fret
+  local freturn
   local push
   local clear
   local append
+  local append_range
+  local guard_clear
+  local guard_append
+  local guard_append_range
 
                 -- save/restore
                 --  | read only
@@ -29,13 +33,13 @@ local main = function ()
   local fs = 1  --  x  x  start position
   local fp      --     x  current position
   local fc      --     x  current character
-  local fb = {} --        buffer
-  local fg = {} --        guard buffer
   local ln = 1  --        line number
   local lp = 0  --        line position
 
-  $custom_data
-  local action_data = { $action_data }
+  local action_data = (function ()
+    $custom_data
+    return { $action_data }
+  end)()
 
   local _, source, source_name, eof_symbol, fn = coroutine.yield()
   local table_unpack = table.unpack or unpack
@@ -43,6 +47,7 @@ local main = function ()
   local main = _.main
   local action_threads = _.action_threads
 
+  local stack = {}
   local start_line = 1
   local start_column = 1
   local current_position = 1
@@ -50,10 +55,10 @@ local main = function ()
   local current_state = _[current_index].start_state
   local current_cont
   local current_thread
-
-  local stack = {}
   local jumped = false
-  local result
+  local pushed
+  local buffer = {}
+  local guard_buffer = {}
 
   function fcall(index)
     stack[#stack + 1] = {
@@ -87,7 +92,7 @@ local main = function ()
     end
   end
 
-  function fret()
+  function freturn()
     local item = stack[#stack]
     stack[#stack] = nil
 
@@ -111,15 +116,13 @@ local main = function ()
     end
   end
 
-  function push(v)
+  function push(value_from_buffer)
     local s = string.sub(source, fs, fp)
-    if v == nil then
-      v = s
-    elseif type(v) == "table" then
-      -- TODO unpackの利用をやめる？
-      v = string.char(table_unpack(v))
+    local v = s
+    if value_from_buffer then
+      v = string.char(table_unpack(buffer))
     end
-    result = fn {
+    pushed = fn {
       [0] = ts;
       i = fs;
       j = fp;
@@ -131,14 +134,32 @@ local main = function ()
     }
   end
 
-  function clear(buffer)
-    -- TODO 同時に追加もできるようにする？
-    buffer = {}
+  function clear(...)
+    buffer = {...}
   end
 
-  function append(buffer, v)
-    -- TODO 文字列にも対応する？
-    buffer[#buffer + 1] = v
+  function append(...)
+    for i = 1, select("#", ...) do
+      buffer[#buffer + 1] = select(i, ...)
+    end
+  end
+
+  function append_range(i, j)
+    append(string.byte(source, i, j))
+  end
+
+  function guard_clear(...)
+    guard_buffer = {...}
+  end
+
+  function guard_append(...)
+    for i = 1, select("#", ...) do
+      guard_buffer[#guard_buffer + 1] = select(i, ...)
+    end
+  end
+
+  function guard_append_range(i, j)
+    guard_append(string.byte(source, i, j))
   end
 
   local function execute(index, cont)
@@ -220,21 +241,21 @@ local main = function ()
       return transition()
     end
 
-    for i = 1, #fg do
-      if string.byte(source, current_position + i - 1) ~= fg[i] then
+    for i = 1, #guard_buffer do
+      if string.byte(source, current_position + i - 1) ~= guard_buffer[i] then
         return transition()
       end
     end
 
-    fp = current_position + #fg - 1
-    fc = fg[#fg]
+    fp = current_position + #guard_buffer - 1
+    fc = guard_buffer[#guard_buffer]
     current_position = current_position + 1
 
     execute(_[current_index].guard_action)
   end
 
   repeat until guard()
-  return result
+  return pushed
 end
 
 local _ = { $shared_data }

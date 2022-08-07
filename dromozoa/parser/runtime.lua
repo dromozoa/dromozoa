@@ -6,14 +6,16 @@ local main = function ()
   local append_unpack
   local S
   local SS
-  ]];
+  local action_data = (function ()
+    ]];
 context["custom_data"];
 [[
 
-  local action_data = { ]];
+    return { ]];
 context["action_data"];
 [=[
  }
+  end)()
   local static_data = coroutine.yield()
   local table_unpack = table.unpack or unpack
   local symbol_names = static_data.symbol_names

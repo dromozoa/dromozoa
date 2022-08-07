@@ -41,14 +41,36 @@ local token_names = array()
 local regexp_filename = "test-gen-lua54-regexp.lua"
 local out = assert(io.open(regexp_filename, "w"))
 out:write(regexp.compile {
-  regexp.machine.lexer(token_names, {
-    _{
-      _{" \t\f\v"};
-      _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
-      _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
-    }*"+";
+  long_comment = regexp.machine.guard([[freturn()]], {
+    _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
+    _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
+    _"[";
+    _(_);
+  });
 
+  regexp.machine.lexer(token_names, {
+    _{" \t\f\v"}*"+";
+    _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
+    _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
+
+    -- long comment
+    (_"--"
+      + _"["/[[guard_clear(${<]>})]] + (_"="/[[guard_append(fc)]])*"*" + _"["/[[guard_append(${<]>})]]
+      + _{
+          _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
+          _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
+        }*"?"
+    )%[[fcall($long_comment)]];
+
+    -- short comment
+    _"--" + -_{"\n\r"}*"*";
+
+    _"local";
     _"return";
+    _"break";
+    _"goto";
+    _"do";
+    _"end";
 
     _"(";
     _")";
@@ -61,9 +83,9 @@ out:write(regexp.compile {
     _":";
     _"{";
     _"}";
-
-    -- short comment
-    _"--" + -_{"\n\r"}*"*";
+    _"<";
+    _">";
+    _"::";
 
     Name
       = _["AZaz_"] + _["09AZaz_"]*"*"
@@ -94,11 +116,39 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
   stat
     = _"varlist" "=" "explist"
     + _"functioncall"
+    + _"label"
+    + _"break"
+    + _"goto" "Name"
+    + _"do" "block" "end"
+    + _"local" "attnamelist" "[= explist]"
     ;
 
   ["{stat}"]
     = _
     + _"{stat}" "stat" %[[$$=$1 append($2)]]
+    ;
+
+  ["[= explist]"]
+    = _
+    + _"=" "explist"
+    ;
+
+  attnamelist
+    = _"Name" "attrib" "{, Name attrib}"
+    ;
+
+  attrib
+    = _"[< Name >]"
+    ;
+
+  ["[< Name >]"]
+    = _
+    + _"<" "Name" ">"
+    ;
+
+  ["{, Name attrib}"]
+    = _
+    + _"{, Name attrib}" "," "Name" "attrib"
     ;
 
   retstat
@@ -111,9 +161,17 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     + _"retstat"
     ;
 
+  label
+    = _"::" "label" "::"
+    ;
+
   varlist
-    = _"var"
-    + _"varlist" "," "var"
+    = _"var" "{, var}" %[[$$=$0 append($1) append_unpack($2)]]
+    ;
+
+  ["{, var}"]
+    = _                    %[[create($varlist)]]
+    + _"{, var}" "," "var" %[[$$=$1 append($3)]]
     ;
 
   var
@@ -159,19 +217,13 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     = _"{" "[fieldlist]" "}"
     ;
 
-  -- $$=$0 append($1, unpack($2))
-  -- $$=$0 append($1) spread($2)
-  -- $$=$0 append($1) append_spread($2)
-  -- $$=$0 append($1) append_unpack($2)
-  -- $$=$2 prepend($1) $$[0]=$fieldlist
-
-  fieldlist
-    = _"field" "{fieldsep field}" "[fieldsep]" %[[$$=$0 append($1) append_unpack($2)]]
-    ;
-
   ["[fieldlist]"]
     = _            %[[create($fieldlist)]]
     + _"fieldlist" %[[$$=$1]]
+    ;
+
+  fieldlist
+    = _"field" "{fieldsep field}" "[fieldsep]" %[[$$=$0 append($1) append_unpack($2)]]
     ;
 
   ["{fieldsep field}"]
@@ -180,7 +232,9 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     ;
 
   field
-    = _"exp"
+    = _"[" "exp" "]" "=" "exp"
+    + _"Name" "=" "exp"
+    + _"exp"
     ;
 
   fieldsep

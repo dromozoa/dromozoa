@@ -23,8 +23,10 @@ local main = function ()
   local S
   local SS
 
-  $custom_data
-  local action_data = { $action_data }
+  local action_data = (function ()
+    $custom_data
+    return { $action_data }
+  end)()
 
   local static_data = coroutine.yield()
   local table_unpack = table.unpack or unpack
