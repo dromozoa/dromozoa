@@ -34,8 +34,10 @@ local main = function ()
   local ln = 1  --        line number
   local lp = 0  --        line position
 
-  $custom_data
-  local action_data = { $action_data }
+  local action_data = (function ()
+    $custom_data
+    return { $action_data }
+  end)()
 
   local _, source, source_name, eof_symbol, fn = coroutine.yield()
   local table_unpack = table.unpack or unpack

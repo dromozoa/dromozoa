@@ -41,12 +41,29 @@ local token_names = array()
 local regexp_filename = "test-gen-lua54-regexp.lua"
 local out = assert(io.open(regexp_filename, "w"))
 out:write(regexp.compile {
+  long_comment = regexp.machine.guard([[fret()]], {
+    _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
+    _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
+    _"[";
+    _(_);
+  });
+
   regexp.machine.lexer(token_names, {
-    _{
-      _{" \t\f\v"};
-      _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
-      _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
-    }*"+";
+    _{" \t\f\v"}*"+";
+    _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
+    _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
+
+    -- long comment
+    (_"--"
+      + _"["/[[clear(fg,${<]>})]] + (_"="/[[append(fg,fc)]])*"*" + _"["/[[append(fg,${<]>})]]
+      + _{
+          _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
+          _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
+        }*"?"
+    )%[[fcall($long_comment)]];
+
+    -- short comment
+    _"--" + -_{"\n\r"}*"*";
 
     _"local";
     _"return";
@@ -69,9 +86,6 @@ out:write(regexp.compile {
     _"<";
     _">";
     _"::";
-
-    -- short comment
-    _"--" + -_{"\n\r"}*"*";
 
     Name
       = _["AZaz_"] + _["09AZaz_"]*"*"

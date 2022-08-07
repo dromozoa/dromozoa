@@ -14,14 +14,16 @@ local main = function ()
   local fg = {}
   local ln = 1
   local lp = 0
-  ]];
+  local action_data = (function ()
+    ]];
 context["custom_data"];
 [[
 
-  local action_data = { ]];
+    return { ]];
 context["action_data"];
 [[
  }
+  end)()
   local _, source, source_name, eof_symbol, fn = coroutine.yield()
   local table_unpack = table.unpack or unpack
   local main = _.main
