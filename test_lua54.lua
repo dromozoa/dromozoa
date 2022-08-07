@@ -38,17 +38,70 @@ local token_names = array()
 local regexp_filename = dir .. "/test_lua54_regexp.lua"
 local out = assert(io.open(regexp_filename, "w"))
 out:write(regexp.compile {
+  [[
+    local ra
+  ]];
+
   long_comment = regexp.machine.guard("freturn()", {
     _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
     _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
-    _"]";
     _(_);
   });
 
   long_literal_string = regexp.machine.guard("freturn()", {
     _"\n"/"ln=ln+1 lp=fp append(0x0A)" + _"\r"/"lp=fp"*"?";
     _"\r"/"ln=ln+1 lp=fp append(0x0A)" + _"\n"/"lp=fp"*"?";
-    _"]"/"append(fc)";
+    _(_)/"append(fc)";
+  });
+
+  short_literal_string = regexp.machine.guard("freturn()", {
+    _[[\]] + _{
+      _"a"/"append(0x07)";
+      _"f"/"append(0x0C)";
+      _"n"/"append(0x0A)";
+      _"r"/"append(0x0D)";
+      _"t"/"append(0x09)";
+      _"v"/"append(0x0B)";
+      _"\\"/"append(fc)";
+      _"\""/"append(fc)";
+      _"\'"/"append(fc)";
+      _"\n"/"ln=ln+1 lp=fp append(0x0A)" + _"\r"/"lp=fp"*"?";
+      _"\r"/"ln=ln+1 lp=fp append(0x0A)" + _"\n"/"lp=fp"*"?";
+      _"z" + _{
+        _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
+        _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
+        _{" \f\t\v"}*"+"
+      }*"*";
+      _"x" + _{
+        _["09"]/"ra=fc-${<0>}";
+        _["AF"]/"ra=fc-${<A>}+10";
+        _["af"]/"ra=fc-${<a>}+10";
+      } + _{
+        _["09"]/"append(ra*16+fc-${<0>})";
+        _["AF"]/"append(ra*16+fc-${<A>}+10)";
+        _["af"]/"append(ra*16+fc-${<a>}+10)";
+      };
+      _"u" + _"{"/"ra=0" + _{
+        _["09"]/"ra=ra*16+fc-${<0>}";
+        _["AF"]/"ra=ra*16+fc-${<A>}+10";
+        _["af"]/"ra=ra*16+fc-${<a>}+10";
+      }*"+" + _"}"/"print(ra) append_unicode(ra)"; -- TODO error check
+    };
+    (_[[\]] + _["09"]/"ra=fc-${<0>}" + _["09"]/"ra=ra*10+fc-${<0>}"*{0,2}) %"append(ra)"; -- TODO error check
+
+
+
+-- \a': ベル
+-- '\b': バックスペース
+-- '\f': 改頁
+-- '\n': 改行
+-- '\r': 復帰
+-- '\t': 水平タブ
+-- '\v': 垂直タブ
+-- '\\': バックスラッシュ (円記号)
+-- '\"': 引用符 (ダブルクォート)
+-- '\'': アポストロフィ (シングルクォート)
+
     _(_)/"append(fc)";
   });
 
@@ -67,6 +120,8 @@ out:write(regexp.compile {
       _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
       _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
     }*"?") %"clear() fcall($long_literal_string) push(true)";
+
+    ShortLiteralString = _{"\'\""}/"guard_clear(fc)" %"clear() fcall($short_literal_string) push(true)";
 
     _"local";
     _"return";
@@ -195,7 +250,7 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
 
   exp
     = _"Numeral"
-    + _"LongLiteralString"
+    + _"LiteralString"
 --    + _"prefixexp"
     ;
 
@@ -249,6 +304,11 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
   ["[fieldsep]"]
     = _
     + _"fieldsep"
+    ;
+
+  LiteralString
+    = _"LongLiteralString"
+    + _"ShortLiteralString"
     ;
 
 }))

@@ -22,6 +22,7 @@ local main = function ()
   local clear
   local append
   local append_range
+  local append_unicode
   local guard_clear
   local guard_append
   local guard_append_range
@@ -146,6 +147,36 @@ local main = function ()
 
   function append_range(i, j)
     append(string.byte(source, i, j))
+  end
+
+  if utf8 ~= nil and utf8.char ~= nil then
+    function append_unicode(a)
+      append(string.byte(utf8.char(a), 1, -1))
+    end
+  else
+    function append_unicode(a)
+      if a <= 0x7F then
+        append(a)
+      elseif a <= 0x07FF then
+        local b = a % 0x40
+        local a = (a - b) / 0x40
+        append(a + 0xC0, b + 0x80)
+      elseif a <= 0xFFFF then
+        local c = a % 0x40
+        local a = (a - c) / 0x40
+        local b = a % 0x40
+        local a = (a - b) / 0x40
+        append(a + 0xE0, b + 0x80, c + 0x80)
+      else
+        local d = a % 0x40
+        local a = (a - d) / 0x40
+        local c = a % 0x40
+        local a = (a - c) / 0x40
+        local b = a % 0x40
+        local a = (a - b) / 0x40
+        append(a + 0xF0, b + 0x80, c + 0x80, d + 0x80)
+      end
+    end
   end
 
   function guard_clear(...)
