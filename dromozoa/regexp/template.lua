@@ -16,21 +16,6 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local main = function ()
-  --[[
-    fcall
-    fret
-    push()
-    push(true) -- use buffer
-
-    clear(byte...)
-    append(byte...)
-    append_range(fs, fp)
-
-    guard_clear(byte...)
-    guard_append(byte...)
-    guard_append_range(fs, fp)
-  ]]
-
   local fcall
   local freturn
   local push
@@ -64,6 +49,7 @@ local main = function ()
   local main = _.main
   local action_threads = _.action_threads
 
+  local stack = {}
   local start_line = 1
   local start_column = 1
   local current_position = 1
@@ -71,13 +57,11 @@ local main = function ()
   local current_state = _[current_index].start_state
   local current_cont
   local current_thread
-
-  local stack = {}
   local jumped = false
-  local result
+  local pushed
 
-  local buffer = {} --        buffer
-  local guard_buffer = {} --        guard buffer
+  local buffer = { n = 0 }
+  local guard_buffer = { n = 0 }
 
   function fcall(index)
     stack[#stack + 1] = {
@@ -139,9 +123,10 @@ local main = function ()
     local s = string.sub(source, fs, fp)
     local v = s
     if value_from_buffer then
-      v = string.char(table_unpack(buffer))
+      -- TODO unpackを検討する
+      v = string.char(table_unpack(buffer, 1, buffer.n))
     end
-    result = fn {
+    pushed = fn {
       [0] = ts;
       i = fs;
       j = fp;
@@ -154,27 +139,39 @@ local main = function ()
   end
 
   function clear(...)
-    buffer = {}
+    buffer.n = 0
     append(...)
   end
 
   function append(...)
-    -- TODO 文字列にも対応する？
-    for i = 1, select("#", ...) do
-      buffer[#buffer + 1] = select(i, ...)
+    local m = select("#", ...)
+    local n = buffer.n
+    for i = 1, m do
+      buffer[n + i] = select(i, ...)
     end
+    buffer.n = n + m
+  end
+
+  function append_range(i, j)
+    append(string.byte(source, i, j))
   end
 
   function guard_clear(...)
-    guard_buffer = {}
+    guard_buffer.n = 0
     guard_append(...)
   end
 
   function guard_append(...)
-    -- TODO 文字列にも対応する？
-    for i = 1, select("#", ...) do
-      guard_buffer[#guard_buffer + 1] = select(i, ...)
+    local m = select("#", ...)
+    local n = guard_buffer.n
+    for i = 1, m do
+      guard_buffer[n + i] = select(i, ...)
     end
+    guard_buffer.n = m + n
+  end
+
+  function guard_append_range(i, j)
+    guard_append(string.byte(source, i, j))
   end
 
   local function execute(index, cont)
@@ -270,7 +267,7 @@ local main = function ()
   end
 
   repeat until guard()
-  return result
+  return pushed
 end
 
 local _ = { $shared_data }
