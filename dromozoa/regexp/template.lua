@@ -32,11 +32,13 @@ local main = function ()
   ]]
 
   local fcall
-  local fret
+  local freturn
   local push
+
   local clear
   local append
   local append_range
+
   local guard_clear
   local guard_append
   local guard_append_range
@@ -74,8 +76,8 @@ local main = function ()
   local jumped = false
   local result
 
-  local fb = {} --        buffer
-  local fg = {} --        guard buffer
+  local buffer = {} --        buffer
+  local guard_buffer = {} --        guard buffer
 
   function fcall(index)
     stack[#stack + 1] = {
@@ -109,7 +111,7 @@ local main = function ()
     end
   end
 
-  function fret()
+  function freturn()
     local item = stack[#stack]
     stack[#stack] = nil
 
@@ -137,7 +139,7 @@ local main = function ()
     local s = string.sub(source, fs, fp)
     local v = s
     if value_from_buffer then
-      v = string.char(table_unpack(fb))
+      v = string.char(table_unpack(buffer))
     end
     result = fn {
       [0] = ts;
@@ -152,26 +154,26 @@ local main = function ()
   end
 
   function clear(...)
-    fb = {}
+    buffer = {}
     append(...)
   end
 
   function append(...)
     -- TODO 文字列にも対応する？
     for i = 1, select("#", ...) do
-      fb[#fb + 1] = select(i, ...)
+      buffer[#buffer + 1] = select(i, ...)
     end
   end
 
   function guard_clear(...)
-    fg = {}
+    guard_buffer = {}
     guard_append(...)
   end
 
   function guard_append(...)
     -- TODO 文字列にも対応する？
     for i = 1, select("#", ...) do
-      fg[#fg + 1] = select(i, ...)
+      guard_buffer[#guard_buffer + 1] = select(i, ...)
     end
   end
 
@@ -254,14 +256,14 @@ local main = function ()
       return transition()
     end
 
-    for i = 1, #fg do
-      if string.byte(source, current_position + i - 1) ~= fg[i] then
+    for i = 1, #guard_buffer do
+      if string.byte(source, current_position + i - 1) ~= guard_buffer[i] then
         return transition()
       end
     end
 
-    fp = current_position + #fg - 1
-    fc = fg[#fg]
+    fp = current_position + #guard_buffer - 1
+    fc = guard_buffer[#guard_buffer]
     current_position = current_position + 1
 
     execute(_[current_index].guard_action)

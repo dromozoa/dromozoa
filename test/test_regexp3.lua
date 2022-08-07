@@ -30,7 +30,7 @@ local lexer = machine.lexer
 local token_names = array()
 local code = compile {
   character_class = lexer(token_names, {
-    ["]"] = _"]" %[[push() fret()]];
+    ["]"] = _"]" %[[push() freturn()]];
     escaped = _"\\" + _;
     char = _(_);
   });

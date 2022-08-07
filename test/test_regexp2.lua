@@ -33,10 +33,10 @@ local code = compile {
   [[local ra]];
 
   digit = union {
-    _["09"]/[[ra=ra*10+fc-${<0>}]]*-2 %[[fret()]];
+    _["09"]/[[ra=ra*10+fc-${<0>}]]*-2 %[[freturn()]];
   };
 
-  comment = guard([[fret()]], {
+  comment = guard([[freturn()]], {
     _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
     _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
     _"]" + _"="*"*" + ("]" + -_{"]\n\r"}*"*")*"?";
