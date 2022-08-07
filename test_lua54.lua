@@ -50,6 +50,10 @@ out:write(regexp.compile {
 
     _"local";
     _"return";
+    _"break";
+    _"goto";
+    _"do";
+    _"end";
 
     _"(";
     _")";
@@ -64,6 +68,7 @@ out:write(regexp.compile {
     _"}";
     _"<";
     _">";
+    _"::";
 
     -- short comment
     _"--" + -_{"\n\r"}*"*";
@@ -97,12 +102,16 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
   stat
     = _"varlist" "=" "explist"
     + _"functioncall"
+    + _"label"
+    + _"break"
+    + _"goto" "Name"
+    + _"do" "block" "end"
+    + _"local" "attnamelist" "[= explist]"
     ;
 
   ["{stat}"]
     = _
     + _"{stat}" "stat" %[[$$=$1 append($2)]]
-    + _"local" "attnamelist" "[= explist]"
     ;
 
   ["[= explist]"]
@@ -136,6 +145,10 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
   ["[retstat]"]
     = _
     + _"retstat"
+    ;
+
+  label
+    = _"::" "label" "::"
     ;
 
   varlist
