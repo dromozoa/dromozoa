@@ -41,29 +41,35 @@ local token_names = array()
 local regexp_filename = "test-gen-lua54-regexp.lua"
 local out = assert(io.open(regexp_filename, "w"))
 out:write(regexp.compile {
-  long_comment = regexp.machine.guard([[freturn()]], {
-    _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
-    _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
+  long_comment = regexp.machine.guard("freturn()", {
+    _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
+    _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
     _"]";
     _(_);
   });
 
+  long_literal_string = regexp.machine.guard("freturn()", {
+    _"\n"/"ln=ln+1 lp=fp append(0x0A)" + _"\r"/"lp=fp"*"?";
+    _"\r"/"ln=ln+1 lp=fp append(0x0A)" + _"\n"/"lp=fp"*"?";
+    _"]"/"append(fc)";
+    _(_)/"append(fc)";
+  });
+
   regexp.machine.lexer(token_names, {
     _{" \t\f\v"}*"+";
-    _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
-    _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
+    _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
+    _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
 
     -- long comment
-    (_"--"
-      + _"["/[[guard_clear(${<]>})]] + (_"="/[[guard_append(fc)]])*"*" + _"["/[[guard_append(${<]>})]]
-      -- + _{
-      --     _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
-      --     _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
-      --   }*"?"
-    )%[[fcall($long_comment)]];
+    (_"--" + _"["/"guard_clear(${<]>})" + (_"="/"guard_append(fc)")*"*" + _"["/"guard_append(${<]>})") %"fcall($long_comment) push()";
 
     -- short comment
     _"--" + -_{"\n\r"}*"*";
+
+    LongLiteralString = (_"["/"guard_clear(${<]>})" + (_"="/"guard_append(fc)")*"*" + _"["/"guard_append(${<]>})" + _{
+      _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
+      _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
+    }*"?") %"clear() fcall($long_literal_string) push(true)";
 
     _"local";
     _"return";
@@ -125,7 +131,7 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
 
   ["{stat}"]
     = _
-    + _"{stat}" "stat" %[[$$=$1 append($2)]]
+    + _"{stat}" "stat" %"$$=$1 append($2)"
     ;
 
   ["[= explist]"]
@@ -153,7 +159,7 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
 
   retstat
     = _"return" "[explist]"
-    + _"return" "[explist]" ";" %[[$$=$0 append($1,$2)]]
+    + _"return" "[explist]" ";" %"$$=$0 append($1,$2)"
     ;
 
   ["[retstat]"]
@@ -166,12 +172,12 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     ;
 
   varlist
-    = _"var" "{, var}" %[[$$=$0 append($1) append_unpack($2)]]
+    = _"var" "{, var}" %"$$=$0 append($1) append_unpack($2)"
     ;
 
   ["{, var}"]
-    = _                    %[[create($varlist)]]
-    + _"{, var}" "," "var" %[[$$=$1 append($3)]]
+    = _                    %"create($varlist)"
+    + _"{, var}" "," "var" %"$$=$1 append($3)"
     ;
 
   var
@@ -182,16 +188,17 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
 
   explist
     = _"exp"
-    + _"explist" "," "exp" %[[$$=$1 append($3)]]
+    + _"explist" "," "exp" %"$$=$1 append($3)"
     ;
 
   ["[explist]"]
-    = _          %[[create($explist)]]
-    + _"explist" %[[$$=$1]]
+    = _          %"create($explist)"
+    + _"explist" %"$$=$1"
     ;
 
   exp
     = _"Numeral"
+    + _"LongLiteralString"
 --    + _"prefixexp"
     ;
 
@@ -209,7 +216,7 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     ;
 
   args
-    = _"(" "[explist]" ")" %[[$$=$0 append($2)]]
+    = _"(" "[explist]" ")" %"$$=$0 append($2)"
     + _"tableconstructor"
     ;
 
@@ -218,17 +225,17 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     ;
 
   ["[fieldlist]"]
-    = _            %[[create($fieldlist)]]
-    + _"fieldlist" %[[$$=$1]]
+    = _            %"create($fieldlist)"
+    + _"fieldlist" %"$$=$1"
     ;
 
   fieldlist
-    = _"field" "{fieldsep field}" "[fieldsep]" %[[$$=$0 append($1) append_unpack($2)]]
+    = _"field" "{fieldsep field}" "[fieldsep]" %"$$=$0 append($1) append_unpack($2)"
     ;
 
   ["{fieldsep field}"]
     = _
-    + _"{fieldsep field}" "fieldsep" "field" %[[$$=$1 append($3)]]
+    + _"{fieldsep field}" "fieldsep" "field" %"$$=$1 append($3)"
     ;
 
   field
