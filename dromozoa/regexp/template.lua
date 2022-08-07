@@ -19,11 +19,9 @@ local main = function ()
   local fcall
   local freturn
   local push
-
   local clear
   local append
   local append_range
-
   local guard_clear
   local guard_append
   local guard_append_range
@@ -59,7 +57,6 @@ local main = function ()
   local current_thread
   local jumped = false
   local pushed
-
   local buffer = {}
   local guard_buffer = {}
 
