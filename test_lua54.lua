@@ -91,15 +91,22 @@ out:write(regexp.compile {
   });
 
   regexp.machine.lexer(token_names, {
+    ----------------------------------------------------------------------------
+    -- Spaces
+
     _{" \f\t\v"}*"+";
     _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
     _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
 
-    -- long comment
+    ----------------------------------------------------------------------------
+    -- Comment
+
     (_"--" + _"["/"guard_clear(${<]>})" + (_"="/"guard_append(fc)")*"*" + _"["/"guard_append(${<]>})") %"fcall($long_comment) push()";
 
-    -- short comment
     _"--" + -_{"\n\r"}*"*";
+
+    ----------------------------------------------------------------------------
+    -- LiteralString
 
     LongLiteralString = (_"["/"guard_clear(${<]>})" + (_"="/"guard_append(fc)")*"*" + _"["/"guard_append(${<]>})" + _{
       _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
@@ -108,16 +115,17 @@ out:write(regexp.compile {
 
     ShortLiteralString = _{"\'\""}/"guard_clear(fc)" %"clear() fcall($short_literal_string) push(true)";
 
+    ----------------------------------------------------------------------------
+    -- Numeral
+
+    -- 8進数は存在しないので、leading zerosも許容される。
     DecimalIntegerNumeral = _["09"]*"+";
 
-    -- C言語のdecimal-floating-constantを書きくだしたもの
-    -- DecFloatNumeral = _{
-    --   _{
-    --     _["09"]*"*" + _"." + _["09"]*"+";
-    --     _["09"]*"+" + _"."
-    --   } + (_{"eE"} + _{"+-"}*"?" + _["09"]*"+")*"?";
-    --   _["09"]*"+" + (_{"eE"} + _{"+-"}*"?" + _["09"]*"+");
-    -- };
+    -- C言語のリテラルのdecimal-floating-constantに類似しているが、以下の点で異
+    -- なる。
+    -- 1. 小数点も指数部もない場合はDecimalIntegerNumeralがマッチするので除外し
+    --    ない。
+    -- 2. 接尾辞は持たない。
     DecimalFloatingNumeral = _{
       _["09"]*"*" + _"." + _["09"]*"+";
       _["09"]*"+" + _"."*"?";
@@ -125,8 +133,13 @@ out:write(regexp.compile {
 
     HexadecimalIntegerNumeral = _"0" + _{"xX"} + _["09AFaf"]*"+";
 
-    -- C言語のリテラルでは指数を省略できないが、Luaでは省略できる
-    -- strtodは指数がオプション
+    -- C言語のリテラルのhexadecimal-floating-constantに類似しているが、以下の点
+    -- で異なる。
+    -- 1. 指数部を省略できる。C言語のリテラルでは指数を省略できないが、strtodで
+    --    は省略できる。
+    -- 2. 小数点も指数部もない場合はHexadecimalIntegerNumeralがマッチするので除
+    --    外しない。
+    -- 3. 接尾辞は持たない。
     HexadecimalFloatingNumeral = _"0" + _{"xX"} + _{
       _["09AFaf"]*"*" + _"." + _["09AFaf"]*"+";
       _["09AFaf"]*"+" + _"."*"?";
