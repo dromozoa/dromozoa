@@ -21,6 +21,37 @@ local tree_set = require "dromozoa.tree_set"
 
 ---------------------------------------------------------------------------
 
+local new_timer
+pcall(function ()
+  new_timer = require "dromozoa.unix".timer
+end)
+
+if new_timer == nil then
+  local metatable = {
+    __index = {
+      start = function (self)
+        self[1] = os.clock()
+        return self
+      end;
+
+      stop = function (self)
+        self[2] = os.clock()
+        return self
+      end;
+
+      elapsed = function (self)
+        return self[2] - self[1]
+      end;
+    };
+  }
+
+  new_timer = function ()
+    return setmetatable({}, metatable)
+  end
+end
+
+---------------------------------------------------------------------------
+
 local function each_production(productions, head)
   return coroutine.wrap(function (self)
     for i, production in productions:each({ head = head, head_index = 0 }, { head = head + 1, head_index = 0 }) do
@@ -229,7 +260,9 @@ end
 
 local marker_lookahead = -1
 
-local function lalr1_kernels(grammar, set_of_items, transitions, timer)
+local function lalr1_kernels(grammar, set_of_items, transitions)
+  local timer = new_timer()
+
   local max_terminal_symbol = grammar.max_terminal_symbol
   local productions = grammar.productions
 
@@ -272,12 +305,19 @@ local function lalr1_kernels(grammar, set_of_items, transitions, timer)
   local hit = 0
   local miss = 0
 
+  local timer1 = new_timer()
+  local timer2 = new_timer()
+  local elapsed1 = 0
+  local elapsed2 = 0
+
   for from_i, from_items in set_of_items:ipairs() do
     for from_j, from_item in from_items:ipairs() do
       if productions:get(from_item.index).head == max_terminal_symbol + 1 or from_item.dot > 1 then
         -- local items = tree_set()
         -- items:insert { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
         -- print(from_item.index, from_item.dot)
+
+        timer1:start()
 
         local c = cache[from_item.index]
         if not c then
@@ -295,6 +335,11 @@ local function lalr1_kernels(grammar, set_of_items, transitions, timer)
           hit = hit + 1
         end
 
+        timer1:stop()
+        elapsed1 = elapsed1 + timer1:elapsed()
+
+        timer2:start()
+
         for _, item in items:ipairs() do
           local symbol = productions:get(item.index).body:get(item.dot)
           if symbol ~= nil then
@@ -307,12 +352,15 @@ local function lalr1_kernels(grammar, set_of_items, transitions, timer)
             end
           end
         end
+
+        timer2:stop()
+        elapsed2 = elapsed2 + timer2:elapsed()
       end
     end
   end
 
   timer:stop()
-  print("lalr1_kernels B", timer:elapsed(), hit, miss)
+  print("lalr1_kernels B", timer:elapsed(), hit, miss, elapsed1, elapsed2)
 
   repeat
     timer:start()
@@ -500,28 +548,9 @@ end
 
 ---------------------------------------------------------------------------
 
-local timer = {}
-
-function timer:start()
-  self[1] = os.clock()
-  return self
-end
-
-function timer:stop()
-  self[2] = os.clock()
-  return self
-end
-
-function timer:elapsed()
-  return self[2] - self[1]
-end
-
-pcall(function ()
-  local unix = require "dromozoa.unix".timer
-  timer = unix.timer()
-end)
-
 return function (grammar)
+  local timer = new_timer()
+
   timer:start()
   local grammar_without_left_recursion = eliminate_left_recursion(grammar)
   timer:stop()
@@ -537,10 +566,7 @@ return function (grammar)
   timer:stop()
   print("lr0_items", timer:elapsed())
 
-  -- timer:start()
-  local lalr1_set_of_items = lalr1_kernels(grammar, lr0_set_of_items, transitions, timer)
-  -- timer:stop()
-  -- print("lalr1_kernels", timer:elapsed())
+  local lalr1_set_of_items = lalr1_kernels(grammar, lr0_set_of_items, transitions)
 
   for i, items in lalr1_set_of_items:ipairs() do
     timer:start()
