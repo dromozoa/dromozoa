@@ -153,8 +153,10 @@ out:write(regexp.compile {
     _"break";
     _"do";
     _"end";
-    -- _"function";
+    _"for";
+    _"function";
     _"goto";
+    _"in";
     _"local";
     _"repeat";
     _"return";
@@ -203,7 +205,10 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     + _"do" "block" "end"
     + _"while" "exp" "do" "block" "end"
     + _"repeat" "block" "until" "exp"
-    -- + _"function" "funcname" "funcbody"
+    + _"for" "Name" "=" "exp" "," "exp" "[, exp]" "do" "block" "end"
+    + _"for" "namelist" "in" "explist" "do" "block" "end"
+    + _"function" "funcname" "funcbody"
+    + _"local" "function" "Name" "funcbody"
     + _"local" "attnamelist" "[= explist]"
     ;
 
@@ -212,28 +217,30 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     + _"{stat}" "stat" %"$$=$1 append($2)"
     ;
 
-  ["[= explist]"]
-    = _
-    + _"=" "explist"
-    ;
+  ------------------------------------------------------------------------------
 
   attnamelist
-    = _"Name" "attrib" "{, Name attrib}"
+    = _"Name" "attrib" "{, Name attrib}" -- $$=$0 append($1) $1.attrib=$2.v append_unpack($3)
     ;
+
+  -- attrib = _"[< Name >]";
+
+  -- ["[< Name >]"]
+  --   = _
+  --   + _"<" "Name" ">"
+  --   ;
 
   attrib
-    = _"[< Name >]"
-    ;
-
-  ["[< Name >]"]
     = _
-    + _"<" "Name" ">"
+    + _"<" "Name" ">" %"$$=$0 append($2)" -- $$=$0 $$.v=$2.v
     ;
 
   ["{, Name attrib}"]
     = _
-    + _"{, Name attrib}" "," "Name" "attrib"
+    + _"{, Name attrib}" "," "Name" "attrib" %"$$=$1 append($3, $4)" -- $$=$1 append($3) $3.attrib=$4.v
     ;
+
+  ------------------------------------------------------------------------------
 
   retstat
     = _"return" "[explist]"
@@ -245,13 +252,29 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     + _"retstat"
     ;
 
+  ------------------------------------------------------------------------------
+
   label
     = _"::" "Name" "::"
     ;
 
-  -- funcname
-  --   = _"Name" -- "{. Name}" "[: Name]"
-  --   ;
+  ------------------------------------------------------------------------------
+
+  funcname
+    = _"Name" "{. Name}" "[: Name]"
+    ;
+
+  ["{. Name}"]
+    = _
+    + _"{. Name}" "." "Name"
+    ;
+
+  ["[: Name]"]
+    = _
+    + _":" "Name"
+    ;
+
+  ------------------------------------------------------------------------------
 
   varlist
     = _"var" "{, var}" %"$$=$0 append($1) append_unpack($2)"
@@ -268,7 +291,7 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     + _"prefixexp" "." "Name"
     ;
 
-  -- namelist = _"Name" "{, Name}";
+  namelist = _"Name" "{, Name}";
 
   ["{, Name}"]
     = _
@@ -285,10 +308,20 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     + _"explist" %"$$=$1"
     ;
 
+  ["[= explist]"]
+    = _
+    + _"=" "explist"
+    ;
+
   exp
     = _"Numeral"
     + _"LiteralString"
     + _"prefixexp"
+    ;
+
+  ["[, exp]"]
+    = _
+    + _"," "exp"
     ;
 
   prefixexp
@@ -309,11 +342,11 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     + _"tableconstructor"
     ;
 
-  -- funcbody = _"(" "parlist" ")" "block" "end";
+  funcbody = _"(" "parlist" ")" "block" "end";
 
-  -- parlist
-  --   = _"namelist" -- ...
-  --   ;
+  parlist
+    = _"namelist" -- ...
+    ;
 
   tableconstructor
     = _"{" "[fieldlist]" "}"
