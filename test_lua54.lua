@@ -153,13 +153,16 @@ out:write(regexp.compile {
     _"break";
     _"do";
     _"end";
+    _"false";
     _"for";
     _"function";
     _"goto";
     _"in";
     _"local";
+    _"nil";
     _"repeat";
     _"return";
+    _"true";
     _"until";
     _"while";
 
@@ -177,6 +180,7 @@ out:write(regexp.compile {
     _"]";
     _"{";
     _"}";
+    _"...";
 
     ----------------------------------------------------------------------------
     -- Name
@@ -211,6 +215,13 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     + _"local" "function" "Name" "funcbody"
     + _"local" "attnamelist" "[= explist]"
     ;
+
+  ------------------------------------------------------------------------------
+
+
+
+
+
 
   ["{stat}"]
     = _
@@ -261,7 +272,8 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
   ------------------------------------------------------------------------------
 
   funcname
-    = _"Name" "{. Name}" "[: Name]"
+    = _"Name" "{. Name}"
+    + _"Name" "{. Name}" ":" "Name"
     ;
 
   ["{. Name}"]
@@ -269,10 +281,10 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     + _"{. Name}" "." "Name"
     ;
 
-  ["[: Name]"]
-    = _
-    + _":" "Name"
-    ;
+  -- ["[: Name]"]
+  --   = _
+  --   + _":" "Name"
+  --   ;
 
   ------------------------------------------------------------------------------
 
@@ -291,17 +303,33 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     + _"prefixexp" "." "Name"
     ;
 
-  namelist = _"Name" "{, Name}";
+  ------------------------------------------------------------------------------
 
-  ["{, Name}"]
-    = _
-    + _"{, Name}" "," "Name"
-    ;
+  -- namelist ::= Name {',' Name}
+  namelist
+    = _"Name"
+    + _"namelist" "," "Name" %"$$=$1 append($3)";
 
+  -- namelist = _"Name" "{, Name}";
+  -- ["{, Name}"]
+  --   = _
+  --   + _"{, Name}" "," "Name"
+  --   ;
+
+  ------------------------------------------------------------------------------
+
+  -- explist ::= exp {',' exp}
   explist
     = _"exp"
     + _"explist" "," "exp" %"$$=$1 append($3)"
     ;
+
+  -- explist = _"exp" "{, exp}";
+  -- ["{, exp}"]
+  --   = _
+  --   + _"{, exp}" "," "exp";
+
+  ------------------------------------------------------------------------------
 
   ["[explist]"]
     = _          %"create($explist)"
@@ -313,40 +341,63 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     + _"=" "explist"
     ;
 
+  ------------------------------------------------------------------------------
+
   exp
-    = _"Numeral"
+    = _"nil"
+    + _"false"
+    + _"true"
+    + _"Numeral"
     + _"LiteralString"
+    + _"..."
+    -- + _"functiondef"
     + _"prefixexp"
+    + _"tableconstructor"
+    -- + _"exp" "binop" "exp"
+    -- + _"unop" "exp"
     ;
 
+  -- forで使う
   ["[, exp]"]
     = _
     + _"," "exp"
     ;
 
+  ------------------------------------------------------------------------------
+
   prefixexp
     = _"var"
---    + _"functioncall"
+    -- S/R conflicts
+    -- + _"functioncall"
     + _"(" "exp" ")"
     ;
 
   functioncall
     = _"prefixexp" "args"
     + _"prefixexp" ":" "Name" "args"
---    + _"functioncall" "args"
+    -- S/R conflicts
+    -- + _"functioncall" "args"
     + _"functioncall" ":" "Name" "args"
     ;
 
   args
     = _"(" "[explist]" ")" %"$$=$0 append($2)"
     + _"tableconstructor"
+    + _"LiteralString"
     ;
 
-  funcbody = _"(" "parlist" ")" "block" "end";
+  funcbody = _"(" "[parlist]" ")" "block" "end";
 
   parlist
     = _"namelist" -- ...
     ;
+
+  ["[parlist]"]
+    = _
+    + _"parlist"
+    ;
+
+  ------------------------------------------------------------------------------
 
   tableconstructor
     = _"{" "[fieldlist]" "}"
@@ -381,6 +432,8 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     = _
     + _"fieldsep"
     ;
+
+  ------------------------------------------------------------------------------
 
   LiteralString
     = _"LongLiteralString"
