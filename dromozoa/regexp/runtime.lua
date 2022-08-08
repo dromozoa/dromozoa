@@ -168,7 +168,7 @@ context["action_data"];
         buffer[n + 2] = c + 0x80
         buffer[n + 3] = d + 0x80
         buffer[n + 4] = e + 0x80
-      elseif a <= 0x7FFFFFFF then
+      else
         local f = a % 0x40 a = (a - f) / 0x40
         local e = a % 0x40 a = (a - e) / 0x40
         local d = a % 0x40 a = (a - d) / 0x40
