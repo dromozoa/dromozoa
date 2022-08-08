@@ -268,8 +268,17 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
 
   var
     = _"Name"
-    + _"prefixexp" "[" "exp" "]"
-    + _"prefixexp" "." "Name";
+    -- + _"prefixexp" "[" "exp" "]"
+    + _"var"          "[" "exp" "]"
+    -- + _"functioncall" "[" "exp" "]"
+    + _"(" "exp" ")"  "[" "exp" "]"
+
+    -- + _"prefixexp" "." "Name"
+    + _"var"          "." "Name"
+    -- + _"functioncall" "." "Name"
+    + _"(" "exp" ")"  "." "Name"
+
+    ;
 
   namelist
     = _"Name"
@@ -287,7 +296,11 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     + _"LiteralString"
     + _"..."
     + _"functiondef"
-    + _"prefixexp"
+    -- + _"prefixexp"
+    + _"var"
+    -- + _"functioncall"
+    + _"(" "exp" ")"
+
     + _"tableconstructor"
     -- + _"exp" "binop" "exp"
     -- + _"unop" "exp"
@@ -296,21 +309,50 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
   ------------------------------------------------------------------------------
 
   -- TODO 後で調整する
-  prefixexp
-    = _"var"
-    -- S/R conflicts
-    -- + _"functioncall"
-    + _"(" "exp" ")"
-    ;
+  -- prefixexp
+  --   = _"var"
+  --   -- 1S/R 1R/R
+  --   -- + _"functioncall"
+  --   + _"(" "exp" ")"
+  --   ;
 
   -- TODO 後で調整する
   functioncall
-    = _"prefixexp" "args"
-    + _"prefixexp" ":" "Name" "args"
+    =
+    --   _"prefixexp" "args"
+    -- + _"prefixexp" ":" "Name" "args"
     -- S/R conflicts
     -- + _"functioncall" "args"
-    -- + _"functioncall" ":" "Name" "args"
+      _"var"          "args"
+    + _"(" "exp" ")"  "args"
+    -- + _"functioncall" "args"
+
+      -- "prefixexp" ":" "Name" "args"
+    + _"var"          ":" "Name" "args"
+    + _"(" "exp" ")"  ":" "Name" "args"
+    + _"functioncall" ":" "Name" "args"
     ;
+
+  --[[
+    The Complete Syntax of Lua
+
+    var ::=
+        Name
+      | prefixexp '[' exp ']'
+      | prefixexp '.'  Name
+
+    prefixexp ::=
+        var
+      | functioncall
+      | '(' exp ')'
+
+    functioncall ::=
+        prefixexp args
+      | prefixexp ':' Name args
+
+
+
+  ]]
 
   args
     = _"(" ")"
