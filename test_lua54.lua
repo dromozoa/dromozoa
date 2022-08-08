@@ -47,8 +47,8 @@ out:write(regexp.compile {
   });
 
   long_literal_string = regexp.machine.guard("freturn()", {
-    _"\n"/"ln=ln+1 lp=fp append(0x0A)" + _"\r"/"lp=fp"*"?";
-    _"\r"/"ln=ln+1 lp=fp append(0x0A)" + _"\n"/"lp=fp"*"?";
+    _"\n"/"append(0x0A) ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
+    _"\r"/"append(0x0A) ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
     _(_)/"append(fc)";
   });
 
@@ -63,8 +63,8 @@ out:write(regexp.compile {
       _"\\"/"append(fc)";
       _"\""/"append(fc)";
       _"\'"/"append(fc)";
-      _"\n"/"ln=ln+1 lp=fp append(0x0A)" + _"\r"/"lp=fp"*"?";
-      _"\r"/"ln=ln+1 lp=fp append(0x0A)" + _"\n"/"lp=fp"*"?";
+      _"\n"/"append(0x0A) ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
+      _"\r"/"append(0x0A) ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
       _"z" + _{
         _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
         _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
@@ -72,19 +72,20 @@ out:write(regexp.compile {
       }*"*";
       _"x" + _{
         _["09"]/"ra=fc-${<0>}";
-        _["AF"]/"ra=fc-${<A>}+10";
         _["af"]/"ra=fc-${<a>}+10";
+        _["AF"]/"ra=fc-${<A>}+10";
       } + _{
         _["09"]/"append(ra*16+fc-${<0>})";
-        _["AF"]/"append(ra*16+fc-${<A>}+10)";
         _["af"]/"append(ra*16+fc-${<a>}+10)";
+        _["AF"]/"append(ra*16+fc-${<A>}+10)";
       };
       _"u" + _"{"/"ra=0" + _{
         _["09"]/"ra=ra*16+fc-${<0>}";
-        _["AF"]/"ra=ra*16+fc-${<A>}+10";
         _["af"]/"ra=ra*16+fc-${<a>}+10";
+        _["AF"]/"ra=ra*16+fc-${<A>}+10";
       }*"+" + _"}"/"fassert(ra<=0x7FFFFFFF,'UTF-8 value too large') append_unicode(ra)";
     };
+
     (_"\\" + _["09"]/"ra=fc-${<0>}" + _["09"]/"ra=ra*10+fc-${<0>}"*{0,2}) %"fassert(ra<=255,'decimal escape too large') append(ra)";
 
     _(_)/"append(fc)";
@@ -93,10 +94,11 @@ out:write(regexp.compile {
   regexp.machine.lexer(token_names, {
     ----------------------------------------------------------------------------
     -- Spaces
-
-    _{" \f\t\v"}*"+";
-    _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
-    _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
+    _{
+      _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
+      _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
+      _{" \f\t\v"}*"+";
+    }*"+";
 
     ----------------------------------------------------------------------------
     -- Comment
@@ -146,31 +148,38 @@ out:write(regexp.compile {
     } + (_{"pP"} + _{"+-"}*"?" + _["09"]*"+")*"?"
     ;
 
-    _"local";
-    _"return";
+    ----------------------------------------------------------------------------
+
     _"break";
-    _"goto";
     _"do";
     _"end";
+    -- _"function";
+    _"goto";
+    _"local";
+    _"repeat";
+    _"return";
+    _"until";
+    _"while";
 
     _"(";
     _")";
     _",";
-    _";";
-    _"=";
-    _"[";
-    _"]";
     _".";
     _":";
+    _"::";
+    _";";
+    _"<";
+    _"=";
+    _">";
+    _"[";
+    _"]";
     _"{";
     _"}";
-    _"<";
-    _">";
-    _"::";
 
-    Name
-      = _["AZaz_"] + _["09AZaz_"]*"*"
-      ;
+    ----------------------------------------------------------------------------
+    -- Name
+
+    Name = _["AZaz_"] + _["09AZaz_"]*"*";
   });
 })
 out:close()
@@ -180,21 +189,21 @@ local left = parser.grammar.left
 local right = parser.grammar.right
 
 local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
-  chunk
-    = _"block"
-    ;
+  chunk = _"block";
 
-  block
-    = _"{stat}" "[retstat]"
-    ;
+  block = _"{stat}" "[retstat]";
 
   stat
-    = _"varlist" "=" "explist"
+    = ";"
+    + _"varlist" "=" "explist"
     + _"functioncall"
     + _"label"
     + _"break"
     + _"goto" "Name"
     + _"do" "block" "end"
+    + _"while" "exp" "do" "block" "end"
+    + _"repeat" "block" "until" "exp"
+    -- + _"function" "funcname" "funcbody"
     + _"local" "attnamelist" "[= explist]"
     ;
 
@@ -237,8 +246,12 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     ;
 
   label
-    = _"::" "label" "::"
+    = _"::" "Name" "::"
     ;
+
+  -- funcname
+  --   = _"Name" -- "{. Name}" "[: Name]"
+  --   ;
 
   varlist
     = _"var" "{, var}" %"$$=$0 append($1) append_unpack($2)"
@@ -255,6 +268,13 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     + _"prefixexp" "." "Name"
     ;
 
+  -- namelist = _"Name" "{, Name}";
+
+  ["{, Name}"]
+    = _
+    + _"{, Name}" "," "Name"
+    ;
+
   explist
     = _"exp"
     + _"explist" "," "exp" %"$$=$1 append($3)"
@@ -268,7 +288,7 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
   exp
     = _"Numeral"
     + _"LiteralString"
---    + _"prefixexp"
+    + _"prefixexp"
     ;
 
   prefixexp
@@ -288,6 +308,12 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     = _"(" "[explist]" ")" %"$$=$0 append($2)"
     + _"tableconstructor"
     ;
+
+  -- funcbody = _"(" "parlist" ")" "block" "end";
+
+  -- parlist
+  --   = _"namelist" -- ...
+  --   ;
 
   tableconstructor
     = _"{" "[fieldlist]" "}"
