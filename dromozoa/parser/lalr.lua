@@ -260,29 +260,46 @@ local function lr1_closure(grammar, items, timer1, elapsed1)
 
   -- item.index, item.dot, item.la
   local added = {}
+  local added2 = {}
+
   for _, item in items:ipairs() do
     local key = item.index * 1000000 + item.dot * 1000 + item.la + 1
-    if not added[key] then
+    -- if not added[key] then
+    do
       local body = productions:get(item.index).body
       local symbol = body:get(item.dot)
       if symbol ~= nil and symbol > max_terminal_symbol then
+        -- firstをキャッシュするのは有効（20-25%程度の改善）
         local first = lr1_closure_table[key]
         if first == nil then
           first = first_symbols(grammar, body:slice(item.dot + 1):append(item.la))
           lr1_closure_table[key] = first
         end
 
+        -- symbolをheadに持つproductionのindex列
+        -- firstに含まれるシンボルの集合
+        -- firstは、index, dot+1, laに依存
+        -- symbolは、index, dotに依存
+        -- item.laによってどう変わるか？
+        -- body:slice(item.dot + 1)が空でなければ、epsilonは検出されない。
+        -- epsilonが検出された場合は、first(item.la)が変える
+        -- これが正しければ、item.dot + 1がnilかどうかで判定できる
+
         -- local first = first_symbols(grammar, body:slice(item.dot + 1):append(item.la))
         if timer1 then timer1:start() end
         for j in each_production(productions, symbol) do
           for _, la in first:ipairs() do
-            items:insert { index = j, dot = 1, la = la }
+            local key2 = j * 1000 + la + 1
+            if not added2[key2] then
+              items:insert { index = j, dot = 1, la = la }
+              added2[key2] = true
+            end
           end
         end
         if timer1 then timer1:stop() elapsed1 = elapsed1 + timer1:elapsed() end
 
       end
-      added[key] = true
+      -- added[key] = true
     end
   end
 
