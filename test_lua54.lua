@@ -17,10 +17,7 @@
 
 local verbose = os.getenv "VERBOSE" == "1"
 
-local source_filename = ...
-local handle = assert(io.open(source_filename, "rb"))
-local source = handle:read "*a"
-handle:close()
+local dir = assert(...)
 
 local array = require "dromozoa.array"
 local regexp = {
@@ -38,32 +35,104 @@ local _ = regexp.pattern
 
 local token_names = array()
 
-local regexp_filename = "test-gen-lua54-regexp.lua"
+local regexp_filename = dir .. "/test_lua54_regexp.lua"
 local out = assert(io.open(regexp_filename, "w"))
 out:write(regexp.compile {
-  long_comment = regexp.machine.guard([[freturn()]], {
-    _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
-    _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
-    _"[";
+  [[
+    local ra
+  ]];
+
+  long_comment = regexp.machine.guard("freturn()", {
+    _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
+    _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
     _(_);
   });
 
+  long_literal_string = regexp.machine.guard("freturn()", {
+    _"\n"/"ln=ln+1 lp=fp append(0x0A)" + _"\r"/"lp=fp"*"?";
+    _"\r"/"ln=ln+1 lp=fp append(0x0A)" + _"\n"/"lp=fp"*"?";
+    _(_)/"append(fc)";
+  });
+
+  short_literal_string = regexp.machine.guard("freturn()", {
+    _"\\" + _{
+      _"a"/"append(0x07)";
+      _"f"/"append(0x0C)";
+      _"n"/"append(0x0A)";
+      _"r"/"append(0x0D)";
+      _"t"/"append(0x09)";
+      _"v"/"append(0x0B)";
+      _"\\"/"append(fc)";
+      _"\""/"append(fc)";
+      _"\'"/"append(fc)";
+      _"\n"/"ln=ln+1 lp=fp append(0x0A)" + _"\r"/"lp=fp"*"?";
+      _"\r"/"ln=ln+1 lp=fp append(0x0A)" + _"\n"/"lp=fp"*"?";
+      _"z" + _{
+        _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
+        _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
+        _{" \f\t\v"}*"+"
+      }*"*";
+      _"x" + _{
+        _["09"]/"ra=fc-${<0>}";
+        _["AF"]/"ra=fc-${<A>}+10";
+        _["af"]/"ra=fc-${<a>}+10";
+      } + _{
+        _["09"]/"append(ra*16+fc-${<0>})";
+        _["AF"]/"append(ra*16+fc-${<A>}+10)";
+        _["af"]/"append(ra*16+fc-${<a>}+10)";
+      };
+      _"u" + _"{"/"ra=0" + _{
+        _["09"]/"ra=ra*16+fc-${<0>}";
+        _["AF"]/"ra=ra*16+fc-${<A>}+10";
+        _["af"]/"ra=ra*16+fc-${<a>}+10";
+      }*"+" + _"}"/"fassert(ra<=0x7FFFFFFF,'UTF-8 value too large') append_unicode(ra)";
+    };
+    (_"\\" + _["09"]/"ra=fc-${<0>}" + _["09"]/"ra=ra*10+fc-${<0>}"*{0,2}) %"fassert(ra<=255,'decimal escape too large') append(ra)";
+
+    _(_)/"append(fc)";
+  });
+
   regexp.machine.lexer(token_names, {
-    _{" \t\f\v"}*"+";
-    _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
-    _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
+    _{" \f\t\v"}*"+";
+    _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
+    _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
 
     -- long comment
-    (_"--"
-      + _"["/[[guard_clear(${<]>})]] + (_"="/[[guard_append(fc)]])*"*" + _"["/[[guard_append(${<]>})]]
-      + _{
-          _"\n"/[[ln=ln+1 lp=fp]] + _"\r"/[[lp=fp]]*"?";
-          _"\r"/[[ln=ln+1 lp=fp]] + _"\n"/[[lp=fp]]*"?";
-        }*"?"
-    )%[[fcall($long_comment)]];
+    (_"--" + _"["/"guard_clear(${<]>})" + (_"="/"guard_append(fc)")*"*" + _"["/"guard_append(${<]>})") %"fcall($long_comment) push()";
 
     -- short comment
     _"--" + -_{"\n\r"}*"*";
+
+    LongLiteralString = (_"["/"guard_clear(${<]>})" + (_"="/"guard_append(fc)")*"*" + _"["/"guard_append(${<]>})" + _{
+      _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
+      _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
+    }*"?") %"clear() fcall($long_literal_string) push(true)";
+
+    ShortLiteralString = _{"\'\""}/"guard_clear(fc)" %"clear() fcall($short_literal_string) push(true)";
+
+    DecIntegerNumeral = _["09"]*"+";
+    -- C言語のdecimal-floating-constantを書きくだしたもの
+    -- DecFloatNumeral = _{
+    --   _{
+    --     _["09"]*"*" + _"." + _["09"]*"+";
+    --     _["09"]*"+" + _"."
+    --   } + (_{"eE"} + _{"+-"}*"?" + _["09"]*"+")*"?";
+    --   _["09"]*"+" + (_{"eE"} + _{"+-"}*"?" + _["09"]*"+");
+    -- };
+    DecFloatNumeral = _{
+      _["09"]*"*" + _"." + _["09"]*"+";
+      _["09"]*"+" + _"."*"?";
+    } + (_{"eE"} + _{"+-"}*"?" + _["09"]*"+")*"?";
+
+    HexIntegerNumeral = _"0" + _{"xX"} + _["09AFaf"]*"+";
+
+    -- C言語のリテラルでは指数を省略できないが、Luaでは省略できる
+    -- strtodは指数がオプション
+    HexFloatNumeral = _"0" + _{"xX"} + _{
+      _["09AFaf"]*"*" + _"." + _["09AFaf"]*"+";
+      _["09AFaf"]*"+" + _"."*"?";
+    } + (_{"pP"} + _{"+-"}*"?" + _["09"]*"+")*"?"
+    ;
 
     _"local";
     _"return";
@@ -89,12 +158,6 @@ out:write(regexp.compile {
 
     Name
       = _["AZaz_"] + _["09AZaz_"]*"*"
-      ;
-
-    Numeral
-      = _{
-          _["09"]*"+";
-        }
       ;
   });
 })
@@ -125,7 +188,7 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
 
   ["{stat}"]
     = _
-    + _"{stat}" "stat" %[[$$=$1 append($2)]]
+    + _"{stat}" "stat" %"$$=$1 append($2)"
     ;
 
   ["[= explist]"]
@@ -153,7 +216,7 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
 
   retstat
     = _"return" "[explist]"
-    + _"return" "[explist]" ";" %[[$$=$0 append($1,$2)]]
+    + _"return" "[explist]" ";" %"$$=$0 append($1,$2)"
     ;
 
   ["[retstat]"]
@@ -166,12 +229,12 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     ;
 
   varlist
-    = _"var" "{, var}" %[[$$=$0 append($1) append_unpack($2)]]
+    = _"var" "{, var}" %"$$=$0 append($1) append_unpack($2)"
     ;
 
   ["{, var}"]
-    = _                    %[[create($varlist)]]
-    + _"{, var}" "," "var" %[[$$=$1 append($3)]]
+    = _                    %"create($varlist)"
+    + _"{, var}" "," "var" %"$$=$1 append($3)"
     ;
 
   var
@@ -182,16 +245,17 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
 
   explist
     = _"exp"
-    + _"explist" "," "exp" %[[$$=$1 append($3)]]
+    + _"explist" "," "exp" %"$$=$1 append($3)"
     ;
 
   ["[explist]"]
-    = _          %[[create($explist)]]
-    + _"explist" %[[$$=$1]]
+    = _          %"create($explist)"
+    + _"explist" %"$$=$1"
     ;
 
   exp
     = _"Numeral"
+    + _"LiteralString"
 --    + _"prefixexp"
     ;
 
@@ -209,7 +273,7 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     ;
 
   args
-    = _"(" "[explist]" ")" %[[$$=$0 append($2)]]
+    = _"(" "[explist]" ")" %"$$=$0 append($2)"
     + _"tableconstructor"
     ;
 
@@ -218,17 +282,17 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     ;
 
   ["[fieldlist]"]
-    = _            %[[create($fieldlist)]]
-    + _"fieldlist" %[[$$=$1]]
+    = _            %"create($fieldlist)"
+    + _"fieldlist" %"$$=$1"
     ;
 
   fieldlist
-    = _"field" "{fieldsep field}" "[fieldsep]" %[[$$=$0 append($1) append_unpack($2)]]
+    = _"field" "{fieldsep field}" "[fieldsep]" %"$$=$0 append($1) append_unpack($2)"
     ;
 
   ["{fieldsep field}"]
     = _
-    + _"{fieldsep field}" "fieldsep" "field" %[[$$=$1 append($3)]]
+    + _"{fieldsep field}" "fieldsep" "field" %"$$=$1 append($3)"
     ;
 
   field
@@ -247,48 +311,84 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     + _"fieldsep"
     ;
 
+  LiteralString
+    = _"LongLiteralString"
+    + _"ShortLiteralString"
+    ;
+
+  Numeral
+    = _"DecIntegerNumeral"
+    + _"DecFloatNumeral"
+    + _"HexIntegerNumeral"
+    + _"HexFloatNumeral"
+    ;
+
 }))
 for _, message in conflictions:ipairs() do
   print(message)
 end
 
-local parser_filename = "test-gen-lua54-parser.lua"
+local parser_filename = dir .. "/test_lua54_parser.lua"
 local out = assert(io.open(parser_filename, "w"))
 out:write(parser.compile(grammar, actions))
 out:close()
 
 local lua54_regexp = assert(assert(loadfile(regexp_filename))())
 local lua54_parser = assert(assert(loadfile(parser_filename))())
-local root = lua54_regexp(source, source_filename, lua54_parser.max_terminal_symbol, lua54_parser())
 
 local function quote(s)
-  return [["]] .. string.gsub(s, "[<>&]", { ["<"] = "&lt;", [">"] = "&gt;", ["&"] = "&amp;" }) .. [["]]
+  return '"' .. string.gsub(s, '[&<>"]', { ['&'] = '&amp;', ['<'] = '&lt;', ['>'] = '&gt;', ['"'] = '&quot;' }) .. '"'
 end
 
-local function dump(u, n)
+local function dump(out, u, n)
   if n == nil then
     n = 0
   else
     n = n + 1
   end
 
-  io.write(("  "):rep(n), "<node name=", quote(lua54_parser.symbol_names[u[0]]))
+  out:write(("  "):rep(n), "<node")
+  if u[0] ~= nil then out:write(" name=", quote(lua54_parser.symbol_names[u[0]])) end
   if verbose then
-    if u.i ~= nil then io.write(" i=", quote(u.i)) end
-    if u.j ~= nil then io.write(" j=", quote(u.j)) end
-    if u.n ~= nil then io.write(" n=", quote(u.n)) end
-    if u.c ~= nil then io.write(" c=", quote(u.c)) end
+    if u.i ~= nil then out:write(" i=", quote(u.i)) end
+    if u.j ~= nil then out:write(" j=", quote(u.j)) end
+    if u.n ~= nil then out:write(" n=", quote(u.n)) end
+    if u.c ~= nil then out:write(" c=", quote(u.c)) end
   end
-  if u.v ~= nil then io.write(" v=", quote(u.v)) end
+  if u.v ~= nil then out:write(" v=", quote(u.v)) end
   if #u == 0 then
-    io.write "/>\n"
+    out:write "/>\n"
   else
-    io.write ">\n"
+    out:write ">\n"
     for _, v in ipairs(u) do
-      dump(v, n)
+      dump(out, v, n)
     end
-    io.write(("  "):rep(n), "</node>\n")
+    out:write(("  "):rep(n), "</node>\n")
   end
 end
 
-dump(root)
+for i = 2, #arg do
+  local source_filename = assert(arg[i])
+  local result_basename = assert(source_filename:match "([^/]+)%.lua$")
+  result_basename = dir .. "/" .. result_basename
+
+  local handle = assert(io.open(source_filename))
+  local source = handle:read "*a"
+  handle:close()
+
+  local out = assert(io.open(result_basename .. "_list.xml", "w"))
+  out:write "<nodes>\n"
+
+  local parse = lua54_parser()
+  local root = lua54_regexp(source, source_filename, lua54_parser.max_terminal_symbol, function (token)
+    dump(out, token)
+    return parse(token)
+  end)
+
+  out:write "</nodes>\n"
+  out:close()
+
+  local out = assert(io.open(result_basename .. "_tree.xml", "w"))
+  dump(out, root)
+  out:close()
+end

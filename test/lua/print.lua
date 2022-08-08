@@ -17,7 +17,10 @@
 
 local a,b,c=1,2,3
 local x
-local y <const> = 0
--- print{a=2}
--- print(a, 69, 666)
--- print(42)
+local y <const> = [=[print{a=2}
+print(a, 69, 666)
+print(42)
+]=]
+local z
+
+

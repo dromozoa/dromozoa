@@ -3,10 +3,13 @@ return function (context) return {
 local main = function ()
   local fcall
   local freturn
+  local ferror
+  local fassert
   local push
   local clear
   local append
   local append_range
+  local append_unicode
   local guard_clear
   local guard_append
   local guard_append_range
@@ -38,6 +41,7 @@ context["action_data"];
   local current_state = _[current_index].start_state
   local current_cont
   local current_thread
+  local current_byte
   local jumped = false
   local pushed
   local buffer = {}
@@ -54,7 +58,7 @@ context["action_data"];
       current_thread = current_thread;
     }
     if #stack > 2000 then
-      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (too much recursion; possible loop detected)")
+      ferror "too much recursion; possible loop detected"
     end
     jumped = true
     ts = nil
@@ -105,6 +109,17 @@ context["action_data"];
       v = v;
     }
   end
+  function ferror(message)
+    local near = current_byte == nil and "eof" or string.char(current_byte)
+    error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (" .. message .. " near " .. near .. ")")
+  end
+  function fassert(v, message, ...)
+    if v then
+      return v, message, ...
+    else
+      ferror(message)
+    end
+  end
   function clear(...)
     buffer = {...}
   end
@@ -115,6 +130,58 @@ context["action_data"];
   end
   function append_range(i, j)
     append(string.byte(source, i, j))
+  end
+  if false then
+    function append_unicode(a)
+      append(string.byte(utf8.char(a), 1, -1))
+    end
+  else
+    function append_unicode(a)
+      local n = #buffer + 1
+      if a <= 0x7F then
+        buffer[n] = a
+      elseif a <= 0x7FF then
+        local b = a % 0x40
+        buffer[n] = (a - b) / 0x40 + 0xC0
+        buffer[n + 1] = b + 0x80
+      elseif a <= 0xFFFF then
+        local c = a % 0x40 a = (a - c) / 0x40
+        local b = a % 0x40
+        buffer[n] = (a - b) / 0x40 + 0xE0
+        buffer[n + 1] = b + 0x80
+        buffer[n + 2] = c + 0x80
+      elseif a <= 0x1CFFFF then
+        local d = a % 0x40 a = (a - d) / 0x40
+        local c = a % 0x40 a = (a - c) / 0x40
+        local b = a % 0x40
+        buffer[n] = (a - b) / 0x40 + 0xF0
+        buffer[n + 1] = b + 0x80
+        buffer[n + 2] = c + 0x80
+        buffer[n + 3] = d + 0x80
+      elseif a <= 0x3FFFFFF then
+        local e = a % 0x40 a = (a - e) / 0x40
+        local d = a % 0x40 a = (a - d) / 0x40
+        local c = a % 0x40 a = (a - c) / 0x40
+        local b = a % 0x40
+        buffer[n] = (a - b) / 0x40 + 0xF8
+        buffer[n + 1] = b + 0x80
+        buffer[n + 2] = c + 0x80
+        buffer[n + 3] = d + 0x80
+        buffer[n + 4] = e + 0x80
+      else
+        local f = a % 0x40 a = (a - f) / 0x40
+        local e = a % 0x40 a = (a - e) / 0x40
+        local d = a % 0x40 a = (a - d) / 0x40
+        local c = a % 0x40 a = (a - c) / 0x40
+        local b = a % 0x40
+        buffer[n] = (a - b) / 0x40 + 0xFC
+        buffer[n + 1] = b + 0x80
+        buffer[n + 2] = c + 0x80
+        buffer[n + 3] = d + 0x80
+        buffer[n + 4] = e + 0x80
+        buffer[n + 5] = f + 0x80
+      end
+    end
   end
   function guard_clear(...)
     guard_buffer = {...}
@@ -142,7 +209,7 @@ context["action_data"];
   end
   local function restart()
     if current_state == _[current_index].start_state then
-      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (loop detected)")
+      ferror "loop detected"
     end
     ts = nil
     fs = current_position
@@ -150,10 +217,9 @@ context["action_data"];
     start_column = fs - lp
     current_state = _[current_index].start_state
   end
-  local function accept(current_byte)
+  local function accept()
     if current_state > _[current_index].max_accept_state then
-      local near = current_byte == nil and "eof" or string.char(current_byte)
-      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (cannot transition near " .. near .. ")")
+      ferror "cannot transition"
     end
     if execute(_[current_index].accept_actions[current_state], restart) then
       return
@@ -164,18 +230,18 @@ context["action_data"];
         push()
         return true
       end
-      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (unexpected eof)")
+      ferror "unexpected eof"
     end
     restart()
   end
   local function transition()
-    local current_byte = string.byte(source, current_position)
+    current_byte = string.byte(source, current_position)
     if current_byte == nil then
-      return accept(current_byte)
+      return accept()
     end
     local s = _[current_index].transitions[current_byte][current_state]
     if s == 0 then
-      return accept(current_byte)
+      return accept()
     end
     fp = current_position
     fc = current_byte
@@ -202,7 +268,7 @@ context["action_data"];
     end
     fp = current_position + #guard_buffer - 1
     fc = guard_buffer[#guard_buffer]
-    current_position = current_position + 1
+    current_position = current_position + #guard_buffer
     execute(_[current_index].guard_action)
   end
   repeat until guard()
