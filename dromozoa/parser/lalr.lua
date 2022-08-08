@@ -195,6 +195,21 @@ local function lr0_closure(grammar, items)
   return items
 end
 
+local function compare_item(a, b)
+  if a.index ~= b.index then
+    return a.index < b.index and -1 or 1
+  end
+  if a.dot ~= b.dot then
+    return a.dot < b.dot and -1 or 1
+  end
+  if a.la ~= b.la then
+    return a.la < b.la and -1 or 1
+  end
+  return 0
+  -- assert(a.la ~= b.la)
+  -- return a.la < b.la and -1 or 1
+end
+
 local function lr0_goto(grammar, items)
   local productions = grammar.productions
   local map_of_to_items = tree_map()
@@ -203,7 +218,7 @@ local function lr0_goto(grammar, items)
     local symbol = productions:get(item.index).body:get(item.dot)
     if symbol ~= nil then
       map_of_to_items:insert_or_update(symbol, function ()
-        return tree_set():insert { index = item.index, dot = item.dot + 1 }
+        return tree_set(compare_item):insert { index = item.index, dot = item.dot + 1 }
       end, function (items)
         return items:insert { index = item.index, dot = item.dot + 1 }
       end)
@@ -218,7 +233,7 @@ end
 
 local function lr0_items(grammar)
   local transitions = {}
-  local set_of_items = tree_set():insert(lr0_closure(grammar, tree_set():insert { index = 1, dot = 1 }))
+  local set_of_items = tree_set():insert(lr0_closure(grammar, tree_set(compare_item):insert { index = 1, dot = 1 }))
 
   for i, items in set_of_items:ipairs() do
     local map_of_to_items = lr0_goto(grammar, items)
@@ -236,24 +251,40 @@ end
 
 -- TODO lr1_closure_cache
 -- 高速化
-local function lr1_closure(grammar, items)
+local function lr1_closure(grammar, items, timer1, elapsed1)
   local max_terminal_symbol = grammar.max_terminal_symbol
   local productions = grammar.productions
+  local lr1_closure_table = grammar.lr1_closure_table
 
+  -- item.index, item.dot, item.la
+  local added = {}
   for _, item in items:ipairs() do
-    local body = productions:get(item.index).body
-    local symbol = body:get(item.dot)
-    if symbol ~= nil and symbol > max_terminal_symbol then
-      local first = first_symbols(grammar, body:slice(item.dot + 1):append(item.la))
-      for j in each_production(productions, symbol) do
-        for _, la in first:ipairs() do
-          items:insert { index = j, dot = 1, la = la }
+    local key = item.index * 1000000 + item.dot * 1000 + item.la + 1
+    if not added[key] then
+      local body = productions:get(item.index).body
+      local symbol = body:get(item.dot)
+      if symbol ~= nil and symbol > max_terminal_symbol then
+        local first = lr1_closure_table[key]
+        if first == nil then
+          first = first_symbols(grammar, body:slice(item.dot + 1):append(item.la))
+          lr1_closure_table[key] = first
         end
+
+        -- local first = first_symbols(grammar, body:slice(item.dot + 1):append(item.la))
+        if timer1 then timer1:start() end
+        for j in each_production(productions, symbol) do
+          for _, la in first:ipairs() do
+            items:insert { index = j, dot = 1, la = la }
+          end
+        end
+        if timer1 then timer1:stop() elapsed1 = elapsed1 + timer1:elapsed() end
+
       end
+      added[key] = true
     end
   end
 
-  return items
+  return items, elapsed1
 end
 
 ---------------------------------------------------------------------------
@@ -310,6 +341,8 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
   local elapsed1 = 0
   local elapsed2 = 0
 
+  grammar.lr1_closure_table = {}
+
   for from_i, from_items in set_of_items:ipairs() do
     for from_j, from_item in from_items:ipairs() do
       if productions:get(from_item.index).head == max_terminal_symbol + 1 or from_item.dot > 1 then
@@ -317,7 +350,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
         -- items:insert { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
         -- print(from_item.index, from_item.dot)
 
-        timer1:start()
+        -- timer1:start()
 
         local c = cache[from_item.index]
         if not c then
@@ -327,16 +360,16 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
         local items = c[from_item.dot]
         if not items then
           miss = miss + 1
-          items = tree_set()
+          items = tree_set(compare_item)
           items:insert { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
-          lr1_closure(grammar, items)
+          elapsed1 = select(2, lr1_closure(grammar, items, timer1, elapsed1))
           c[from_item.dot] = items
         else
           hit = hit + 1
         end
 
-        timer1:stop()
-        elapsed1 = elapsed1 + timer1:elapsed()
+        -- timer1:stop()
+        -- elapsed1 = elapsed1 + timer1:elapsed()
 
         timer2:start()
 
