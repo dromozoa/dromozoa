@@ -110,6 +110,30 @@ out:write(regexp.compile {
 
     ShortLiteralString = _{"\'\""}/"guard_clear(fc)" %"clear() fcall($short_literal_string) push(true)";
 
+    DecIntegerNumeral = _["09"]*"+";
+    -- C言語のdecimal-floating-constantを書きくだしたもの
+    -- DecFloatNumeral = _{
+    --   _{
+    --     _["09"]*"*" + _"." + _["09"]*"+";
+    --     _["09"]*"+" + _"."
+    --   } + (_{"eE"} + _{"+-"}*"?" + _["09"]*"+")*"?";
+    --   _["09"]*"+" + (_{"eE"} + _{"+-"}*"?" + _["09"]*"+");
+    -- };
+    DecFloatNumeral = _{
+      _["09"]*"*" + _"." + _["09"]*"+";
+      _["09"]*"+" + _"."*"?";
+    } + (_{"eE"} + _{"+-"}*"?" + _["09"]*"+")*"?";
+
+    HexIntegerNumeral = _"0" + _{"xX"} + _["09AFaf"]*"+";
+
+    -- C言語のリテラルでは指数を省略できないが、Luaでは省略できる
+    -- strtodは指数がオプション
+    HexFloatNumeral = _"0" + _{"xX"} + _{
+      _["09AFaf"]*"*" + _"." + _["09AFaf"]*"+";
+      _["09AFaf"]*"+" + _"."*"?";
+    } + (_{"pP"} + _{"+-"}*"?" + _["09"]*"+")*"?"
+    ;
+
     _"local";
     _"return";
     _"break";
@@ -134,12 +158,6 @@ out:write(regexp.compile {
 
     Name
       = _["AZaz_"] + _["09AZaz_"]*"*"
-      ;
-
-    Numeral
-      = _{
-          _["09"]*"+";
-        }
       ;
   });
 })
@@ -296,6 +314,13 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
   LiteralString
     = _"LongLiteralString"
     + _"ShortLiteralString"
+    ;
+
+  Numeral
+    = _"DecIntegerNumeral"
+    + _"DecFloatNumeral"
+    + _"HexIntegerNumeral"
+    + _"HexFloatNumeral"
     ;
 
 }))
