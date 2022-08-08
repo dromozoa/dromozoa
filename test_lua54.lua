@@ -38,9 +38,7 @@ local token_names = array()
 local regexp_filename = dir .. "/test_lua54_regexp.lua"
 local out = assert(io.open(regexp_filename, "w"))
 out:write(regexp.compile {
-  [[
-    local ra
-  ]];
+  "local ra";
 
   long_comment = regexp.machine.guard("freturn()", {
     _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
@@ -110,7 +108,8 @@ out:write(regexp.compile {
 
     ShortLiteralString = _{"\'\""}/"guard_clear(fc)" %"clear() fcall($short_literal_string) push(true)";
 
-    DecIntegerNumeral = _["09"]*"+";
+    DecimalIntegerNumeral = _["09"]*"+";
+
     -- C言語のdecimal-floating-constantを書きくだしたもの
     -- DecFloatNumeral = _{
     --   _{
@@ -119,16 +118,16 @@ out:write(regexp.compile {
     --   } + (_{"eE"} + _{"+-"}*"?" + _["09"]*"+")*"?";
     --   _["09"]*"+" + (_{"eE"} + _{"+-"}*"?" + _["09"]*"+");
     -- };
-    DecFloatNumeral = _{
+    DecimalFloatingNumeral = _{
       _["09"]*"*" + _"." + _["09"]*"+";
       _["09"]*"+" + _"."*"?";
     } + (_{"eE"} + _{"+-"}*"?" + _["09"]*"+")*"?";
 
-    HexIntegerNumeral = _"0" + _{"xX"} + _["09AFaf"]*"+";
+    HexadecimalIntegerNumeral = _"0" + _{"xX"} + _["09AFaf"]*"+";
 
     -- C言語のリテラルでは指数を省略できないが、Luaでは省略できる
     -- strtodは指数がオプション
-    HexFloatNumeral = _"0" + _{"xX"} + _{
+    HexadecimalFloatingNumeral = _"0" + _{"xX"} + _{
       _["09AFaf"]*"*" + _"." + _["09AFaf"]*"+";
       _["09AFaf"]*"+" + _"."*"?";
     } + (_{"pP"} + _{"+-"}*"?" + _["09"]*"+")*"?"
@@ -317,10 +316,10 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     ;
 
   Numeral
-    = _"DecIntegerNumeral"
-    + _"DecFloatNumeral"
-    + _"HexIntegerNumeral"
-    + _"HexFloatNumeral"
+    = _"DecimalIntegerNumeral"
+    + _"DecimalFloatingNumeral"
+    + _"HexadecimalIntegerNumeral"
+    + _"HexadecimalFloatingNumeral"
     ;
 
 }))
