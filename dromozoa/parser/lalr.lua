@@ -62,6 +62,23 @@ end
 
 ---------------------------------------------------------------------------
 
+local function compare_item(a, b)
+  if a.index ~= b.index then
+    return a.index < b.index and -1 or 1
+  end
+  if a.dot ~= b.dot then
+    return a.dot < b.dot and -1 or 1
+  end
+  if a.la ~= b.la then
+    return a.la < b.la and -1 or 1
+  end
+  return 0
+  -- assert(a.la ~= b.la)
+  -- return a.la < b.la and -1 or 1
+end
+
+---------------------------------------------------------------------------
+
 local function eliminate_left_recursion(grammar)
   local symbol_names = grammar.symbol_names
   local max_terminal_symbol = grammar.max_terminal_symbol
@@ -195,21 +212,6 @@ local function lr0_closure(grammar, items)
   return items
 end
 
-local function compare_item(a, b)
-  if a.index ~= b.index then
-    return a.index < b.index and -1 or 1
-  end
-  if a.dot ~= b.dot then
-    return a.dot < b.dot and -1 or 1
-  end
-  if a.la ~= b.la then
-    return a.la < b.la and -1 or 1
-  end
-  return 0
-  -- assert(a.la ~= b.la)
-  -- return a.la < b.la and -1 or 1
-end
-
 local function lr0_goto(grammar, items)
   local productions = grammar.productions
   local map_of_to_items = tree_map()
@@ -303,6 +305,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
   timer:start()
 
   for i, items in set_of_items:ipairs() do
+    -- TODO kernel_itemsはlaがtree_setなんだけど？
     local kernel_items = tree_set()
     local kernel_table = tree_map()
     for j, item in items:ipairs() do
@@ -417,7 +420,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
 
   local new_set_of_kernel_items = array()
   for _, items in set_of_kernel_items:ipairs() do
-    local new_items = tree_set()
+    local new_items = tree_set(compare_item)
     for _, item in items:ipairs() do
       for _, la in item.la:ipairs() do
         new_items:insert { index = item.index, dot = item.dot, la = la }
@@ -601,12 +604,12 @@ return function (grammar)
 
   local lalr1_set_of_items = lalr1_kernels(grammar, lr0_set_of_items, transitions)
 
+  timer:start()
   for i, items in lalr1_set_of_items:ipairs() do
-    timer:start()
     lr1_closure(grammar, items)
-    timer:stop()
-    print("lr1_closure", i, timer:elapsed())
   end
+  timer:stop()
+  print("lr1_closure", i, timer:elapsed())
 
   timer:start()
   local actions, conflictions = lr1_construct_table(grammar, lalr1_set_of_items, transitions)
