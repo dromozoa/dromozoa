@@ -197,7 +197,13 @@ local right = parser.grammar.right
 local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
   chunk = _"block";
 
-  block = _"{stat}" "[retstat]";
+  block
+    = _"block_"
+    + _"block_" "retstat";
+
+  block_
+    = _
+    + _"block_" "stat";
 
   stat
     = ";"
@@ -209,139 +215,57 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     + _"do" "block" "end"
     + _"while" "exp" "do" "block" "end"
     + _"repeat" "block" "until" "exp"
-    + _"for" "Name" "=" "exp" "," "exp" "[, exp]" "do" "block" "end"
+    + _"for" "Name" "=" "exp" "," "exp" "do" "block" "end"
+    + _"for" "Name" "=" "exp" "," "exp" "," "exp" "do" "block" "end"
     + _"for" "namelist" "in" "explist" "do" "block" "end"
     + _"function" "funcname" "funcbody"
     + _"local" "function" "Name" "funcbody"
-    + _"local" "attnamelist" "[= explist]"
-    ;
-
-  ------------------------------------------------------------------------------
-
-
-
-
-
-
-  ["{stat}"]
-    = _
-    + _"{stat}" "stat" %"$$=$1 append($2)"
-    ;
+    + _"local" "attnamelist"
+    + _"local" "attnamelist" "=" "explist";
 
   ------------------------------------------------------------------------------
 
   attnamelist
-    = _"Name" "attrib" "{, Name attrib}" -- $$=$0 append($1) $1.attrib=$2.v append_unpack($3)
-    ;
-
-  -- attrib = _"[< Name >]";
-
-  -- ["[< Name >]"]
-  --   = _
-  --   + _"<" "Name" ">"
-  --   ;
+    = _"Name" "attrib"
+    + _"attnamelist" "," "Name" "attrib";
 
   attrib
     = _
-    + _"<" "Name" ">" %"$$=$0 append($2)" -- $$=$0 $$.v=$2.v
-    ;
-
-  ["{, Name attrib}"]
-    = _
-    + _"{, Name attrib}" "," "Name" "attrib" %"$$=$1 append($3, $4)" -- $$=$1 append($3) $3.attrib=$4.v
-    ;
-
-  ------------------------------------------------------------------------------
+    + _"<" "Name" ">";
 
   retstat
-    = _"return" "[explist]"
-    + _"return" "[explist]" ";" %"$$=$0 append($1,$2)"
-    ;
+    = _"return"
+    + _"return" ";"
+    + _"return" "explist"
+    + _"return" "explist" ";";
 
-  ["[retstat]"]
-    = _
-    + _"retstat"
-    ;
 
-  ------------------------------------------------------------------------------
-
-  label
-    = _"::" "Name" "::"
-    ;
-
-  ------------------------------------------------------------------------------
+  label = _"::" "Name" "::";
 
   funcname
-    = _"Name" "{. Name}"
-    + _"Name" "{. Name}" ":" "Name"
-    ;
+    = _"funcname_"
+    + _"funcname_" ":" "Name";
 
-  ["{. Name}"]
-    = _
-    + _"{. Name}" "." "Name"
-    ;
-
-  -- ["[: Name]"]
-  --   = _
-  --   + _":" "Name"
-  --   ;
-
-  ------------------------------------------------------------------------------
+  funcname_
+    = _"Name"
+    + _"funcname_" "." "Name";
 
   varlist
-    = _"var" "{, var}" %"$$=$0 append($1) append_unpack($2)"
-    ;
-
-  ["{, var}"]
-    = _                    %"create($varlist)"
-    + _"{, var}" "," "var" %"$$=$1 append($3)"
-    ;
+    = _"var"
+    + _"varlist" "," "var";
 
   var
     = _"Name"
     + _"prefixexp" "[" "exp" "]"
-    + _"prefixexp" "." "Name"
-    ;
+    + _"prefixexp" "." "Name";
 
-  ------------------------------------------------------------------------------
-
-  -- namelist ::= Name {',' Name}
   namelist
     = _"Name"
-    + _"namelist" "," "Name" %"$$=$1 append($3)";
+    + _"namelist" "," "Name";
 
-  -- namelist = _"Name" "{, Name}";
-  -- ["{, Name}"]
-  --   = _
-  --   + _"{, Name}" "," "Name"
-  --   ;
-
-  ------------------------------------------------------------------------------
-
-  -- explist ::= exp {',' exp}
   explist
     = _"exp"
-    + _"explist" "," "exp" %"$$=$1 append($3)"
-    ;
-
-  -- explist = _"exp" "{, exp}";
-  -- ["{, exp}"]
-  --   = _
-  --   + _"{, exp}" "," "exp";
-
-  ------------------------------------------------------------------------------
-
-  ["[explist]"]
-    = _          %"create($explist)"
-    + _"explist" %"$$=$1"
-    ;
-
-  ["[= explist]"]
-    = _
-    + _"=" "explist"
-    ;
-
-  ------------------------------------------------------------------------------
+    + _"explist" "," "exp";
 
   exp
     = _"nil"
@@ -350,21 +274,16 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     + _"Numeral"
     + _"LiteralString"
     + _"..."
-    -- + _"functiondef"
+    + _"functiondef"
     + _"prefixexp"
     + _"tableconstructor"
     -- + _"exp" "binop" "exp"
     -- + _"unop" "exp"
     ;
 
-  -- forで使う
-  ["[, exp]"]
-    = _
-    + _"," "exp"
-    ;
-
   ------------------------------------------------------------------------------
 
+  -- TODO 後で調整する
   prefixexp
     = _"var"
     -- S/R conflicts
@@ -372,6 +291,7 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     + _"(" "exp" ")"
     ;
 
+  -- TODO 後で調整する
   functioncall
     = _"prefixexp" "args"
     + _"prefixexp" ":" "Name" "args"
@@ -381,71 +301,52 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     ;
 
   args
-    = _"(" "[explist]" ")" %"$$=$0 append($2)"
+    = _"(" ")"
+    + _"(" "explist" ")"
     + _"tableconstructor"
-    + _"LiteralString"
-    ;
+    + _"LiteralString";
 
-  funcbody = _"(" "[parlist]" ")" "block" "end";
+  functiondef = _"function" "funcbody";
+
+  funcbody
+    = _"(" ")" "block" "end"
+    + _"(" "parlist" ")" "block" "end";
 
   parlist
-    = _"namelist" -- ...
-    ;
-
-  ["[parlist]"]
-    = _
-    + _"parlist"
-    ;
-
-  ------------------------------------------------------------------------------
+    = _"namelist"
+    + _"namelist" "," "..."
+    + _"...";
 
   tableconstructor
-    = _"{" "[fieldlist]" "}"
-    ;
-
-  ["[fieldlist]"]
-    = _            %"create($fieldlist)"
-    + _"fieldlist" %"$$=$1"
-    ;
+    = _"{" "}"
+    + _"{" "fieldlist" "}";
 
   fieldlist
-    = _"field" "{fieldsep field}" "[fieldsep]" %"$$=$0 append($1) append_unpack($2)"
-    ;
+    = _"fieldlist_"
+    + _"fieldlist_" "fieldsep";
 
-  ["{fieldsep field}"]
-    = _
-    + _"{fieldsep field}" "fieldsep" "field" %"$$=$1 append($3)"
-    ;
+  fieldlist_
+    = _"field"
+    + _"fieldlist_" "fieldsep" "field";
 
   field
     = _"[" "exp" "]" "=" "exp"
     + _"Name" "=" "exp"
-    + _"exp"
-    ;
+    + _"exp";
 
   fieldsep
     = _","
-    + _";"
-    ;
-
-  ["[fieldsep]"]
-    = _
-    + _"fieldsep"
-    ;
-
-  ------------------------------------------------------------------------------
+    + _";";
 
   LiteralString
     = _"LongLiteralString"
-    + _"ShortLiteralString"
-    ;
+    + _"ShortLiteralString";
 
   Numeral
     = _"DecimalIntegerNumeral"
     + _"DecimalFloatingNumeral"
     + _"HexadecimalIntegerNumeral"
-    + _"HexadecimalFloatingNumeral"
-    ;
+    + _"HexadecimalFloatingNumeral";
 
 }))
 for _, message in conflictions:ipairs() do
