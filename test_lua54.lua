@@ -150,41 +150,65 @@ out:write(regexp.compile {
 
     ----------------------------------------------------------------------------
 
+    _"and";
     _"break";
     _"do";
+    _"else";
+    _"elseif";
     _"end";
     _"false";
     _"for";
     _"function";
     _"goto";
+    _"if";
     _"in";
     _"local";
     _"nil";
+    _"not";
+    _"or";
     _"repeat";
     _"return";
+    _"then";
     _"true";
     _"until";
     _"while";
-    _"if";
-    _"elseif";
-    _"else";
-    _"end";
-    _"then";
+
+    _"+";
+    _"-";
+    _"*";
+    _"/";
+    _"%";
+    _"^";
+    _"#";
+
+    _"&";
+    _"~";
+    _"|";
+    _"<<";
+    _">>";
+    _"//";
+
+    _"==";
+    _"~=";
+    _"<=";
+    _">=";
+    _"<";
+    _">";
+    _"=";
 
     _"(";
     _")";
-    _",";
-    _".";
-    _":";
-    _"::";
-    _";";
-    _"<";
-    _"=";
-    _">";
-    _"[";
-    _"]";
     _"{";
     _"}";
+    _"[";
+    _"]";
+    _"::";
+
+    _";";
+    _":";
+    _",";
+    _".";
+    _"..";
     _"...";
 
     ----------------------------------------------------------------------------
@@ -196,10 +220,26 @@ out:write(regexp.compile {
 out:close()
 
 local _ = parser.grammar.body
+local expect = parser.grammar.expect
 local left = parser.grammar.left
 local right = parser.grammar.right
 
-local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
+local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
+  expect(3);
+
+  left "or";
+  left "and";
+  left "<" ">" "<=" ">=" "~=" "==";
+  left "|";
+  left "~";
+  left "&";
+  left "<<" ">>";
+  right "..";
+  left "+" "-";
+  left "*" "/" "//" "%";
+  right "not" "#" "UNM" "BNOT";
+  right "^";
+
   chunk = _"block";
 
   block
@@ -268,17 +308,10 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
 
   var
     = _"Name"
-    -- + _"prefixexp" "[" "exp" "]"
-    + _"var"          "[" "exp" "]"
-    -- + _"functioncall" "[" "exp" "]"
-    + _"(" "exp" ")"  "[" "exp" "]"
-
-    -- + _"prefixexp" "." "Name"
-    + _"var"          "." "Name"
-    -- + _"functioncall" "." "Name"
-    + _"(" "exp" ")"  "." "Name"
-
-    ;
+    + _"prefixexp" "[" "exp" "]"
+    + _"prefixexp" "." "Name"
+    + _"functioncall" "[" "exp" "]"
+    + _"functioncall" "." "Name";
 
   namelist
     = _"Name"
@@ -296,63 +329,53 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     + _"LiteralString"
     + _"..."
     + _"functiondef"
-    -- + _"prefixexp"
-    + _"var"
-    -- + _"functioncall"
-    + _"(" "exp" ")"
-
+    + _"prefixexp"
+    + _"functioncall"
     + _"tableconstructor"
-    -- + _"exp" "binop" "exp"
-    -- + _"unop" "exp"
-    ;
+
+    -- binop
+    + _"exp" "+" "exp"
+    + _"exp" "-" "exp"
+    + _"exp" "*" "exp"
+    + _"exp" "/" "exp"
+    + _"exp" "//" "exp"
+    + _"exp" "^" "exp"
+    + _"exp" "%" "exp"
+    + _"exp" "&" "exp"
+    + _"exp" "~" "exp"
+    + _"exp" "|" "exp"
+    + _"exp" ">>" "exp"
+    + _"exp" "<<" "exp"
+    + _"exp" ".." "exp"
+    + _"exp" "<" "exp"
+    + _"exp" "<=" "exp"
+    + _"exp" ">" "exp"
+    + _"exp" ">=" "exp"
+    + _"exp" "==" "exp"
+    + _"exp" "~=" "exp"
+    + _"exp" "and" "exp"
+    + _"exp" "or" "exp"
+
+    -- unop
+    + _"-" "exp" :prec "UNM"
+    + _"not" "exp"
+    + _"#" "exp"
+    + _"~" "exp" :prec "BNOT";
 
   ------------------------------------------------------------------------------
 
-  -- TODO 後で調整する
-  -- prefixexp
-  --   = _"var"
-  --   -- 1S/R 1R/R
-  --   -- + _"functioncall"
-  --   + _"(" "exp" ")"
-  --   ;
+  -- The Complete Syntax of Luaではprefixexpとfunctioncallが相互に依存しており、
+  -- そのまま記述するとshift/shift競合が発生する。これを回避するため、prefixexp
+  -- を参照する箇所にfunctioncallを展開する。
+  prefixexp
+    = _"var"
+    + _"(" "exp" ")";
 
-  -- TODO 後で調整する
   functioncall
-    =
-    --   _"prefixexp" "args"
-    -- + _"prefixexp" ":" "Name" "args"
-    -- S/R conflicts
-    -- + _"functioncall" "args"
-      _"var"          "args"
-    + _"(" "exp" ")"  "args"
-    -- + _"functioncall" "args"
-
-      -- "prefixexp" ":" "Name" "args"
-    + _"var"          ":" "Name" "args"
-    + _"(" "exp" ")"  ":" "Name" "args"
-    + _"functioncall" ":" "Name" "args"
-    ;
-
-  --[[
-    The Complete Syntax of Lua
-
-    var ::=
-        Name
-      | prefixexp '[' exp ']'
-      | prefixexp '.'  Name
-
-    prefixexp ::=
-        var
-      | functioncall
-      | '(' exp ')'
-
-    functioncall ::=
-        prefixexp args
-      | prefixexp ':' Name args
-
-
-
-  ]]
+    = _"prefixexp" "args"
+    + _"prefixexp" ":" "Name" "args"
+    + _"functioncall" "args"
+    + _"functioncall" ":" "Name" "args";
 
   args
     = _"(" ")"
@@ -403,9 +426,48 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     + _"HexadecimalFloatingNumeral";
 
 }))
-for _, message in conflictions:ipairs() do
-  print(message)
+
+local out = assert(io.open(dir .. "/test_lua54_parser.txt", "w"))
+
+out:write(("="):rep(75), "\n")
+for i, production in grammar.productions:ipairs() do
+  out:write(("  [%4d] "):format(i), grammar.symbol_names:get(production.head), " ->")
+  for _, symbol in production.body:ipairs() do
+    out:write(" ", grammar.symbol_names:get(symbol))
+  end
+  out:write "\n"
 end
+
+for i, items in data.lalr1_set_of_items:ipairs() do
+  out:write(("="):rep(75), "\nI_", i, "\n")
+  if not data.transitions[i]:empty() then
+    for symbol, j in data.transitions[i]:pairs() do
+      out:write("  I_", i, " -> I_", j, " ", grammar.symbol_names:get(symbol), "\n")
+    end
+    out:write "\n"
+  end
+  for _, item in items:ipairs() do
+    local production = grammar.productions:get(item.index)
+    if production.body:get(item.dot) == nil then
+      out:write(("  [%4d] "):format(item.index), grammar.symbol_names:get(production.head), " ->")
+      for j, symbol in production.body:ipairs() do
+        out:write(" ", grammar.symbol_names:get(symbol))
+      end
+      out:write(", ", grammar.symbol_names:get(item.la), "\n")
+    end
+  end
+end
+out:write(("="):rep(75), "\n")
+
+for _, message in conflictions:ipairs() do
+  out:write(message, "\n")
+  if message:find "^%[warn%]" then
+    print(message)
+  end
+end
+out:write(("="):rep(75), "\n")
+
+out:close()
 
 local parser_filename = dir .. "/test_lua54_parser.lua"
 local out = assert(io.open(parser_filename, "w"))
