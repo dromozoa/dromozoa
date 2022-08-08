@@ -165,6 +165,11 @@ out:write(regexp.compile {
     _"true";
     _"until";
     _"while";
+    _"if";
+    _"elseif";
+    _"else";
+    _"end";
+    _"then";
 
     _"(";
     _")";
@@ -215,6 +220,7 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     + _"do" "block" "end"
     + _"while" "exp" "do" "block" "end"
     + _"repeat" "block" "until" "exp"
+    + _"if" "exp" "then" "block" "elseif_exp_then_block" "else_block" "end"
     + _"for" "Name" "=" "exp" "," "exp" "do" "block" "end"
     + _"for" "Name" "=" "exp" "," "exp" "," "exp" "do" "block" "end"
     + _"for" "namelist" "in" "explist" "do" "block" "end"
@@ -223,7 +229,13 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     + _"local" "attnamelist"
     + _"local" "attnamelist" "=" "explist";
 
-  ------------------------------------------------------------------------------
+  elseif_exp_then_block
+    = _
+    + _"elseif_exp_then_block" "elseif" "exp" "then" "block";
+
+  else_block
+    = _
+    + _"else" "block";
 
   attnamelist
     = _"Name" "attrib"
@@ -297,7 +309,7 @@ local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
     + _"prefixexp" ":" "Name" "args"
     -- S/R conflicts
     -- + _"functioncall" "args"
-    + _"functioncall" ":" "Name" "args"
+    -- + _"functioncall" ":" "Name" "args"
     ;
 
   args
