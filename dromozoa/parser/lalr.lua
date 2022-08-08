@@ -282,8 +282,14 @@ local function lr1_closure(grammar, items, timer1, elapsed1)
         -- symbolは、index, dotに依存
         -- item.laによってどう変わるか？
         -- body:slice(item.dot + 1)が空でなければ、epsilonは検出されない。
+        --   →これは嘘
+        --   →途中のシンボルがepsilonをうむかも
         -- epsilonが検出された場合は、first(item.la)が変える
         -- これが正しければ、item.dot + 1がnilかどうかで判定できる
+        -- index, dot + 1にひもづけて、途中までキャッシュしておくのは？
+        -- これだと、
+        -- キャッシュにepsilonが含まれていたらfirst_symbol(item.la)も考慮
+        -- キャッシュにepsilonが含まれていなければ、すでに処理をしたこともわかる
 
         -- local first = first_symbols(grammar, body:slice(item.dot + 1):append(item.la))
         if timer1 then timer1:start() end
