@@ -23,8 +23,22 @@ local array = require "dromozoa.array"
 local lua54_regexp = require "dromozoa.compiler.lua54_regexp"
 local lua54_parser = require "dromozoa.compiler.lua54_parser"
 
+---------------------------------------------------------------------------
+
+local function process(node)
+end
+
+---------------------------------------------------------------------------
+
 local function quote(s)
   return '"' .. string.gsub(s, '[&<>"]', { ['&'] = '&amp;', ['<'] = '&lt;', ['>'] = '&gt;', ['"'] = '&quot;' }) .. '"'
+end
+
+local attrs = { "v" }
+if verbose then
+  for _, attr in ipairs { "i", "j", "f", "n", "c", "s" } do
+    attrs[#attrs + 1] = attr
+  end
 end
 
 local function dump(out, u, n)
@@ -36,13 +50,12 @@ local function dump(out, u, n)
 
   out:write(("  "):rep(n), "<node")
   if u[0] ~= nil then out:write(" name=", quote(lua54_parser.symbol_names[u[0]])) end
-  if verbose then
-    if u.i ~= nil then out:write(" i=", quote(u.i)) end
-    if u.j ~= nil then out:write(" j=", quote(u.j)) end
-    if u.n ~= nil then out:write(" n=", quote(u.n)) end
-    if u.c ~= nil then out:write(" c=", quote(u.c)) end
+  for _, attr in ipairs(attrs) do
+    if u[attr] ~= nil then
+      out:write(" ", attr, "=", quote(u[attr]))
+    end
   end
-  if u.v ~= nil then out:write(" v=", quote(u.v)) end
+
   if #u == 0 then
     out:write "/>\n"
   else
