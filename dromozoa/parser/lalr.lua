@@ -203,7 +203,7 @@ local function lr0_closure(grammar, items)
     local symbol = productions:get(item.index).body:get(item.dot)
     if symbol ~= nil and symbol > max_terminal_symbol and not added[symbol] then
       for i in each_production(productions, symbol) do
-        items:insert { index = i, dot = 1 }
+        assert(select(3, items:insert { index = i, dot = 1 }))
       end
       added[symbol] = true
     end
@@ -222,7 +222,8 @@ local function lr0_goto(grammar, items)
       map_of_to_items:insert_or_update(symbol, function ()
         return tree_set(compare_item):insert { index = item.index, dot = item.dot + 1 }
       end, function (items)
-        return items:insert { index = item.index, dot = item.dot + 1 }
+        assert(select(3, items:insert { index = item.index, dot = item.dot + 1 }))
+        return items
       end)
     end
   end
@@ -289,7 +290,7 @@ local function lr1_closure(grammar, items, timer1, elapsed1)
           if la ~= marker_epsilon then
             if not added[symbol_key + la] then
               for j in each_production(productions, symbol) do
-                items:insert { index = j, dot = 1, la = la }
+                assert(select(3, items:insert { index = j, dot = 1, la = la }))
               end
               added[symbol_key + la] = true
             end
@@ -301,7 +302,7 @@ local function lr1_closure(grammar, items, timer1, elapsed1)
             assert(la ~= marker_epsilon)
             if not added[symbol_key + la] then
               for j in each_production(productions, symbol) do
-                items:insert { index = j, dot = 1, la = la }
+                assert(select(3, items:insert { index = j, dot = 1, la = la }))
               end
               added[symbol_key + la] = true
             end
@@ -375,7 +376,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
     for from_j, from_item in from_items:ipairs() do
       if productions:get(from_item.index).head == max_terminal_symbol + 1 or from_item.dot > 1 then
         local items = tree_set(compare_item)
-        items:insert { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
+        assert(select(3, items:insert { index = from_item.index, dot = from_item.dot, la = marker_lookahead }))
         elapsed1 = select(2, lr1_closure(grammar, items, timer1, elapsed1))
 
         timer2:start()
