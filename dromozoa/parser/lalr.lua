@@ -263,17 +263,22 @@ local function lr1_closure(grammar, items, timer1, elapsed1)
   local added2 = {}
 
   for _, item in items:ipairs() do
-    local key = item.index * 1000000 + item.dot * 1000 + item.la + 1
-    -- if not added[key] then
-    do
+    local key = item.index * 1000000 + item.dot * 1000
+    if not added[key] then
       local body = productions:get(item.index).body
       local symbol = body:get(item.dot)
       if symbol ~= nil and symbol > max_terminal_symbol then
         -- firstをキャッシュするのは有効（20-25%程度の改善）
-        local first = lr1_closure_table[key]
-        if first == nil then
-          first = first_symbols(grammar, body:slice(item.dot + 1):append(item.la))
-          lr1_closure_table[key] = first
+
+        local first_key = item.index * 1000 + item.dot + 1
+        local first_cached = lr1_closure_table[first_key]
+        if first_cached == nil then
+          first_cached = first_symbols(grammar, body:slice(item.dot + 1))
+          lr1_closure_table[first_key] = first_cached
+        end
+
+        if not first_cached:find(marker_epsilon) then
+          added[key] = true
         end
 
         -- symbolをheadに持つproductionのindex列
@@ -294,11 +299,26 @@ local function lr1_closure(grammar, items, timer1, elapsed1)
         -- local first = first_symbols(grammar, body:slice(item.dot + 1):append(item.la))
         if timer1 then timer1:start() end
         for j in each_production(productions, symbol) do
-          for _, la in first:ipairs() do
-            local key2 = j * 1000 + la + 1
-            if not added2[key2] then
-              items:insert { index = j, dot = 1, la = la }
-              added2[key2] = true
+          local epsilon = false
+          for _, la in first_cached:ipairs() do
+            if la == marker_epsilon then
+              epsilon = true
+            else
+              local key2 = j * 1000 + la + 1
+              if not added2[key2] then
+                items:insert { index = j, dot = 1, la = la }
+                added2[key2] = true
+              end
+            end
+          end
+          if epsilon then
+            for _, la in first_symbol(grammar, item.la):ipairs() do
+              assert(symbol ~= marker_epsilon)
+              local key2 = j * 1000 + la + 1
+              if not added2[key2] then
+                items:insert { index = j, dot = 1, la = la }
+                added2[key2] = true
+              end
             end
           end
         end
