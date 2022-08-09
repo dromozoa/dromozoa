@@ -217,17 +217,37 @@ local function lr0_goto(grammar, items)
 end
 
 local function lr0_items(grammar)
+  local t1 = new_timer()
+  t1:start()
+
   local transitions = {}
   local set_of_items = tree_set():insert(lr0_closure(grammar, array():append { index = 1, dot = 1 }))
 
+  t1:stop()
+  local e1 = t1:elapsed()
+
+  local t2 = new_timer()
+  local t3 = new_timer()
+  local e2 = 0
+  local e3 = 0
+
   for i, items in set_of_items:ipairs() do
+    t2:start()
     local map_of_to_items = lr0_goto(grammar, items)
+    t2:stop()
+    e2 = e2 + t2:elapsed()
+
+    t3:start()
     local transition = tree_map()
     for symbol, to_items in map_of_to_items:pairs() do
       transition:assign(symbol, select(2, set_of_items:insert(to_items)))
     end
     transitions[i] = transition
+    t3:stop()
+    e3 = e3 + t3:elapsed()
   end
+
+  print("lr0_items", e1, e2, e3)
 
   return set_of_items, transitions
 end
