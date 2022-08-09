@@ -14,3 +14,5 @@ end
 function d(a,b,c)
   return a,b,c
 end
+function v(...) end
+function av(a, ...) end

@@ -332,8 +332,8 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 
   parlist
     = _"namelist"
-    + _"namelist" "," "..."
-    + _"...";
+    + _"namelist" "," "..." %"$$=$0 append($1,$3)"
+    + _"..." %"$$=$0 append(create($namelist),$1)";
 
   tableconstructor
     = _"{" "}" %"$$=$0 append($1,create($fieldlist),$2)"
