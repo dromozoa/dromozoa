@@ -170,11 +170,8 @@ local expect = parser.grammar.expect
 local left = parser.grammar.left
 local right = parser.grammar.right
 
--- 愚直な抽象構文木を作成する方針とする。
--- 1. リストは展開する
--- 2. 余分なカンマとセミコロンはとりのぞく
--- 3. retstat => statとする
--- 4. prefixexp => expとする
+-- 抽象構文木を愚直に作成する。
+-- "."と":"は左結合の二項演算子として扱う。
 
 local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
   expect(3);
@@ -238,20 +235,22 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"<" "Name" ">";
 
   retstat
-    = _"return" %"$$=create($stat) append($1,create($explist))"
-    + _"return" ";" %"$$=create($stat) append($1,create($explist))"
-    + _"return" "explist" %"$$=create($stat) append($1,$2)"
-    + _"return" "explist" ";" %"$$=create($stat) append($1,$2)";
+    = _"return"
+    + _"return" ";" %"$$=$0 append($1)"
+    + _"return" "explist"
+    + _"return" "explist" ";" %"$$=$0 append($1,$2)";
 
   label = _"::" "Name" "::";
 
   funcname
     = _"funcname_" %"$$=$1"
-    + _"funcname_" ":" "Name";
+    -- + _"funcname_" ":" "Name";
+    + _"funcname_" ":" "Name" %"$$=$1 append($2, $3)";
 
   funcname_
     = _"Name" %"$$=create($funcname) append($1)"
-    + _"funcname_" "." "Name" %"$$=create($funcname) append($1,$2,$3)";
+    -- + _"funcname_" "." "Name" %"$$=create($funcname) append($1,$2,$3)";
+    + _"funcname_" "." "Name" %"$$=$1 append($2,$3)";
 
   varlist
     = _"var" %"$$=create($varlist) append($1)"
@@ -325,7 +324,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"functioncall" ":" "Name" "args";
 
   args
-    = _"(" ")" %"$$=$0 append($1,create($explist),$2)"
+    = _"(" ")"
     + _"(" "explist" ")"
     + _"tableconstructor"
     + _"LiteralString";
@@ -333,16 +332,16 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
   functiondef = _"function" "funcbody";
 
   funcbody
-    = _"(" ")" "block" "end" %"$$=$0 append($1,create($parlist),$2,$3,$4)"
+    = _"(" ")" "block" "end"
     + _"(" "parlist" ")" "block" "end";
 
   parlist
     = _"namelist"
-    + _"namelist" "," "..." %"$$=$0 append($1,$3)"
-    + _"..." %"$$=$0 append(create($namelist),$1)";
+    + _"namelist" "," "..."
+    + _"...";
 
   tableconstructor
-    = _"{" "}" %"$$=$0 append($1,create($fieldlist),$2)"
+    = _"{" "}"
     + _"{" "fieldlist" "}";
 
   fieldlist
