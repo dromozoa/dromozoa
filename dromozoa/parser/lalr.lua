@@ -62,26 +62,6 @@ end
 
 ---------------------------------------------------------------------------
 
-local function compare_item(a, b)
-  if a.index ~= b.index then
-    return a.index < b.index and -1 or 1
-  end
-  if a.dot ~= b.dot then
-    return a.dot < b.dot and -1 or 1
-  end
-  assert(a.la ~= b.la)
-  return a.la < b.la and -1 or 1
-end
-
----------------------------------------------------------------------------
-
-local function item_set()
-  -- return tree_set(compare_item)
-  return array()
-end
-
----------------------------------------------------------------------------
-
 local function eliminate_left_recursion(grammar)
   local symbol_names = grammar.symbol_names
   local max_terminal_symbol = grammar.max_terminal_symbol
@@ -223,7 +203,7 @@ local function lr0_goto(grammar, items)
     local symbol = productions:get(item.index).body:get(item.dot)
     if symbol ~= nil then
       map_of_to_items:insert_or_update(symbol, function ()
-        return item_set():append { index = item.index, dot = item.dot + 1 }
+        return array():append { index = item.index, dot = item.dot + 1 }
       end, function (items)
         return items:append { index = item.index, dot = item.dot + 1 }
       end)
@@ -238,7 +218,7 @@ end
 
 local function lr0_items(grammar)
   local transitions = {}
-  local set_of_items = tree_set():insert(lr0_closure(grammar, item_set():append { index = 1, dot = 1 }))
+  local set_of_items = tree_set():insert(lr0_closure(grammar, array():append { index = 1, dot = 1 }))
 
   for i, items in set_of_items:ipairs() do
     local map_of_to_items = lr0_goto(grammar, items)
@@ -377,7 +357,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
   for from_i, from_items in set_of_items:ipairs() do
     for from_j, from_item in from_items:ipairs() do
       if productions:get(from_item.index).head == max_terminal_symbol + 1 or from_item.dot > 1 then
-        local items = item_set():append { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
+        local items = array():append { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
         elapsed1 = select(2, lr1_closure(grammar, items, timer1, elapsed1))
 
         timer2:start()
@@ -426,7 +406,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
 
   local new_set_of_kernel_items = array()
   for _, items in set_of_kernel_items:ipairs() do
-    local new_items = item_set()
+    local new_items = array()
     for _, item in items:ipairs() do
       for _, la in item.la:ipairs() do
         new_items:append { index = item.index, dot = item.dot, la = la }
