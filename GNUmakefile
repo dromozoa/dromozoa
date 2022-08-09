@@ -32,5 +32,5 @@ dromozoa/regexp/runtime.lua: dromozoa/regexp/template.lua
 dromozoa/parser/runtime.lua: dromozoa/parser/template.lua
 	lua build_runtime.lua $< $@
 
-dromozoa/compiler/lua54_regexp.lua dromozoa/compiler/lua54_parser.lua: build_lua54.lua
-	lua $< dromozoa/compiler/lua54_regexp.lua dromozoa/compiler/lua54_parser.lua
+dromozoa/compiler/lua54_regexp.lua dromozoa/compiler/lua54_parser.lua: dromozoa/regexp/runtime.lua dromozoa/parser/runtime.lua build_lua54.lua
+	lua build_lua54.lua dromozoa/compiler/lua54_regexp.lua dromozoa/compiler/lua54_parser.lua

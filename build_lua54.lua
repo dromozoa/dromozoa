@@ -189,6 +189,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"block_" "stat" %"$$=$1 append($2)";
 
   -- =                      explist varlist
+  -- functioncall           ... arg
   -- ::                     Name
   -- break
   -- goto                   Name
@@ -322,9 +323,9 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 
   functioncall
     = _"prefixexp" "args"
-    + _"prefixexp" ":" "Name" "args"
+    + _"prefixexp" ":" "Name" "args" %"$$=$2 append($1,$3) $$=$0 append($2,$4)"
     + _"functioncall" "args"
-    + _"functioncall" ":" "Name" "args";
+    + _"functioncall" ":" "Name" "args" %"$$=$2 append($1,$3) $$=$0 append($2,$4)";
 
   args
     = _"(" ")"
