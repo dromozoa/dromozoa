@@ -251,8 +251,6 @@ end
 
 ---------------------------------------------------------------------------
 
--- TODO lr1_closure_cache
--- 高速化
 local function lr1_closure(grammar, items, timer1, elapsed1)
   local symbol_names = grammar.symbol_names
   local max_terminal_symbol = grammar.max_terminal_symbol
@@ -285,7 +283,7 @@ local function lr1_closure(grammar, items, timer1, elapsed1)
 
         -- 点の後の記号 (symbol) とFIRST(b la)に含まれる記号の組をキーとして扱
         -- う。FIRST(b la)は先読み記号 (#) を含む可能性がある。
-        local symbol_key = symbol * (symbol_names:size() + 1)
+        local symbol_key = symbol * (symbol_names:size() + 2)
 
         for _, la in first:ipairs() do
           if la ~= marker_epsilon then
