@@ -21,37 +21,6 @@ local tree_set = require "dromozoa.tree_set"
 
 ---------------------------------------------------------------------------
 
-local new_timer
-pcall(function ()
-  new_timer = require "dromozoa.unix".timer
-end)
-
-if new_timer == nil then
-  local metatable = {
-    __index = {
-      start = function (self)
-        self[1] = os.clock()
-        return self
-      end;
-
-      stop = function (self)
-        self[2] = os.clock()
-        return self
-      end;
-
-      elapsed = function (self)
-        return self[2] - self[1]
-      end;
-    };
-  }
-
-  new_timer = function ()
-    return setmetatable({}, metatable)
-  end
-end
-
----------------------------------------------------------------------------
-
 local function each_production(productions, head)
   return coroutine.wrap(function (self)
     for i, production in productions:each({ head = head, head_index = 0 }, { head = head + 1, head_index = 0 }) do
@@ -217,44 +186,22 @@ local function lr0_goto(grammar, items)
 end
 
 local function lr0_items(grammar)
-  local t1 = new_timer()
-  t1:start()
-
   local transitions = {}
   local set_of_items = tree_set():insert(lr0_closure(grammar, array():append { index = 1, dot = 1 }))
-
-  t1:stop()
-  local e1 = t1:elapsed()
-
-  local t2 = new_timer()
-  local t3 = new_timer()
-  local e2 = 0
-  local e3 = 0
-
   for i, items in set_of_items:ipairs() do
-    t2:start()
     local map_of_to_items = lr0_goto(grammar, items)
-    t2:stop()
-    e2 = e2 + t2:elapsed()
-
-    t3:start()
     local transition = tree_map()
     for symbol, to_items in map_of_to_items:pairs() do
       transition:assign(symbol, select(2, set_of_items:insert(to_items)))
     end
     transitions[i] = transition
-    t3:stop()
-    e3 = e3 + t3:elapsed()
   end
-
-  print("lr0_items", e1, e2, e3)
-
   return set_of_items, transitions
 end
 
 ---------------------------------------------------------------------------
 
-local function lr1_closure(grammar, items, timer1, elapsed1)
+local function lr1_closure(grammar, items)
   local symbol_names = grammar.symbol_names
   local max_terminal_symbol = grammar.max_terminal_symbol
   local productions = grammar.productions
@@ -281,8 +228,6 @@ local function lr1_closure(grammar, items, timer1, elapsed1)
           first = first_symbols(grammar, body:slice(item.dot + 1))
           lr1_closure_table[item_key] = first
         end
-
-        if timer1 then timer1:start() end
 
         -- 点の後の記号 (symbol) とFIRST(b la)に含まれる記号の組をキーとして扱
         -- う。FIRST(b la)は先読み記号 (#) を含む可能性がある。
@@ -312,14 +257,11 @@ local function lr1_closure(grammar, items, timer1, elapsed1)
         else
           skip[item_key] = true
         end
-
-        if timer1 then timer1:stop() elapsed1 = elapsed1 + timer1:elapsed() end
-
       end
     end
   end
 
-  return items, elapsed1
+  return items
 end
 
 ---------------------------------------------------------------------------
@@ -327,19 +269,14 @@ end
 local marker_lookahead = -1
 
 local function lalr1_kernels(grammar, set_of_items, transitions)
-  local timer = new_timer()
-
   local max_terminal_symbol = grammar.max_terminal_symbol
   local productions = grammar.productions
 
   local set_of_kernel_items = array()
   local map_of_kernel_items = array()
 
-  timer:start()
-
   for i, items in set_of_items:ipairs() do
-    -- TODO kernel_itemsはlaがtree_setなんだけど？
-    local kernel_items = tree_set()
+    local kernel_items = array()
     local kernel_table = tree_map()
     for j, item in items:ipairs() do
       if item.index == 1 or item.dot > 1 then
@@ -354,34 +291,19 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
       if item.index == 1 and item.dot == 1 then
         la:insert(max_terminal_symbol)
       end
-      kernel_items:insert { index = item.index, dot = item.dot, la = la }
+      kernel_items:append { index = item.index, dot = item.dot, la = la }
     end
     set_of_kernel_items:append(kernel_items)
     map_of_kernel_items:append(kernel_table)
   end
 
-  timer:stop()
-  print("lalr1_kernels A", timer:elapsed())
-
   local propagations = array()
-
-  timer:start()
-
-  local timer1 = new_timer()
-  local timer2 = new_timer()
-  local elapsed1 = 0
-  local elapsed2 = 0
-
-  grammar.lr1_closure_table = {}
 
   for from_i, from_items in set_of_items:ipairs() do
     for from_j, from_item in from_items:ipairs() do
       if productions:get(from_item.index).head == max_terminal_symbol + 1 or from_item.dot > 1 then
         local items = array():append { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
-        elapsed1 = select(2, lr1_closure(grammar, items, timer1, elapsed1))
-
-        timer2:start()
-
+        lr1_closure(grammar, items)
         for _, item in items:ipairs() do
           local symbol = productions:get(item.index).body:get(item.dot)
           if symbol ~= nil then
@@ -394,19 +316,11 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
             end
           end
         end
-
-        timer2:stop()
-        elapsed2 = elapsed2 + timer2:elapsed()
       end
     end
   end
 
-  timer:stop()
-  print("lalr1_kernels B", timer:elapsed(), elapsed1, elapsed2)
-
   repeat
-    timer:start()
-
     local done = true
     for _, propagation in propagations:ipairs() do
       local from_la = set_of_kernel_items:get(propagation.from_i):get(propagation.from_j).la
@@ -417,12 +331,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
         end
       end
     end
-
-    timer:stop()
-    print("lalr1_kernels C", timer:elapsed())
   until done
-
-  timer:start()
 
   local new_set_of_kernel_items = array()
   for _, items in set_of_kernel_items:ipairs() do
@@ -434,9 +343,6 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
     end
     new_set_of_kernel_items:append(new_items)
   end
-
-  timer:stop()
-  print("lalr1_kernels D", timer:elapsed())
 
   return new_set_of_kernel_items
 end
@@ -591,36 +497,15 @@ end
 ---------------------------------------------------------------------------
 
 return function (grammar)
-  local timer = new_timer()
-
-  timer:start()
   local grammar_without_left_recursion = eliminate_left_recursion(grammar)
-  timer:stop()
-  print("eliminate_left_recursion", timer:elapsed())
-
-  timer:start()
   grammar.first_table = first_table(grammar_without_left_recursion)
-  timer:stop()
-  print("first_table", timer:elapsed())
-
-  timer:start()
   local lr0_set_of_items, transitions = lr0_items(grammar)
-  timer:stop()
-  print("lr0_items", timer:elapsed())
-
+  grammar.lr1_closure_table = {}
   local lalr1_set_of_items = lalr1_kernels(grammar, lr0_set_of_items, transitions)
-
-  timer:start()
   for i, items in lalr1_set_of_items:ipairs() do
     lr1_closure(grammar, items)
   end
-  timer:stop()
-  print("lr1_closure", i, timer:elapsed())
-
-  timer:start()
   local actions, conflictions = lr1_construct_table(grammar, lalr1_set_of_items, transitions)
-  timer:stop()
-  print("lr1_construct_table", timer:elapsed())
 
   return grammar, actions, conflictions, {
     grammar = grammar;
