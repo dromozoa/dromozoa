@@ -91,57 +91,52 @@ local marker_epsilon = 0
 
 local first_symbols
 
--- TODO 途中の情報を保存する
--- 高速化
--- 再帰の検出
 local function first_symbol(grammar, symbol)
+  local first_table = grammar.first_table
+
+  local first = first_table[symbol]
+  if first == false then
+    error "loop detected"
+  elseif first ~= nil then
+    return first
+  end
+  first_table[symbol] = false
+
   if symbol <= grammar.max_terminal_symbol then
-    return tree_set():insert(symbol)
+    first = tree_set():insert(symbol)
   else
-    local first_table = grammar.first_table
-    if first_table then
-      return first_table[symbol]
-    end
-    local result = tree_set()
-    local epsilon = false
+    first = tree_set()
     for _, body in each_production(grammar.productions, symbol) do
       if not body:empty() then
-        local first = first_symbols(grammar, body)
-        for _, symbol in first:ipairs() do
-          result:insert(symbol)
+        for _, symbol in first_symbols(grammar, body):ipairs() do
+          first:insert(symbol)
         end
       else
-        result:insert(marker_epsilon)
+        first:insert(marker_epsilon)
       end
     end
-    return result
   end
+
+  first_table[symbol] = first
+  return first
 end
 
 function first_symbols(grammar, symbols)
-  local result = tree_set()
+  local first = tree_set()
   for _, symbol in symbols:ipairs() do
     local epsilon = false
     for _, symbol in first_symbol(grammar, symbol):ipairs() do
       if symbol == marker_epsilon then
         epsilon = true
       else
-        result:insert(symbol)
+        first:insert(symbol)
       end
     end
     if not epsilon then
-      return result
+      return first
     end
   end
-  return result:insert(marker_epsilon)
-end
-
-local function first_table(grammar)
-  local result = {}
-  for symbol = grammar.max_terminal_symbol + 1, grammar.symbol_names:size() do
-    result[symbol] = first_symbol(grammar, symbol)
-  end
-  return result
+  return first:insert(marker_epsilon)
 end
 
 ---------------------------------------------------------------------------
@@ -150,12 +145,14 @@ local function lr0_closure(grammar, items)
   local max_terminal_symbol = grammar.max_terminal_symbol
   local productions = grammar.productions
 
+  local added = {}
   for _, item in items:ipairs() do
     local symbol = productions:get(item.index).body:get(item.dot)
-    if symbol ~= nil and symbol > max_terminal_symbol then
+    if symbol ~= nil and symbol > max_terminal_symbol and not added[symbol] then
       for i in each_production(productions, symbol) do
-        items:insert { index = i, dot = 1 }
+        items:append { index = i, dot = 1 }
       end
+      added[symbol] = true
     end
   end
 
@@ -170,9 +167,9 @@ local function lr0_goto(grammar, items)
     local symbol = productions:get(item.index).body:get(item.dot)
     if symbol ~= nil then
       map_of_to_items:insert_or_update(symbol, function ()
-        return tree_set():insert { index = item.index, dot = item.dot + 1 }
+        return array():append { index = item.index, dot = item.dot + 1 }
       end, function (items)
-        return items:insert { index = item.index, dot = item.dot + 1 }
+        return items:append { index = item.index, dot = item.dot + 1 }
       end)
     end
   end
@@ -185,8 +182,7 @@ end
 
 local function lr0_items(grammar)
   local transitions = {}
-  local set_of_items = tree_set():insert(lr0_closure(grammar, tree_set():insert { index = 1, dot = 1 }))
-
+  local set_of_items = tree_set():insert(lr0_closure(grammar, array():append { index = 1, dot = 1 }))
   for i, items in set_of_items:ipairs() do
     local map_of_to_items = lr0_goto(grammar, items)
     local transition = tree_map()
@@ -195,26 +191,66 @@ local function lr0_items(grammar)
     end
     transitions[i] = transition
   end
-
   return set_of_items, transitions
 end
 
 ---------------------------------------------------------------------------
 
--- TODO lr1_closure_cache
--- 高速化
 local function lr1_closure(grammar, items)
+  local symbol_names = grammar.symbol_names
   local max_terminal_symbol = grammar.max_terminal_symbol
   local productions = grammar.productions
+  local lr1_closure_table = grammar.lr1_closure_table
+
+  local skip = {}
+  local added = {}
 
   for _, item in items:ipairs() do
-    local body = productions:get(item.index).body
-    local symbol = body:get(item.dot)
-    if symbol ~= nil and symbol > max_terminal_symbol then
-      local first = first_symbols(grammar, body:slice(item.dot + 1):append(item.la))
-      for j in each_production(productions, symbol) do
+    -- 生成規則の番号 (index) と点の位置 (dot) の組をキーとして使う。
+    local item_key = item.index + item.dot * productions:size()
+
+    -- 項 [A -> a . B b, la] を考える。
+    -- FIRST(b)がεを含まなければ、FIRST(b) == FIRST(b la)なので、laを考慮する必
+    -- 要がない。つまり、laだけが異なる別の項の処理は省略できるので、skip[item_key]
+    -- を真に設定する。
+    if not skip[item_key] then
+      local body = productions:get(item.index).body
+      local symbol = body:get(item.dot)
+      if symbol ~= nil and symbol > max_terminal_symbol then
+        -- FIRST(b)をキャッシュする。
+        local first = lr1_closure_table[item_key]
+        if first == nil then
+          first = first_symbols(grammar, body:slice(item.dot + 1))
+          lr1_closure_table[item_key] = first
+        end
+
+        -- 点の後の記号 (symbol) とFIRST(b la)に含まれる記号の組をキーとして扱
+        -- う。FIRST(b la)は先読み記号 (#) を含む可能性がある。
+        local symbol_key = symbol * (symbol_names:size() + 2)
+
         for _, la in first:ipairs() do
-          items:insert { index = j, dot = 1, la = la }
+          if la ~= marker_epsilon then
+            if not added[symbol_key + la] then
+              for j in each_production(productions, symbol) do
+                items:append { index = j, dot = 1, la = la }
+              end
+              added[symbol_key + la] = true
+            end
+          end
+        end
+
+        if first:find(marker_epsilon) then
+          for _, la in first_symbol(grammar, item.la):ipairs() do
+            assert(la ~= marker_epsilon)
+            if not added[symbol_key + la] then
+              for j in each_production(productions, symbol) do
+                items:append { index = j, dot = 1, la = la }
+              end
+              added[symbol_key + la] = true
+            end
+          end
+        else
+          skip[item_key] = true
         end
       end
     end
@@ -235,22 +271,22 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
   local map_of_kernel_items = array()
 
   for i, items in set_of_items:ipairs() do
-    local kernel_items = tree_set()
-    local kernel_table = tree_map()
+    local kernel_items = array()
+    local kernel_table = {}
     for j, item in items:ipairs() do
       if item.index == 1 or item.dot > 1 then
-        kernel_table:insert_or_update(item.index, function ()
-          return { [item.dot] = j }
-        end, function (t)
+        local t = kernel_table[item.index]
+        if t == nil then
+          kernel_table[item.index] = { [item.dot] = j }
+        else
           t[item.dot] = j
-          return t
-        end)
+        end
       end
       local la = tree_set()
       if item.index == 1 and item.dot == 1 then
         la:insert(max_terminal_symbol)
       end
-      kernel_items:insert { index = item.index, dot = item.dot, la = la }
+      kernel_items:append { index = item.index, dot = item.dot, la = la }
     end
     set_of_kernel_items:append(kernel_items)
     map_of_kernel_items:append(kernel_table)
@@ -261,14 +297,13 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
   for from_i, from_items in set_of_items:ipairs() do
     for from_j, from_item in from_items:ipairs() do
       if productions:get(from_item.index).head == max_terminal_symbol + 1 or from_item.dot > 1 then
-        local items = tree_set()
-        items:insert { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
+        local items = array():append { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
         lr1_closure(grammar, items)
         for _, item in items:ipairs() do
           local symbol = productions:get(item.index).body:get(item.dot)
           if symbol ~= nil then
             local to_i = transitions[from_i]:find(symbol)
-            local to_j = map_of_kernel_items:get(to_i):find(item.index)[item.dot + 1]
+            local to_j = map_of_kernel_items:get(to_i)[item.index][item.dot + 1]
             if item.la == marker_lookahead then
               propagations:append { from_i = from_i, from_j = from_j, to_i = to_i, to_j = to_j }
             else
@@ -295,14 +330,15 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
 
   local new_set_of_kernel_items = array()
   for _, items in set_of_kernel_items:ipairs() do
-    local new_items = tree_set()
+    local new_items = array()
     for _, item in items:ipairs() do
       for _, la in item.la:ipairs() do
-        new_items:insert { index = item.index, dot = item.dot, la = la }
+        new_items:append { index = item.index, dot = item.dot, la = la }
       end
     end
     new_set_of_kernel_items:append(new_items)
   end
+
   return new_set_of_kernel_items
 end
 
@@ -456,11 +492,19 @@ end
 ---------------------------------------------------------------------------
 
 return function (grammar)
+  -- 左再帰を除去した文法でFIRSTの表を求めて、LR(1)閉包の計算に使う。
   local grammar_without_left_recursion = eliminate_left_recursion(grammar)
-  grammar.first_table = first_table(grammar_without_left_recursion)
+  grammar_without_left_recursion.first_table = {}
+  -- 元の文法の非終端記号が表に含まれることを保証する。
+  for symbol = grammar.max_terminal_symbol + 1, grammar.symbol_names:size() do
+    first_symbol(grammar_without_left_recursion, symbol)
+  end
+  grammar.first_table = grammar_without_left_recursion.first_table
+
   local lr0_set_of_items, transitions = lr0_items(grammar)
+  grammar.lr1_closure_table = {}
   local lalr1_set_of_items = lalr1_kernels(grammar, lr0_set_of_items, transitions)
-  for _, items in lalr1_set_of_items:ipairs() do
+  for i, items in lalr1_set_of_items:ipairs() do
     lr1_closure(grammar, items)
   end
   local actions, conflictions = lr1_construct_table(grammar, lalr1_set_of_items, transitions)

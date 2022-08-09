@@ -38,9 +38,7 @@ local token_names = array()
 local regexp_filename = dir .. "/test_lua54_regexp.lua"
 local out = assert(io.open(regexp_filename, "w"))
 out:write(regexp.compile {
-  [[
-    local ra
-  ]];
+  "local ra";
 
   long_comment = regexp.machine.guard("freturn()", {
     _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
@@ -49,8 +47,8 @@ out:write(regexp.compile {
   });
 
   long_literal_string = regexp.machine.guard("freturn()", {
-    _"\n"/"ln=ln+1 lp=fp append(0x0A)" + _"\r"/"lp=fp"*"?";
-    _"\r"/"ln=ln+1 lp=fp append(0x0A)" + _"\n"/"lp=fp"*"?";
+    _"\n"/"append(0x0A) ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
+    _"\r"/"append(0x0A) ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
     _(_)/"append(fc)";
   });
 
@@ -65,8 +63,8 @@ out:write(regexp.compile {
       _"\\"/"append(fc)";
       _"\""/"append(fc)";
       _"\'"/"append(fc)";
-      _"\n"/"ln=ln+1 lp=fp append(0x0A)" + _"\r"/"lp=fp"*"?";
-      _"\r"/"ln=ln+1 lp=fp append(0x0A)" + _"\n"/"lp=fp"*"?";
+      _"\n"/"append(0x0A) ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
+      _"\r"/"append(0x0A) ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
       _"z" + _{
         _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
         _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
@@ -74,34 +72,43 @@ out:write(regexp.compile {
       }*"*";
       _"x" + _{
         _["09"]/"ra=fc-${<0>}";
-        _["AF"]/"ra=fc-${<A>}+10";
         _["af"]/"ra=fc-${<a>}+10";
+        _["AF"]/"ra=fc-${<A>}+10";
       } + _{
         _["09"]/"append(ra*16+fc-${<0>})";
-        _["AF"]/"append(ra*16+fc-${<A>}+10)";
         _["af"]/"append(ra*16+fc-${<a>}+10)";
+        _["AF"]/"append(ra*16+fc-${<A>}+10)";
       };
       _"u" + _"{"/"ra=0" + _{
         _["09"]/"ra=ra*16+fc-${<0>}";
-        _["AF"]/"ra=ra*16+fc-${<A>}+10";
         _["af"]/"ra=ra*16+fc-${<a>}+10";
+        _["AF"]/"ra=ra*16+fc-${<A>}+10";
       }*"+" + _"}"/"fassert(ra<=0x7FFFFFFF,'UTF-8 value too large') append_unicode(ra)";
     };
+
     (_"\\" + _["09"]/"ra=fc-${<0>}" + _["09"]/"ra=ra*10+fc-${<0>}"*{0,2}) %"fassert(ra<=255,'decimal escape too large') append(ra)";
 
     _(_)/"append(fc)";
   });
 
   regexp.machine.lexer(token_names, {
-    _{" \f\t\v"}*"+";
-    _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
-    _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
+    ----------------------------------------------------------------------------
+    -- Spaces
+    _{
+      _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
+      _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
+      _{" \f\t\v"}*"+";
+    }*"+";
 
-    -- long comment
+    ----------------------------------------------------------------------------
+    -- Comment
+
     (_"--" + _"["/"guard_clear(${<]>})" + (_"="/"guard_append(fc)")*"*" + _"["/"guard_append(${<]>})") %"fcall($long_comment) push()";
 
-    -- short comment
     _"--" + -_{"\n\r"}*"*";
+
+    ----------------------------------------------------------------------------
+    -- LiteralString
 
     LongLiteralString = (_"["/"guard_clear(${<]>})" + (_"="/"guard_append(fc)")*"*" + _"["/"guard_append(${<]>})" + _{
       _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
@@ -110,223 +117,357 @@ out:write(regexp.compile {
 
     ShortLiteralString = _{"\'\""}/"guard_clear(fc)" %"clear() fcall($short_literal_string) push(true)";
 
-    DecIntegerNumeral = _["09"]*"+";
-    -- C言語のdecimal-floating-constantを書きくだしたもの
-    -- DecFloatNumeral = _{
-    --   _{
-    --     _["09"]*"*" + _"." + _["09"]*"+";
-    --     _["09"]*"+" + _"."
-    --   } + (_{"eE"} + _{"+-"}*"?" + _["09"]*"+")*"?";
-    --   _["09"]*"+" + (_{"eE"} + _{"+-"}*"?" + _["09"]*"+");
-    -- };
-    DecFloatNumeral = _{
+    ----------------------------------------------------------------------------
+    -- Numeral
+
+    -- 8進数は存在しないので、leading zerosも許容される。
+    DecimalIntegerNumeral = _["09"]*"+";
+
+    -- C言語のリテラルのdecimal-floating-constantに類似しているが、以下の点で異
+    -- なる。
+    -- 1. 小数点も指数部もない場合はDecimalIntegerNumeralがマッチするので除外し
+    --    ない。
+    -- 2. 接尾辞は持たない。
+    DecimalFloatingNumeral = _{
       _["09"]*"*" + _"." + _["09"]*"+";
       _["09"]*"+" + _"."*"?";
     } + (_{"eE"} + _{"+-"}*"?" + _["09"]*"+")*"?";
 
-    HexIntegerNumeral = _"0" + _{"xX"} + _["09AFaf"]*"+";
+    HexadecimalIntegerNumeral = _"0" + _{"xX"} + _["09AFaf"]*"+";
 
-    -- C言語のリテラルでは指数を省略できないが、Luaでは省略できる
-    -- strtodは指数がオプション
-    HexFloatNumeral = _"0" + _{"xX"} + _{
+    -- C言語のリテラルのhexadecimal-floating-constantに類似しているが、以下の点
+    -- で異なる。
+    -- 1. 指数部を省略できる。C言語のリテラルでは指数を省略できないが、strtodで
+    --    は省略できる。
+    -- 2. 小数点も指数部もない場合はHexadecimalIntegerNumeralがマッチするので除
+    --    外しない。
+    -- 3. 接尾辞は持たない。
+    HexadecimalFloatingNumeral = _"0" + _{"xX"} + _{
       _["09AFaf"]*"*" + _"." + _["09AFaf"]*"+";
       _["09AFaf"]*"+" + _"."*"?";
     } + (_{"pP"} + _{"+-"}*"?" + _["09"]*"+")*"?"
     ;
 
-    _"local";
-    _"return";
+    ----------------------------------------------------------------------------
+
+    _"and";
     _"break";
-    _"goto";
     _"do";
+    _"else";
+    _"elseif";
     _"end";
+    _"false";
+    _"for";
+    _"function";
+    _"goto";
+    _"if";
+    _"in";
+    _"local";
+    _"nil";
+    _"not";
+    _"or";
+    _"repeat";
+    _"return";
+    _"then";
+    _"true";
+    _"until";
+    _"while";
+
+    _"+";
+    _"-";
+    _"*";
+    _"/";
+    _"%";
+    _"^";
+    _"#";
+
+    _"&";
+    _"~";
+    _"|";
+    _"<<";
+    _">>";
+    _"//";
+
+    _"==";
+    _"~=";
+    _"<=";
+    _">=";
+    _"<";
+    _">";
+    _"=";
 
     _"(";
     _")";
-    _",";
-    _";";
-    _"=";
-    _"[";
-    _"]";
-    _".";
-    _":";
     _"{";
     _"}";
-    _"<";
-    _">";
+    _"[";
+    _"]";
     _"::";
 
-    Name
-      = _["AZaz_"] + _["09AZaz_"]*"*"
-      ;
+    _";";
+    _":";
+    _",";
+    _".";
+    _"..";
+    _"...";
+
+    ----------------------------------------------------------------------------
+    -- Name
+
+    Name = _["AZaz_"] + _["09AZaz_"]*"*";
   });
 })
 out:close()
 
 local _ = parser.grammar.body
+local expect = parser.grammar.expect
 local left = parser.grammar.left
 local right = parser.grammar.right
 
-local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
-  chunk
-    = _"block"
-    ;
+local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
+  expect(3);
+
+  left "or";
+  left "and";
+  left "<" ">" "<=" ">=" "~=" "==";
+  left "|";
+  left "~";
+  left "&";
+  left "<<" ">>";
+  right "..";
+  left "+" "-";
+  left "*" "/" "//" "%";
+  right "not" "#" "UNM" "BNOT";
+  right "^";
+
+  chunk = _"block";
 
   block
-    = _"{stat}" "[retstat]"
-    ;
+    = _"block_"
+    + _"block_" "retstat";
+
+  block_
+    = _
+    + _"block_" "stat";
 
   stat
-    = _"varlist" "=" "explist"
+    = ";"
+    + _"varlist" "=" "explist"
     + _"functioncall"
     + _"label"
     + _"break"
     + _"goto" "Name"
     + _"do" "block" "end"
-    + _"local" "attnamelist" "[= explist]"
-    ;
+    + _"while" "exp" "do" "block" "end"
+    + _"repeat" "block" "until" "exp"
+    + _"if" "exp" "then" "block" "elseif_exp_then_block" "else_block" "end"
+    + _"for" "Name" "=" "exp" "," "exp" "do" "block" "end"
+    + _"for" "Name" "=" "exp" "," "exp" "," "exp" "do" "block" "end"
+    + _"for" "namelist" "in" "explist" "do" "block" "end"
+    + _"function" "funcname" "funcbody"
+    + _"local" "function" "Name" "funcbody"
+    + _"local" "attnamelist"
+    + _"local" "attnamelist" "=" "explist";
 
-  ["{stat}"]
+  elseif_exp_then_block
     = _
-    + _"{stat}" "stat" %"$$=$1 append($2)"
-    ;
+    + _"elseif_exp_then_block" "elseif" "exp" "then" "block";
 
-  ["[= explist]"]
+  else_block
     = _
-    + _"=" "explist"
-    ;
+    + _"else" "block";
 
   attnamelist
-    = _"Name" "attrib" "{, Name attrib}"
-    ;
+    = _"Name" "attrib"
+    + _"attnamelist" "," "Name" "attrib";
 
   attrib
-    = _"[< Name >]"
-    ;
-
-  ["[< Name >]"]
     = _
-    + _"<" "Name" ">"
-    ;
-
-  ["{, Name attrib}"]
-    = _
-    + _"{, Name attrib}" "," "Name" "attrib"
-    ;
+    + _"<" "Name" ">";
 
   retstat
-    = _"return" "[explist]"
-    + _"return" "[explist]" ";" %"$$=$0 append($1,$2)"
-    ;
+    = _"return"
+    + _"return" ";"
+    + _"return" "explist"
+    + _"return" "explist" ";";
 
-  ["[retstat]"]
-    = _
-    + _"retstat"
-    ;
 
-  label
-    = _"::" "label" "::"
-    ;
+  label = _"::" "Name" "::";
+
+  funcname
+    = _"funcname_"
+    + _"funcname_" ":" "Name";
+
+  funcname_
+    = _"Name"
+    + _"funcname_" "." "Name";
 
   varlist
-    = _"var" "{, var}" %"$$=$0 append($1) append_unpack($2)"
-    ;
-
-  ["{, var}"]
-    = _                    %"create($varlist)"
-    + _"{, var}" "," "var" %"$$=$1 append($3)"
-    ;
+    = _"var"
+    + _"varlist" "," "var";
 
   var
     = _"Name"
     + _"prefixexp" "[" "exp" "]"
     + _"prefixexp" "." "Name"
-    ;
+    + _"functioncall" "[" "exp" "]"
+    + _"functioncall" "." "Name";
+
+  namelist
+    = _"Name"
+    + _"namelist" "," "Name";
 
   explist
     = _"exp"
-    + _"explist" "," "exp" %"$$=$1 append($3)"
-    ;
-
-  ["[explist]"]
-    = _          %"create($explist)"
-    + _"explist" %"$$=$1"
-    ;
+    + _"explist" "," "exp";
 
   exp
-    = _"Numeral"
+    = _"nil"
+    + _"false"
+    + _"true"
+    + _"Numeral"
     + _"LiteralString"
---    + _"prefixexp"
-    ;
+    + _"..."
+    + _"functiondef"
+    + _"prefixexp"
+    + _"functioncall"
+    + _"tableconstructor"
 
+    -- binop
+    + _"exp" "+" "exp"
+    + _"exp" "-" "exp"
+    + _"exp" "*" "exp"
+    + _"exp" "/" "exp"
+    + _"exp" "//" "exp"
+    + _"exp" "^" "exp"
+    + _"exp" "%" "exp"
+    + _"exp" "&" "exp"
+    + _"exp" "~" "exp"
+    + _"exp" "|" "exp"
+    + _"exp" ">>" "exp"
+    + _"exp" "<<" "exp"
+    + _"exp" ".." "exp"
+    + _"exp" "<" "exp"
+    + _"exp" "<=" "exp"
+    + _"exp" ">" "exp"
+    + _"exp" ">=" "exp"
+    + _"exp" "==" "exp"
+    + _"exp" "~=" "exp"
+    + _"exp" "and" "exp"
+    + _"exp" "or" "exp"
+
+    -- unop
+    + _"-" "exp" :prec "UNM"
+    + _"not" "exp"
+    + _"#" "exp"
+    + _"~" "exp" :prec "BNOT";
+
+  ------------------------------------------------------------------------------
+
+  -- The Complete Syntax of Luaではprefixexpとfunctioncallが相互に依存しており、
+  -- そのまま記述するとshift/shift競合が発生する。これを回避するため、prefixexp
+  -- を参照する箇所にfunctioncallを展開する。
   prefixexp
     = _"var"
---    + _"functioncall"
-    + _"(" "exp" ")"
-    ;
+    + _"(" "exp" ")";
 
   functioncall
     = _"prefixexp" "args"
     + _"prefixexp" ":" "Name" "args"
---    + _"functioncall" "args"
-    + _"functioncall" ":" "Name" "args"
-    ;
+    + _"functioncall" "args"
+    + _"functioncall" ":" "Name" "args";
 
   args
-    = _"(" "[explist]" ")" %"$$=$0 append($2)"
+    = _"(" ")"
+    + _"(" "explist" ")"
     + _"tableconstructor"
-    ;
+    + _"LiteralString";
+
+  functiondef = _"function" "funcbody";
+
+  funcbody
+    = _"(" ")" "block" "end"
+    + _"(" "parlist" ")" "block" "end";
+
+  parlist
+    = _"namelist"
+    + _"namelist" "," "..."
+    + _"...";
 
   tableconstructor
-    = _"{" "[fieldlist]" "}"
-    ;
-
-  ["[fieldlist]"]
-    = _            %"create($fieldlist)"
-    + _"fieldlist" %"$$=$1"
-    ;
+    = _"{" "}"
+    + _"{" "fieldlist" "}";
 
   fieldlist
-    = _"field" "{fieldsep field}" "[fieldsep]" %"$$=$0 append($1) append_unpack($2)"
-    ;
+    = _"fieldlist_"
+    + _"fieldlist_" "fieldsep";
 
-  ["{fieldsep field}"]
-    = _
-    + _"{fieldsep field}" "fieldsep" "field" %"$$=$1 append($3)"
-    ;
+  fieldlist_
+    = _"field"
+    + _"fieldlist_" "fieldsep" "field";
 
   field
     = _"[" "exp" "]" "=" "exp"
     + _"Name" "=" "exp"
-    + _"exp"
-    ;
+    + _"exp";
 
   fieldsep
     = _","
-    + _";"
-    ;
-
-  ["[fieldsep]"]
-    = _
-    + _"fieldsep"
-    ;
+    + _";";
 
   LiteralString
     = _"LongLiteralString"
-    + _"ShortLiteralString"
-    ;
+    + _"ShortLiteralString";
 
   Numeral
-    = _"DecIntegerNumeral"
-    + _"DecFloatNumeral"
-    + _"HexIntegerNumeral"
-    + _"HexFloatNumeral"
-    ;
+    = _"DecimalIntegerNumeral"
+    + _"DecimalFloatingNumeral"
+    + _"HexadecimalIntegerNumeral"
+    + _"HexadecimalFloatingNumeral";
 
 }))
-for _, message in conflictions:ipairs() do
-  print(message)
+
+local out = assert(io.open(dir .. "/test_lua54_parser.txt", "w"))
+
+out:write(("="):rep(75), "\n")
+for i, production in grammar.productions:ipairs() do
+  out:write(("  [%4d] "):format(i), grammar.symbol_names:get(production.head), " ->")
+  for _, symbol in production.body:ipairs() do
+    out:write(" ", grammar.symbol_names:get(symbol))
+  end
+  out:write "\n"
 end
+
+for i, items in data.lalr1_set_of_items:ipairs() do
+  out:write(("="):rep(75), "\nI_", i, "\n")
+  if not data.transitions[i]:empty() then
+    for symbol, j in data.transitions[i]:pairs() do
+      out:write("  I_", i, " -> I_", j, " ", grammar.symbol_names:get(symbol), "\n")
+    end
+    out:write "\n"
+  end
+  for _, item in items:ipairs() do
+    local production = grammar.productions:get(item.index)
+    if production.body:get(item.dot) == nil then
+      out:write(("  [%4d] "):format(item.index), grammar.symbol_names:get(production.head), " ->")
+      for j, symbol in production.body:ipairs() do
+        out:write(" ", grammar.symbol_names:get(symbol))
+      end
+      out:write(", ", grammar.symbol_names:get(item.la), "\n")
+    end
+  end
+end
+out:write(("="):rep(75), "\n")
+
+for _, message in conflictions:ipairs() do
+  out:write(message, "\n")
+  if message:find "^%[warn%]" then
+    print(message)
+  end
+end
+out:write(("="):rep(75), "\n")
+
+out:close()
 
 local parser_filename = dir .. "/test_lua54_parser.lua"
 local out = assert(io.open(parser_filename, "w"))
