@@ -364,11 +364,6 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
 
   timer:start()
 
-  local cache = {}
-
-  local hit = 0
-  local miss = 0
-
   local timer1 = new_timer()
   local timer2 = new_timer()
   local elapsed1 = 0
@@ -379,30 +374,9 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
   for from_i, from_items in set_of_items:ipairs() do
     for from_j, from_item in from_items:ipairs() do
       if productions:get(from_item.index).head == max_terminal_symbol + 1 or from_item.dot > 1 then
-        -- local items = tree_set()
-        -- items:insert { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
-        -- print(from_item.index, from_item.dot)
-
-        -- timer1:start()
-
-        local c = cache[from_item.index]
-        if not c then
-          c = {}
-          cache[from_item.index] = c
-        end
-        local items = c[from_item.dot]
-        if not items then
-          miss = miss + 1
-          items = tree_set(compare_item)
-          items:insert { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
-          elapsed1 = select(2, lr1_closure(grammar, items, timer1, elapsed1))
-          c[from_item.dot] = items
-        else
-          hit = hit + 1
-        end
-
-        -- timer1:stop()
-        -- elapsed1 = elapsed1 + timer1:elapsed()
+        local items = tree_set(compare_item)
+        items:insert { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
+        elapsed1 = select(2, lr1_closure(grammar, items, timer1, elapsed1))
 
         timer2:start()
 
@@ -426,7 +400,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
   end
 
   timer:stop()
-  print("lalr1_kernels B", timer:elapsed(), hit, miss, elapsed1, elapsed2)
+  print("lalr1_kernels B", timer:elapsed(), elapsed1, elapsed2)
 
   repeat
     timer:start()
