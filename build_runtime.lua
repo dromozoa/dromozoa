@@ -61,5 +61,4 @@ local function build(source, result)
   out:close()
 end
 
-build("dromozoa/parser/template.lua", "dromozoa/parser/runtime.lua")
-build("dromozoa/regexp/template.lua", "dromozoa/regexp/runtime.lua")
+build(...)

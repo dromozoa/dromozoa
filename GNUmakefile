@@ -1,6 +1,4 @@
-#! /bin/sh -e
-
-# Copyright (C) 2020,2022 Tomoyuki Fujimori <moyu@dromozoa.com>
+# Copyright (C) 2022 Tomoyuki Fujimori <moyu@dromozoa.com>
 #
 # This file is part of dromozoa.
 #
@@ -17,17 +15,22 @@
 # You should have received a copy of the GNU General Public License
 # along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-LUA_PATH="?.lua;ext/?.lua;;"
-export LUA_PATH
+target = \
+	dromozoa/regexp/runtime.lua \
+	dromozoa/parser/runtime.lua \
+	dromozoa/compiler/lua54_regexp.lua \
+	dromozoa/compiler/lua54_parser.lua
 
-for i in test/test*.lua
-do
-  case X$# in
-    X0) lua "$i";;
-    *) "$@" "$i";;
-  esac
-done
+all:: $(target)
 
-case X$DROMOZOA_TEST_DEBUG in
-  X|X0) rm -f test*.dot test-gen*.lua;;
-esac
+check:: all
+	./test.sh
+
+dromozoa/regexp/runtime.lua: dromozoa/regexp/template.lua
+	lua build_runtime.lua $< $@
+
+dromozoa/parser/runtime.lua: dromozoa/parser/template.lua
+	lua build_runtime.lua $< $@
+
+dromozoa/compiler/lua54_regexp.lua dromozoa/compiler/lua54_parser.lua: build_lua54.lua
+	lua $< dromozoa/compiler/lua54_regexp.lua dromozoa/compiler/lua54_parser.lua
