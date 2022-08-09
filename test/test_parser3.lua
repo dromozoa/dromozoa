@@ -127,7 +127,7 @@ local g, a, c = parser.lalr(parser.grammar(token_names, {
 
   ["{elseif exp then block}"]
     = _ %[[
-        create(${"elseif exp then block"})
+        $$=create(${"elseif exp then block"})
       ]]
     + _"{elseif exp then block}" "elseif exp then block" %[[
         $$=$1 append($2)
@@ -142,7 +142,7 @@ local g, a, c = parser.lalr(parser.grammar(token_names, {
 
   ["[else block]"]
     = _ %[[
-        create($else)
+        $$=create($else)
       ]]
     + _"else" "exp" %[[
         $$=$1 append($2)

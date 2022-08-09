@@ -1,5 +1,9 @@
-function x(a, b)
+function a()
+  print()
   print(a)
-  a=b
-  ;
+  print(a,b)
+  print(a,b,c)
 end
+function b(a) end
+function c(a,b) end
+function d(a,b,c) end

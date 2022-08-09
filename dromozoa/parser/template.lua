@@ -42,7 +42,7 @@ local main = function ()
   local nodes = {}
 
   function create(symbol)
-    SS = { [0] = symbol }
+    return { [0] = symbol }
   end
 
   function append(...)
