@@ -284,12 +284,11 @@ local function lr1_closure(grammar, items, timer1, elapsed1)
 
         if timer1 then timer1:start() end
 
-        local epsilon = first:find(marker_epsilon)
-
         for _, la in first:ipairs() do
           if la ~= marker_epsilon then
+            local key2 = la * productions:size()
             for j in each_production(productions, symbol) do
-              local key2 = j + la * productions:size()
+              local key2 = j + key2
               if not added2[key2] then
                 items:insert { index = j, dot = 1, la = la }
                 added2[key2] = true
@@ -298,20 +297,21 @@ local function lr1_closure(grammar, items, timer1, elapsed1)
           end
         end
 
-        if epsilon then
+        if first:find(marker_epsilon) then
           for _, la in first_symbol(grammar, item.la):ipairs() do
-            assert(symbol ~= marker_epsilon)
+            assert(la ~= marker_epsilon)
+            local key2 = la * productions:size()
+            -- jの列はsymbolから一意に決定される
+            -- symbolとlaのペアで決まる処理するかどうか決まるはず
             for j in each_production(productions, symbol) do
-              local key2 = j + la * productions:size()
+              local key2 = j + key2
               if not added2[key2] then
                 items:insert { index = j, dot = 1, la = la }
                 added2[key2] = true
               end
             end
           end
-        end
-
-        if not epsilon then
+        else
           added[key] = true
         end
 
