@@ -366,7 +366,6 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"DecimalFloatingNumeral"
     + _"HexadecimalIntegerNumeral"
     + _"HexadecimalFloatingNumeral";
-
 }))
 
 local out = assert(io.open(dir .. "/test_lua54_parser.txt", "w"))
