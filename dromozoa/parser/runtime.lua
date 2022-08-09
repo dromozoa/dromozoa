@@ -27,7 +27,7 @@ context["action_data"];
   local stack = { 1 }
   local nodes = {}
   function create(symbol)
-    SS = { [0] = symbol }
+    return { [0] = symbol }
   end
   function append(...)
     for i = 1, select("#", ...) do

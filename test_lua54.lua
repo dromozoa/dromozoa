@@ -93,7 +93,7 @@ out:write(regexp.compile {
 
   regexp.machine.lexer(token_names, {
     ----------------------------------------------------------------------------
-    -- Spaces
+
     _{
       _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
       _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
@@ -101,14 +101,12 @@ out:write(regexp.compile {
     }*"+";
 
     ----------------------------------------------------------------------------
-    -- Comment
 
     (_"--" + _"["/"guard_clear(${<]>})" + (_"="/"guard_append(fc)")*"*" + _"["/"guard_append(${<]>})") %"fcall($long_comment) push()";
 
     _"--" + -_{"\n\r"}*"*";
 
     ----------------------------------------------------------------------------
-    -- LiteralString
 
     LongLiteralString = (_"["/"guard_clear(${<]>})" + (_"="/"guard_append(fc)")*"*" + _"["/"guard_append(${<]>})" + _{
       _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
@@ -118,9 +116,8 @@ out:write(regexp.compile {
     ShortLiteralString = _{"\'\""}/"guard_clear(fc)" %"clear() fcall($short_literal_string) push(true)";
 
     ----------------------------------------------------------------------------
-    -- Numeral
 
-    -- 8進数は存在しないので、leading zerosも許容される。
+    -- 8進数は存在しないのでleading zerosが許容される。
     DecimalIntegerNumeral = _["09"]*"+";
 
     -- C言語のリテラルのdecimal-floating-constantに類似しているが、以下の点で異
@@ -150,69 +147,18 @@ out:write(regexp.compile {
 
     ----------------------------------------------------------------------------
 
-    _"and";
-    _"break";
-    _"do";
-    _"else";
-    _"elseif";
-    _"end";
-    _"false";
-    _"for";
-    _"function";
-    _"goto";
-    _"if";
-    _"in";
-    _"local";
-    _"nil";
-    _"not";
-    _"or";
-    _"repeat";
-    _"return";
-    _"then";
-    _"true";
-    _"until";
-    _"while";
+    _"and";      _"break";    _"do";       _"else";     _"elseif";   _"end";
+    _"false";    _"for";      _"function"; _"goto";     _"if";       _"in";
+    _"local";    _"nil";      _"not";      _"or";       _"repeat";   _"return";
+    _"then";     _"true";     _"until";    _"while";
 
-    _"+";
-    _"-";
-    _"*";
-    _"/";
-    _"%";
-    _"^";
-    _"#";
-
-    _"&";
-    _"~";
-    _"|";
-    _"<<";
-    _">>";
-    _"//";
-
-    _"==";
-    _"~=";
-    _"<=";
-    _">=";
-    _"<";
-    _">";
-    _"=";
-
-    _"(";
-    _")";
-    _"{";
-    _"}";
-    _"[";
-    _"]";
-    _"::";
-
-    _";";
-    _":";
-    _",";
-    _".";
-    _"..";
-    _"...";
+    _"+";   _"-";   _"*";   _"/";   _"%";   _"^";   _"#";
+    _"&";   _"~";   _"|";   _"<<";  _">>";  _"//";
+    _"==";  _"~=";  _"<=";  _">=";  _"<";   _">";   _"=";
+    _"(";   _")";   _"{";   _"}";   _"[";   _"]";   _"::";
+    _";";   _":";   _",";   _".";   _"..";  _"...";
 
     ----------------------------------------------------------------------------
-    -- Name
 
     Name = _["AZaz_"] + _["09AZaz_"]*"*";
   });
@@ -223,6 +169,12 @@ local _ = parser.grammar.body
 local expect = parser.grammar.expect
 local left = parser.grammar.left
 local right = parser.grammar.right
+
+-- 愚直な抽象構文木を作成する方針とする。
+-- 1. リストは展開する
+-- 2. 余分なカンマとセミコロンはとりのぞく
+-- 3. retstat => statとする
+-- 4. prefixexp => expとする
 
 local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
   expect(3);
@@ -243,16 +195,16 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
   chunk = _"block";
 
   block
-    = _"block_"
-    + _"block_" "retstat";
+    = _"block_" %"$$=$1"
+    + _"block_" "retstat" %"$$=$1 append($2)";
 
   block_
-    = _
-    + _"block_" "stat";
+    = _ %"$$=create($block)"
+    + _"block_" ";" %"$$=$1"
+    + _"block_" "stat" %"$$=$1 append($2)";
 
   stat
-    = ";"
-    + _"varlist" "=" "explist"
+    = _"varlist" "=" "explist"
     + _"functioncall"
     + _"label"
     + _"break"
@@ -286,25 +238,24 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"<" "Name" ">";
 
   retstat
-    = _"return"
-    + _"return" ";"
-    + _"return" "explist"
-    + _"return" "explist" ";";
-
+    = _"return" %"$$=create($stat) append($1,create($explist))"
+    + _"return" ";" %"$$=create($stat) append($1,create($explist))"
+    + _"return" "explist" %"$$=create($stat) append($1,$2)"
+    + _"return" "explist" ";" %"$$=create($stat) append($1,$2)";
 
   label = _"::" "Name" "::";
 
   funcname
-    = _"funcname_"
+    = _"funcname_" %"$$=$1"
     + _"funcname_" ":" "Name";
 
   funcname_
-    = _"Name"
-    + _"funcname_" "." "Name";
+    = _"Name" %"$$=create($funcname) append($1)"
+    + _"funcname_" "." "Name" %"$$=create($funcname) append($1,$2,$3)";
 
   varlist
-    = _"var"
-    + _"varlist" "," "var";
+    = _"var" %"$$=create($varlist) append($1)"
+    + _"varlist" "," "var" %"$$=$1 append($3)";
 
   var
     = _"Name"
@@ -314,12 +265,12 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"functioncall" "." "Name";
 
   namelist
-    = _"Name"
-    + _"namelist" "," "Name";
+    = _"Name" %"$$=create($namelist) append($1)"
+    + _"namelist" "," "Name" %"$$=$1 append($3)";
 
   explist
-    = _"exp"
-    + _"explist" "," "exp";
+    = _"exp" %"$$=create($explist) append($1)"
+    + _"explist" "," "exp" %"$$=$1 append($3)";
 
   exp
     = _"nil"
@@ -332,7 +283,6 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"prefixexp"
     + _"functioncall"
     + _"tableconstructor"
-
     -- binop
     + _"exp" "+" "exp"
     + _"exp" "-" "exp"
@@ -355,18 +305,15 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"exp" "~=" "exp"
     + _"exp" "and" "exp"
     + _"exp" "or" "exp"
-
     -- unop
     + _"-" "exp" :prec "UNM"
     + _"not" "exp"
     + _"#" "exp"
     + _"~" "exp" :prec "BNOT";
 
-  ------------------------------------------------------------------------------
-
-  -- The Complete Syntax of Luaではprefixexpとfunctioncallが相互に依存しており、
-  -- そのまま記述するとshift/shift競合が発生する。これを回避するため、prefixexp
-  -- を参照する箇所にfunctioncallを展開する。
+  -- The Complete Syntax of LuaのEBNFは、prefixexpとfunctioncallが相互に依存し
+  -- ている。そのまま利用するとshift/shift競合が発生する。これを回避するため、
+  -- prefixexpを参照する箇所にfunctioncallを展開する。
   prefixexp
     = _"var"
     + _"(" "exp" ")";
@@ -378,7 +325,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"functioncall" ":" "Name" "args";
 
   args
-    = _"(" ")"
+    = _"(" ")" %"$$=$0 append($1,create($explist),$2)"
     + _"(" "explist" ")"
     + _"tableconstructor"
     + _"LiteralString";
@@ -386,25 +333,25 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
   functiondef = _"function" "funcbody";
 
   funcbody
-    = _"(" ")" "block" "end"
+    = _"(" ")" "block" "end" %"$$=$0 append($1,create($parlist),$2,$3,$4)"
     + _"(" "parlist" ")" "block" "end";
 
   parlist
     = _"namelist"
-    + _"namelist" "," "..."
-    + _"...";
+    + _"namelist" "," "..." %"$$=$0 append($1,$3)"
+    + _"..." %"$$=$0 append(create($namelist),$1)";
 
   tableconstructor
-    = _"{" "}"
+    = _"{" "}" %"$$=$0 append($1,create($fieldlist),$2)"
     + _"{" "fieldlist" "}";
 
   fieldlist
-    = _"fieldlist_"
-    + _"fieldlist_" "fieldsep";
+    = _"fieldlist_" %"$$=$1"
+    + _"fieldlist_" "fieldsep" %"$$=$1";
 
   fieldlist_
-    = _"field"
-    + _"fieldlist_" "fieldsep" "field";
+    = _"field" %"$$=create($fieldlist) append($1)"
+    + _"fieldlist_" "fieldsep" "field" %"$$=$1 append($3)";
 
   field
     = _"[" "exp" "]" "=" "exp"
@@ -424,7 +371,6 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"DecimalFloatingNumeral"
     + _"HexadecimalIntegerNumeral"
     + _"HexadecimalFloatingNumeral";
-
 }))
 
 local out = assert(io.open(dir .. "/test_lua54_parser.txt", "w"))
