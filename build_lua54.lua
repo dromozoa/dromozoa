@@ -183,7 +183,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"block_" "stat" %"$$=$1 append($2)";
 
   stat
-    = _"varlist" "=" "explist"
+    = _"varlist" "=" "explist" %"$$=$0 append($3,$2,$1)"
     + _"functioncall"
     + _"label"
     + _"break"
@@ -192,13 +192,12 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"while" "exp" "do" "block" "end"
     + _"repeat" "block" "until" "exp"
     + _"if" "exp" "then" "block" "elseif_exp_then_block" "else_block" "end"
-    + _"for" "Name" "=" "exp" "," "exp" "do" "block" "end"
-    + _"for" "Name" "=" "exp" "," "exp" "," "exp" "do" "block" "end"
-    + _"for" "namelist" "in" "explist" "do" "block" "end"
+    + _"for" "Name" "=" "exp,exp[,exp]" "do" "block" "end" %"$$=$0 append($1,$4,$3,$2,$5,$6,$7)"
+    + _"for" "namelist" "in" "explist" "do" "block" "end" %"$$=$0 append($1,$4,$3,$2,$5,$6,$7)"
     + _"function" "funcname" "funcbody"
     + _"local" "function" "Name" "funcbody"
     + _"local" "attnamelist"
-    + _"local" "attnamelist" "=" "explist";
+    + _"local" "attnamelist" "=" "explist" %"$$=$0 append($1,$4,$3,$2)";
 
   elseif_exp_then_block
     = _
@@ -207,6 +206,10 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
   else_block
     = _
     + _"else" "block";
+
+  ["exp,exp[,exp]"]
+    = _"exp" "," "exp" %"$$=create($explist) append($1, $3)"
+    + _"exp" "," "exp" "," "exp" %"$$=create($explist) append($1, $3, $5)";
 
   attnamelist
     = _"Name" "attrib"
@@ -333,8 +336,8 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"fieldlist_" "fieldsep" "field" %"$$=$1 append($3)";
 
   field
-    = _"[" "exp" "]" "=" "exp"
-    + _"Name" "=" "exp"
+    = _"[" "exp" "]" "=" "exp" %"$$=$0 append($5,$4,$1,$2,$3)"
+    + _"Name" "=" "exp" %"$$=$0 append($3,$2,$1)"
     + _"exp";
 
   fieldsep

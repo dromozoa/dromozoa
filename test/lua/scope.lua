@@ -40,6 +40,16 @@ do
   end
 end
 
-for i = 1, 1 do end
-for i = 1, 1, 1 do end
-for k, v in {}, next do end
+local i = 1
+local j = 2
+local k = 3
+
+for i = i, j do end
+for i = i, j, k do end
+
+local t = {}
+local f = next
+local k = nil
+local c = nil
+
+for k, v in t, f, k, c do end
