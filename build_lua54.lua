@@ -156,6 +156,12 @@ local right = parser.grammar.right
 
 -- 抽象構文木を愚直に作成する。
 local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
+  [[
+    local function scope()
+      return { locals = {}, labels = {} }
+    end
+  ]];
+
   expect(3);
 
   left "or";
@@ -182,34 +188,50 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"block_" ";" %"$$=$1"
     + _"block_" "stat" %"$$=$1 append($2)";
 
+  -- =                      explist varlist
+  -- ::                     Name
+  -- break
+  -- goto                   Name
+  -- do                     block
+  -- while                  exp block
+  -- repeat                 block end
+  -- for        =           explist Name block
+  -- for        in          explist namelist block
+  -- function               funcname funcbody
+  -- local      function    Name funcbody
+  -- local                  attnamelist
+  -- local      =           explist attnamelist
+  -- return
+  -- return                 explist
+
   stat
-    = _"varlist" "=" "explist" %"$$=$0 append($3,$2,$1)"
-    + _"functioncall"
-    + _"label"
-    + _"break"
-    + _"goto" "Name"
-    + _"do" "block" "end"
-    + _"while" "exp" "do" "block" "end"
-    + _"repeat" "block" "until" "exp"
-    + _"if" "exp" "then" "block" "elseif_exp_then_block" "else_block" "end"
-    + _"for" "Name" "=" "exp,exp[,exp]" "do" "block" "end" %"$$=$0 append($1,$4,$3,$2,$5,$6,$7)"
-    + _"for" "namelist" "in" "explist" "do" "block" "end" %"$$=$0 append($1,$4,$3,$2,$5,$6,$7)"
-    + _"function" "funcname" "funcbody"
-    + _"local" "function" "Name" "funcbody"
-    + _"local" "attnamelist"
-    + _"local" "attnamelist" "=" "explist" %"$$=$0 append($1,$4,$3,$2)";
+    = _"varlist" "=" "explist" %"$$=$2 append($3,$1)"
+    + _"functioncall" %"$$=$1"
+    + _"::" "Name" "::" %"$$=$1 append($2)"
+    + _"break" %"$$=$1"
+    + _"goto" "Name" %"$$=$1 append($2)"
+    + _"do" "block" "end" %"$$=$1 append($2) $$.scope=scope()"
+    + _"while" "exp" "do" "block" "end" %"$$=$1 append($2,$4) $$.scope=scope()"
+    + _"repeat" "block" "until" "exp" %"$$=$1 append($2,$4) $$.scope=scope()"
+    + _"if" "exp" "then" "block" "{elseif exp then block} [else block]" "end" %"$$=$1 append($2,$4,$5)"
+    + _"for" "Name" "=" "exp, exp [, exp]" "do" "block" "end" %"$$=$1 append($3,$4,$2,$6) $$.scope=scope()"
+    + _"for" "namelist" "in" "explist" "do" "block" "end" %"$$=$1 append($3,$4,$2,$6) $$.scope=scope()"
+    + _"function" "funcname" "funcbody" %"$$=$1 append($2,$3)"
+    + _"local" "function" "Name" "funcbody" %"$$=$1 append($2,$3,$4)"
+    + _"local" "attnamelist" %"$$=$1 append($2)"
+    + _"local" "attnamelist" "=" "explist" %"$$=$1 append($3,$4,$2)";
 
-  elseif_exp_then_block
-    = _
-    + _"elseif_exp_then_block" "elseif" "exp" "then" "block";
+  ["{elseif exp then block} [else block]"]
+    = _"[else block]" %"$$=$1"
+    + _"elseif" "exp" "then" "block" "{elseif exp then block} [else block]" %"$$=$1 append($2,$4,$5)";
 
-  else_block
-    = _
-    + _"else" "block";
+  ["[else block]"]
+    = _ %"$$=create($else)"
+    + _"else" "block" %"$$=$1 append($2)";
 
-  ["exp,exp[,exp]"]
-    = _"exp" "," "exp" %"$$=create($explist) append($1, $3)"
-    + _"exp" "," "exp" "," "exp" %"$$=create($explist) append($1, $3, $5)";
+  ["exp, exp [, exp]"]
+    = _"exp" "," "exp" %"$$=create($explist) append($1,$3)"
+    + _"exp" "," "exp" "," "exp" %"$$=create($explist) append($1,$3,$5)";
 
   attnamelist
     = _"Name" "attrib"
@@ -224,8 +246,6 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"return" ";" %"$$=$0 append($1)"
     + _"return" "explist"
     + _"return" "explist" ";" %"$$=$0 append($1,$2)";
-
-  label = _"::" "Name" "::";
 
   funcname
     = _"funcname_" %"$$=$1"

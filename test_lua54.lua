@@ -25,7 +25,28 @@ local lua54_parser = require "dromozoa.compiler.lua54_parser"
 
 ---------------------------------------------------------------------------
 
-local function process(node)
+local _ = lua54_parser.symbol_names
+
+local function resolve_names(u, parent)
+  local name = _[u[0]]
+
+  u.parent = parent
+  -- if name == "block" then
+  --   parent.scope = { locals = {}, labels = {} }
+  -- end
+
+  if name == "=" then
+  elseif name == "for" then
+    -- explist =  Name     block
+    -- explist in namelist block
+  end
+
+  for i = 1, #u do
+    resolve_names(u[i], u)
+  end
+end
+
+local function process(chunk)
   -- BLOCKはスコープを作成する。for文と関数本体はBLOCKの外側がスコープに含まれる。
   --
   -- 局所変数を生成する場所
@@ -45,7 +66,8 @@ local function process(node)
   -- 2. 代入文とフィールドも入れ替える。
   -- 3. local function文は入れ替えない。
 
-
+  -- TODO チャンクを準備する
+  resolve_names(chunk)
 end
 
 ---------------------------------------------------------------------------
@@ -107,6 +129,8 @@ for i = 2, #arg do
 
   out:write "</nodes>\n"
   out:close()
+
+  process(root)
 
   local out = assert(io.open(result_basename .. "_tree.xml", "w"))
   dump(out, root)
