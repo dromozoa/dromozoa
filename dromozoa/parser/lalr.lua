@@ -91,57 +91,52 @@ local marker_epsilon = 0
 
 local first_symbols
 
--- TODO 途中の情報を保存する
--- 高速化
--- 再帰の検出
 local function first_symbol(grammar, symbol)
+  local first_table = grammar.first_table
+
+  local first = first_table[symbol]
+  if first == false then
+    error "loop detected"
+  elseif first ~= nil then
+    return first
+  end
+  first_table[symbol] = false
+
   if symbol <= grammar.max_terminal_symbol then
-    return tree_set():insert(symbol)
+    first = tree_set():insert(symbol)
   else
-    local first_table = grammar.first_table
-    if first_table then
-      return first_table[symbol]
-    end
-    local result = tree_set()
-    local epsilon = false
+    first = tree_set()
     for _, body in each_production(grammar.productions, symbol) do
       if not body:empty() then
-        local first = first_symbols(grammar, body)
-        for _, symbol in first:ipairs() do
-          result:insert(symbol)
+        for _, symbol in first_symbols(grammar, body):ipairs() do
+          first:insert(symbol)
         end
       else
-        result:insert(marker_epsilon)
+        first:insert(marker_epsilon)
       end
     end
-    return result
   end
+
+  first_table[symbol] = first
+  return first
 end
 
 function first_symbols(grammar, symbols)
-  local result = tree_set()
+  local first = tree_set()
   for _, symbol in symbols:ipairs() do
     local epsilon = false
     for _, symbol in first_symbol(grammar, symbol):ipairs() do
       if symbol == marker_epsilon then
         epsilon = true
       else
-        result:insert(symbol)
+        first:insert(symbol)
       end
     end
     if not epsilon then
-      return result
+      return first
     end
   end
-  return result:insert(marker_epsilon)
-end
-
-local function first_table(grammar)
-  local result = {}
-  for symbol = grammar.max_terminal_symbol + 1, grammar.symbol_names:size() do
-    result[symbol] = first_symbol(grammar, symbol)
-  end
-  return result
+  return first:insert(marker_epsilon)
 end
 
 ---------------------------------------------------------------------------
@@ -280,11 +275,11 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
     local kernel_table = {}
     for j, item in items:ipairs() do
       if item.index == 1 or item.dot > 1 then
-        local transition = kernel_table[item.index]
-        if transition == nil then
+        local t = kernel_table[item.index]
+        if t == nil then
           kernel_table[item.index] = { [item.dot] = j }
         else
-          transition[item.dot] = j
+          t[item.dot] = j
         end
       end
       local la = tree_set()
@@ -497,8 +492,15 @@ end
 ---------------------------------------------------------------------------
 
 return function (grammar)
+  -- 左再帰を除去した文法でFIRSTの表を求めて、LR(1)閉包の計算に使う。
   local grammar_without_left_recursion = eliminate_left_recursion(grammar)
-  grammar.first_table = first_table(grammar_without_left_recursion)
+  grammar_without_left_recursion.first_table = {}
+  -- 元の文法の非終端記号が表に含まれることを保証する。
+  for symbol = grammar.max_terminal_symbol + 1, grammar.symbol_names:size() do
+    first_symbol(grammar_without_left_recursion, symbol)
+  end
+  grammar.first_table = grammar_without_left_recursion.first_table
+
   local lr0_set_of_items, transitions = lr0_items(grammar)
   grammar.lr1_closure_table = {}
   local lalr1_set_of_items = lalr1_kernels(grammar, lr0_set_of_items, transitions)
