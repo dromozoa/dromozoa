@@ -277,15 +277,15 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
 
   for i, items in set_of_items:ipairs() do
     local kernel_items = array()
-    local kernel_table = tree_map()
+    local kernel_table = {}
     for j, item in items:ipairs() do
       if item.index == 1 or item.dot > 1 then
-        kernel_table:insert_or_update(item.index, function ()
-          return { [item.dot] = j }
-        end, function (t)
-          t[item.dot] = j
-          return t
-        end)
+        local transition = kernel_table[item.index]
+        if transition == nil then
+          kernel_table[item.index] = { [item.dot] = j }
+        else
+          transition[item.dot] = j
+        end
       end
       local la = tree_set()
       if item.index == 1 and item.dot == 1 then
@@ -308,7 +308,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
           local symbol = productions:get(item.index).body:get(item.dot)
           if symbol ~= nil then
             local to_i = transitions[from_i]:find(symbol)
-            local to_j = map_of_kernel_items:get(to_i):find(item.index)[item.dot + 1]
+            local to_j = map_of_kernel_items:get(to_i)[item.index][item.dot + 1]
             if item.la == marker_lookahead then
               propagations:append { from_i = from_i, from_j = from_j, to_i = to_i, to_j = to_j }
             else
