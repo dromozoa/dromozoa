@@ -23,6 +23,9 @@ target = \
 
 all:: $(target)
 
+check:: all
+	./test.sh
+
 dromozoa/regexp/runtime.lua: dromozoa/regexp/template.lua
 	lua build_runtime.lua $< $@
 
