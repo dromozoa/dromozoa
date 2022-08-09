@@ -171,8 +171,6 @@ local left = parser.grammar.left
 local right = parser.grammar.right
 
 -- 抽象構文木を愚直に作成する。
--- "."と":"は左結合の二項演算子として扱う。
-
 local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
   expect(3);
 
@@ -244,13 +242,11 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 
   funcname
     = _"funcname_" %"$$=$1"
-    -- + _"funcname_" ":" "Name";
-    + _"funcname_" ":" "Name" %"$$=$1 append($2, $3)";
+    + _"funcname_" ":" "Name";
 
   funcname_
     = _"Name" %"$$=create($funcname) append($1)"
-    -- + _"funcname_" "." "Name" %"$$=create($funcname) append($1,$2,$3)";
-    + _"funcname_" "." "Name" %"$$=$1 append($2,$3)";
+    + _"funcname_" "." "Name" %"$$=create($funcname) append($1,$2,$3)";
 
   varlist
     = _"var" %"$$=create($varlist) append($1)"
