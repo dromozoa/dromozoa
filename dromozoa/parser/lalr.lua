@@ -254,6 +254,7 @@ end
 -- TODO lr1_closure_cache
 -- 高速化
 local function lr1_closure(grammar, items, timer1, elapsed1)
+  local symbol_names = grammar.symbol_names
   local max_terminal_symbol = grammar.max_terminal_symbol
   local productions = grammar.productions
   local lr1_closure_table = grammar.lr1_closure_table
@@ -284,32 +285,51 @@ local function lr1_closure(grammar, items, timer1, elapsed1)
 
         if timer1 then timer1:start() end
 
+        local key3 = symbol * (symbol_names:size() + 1)
+
         for _, la in first:ipairs() do
           if la ~= marker_epsilon then
-            local key2 = la * productions:size()
-            for j in each_production(productions, symbol) do
-              local key2 = j + key2
-              if not added2[key2] then
+            -- 終端記号の個数 < symbol <= 記号の個数
+            -- -1 <= la <= 記号の個数（先読み記号の可能性がある）
+            local key3 = key3 + la
+            if not added2[key3] then
+              for j in each_production(productions, symbol) do
                 items:insert { index = j, dot = 1, la = la }
-                added2[key2] = true
               end
+              added2[key3] = true
             end
+            -- local key2 = la * productions:size()
+            -- for j in each_production(productions, symbol) do
+            --   local key2 = j + key2
+            --   if not added2[key2] then
+            --     items:insert { index = j, dot = 1, la = la }
+            --     added2[key2] = true
+            --   end
+            -- end
           end
         end
 
         if first:find(marker_epsilon) then
           for _, la in first_symbol(grammar, item.la):ipairs() do
             assert(la ~= marker_epsilon)
-            local key2 = la * productions:size()
+            -- local key3 = symbol + la * symbol_names:size()
+            local key3 = key3 + la
             -- jの列はsymbolから一意に決定される
             -- symbolとlaのペアで決まる処理するかどうか決まるはず
-            for j in each_production(productions, symbol) do
-              local key2 = j + key2
-              if not added2[key2] then
+            if not added2[key3] then
+              for j in each_production(productions, symbol) do
                 items:insert { index = j, dot = 1, la = la }
-                added2[key2] = true
               end
+              added2[key3] = true
             end
+            -- local key2 = la * productions:size()
+            -- for j in each_production(productions, symbol) do
+            --   local key2 = j + key2
+            --   if not added2[key2] then
+            --     items:insert { index = j, dot = 1, la = la }
+            --     added2[key2] = true
+            --   end
+            -- end
           end
         else
           added[key] = true
