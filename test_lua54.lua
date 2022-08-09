@@ -170,6 +170,12 @@ local expect = parser.grammar.expect
 local left = parser.grammar.left
 local right = parser.grammar.right
 
+-- 愚直な抽象構文木を作成する方針とする。
+-- 1. リストは展開する
+-- 2. 余分なカンマとセミコロンはとりのぞく
+-- 3. retstat => statとする
+-- 4. prefixexp => expとする
+
 local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
   expect(3);
 
@@ -232,20 +238,20 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"<" "Name" ">";
 
   retstat
-    = _"return" %"$$=$0 append($1,create($explist))"
-    + _"return" ";" %"$$=$0 append($1,create($explist))"
-    + _"return" "explist"
-    + _"return" "explist" ";" %"$$=$0 append($1,$2)";
+    = _"return" %"$$=create($stat) append($1,create($explist))"
+    + _"return" ";" %"$$=create($stat) append($1,create($explist))"
+    + _"return" "explist" %"$$=create($stat) append($1,$2)"
+    + _"return" "explist" ";" %"$$=create($stat) append($1,$2)";
 
   label = _"::" "Name" "::";
 
   funcname
-    = _"funcname_"
+    = _"funcname_" %"$$=$1"
     + _"funcname_" ":" "Name";
 
   funcname_
-    = _"Name"
-    + _"funcname_" "." "Name";
+    = _"Name" %"$$=create($funcname) append($1)"
+    + _"funcname_" "." "Name" %"$$=create($funcname) append($1,$2,$3)";
 
   varlist
     = _"var" %"$$=create($varlist) append($1)"

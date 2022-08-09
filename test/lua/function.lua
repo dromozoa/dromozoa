@@ -16,3 +16,7 @@ function d(a,b,c)
 end
 function v(...) end
 function av(a, ...) end
+function a.b.c.d() end
+function e.f.g:h() end
+function i.j() end
+function k:l() end
