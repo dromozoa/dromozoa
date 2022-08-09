@@ -189,16 +189,16 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
   chunk = _"block";
 
   block
-    = _"block_"
-    + _"block_" "retstat";
+    = _"block_" %"$$=$0 append_unpack($1)"
+    + _"block_" "retstat" %"$$=$0 append_unpack($1) append($2)";
 
   block_
     = _
-    + _"block_" "stat";
+    + _"block_" ";" %"$$=$1"
+    + _"block_" "stat" %"$$=$1 append($2)";
 
   stat
-    = ";"
-    + _"varlist" "=" "explist"
+    = _"varlist" "=" "explist"
     + _"functioncall"
     + _"label"
     + _"break"
@@ -235,8 +235,8 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     = _"return"
     + _"return" ";"
     + _"return" "explist"
-    + _"return" "explist" ";";
-
+    + _"return" "explist" ";"
+    ;
 
   label = _"::" "Name" "::";
 
@@ -249,8 +249,8 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"funcname_" "." "Name";
 
   varlist
-    = _"var"
-    + _"varlist" "," "var";
+    = _"var" %"create($varlist) append($1)"
+    + _"varlist" "," "var" %"$$=$1 append($3)";
 
   var
     = _"Name"
@@ -260,12 +260,12 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"functioncall" "." "Name";
 
   namelist
-    = _"Name"
-    + _"namelist" "," "Name";
+    = _"Name" %"create($namelist) append($1)"
+    + _"namelist" "," "Name" %"$$=$1 append($3)";
 
   explist
-    = _"exp"
-    + _"explist" "," "exp";
+    = _"exp" %"create($explist) append($1)"
+    + _"explist" "," "exp" %"$$=$1 append($3)";
 
   exp
     = _"nil"
