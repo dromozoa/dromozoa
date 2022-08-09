@@ -93,7 +93,7 @@ out:write(regexp.compile {
 
   regexp.machine.lexer(token_names, {
     ----------------------------------------------------------------------------
-    -- Spaces
+
     _{
       _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
       _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
@@ -101,14 +101,12 @@ out:write(regexp.compile {
     }*"+";
 
     ----------------------------------------------------------------------------
-    -- Comment
 
     (_"--" + _"["/"guard_clear(${<]>})" + (_"="/"guard_append(fc)")*"*" + _"["/"guard_append(${<]>})") %"fcall($long_comment) push()";
 
     _"--" + -_{"\n\r"}*"*";
 
     ----------------------------------------------------------------------------
-    -- LiteralString
 
     LongLiteralString = (_"["/"guard_clear(${<]>})" + (_"="/"guard_append(fc)")*"*" + _"["/"guard_append(${<]>})" + _{
       _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
@@ -118,9 +116,8 @@ out:write(regexp.compile {
     ShortLiteralString = _{"\'\""}/"guard_clear(fc)" %"clear() fcall($short_literal_string) push(true)";
 
     ----------------------------------------------------------------------------
-    -- Numeral
 
-    -- 8進数は存在しないので、leading zerosも許容される。
+    -- 8進数は存在しないのでleading zerosが許容される。
     DecimalIntegerNumeral = _["09"]*"+";
 
     -- C言語のリテラルのdecimal-floating-constantに類似しているが、以下の点で異
@@ -150,69 +147,18 @@ out:write(regexp.compile {
 
     ----------------------------------------------------------------------------
 
-    _"and";
-    _"break";
-    _"do";
-    _"else";
-    _"elseif";
-    _"end";
-    _"false";
-    _"for";
-    _"function";
-    _"goto";
-    _"if";
-    _"in";
-    _"local";
-    _"nil";
-    _"not";
-    _"or";
-    _"repeat";
-    _"return";
-    _"then";
-    _"true";
-    _"until";
-    _"while";
+    _"and";      _"break";    _"do";       _"else";     _"elseif";   _"end";
+    _"false";    _"for";      _"function"; _"goto";     _"if";       _"in";
+    _"local";    _"nil";      _"not";      _"or";       _"repeat";   _"return";
+    _"then";     _"true";     _"until";    _"while";
 
-    _"+";
-    _"-";
-    _"*";
-    _"/";
-    _"%";
-    _"^";
-    _"#";
-
-    _"&";
-    _"~";
-    _"|";
-    _"<<";
-    _">>";
-    _"//";
-
-    _"==";
-    _"~=";
-    _"<=";
-    _">=";
-    _"<";
-    _">";
-    _"=";
-
-    _"(";
-    _")";
-    _"{";
-    _"}";
-    _"[";
-    _"]";
-    _"::";
-
-    _";";
-    _":";
-    _",";
-    _".";
-    _"..";
-    _"...";
+    _"+";   _"-";   _"*";   _"/";   _"%";   _"^";   _"#";
+    _"&";   _"~";   _"|";   _"<<";  _">>";  _"//";
+    _"==";  _"~=";  _"<=";  _">=";  _"<";   _">";   _"=";
+    _"(";   _")";   _"{";   _"}";   _"[";   _"]";   _"::";
+    _";";   _":";   _",";   _".";   _"..";  _"...";
 
     ----------------------------------------------------------------------------
-    -- Name
 
     Name = _["AZaz_"] + _["09AZaz_"]*"*";
   });
@@ -332,7 +278,6 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"prefixexp"
     + _"functioncall"
     + _"tableconstructor"
-
     -- binop
     + _"exp" "+" "exp"
     + _"exp" "-" "exp"
@@ -355,18 +300,15 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"exp" "~=" "exp"
     + _"exp" "and" "exp"
     + _"exp" "or" "exp"
-
     -- unop
     + _"-" "exp" :prec "UNM"
     + _"not" "exp"
     + _"#" "exp"
     + _"~" "exp" :prec "BNOT";
 
-  ------------------------------------------------------------------------------
-
-  -- The Complete Syntax of Luaではprefixexpとfunctioncallが相互に依存しており、
-  -- そのまま記述するとshift/shift競合が発生する。これを回避するため、prefixexp
-  -- を参照する箇所にfunctioncallを展開する。
+  -- The Complete Syntax of LuaのEBNFは、prefixexpとfunctioncallが相互に依存し
+  -- ている。そのまま利用するとshift/shift競合が発生する。これを回避するため、
+  -- prefixexpを参照する箇所にfunctioncallを展開する。
   prefixexp
     = _"var"
     + _"(" "exp" ")";
