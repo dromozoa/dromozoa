@@ -259,135 +259,58 @@ local function lr1_closure(grammar, items, timer1, elapsed1)
   local productions = grammar.productions
   local lr1_closure_table = grammar.lr1_closure_table
 
+  local skip = {}
   local added = {}
-  local added2 = {}
 
   for _, item in items:ipairs() do
-    -- 生成規則の番号 (index) と点の位置 (dot) をキーとして使う。
-    -- 1 <= index <= 生成規則の個数
-    -- 0 <= dot   <= 本体の個数
-    local key = item.index + item.dot * productions:size()
+    -- 生成規則の番号 (index) と点の位置 (dot) の組をキーとして使う。
+    local item_key = item.index + item.dot * productions:size()
 
     -- 項 [A -> a . B b, la] を考える。
     -- FIRST(b)がεを含まなければ、FIRST(b) == FIRST(b la)なので、laを考慮する必
-    -- 要がない。つまり、laだけが異なる別の項の処理は省略できるので、added[key]
+    -- 要がない。つまり、laだけが異なる別の項の処理は省略できるので、skip[item_key]
     -- を真に設定する。
-    if not added[key] then
+    if not skip[item_key] then
       local body = productions:get(item.index).body
       local symbol = body:get(item.dot)
       if symbol ~= nil and symbol > max_terminal_symbol then
         -- FIRST(b)をキャッシュする。
-        local first = lr1_closure_table[key]
+        local first = lr1_closure_table[item_key]
         if first == nil then
           first = first_symbols(grammar, body:slice(item.dot + 1))
-          lr1_closure_table[key] = first
+          lr1_closure_table[item_key] = first
         end
 
         if timer1 then timer1:start() end
 
-        local key3 = symbol * (symbol_names:size() + 1)
+        -- 点の後の記号 (symbol) とFIRST(b la)に含まれる記号の組をキーとして扱
+        -- う。FIRST(b la)は先読み記号 (#) を含む可能性がある。
+        local symbol_key = symbol * (symbol_names:size() + 1)
 
         for _, la in first:ipairs() do
           if la ~= marker_epsilon then
-            -- 終端記号の個数 < symbol <= 記号の個数
-            -- -1 <= la <= 記号の個数（先読み記号の可能性がある）
-            local key3 = key3 + la
-            if not added2[key3] then
+            if not added[symbol_key + la] then
               for j in each_production(productions, symbol) do
                 items:insert { index = j, dot = 1, la = la }
               end
-              added2[key3] = true
+              added[symbol_key + la] = true
             end
-            -- local key2 = la * productions:size()
-            -- for j in each_production(productions, symbol) do
-            --   local key2 = j + key2
-            --   if not added2[key2] then
-            --     items:insert { index = j, dot = 1, la = la }
-            --     added2[key2] = true
-            --   end
-            -- end
           end
         end
 
         if first:find(marker_epsilon) then
           for _, la in first_symbol(grammar, item.la):ipairs() do
             assert(la ~= marker_epsilon)
-            -- local key3 = symbol + la * symbol_names:size()
-            local key3 = key3 + la
-            -- jの列はsymbolから一意に決定される
-            -- symbolとlaのペアで決まる処理するかどうか決まるはず
-            if not added2[key3] then
+            if not added[symbol_key + la] then
               for j in each_production(productions, symbol) do
                 items:insert { index = j, dot = 1, la = la }
               end
-              added2[key3] = true
+              added[symbol_key + la] = true
             end
-            -- local key2 = la * productions:size()
-            -- for j in each_production(productions, symbol) do
-            --   local key2 = j + key2
-            --   if not added2[key2] then
-            --     items:insert { index = j, dot = 1, la = la }
-            --     added2[key2] = true
-            --   end
-            -- end
           end
         else
-          added[key] = true
+          skip[item_key] = true
         end
-
-
-
---[[
-        for j in each_production(productions, symbol) do
-          for _, la in first:ipairs() do
-            if la ~= marker_epsilon then
-              local key2 = j + la * productions:size()
-              if not added2[key2] then
-                items:insert { index = j, dot = 1, la = la }
-                added2[key2] = true
-              end
-            end
-          end
-          if epsilon then
-            for _, la in first_symbol(grammar, item.la):ipairs() do
-              assert(symbol ~= marker_epsilon)
-              local key2 = j + la * productions:size()
-              if not added2[key2] then
-                items:insert { index = j, dot = 1, la = la }
-                added2[key2] = true
-              end
-            end
-          end
-        end
-
-        if not epsilon then
-          added[key] = true
-        end
-
-]]
-
-
-        -- if not first:find(marker_epsilon) then
-        --   added[key] = true
-        --   for j in each_production(productions, symbol) do
-        --     for _, la in first:ipairs() do
-        --       items:insert { index = j, dot = 1, la = la }
-        --     end
-        --   end
-        -- else
-        --   for j in each_production(productions, symbol) do
-        --     for _, la in first:ipairs() do
-        --       if la ~= marker_epsilon then
-        --         items:insert { index = j, dot = 1, la = la }
-        --       end
-        --     end
-        --     -- TODO これ2回に挿入する？
-        --     for _, la in first_symbol(grammar, item.la):ipairs() do
-        --       assert(symbol ~= marker_epsilon)
-        --       items:insert { index = j, dot = 1, la = la }
-        --     end
-        --   end
-        -- end
 
         if timer1 then timer1:stop() elapsed1 = elapsed1 + timer1:elapsed() end
 
