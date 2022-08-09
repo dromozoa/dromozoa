@@ -232,11 +232,10 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"<" "Name" ">";
 
   retstat
-    = _"return"
-    + _"return" ";"
+    = _"return" %"$$=$0 append($1,create($explist))"
+    + _"return" ";" %"$$=$0 append($1,create($explist))"
     + _"return" "explist"
-    + _"return" "explist" ";"
-    ;
+    + _"return" "explist" ";" %"$$=$0 append($1,$2)";
 
   label = _"::" "Name" "::";
 
