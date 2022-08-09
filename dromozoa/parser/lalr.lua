@@ -77,7 +77,7 @@ end
 
 local function item_set()
   -- return tree_set(compare_item)
-  return tree_set(compare_item)
+  return array()
 end
 
 ---------------------------------------------------------------------------
@@ -206,7 +206,7 @@ local function lr0_closure(grammar, items)
     local symbol = productions:get(item.index).body:get(item.dot)
     if symbol ~= nil and symbol > max_terminal_symbol and not added[symbol] then
       for i in each_production(productions, symbol) do
-        items:insert { index = i, dot = 1 }
+        items:append { index = i, dot = 1 }
       end
       added[symbol] = true
     end
@@ -223,10 +223,9 @@ local function lr0_goto(grammar, items)
     local symbol = productions:get(item.index).body:get(item.dot)
     if symbol ~= nil then
       map_of_to_items:insert_or_update(symbol, function ()
-        return item_set():insert { index = item.index, dot = item.dot + 1 }
+        return item_set():append { index = item.index, dot = item.dot + 1 }
       end, function (items)
-        items:insert { index = item.index, dot = item.dot + 1 }
-        return items
+        return items:append { index = item.index, dot = item.dot + 1 }
       end)
     end
   end
@@ -239,7 +238,7 @@ end
 
 local function lr0_items(grammar)
   local transitions = {}
-  local set_of_items = tree_set():insert(lr0_closure(grammar, item_set():insert { index = 1, dot = 1 }))
+  local set_of_items = tree_set():insert(lr0_closure(grammar, item_set():append { index = 1, dot = 1 }))
 
   for i, items in set_of_items:ipairs() do
     local map_of_to_items = lr0_goto(grammar, items)
@@ -293,7 +292,7 @@ local function lr1_closure(grammar, items, timer1, elapsed1)
           if la ~= marker_epsilon then
             if not added[symbol_key + la] then
               for j in each_production(productions, symbol) do
-                items:insert { index = j, dot = 1, la = la }
+                items:append { index = j, dot = 1, la = la }
               end
               added[symbol_key + la] = true
             end
@@ -305,7 +304,7 @@ local function lr1_closure(grammar, items, timer1, elapsed1)
             assert(la ~= marker_epsilon)
             if not added[symbol_key + la] then
               for j in each_production(productions, symbol) do
-                items:insert { index = j, dot = 1, la = la }
+                items:append { index = j, dot = 1, la = la }
               end
               added[symbol_key + la] = true
             end
@@ -378,7 +377,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
   for from_i, from_items in set_of_items:ipairs() do
     for from_j, from_item in from_items:ipairs() do
       if productions:get(from_item.index).head == max_terminal_symbol + 1 or from_item.dot > 1 then
-        local items = item_set():insert { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
+        local items = item_set():append { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
         elapsed1 = select(2, lr1_closure(grammar, items, timer1, elapsed1))
 
         timer2:start()
@@ -430,7 +429,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
     local new_items = item_set()
     for _, item in items:ipairs() do
       for _, la in item.la:ipairs() do
-        new_items:insert { index = item.index, dot = item.dot, la = la }
+        new_items:append { index = item.index, dot = item.dot, la = la }
       end
     end
     new_set_of_kernel_items:append(new_items)
