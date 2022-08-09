@@ -16,13 +16,18 @@
 # along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 target = \
+	dromozoa/regexp/runtime.lua \
 	dromozoa/parser/runtime.lua \
-	dromozoa/regexp/runtime.lua
+	dromozoa/compiler/lua54_regexp.lua \
+	dromozoa/compiler/lua54_parser.lua
 
 all:: $(target)
+
+dromozoa/regexp/runtime.lua: dromozoa/regexp/template.lua
+	lua build_runtime.lua $< $@
 
 dromozoa/parser/runtime.lua: dromozoa/parser/template.lua
 	lua build_runtime.lua $< $@
 
-dromozoa/regexp/runtime.lua: dromozoa/regexp/template.lua
-	lua build_runtime.lua $< $@
+dromozoa/compiler/lua54_regexp.lua dromozoa/compiler/lua54_parser.lua: build_lua54.lua
+	lua $< dromozoa/compiler/lua54_regexp.lua dromozoa/compiler/lua54_parser.lua
