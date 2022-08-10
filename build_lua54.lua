@@ -154,8 +154,12 @@ local expect = parser.grammar.expect
 local left = parser.grammar.left
 local right = parser.grammar.right
 
--- TODO createの方針を決める
--- TODO 不要な規則を削る
+-- attribute  Lua 5.4の局所変数の属性
+-- scope      局所変数とラベルのスコープ
+-- self       関数が暗黙のselfを持つか  末尾のfuncnameから横方向に継承する
+-- vararg     関数が可変長引数を持つか  namelist (parlist) からもちあげる
+-- type       定数の副種別
+
 local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
   [[
     local function scope()
@@ -178,175 +182,179 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
   right "not" "#" "UNM" "BNOT";
   right "^";
 
-  chunk = _"block";
+  chunk
+    = _"block";
 
   block
-    = _"block_"                                                               %"$$=$1"
-    + _"block_" "retstat"                                                     %"$$=$1 append($2)";
+    = _"block_"                                            %"$$=$1"
+    + _"block_" "retstat"                                  %"$$=$1 append($2)";
 
   block_
-    = _                                                                       %"$$=create($block)"
-    + _"block_" ";"                                                           %"$$=$1"
-    + _"block_" "stat"                                                        %"$$=$1 append($2)";
+    = _                                                    %"$$=create($block)"
+    + _"block_" ";"                                        %"$$=$1"
+    + _"block_" "stat"                                     %"$$=$1 append($2)";
 
   stat
-    = _"varlist" "=" "explist"                                                %"$$=$2 append($3,$1)"
-    + _"functioncall"                                                         %"$$=$1"
-    + _"::" "Name" "::"                                                       %"$$=$1 append($2)"
-    + _"break"                                                                %"$$=$1"
-    + _"goto" "Name"                                                          %"$$=$1 append($2)"
-    + _"do" "block" "end"                                                     %"$$=$1 append($2) $2.scope=scope()"
-    + _"while" "exp" "do" "block" "end"                                       %"$$=$1 append($2,$4) $4.scope=scope()"
-    + _"repeat" "block" "until" "exp"                                         %"$$=$1 append($2,$4) $$.scope=scope()"
-    + _"if" "exp" "then" "block" "else_clause" "end"                          %"$$=$1 append($2,$4,$5) $4.scope=scope"
-    + _"for" "Name" "=" "exp2_3" "do" "block" "end"                           %"$$=$1 append($4,$2,$6) $$.scope=scope()"
-    + _"for_in"                                                               %"$$=$1"
-    + _"function" "funcname" "funcbody"                                       %"$$=$1 append($3,$2) $3[1].self=$2.self"
-    + _"local_function"                                                       %"$$=$1"
-    + _"local" "attnamelist"                                                  %"$$=$1 append(create($explist),$2)"
-    + _"local" "attnamelist" "=" "explist"                                    %"$$=$1 append($4,$2)";
+    = _"varlist" "=" "explist"                             %"$$=$2 append($3,$1)"
+    + _"functioncall"                                      %"$$=$1"
+    + _"label"                                             %"$$=$1 append($2)"
+    + _"break"                                             %"$$=$1"
+    + _"goto" "Name"                                       %"$$=$1 append($2)"
+    + _"do" "block" "end"                                  %"$$=$1 append($2) $2.scope=scope()"
+    + _"while" "exp" "do" "block" "end"                    %"$$=$1 append($2,$4) $4.scope=scope()"
+    + _"repeat" "block" "until" "exp"                      %"$$=$1 append($2,$4) $$.scope=scope()"
+    + _"if" "exp" "then" "block" "else_clause" "end"       %"$$=$1 append($2,$4,$5) $4.scope=scope"
+    + _"for" "Name" "=" "exp2_3" "do" "block" "end"        %"$$=$1 append($4,$2,$6) $$.scope=scope()"
+    + _"for_in"                                            %"$$=$1"
+    + _"function" "funcname" "funcbody"                    %"$$=$1 append($3,$2) $3.self=$2.self"
+    + _"local_function"                                    %"$$=$1"
+    + _"local" "attnamelist"                               %"$$=$1 append(create($explist),$2)"
+    + _"local" "attnamelist" "=" "explist"                 %"$$=$1 append($4,$2)";
 
   else_clause
-    = _                                                                       %"$$=create($else)"
-    + _"else" "block"                                                         %"$$=$1 append($2) $2.scope=scope()"
-    + _"elseif" "exp" "then" "block" "else_clause"                            %"$$=$1 append($2,$4,$5) $4.scope=scope()";
+    = _                                                    %"$$=create($else)"
+    + _"else" "block"                                      %"$$=$1 append($2) $2.scope=scope()"
+    + _"elseif" "exp" "then" "block" "else_clause"         %"$$=$1 append($2,$4,$5) $4.scope=scope()";
 
   exp2_3
-    = _"exp" "," "exp"                                                        %"$$=create($explist) append($1,$3)"
-    + _"exp" "," "exp" "," "exp"                                              %"$$=create($explist) append($1,$3,$5)";
+    = _"exp" "," "exp"                                     %"$$=create($explist) append($1,$3)"
+    + _"exp" "," "exp" "," "exp"                           %"$$=create($explist) append($1,$3,$5)";
 
   for_in
-    = _"for" "namelist" "in" "explist" "do" "block" "end"                     %"$$=$0 append($4,$2,$6) $$.scope=scope()";
+    = _"for" "namelist" "in" "explist" "do" "block" "end"  %"$$=$0 append($4,$2,$6) $$.scope=scope()";
 
   local_function
-    = _"local" "function" "Name" "funcbody"                                   %"$$=$0 append($3,$4)";
+    = _"local" "function" "Name" "funcbody"                %"$$=$0 append($3,$4)";
 
   attnamelist
-    = _"Name" "attrib"                                                        %"$$=create($namelist) append($1) $1.attribute=$2.v"
-    + _"attnamelist" "," "Name" "attrib"                                      %"$$=$1 append($3) $3.attribute=$4.v";
+    = _"Name" "attrib"                                     %"$$=create($namelist) append($1) $1.attribute=$2.v"
+    + _"attnamelist" "," "Name" "attrib"                   %"$$=$1 append($3) $3.attribute=$4.v";
 
   attrib
     = _
-    + _"<" "Name" ">"                                                         %"$$=$0 $$.v=$2.v";
+    + _"<" "Name" ">"                                      %"$$=$0 $$.v=$2.v";
 
   retstat
-    = _"return"                                                               %"$$=$1 append(create($explist))"
-    + _"return" ";"                                                           %"$$=$1 append(create($explist))"
-    + _"return" "explist"                                                     %"$$=$1 append($2)"
-    + _"return" "explist" ";"                                                 %"$$=$1 append($2)";
+    = _"return"                                            %"$$=$1 append(create($explist))"
+    + _"return" ";"                                        %"$$=$1 append(create($explist))"
+    + _"return" "explist"                                  %"$$=$1 append($2)"
+    + _"return" "explist" ";"                              %"$$=$1 append($2)";
+
+  label
+    = _"::" "Name" "::"                                    %"$$=$0 append($2)";
 
   funcname
-    = _"funcname_"                                                            %"$$=$1"
-    + _"funcname_" ":" "Name"                                                 %"$$=$2 append($1,$3) $$.self=true";
+    = _"funcname_"                                         %"$$=$1"
+    + _"funcname_" ":" "Name"                              %"$$=$2 append($1,$3) $$.self=true";
 
   funcname_
-    = _"Name"                                                                 %"$$=$1"
-    + _"funcname_" "." "Name"                                                 %"$$=$2 append($1,$3)";
+    = _"Name"                                              %"$$=$1"
+    + _"funcname_" "." "Name"                              %"$$=$2 append($1,$3)";
 
   varlist
-    = _"var"                                                                  %"$$=create($varlist) append($1)"
-    + _"varlist" "," "var"                                                    %"$$=$1 append($3)";
+    = _"var"                                               %"$$=create($varlist) append($1)"
+    + _"varlist" "," "var"                                 %"$$=$1 append($3)";
 
   var
-    = _"Name"                                                                 %"$$=$1"
-    + _"prefixexp" "[" "exp" "]"                                              %"$$=$2 append($1,$3)"
-    + _"prefixexp" "." "Name"                                                 %"$$=$2 append($1,$3)"
-    + _"functioncall" "[" "exp" "]"                                           %"$$=$2 append($1,$3)"
-    + _"functioncall" "." "Name"                                              %"$$=$2 append($1,$3)";
+    = _"Name"                                              %"$$=$1"
+    + _"prefixexp" "[" "exp" "]"                           %"$$=$2 append($1,$3)"
+    + _"prefixexp" "." "Name"                              %"$$=$2 append($1,$3)"
+    + _"functioncall" "[" "exp" "]"                        %"$$=$2 append($1,$3)"
+    + _"functioncall" "." "Name"                           %"$$=$2 append($1,$3)";
 
   namelist
-    = _"Name"                                                                 %"$$=create($namelist) append($1)"
-    + _"namelist" "," "Name"                                                  %"$$=$1 append($3)";
+    = _"Name"                                              %"$$=create($namelist) append($1)"
+    + _"namelist" "," "Name"                               %"$$=$1 append($3)";
 
   explist
-    = _"exp"                                                                  %"$$=create($explist) append($1)"
-    + _"explist" "," "exp"                                                    %"$$=$1 append($3)";
+    = _"exp"                                               %"$$=create($explist) append($1)"
+    + _"explist" "," "exp"                                 %"$$=$1 append($3)";
 
   exp
-    = _"nil"                                                                  %"$$=$1"
-    + _"false"                                                                %"$$=$1"
-    + _"true"                                                                 %"$$=$1"
-    + _"Numeral"                                                              %"$$=$1"
-    + _"LiteralString"                                                        %"$$=$1"
-    + _"..."                                                                  %"$$=$1"
-    + _"functiondef"                                                          %"$$=$1"
-    + _"prefixexp"                                                            %"$$=$1"
-    + _"functioncall"                                                         %"$$=$1"
-    + _"tableconstructor"                                                     %"$$=$1"
+    = _"nil"                                               %"$$=$1"
+    + _"false"                                             %"$$=$1"
+    + _"true"                                              %"$$=$1"
+    + _"Numeral"                                           %"$$=$1"
+    + _"LiteralString"                                     %"$$=$1"
+    + _"..."                                               %"$$=$1"
+    + _"functiondef"                                       %"$$=$1"
+    + _"prefixexp"                                         %"$$=$1"
+    + _"functioncall"                                      %"$$=$1"
+    + _"tableconstructor"                                  %"$$=$1"
     -- binop
-    + _"exp" "+"   "exp"                                                      %"$$=$2 append($1,$3)"
-    + _"exp" "-"   "exp"                                                      %"$$=$2 append($1,$3)"
-    + _"exp" "*"   "exp"                                                      %"$$=$2 append($1,$3)"
-    + _"exp" "/"   "exp"                                                      %"$$=$2 append($1,$3)"
-    + _"exp" "//"  "exp"                                                      %"$$=$2 append($1,$3)"
-    + _"exp" "^"   "exp"                                                      %"$$=$2 append($1,$3)"
-    + _"exp" "%"   "exp"                                                      %"$$=$2 append($1,$3)"
-    + _"exp" "&"   "exp"                                                      %"$$=$2 append($1,$3)"
-    + _"exp" "~"   "exp"                                                      %"$$=$2 append($1,$3)"
-    + _"exp" "|"   "exp"                                                      %"$$=$2 append($1,$3)"
-    + _"exp" ">>"  "exp"                                                      %"$$=$2 append($1,$3)"
-    + _"exp" "<<"  "exp"                                                      %"$$=$2 append($1,$3)"
-    + _"exp" ".."  "exp"                                                      %"$$=$2 append($1,$3)"
-    + _"exp" "<"   "exp"                                                      %"$$=$2 append($1,$3)"
-    + _"exp" "<="  "exp"                                                      %"$$=$2 append($1,$3)"
-    + _"exp" ">"   "exp"                                                      %"$$=$2 append($1,$3)"
-    + _"exp" ">="  "exp"                                                      %"$$=$2 append($1,$3)"
-    + _"exp" "=="  "exp"                                                      %"$$=$2 append($1,$3)"
-    + _"exp" "~="  "exp"                                                      %"$$=$2 append($1,$3)"
-    + _"exp" "and" "exp"                                                      %"$$=$2 append($1,$3)"
-    + _"exp" "or"  "exp"                                                      %"$$=$2 append($1,$3)"
+    + _"exp" "+"   "exp"                                   %"$$=$2 append($1,$3)"
+    + _"exp" "-"   "exp"                                   %"$$=$2 append($1,$3)"
+    + _"exp" "*"   "exp"                                   %"$$=$2 append($1,$3)"
+    + _"exp" "/"   "exp"                                   %"$$=$2 append($1,$3)"
+    + _"exp" "//"  "exp"                                   %"$$=$2 append($1,$3)"
+    + _"exp" "^"   "exp"                                   %"$$=$2 append($1,$3)"
+    + _"exp" "%"   "exp"                                   %"$$=$2 append($1,$3)"
+    + _"exp" "&"   "exp"                                   %"$$=$2 append($1,$3)"
+    + _"exp" "~"   "exp"                                   %"$$=$2 append($1,$3)"
+    + _"exp" "|"   "exp"                                   %"$$=$2 append($1,$3)"
+    + _"exp" ">>"  "exp"                                   %"$$=$2 append($1,$3)"
+    + _"exp" "<<"  "exp"                                   %"$$=$2 append($1,$3)"
+    + _"exp" ".."  "exp"                                   %"$$=$2 append($1,$3)"
+    + _"exp" "<"   "exp"                                   %"$$=$2 append($1,$3)"
+    + _"exp" "<="  "exp"                                   %"$$=$2 append($1,$3)"
+    + _"exp" ">"   "exp"                                   %"$$=$2 append($1,$3)"
+    + _"exp" ">="  "exp"                                   %"$$=$2 append($1,$3)"
+    + _"exp" "=="  "exp"                                   %"$$=$2 append($1,$3)"
+    + _"exp" "~="  "exp"                                   %"$$=$2 append($1,$3)"
+    + _"exp" "and" "exp"                                   %"$$=$2 append($1,$3)"
+    + _"exp" "or"  "exp"                                   %"$$=$2 append($1,$3)"
     -- unop
-    + _"-"   "exp" :prec "UNM"                                                %"$$=$1 append($2)"
-    + _"not" "exp"                                                            %"$$=$1 append($2)"
-    + _"#"   "exp"                                                            %"$$=$1 append($2)"
-    + _"~"   "exp" :prec "BNOT"                                               %"$$=$1 append($2)";
+    + _"-"   "exp" :prec "UNM"                             %"$$=$1 append($2)"
+    + _"not" "exp"                                         %"$$=$1 append($2)"
+    + _"#"   "exp"                                         %"$$=$1 append($2)"
+    + _"~"   "exp" :prec "BNOT"                            %"$$=$1 append($2)";
 
   -- The Complete Syntax of LuaのEBNFは、prefixexpとfunctioncallが相互に依存し
   -- ている。そのまま利用するとshift/shift競合が発生する。これを回避するため、
   -- prefixexpを参照する箇所にfunctioncallを展開する。
   prefixexp
-    = _"var"                                                                  %"$$=$1"
-    + _"(" "exp" ")"                                                          %"$$=$2";
+    = _"var"                                               %"$$=$1"
+    + _"(" "exp" ")"                                       %"$$=$2";
 
   functioncall
     = _"prefixexp" "args"
-    + _"prefixexp" ":" "Name" "args"                                          %"$$=$2 append($1,$3) $$=$0 append($2,$4) $$.self=true"
+    + _"prefixexp" ":" "Name" "args"                       %"$$=$2 append($1,$3) $$=$0 append($2,$4)"
     + _"functioncall" "args"
-    + _"functioncall" ":" "Name" "args"                                       %"$$=$2 append($1,$3) $$=$0 append($2,$4) $$.self=true";
+    + _"functioncall" ":" "Name" "args"                    %"$$=$2 append($1,$3) $$=$0 append($2,$4)";
 
   args
-    = _"(" ")"                                                                %"$$=create($explist)"
-    + _"(" "explist" ")"                                                      %"$$=$2"
-    + _"tableconstructor"                                                     %"$$=create($explist) append($1)"
-    + _"LiteralString"                                                        %"$$=create($explist) append($1)";
+    = _"(" ")"                                             %"$$=create($explist)"
+    + _"(" "explist" ")"                                   %"$$=$2"
+    + _"tableconstructor"                                  %"$$=create($explist) append($1)"
+    + _"LiteralString"                                     %"$$=create($explist) append($1)";
 
   functiondef
-    = _"function" "funcbody"                                                  %"$$=$0 append($2)";
+    = _"function" "funcbody"                               %"$$=$0 append($2)";
 
   funcbody
-    = _"(" ")" "block" "end"                                                  %"$$=$0 append(create($namelist),$3) $$.scope=scope()"
-    + _"(" "parlist" ")" "block" "end"                                        %"$$=$0 append($2,$4) $$.scope=scope()";
+    = _"(" ")" "block" "end"                               %"$$=$0 append(create($namelist),$3) $$.scope=scope()"
+    + _"(" "parlist" ")" "block" "end"                     %"$$=$0 append($2,$4) $$.scope=scope() $$.vararg=$2.vararg";
 
   parlist
-    = _"namelist"                                                             %"$$=$1"
-    + _"namelist" "," "..."                                                   %"$$=$1 $$.vararg=true"
-    + _"..."                                                                  %"$$=create($namelist) $$.vararg=true";
+    = _"namelist"                                          %"$$=$1"
+    + _"namelist" "," "..."                                %"$$=$1 $$.vararg=true"
+    + _"..."                                               %"$$=create($namelist) $$.vararg=true";
 
   tableconstructor
-    = _"{" "}"                                                                %"$$=create($fieldlist)"
-    + _"{" "fieldlist" "}"                                                    %"$$=$2";
+    = _"{" "}"                                             %"$$=create($fieldlist)"
+    + _"{" "fieldlist" "}"                                 %"$$=$2";
 
   fieldlist
-    = _"fieldlist_"                                                           %"$$=$1"
-    + _"fieldlist_" "fieldsep"                                                %"$$=$1";
+    = _"fieldlist_"                                        %"$$=$1"
+    + _"fieldlist_" "fieldsep"                             %"$$=$1";
 
   fieldlist_
-    = _"field"                                                                %"$$=create($fieldlist) append($1)"
-    + _"fieldlist_" "fieldsep" "field"                                        %"$$=$1 append($3)";
+    = _"field"                                             %"$$=create($fieldlist) append($1)"
+    + _"fieldlist_" "fieldsep" "field"                     %"$$=$1 append($3)";
 
   field
-    = _"[" "exp" "]" "=" "exp"                                                %"$$=$0 append($4,$2)"
-    + _"Name" "=" "exp"                                                       %"$$=$0 append($2,$1)"
+    = _"[" "exp" "]" "=" "exp"                             %"$$=$0 append($4,$2)"
+    + _"Name" "=" "exp"                                    %"$$=$0 append($2,$1)"
     + _"exp";
 
   fieldsep
@@ -354,14 +362,14 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _";";
 
   LiteralString
-    = _"LongLiteralString"                                                    %"$$=$0 $$.v=$1.v $$.type='LongLiteralString'"
-    + _"ShortLiteralString"                                                   %"$$=$0 $$.v=$1.v $$.type='ShortLiteralString'";
+    = _"LongLiteralString"                                 %"$$=$0 $$.v=$1.v $$.type='LongLiteralString'"
+    + _"ShortLiteralString"                                %"$$=$0 $$.v=$1.v $$.type='ShortLiteralString'";
 
   Numeral
-    = _"DecimalIntegerNumeral"                                                %"$$=$0 $$.v=$1.v $$.type='DecimalIntegerNumeral'"
-    + _"DecimalFloatingNumeral"                                               %"$$=$0 $$.v=$1.v $$.type='DecimalFloatingNumeral'"
-    + _"HexadecimalIntegerNumeral"                                            %"$$=$0 $$.v=$1.v $$.type='HexadecimalIntegerNumeral'"
-    + _"HexadecimalFloatingNumeral"                                           %"$$=$0 $$.v=$1.v $$.type='HexadecimalFloatingNumeral'";
+    = _"DecimalIntegerNumeral"                             %"$$=$0 $$.v=$1.v $$.type='DecimalIntegerNumeral'"
+    + _"DecimalFloatingNumeral"                            %"$$=$0 $$.v=$1.v $$.type='DecimalFloatingNumeral'"
+    + _"HexadecimalIntegerNumeral"                         %"$$=$0 $$.v=$1.v $$.type='HexadecimalIntegerNumeral'"
+    + _"HexadecimalFloatingNumeral"                        %"$$=$0 $$.v=$1.v $$.type='HexadecimalFloatingNumeral'";
 }))
 
 for _, message in conflictions:ipairs() do

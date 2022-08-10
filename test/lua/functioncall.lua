@@ -21,4 +21,6 @@ local f = function () end
 f(1)
 a.b.f(2)
 a.b:f(3)
-a["b"]["f"](4)
+a["b"].f(4)
+a["b"]:f(5)
+a["b"]["f"](6)

@@ -73,10 +73,10 @@ end
 ---------------------------------------------------------------------------
 
 local function quote(s)
-  return '"' .. string.gsub(tostring(s), '[&<>"]', { ['&'] = '&amp;', ['<'] = '&lt;', ['>'] = '&gt;', ['"'] = '&quot;' }) .. '"'
+  return '"' .. string.gsub(s, '[&<>"]', { ['&'] = '&amp;', ['<'] = '&lt;', ['>'] = '&gt;', ['"'] = '&quot;' }) .. '"'
 end
 
-local attrs = { "v", "attribute", "self", "vararg", "type" }
+local attrs = { "v", "attribute", "scope", "self", "vararg", "type" }
 if verbose then
   for _, attr in ipairs { "i", "j", "f", "n", "c", "s" } do
     attrs[#attrs + 1] = attr
@@ -93,8 +93,15 @@ local function dump(out, u, n)
   out:write(("  "):rep(n), "<node")
   if u[0] ~= nil then out:write(" name=", quote(lua54_parser.symbol_names[u[0]])) end
   for _, attr in ipairs(attrs) do
-    if u[attr] ~= nil then
-      out:write(" ", attr, "=", quote(u[attr]))
+    local v = u[attr]
+    if v ~= nil then
+      local t = type(v)
+      out:write(" ", attr, "=")
+      if t == "boolean" or t == "number" or t == "string" then
+        out:write(quote(tostring(v)))
+      else
+        out:write(quote(t))
+      end
     end
   end
 
