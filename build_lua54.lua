@@ -219,7 +219,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"while" "exp" "do" "block" "end"                    %"$$=$1 append($2,$4) $4.scope=scope()"
     + _"repeat" "block" "until" "exp"                      %"$$=$1 append($2,$4) $$.scope=scope()"
     + _"if" "exp" "then" "block" "else_clause" "end"       %"$$=$1 append($2,$4,$5) $4.scope=scope()"
-    + _"for" "Name" "=" "exp2_3" "do" "block" "end"        %"$$=$1 append($4,$2,$6) $$.scope=scope()"
+    + _"for" "Name" "=" "exp2_3" "do" "block" "end"        %"$$=$1 append($4,$2,$6) $$.scope=scope() $2.declare=true"
     + _"for_in"                                            %"$$=$1"
     + _"function" "funcname" "funcbody"                    %"$$=$1 append($3,$2) $3.proto.self=$2.self"
     + _"local_function"                                    %"$$=$1"
@@ -239,11 +239,11 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     = _"for" "namelist" "in" "explist" "do" "block" "end"  %"$$=$0 append($4,$2,$6) $$.scope=scope()";
 
   local_function
-    = _"local" "function" "Name" "funcbody"                %"$$=$0 append($3,$4)";
+    = _"local" "function" "Name" "funcbody"                %"$$=$0 append($3,$4) $3.declare=true";
 
   attnamelist
-    = _"Name" "attrib"                                     %"$$=create($namelist) append($1) $1.attribute=$2.v"
-    + _"attnamelist" "," "Name" "attrib"                   %"$$=$1 append($3) $3.attribute=$4.v";
+    = _"Name" "attrib"                                     %"$$=create($namelist) append($1) $1.attribute=$2.v $1.declare=true"
+    + _"attnamelist" "," "Name" "attrib"                   %"$$=$1 append($3) $3.attribute=$4.v $3.declare=true";
 
   attrib
     = _
@@ -263,7 +263,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"funcname_" ":" "Name"                              %"$$=$2 append($1,$3) $$.self=true";
 
   funcname_
-    = _"Name"                                              %"$$=$1"
+    = _"Name"                                              %"$$=$1 $$.ref=true"
     + _"funcname_" "." "Name"                              %"$$=$2 append($1,$3)";
 
   varlist
@@ -271,15 +271,15 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"varlist" "," "var"                                 %"$$=$1 append($3)";
 
   var
-    = _"Name"                                              %"$$=$1"
+    = _"Name"                                              %"$$=$1 $$.ref=true"
     + _"prefixexp" "[" "exp" "]"                           %"$$=$2 append($1,$3)"
     + _"prefixexp" "." "Name"                              %"$$=$2 append($1,$3)"
     + _"functioncall" "[" "exp" "]"                        %"$$=$2 append($1,$3)"
     + _"functioncall" "." "Name"                           %"$$=$2 append($1,$3)";
 
   namelist
-    = _"Name"                                              %"$$=create($namelist) append($1)"
-    + _"namelist" "," "Name"                               %"$$=$1 append($3)";
+    = _"Name"                                              %"$$=create($namelist) append($1) $1.declare=true"
+    + _"namelist" "," "Name"                               %"$$=$1 append($3) $3.declare=true";
 
   explist
     = _"exp"                                               %"$$=create($explist) append($1)"

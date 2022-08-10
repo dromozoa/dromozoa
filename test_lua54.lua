@@ -98,8 +98,25 @@ end
 
 ]]
 
-local function append(list, value)
-  list[#list + 1] = value
+local function find_scope(u)
+  while u.scope == nil do
+    u = u.parent
+  end
+  return u.scope
+end
+
+local function declare(u, name)
+  if name == nil then
+    assert(_[u[0]] == "Name")
+    name = u.v
+  end
+
+  local scope = find_scope(u)
+  local proto = scope.proto
+
+  local n = #proto.locals + 1
+  proto.locals[n] = name
+  scope.locals[#scope.locals + 1] = n
 end
 
 local function resolve(u, proto, scope)
@@ -119,24 +136,12 @@ local function resolve(u, proto, scope)
       proto.max_param = 0
     else
       assert(name == "funcbody")
-      local proto_locals = proto.locals
-      local scope_locals = scope.locals
-
-      assert(#proto_locals == 0)
-      assert(#scope_locals == 0)
-
-      local n = 0
       if proto.self then
-        n = n + 1
-        proto_locals[n] = "self"
-        scope_locals[n] = n
+        declare(u, "self")
+        proto.max_param = #u[1] + 1
+      else
+        proto.max_param = #u[1]
       end
-      for _, v in ipairs(u[1]) do
-        n = n + 1
-        proto_locals[n] = v.v
-        scope_locals[n] = n
-      end
-      proto.max_param = n
     end
   elseif u.scope ~= nil then
     u.scope.parent = scope
@@ -144,11 +149,31 @@ local function resolve(u, proto, scope)
     scope = u.scope
   end
 
+  if name == "for" then
+    declare(u, "(for)")
+    declare(u, "(for)")
+    declare(u, "(for)")
+  elseif name == "for_in" then
+    declare(u, "(for)")
+    declare(u, "(for)")
+    declare(u, "(for)")
+    declare(u, "(for)")
+  end
 
-
+  if u.declare then
+    declare(u)
+  end
 
   for i = 1, #u do
-    resolve(u[i], proto, scope)
+    local v = u[i]
+    v.parent = u
+    resolve(v, proto, scope)
+  end
+
+  if name == "chunk" or name == "funcbody" then
+    for i, v in ipairs(u.proto.locals) do
+      print(i, v)
+    end
   end
 end
 
@@ -314,7 +339,7 @@ local function quote(s)
   return '"' .. string.gsub(s, '[&<>"]', { ['&'] = '&amp;', ['<'] = '&lt;', ['>'] = '&gt;', ['"'] = '&quot;' }) .. '"'
 end
 
-local attrs = { "v", "attribute", "scope", "self", "vararg", "type" }
+local attrs = { "v", "scope", "self", "vararg", "attribute", "declare", "ref", "type" }
 if verbose then
   for _, attr in ipairs { "i", "j", "f", "n", "c", "s" } do
     attrs[#attrs + 1] = attr
