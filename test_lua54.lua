@@ -30,10 +30,8 @@ local _ = lua54_parser.symbol_names
 local function declare_name()
 end
 
-local function resolve_names(u, parent)
+local function resolve_names(u)
   local name = _[u[0]]
-
-  u.parent = parent
 
   if name == "for" then
     print("for", "(1,2,3)")
@@ -66,12 +64,31 @@ local function resolve_names(u, parent)
   end
 end
 
+local function prepare(u, parent_proto, parent_scope)
+  if u.proto ~= nil then
+    u.proto.parent = parent_proto
+    parent_proto = u.proto
+  end
+
+  if u.scope ~= nil then
+    u.scope.parent = parent_scope
+    parent_scope = u.scope
+  end
+
+  for i = 1, #u do
+    prepare(u[i], parent_proto, parent_scope)
+  end
+end
+
 local function process(chunk)
   -- BLOCKはスコープを生成する。以下はBLOCKの外側にスコープがはみだすとみなす。
   -- 1. for文
   -- 2. 関数本体
   -- 3. repeat文
-  --
+
+  -- protoは木構造を持つ。
+  -- scopeは木構造を持つ。
+
   -- 局所変数を生成する場所
   --   numerical for
   --     内部的に3個の局所変数が追加される
@@ -89,8 +106,123 @@ local function process(chunk)
   -- 2. 代入文とフィールドも入れ替える。
   -- 3. local function文は入れ替えない。
 
-  -- TODO チャンクを準備する
-  resolve_names(chunk[1], chunk)
+  -- プロトタイプごとに番号をつけていく
+  -- 変数   (local variable) v1...
+  -- 上位値 (upvalue)  u1...
+  -- name = { v1 or u1, name, NameToken, { def, use, updef, upuse } }
+  --
+  -- Lua 5.4
+  --   変数   上限は200個
+  --   上位値 上限は255個
+  --
+  --
+  --
+  --
+  --[[
+#if LUAI_IS32INT
+#define LUAI_MAXSTACK		1000000
+#else
+#define LUAI_MAXSTACK		15000
+#endif
+
+#define LUA_REGISTRYINDEX	(-LUAI_MAXSTACK - 1000)
+#define lua_upvalueindex(i)	(LUA_REGISTRYINDEX - (i))
+
+    局所変数を宣言すると、もっとも近いスコープに名前を作成する。
+    プロトタイプに変数として追加する。
+
+    変数を参照しようとすると、スコープを上にたどっていって名前を調べる。
+    同一プロトタイプのなかで見つかれば、局所変数の参照となる。
+    プロトタイプに登録されている上位値で見つかれば、上位値の参照となる。
+    プロトタイプ外で見つかった場合、上位値の登録をしたうえで、上位値の参照となる。
+    見つからなかった場合、_ENVへのSETTABLE/GETTABLEの処理になる
+
+    find_name
+      => v    variable
+              same proto, outer proto
+      => u    upvalue
+      => nil  not found
+
+    ref_name
+    def_name
+
+    p1 {
+      s1->s2->s3;
+      locals = {
+        "foo",
+        "bar",
+        "baz",
+      }
+      upvalues = {}
+    }
+
+    s1 = {
+      locals = { "foo" }
+    }
+    s2 = {
+      locals = { "bar" }
+    }
+    s3 = {
+      locals = { "baz" }
+    }
+
+    p2 {
+      locals = {
+        { "qux" V1 sym },
+      }
+      upvalues = {
+        { name, proto.V3 }
+        "baz" U1=>proto.V3,
+        "bar" U2=>proto.V2,
+        "foo" U3=>proto.V1,
+      }
+    }
+    s4 = {
+      locals = {
+        1, -- "qux" V1,
+      }
+    }
+
+    function f1()
+      local foo = 1
+      do
+        local bar = 2
+        do
+          local baz = 3
+          function f2()
+            local qux = 4
+            print(baz) U1
+            print(bar) U2
+            print(foo) U3
+            print(qux) V1
+          end
+        end
+      end
+    end
+
+    V1..V256
+    U1..U256 (257..512)
+
+
+
+
+  ]]
+
+  local proto = {
+    locals = { { "_ENV" } };
+    labels = {};
+    upvalues = {};
+  }
+
+  local scope = {
+    proto = proto;
+    locals = {1};
+    labels = {};
+  }
+
+  prepare(chunk, proto, scope)
+
+  -- resolve_names(chunk[1], chunk)
 end
 
 ---------------------------------------------------------------------------

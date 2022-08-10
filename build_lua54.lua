@@ -156,17 +156,22 @@ local right = parser.grammar.right
 
 -- 使わない属性、使えない属性は修正する
 -- attribute  Lua 5.4の局所変数の属性
+-- proto      プロトタイプ (vararg,selfを外からつける）
 -- scope      局所変数とラベルのスコープ
--- self       関数が暗黙のselfを持つか  末尾のfuncnameから横方向に継承する
--- vararg     関数が可変長引数を持つか  namelist (parlist) からもちあげる
--- type       定数の副種別
 --
+-- 不要かも？
+-- type       定数の副種別
 -- stat       文ノードにつける
 
 local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
   [[
-    local function proto()
-      return {}
+    local function proto(vararg)
+      return {
+        vararg = vararg;
+        locals = {};
+        labels = {};
+        upvalues = {};
+      }
     end
 
     local function scope()
@@ -193,7 +198,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
   right "^";
 
   chunk
-    = _"block"                                             %"$$.proto=proto() $$.scope=scope()";
+    = _"block"                                             %"$$.proto=proto(true) $$.scope=scope()";
 
   block
     = _"block_"                                            %"$$=$1"
@@ -213,10 +218,10 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"do" "block" "end"                                  %"$$=$1 append($2) $2.scope=scope()"
     + _"while" "exp" "do" "block" "end"                    %"$$=$1 append($2,$4) $4.scope=scope()"
     + _"repeat" "block" "until" "exp"                      %"$$=$1 append($2,$4) $$.scope=scope()"
-    + _"if" "exp" "then" "block" "else_clause" "end"       %"$$=$1 append($2,$4,$5) $4.scope=scope"
+    + _"if" "exp" "then" "block" "else_clause" "end"       %"$$=$1 append($2,$4,$5) $4.scope=scope()"
     + _"for" "Name" "=" "exp2_3" "do" "block" "end"        %"$$=$1 append($4,$2,$6) $$.scope=scope()"
     + _"for_in"                                            %"$$=$1"
-    + _"function" "funcname" "funcbody"                    %"$$=$1 append($3,$2) $3.self=$2.self"
+    + _"function" "funcname" "funcbody"                    %"$$=$1 append($3,$2) $3.proto.self=$2.self"
     + _"local_function"                                    %"$$=$1"
     + _"local" "attnamelist"                               %"$$=$1 append(create($explist),$2)"
     + _"local" "attnamelist" "=" "explist"                 %"$$=$1 append($4,$2)";
@@ -343,7 +348,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 
   funcbody
     = _"(" ")" "block" "end"                               %"$$=$0 append(create($namelist),$3) $$.proto=proto() $$.scope=scope()"
-    + _"(" "parlist" ")" "block" "end"                     %"$$=$0 append($2,$4) $$.proto=proto() $$.scope=scope() $$.vararg=$2.vararg";
+    + _"(" "parlist" ")" "block" "end"                     %"$$=$0 append($2,$4) $$.proto=proto($2.vararg) $$.scope=scope()";
 
   parlist
     = _"namelist"                                          %"$$=$1"

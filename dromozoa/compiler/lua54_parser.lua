@@ -5,8 +5,13 @@ local main = function ()
   local S
   local SS
   local action_data = (function ()
-        local function proto()
-      return {}
+        local function proto(vararg)
+      return {
+        vararg = vararg;
+        locals = {};
+        labels = {};
+        upvalues = {};
+      }
     end
 
     local function scope()
@@ -19,7 +24,7 @@ local main = function ()
 
     return { function ()
 end;
-function ()SS.proto=proto() SS.scope=scope()
+function ()SS.proto=proto(true) SS.scope=scope()
 end;
 function ()SS=S[1]
 end;
@@ -37,19 +42,17 @@ function ()SS=S[1] append(S[2],S[4]) S[4].scope=scope()
 end;
 function ()SS=S[1] append(S[2],S[4]) SS.scope=scope()
 end;
-function ()SS=S[1] append(S[2],S[4],S[5]) S[4].scope=scope
+function ()SS=S[1] append(S[2],S[4],S[5]) S[4].scope=scope()
 end;
 function ()SS=S[1] append(S[4],S[2],S[6]) SS.scope=scope()
 end;
-function ()SS=S[1] append(S[3],S[2]) S[3].self=S[2].self
+function ()SS=S[1] append(S[3],S[2]) S[3].proto.self=S[2].self
 end;
 function ()SS=S[1] append(create(82),S[2])
 end;
 function ()SS=S[1] append(S[4],S[2])
 end;
 function ()SS=create(10)
-end;
-function ()SS=S[1] append(S[2],S[4],S[5]) S[4].scope=scope()
 end;
 function ()SS=create(82) append(S[1],S[3])
 end;
@@ -89,7 +92,7 @@ function ()SS=create(82)
 end;
 function ()SS=S[0] append(create(81),S[3]) SS.proto=proto() SS.scope=scope()
 end;
-function ()SS=S[0] append(S[2],S[4]) SS.proto=proto() SS.scope=scope() SS.vararg=S[2].vararg
+function ()SS=S[0] append(S[2],S[4]) SS.proto=proto(S[2].vararg) SS.scope=scope()
 end;
 function ()SS=S[1] SS.vararg=true
 end;
@@ -197,9 +200,6 @@ end;
         end
         action_data[semantic_actions[index]]()
         SS.f, SS.i, SS.j, SS.n, SS.c = sf, si, sj, sn, sc
-        for i = 1, #SS do
-          SS[i].p = SS
-        end
         local state = stack[#stack]
         stack[#stack + 1] = actions[state][head]
         nodes[#nodes + 1] = SS
@@ -444,7 +444,7 @@ actions={
 };
 heads={64,65,66,66,67,67,67,68,68,68,68,68,68,68,68,68,68,68,68,68,68,68,69,69,69,70,70,71,72,73,73,74,74,75,75,75,75,76,77,77,78,78,79,79,80,80,80,80,80,81,81,82,82,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,84,84,85,85,85,85,86,86,86,86,87,88,88,89,89,89,90,90,91,91,92,92,93,93,93,94,94,95,95,96,96,96,96,};
 sizes={1,1,1,2,0,2,2,3,1,1,1,2,3,5,4,6,7,1,3,1,2,4,0,2,5,3,5,7,4,2,4,0,3,1,2,2,3,3,1,3,1,3,1,3,1,4,3,4,3,1,3,1,3,1,1,1,1,1,1,1,1,1,1,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,2,1,3,2,4,2,4,2,3,1,1,2,4,5,1,3,1,2,3,1,2,1,3,5,3,1,1,1,1,1,1,1,1,1,};
-semantic_actions={1,2,3,4,5,3,4,6,3,7,3,7,8,9,10,11,12,3,13,3,14,15,16,8,17,18,19,20,21,22,23,1,24,25,25,7,7,26,3,27,3,28,29,30,3,28,28,28,28,31,30,32,30,3,3,3,3,3,3,3,3,3,3,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,7,7,7,7,3,33,1,34,1,34,35,33,32,32,26,36,37,3,38,39,40,33,3,3,41,30,42,43,1,1,1,44,45,46,47,48,49,};
+semantic_actions={1,2,3,4,5,3,4,6,3,7,3,7,8,9,10,11,12,3,13,3,14,15,16,8,11,17,18,19,20,21,22,1,23,24,24,7,7,25,3,26,3,27,28,29,3,27,27,27,27,30,29,31,29,3,3,3,3,3,3,3,3,3,3,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,7,7,7,7,3,32,1,33,1,33,34,32,31,31,25,35,36,3,37,38,39,32,3,3,40,29,41,42,1,1,1,43,44,45,46,47,48,};
  }
 local metatable = {
   __call = function (self, token)
