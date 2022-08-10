@@ -76,7 +76,7 @@ local function quote(s)
   return '"' .. string.gsub(tostring(s), '[&<>"]', { ['&'] = '&amp;', ['<'] = '&lt;', ['>'] = '&gt;', ['"'] = '&quot;' }) .. '"'
 end
 
-local attrs = { "v", "attribute", "self", "vararg", "type", "scope" }
+local attrs = { "v", "attribute", "self", "vararg", "type" }
 if verbose then
   for _, attr in ipairs { "i", "j", "f", "n", "c", "s" } do
     attrs[#attrs + 1] = attr
