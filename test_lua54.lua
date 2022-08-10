@@ -105,6 +105,13 @@ local function find_scope(u)
   return u.scope
 end
 
+-- local function find_proto(u)
+--   while u.proto == nil do
+--     u = u.parent
+--   end
+--   return u.proto
+-- end
+
 local function declare(u, name)
   if name == nil then
     assert(_[u[0]] == "Name")
@@ -117,6 +124,36 @@ local function declare(u, name)
   local n = #proto.locals + 1
   proto.locals[n] = name
   scope.locals[#scope.locals + 1] = n
+end
+
+local function search(u)
+  local scope = find_scope(u)
+  local proto = scope.proto
+
+  while true do
+    for i = #scope.locals, 1, -1 do
+      local name = proto.locals[scope.locals[i]]
+      if name == u.v then
+        return "v", scope.locals[i]
+      end
+    end
+
+    if proto ~= scope.parent.proto then
+      for i = #proto.upvalues, 1, -1 do
+        local v = proto.upvalues[i]
+        if v[1] == u.v then
+          return "u", i
+        end
+      end
+      break
+    end
+
+    scope = scope.parent
+  end
+
+
+
+
 end
 
 local function resolve(u, proto, scope)
@@ -164,17 +201,21 @@ local function resolve(u, proto, scope)
     declare(u)
   end
 
+  if u.resolve then
+    resolve_name(u)
+  end
+
   for i = 1, #u do
     local v = u[i]
     v.parent = u
     resolve(v, proto, scope)
   end
 
-  if name == "chunk" or name == "funcbody" then
-    for i, v in ipairs(u.proto.locals) do
-      print(i, v)
-    end
-  end
+  -- if name == "chunk" or name == "funcbody" then
+  --   for i, v in ipairs(u.proto.locals) do
+  --     print(i, v)
+  --   end
+  -- end
 end
 
 local function process(chunk)

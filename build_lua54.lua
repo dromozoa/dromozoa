@@ -158,7 +158,10 @@ local right = parser.grammar.right
 -- attribute  Lua 5.4の局所変数の属性
 -- proto      プロトタイプ (vararg,selfを外からつける）
 -- scope      局所変数とラベルのスコープ
---
+
+-- declare    Nameにつける  変数を宣言する
+-- resolve    Nameにつける  変数を参照する
+
 -- 不要かも？
 -- type       定数の副種別
 -- stat       文ノードにつける
