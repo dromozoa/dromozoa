@@ -154,7 +154,8 @@ local expect = parser.grammar.expect
 local left = parser.grammar.left
 local right = parser.grammar.right
 
--- 抽象構文木を愚直に作成する。
+-- TODO createの方針を決める
+-- TODO 不要な規則を削る
 local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
   [[
     local function scope()
@@ -189,7 +190,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"block_" "stat" %"$$=$1 append($2)";
 
   -- =                      explist varlist
-  -- functioncall           ... arg
+  -- functioncall           ... explist
   -- ::                     Name
   -- break
   -- goto                   Name
@@ -202,7 +203,6 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
   -- local      function    Name funcbody
   -- local                  attnamelist
   -- local      =           explist attnamelist
-  -- return
   -- return                 explist
 
   stat
@@ -217,7 +217,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"if" "exp" "then" "block" "{elseif exp then block} [else block]" "end" %"$$=$1 append($2,$4,$5)"
     + _"for" "Name" "=" "exp, exp [, exp]" "do" "block" "end" %"$$=$1 append($3,$4,$2,$6) $$.scope=scope()"
     + _"for" "namelist" "in" "explist" "do" "block" "end" %"$$=$1 append($3,$4,$2,$6) $$.scope=scope()"
-    + _"function" "funcname" "funcbody" %"$$=$1 append($2,$3)"
+    + _"function" "funcname" "funcbody" %"$$=$1 append($3,$2) $3.self=$2.self"
     + _"local" "function" "Name" "funcbody" %"$$=$1 append($2,$3,$4)"
     + _"local" "attnamelist" %"$$=$1 append($2)"
     + _"local" "attnamelist" "=" "explist" %"$$=$1 append($3,$4,$2)";
@@ -243,18 +243,19 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"<" "Name" ">";
 
   retstat
-    = _"return"
-    + _"return" ";" %"$$=$0 append($1)"
-    + _"return" "explist"
-    + _"return" "explist" ";" %"$$=$0 append($1,$2)";
+    = _"return" %"$$=$1 append(create($explist))"
+    + _"return" ";" %"$$=$1 append(create($explist))"
+    + _"return" "explist" %"$$=$1 append($2)"
+    + _"return" "explist" ";" %"$$=$1 append($2)";
+
 
   funcname
     = _"funcname_" %"$$=$1"
-    + _"funcname_" ":" "Name";
+    + _"funcname_" ":" "Name" %"$$=$2 append($1,$3) $$.self=true";
 
   funcname_
-    = _"Name" %"$$=create($funcname) append($1)"
-    + _"funcname_" "." "Name" %"$$=create($funcname) append($1,$2,$3)";
+    = _"Name" %"$$=$1"
+    + _"funcname_" "." "Name" %"$$=$2 append($1,$3)";
 
   varlist
     = _"var" %"$$=create($varlist) append($1)"
@@ -262,10 +263,10 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 
   var
     = _"Name"
-    + _"prefixexp" "[" "exp" "]"
-    + _"prefixexp" "." "Name"
-    + _"functioncall" "[" "exp" "]"
-    + _"functioncall" "." "Name";
+    + _"prefixexp" "[" "exp" "]" %"$$=$2 append($1,$3)"
+    + _"prefixexp" "." "Name" %"$$=$2 append($1,$3)"
+    + _"functioncall" "[" "exp" "]" %"$$=$2 append($1,$3)"
+    + _"functioncall" "." "Name" %"$$=$2 append($1,$3)";
 
   namelist
     = _"Name" %"$$=create($namelist) append($1)"
@@ -276,50 +277,50 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"explist" "," "exp" %"$$=$1 append($3)";
 
   exp
-    = _"nil"
-    + _"false"
-    + _"true"
-    + _"Numeral"
-    + _"LiteralString"
-    + _"..."
-    + _"functiondef"
-    + _"prefixexp"
-    + _"functioncall"
-    + _"tableconstructor"
+    = _"nil"              %"$$=$1"
+    + _"false"            %"$$=$1"
+    + _"true"             %"$$=$1"
+    + _"Numeral"          %"$$=$1"
+    + _"LiteralString"    %"$$=$1"
+    + _"..."              %"$$=$1"
+    + _"functiondef"      %"$$=$1"
+    + _"prefixexp"        %"$$=$1"
+    + _"functioncall"     %"$$=$1"
+    + _"tableconstructor" %"$$=$1"
     -- binop
-    + _"exp" "+" "exp"
-    + _"exp" "-" "exp"
-    + _"exp" "*" "exp"
-    + _"exp" "/" "exp"
-    + _"exp" "//" "exp"
-    + _"exp" "^" "exp"
-    + _"exp" "%" "exp"
-    + _"exp" "&" "exp"
-    + _"exp" "~" "exp"
-    + _"exp" "|" "exp"
-    + _"exp" ">>" "exp"
-    + _"exp" "<<" "exp"
-    + _"exp" ".." "exp"
-    + _"exp" "<" "exp"
-    + _"exp" "<=" "exp"
-    + _"exp" ">" "exp"
-    + _"exp" ">=" "exp"
-    + _"exp" "==" "exp"
-    + _"exp" "~=" "exp"
-    + _"exp" "and" "exp"
-    + _"exp" "or" "exp"
+    + _"exp" "+"   "exp" %"$$=$2 append($1,$3)"
+    + _"exp" "-"   "exp" %"$$=$2 append($1,$3)"
+    + _"exp" "*"   "exp" %"$$=$2 append($1,$3)"
+    + _"exp" "/"   "exp" %"$$=$2 append($1,$3)"
+    + _"exp" "//"  "exp" %"$$=$2 append($1,$3)"
+    + _"exp" "^"   "exp" %"$$=$2 append($1,$3)"
+    + _"exp" "%"   "exp" %"$$=$2 append($1,$3)"
+    + _"exp" "&"   "exp" %"$$=$2 append($1,$3)"
+    + _"exp" "~"   "exp" %"$$=$2 append($1,$3)"
+    + _"exp" "|"   "exp" %"$$=$2 append($1,$3)"
+    + _"exp" ">>"  "exp" %"$$=$2 append($1,$3)"
+    + _"exp" "<<"  "exp" %"$$=$2 append($1,$3)"
+    + _"exp" ".."  "exp" %"$$=$2 append($1,$3)"
+    + _"exp" "<"   "exp" %"$$=$2 append($1,$3)"
+    + _"exp" "<="  "exp" %"$$=$2 append($1,$3)"
+    + _"exp" ">"   "exp" %"$$=$2 append($1,$3)"
+    + _"exp" ">="  "exp" %"$$=$2 append($1,$3)"
+    + _"exp" "=="  "exp" %"$$=$2 append($1,$3)"
+    + _"exp" "~="  "exp" %"$$=$2 append($1,$3)"
+    + _"exp" "and" "exp" %"$$=$2 append($1,$3)"
+    + _"exp" "or"  "exp" %"$$=$2 append($1,$3)"
     -- unop
-    + _"-" "exp" :prec "UNM"
-    + _"not" "exp"
-    + _"#" "exp"
-    + _"~" "exp" :prec "BNOT";
+    + _"-"   "exp" :prec "UNM"  %"$$=$1 append($2)"
+    + _"not" "exp"              %"$$=$1 append($2)"
+    + _"#"   "exp"              %"$$=$1 append($2)"
+    + _"~"   "exp" :prec "BNOT" %"$$=$1 append($2)";
 
   -- The Complete Syntax of LuaのEBNFは、prefixexpとfunctioncallが相互に依存し
   -- ている。そのまま利用するとshift/shift競合が発生する。これを回避するため、
   -- prefixexpを参照する箇所にfunctioncallを展開する。
   prefixexp
-    = _"var"
-    + _"(" "exp" ")";
+    = _"var" %"$$=$1"
+    + _"(" "exp" ")" %"$$=$2";
 
   functioncall
     = _"prefixexp" "args"
@@ -328,21 +329,22 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"functioncall" ":" "Name" "args" %"$$=$2 append($1,$3) $$=$0 append($2,$4)";
 
   args
-    = _"(" ")"
-    + _"(" "explist" ")"
-    + _"tableconstructor"
-    + _"LiteralString";
+    = _"(" ")"            %"$$=create($explist)"
+    + _"(" "explist" ")"  %"$$=$2"
+    + _"tableconstructor" %"$$=create($explist) append($1)"
+    + _"LiteralString"    %"$$=create($explist) append($1)";
 
-  functiondef = _"function" "funcbody";
+  functiondef
+    = _"function" "funcbody" %"$$=$1 append($2)";
 
   funcbody
-    = _"(" ")" "block" "end"
-    + _"(" "parlist" ")" "block" "end";
+    = _"(" ")" "block" "end" %"$$=$0 append(create($namelist),$2)"
+    + _"(" "parlist" ")" "block" "end" %"$$=$0 append($2,$4) $$.vararg=$2.vararg";
 
   parlist
-    = _"namelist"
-    + _"namelist" "," "..."
-    + _"...";
+    = _"namelist" %"$$=$1"
+    + _"namelist" "," "..." %"$$=$1 $$.vararg=true"
+    + _"..." %"$$=create($namelist) $$.vararg=true";
 
   tableconstructor
     = _"{" "}"
@@ -358,7 +360,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 
   field
     = _"[" "exp" "]" "=" "exp" %"$$=$0 append($5,$4,$1,$2,$3)"
-    + _"Name" "=" "exp" %"$$=$0 append($3,$2,$1)"
+    + _"Name" "=" "exp"        %"$$=$0 append($3,$2,$1)"
     + _"exp";
 
   fieldsep
@@ -366,14 +368,14 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _";";
 
   LiteralString
-    = _"LongLiteralString"
-    + _"ShortLiteralString";
+    = _"LongLiteralString"  %"$$=$0 $$.v=$1.v $$.type='LongLiteralString'"
+    + _"ShortLiteralString" %"$$=$0 $$.v=$1.v $$.type='ShortLiteralString'";
 
   Numeral
-    = _"DecimalIntegerNumeral"
-    + _"DecimalFloatingNumeral"
-    + _"HexadecimalIntegerNumeral"
-    + _"HexadecimalFloatingNumeral";
+    = _"DecimalIntegerNumeral"      %"$$=$0 $$.v=$1.v $$.type='DecimalIntegerNumeral'"
+    + _"DecimalFloatingNumeral"     %"$$=$0 $$.v=$1.v $$.type='DecimalFloatingNumeral'"
+    + _"HexadecimalIntegerNumeral"  %"$$=$0 $$.v=$1.v $$.type='HexadecimalIntegerNumeral'"
+    + _"HexadecimalFloatingNumeral" %"$$=$0 $$.v=$1.v $$.type='HexadecimalFloatingNumeral'";
 }))
 
 for _, message in conflictions:ipairs() do
