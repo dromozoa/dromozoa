@@ -263,7 +263,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"funcname_" ":" "Name"                              %"$$=$2 append($1,$3) $$.self=true";
 
   funcname_
-    = _"Name"                                              %"$$=$1 $$.ref=true"
+    = _"Name"                                              %"$$=$1 $$.resolve=true"
     + _"funcname_" "." "Name"                              %"$$=$2 append($1,$3)";
 
   varlist
@@ -271,7 +271,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"varlist" "," "var"                                 %"$$=$1 append($3)";
 
   var
-    = _"Name"                                              %"$$=$1 $$.ref=true"
+    = _"Name"                                              %"$$=$1 $$.resolve=true"
     + _"prefixexp" "[" "exp" "]"                           %"$$=$2 append($1,$3)"
     + _"prefixexp" "." "Name"                              %"$$=$2 append($1,$3)"
     + _"functioncall" "[" "exp" "]"                        %"$$=$2 append($1,$3)"
@@ -368,8 +368,8 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"fieldlist_" "fieldsep" "field"                     %"$$=$1 append($3)";
 
   field
-    = _"[" "exp" "]" "=" "exp"                             %"$$=$0 append($4,$2)"
-    + _"Name" "=" "exp"                                    %"$$=$0 append($2,$1)"
+    = _"[" "exp" "]" "=" "exp"                             %"$$=$0 append($5,$2)"
+    + _"Name" "=" "exp"                                    %"$$=$0 append($3,$1)"
     + _"exp";
 
   fieldsep

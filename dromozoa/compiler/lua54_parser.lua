@@ -74,7 +74,7 @@ function ()SS=S[0] append(S[2])
 end;
 function ()SS=S[2] append(S[1],S[3]) SS.self=true
 end;
-function ()SS=S[1] SS.ref=true
+function ()SS=S[1] SS.resolve=true
 end;
 function ()SS=S[2] append(S[1],S[3])
 end;
@@ -106,9 +106,9 @@ function ()SS=create(91)
 end;
 function ()SS=create(91) append(S[1])
 end;
-function ()SS=S[0] append(S[4],S[2])
+function ()SS=S[0] append(S[5],S[2])
 end;
-function ()SS=S[0] append(S[2],S[1])
+function ()SS=S[0] append(S[3],S[1])
 end;
 function ()SS=S[0] SS.v=S[1].v SS.type='LongLiteralString'
 end;
