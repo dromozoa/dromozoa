@@ -262,7 +262,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"varlist" "," "var" %"$$=$1 append($3)";
 
   var
-    = _"Name"
+    = _"Name" %"$$=$1"
     + _"prefixexp" "[" "exp" "]" %"$$=$2 append($1,$3)"
     + _"prefixexp" "." "Name" %"$$=$2 append($1,$3)"
     + _"functioncall" "[" "exp" "]" %"$$=$2 append($1,$3)"
@@ -329,13 +329,13 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"functioncall" ":" "Name" "args" %"$$=$2 append($1,$3) $$=$0 append($2,$4)";
 
   args
-    = _"(" ")"            %"$$=create($explist)"
-    + _"(" "explist" ")"  %"$$=$2"
+    = _"(" ")" %"$$=create($explist)"
+    + _"(" "explist" ")" %"$$=$2"
     + _"tableconstructor" %"$$=create($explist) append($1)"
-    + _"LiteralString"    %"$$=create($explist) append($1)";
+    + _"LiteralString" %"$$=create($explist) append($1)";
 
   functiondef
-    = _"function" "funcbody" %"$$=$1 append($2)";
+    = _"function" "funcbody" %"$$=$0 append($2)";
 
   funcbody
     = _"(" ")" "block" "end" %"$$=$0 append(create($namelist),$3)"
@@ -360,7 +360,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 
   field
     = _"[" "exp" "]" "=" "exp" %"$$=$0 append($5,$4,$2)"
-    + _"Name" "=" "exp"        %"$$=$0 append($3,$2,$1)"
+    + _"Name" "=" "exp" %"$$=$0 append($3,$2,$1)"
     + _"exp";
 
   fieldsep
@@ -368,13 +368,13 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _";";
 
   LiteralString
-    = _"LongLiteralString"  %"$$=$0 $$.v=$1.v $$.type='LongLiteralString'"
+    = _"LongLiteralString" %"$$=$0 $$.v=$1.v $$.type='LongLiteralString'"
     + _"ShortLiteralString" %"$$=$0 $$.v=$1.v $$.type='ShortLiteralString'";
 
   Numeral
-    = _"DecimalIntegerNumeral"      %"$$=$0 $$.v=$1.v $$.type='DecimalIntegerNumeral'"
-    + _"DecimalFloatingNumeral"     %"$$=$0 $$.v=$1.v $$.type='DecimalFloatingNumeral'"
-    + _"HexadecimalIntegerNumeral"  %"$$=$0 $$.v=$1.v $$.type='HexadecimalIntegerNumeral'"
+    = _"DecimalIntegerNumeral" %"$$=$0 $$.v=$1.v $$.type='DecimalIntegerNumeral'"
+    + _"DecimalFloatingNumeral" %"$$=$0 $$.v=$1.v $$.type='DecimalFloatingNumeral'"
+    + _"HexadecimalIntegerNumeral" %"$$=$0 $$.v=$1.v $$.type='HexadecimalIntegerNumeral'"
     + _"HexadecimalFloatingNumeral" %"$$=$0 $$.v=$1.v $$.type='HexadecimalFloatingNumeral'";
 }))
 
