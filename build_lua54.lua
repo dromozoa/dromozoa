@@ -159,6 +159,8 @@ local right = parser.grammar.right
 -- self       関数が暗黙のselfを持つか  末尾のfuncnameから横方向に継承する
 -- vararg     関数が可変長引数を持つか  namelist (parlist) からもちあげる
 -- type       定数の副種別
+--
+-- stat       文ノードにつける
 
 local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
   [[
@@ -187,12 +189,12 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 
   block
     = _"block_"                                            %"$$=$1"
-    + _"block_" "retstat"                                  %"$$=$1 append($2)";
+    + _"block_" "retstat"                                  %"$$=$1 append($2) $2.stat=true";
 
   block_
     = _                                                    %"$$=create($block)"
     + _"block_" ";"                                        %"$$=$1"
-    + _"block_" "stat"                                     %"$$=$1 append($2)";
+    + _"block_" "stat"                                     %"$$=$1 append($2) $2.stat=true";
 
   stat
     = _"varlist" "=" "explist"                             %"$$=$2 append($3,$1)"

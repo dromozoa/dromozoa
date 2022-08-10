@@ -31,14 +31,19 @@ local function resolve_names(u, parent)
   local name = _[u[0]]
 
   u.parent = parent
-  -- if name == "block" then
-  --   parent.scope = { locals = {}, labels = {} }
-  -- end
 
-  if name == "=" then
-  elseif name == "for" then
-    -- explist =  Name     block
-    -- explist in namelist block
+  if name == "for" then
+    print("for", u[2].v)
+  elseif name == "for_in" then
+    for _, v in ipairs(u[2]) do
+      print("for_in", v.v)
+    end
+  elseif name == "local_function" then
+    print("local_function", u[1].v)
+  elseif name == "local" then
+    for _, v in ipairs(u[2]) do
+      print("local", v.v)
+    end
   end
 
   for i = 1, #u do
