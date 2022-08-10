@@ -27,14 +27,19 @@ local lua54_parser = require "dromozoa.compiler.lua54_parser"
 
 local _ = lua54_parser.symbol_names
 
+local function declare_name()
+end
+
 local function resolve_names(u, parent)
   local name = _[u[0]]
 
   u.parent = parent
 
   if name == "for" then
+    print("for", "(1,2,3)")
     print("for", u[2].v)
   elseif name == "for_in" then
+    print("for_in", "(1,2,3,4)")
     for _, v in ipairs(u[2]) do
       print("for_in", v.v)
     end
@@ -44,6 +49,16 @@ local function resolve_names(u, parent)
     for _, v in ipairs(u[2]) do
       print("local", v.v)
     end
+  elseif name == "funcbody" then
+    if u.self then
+      print("funcbody", "self")
+    end
+    for _, v in ipairs(u[1]) do
+      print("funcbody", v.v)
+    end
+    if u.vararg then
+      print("funcbody", "...")
+    end
   end
 
   for i = 1, #u do
@@ -52,7 +67,10 @@ local function resolve_names(u, parent)
 end
 
 local function process(chunk)
-  -- BLOCKはスコープを作成する。for文と関数本体はBLOCKの外側がスコープに含まれる。
+  -- BLOCKはスコープを生成する。以下はBLOCKの外側にスコープがはみだすとみなす。
+  -- 1. for文
+  -- 2. 関数本体
+  -- 3. repeat文
   --
   -- 局所変数を生成する場所
   --   numerical for
@@ -72,7 +90,7 @@ local function process(chunk)
   -- 3. local function文は入れ替えない。
 
   -- TODO チャンクを準備する
-  resolve_names(chunk)
+  resolve_names(chunk[1], chunk)
 end
 
 ---------------------------------------------------------------------------

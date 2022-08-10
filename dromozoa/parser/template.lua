@@ -126,6 +126,9 @@ local main = function ()
 
         action_data[semantic_actions[index]]()
         SS.f, SS.i, SS.j, SS.n, SS.c = sf, si, sj, sn, sc
+        for i = 1, #SS do
+          SS[i].p = SS
+        end
 
         local state = stack[#stack]
         stack[#stack + 1] = actions[state][head]

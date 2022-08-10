@@ -154,6 +154,7 @@ local expect = parser.grammar.expect
 local left = parser.grammar.left
 local right = parser.grammar.right
 
+-- 使わない属性、使えない属性は修正する
 -- attribute  Lua 5.4の局所変数の属性
 -- scope      局所変数とラベルのスコープ
 -- self       関数が暗黙のselfを持つか  末尾のfuncnameから横方向に継承する
@@ -164,8 +165,15 @@ local right = parser.grammar.right
 
 local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
   [[
+    local function proto()
+      return {}
+    end
+
     local function scope()
-      return { locals = {}, labels = {} }
+      return {
+        locals = {};
+        labels = {};
+      }
     end
   ]];
 
@@ -185,7 +193,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
   right "^";
 
   chunk
-    = _"block";
+    = _"block"                                             %"$$.proto=proto() $$.scope=scope()";
 
   block
     = _"block_"                                            %"$$=$1"
@@ -334,8 +342,8 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     = _"function" "funcbody"                               %"$$=$0 append($2)";
 
   funcbody
-    = _"(" ")" "block" "end"                               %"$$=$0 append(create($namelist),$3) $$.scope=scope()"
-    + _"(" "parlist" ")" "block" "end"                     %"$$=$0 append($2,$4) $$.scope=scope() $$.vararg=$2.vararg";
+    = _"(" ")" "block" "end"                               %"$$=$0 append(create($namelist),$3) $$.proto=proto() $$.scope=scope()"
+    + _"(" "parlist" ")" "block" "end"                     %"$$=$0 append($2,$4) $$.proto=proto() $$.scope=scope() $$.vararg=$2.vararg";
 
   parlist
     = _"namelist"                                          %"$$=$1"
