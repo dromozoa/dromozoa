@@ -217,7 +217,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"if" "exp" "then" "block" "{elseif exp then block} [else block]" "end" %"$$=$1 append($2,$4,$5)"
     + _"for" "Name" "=" "exp, exp [, exp]" "do" "block" "end" %"$$=$1 append($3,$4,$2,$6) $$.scope=scope()"
     + _"for" "namelist" "in" "explist" "do" "block" "end" %"$$=$1 append($3,$4,$2,$6) $$.scope=scope()"
-    + _"function" "funcname" "funcbody" %"$$=$1 append($3,$2) $3.self=$2.self"
+    + _"function" "funcname" "funcbody" %"$$=$1 append($3,$2) $3[1].self=$2.self"
     + _"local" "function" "Name" "funcbody" %"$$=$1 append($2,$3,$4)"
     + _"local" "attnamelist" %"$$=$1 append($2)"
     + _"local" "attnamelist" "=" "explist" %"$$=$1 append($3,$4,$2)";
@@ -338,8 +338,8 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     = _"function" "funcbody" %"$$=$1 append($2)";
 
   funcbody
-    = _"(" ")" "block" "end" %"$$=$0 append(create($namelist),$2)"
-    + _"(" "parlist" ")" "block" "end" %"$$=$0 append($2,$4) $$.vararg=$2.vararg";
+    = _"(" ")" "block" "end" %"$$=$0 append(create($namelist),$3)"
+    + _"(" "parlist" ")" "block" "end" %"$$=$0 append($2,$4)";
 
   parlist
     = _"namelist" %"$$=$1"
@@ -347,8 +347,8 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"..." %"$$=create($namelist) $$.vararg=true";
 
   tableconstructor
-    = _"{" "}"
-    + _"{" "fieldlist" "}";
+    = _"{" "}" %"$$=create($fieldlist)"
+    + _"{" "fieldlist" "}" %"$$=$2";
 
   fieldlist
     = _"fieldlist_" %"$$=$1"
@@ -359,7 +359,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"fieldlist_" "fieldsep" "field" %"$$=$1 append($3)";
 
   field
-    = _"[" "exp" "]" "=" "exp" %"$$=$0 append($5,$4,$1,$2,$3)"
+    = _"[" "exp" "]" "=" "exp" %"$$=$0 append($5,$4,$2)"
     + _"Name" "=" "exp"        %"$$=$0 append($3,$2,$1)"
     + _"exp";
 
