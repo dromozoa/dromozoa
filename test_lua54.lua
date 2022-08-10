@@ -64,19 +64,91 @@ local function resolve_names(u)
   end
 end
 
-local function prepare(u, parent_proto, parent_scope)
+--[[
+
+  変数の参照は、u_i, v_i, L_i で行う
+
+  proto = {
+    self = true;
+    vararg = true;
+    -- 仮引数の個数
+    max_param = 4;
+
+    locals = {
+      { "name" [, NameToken] };
+    };
+    upvalues = {
+      { "name", "[uv]", index }; -- 親protoのlocalsかupvaluesを参照
+    };
+    labels = {
+      { "name" [, NameToken] };
+    };
+  }
+
+  scope = {
+    parent = scope;
+    proto = proto;
+    locals = { index };
+    labels = { index };
+  }
+
+
+
+
+
+]]
+
+local function append(list, value)
+  list[#list + 1] = value
+end
+
+local function resolve(u, proto, scope)
+  local name = _[u[0]]
+
   if u.proto ~= nil then
-    u.proto.parent = parent_proto
-    parent_proto = u.proto
+    u.proto.parent = proto
+    proto = u.proto
+
+    assert(u.scope ~= nil)
+    u.scope.parent = scope
+    u.scope.proto = proto
+    scope = u.scope
+
+    if name == "chunk" then
+      assert(not proto.self)
+      proto.max_param = 0
+    else
+      assert(name == "funcbody")
+      local proto_locals = proto.locals
+      local scope_locals = scope.locals
+
+      assert(#proto_locals == 0)
+      assert(#scope_locals == 0)
+
+      local n = 0
+      if proto.self then
+        n = n + 1
+        proto_locals[n] = "self"
+        scope_locals[n] = n
+      end
+      for _, v in ipairs(u[1]) do
+        n = n + 1
+        proto_locals[n] = v.v
+        scope_locals[n] = n
+      end
+      proto.max_param = n
+    end
+  elseif u.scope ~= nil then
+    u.scope.parent = scope
+    u.scope.proto = proto
+    scope = u.scope
   end
 
-  if u.scope ~= nil then
-    u.scope.parent = parent_scope
-    parent_scope = u.scope
-  end
+
+
 
   for i = 1, #u do
-    prepare(u[i], parent_proto, parent_scope)
+    resolve(u[i], proto, scope)
   end
 end
 
@@ -209,18 +281,29 @@ local function process(chunk)
   ]]
 
   local proto = {
-    locals = { { "_ENV" } };
+--[[
+    parent = parent;
+    locals = {
+      { "_ENV", NameToken }
+    };
     labels = {};
-    upvalues = {};
+    upvalues = {
+      { "name", "U", index };
+      { "name", "V", index };
+    };
+]]
   }
 
   local scope = {
+--[[
+    parent = parent;
     proto = proto;
     locals = {1};
     labels = {};
+]]
   }
 
-  prepare(chunk, proto, scope)
+  resolve(chunk, proto, scope)
 
   -- resolve_names(chunk[1], chunk)
 end
