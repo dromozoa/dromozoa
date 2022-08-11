@@ -34,3 +34,10 @@ end
 ::L2::
 
 print "ok 3"
+
+-- goto L3
+-- ::L3::
+-- do
+--   ::L3::
+-- end
+

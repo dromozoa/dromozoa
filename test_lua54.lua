@@ -25,6 +25,38 @@ local lua54_parser = require "dromozoa.compiler.lua54_parser"
 
 ---------------------------------------------------------------------------
 
+local function compiler_error(message, u)
+  if u ~= nil and u.f ~= nil and u.n ~= nil and u.c ~= nil then
+    error(u.f .. ":" .. u.n .. ":" .. u.c .. ": compiler error (" .. message .. ")")
+  else
+    error("compiler error (" .. message .. ")")
+  end
+end
+
+---------------------------------------------------------------------------
+
+-- scope--
+--   |    \
+-- scope-- \
+--   |    \ \
+-- scope-- \ \
+--   |    \ \ \
+-- scope----proto <= funcbody
+--   |        |
+-- scope--    |
+--   |    \   |
+-- scope-- \  |
+--   |    \ \ |
+-- scope----proto <= funcbody
+--   |        |
+-- scope--    |
+--   |    \   |
+-- scope-- \  |
+--   |    \ \ |
+-- scope----proto <= chunk
+--   |        |
+-- scope----proto <= external
+
 local function declare(scope, name, u)
   local var = scope.proto.locals:append{name=name, node=u}:size()
   scope.locals:append(var)
@@ -51,17 +83,49 @@ local function resolve(scope, name)
     return
   end
 
-  for i, u in proto.upvalues:ipairs() do
-    if u.index == var then
-      assert(u.name == name)
+  for i, v in proto.upvalues:ipairs() do
+    if v.index == var then
+      assert(v.name == name)
       return i + 65536
     end
   end
   return proto.upvalues:append{name=name, index=var}:size() + 65536
 end
 
-local function process1(u, proto, scope, parent)
+local function find_label(scope, name)
+  local proto = scope.proto
+  repeat
+    for i, label in scope.labels:ipairs() do
+      local v = proto.labels:get(label)
+      if v.name == name then
+        return label, v
+      end
+    end
+    scope = scope.parent
+  until proto ~= scope.proto
+end
+
+local function def_label(scope, name, u)
+  local label, v = find_label(scope, name)
+  if label ~= nil then
+    compiler_error("label " .. name .. " already defined on line " .. v.node.n, u)
+  end
+  local label = scope.proto.labels:append{name=name, node=u}:size()
+  scope.labels:append(label)
+  return label
+end
+
+local function ref_label(scope, name, u)
+  local label = find_label(scope, name)
+  if label == nil then
+    compiler_error("no visible label " .. name, u)
+  end
+  return label
+end
+
+local function process1(proto, scope, u)
   if u.proto ~= nil then
+    u.proto.labels = array()
     u.proto.locals = array()
     u.proto.upvalues = array()
     u.proto.parent = proto
@@ -69,6 +133,7 @@ local function process1(u, proto, scope, parent)
   end
 
   if u.scope ~= nil then
+    u.scope.labels = array()
     u.scope.locals = array()
     u.scope.proto = proto
     u.scope.parent = scope
@@ -77,7 +142,6 @@ local function process1(u, proto, scope, parent)
 
   local u_name = lua54_parser.symbol_names[u[0]]
 
-  -- 暗黙の変数宣言
   if u_name == "funcbody" then
     assert(u.proto == proto)
     assert(u.scope == scope)
@@ -110,41 +174,35 @@ local function process1(u, proto, scope, parent)
     else
       u.var = var
     end
+  elseif u.def_label then
+    u.label = def_label(scope, u.v, u)
   end
 
   for _, v in ipairs(u) do
-    process1(v, proto, scope, u)
+    process1(proto, scope, v)
+  end
+end
+
+local function process2(scope, u)
+  if u.scope ~= nil then
+    scope = u.scope
+  end
+
+  if u.ref_label then
+    u.label = ref_label(scope, u.v, u)
+  end
+
+  for _, v in ipairs(u) do
+    process2(scope, v)
   end
 end
 
 local function process(chunk)
-  --
-  -- scope--
-  --   |    \
-  -- scope-- \
-  --   |    \ \
-  -- scope-- \ \
-  --   |    \ \ \
-  -- scope----proto <= funcbody
-  --   |        |
-  -- scope--    |
-  --   |    \   |
-  -- scope-- \  |
-  --   |    \ \ |
-  -- scope----proto <= funcbody
-  --   |        |
-  -- scope--    |
-  --   |    \   |
-  -- scope-- \  |
-  --   |    \ \ |
-  -- scope----proto <= chunk
-  --   |        |
-  -- scope----proto <= external
-  --
   local external_proto = { locals = array() }
   local external_scope = { locals = array(), proto = external_proto }
   declare(external_scope, "_ENV")
-  process1(chunk, external_proto, external_scope)
+  process1(external_proto, external_scope, chunk)
+  process2(external_scope, chunk)
 end
 
 ---------------------------------------------------------------------------
@@ -153,7 +211,13 @@ local function quote(s)
   return '"' .. string.gsub(s, '[&<>"]', { ['&'] = '&amp;', ['<'] = '&lt;', ['>'] = '&gt;', ['"'] = '&quot;' }) .. '"'
 end
 
-local attrs = { "v", "attribute", "declare", "resolve", "var", "env", "type" }
+local attrs = {
+  "v";
+  "attribute";
+  "declare", "resolve", "var", "env";
+  "def_label", "ref_label", "label";
+  "type";
+}
 if verbose then
   for _, attr in ipairs { "i", "j", "f", "n", "c", "s" } do
     attrs[#attrs + 1] = attr
