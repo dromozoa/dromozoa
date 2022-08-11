@@ -177,6 +177,7 @@ local function process1(proto, scope, u)
   elseif u.def_label then
     u.label = def_label(scope, u.v, u)
   end
+  -- ジャンプ先を後で決めるようにすればワンパスでコード生成が可能。
 
   for _, v in ipairs(u) do
     process1(proto, scope, v)
