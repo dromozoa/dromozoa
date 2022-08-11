@@ -82,6 +82,56 @@ function ()SS=S[1] append(S[3]) S[3].declare=true
 end;
 function ()SS=create(82) append(S[1])
 end;
+function ()SS=S[2] append(S[1],S[3]) SS.binop='add'
+end;
+function ()SS=S[2] append(S[1],S[3]) SS.binop='sub'
+end;
+function ()SS=S[2] append(S[1],S[3]) SS.binop='mul'
+end;
+function ()SS=S[2] append(S[1],S[3]) SS.binop='div'
+end;
+function ()SS=S[2] append(S[1],S[3]) SS.binop='idiv'
+end;
+function ()SS=S[2] append(S[1],S[3]) SS.binop='pow'
+end;
+function ()SS=S[2] append(S[1],S[3]) SS.binop='mod'
+end;
+function ()SS=S[2] append(S[1],S[3]) SS.binop='band'
+end;
+function ()SS=S[2] append(S[1],S[3]) SS.binop='bxor'
+end;
+function ()SS=S[2] append(S[1],S[3]) SS.binop='bor'
+end;
+function ()SS=S[2] append(S[1],S[3]) SS.binop='shr'
+end;
+function ()SS=S[2] append(S[1],S[3]) SS.binop='shl'
+end;
+function ()SS=S[2] append(S[1],S[3]) SS.binop='concat'
+end;
+function ()SS=S[2] append(S[1],S[3]) SS.binop='lt'
+end;
+function ()SS=S[2] append(S[1],S[3]) SS.binop='le'
+end;
+function ()SS=S[2] append(S[1],S[3]) SS.binop='gt'
+end;
+function ()SS=S[2] append(S[1],S[3]) SS.binop='ge'
+end;
+function ()SS=S[2] append(S[1],S[3]) SS.binop='eq'
+end;
+function ()SS=S[2] append(S[1],S[3]) SS.binop='ne'
+end;
+function ()SS=S[2] append(S[1],S[3]) SS.binop='and'
+end;
+function ()SS=S[2] append(S[1],S[3]) SS.binop='or'
+end;
+function ()SS=S[1] append(S[2]) SS.unop='unm'
+end;
+function ()SS=S[1] append(S[2]) SS.unop='not'
+end;
+function ()SS=S[1] append(S[2]) SS.unop='len'
+end;
+function ()SS=S[1] append(S[2]) SS.unop='bnot'
+end;
 function ()SS=S[2]
 end;
 function ()SS=S[2] append(S[1],S[3]) SS=S[0] append(S[2],S[4])
@@ -444,7 +494,7 @@ actions={
 };
 heads={64,65,66,66,67,67,67,68,68,68,68,68,68,68,68,68,68,68,68,68,68,68,69,69,69,70,70,71,72,73,73,74,74,75,75,75,75,76,77,77,78,78,79,79,80,80,80,80,80,81,81,82,82,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,84,84,85,85,85,85,86,86,86,86,87,88,88,89,89,89,90,90,91,91,92,92,93,93,93,94,94,95,95,96,96,96,96,};
 sizes={1,1,1,2,0,2,2,3,1,1,1,2,3,5,4,6,7,1,3,1,2,4,0,2,5,3,5,7,4,2,4,0,3,1,2,2,3,3,1,3,1,3,1,3,1,4,3,4,3,1,3,1,3,1,1,1,1,1,1,1,1,1,1,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,2,1,3,2,4,2,4,2,3,1,1,2,4,5,1,3,1,2,3,1,2,1,3,5,3,1,1,1,1,1,1,1,1,1,};
-semantic_actions={1,2,3,4,5,3,4,6,3,7,3,8,9,10,11,12,13,3,14,3,15,16,17,9,12,18,19,20,21,22,23,1,24,25,25,7,7,26,3,27,28,29,30,31,28,29,29,29,29,32,33,34,31,3,3,3,3,3,3,3,3,3,3,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,7,7,7,7,3,35,1,36,1,36,37,35,34,34,38,39,40,3,41,42,43,35,3,3,44,31,45,46,1,1,1,47,48,49,50,51,52,};
+semantic_actions={1,2,3,4,5,3,4,6,3,7,3,8,9,10,11,12,13,3,14,3,15,16,17,9,12,18,19,20,21,22,23,1,24,25,25,7,7,26,3,27,28,29,30,31,28,29,29,29,29,32,33,34,31,3,3,3,3,3,3,3,3,3,3,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,3,60,1,61,1,61,62,60,34,34,63,64,65,3,66,67,68,60,3,3,69,31,70,71,1,1,1,72,73,74,75,76,77,};
  }
 local metatable = {
   __call = function (self, token)

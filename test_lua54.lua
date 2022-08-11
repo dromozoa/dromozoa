@@ -217,6 +217,7 @@ local attrs = {
   "attribute";
   "declare", "resolve", "var", "env";
   "def_label", "ref_label", "label";
+  "binop", "unop";
   "type";
 }
 if verbose then
