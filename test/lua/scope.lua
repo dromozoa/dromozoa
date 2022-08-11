@@ -61,3 +61,20 @@ until not x
 while false do
   local y
 end
+
+local a = 1
+local b = 2
+local c <const> = 3
+
+local function f1()
+  local function f2()
+    local function r3()
+      b = c
+      a = b
+      print(a,b,c)
+    end
+  end
+end
+
+
+

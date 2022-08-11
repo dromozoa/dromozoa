@@ -6,19 +6,11 @@ local main = function ()
   local SS
   local action_data = (function ()
         local function proto(vararg)
-      return {
-        vararg = vararg;
-        locals = {};
-        labels = {};
-        upvalues = {};
-      }
+      return { vararg = vararg }
     end
 
     local function scope()
-      return {
-        locals = {};
-        labels = {};
-      }
+      return {}
     end
   
 

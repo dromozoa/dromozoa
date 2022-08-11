@@ -169,19 +169,11 @@ local right = parser.grammar.right
 local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
   [[
     local function proto(vararg)
-      return {
-        vararg = vararg;
-        locals = {};
-        labels = {};
-        upvalues = {};
-      }
+      return { vararg = vararg }
     end
 
     local function scope()
-      return {
-        locals = {};
-        labels = {};
-      }
+      return {}
     end
   ]];
 

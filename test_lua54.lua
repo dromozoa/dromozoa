@@ -25,79 +25,48 @@ local lua54_parser = require "dromozoa.compiler.lua54_parser"
 
 ---------------------------------------------------------------------------
 
-local _ = lua54_parser.symbol_names
-
-local function declare_name()
-end
-
-local function resolve_names(u)
-  local name = _[u[0]]
-
-  if name == "for" then
-    print("for", "(1,2,3)")
-    print("for", u[2].v)
-  elseif name == "for_in" then
-    print("for_in", "(1,2,3,4)")
-    for _, v in ipairs(u[2]) do
-      print("for_in", v.v)
-    end
-  elseif name == "local_function" then
-    print("local_function", u[1].v)
-  elseif name == "local" then
-    for _, v in ipairs(u[2]) do
-      print("local", v.v)
-    end
-  elseif name == "funcbody" then
-    if u.self then
-      print("funcbody", "self")
-    end
-    for _, v in ipairs(u[1]) do
-      print("funcbody", v.v)
-    end
-    if u.vararg then
-      print("funcbody", "...")
-    end
-  end
-
-  for i = 1, #u do
-    resolve_names(u[i], u)
-  end
-end
-
 --[[
 
-  変数の参照は、u_i, v_i, L_i で行う
+  scope--
+    |    \
+  scope-- \
+    |    \ \
+  scope-- \ \
+    |    \ \ \
+  scope----proto
+    |        |
+  scope--    |
+    |    \   |
+  scope-- \  |
+    |    \ \ |
+  scope -- proto
+    |        |
+  scope--    |
+    |    \   |
+  scope-- \  |
+    |    \ \ |
+  scope -- proto <= chunk
 
-  proto = {
-    self = true;
-    vararg = true;
-    -- 仮引数の個数
-    max_param = 4;
+  scopeの役割
+  1. name検索  : nameから変数インデックスへの変換
+  2. tbcの管理 : scopeに含まれる変数インデックスの範囲
 
-    locals = {
-      { "name" [, NameToken] };
-    };
-    upvalues = {
-      { "name", "[uv]", index }; -- 親protoのlocalsかupvaluesを参照
-    };
-    labels = {
-      { "name" [, NameToken] };
-    };
-  }
+  name名前探索
+    nameに合致する変数インデックスが見つかるまでscopeをたどる。見つかったら、
+      (index, proto)
+    の組が得られる。
 
-  scope = {
-    parent = scope;
-    proto = proto;
-    locals = { index };
-    labels = { index };
-  }
+  name名前解決
+    nameに合致する変数インデックスが見つかるまでscopeをたどる。見つかったら、
+      (index, proto)
+    の組が得られる。帰りがけに上位値の登録を行いながら戻る
+      (index, proto_n), ..., proto_1, proto_0
+    protoは上位値の表を持つ。
 
-
-
-
-
+  変数と上位値はそれぞれ256個までとする。
 ]]
 
+--[====[
 local function find_scope(u)
   while u.scope == nil do
     u = u.parent
@@ -150,10 +119,6 @@ local function search(u)
 
     scope = scope.parent
   end
-
-
-
-
 end
 
 local function resolve(u, proto, scope)
@@ -210,12 +175,6 @@ local function resolve(u, proto, scope)
     v.parent = u
     resolve(v, proto, scope)
   end
-
-  -- if name == "chunk" or name == "funcbody" then
-  --   for i, v in ipairs(u.proto.locals) do
-  --     print(i, v)
-  --   end
-  -- end
 end
 
 local function process(chunk)
@@ -372,6 +331,104 @@ local function process(chunk)
   resolve(chunk, proto, scope)
 
   -- resolve_names(chunk[1], chunk)
+end
+]====]
+
+---------------------------------------------------------------------------
+
+--[[
+
+  scope--
+    |    \
+  scope-- \
+    |    \ \
+  scope-- \ \
+    |    \ \ \
+  scope----proto <= funcbody
+    |        |
+  scope--    |
+    |    \   |
+  scope-- \  |
+    |    \ \ |
+  scope----proto <= funcbody
+    |        |
+  scope--    |
+    |    \   |
+  scope-- \  |
+    |    \ \ |
+  scope----proto <= chunk
+    |        |
+  scope----proto <= external
+
+]]
+
+local function declare(scope, name, u)
+  scope.locals:append(scope.proto.locals:append{name=name, node=u}:size())
+end
+
+local function resolve(proto, scope, name)
+end
+
+local function process1(u, proto, scope, parent)
+  if u.proto ~= nil then
+    u.proto.parent = proto
+    u.proto.locals = array()
+    u.proto.upvalues = array()
+    proto = u.proto
+  end
+
+  if u.scope ~= nil then
+    u.scope.proto = proto
+    u.scope.parent = scope
+    u.scope.locals = array()
+    scope = u.scope
+  end
+
+  local u_name = lua54_parser.symbol_names[u[0]]
+
+  -- 暗黙の変数宣言
+  if u_name == "funcbody" then
+    assert(u.proto == proto)
+    assert(u.scope == scope)
+    -- colon syntaxで関数が定義されたら、暗黙の仮引数selfを追加する。
+    if proto.self then
+      declare(scope, "self", u)
+    end
+  elseif u_name == "for" then
+    assert(u.scope == scope)
+    -- 内部的に3個の変数を使用する。
+    declare(scope, "(for state)", u)
+    declare(scope, "(for state)", u)
+    declare(scope, "(for state)", u)
+  elseif u_name == "for_in" then
+    -- 内部的に4個の変数を使用する。
+    -- Lua 5.3以前は3個だったが、Lua 5.4でto-be-closed変数が追加された。
+    assert(u.scope == scope)
+    declare(scope, "(for state)", u)
+    declare(scope, "(for state)", u)
+    declare(scope, "(for state)", u)
+    declare(scope, "(for state)", u)
+  end
+
+  if u.declare then
+    declare(scope, u.v, u)
+  end
+
+  if u.resolve then
+    resolve(scope, proto, u.v)
+  end
+
+  for _, v in ipairs(u) do
+    process1(v, proto, scope, u)
+  end
+end
+
+local function process(chunk)
+  -- chunkの外側に_ENVを用意する。
+  local proto = { locals = array() }
+  local scope = { locals = array() }
+  scope.locals:append(proto.locals:append { name = "_ENV" }:size())
+  process1(chunk, proto, scope)
 end
 
 ---------------------------------------------------------------------------
