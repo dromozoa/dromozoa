@@ -84,12 +84,12 @@ local function resolve(scope, name)
   end
 
   for i, v in proto.upvalues:ipairs() do
-    if v.index == var then
+    if v.var == var then
       assert(v.name == name)
       return i + 65536
     end
   end
-  return proto.upvalues:append{name=name, index=var}:size() + 65536
+  return proto.upvalues:append{name=name, var=var}:size() + 65536
 end
 
 local function find_label(scope, name)
@@ -123,13 +123,14 @@ local function ref_label(scope, name, u)
   return label
 end
 
-local function process1(proto, scope, u)
+local function process1(protos, proto, scope, u)
   if u.proto ~= nil then
     u.proto.labels = array()
     u.proto.locals = array()
     u.proto.upvalues = array()
     u.proto.parent = proto
     proto = u.proto
+    protos:append(proto)
   end
 
   if u.scope ~= nil then
@@ -177,10 +178,10 @@ local function process1(proto, scope, u)
   elseif u.def_label then
     u.label = def_label(scope, u.v, u)
   end
-  -- ジャンプ先を後で決めるようにすればワンパスでコード生成が可能。
+  -- ジャンプ先のアドレスを後で決めるようにすればワンパスでコード生成が可能。
 
   for _, v in ipairs(u) do
-    process1(proto, scope, v)
+    process1(protos, proto, scope, v)
   end
 end
 
@@ -199,11 +200,13 @@ local function process2(scope, u)
 end
 
 local function process(chunk)
-  local external_proto = { locals = array() }
-  local external_scope = { locals = array(), proto = external_proto }
-  declare(external_scope, "_ENV")
-  process1(external_proto, external_scope, chunk)
-  process2(external_scope, chunk)
+  local protos = array()
+  local proto = { locals = array() }
+  local scope = { locals = array(), proto = proto }
+  declare(scope, "_ENV")
+  process1(protos, proto, scope, chunk)
+  process2(scope, chunk)
+  return protos
 end
 
 ---------------------------------------------------------------------------
@@ -221,20 +224,12 @@ local attrs = {
   "type";
 }
 if verbose then
-  for _, attr in ipairs { "i", "j", "f", "n", "c", "s" } do
+  for _, attr in ipairs{"i", "j", "f", "n", "c", "s"} do
     attrs[#attrs + 1] = attr
   end
 end
 
-local function dump(out, u, n)
-  if n == nil then
-    n = 0
-  else
-    n = n + 1
-  end
-
-  out:write(("  "):rep(n), "<node")
-  if u[0] ~= nil then out:write(" name=", quote(lua54_parser.symbol_names[u[0]])) end
+local function dump_attrs(out, u, attrs)
   for _, attr in ipairs(attrs) do
     local v = u[attr]
     if v ~= nil then
@@ -247,16 +242,84 @@ local function dump(out, u, n)
       end
     end
   end
+end
+
+local function dump_node(out, u, n)
+  if n == nil then
+    n = 0
+  else
+    n = n + 1
+  end
+
+  out:write(("  "):rep(n), "<node")
+  if u[0] ~= nil then
+    out:write(" name=", quote(lua54_parser.symbol_names[u[0]]))
+  end
+  dump_attrs(out, u, attrs)
 
   if #u == 0 then
     out:write "/>\n"
   else
     out:write ">\n"
     for _, v in ipairs(u) do
-      dump(out, v, n)
+      dump_node(out, v, n)
     end
     out:write(("  "):rep(n), "</node>\n")
   end
+end
+
+local function dump_protos(out, protos)
+  out:write "<protos>\n"
+  for i, proto in protos:ipairs() do
+    out:write("  <proto index=\"", i, "\"")
+    dump_attrs(out, proto, {"self", "vararg"})
+    out:write ">\n"
+
+    if proto.labels:empty() then
+      out:write "    <labels/>\n"
+    else
+      out:write "    <labels>\n"
+      for j, v in proto.labels:ipairs() do
+        out:write("      <label index=\"", j, "\"")
+        dump_attrs(out, v, {"name"})
+        if v.node ~= nil then
+          dump_attrs(out, v.node, {"n", "c"})
+        end
+        out:write "/>\n"
+      end
+      out:write "    </labels>\n"
+    end
+
+    if proto.locals:empty() then
+      out:write "    <locals/>\n"
+    else
+      out:write "    <locals>\n"
+      for j, v in proto.locals:ipairs() do
+        out:write("      <local index=\"", j, "\"")
+        dump_attrs(out, v, {"name"})
+        if v.node ~= nil then
+          dump_attrs(out, v.node, {"attribute", "n", "c"})
+        end
+        out:write "/>\n"
+      end
+      out:write "    </locals>\n"
+    end
+
+    if proto.upvalues:empty() then
+      out:write "    <upvalues/>\n"
+    else
+      out:write "    <upvalues>\n"
+      for j, v in proto.upvalues:ipairs() do
+        out:write("       <upvalue index=\"", j, "\"")
+        dump_attrs(out, v, {"name", "var"})
+        out:write "/>\n"
+      end
+      out:write "    </upvalues>\n"
+    end
+
+    out:write "  </proto>\n"
+  end
+  out:write "</protos>\n"
 end
 
 for i = 2, #arg do
@@ -273,16 +336,20 @@ for i = 2, #arg do
 
   local parse = lua54_parser()
   local root = lua54_regexp(source, source_filename, lua54_parser.max_terminal_symbol, function (token)
-    dump(out, token)
+    dump_node(out, token)
     return parse(token)
   end)
 
   out:write "</nodes>\n"
   out:close()
 
-  process(root)
+  local protos = process(root)
 
   local out = assert(io.open(result_basename .. "_tree.xml", "w"))
-  dump(out, root)
+  dump_node(out, root)
+  out:close()
+
+  local out = assert(io.open(result_basename .. "_protos.xml", "w"))
+  dump_protos(out, protos)
   out:close()
 end
