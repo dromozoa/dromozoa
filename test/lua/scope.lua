@@ -72,9 +72,7 @@ local function f1()
       b = c
       a = b
       print(a,b,c)
+      d = 42
     end
   end
 end
-
-
-
