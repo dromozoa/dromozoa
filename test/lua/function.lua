@@ -1,22 +1,25 @@
-function a()
-  print()
-  print(a)
-  print(a,b)
-  print(a,b,c)
-  return
+-- Copyright (C) 2022 Tomoyuki Fujimori <moyu@dromozoa.com>
+--
+-- This file is part of dromozoa.
+--
+-- dromozoa is free software: you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License as published by
+-- the Free Software Foundation, either version 3 of the License, or
+-- (at your option) any later version.
+--
+-- dromozoa is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
+
+local f1 = function ()
+  f2()
 end
-function b(a)
-  return a
+
+function f2()
+  f1()
 end
-function c(a,b)
-  return a,b
-end
-function d(a,b,c)
-  return a,b,c
-end
-function v(...) end
-function av(a, ...) end
-function a.b.c.d() end
-function e.f.g:h() end
-function i.j() end
-function k:l() end
+

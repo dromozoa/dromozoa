@@ -15,10 +15,64 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local _ = [[
-foo
-]], [[bar
-]], [[
-baz]], [[qux]]
+local a = 1
+local a = a + a
+local a = a + a
 
-local _ = [[]=],]], [=[]]]=], [==[]]]=]]]]==]
+do
+  local a = a + a
+end
+
+do
+  local a = a + a
+  do
+    local a = a + a
+  end
+end
+
+do
+  local a = a + a
+  do
+    local a = a + a
+    do
+      local a = a + a
+    end
+  end
+end
+
+local i = 1
+local j = 2
+local k = 3
+
+for i = i, j do end
+for i = i, j, k do end
+
+local t = {}
+local f = next
+local k = nil
+local c = nil
+
+for k, v in t, f, k, c do end
+
+repeat
+  local x
+until not x
+
+while false do
+  local y
+end
+
+local a = 1
+local b = 2
+local c <const> = 3
+
+local function f1()
+  local function f2()
+    local function r3()
+      b = c
+      a = b
+      print(a,b,c)
+      d = 42
+    end
+  end
+end

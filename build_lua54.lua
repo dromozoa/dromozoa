@@ -154,8 +154,29 @@ local expect = parser.grammar.expect
 local left = parser.grammar.left
 local right = parser.grammar.right
 
--- 抽象構文木を愚直に作成する。
+-- 使わない属性、使えない属性は修正する
+-- attribute  Lua 5.4の局所変数の属性
+-- proto      プロトタイプ (vararg,selfを外からつける）
+-- scope      局所変数とラベルのスコープ
+
+-- declare    Nameにつける  変数を宣言する
+-- resolve    Nameにつける  変数を参照する
+
+-- 不要かも？
+-- type       定数の副種別
+-- stat       文ノードにつける
+
 local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
+  [[
+    local function proto(vararg)
+      return { vararg = vararg }
+    end
+
+    local function scope()
+      return {}
+    end
+  ]];
+
   expect(3);
 
   left "or";
@@ -171,170 +192,179 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
   right "not" "#" "UNM" "BNOT";
   right "^";
 
-  chunk = _"block";
+  chunk
+    = _"block"                                             %"$$.proto=proto(true) $$.scope=scope()";
 
   block
-    = _"block_" %"$$=$1"
-    + _"block_" "retstat" %"$$=$1 append($2)";
+    = _"block_"                                            %"$$=$1"
+    + _"block_" "retstat"                                  %"$$=$1 append($2) $2.stat=true";
 
   block_
-    = _ %"$$=create($block)"
-    + _"block_" ";" %"$$=$1"
-    + _"block_" "stat" %"$$=$1 append($2)";
+    = _                                                    %"$$=create($block)"
+    + _"block_" ";"                                        %"$$=$1"
+    + _"block_" "stat"                                     %"$$=$1 append($2) $2.stat=true";
 
   stat
-    = _"varlist" "=" "explist"
-    + _"functioncall"
-    + _"label"
-    + _"break"
-    + _"goto" "Name"
-    + _"do" "block" "end"
-    + _"while" "exp" "do" "block" "end"
-    + _"repeat" "block" "until" "exp"
-    + _"if" "exp" "then" "block" "elseif_exp_then_block" "else_block" "end"
-    + _"for" "Name" "=" "exp" "," "exp" "do" "block" "end"
-    + _"for" "Name" "=" "exp" "," "exp" "," "exp" "do" "block" "end"
-    + _"for" "namelist" "in" "explist" "do" "block" "end"
-    + _"function" "funcname" "funcbody"
-    + _"local" "function" "Name" "funcbody"
-    + _"local" "attnamelist"
-    + _"local" "attnamelist" "=" "explist";
+    = _"varlist" "=" "explist"                             %"$$=$2 append($3,$1)"
+    + _"functioncall"                                      %"$$=$1"
+    + _"label"                                             %"$$=$1 append($2)"
+    + _"break"                                             %"$$=$1"
+    + _"goto" "Name"                                       %"$$=$1 append($2) $2.ref_label=true"
+    + _"do" "block" "end"                                  %"$$=$1 append($2) $2.scope=scope()"
+    + _"while" "exp" "do" "block" "end"                    %"$$=$1 append($2,$4) $4.scope=scope()"
+    + _"repeat" "block" "until" "exp"                      %"$$=$1 append($2,$4) $$.scope=scope()"
+    + _"if" "exp" "then" "block" "else_clause" "end"       %"$$=$1 append($2,$4,$5) $4.scope=scope()"
+    + _"for" "Name" "=" "exp2_3" "do" "block" "end"        %"$$=$1 append($4,$2,$6) $$.scope=scope() $2.declare=true"
+    + _"for_in"                                            %"$$=$1"
+    + _"function" "funcname" "funcbody"                    %"$$=$1 append($3,$2) $3.proto.self=$2.self"
+    + _"local_function"                                    %"$$=$1"
+    + _"local" "attnamelist"                               %"$$=$1 append(create($explist),$2)"
+    + _"local" "attnamelist" "=" "explist"                 %"$$=$1 append($4,$2)";
 
-  elseif_exp_then_block
-    = _
-    + _"elseif_exp_then_block" "elseif" "exp" "then" "block";
+  else_clause
+    = _                                                    %"$$=create($else)"
+    + _"else" "block"                                      %"$$=$1 append($2) $2.scope=scope()"
+    + _"elseif" "exp" "then" "block" "else_clause"         %"$$=$1 append($2,$4,$5) $4.scope=scope()";
 
-  else_block
-    = _
-    + _"else" "block";
+  exp2_3
+    = _"exp" "," "exp"                                     %"$$=create($explist) append($1,$3)"
+    + _"exp" "," "exp" "," "exp"                           %"$$=create($explist) append($1,$3,$5)";
+
+  for_in
+    = _"for" "namelist" "in" "explist" "do" "block" "end"  %"$$=$0 append($4,$2,$6) $$.scope=scope()";
+
+  local_function
+    = _"local" "function" "Name" "funcbody"                %"$$=$0 append($3,$4) $3.declare=true";
 
   attnamelist
-    = _"Name" "attrib"
-    + _"attnamelist" "," "Name" "attrib";
+    = _"Name" "attrib"                                     %"$$=create($namelist) append($1) $1.attribute=$2.v $1.declare=true"
+    + _"attnamelist" "," "Name" "attrib"                   %"$$=$1 append($3) $3.attribute=$4.v $3.declare=true";
 
   attrib
     = _
-    + _"<" "Name" ">";
+    + _"<" "Name" ">"                                      %"$$=$0 $$.v=$2.v";
 
   retstat
-    = _"return"
-    + _"return" ";" %"$$=$0 append($1)"
-    + _"return" "explist"
-    + _"return" "explist" ";" %"$$=$0 append($1,$2)";
+    = _"return"                                            %"$$=$1 append(create($explist))"
+    + _"return" ";"                                        %"$$=$1 append(create($explist))"
+    + _"return" "explist"                                  %"$$=$1 append($2)"
+    + _"return" "explist" ";"                              %"$$=$1 append($2)";
 
-  label = _"::" "Name" "::";
+  label
+    = _"::" "Name" "::"                                    %"$$=$0 append($2) $2.def_label=true";
 
   funcname
-    = _"funcname_" %"$$=$1"
-    + _"funcname_" ":" "Name";
+    = _"funcname_"                                         %"$$=$1"
+    + _"funcname_" ":" "Name"                              %"$$=$2 append($1,$3) $$.self=true";
 
   funcname_
-    = _"Name" %"$$=create($funcname) append($1)"
-    + _"funcname_" "." "Name" %"$$=create($funcname) append($1,$2,$3)";
+    = _"Name"                                              %"$$=$1 $$.resolve=true"
+    + _"funcname_" "." "Name"                              %"$$=$2 append($1,$3)";
 
   varlist
-    = _"var" %"$$=create($varlist) append($1)"
-    + _"varlist" "," "var" %"$$=$1 append($3)";
+    = _"var"                                               %"$$=create($varlist) append($1)"
+    + _"varlist" "," "var"                                 %"$$=$1 append($3)";
 
   var
-    = _"Name"
-    + _"prefixexp" "[" "exp" "]"
-    + _"prefixexp" "." "Name"
-    + _"functioncall" "[" "exp" "]"
-    + _"functioncall" "." "Name";
+    = _"Name"                                              %"$$=$1 $$.resolve=true"
+    + _"prefixexp" "[" "exp" "]"                           %"$$=$2 append($1,$3)"
+    + _"prefixexp" "." "Name"                              %"$$=$2 append($1,$3)"
+    + _"functioncall" "[" "exp" "]"                        %"$$=$2 append($1,$3)"
+    + _"functioncall" "." "Name"                           %"$$=$2 append($1,$3)";
 
   namelist
-    = _"Name" %"$$=create($namelist) append($1)"
-    + _"namelist" "," "Name" %"$$=$1 append($3)";
+    = _"Name"                                              %"$$=create($namelist) append($1) $1.declare=true"
+    + _"namelist" "," "Name"                               %"$$=$1 append($3) $3.declare=true";
 
   explist
-    = _"exp" %"$$=create($explist) append($1)"
-    + _"explist" "," "exp" %"$$=$1 append($3)";
+    = _"exp"                                               %"$$=create($explist) append($1)"
+    + _"explist" "," "exp"                                 %"$$=$1 append($3)";
 
   exp
-    = _"nil"
-    + _"false"
-    + _"true"
-    + _"Numeral"
-    + _"LiteralString"
-    + _"..."
-    + _"functiondef"
-    + _"prefixexp"
-    + _"functioncall"
-    + _"tableconstructor"
+    = _"nil"                                               %"$$=$1"
+    + _"false"                                             %"$$=$1"
+    + _"true"                                              %"$$=$1"
+    + _"Numeral"                                           %"$$=$1"
+    + _"LiteralString"                                     %"$$=$1"
+    + _"..."                                               %"$$=$1"
+    + _"functiondef"                                       %"$$=$1"
+    + _"prefixexp"                                         %"$$=$1"
+    + _"functioncall"                                      %"$$=$1"
+    + _"tableconstructor"                                  %"$$=$1"
     -- binop
-    + _"exp" "+" "exp"
-    + _"exp" "-" "exp"
-    + _"exp" "*" "exp"
-    + _"exp" "/" "exp"
-    + _"exp" "//" "exp"
-    + _"exp" "^" "exp"
-    + _"exp" "%" "exp"
-    + _"exp" "&" "exp"
-    + _"exp" "~" "exp"
-    + _"exp" "|" "exp"
-    + _"exp" ">>" "exp"
-    + _"exp" "<<" "exp"
-    + _"exp" ".." "exp"
-    + _"exp" "<" "exp"
-    + _"exp" "<=" "exp"
-    + _"exp" ">" "exp"
-    + _"exp" ">=" "exp"
-    + _"exp" "==" "exp"
-    + _"exp" "~=" "exp"
-    + _"exp" "and" "exp"
-    + _"exp" "or" "exp"
+    + _"exp" "+"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='add'"
+    + _"exp" "-"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='sub'"
+    + _"exp" "*"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='mul'"
+    + _"exp" "/"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='div'"
+    + _"exp" "//"  "exp"                                   %"$$=$2 append($1,$3) $$.binop='idiv'"
+    + _"exp" "^"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='pow'"
+    + _"exp" "%"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='mod'"
+    + _"exp" "&"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='band'"
+    + _"exp" "~"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='bxor'"
+    + _"exp" "|"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='bor'"
+    + _"exp" ">>"  "exp"                                   %"$$=$2 append($1,$3) $$.binop='shr'"
+    + _"exp" "<<"  "exp"                                   %"$$=$2 append($1,$3) $$.binop='shl'"
+    + _"exp" ".."  "exp"                                   %"$$=$2 append($1,$3) $$.binop='concat'"
+    + _"exp" "<"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='lt'"
+    + _"exp" "<="  "exp"                                   %"$$=$2 append($1,$3) $$.binop='le'"
+    + _"exp" ">"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='gt'"
+    + _"exp" ">="  "exp"                                   %"$$=$2 append($1,$3) $$.binop='ge'"
+    + _"exp" "=="  "exp"                                   %"$$=$2 append($1,$3) $$.binop='eq'"
+    + _"exp" "~="  "exp"                                   %"$$=$2 append($1,$3) $$.binop='ne'"
+    + _"exp" "and" "exp"                                   %"$$=$2 append($1,$3) $$.binop='and'"
+    + _"exp" "or"  "exp"                                   %"$$=$2 append($1,$3) $$.binop='or'"
     -- unop
-    + _"-" "exp" :prec "UNM"
-    + _"not" "exp"
-    + _"#" "exp"
-    + _"~" "exp" :prec "BNOT";
+    + _"-"   "exp" :prec "UNM"                             %"$$=$1 append($2) $$.unop='unm'"
+    + _"not" "exp"                                         %"$$=$1 append($2) $$.unop='not'"
+    + _"#"   "exp"                                         %"$$=$1 append($2) $$.unop='len'"
+    + _"~"   "exp" :prec "BNOT"                            %"$$=$1 append($2) $$.unop='bnot'";
 
   -- The Complete Syntax of LuaのEBNFは、prefixexpとfunctioncallが相互に依存し
   -- ている。そのまま利用するとshift/shift競合が発生する。これを回避するため、
   -- prefixexpを参照する箇所にfunctioncallを展開する。
   prefixexp
-    = _"var"
-    + _"(" "exp" ")";
+    = _"var"                                               %"$$=$1"
+    + _"(" "exp" ")"                                       %"$$=$2";
 
   functioncall
     = _"prefixexp" "args"
-    + _"prefixexp" ":" "Name" "args"
+    + _"prefixexp" ":" "Name" "args"                       %"$$=$2 append($1,$3) $$=$0 append($2,$4)"
     + _"functioncall" "args"
-    + _"functioncall" ":" "Name" "args";
+    + _"functioncall" ":" "Name" "args"                    %"$$=$2 append($1,$3) $$=$0 append($2,$4)";
 
   args
-    = _"(" ")"
-    + _"(" "explist" ")"
-    + _"tableconstructor"
-    + _"LiteralString";
+    = _"(" ")"                                             %"$$=create($explist)"
+    + _"(" "explist" ")"                                   %"$$=$2"
+    + _"tableconstructor"                                  %"$$=create($explist) append($1)"
+    + _"LiteralString"                                     %"$$=create($explist) append($1)";
 
-  functiondef = _"function" "funcbody";
+  functiondef
+    = _"function" "funcbody"                               %"$$=$0 append($2)";
 
   funcbody
-    = _"(" ")" "block" "end"
-    + _"(" "parlist" ")" "block" "end";
+    = _"(" ")" "block" "end"                               %"$$=$0 append(create($namelist),$3) $$.proto=proto() $$.scope=scope()"
+    + _"(" "parlist" ")" "block" "end"                     %"$$=$0 append($2,$4) $$.proto=proto($2.vararg) $$.scope=scope()";
 
   parlist
-    = _"namelist"
-    + _"namelist" "," "..."
-    + _"...";
+    = _"namelist"                                          %"$$=$1"
+    + _"namelist" "," "..."                                %"$$=$1 $$.vararg=true"
+    + _"..."                                               %"$$=create($namelist) $$.vararg=true";
 
   tableconstructor
-    = _"{" "}"
-    + _"{" "fieldlist" "}";
+    = _"{" "}"                                             %"$$=create($fieldlist)"
+    + _"{" "fieldlist" "}"                                 %"$$=$2";
 
   fieldlist
-    = _"fieldlist_" %"$$=$1"
-    + _"fieldlist_" "fieldsep" %"$$=$1";
+    = _"fieldlist_"                                        %"$$=$1"
+    + _"fieldlist_" "fieldsep"                             %"$$=$1";
 
   fieldlist_
-    = _"field" %"$$=create($fieldlist) append($1)"
-    + _"fieldlist_" "fieldsep" "field" %"$$=$1 append($3)";
+    = _"field"                                             %"$$=create($fieldlist) append($1)"
+    + _"fieldlist_" "fieldsep" "field"                     %"$$=$1 append($3)";
 
   field
-    = _"[" "exp" "]" "=" "exp"
-    + _"Name" "=" "exp"
+    = _"[" "exp" "]" "=" "exp"                             %"$$=$0 append($5,$2)"
+    + _"Name" "=" "exp"                                    %"$$=$0 append($3,$1)"
     + _"exp";
 
   fieldsep
@@ -342,14 +372,14 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _";";
 
   LiteralString
-    = _"LongLiteralString"
-    + _"ShortLiteralString";
+    = _"LongLiteralString"                                 %"$$=$0 $$.v=$1.v $$.type='LongLiteralString'"
+    + _"ShortLiteralString"                                %"$$=$0 $$.v=$1.v $$.type='ShortLiteralString'";
 
   Numeral
-    = _"DecimalIntegerNumeral"
-    + _"DecimalFloatingNumeral"
-    + _"HexadecimalIntegerNumeral"
-    + _"HexadecimalFloatingNumeral";
+    = _"DecimalIntegerNumeral"                             %"$$=$0 $$.v=$1.v $$.type='DecimalIntegerNumeral'"
+    + _"DecimalFloatingNumeral"                            %"$$=$0 $$.v=$1.v $$.type='DecimalFloatingNumeral'"
+    + _"HexadecimalIntegerNumeral"                         %"$$=$0 $$.v=$1.v $$.type='HexadecimalIntegerNumeral'"
+    + _"HexadecimalFloatingNumeral"                        %"$$=$0 $$.v=$1.v $$.type='HexadecimalFloatingNumeral'";
 }))
 
 for _, message in conflictions:ipairs() do

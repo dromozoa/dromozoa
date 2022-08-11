@@ -15,12 +15,10 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local a,b,c=1,2,3
-local x
-local y <const> = [=[print{a=2}
-print(a, 69, 666)
-print(42)
-]=]
-local z
-
-
+local _ =
+  function () return end,
+  function () return; end,
+  function () return 1 end,
+  function () return 2; end,
+  function () return 3,4 end,
+  function () return 5,6; end

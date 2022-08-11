@@ -15,10 +15,13 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local _ = [[
-foo
-]], [[bar
-]], [[
-baz]], [[qux]]
-
-local _ = [[]=],]], [=[]]]=], [==[]]]=]]]]==]
+local a
+if a then
+  a = 1
+elseif a then
+  a = 2
+elseif a then
+  a = 3
+else
+  a = 4
+end

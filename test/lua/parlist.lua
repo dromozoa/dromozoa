@@ -15,10 +15,29 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local _ = [[
-foo
-]], [[bar
-]], [[
-baz]], [[qux]]
+local x = {}
+local y = {}
+local f1
+local f2
+local f3
 
-local _ = [[]=],]], [=[]]]=], [==[]]]=]]]]==]
+function f1() end
+function f2(a) end
+function f3(a,...) end
+function f4(a,b) end
+function f5(a,b,...) end
+function f6(...) end
+
+function x.f1() end
+function x.f2(a) end
+function x.f3(a,...) end
+function x.f4(a,b) end
+function x.f5(a,b,...) end
+function x.f6(...) end
+
+function y:f1() end
+function y:f2(a) end
+function y:f3(a,...) end
+function y:f4(a,b) end
+function y:f5(a,b,...) end
+function y:f6(...) end

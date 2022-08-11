@@ -20,409 +20,231 @@ local verbose = os.getenv "VERBOSE" == "1"
 local dir = assert(...)
 
 local array = require "dromozoa.array"
-local regexp = {
-  pattern = require "dromozoa.regexp.pattern";
-  machine = require "dromozoa.regexp.machine";
-  compile = require "dromozoa.regexp.compile";
-}
-local parser = {
-  grammar = require "dromozoa.parser.grammar";
-  lalr = require "dromozoa.parser.lalr";
-  compile = require "dromozoa.parser.compile";
-}
+local lua54_regexp = require "dromozoa.compiler.lua54_regexp"
+local lua54_parser = require "dromozoa.compiler.lua54_parser"
 
-local _ = regexp.pattern
+---------------------------------------------------------------------------
 
-local token_names = array()
-
-local regexp_filename = dir .. "/test_lua54_regexp.lua"
-local out = assert(io.open(regexp_filename, "w"))
-out:write(regexp.compile {
-  "local ra";
-
-  long_comment = regexp.machine.guard("freturn()", {
-    _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
-    _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
-    _(_);
-  });
-
-  long_literal_string = regexp.machine.guard("freturn()", {
-    _"\n"/"append(0x0A) ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
-    _"\r"/"append(0x0A) ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
-    _(_)/"append(fc)";
-  });
-
-  short_literal_string = regexp.machine.guard("freturn()", {
-    _"\\" + _{
-      _"a"/"append(0x07)";
-      _"f"/"append(0x0C)";
-      _"n"/"append(0x0A)";
-      _"r"/"append(0x0D)";
-      _"t"/"append(0x09)";
-      _"v"/"append(0x0B)";
-      _"\\"/"append(fc)";
-      _"\""/"append(fc)";
-      _"\'"/"append(fc)";
-      _"\n"/"append(0x0A) ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
-      _"\r"/"append(0x0A) ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
-      _"z" + _{
-        _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
-        _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
-        _{" \f\t\v"}*"+"
-      }*"*";
-      _"x" + _{
-        _["09"]/"ra=fc-${<0>}";
-        _["af"]/"ra=fc-${<a>}+10";
-        _["AF"]/"ra=fc-${<A>}+10";
-      } + _{
-        _["09"]/"append(ra*16+fc-${<0>})";
-        _["af"]/"append(ra*16+fc-${<a>}+10)";
-        _["AF"]/"append(ra*16+fc-${<A>}+10)";
-      };
-      _"u" + _"{"/"ra=0" + _{
-        _["09"]/"ra=ra*16+fc-${<0>}";
-        _["af"]/"ra=ra*16+fc-${<a>}+10";
-        _["AF"]/"ra=ra*16+fc-${<A>}+10";
-      }*"+" + _"}"/"fassert(ra<=0x7FFFFFFF,'UTF-8 value too large') append_unicode(ra)";
-    };
-
-    (_"\\" + _["09"]/"ra=fc-${<0>}" + _["09"]/"ra=ra*10+fc-${<0>}"*{0,2}) %"fassert(ra<=255,'decimal escape too large') append(ra)";
-
-    _(_)/"append(fc)";
-  });
-
-  regexp.machine.lexer(token_names, {
-    ----------------------------------------------------------------------------
-
-    _{
-      _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
-      _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
-      _{" \f\t\v"}*"+";
-    }*"+";
-
-    ----------------------------------------------------------------------------
-
-    (_"--" + _"["/"guard_clear(${<]>})" + (_"="/"guard_append(fc)")*"*" + _"["/"guard_append(${<]>})") %"fcall($long_comment) push()";
-
-    _"--" + -_{"\n\r"}*"*";
-
-    ----------------------------------------------------------------------------
-
-    LongLiteralString = (_"["/"guard_clear(${<]>})" + (_"="/"guard_append(fc)")*"*" + _"["/"guard_append(${<]>})" + _{
-      _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
-      _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
-    }*"?") %"clear() fcall($long_literal_string) push(true)";
-
-    ShortLiteralString = _{"\'\""}/"guard_clear(fc)" %"clear() fcall($short_literal_string) push(true)";
-
-    ----------------------------------------------------------------------------
-
-    -- 8進数は存在しないのでleading zerosが許容される。
-    DecimalIntegerNumeral = _["09"]*"+";
-
-    -- C言語のリテラルのdecimal-floating-constantに類似しているが、以下の点で異
-    -- なる。
-    -- 1. 小数点も指数部もない場合はDecimalIntegerNumeralがマッチするので除外し
-    --    ない。
-    -- 2. 接尾辞は持たない。
-    DecimalFloatingNumeral = _{
-      _["09"]*"*" + _"." + _["09"]*"+";
-      _["09"]*"+" + _"."*"?";
-    } + (_{"eE"} + _{"+-"}*"?" + _["09"]*"+")*"?";
-
-    HexadecimalIntegerNumeral = _"0" + _{"xX"} + _["09AFaf"]*"+";
-
-    -- C言語のリテラルのhexadecimal-floating-constantに類似しているが、以下の点
-    -- で異なる。
-    -- 1. 指数部を省略できる。C言語のリテラルでは指数を省略できないが、strtodで
-    --    は省略できる。
-    -- 2. 小数点も指数部もない場合はHexadecimalIntegerNumeralがマッチするので除
-    --    外しない。
-    -- 3. 接尾辞は持たない。
-    HexadecimalFloatingNumeral = _"0" + _{"xX"} + _{
-      _["09AFaf"]*"*" + _"." + _["09AFaf"]*"+";
-      _["09AFaf"]*"+" + _"."*"?";
-    } + (_{"pP"} + _{"+-"}*"?" + _["09"]*"+")*"?"
-    ;
-
-    ----------------------------------------------------------------------------
-
-    _"and";      _"break";    _"do";       _"else";     _"elseif";   _"end";
-    _"false";    _"for";      _"function"; _"goto";     _"if";       _"in";
-    _"local";    _"nil";      _"not";      _"or";       _"repeat";   _"return";
-    _"then";     _"true";     _"until";    _"while";
-
-    _"+";   _"-";   _"*";   _"/";   _"%";   _"^";   _"#";
-    _"&";   _"~";   _"|";   _"<<";  _">>";  _"//";
-    _"==";  _"~=";  _"<=";  _">=";  _"<";   _">";   _"=";
-    _"(";   _")";   _"{";   _"}";   _"[";   _"]";   _"::";
-    _";";   _":";   _",";   _".";   _"..";  _"...";
-
-    ----------------------------------------------------------------------------
-
-    Name = _["AZaz_"] + _["09AZaz_"]*"*";
-  });
-})
-out:close()
-
-local _ = parser.grammar.body
-local expect = parser.grammar.expect
-local left = parser.grammar.left
-local right = parser.grammar.right
-
--- 抽象構文木を愚直に作成する。
-local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
-  expect(3);
-
-  left "or";
-  left "and";
-  left "<" ">" "<=" ">=" "~=" "==";
-  left "|";
-  left "~";
-  left "&";
-  left "<<" ">>";
-  right "..";
-  left "+" "-";
-  left "*" "/" "//" "%";
-  right "not" "#" "UNM" "BNOT";
-  right "^";
-
-  chunk = _"block";
-
-  block
-    = _"block_" %"$$=$1"
-    + _"block_" "retstat" %"$$=$1 append($2)";
-
-  block_
-    = _ %"$$=create($block)"
-    + _"block_" ";" %"$$=$1"
-    + _"block_" "stat" %"$$=$1 append($2)";
-
-  stat
-    = _"varlist" "=" "explist"
-    + _"functioncall"
-    + _"label"
-    + _"break"
-    + _"goto" "Name"
-    + _"do" "block" "end"
-    + _"while" "exp" "do" "block" "end"
-    + _"repeat" "block" "until" "exp"
-    + _"if" "exp" "then" "block" "elseif_exp_then_block" "else_block" "end"
-    + _"for" "Name" "=" "exp" "," "exp" "do" "block" "end"
-    + _"for" "Name" "=" "exp" "," "exp" "," "exp" "do" "block" "end"
-    + _"for" "namelist" "in" "explist" "do" "block" "end"
-    + _"function" "funcname" "funcbody"
-    + _"local" "function" "Name" "funcbody"
-    + _"local" "attnamelist"
-    + _"local" "attnamelist" "=" "explist";
-
-  elseif_exp_then_block
-    = _
-    + _"elseif_exp_then_block" "elseif" "exp" "then" "block";
-
-  else_block
-    = _
-    + _"else" "block";
-
-  attnamelist
-    = _"Name" "attrib"
-    + _"attnamelist" "," "Name" "attrib";
-
-  attrib
-    = _
-    + _"<" "Name" ">";
-
-  retstat
-    = _"return"
-    + _"return" ";" %"$$=$0 append($1)"
-    + _"return" "explist"
-    + _"return" "explist" ";" %"$$=$0 append($1,$2)";
-
-  label = _"::" "Name" "::";
-
-  funcname
-    = _"funcname_" %"$$=$1"
-    + _"funcname_" ":" "Name";
-
-  funcname_
-    = _"Name" %"$$=create($funcname) append($1)"
-    + _"funcname_" "." "Name" %"$$=create($funcname) append($1,$2,$3)";
-
-  varlist
-    = _"var" %"$$=create($varlist) append($1)"
-    + _"varlist" "," "var" %"$$=$1 append($3)";
-
-  var
-    = _"Name"
-    + _"prefixexp" "[" "exp" "]"
-    + _"prefixexp" "." "Name"
-    + _"functioncall" "[" "exp" "]"
-    + _"functioncall" "." "Name";
-
-  namelist
-    = _"Name" %"$$=create($namelist) append($1)"
-    + _"namelist" "," "Name" %"$$=$1 append($3)";
-
-  explist
-    = _"exp" %"$$=create($explist) append($1)"
-    + _"explist" "," "exp" %"$$=$1 append($3)";
-
-  exp
-    = _"nil"
-    + _"false"
-    + _"true"
-    + _"Numeral"
-    + _"LiteralString"
-    + _"..."
-    + _"functiondef"
-    + _"prefixexp"
-    + _"functioncall"
-    + _"tableconstructor"
-    -- binop
-    + _"exp" "+" "exp"
-    + _"exp" "-" "exp"
-    + _"exp" "*" "exp"
-    + _"exp" "/" "exp"
-    + _"exp" "//" "exp"
-    + _"exp" "^" "exp"
-    + _"exp" "%" "exp"
-    + _"exp" "&" "exp"
-    + _"exp" "~" "exp"
-    + _"exp" "|" "exp"
-    + _"exp" ">>" "exp"
-    + _"exp" "<<" "exp"
-    + _"exp" ".." "exp"
-    + _"exp" "<" "exp"
-    + _"exp" "<=" "exp"
-    + _"exp" ">" "exp"
-    + _"exp" ">=" "exp"
-    + _"exp" "==" "exp"
-    + _"exp" "~=" "exp"
-    + _"exp" "and" "exp"
-    + _"exp" "or" "exp"
-    -- unop
-    + _"-" "exp" :prec "UNM"
-    + _"not" "exp"
-    + _"#" "exp"
-    + _"~" "exp" :prec "BNOT";
-
-  -- The Complete Syntax of LuaのEBNFは、prefixexpとfunctioncallが相互に依存し
-  -- ている。そのまま利用するとshift/shift競合が発生する。これを回避するため、
-  -- prefixexpを参照する箇所にfunctioncallを展開する。
-  prefixexp
-    = _"var"
-    + _"(" "exp" ")";
-
-  functioncall
-    = _"prefixexp" "args"
-    + _"prefixexp" ":" "Name" "args"
-    + _"functioncall" "args"
-    + _"functioncall" ":" "Name" "args";
-
-  args
-    = _"(" ")"
-    + _"(" "explist" ")"
-    + _"tableconstructor"
-    + _"LiteralString";
-
-  functiondef = _"function" "funcbody";
-
-  funcbody
-    = _"(" ")" "block" "end"
-    + _"(" "parlist" ")" "block" "end";
-
-  parlist
-    = _"namelist"
-    + _"namelist" "," "..."
-    + _"...";
-
-  tableconstructor
-    = _"{" "}"
-    + _"{" "fieldlist" "}";
-
-  fieldlist
-    = _"fieldlist_" %"$$=$1"
-    + _"fieldlist_" "fieldsep" %"$$=$1";
-
-  fieldlist_
-    = _"field" %"$$=create($fieldlist) append($1)"
-    + _"fieldlist_" "fieldsep" "field" %"$$=$1 append($3)";
-
-  field
-    = _"[" "exp" "]" "=" "exp"
-    + _"Name" "=" "exp"
-    + _"exp";
-
-  fieldsep
-    = _","
-    + _";";
-
-  LiteralString
-    = _"LongLiteralString"
-    + _"ShortLiteralString";
-
-  Numeral
-    = _"DecimalIntegerNumeral"
-    + _"DecimalFloatingNumeral"
-    + _"HexadecimalIntegerNumeral"
-    + _"HexadecimalFloatingNumeral";
-}))
-
-local out = assert(io.open(dir .. "/test_lua54_parser.txt", "w"))
-
-out:write(("="):rep(75), "\n")
-for i, production in grammar.productions:ipairs() do
-  out:write(("  [%4d] "):format(i), grammar.symbol_names:get(production.head), " ->")
-  for _, symbol in production.body:ipairs() do
-    out:write(" ", grammar.symbol_names:get(symbol))
+local function compiler_error(message, u)
+  if u ~= nil and u.f ~= nil and u.n ~= nil and u.c ~= nil then
+    error(u.f .. ":" .. u.n .. ":" .. u.c .. ": compiler error (" .. message .. ")")
+  else
+    error("compiler error (" .. message .. ")")
   end
-  out:write "\n"
 end
 
-for i, items in data.lalr1_set_of_items:ipairs() do
-  out:write(("="):rep(75), "\nI_", i, "\n")
-  if not data.transitions[i]:empty() then
-    for symbol, j in data.transitions[i]:pairs() do
-      out:write("  I_", i, " -> I_", j, " ", grammar.symbol_names:get(symbol), "\n")
-    end
-    out:write "\n"
-  end
-  for _, item in items:ipairs() do
-    local production = grammar.productions:get(item.index)
-    if production.body:get(item.dot) == nil then
-      out:write(("  [%4d] "):format(item.index), grammar.symbol_names:get(production.head), " ->")
-      for j, symbol in production.body:ipairs() do
-        out:write(" ", grammar.symbol_names:get(symbol))
+---------------------------------------------------------------------------
+
+-- scope--
+--   |    \
+-- scope-- \
+--   |    \ \
+-- scope-- \ \
+--   |    \ \ \
+-- scope----proto <= funcbody
+--   |        |
+-- scope--    |
+--   |    \   |
+-- scope-- \  |
+--   |    \ \ |
+-- scope----proto <= funcbody
+--   |        |
+-- scope--    |
+--   |    \   |
+-- scope-- \  |
+--   |    \ \ |
+-- scope----proto <= chunk
+--   |        |
+-- scope----proto <= external
+
+local function declare(scope, name, u)
+  local var = scope.proto.locals:append{name=name, node=u}:size()
+  scope.locals:append(var)
+  return var
+end
+
+local function resolve(scope, name)
+  local proto = scope.proto
+  repeat
+    for i = scope.locals:size(), 1, -1 do
+      local var = scope.locals:get(i)
+      if proto.locals:get(var).name == name then
+        return var
       end
-      out:write(", ", grammar.symbol_names:get(item.la), "\n")
+    end
+    scope = scope.parent
+    if scope == nil then
+      return
+    end
+  until proto ~= scope.proto
+
+  local var = resolve(scope, name)
+  if var == nil then
+    return
+  end
+
+  for i, v in proto.upvalues:ipairs() do
+    if v.var == var then
+      assert(v.name == name)
+      return i + 65536
     end
   end
+  return proto.upvalues:append{name=name, var=var}:size() + 65536
 end
-out:write(("="):rep(75), "\n")
 
-for _, message in conflictions:ipairs() do
-  out:write(message, "\n")
-  if message:find "^%[warn%]" then
-    print(message)
+local function find_label(scope, name)
+  local proto = scope.proto
+  repeat
+    for i, label in scope.labels:ipairs() do
+      local v = proto.labels:get(label)
+      if v.name == name then
+        return label, v
+      end
+    end
+    scope = scope.parent
+  until proto ~= scope.proto
+end
+
+local function def_label(scope, name, u)
+  local label, v = find_label(scope, name)
+  if label ~= nil then
+    compiler_error("label " .. name .. " already defined on line " .. v.node.n, u)
+  end
+  local label = scope.proto.labels:append{name=name, node=u}:size()
+  scope.labels:append(label)
+  return label
+end
+
+local function ref_label(scope, name, u)
+  local label = find_label(scope, name)
+  if label == nil then
+    compiler_error("no visible label " .. name, u)
+  end
+  return label
+end
+
+local function process1(protos, proto, scope, u)
+  if u.proto ~= nil then
+    u.proto.labels = array()
+    u.proto.locals = array()
+    u.proto.upvalues = array()
+    u.proto.parent = proto
+    proto = u.proto
+    protos:append(proto)
+  end
+
+  if u.scope ~= nil then
+    u.scope.labels = array()
+    u.scope.locals = array()
+    u.scope.proto = proto
+    u.scope.parent = scope
+    scope = u.scope
+  end
+
+  local u_name = lua54_parser.symbol_names[u[0]]
+
+  if u_name == "funcbody" then
+    assert(u.proto == proto)
+    assert(u.scope == scope)
+    -- colon syntaxで関数が定義されたら、暗黙の仮引数selfを追加する。
+    if proto.self then
+      declare(scope, "self", u)
+    end
+  elseif u_name == "for" then
+    assert(u.scope == scope)
+    -- 内部的に3個の変数を使用する。
+    declare(scope, "(for state)", u)
+    declare(scope, "(for state)", u)
+    declare(scope, "(for state)", u)
+  elseif u_name == "for_in" then
+    -- 内部的に4個の変数を使用する。Lua 5.3以前は3個だったが、Lua 5.4で
+    -- to-be-closed変数が追加された。
+    assert(u.scope == scope)
+    declare(scope, "(for state)", u)
+    declare(scope, "(for state)", u)
+    declare(scope, "(for state)", u)
+    declare(scope, "(for state)", u)
+  end
+
+  if u.declare then
+    u.var = declare(scope, u.v, u)
+  elseif u.resolve then
+    local var = resolve(scope, u.v)
+    if var == nil then
+      u.env = resolve(scope, "_ENV")
+    else
+      u.var = var
+    end
+  elseif u.def_label then
+    u.label = def_label(scope, u.v, u)
+  end
+  -- ジャンプ先のアドレスを後で決めるようにすればワンパスでコード生成が可能。
+
+  for _, v in ipairs(u) do
+    process1(protos, proto, scope, v)
   end
 end
-out:write(("="):rep(75), "\n")
 
-out:close()
+local function process2(scope, u)
+  if u.scope ~= nil then
+    scope = u.scope
+  end
 
-local parser_filename = dir .. "/test_lua54_parser.lua"
-local out = assert(io.open(parser_filename, "w"))
-out:write(parser.compile(grammar, actions))
-out:close()
+  if u.ref_label then
+    u.label = ref_label(scope, u.v, u)
+  end
 
-local lua54_regexp = assert(assert(loadfile(regexp_filename))())
-local lua54_parser = assert(assert(loadfile(parser_filename))())
+  for _, v in ipairs(u) do
+    process2(scope, v)
+  end
+end
+
+local function process(chunk)
+  local protos = array()
+  local proto = { locals = array() }
+  local scope = { locals = array(), proto = proto }
+  declare(scope, "_ENV")
+  process1(protos, proto, scope, chunk)
+  process2(scope, chunk)
+  return protos
+end
+
+---------------------------------------------------------------------------
 
 local function quote(s)
   return '"' .. string.gsub(s, '[&<>"]', { ['&'] = '&amp;', ['<'] = '&lt;', ['>'] = '&gt;', ['"'] = '&quot;' }) .. '"'
 end
 
-local function dump(out, u, n)
+local attrs = {
+  "v";
+  "attribute";
+  "declare", "resolve", "var", "env";
+  "def_label", "ref_label", "label";
+  "binop", "unop";
+  "type";
+}
+if verbose then
+  for _, attr in ipairs{"i", "j", "f", "n", "c", "s"} do
+    attrs[#attrs + 1] = attr
+  end
+end
+
+local function dump_attrs(out, u, attrs)
+  for _, attr in ipairs(attrs) do
+    local v = u[attr]
+    if v ~= nil then
+      local t = type(v)
+      out:write(" ", attr, "=")
+      if t == "boolean" or t == "number" or t == "string" then
+        out:write(quote(tostring(v)))
+      else
+        out:write(quote(t))
+      end
+    end
+  end
+end
+
+local function dump_node(out, u, n)
   if n == nil then
     n = 0
   else
@@ -430,23 +252,74 @@ local function dump(out, u, n)
   end
 
   out:write(("  "):rep(n), "<node")
-  if u[0] ~= nil then out:write(" name=", quote(lua54_parser.symbol_names[u[0]])) end
-  if verbose then
-    if u.i ~= nil then out:write(" i=", quote(u.i)) end
-    if u.j ~= nil then out:write(" j=", quote(u.j)) end
-    if u.n ~= nil then out:write(" n=", quote(u.n)) end
-    if u.c ~= nil then out:write(" c=", quote(u.c)) end
+  if u[0] ~= nil then
+    out:write(" name=", quote(lua54_parser.symbol_names[u[0]]))
   end
-  if u.v ~= nil then out:write(" v=", quote(u.v)) end
+  dump_attrs(out, u, attrs)
+
   if #u == 0 then
     out:write "/>\n"
   else
     out:write ">\n"
     for _, v in ipairs(u) do
-      dump(out, v, n)
+      dump_node(out, v, n)
     end
     out:write(("  "):rep(n), "</node>\n")
   end
+end
+
+local function dump_protos(out, protos)
+  out:write "<protos>\n"
+  for i, proto in protos:ipairs() do
+    out:write("  <proto index=\"", i, "\"")
+    dump_attrs(out, proto, {"self", "vararg"})
+    out:write ">\n"
+
+    if proto.labels:empty() then
+      out:write "    <labels/>\n"
+    else
+      out:write "    <labels>\n"
+      for j, v in proto.labels:ipairs() do
+        out:write("      <label index=\"", j, "\"")
+        dump_attrs(out, v, {"name"})
+        if v.node ~= nil then
+          dump_attrs(out, v.node, {"n", "c"})
+        end
+        out:write "/>\n"
+      end
+      out:write "    </labels>\n"
+    end
+
+    if proto.locals:empty() then
+      out:write "    <locals/>\n"
+    else
+      out:write "    <locals>\n"
+      for j, v in proto.locals:ipairs() do
+        out:write("      <local index=\"", j, "\"")
+        dump_attrs(out, v, {"name"})
+        if v.node ~= nil then
+          dump_attrs(out, v.node, {"attribute", "n", "c"})
+        end
+        out:write "/>\n"
+      end
+      out:write "    </locals>\n"
+    end
+
+    if proto.upvalues:empty() then
+      out:write "    <upvalues/>\n"
+    else
+      out:write "    <upvalues>\n"
+      for j, v in proto.upvalues:ipairs() do
+        out:write("       <upvalue index=\"", j, "\"")
+        dump_attrs(out, v, {"name", "var"})
+        out:write "/>\n"
+      end
+      out:write "    </upvalues>\n"
+    end
+
+    out:write "  </proto>\n"
+  end
+  out:write "</protos>\n"
 end
 
 for i = 2, #arg do
@@ -463,14 +336,20 @@ for i = 2, #arg do
 
   local parse = lua54_parser()
   local root = lua54_regexp(source, source_filename, lua54_parser.max_terminal_symbol, function (token)
-    dump(out, token)
+    dump_node(out, token)
     return parse(token)
   end)
 
   out:write "</nodes>\n"
   out:close()
 
+  local protos = process(root)
+
   local out = assert(io.open(result_basename .. "_tree.xml", "w"))
-  dump(out, root)
+  dump_node(out, root)
+  out:close()
+
+  local out = assert(io.open(result_basename .. "_protos.xml", "w"))
+  dump_protos(out, protos)
   out:close()
 end

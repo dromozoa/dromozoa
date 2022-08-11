@@ -15,10 +15,29 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local _ = [[
-foo
-]], [[bar
-]], [[
-baz]], [[qux]]
+::L0::
 
-local _ = [[]=],]], [=[]]]=], [==[]]]=]]]]==]
+print "ok 1"
+
+goto L1
+error "unexpected 1"
+::L1::
+
+print "ok 2"
+
+goto L2
+do
+  ::L2::
+  error "unexpected 1"
+  goto L0
+end
+::L2::
+
+print "ok 3"
+
+-- goto L3
+-- ::L3::
+-- do
+--   ::L3::
+-- end
+

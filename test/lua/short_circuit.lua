@@ -15,10 +15,20 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local _ = [[
-foo
-]], [[bar
-]], [[
-baz]], [[qux]]
+local function f() end
 
-local _ = [[]=],]], [=[]]]=], [==[]]]=]]]]==]
+local function a()
+  return f() and f() and f()
+end
+
+local function b()
+  return f() and f() or f()
+end
+
+local function b()
+  return f() or f() and f()
+end
+
+local function b()
+  return f() or f() or f()
+end
