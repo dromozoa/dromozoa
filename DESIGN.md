@@ -1,8 +1,108 @@
 # dromozoa
 
-## dromozoa-parser
+## 命令セット
 
-- トークン列を入力として抽象構文木を生成することが最初の目標。
-- LALR(1)解析器を実装する。
-- 文法はLuaのDSLで記述する。
+* Lua, WASM, Javaを参考にする
+
+* 制御構造はWASMを参考にする。
+  * `br`系は0,1だけでよいかも。
+* `block`
+* `loop`
+* `if else end`は使う？
+* `block-loop`とかあるとよくない？
+
+### 局所変数
+
+```
+Lua
+レジスタ指定なので存在しない。
+
+WASM
+local.get
+local.set
+local.tee
+
+Java
+[t]load
+[t]store
+```
+
+### 分岐
+
+```
+Lua
+test
+
+WASM
+br_if
+if ... else ... end
+
+Java
+if*
+```
+
+### JMP
+
+```
+Lua
+jmp
+
+WASM
+brでなんとかする
+
+Java
+goto
+goto_w
+
+```
+
+### LOOP
+
+```
+do {
+} while (expr...);
+
+LOOP: loop
+
+
+  expr
+  br_if LOOP
+end
+
+while (expr) {
+}
+
+
+repeat
+  expr
+  if
+    :
+    :
+    :
+    continue
+  else
+    break
+  end
+end
+
+LOOP: loop
+  expr
+  IF: if
+    :
+    break => br IF;
+    :
+    br loop
+  else
+    //...
+  end
+end
+
+BLOCK
+  LOOP
+
+
+  END
+END
+
+```
 
