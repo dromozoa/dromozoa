@@ -109,11 +109,7 @@ out:write(regexp.compile {
     -- 8進表記はないのでleading zerosが許容される。
     DecimalIntegerNumeral = _["09"]*"+";
 
-    -- C言語のリテラルのdecimal-floating-constantに類似しているが、以下の点で異
-    -- なる。
-    -- 1. 小数点も指数部もない場合はDecimalIntegerNumeralがマッチするので除外し
-    --    ない。
-    -- 2. 接尾辞は持たない。
+    -- 小数点も指数部もない場合はDecimalIntegerNumeralがマッチする。
     DecimalFloatingNumeral = _{
       _["09"]*"*" + _"." + _["09"]*"+";
       _["09"]*"+" + _"."*"?";
@@ -121,13 +117,7 @@ out:write(regexp.compile {
 
     HexadecimalIntegerNumeral = _"0" + _{"xX"} + _["09afAF"]*"+";
 
-    -- C言語のリテラルのhexadecimal-floating-constantに類似しているが、以下の点
-    -- で異なる。
-    -- 1. 指数部を省略できる。C言語のリテラルでは指数を省略できないが、strtodで
-    --    は省略できる。
-    -- 2. 小数点も指数部もない場合はHexadecimalIntegerNumeralがマッチするので除
-    --    外しない。
-    -- 3. 接尾辞は持たない。
+    -- 小数点も指数部もない場合はHexadecimalIntegerNumeralがマッチする。
     HexadecimalFloatingNumeral = _"0" + _{"xX"} + _{
       _["09afAF"]*"*" + _"." + _["09afAF"]*"+";
       _["09afAF"]*"+" + _"."*"?";
