@@ -120,7 +120,7 @@ local main = function ()
     end
   end
 
-  function push(value_from_buffer, ...)
+  function push(value_from_buffer, x, y, z)
     local s = string.sub(source, fs, fp)
     local v = s
     if value_from_buffer then
@@ -135,7 +135,9 @@ local main = function ()
       c = start_column;
       s = s;
       v = v;
-      ...
+      x = x;
+      y = y;
+      z = z;
     }
   end
 
@@ -166,8 +168,7 @@ local main = function ()
     append(string.byte(source, i, j))
   end
 
-  -- if utf8 ~= nil and utf8.char ~= nil then
-  if false then
+  if utf8 ~= nil and utf8.char ~= nil then
     function append_unicode(a)
       append(string.byte(utf8.char(a), 1, -1))
     end

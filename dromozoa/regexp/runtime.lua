@@ -92,7 +92,7 @@ context["action_data"];
       current_cont()
     end
   end
-  function push(value_from_buffer, ...)
+  function push(value_from_buffer, x, y, z)
     local s = string.sub(source, fs, fp)
     local v = s
     if value_from_buffer then
@@ -107,7 +107,9 @@ context["action_data"];
       c = start_column;
       s = s;
       v = v;
-      ...
+      x = x;
+      y = y;
+      z = z;
     }
   end
   function ferror(message)
@@ -132,7 +134,7 @@ context["action_data"];
   function append_range(i, j)
     append(string.byte(source, i, j))
   end
-  if false then
+  if utf8 ~= nil and utf8.char ~= nil then
     function append_unicode(a)
       append(string.byte(utf8.char(a), 1, -1))
     end
