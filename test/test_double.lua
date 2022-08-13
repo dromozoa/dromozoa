@@ -31,15 +31,6 @@
 --
 
 local function hexadecimal_floating_numeral(s)
-  -- 解析器から入ってきた場合、符号は持たないので簡略化する。
-  -- 0x %x+        p
-  --    %x+ %.
-  --    %x+ %. %x+
-  --        %. %x+
-  --
-  --
-  --
-
   local dot = false
   local exponent = 0
   local significand = 0.0
