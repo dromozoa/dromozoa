@@ -34,6 +34,56 @@ local function compiler_error(message, u)
 end
 
 ---------------------------------------------------------------------------
+--[[
+
+  basic blockを作ることを考えたら、if else endはあってもいい？
+
+  push(nil)
+  push(false)
+  push(true)
+
+  nil;
+  false;
+  true;
+  i64.const "..." [hex|dec];
+  f64.const "..." [hex|dec];
+  string.const "...";
+
+  {
+    foo=1;
+    2;
+    bar=3;
+    4;
+    baz=5;
+  }
+
+  newtable(hint_nkeys, hint_nitems)
+  $t=$top
+  push(1)
+  push("foo")
+  settable($t)
+  push(2)
+  push(3)
+  push("bar")
+  settable($t)
+  push(4)
+  push(5)
+  push("baz")
+  settable($t)
+  setlist($t)
+
+
+
+
+
+
+
+
+
+
+
+]]
+---------------------------------------------------------------------------
 
 -- scope--
 --   |    \
@@ -178,7 +228,6 @@ local function process1(protos, proto, scope, u)
   elseif u.def_label then
     u.label = def_label(scope, u.v, u)
   end
-  -- ジャンプ先のアドレスを後で決めるようにすればワンパスでコード生成が可能。
 
   for _, v in ipairs(u) do
     process1(protos, proto, scope, v)
@@ -220,6 +269,7 @@ local attrs = {
   "attribute";
   "declare", "resolve", "var", "env";
   "def_label", "ref_label", "label";
+  "adjust";
   "binop", "unop";
   "type";
 }
