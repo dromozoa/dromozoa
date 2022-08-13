@@ -120,7 +120,7 @@ local main = function ()
     end
   end
 
-  function push(value_from_buffer)
+  function push(value_from_buffer, ...)
     local s = string.sub(source, fs, fp)
     local v = s
     if value_from_buffer then
@@ -135,6 +135,7 @@ local main = function ()
       c = start_column;
       s = s;
       v = v;
+      ...
     }
   end
 

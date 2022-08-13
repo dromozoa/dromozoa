@@ -35,6 +35,9 @@ local _ = regexp.pattern
 local out = assert(io.open(regexp_filename, "w"))
 out:write(regexp.compile {
   "local ra";
+  "local rb";
+  "local rc";
+  "local rd";
 
   long_comment = regexp.machine.guard("freturn()", {
     _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
@@ -118,7 +121,11 @@ out:write(regexp.compile {
       _["09"]*"+" + _"."*"?";
     } + (_{"eE"} + _{"+-"}*"?" + _["09"]*"+")*"?";
 
-    HexadecimalIntegerNumeral = _"0" + _{"xX"} + _["09AFaf"]*"+";
+    HexadecimalIntegerNumeral = (_"0" + _{"xX"}/"ra=0 rb=0 rc=1 rd=0" + _{
+      _["09"]/"ra=ra*16+fc-${<0>}";
+      _["af"]/"ra=ra*16+fc-${<a>}+10";
+      _["AF"]/"ra=ra*16+fc-${<A>}+10";
+    }*"+") %"push(false, ra)";
 
     -- C言語のリテラルのhexadecimal-floating-constantに類似しているが、以下の点
     -- で異なる。
@@ -127,11 +134,17 @@ out:write(regexp.compile {
     -- 2. 小数点も指数部もない場合はHexadecimalIntegerNumeralがマッチするので除
     --    外しない。
     -- 3. 接尾辞は持たない。
-    HexadecimalFloatingNumeral = _"0" + _{"xX"} + _{
-      _["09AFaf"]*"*" + _"." + _["09AFaf"]*"+";
+    HexadecimalFloatingNumeral = (_"0" + _{"xX"} + _{
+      _["09AFaf"]*"*" + _"." + _{
+        _["09"]/"ra=ra*16+fc-${<0>} rb=rb-4";
+        _["af"]/"ra=ra*16+fc-${<a>}+10 rb=rb-4";
+        _["AF"]/"ra=ra*16+fc-${<A>}+10 rb=rb-4";
+      }*"+";
       _["09AFaf"]*"+" + _"."*"?";
-    } + (_{"pP"} + _{"+-"}*"?" + _["09"]*"+")*"?"
-    ;
+    } + (_{"pP"} + _{
+      _"+";
+      _"-"/"rc=-1";
+    }*"?" + _["09"]/"rd=rd*10+fc-${<0>}"*"+")*"?") %"push(false,ra,rb+rc*rd)";
 
     _"and";      _"break";    _"do";       _"else";     _"elseif";   _"end";
     _"false";    _"for";      _"function"; _"goto";     _"if";       _"in";
