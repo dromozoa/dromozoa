@@ -78,11 +78,15 @@ out:write(regexp.compile {
         _["af"]/"append(ra*16+fc-${<a>}+10)";
         _["AF"]/"append(ra*16+fc-${<A>}+10)";
       };
-      _"u" + _"{"/"ra=0" + _{
+      -- TODO オーバーフローをどうにかする
+      -- u{00001234}
+      --      B    P
+      --      123456
+      _"u" + _"{"/"ra=0 rb=fp" + _"0"/"rb=fp"*"*" + _{
         _["09"]/"ra=ra*16+fc-${<0>}";
         _["af"]/"ra=ra*16+fc-${<a>}+10";
         _["AF"]/"ra=ra*16+fc-${<A>}+10";
-      }*"+" + _"}"/"fassert(ra<=0x7FFFFFFF,'UTF-8 value too large') append_unicode(ra)";
+      }*"+" + _"}"/"fassert(fp-rb<=9 and ra<=0x7FFFFFFF,'UTF-8 value too large') append_unicode(ra)";
     };
 
     (_"\\" + _["09"]/"ra=fc-${<0>}" + _["09"]/"ra=ra*10+fc-${<0>}"*{0,2}) %"fassert(ra<=255,'decimal escape too large') append(ra)";
@@ -108,7 +112,7 @@ out:write(regexp.compile {
 
     ShortLiteralString = _{"\'\""}/"guard_clear(fc)" %"clear() fcall($short_literal_string) push(true)";
 
-    -- 8進数は存在しないのでleading zerosが許容される。
+    -- 8進表記はないのでleading zerosが許容される。
     DecimalIntegerNumeral = _["09"]*"+";
 
     -- C言語のリテラルのdecimal-floating-constantに類似しているが、以下の点で異
@@ -121,6 +125,7 @@ out:write(regexp.compile {
       _["09"]*"+" + _"."*"?";
     } + (_{"eE"} + _{"+-"}*"?" + _["09"]*"+")*"?";
 
+    -- 16進表記の整数はオーバーフローしない。
     HexadecimalIntegerNumeral = (_"0" + _{"xX"}/"ra=0 rb=0 rc=1 rd=0" + _{
       _["09"]/"ra=ra*16+fc-${<0>}";
       _["af"]/"ra=ra*16+fc-${<a>}+10";
@@ -134,6 +139,12 @@ out:write(regexp.compile {
     -- 2. 小数点も指数部もない場合はHexadecimalIntegerNumeralがマッチするので除
     --    外しない。
     -- 3. 接尾辞は持たない。
+    --
+    -- オーバーフローの検出
+    -- 1. 小数点を見つけた時点で整数部がraに入っている。
+    --      fp-fs<=18
+    --
+    --
     HexadecimalFloatingNumeral = (_"0" + _{"xX"} + _{
       _["09AFaf"]*"*" + _"." + _{
         _["09"]/"ra=ra*16+fc-${<0>} rb=rb-4";
@@ -389,9 +400,9 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 
   Numeral
     = _"DecimalIntegerNumeral"                             %"$$=$0 $$.v=$1.v $$.type='DecimalIntegerNumeral'"
-    + _"DecimalFloatingNumeral"                            %"$$=$0 $$.v=$1.v $$.type='DecimalFloatingNumeral'"
+    + _"DecimalFloatingNumeral"                            %"$$=$0 $$.v=$1.v $$.x=$1.x $$.type='DecimalFloatingNumeral'"
     + _"HexadecimalIntegerNumeral"                         %"$$=$0 $$.v=$1.v $$.type='HexadecimalIntegerNumeral'"
-    + _"HexadecimalFloatingNumeral"                        %"$$=$0 $$.v=$1.v $$.type='HexadecimalFloatingNumeral'";
+    + _"HexadecimalFloatingNumeral"                        %"$$=$0 $$.v=$1.v $$.x=$1.x $$.y=$1.y $$.type='HexadecimalFloatingNumeral'";
 }))
 
 for _, message in conflictions:ipairs() do
