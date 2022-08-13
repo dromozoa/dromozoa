@@ -271,7 +271,6 @@ local attrs = {
   "def_label", "ref_label", "label";
   "adjust";
   "binop", "unop";
-  "x", "y", "z";
   "type";
 }
 if verbose then

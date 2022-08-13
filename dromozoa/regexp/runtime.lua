@@ -92,7 +92,7 @@ context["action_data"];
       current_cont()
     end
   end
-  function push(value_from_buffer, x, y, z)
+  function push(value_from_buffer)
     local s = string.sub(source, fs, fp)
     local v = s
     if value_from_buffer then
@@ -107,9 +107,6 @@ context["action_data"];
       c = start_column;
       s = s;
       v = v;
-      x = x;
-      y = y;
-      z = z;
     }
   end
   function ferror(message)

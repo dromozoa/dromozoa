@@ -36,8 +36,6 @@ local out = assert(io.open(regexp_filename, "w"))
 out:write(regexp.compile {
   "local ra";
   "local rb";
-  "local rc";
-  "local rd";
 
   long_comment = regexp.machine.guard("freturn()", {
     _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
@@ -78,15 +76,11 @@ out:write(regexp.compile {
         _["af"]/"append(ra*16+fc-${<a>}+10)";
         _["AF"]/"append(ra*16+fc-${<A>}+10)";
       };
-      -- TODO オーバーフローをどうにかする
-      -- u{00001234}
-      --      B    P
-      --      123456
-      _"u" + _"{"/"ra=0 rb=fp" + _"0"/"rb=fp"*"*" + _{
-        _["09"]/"ra=ra*16+fc-${<0>}";
-        _["af"]/"ra=ra*16+fc-${<a>}+10";
-        _["AF"]/"ra=ra*16+fc-${<A>}+10";
-      }*"+" + _"}"/"fassert(fp-rb<=9 and ra<=0x7FFFFFFF,'UTF-8 value too large') append_unicode(ra)";
+      _"u" + _"{"/"ra=fp rb=0" + _"0"/"ra=fp"*"*" + _{
+        _["09"]/"rb=rb*16+fc-${<0>}";
+        _["af"]/"rb=rb*16+fc-${<a>}+10";
+        _["AF"]/"rb=rb*16+fc-${<A>}+10";
+      }*"+" + _"}"/"fassert(fp-ra<=9 and rb<=0x7FFFFFFF,'UTF-8 value too large') append_unicode(rb)";
     };
 
     (_"\\" + _["09"]/"ra=fc-${<0>}" + _["09"]/"ra=ra*10+fc-${<0>}"*{0,2}) %"fassert(ra<=255,'decimal escape too large') append(ra)";
@@ -125,12 +119,7 @@ out:write(regexp.compile {
       _["09"]*"+" + _"."*"?";
     } + (_{"eE"} + _{"+-"}*"?" + _["09"]*"+")*"?";
 
-    -- 16進表記の整数はオーバーフローしない。
-    HexadecimalIntegerNumeral = (_"0" + _{"xX"}/"ra=0 rb=0 rc=1 rd=0" + _{
-      _["09"]/"ra=ra*16+fc-${<0>}";
-      _["af"]/"ra=ra*16+fc-${<a>}+10";
-      _["AF"]/"ra=ra*16+fc-${<A>}+10";
-    }*"+") %"push(false, ra)";
+    HexadecimalIntegerNumeral = _"0" + _{"xX"} + _["09afAF"]*"+";
 
     -- C言語のリテラルのhexadecimal-floating-constantに類似しているが、以下の点
     -- で異なる。
@@ -139,23 +128,10 @@ out:write(regexp.compile {
     -- 2. 小数点も指数部もない場合はHexadecimalIntegerNumeralがマッチするので除
     --    外しない。
     -- 3. 接尾辞は持たない。
-    --
-    -- オーバーフローの検出
-    -- 1. 小数点を見つけた時点で整数部がraに入っている。
-    --      fp-fs<=18
-    --
-    --
-    HexadecimalFloatingNumeral = (_"0" + _{"xX"} + _{
-      _["09AFaf"]*"*" + _"." + _{
-        _["09"]/"ra=ra*16+fc-${<0>} rb=rb-4";
-        _["af"]/"ra=ra*16+fc-${<a>}+10 rb=rb-4";
-        _["AF"]/"ra=ra*16+fc-${<A>}+10 rb=rb-4";
-      }*"+";
-      _["09AFaf"]*"+" + _"."*"?";
-    } + (_{"pP"} + _{
-      _"+";
-      _"-"/"rc=-1";
-    }*"?" + _["09"]/"rd=rd*10+fc-${<0>}"*"+")*"?") %"push(false,ra,rb+rc*rd)";
+    HexadecimalFloatingNumeral = _"0" + _{"xX"} + _{
+      _["09afAF"]*"*" + _"." + _["09afAF"]*"+";
+      _["09afAF"]*"+" + _"."*"?";
+    } + (_{"pP"} + _{"+-"}*"?" + _["09"]*"*")*"?";
 
     _"and";      _"break";    _"do";       _"else";     _"elseif";   _"end";
     _"false";    _"for";      _"function"; _"goto";     _"if";       _"in";
