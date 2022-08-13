@@ -162,11 +162,11 @@ function ()SS=S[0] SS.v=S[1].v SS.type='ShortLiteralString'
 end;
 function ()SS=S[0] SS.v=S[1].v SS.type='DecimalIntegerNumeral'
 end;
-function ()SS=S[0] SS.v=S[1].v SS.x=S[1].x SS.type='DecimalFloatingNumeral'
+function ()SS=S[0] SS.v=S[1].v SS.type='DecimalFloatingNumeral'
 end;
 function ()SS=S[0] SS.v=S[1].v SS.type='HexadecimalIntegerNumeral'
 end;
-function ()SS=S[0] SS.v=S[1].v SS.x=S[1].x SS.y=S[1].y SS.type='HexadecimalFloatingNumeral'
+function ()SS=S[0] SS.v=S[1].v SS.type='HexadecimalFloatingNumeral'
 end;
  }
   end)()

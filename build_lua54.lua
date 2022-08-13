@@ -376,9 +376,9 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 
   Numeral
     = _"DecimalIntegerNumeral"                             %"$$=$0 $$.v=$1.v $$.type='DecimalIntegerNumeral'"
-    + _"DecimalFloatingNumeral"                            %"$$=$0 $$.v=$1.v $$.x=$1.x $$.type='DecimalFloatingNumeral'"
+    + _"DecimalFloatingNumeral"                            %"$$=$0 $$.v=$1.v $$.type='DecimalFloatingNumeral'"
     + _"HexadecimalIntegerNumeral"                         %"$$=$0 $$.v=$1.v $$.type='HexadecimalIntegerNumeral'"
-    + _"HexadecimalFloatingNumeral"                        %"$$=$0 $$.v=$1.v $$.x=$1.x $$.y=$1.y $$.type='HexadecimalFloatingNumeral'";
+    + _"HexadecimalFloatingNumeral"                        %"$$=$0 $$.v=$1.v $$.type='HexadecimalFloatingNumeral'";
 }))
 
 for _, message in conflictions:ipairs() do
