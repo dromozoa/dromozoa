@@ -315,11 +315,13 @@ local function dump_node(out, u, n)
     end
 
     if code ~= nil then
-      out:write(("  "):rep(n + 1), "<code op=", quote(code[0]))
       for i, v in ipairs(code) do
-        out:write(" a", i, "=", quote(v))
+        out:write(("  "):rep(n + 1), "<code op=", quote(v[0]))
+        for i, a in ipairs(v) do
+          out:write(" a", i, "=", quote(a))
+        end
+        out:write "/>\n"
       end
-      out:write "/>\n"
     end
 
     out:write(("  "):rep(n), "</node>\n")

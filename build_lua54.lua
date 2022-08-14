@@ -163,7 +163,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     end
 
     local function code(op, ...)
-      return { [0] = op, ... }
+      return { { [0] = op, ... } }
     end
   ]];
 
@@ -314,7 +314,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
   -- prefixexpを参照する箇所にfunctioncallを展開する。
   prefixexp
     = _"var"                                               %"$$=$1"
-    + _"(" "exp" ")"                                       %"$$=$2";
+    + _"(" "exp" ")"                                       %"$$=$2 $$.adjust=1";
 
   functioncall
     = _"prefixexp" "args"
