@@ -46,15 +46,15 @@ function ()SS=S[1] append(S[4],S[2],S[6]) SS.scope=scope() S[2].declare=true
 end;
 function ()SS=S[1] append(S[3],S[2]) S[3].proto.self=S[2].self
 end;
-function ()SS=S[1] append(create(82),S[2])
+function ()SS=S[1] append(create(82),S[2]) SS[1].adjust=#S[2]
 end;
 function ()SS=S[1] append(S[4],S[2]) S[4].adjust=#S[2]
 end;
 function ()SS=create(10)
 end;
-function ()SS=create(82) append(S[1],S[3]) SS.adjust=2
+function ()SS=create(82) append(S[1],S[3]) S[1].adjust=nil SS.adjust=2
 end;
-function ()SS=create(82) append(S[1],S[3],S[5]) SS.adjust=3
+function ()SS=create(82) append(S[1],S[3],S[5]) S[1].adjust=nil S[3].adjust=nil SS.adjust=3
 end;
 function ()SS=S[0] append(S[4],S[2],S[6]) SS.scope=scope() S[4].adjust=4
 end;

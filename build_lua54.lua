@@ -208,7 +208,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"for_in"                                            %"$$=$1"
     + _"function" "funcname" "funcbody"                    %"$$=$1 append($3,$2) $3.proto.self=$2.self"
     + _"local_function"                                    %"$$=$1"
-    + _"local" "attnamelist"                               %"$$=$1 append(create($explist),$2)"
+    + _"local" "attnamelist"                               %"$$=$1 append(create($explist),$2) $$[1].adjust=#$2"
     + _"local" "attnamelist" "=" "explist"                 %"$$=$1 append($4,$2) $4.adjust=#$2";
 
   else_clause
@@ -217,8 +217,8 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"elseif" "exp" "then" "block" "else_clause"         %"$$=$1 append($2,$4,$5) $4.scope=scope()";
 
   exp2_3
-    = _"exp" "," "exp"                                     %"$$=create($explist) append($1,$3) $$.adjust=2"
-    + _"exp" "," "exp" "," "exp"                           %"$$=create($explist) append($1,$3,$5) $$.adjust=3";
+    = _"exp" "," "exp"                                     %"$$=create($explist) append($1,$3) $1.adjust=nil $$.adjust=2"
+    + _"exp" "," "exp" "," "exp"                           %"$$=create($explist) append($1,$3,$5) $1.adjust=nil $3.adjust=nil $$.adjust=3";
 
   for_in
     = _"for" "namelist" "in" "explist" "do" "block" "end"  %"$$=$0 append($4,$2,$6) $$.scope=scope() $4.adjust=4";
