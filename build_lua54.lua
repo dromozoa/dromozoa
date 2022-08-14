@@ -252,7 +252,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"funcname_" "." "Name"                              %"$$=$2 append($1,$3)";
 
   varlist
-    = _"var"                                               %"$$=create($varlist) append($1)"
+    = _"var"                                               %"$$=$0 append($1)"
     + _"varlist" "," "var"                                 %"$$=$1 append($3)";
 
   var
@@ -263,11 +263,11 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"functioncall" "." "Name"                           %"$$=$2 append($1,$3)";
 
   namelist
-    = _"Name"                                              %"$$=create($namelist) append($1) $1.declare=true"
+    = _"Name"                                              %"$$=$0 append($1) $1.declare=true"
     + _"namelist" "," "Name"                               %"$$=$1 append($3) $3.declare=true";
 
   explist
-    = _"exp"                                               %"$$=create($explist) append($1)"
+    = _"exp"                                               %"$$=$0 append($1)"
     + _"explist" "," "exp"                                 %"$$=$1 $$[#$$].adjust=nil append($3)";
 
   exp
