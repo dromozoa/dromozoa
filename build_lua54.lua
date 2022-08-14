@@ -196,7 +196,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 
   stat
     = _"varlist" "=" "explist"                             %"$$=$2 append($3,$1) $3.adjust=#$1"
-    + _"functioncall"                                      %"$$=$1 $1.adjust=0"
+    + _"functioncall"                                      %"$$=$1 $$.adjust=0"
     + _"label"                                             %"$$=$1 append($2)"
     + _"break"                                             %"$$=$1"
     + _"goto" "Name"                                       %"$$=$1 append($2) $2.ref_label=true"
@@ -268,7 +268,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 
   explist
     = _"exp"                                               %"$$=create($explist) append($1)"
-    + _"explist" "," "exp"                                 %"$$=$1 append($3)";
+    + _"explist" "," "exp"                                 %"$$=$1 $$[#$$].adjust=nil append($3)";
 
   exp
     = _"nil"                                               %"$$=$1 $$.code=code'push_nil'"
@@ -276,10 +276,10 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"true"                                              %"$$=$1 $$.code=code'push_true'"
     + _"Numeral"                                           %"$$=$1 $$.code=code('push_number',$$.v,$$.hint)"
     + _"LiteralString"                                     %"$$=$1 $$.code=code('push_string',$$.v)"
-    + _"..."                                               %"$$=$1"
+    + _"..."                                               %"$$=$1 $$.adjust=-1"
     + _"functiondef"                                       %"$$=$1"
     + _"prefixexp"                                         %"$$=$1"
-    + _"functioncall"                                      %"$$=$1"
+    + _"functioncall"                                      %"$$=$1 $$.adjust=-1"
     + _"tableconstructor"                                  %"$$=$1"
     -- binop
     + _"exp" "+"   "exp"                                   %"$$=$2 append($1,$3) $$.code=code'add'"
@@ -314,7 +314,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
   -- prefixexpを参照する箇所にfunctioncallを展開する。
   prefixexp
     = _"var"                                               %"$$=$1"
-    + _"(" "exp" ")"                                       %"$$=$2 $$.adjust=1";
+    + _"(" "exp" ")"                                       %"$$=$2 $$.adjust=nil";
 
   functioncall
     = _"prefixexp" "args"
@@ -350,11 +350,11 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 
   fieldlist_
     = _"field"                                             %"$$=create($fieldlist) append($1)"
-    + _"fieldlist_" "fieldsep" "field"                     %"$$=$1 append($3)";
+    + _"fieldlist_" "fieldsep" "field"                     %"$$=$1 $$[#$$][1].adjust=nil append($3)";
 
   field
-    = _"[" "exp" "]" "=" "exp"                             %"$$=$0 append($5,$2)"
-    + _"Name" "=" "exp"                                    %"$$=$0 append($3,$1)"
+    = _"[" "exp" "]" "=" "exp"                             %"$$=$0 append($5,$2) $5.adjust=nil"
+    + _"Name" "=" "exp"                                    %"$$=$0 append($3,$1) $3.adjust=nil"
     + _"exp";
 
   fieldsep

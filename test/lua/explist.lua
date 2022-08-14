@@ -19,16 +19,10 @@ local function f(x)
   return x, x, x
 end
 
-local _ = {}
-local _ = {1}
-local _ = {2,}
-local _ = {3;}
-local _ = {4,5}
-local _ = {6;7}
-local _ = {foo=1,bar=2,baz=3,qux=...}
-local _ = {["foo"]=1;["bar"]=2;["baz"]=3;["qux"]=4}
-local _ = {[1+2+3]=f(f(6))}
-local _ = {10,...}
-local _ = {11,(...)}
-local _ = {12,...,13}
-local _ = {14,...,foo=15}
+local a, b, c = f(), 1, 2, 3
+local a, b, c = f(), 1, 2
+local a, b, c = f(), 1
+local a, b, c = f()
+local a, b, c = 1, f()
+local a, b, c = 1, 2, f()
+local a, b, c = 1, 2, 3, f()
