@@ -195,19 +195,19 @@ local function process1(protos, proto, scope, u)
     assert(u.scope == scope)
     -- colon syntaxで関数が定義されたら、暗黙の仮引数selfを追加する。
     if proto.self then
-      declare(scope, "self", u)
+      u.var = declare(scope, "self", u)
     end
   elseif u_name == "for" then
     assert(u.scope == scope)
     -- 内部的に3個の変数を使用する。
-    declare(scope, "(for state)", u)
+    u.var = declare(scope, "(for state)", u)
     declare(scope, "(for state)", u)
     declare(scope, "(for state)", u)
   elseif u_name == "for_in" then
     -- 内部的に4個の変数を使用する。Lua 5.3以前は3個だったが、Lua 5.4で
     -- to-be-closed変数が追加された。
     assert(u.scope == scope)
-    declare(scope, "(for state)", u)
+    u.var = declare(scope, "(for state)", u)
     declare(scope, "(for state)", u)
     declare(scope, "(for state)", u)
     declare(scope, "(for state)", u)
@@ -226,13 +226,83 @@ local function process1(protos, proto, scope, u)
     u.label = def_label(scope, u.v, u)
   end
 
-  -- adjustを解決する
-  -- expは、...とfunctioncall以外はadjust=1である。
-  -- 簡単のため、これをadjust=nilとする
-  -- ...とfunctioncallは、MULTRET=-1で初期化する
+  if u_name == "explist" then
+    -- explistの末尾であれば、multretになりえる。
+    for i = 1, #u - 1 do
+      u[i].multret = nil
+    end
 
-  -- explistとfieldlistの末尾の...とfunctioncallはMULTIRETになりうる。
-  -- explistの調整数は左辺のvarlistやnamelistによって定まる
+    local a = u.adjust
+    local v = #u > 0 and u[#u] or nil
+    if a == nil then
+      if v ~= nil and v.multret then
+        u.nr = #u - 1
+      end
+    else
+      -- #u < a
+      --   1. 末尾がmultretならば、戻り値の個数を(a-#u+1)個に設定する。
+      --   2. さもなければ、(a-#u)個のpush_nil()を追加する。
+      -- #u == a
+      --   1. 末尾がfunctioncallまたは...ならば、戻り値の個数を1個に設定する。
+      -- #u == a+1
+      --   1. 末尾がfunctioncallまたは...ならば、戻り値の個数を0個に設定する。
+      --   2. さもなければ、pop(1)を追加する。
+      -- #u > a+1
+      --   1. 末尾がfunctioncallまたは...ならば、戻り値の個数を0個に設定し、
+      --      pop(#u-a-1)を追加する。
+      --   2. さもなければ、pop(#u-a)を追加する。
+      if #u < a then
+        if v ~= nil and v.multret then
+          v.nr = a - #u + 1
+        else
+          u.push = a - #u
+        end
+      else
+        local v_name = lua54_parser.symbol_names[v[0]]
+        if v_name == "functioncall" or v_name == "..." then
+          if #u == a then
+            v.nr = 1
+          else
+            v.nr = 0
+            if #u > a + 1 then
+              u.pop = #u - a - 1
+            end
+          end
+        elseif #u > a then
+          u.pop = #u - a
+        end
+      end
+    end
+
+  elseif u_name == "fieldlist" then
+    -- 1. key=value形式でないfieldの個数を数える。
+    -- 2. fieldlistの末尾であり、かつkey=value形式でなければ、multretになりえる。
+    local nlist = 0
+    for i, v in ipairs(u) do
+      if v[2] == nil then
+        -- key=value形式でない
+        nlist = nlist + 1
+        if i < #u then
+          v[1].multret = nil
+        end
+      else
+        -- key=value形式である
+        v[1].multret = nil
+      end
+    end
+    u.nlist = nlist
+
+    local v = #u > 0 and u[#u] or nil
+    if v ~= nil and v[1].multret then
+      u.nr = nlist - 1
+    end
+  end
+
+  if u_name == "functioncall" or u_name == "..." then
+    if u.nr == nil then
+      u.nr = u.multret and -1 or 1
+    end
+  end
 
   for _, v in ipairs(u) do
     process1(protos, proto, scope, v)
@@ -274,7 +344,7 @@ local attrs = {
   "attribute";
   "declare", "resolve", "var", "env";
   "def_label", "ref_label", "label";
-  "adjust";
+  "adjust", "multret", "nr", "push", "pop", "nlist";
   "hint";
 }
 if verbose then
@@ -298,6 +368,32 @@ local function dump_attrs(out, u, attrs)
   end
 end
 
+local function dump_code(out, u, n)
+  if n == nil then
+    n = 0
+  else
+    n = n + 1
+  end
+
+  out:write(("  "):rep(n), "<code op=", quote(u[0]))
+  if u.a ~= nil then
+    out:write(" a=", quote(u.a))
+  end
+  if u.b ~= nil then
+    out:write(" b=", quote(u.b))
+  end
+
+  if #u == 0 then
+    out:write "/>\n"
+  else
+    out:write ">\n"
+    for _, v in ipairs(u) do
+      dump_code(out, v, n)
+    end
+    out:write(("  "):rep(n), "</code>\n")
+  end
+end
+
 local function dump_node(out, u, n)
   if n == nil then
     n = 0
@@ -313,7 +409,7 @@ local function dump_node(out, u, n)
 
   local code = u.code
 
-  if #u == 0 and (code == nil or #code == 0) then
+  if #u == 0 and u.code == nil then
     out:write "/>\n"
   else
     out:write ">\n"
@@ -322,14 +418,8 @@ local function dump_node(out, u, n)
       dump_node(out, v, n)
     end
 
-    if code ~= nil then
-      for i, v in ipairs(code) do
-        out:write(("  "):rep(n + 1), "<code op=", quote(v[0]))
-        for i, a in ipairs(v) do
-          out:write(" a", i, "=", quote(a))
-        end
-        out:write "/>\n"
-      end
+    if u.code ~= nil then
+      dump_code(out, u.code, n)
     end
 
     out:write(("  "):rep(n), "</node>\n")

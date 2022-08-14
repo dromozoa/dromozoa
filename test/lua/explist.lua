@@ -19,6 +19,7 @@ local function f(x)
   return x, x, x
 end
 
+local a, b, c = f(), 1, 2, 3, 4
 local a, b, c = f(), 1, 2, 3
 local a, b, c = f(), 1, 2
 local a, b, c = f(), 1
@@ -26,3 +27,9 @@ local a, b, c = f()
 local a, b, c = 1, f()
 local a, b, c = 1, 2, f()
 local a, b, c = 1, 2, 3, f()
+local a, b, c = 1, 2, 3, 4, f()
+local a, b, c = 1, 2, 3, 4, (f())
+local a, b, c = 1, 2, 3, (f())
+local a, b, c = 1, 2, (f())
+local a, b, c = 1, (f())
+local a, b, c = (f())

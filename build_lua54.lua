@@ -162,8 +162,8 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
       return {}
     end
 
-    local function code(op, ...)
-      return { { [0] = op, ... } }
+    local function code(op, a, b)
+      return { [0] = op, a = a, b = b }
     end
   ]];
 
@@ -196,7 +196,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 
   stat
     = _"varlist" "=" "explist"                             %"$$=$2 append($3,$1) $3.adjust=#$1"
-    + _"functioncall"                                      %"$$=$1 $$.multret=nil"
+    + _"functioncall"                                      %"$$=$1 $$.multret=nil $$.nr=0"
     + _"label"                                             %"$$=$1 append($2)"
     + _"break"                                             %"$$=$1"
     + _"goto" "Name"                                       %"$$=$1 append($2) $2.ref_label=true"
