@@ -230,10 +230,9 @@ local function process1(protos, proto, scope, u)
   -- expは、...とfunctioncall以外はadjust=1である。
   -- 簡単のため、これをadjust=nilとする
   -- ...とfunctioncallは、MULTRET=-1で初期化する
-  -- explistはいくつかのモードがありうる
 
-
-
+  -- explistとfieldlistの末尾の...とfunctioncallはMULTIRETになりうる。
+  -- explistの調整数は左辺のvarlistやnamelistによって定まる
 
   for _, v in ipairs(u) do
     process1(protos, proto, scope, v)
