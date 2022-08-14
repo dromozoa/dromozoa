@@ -38,9 +38,16 @@ end
 
   basic blockを作ることを考えたら、if else endはあってもいい？
 
-  push(nil)
-  push(false)
-  push(true)
+  定数は
+    string literal
+    numeral
+  の2種類で、numeralは解析するとint64_tかdoubleかわかる。
+
+  push_string const_string("...")
+  push_number const_number("...", hint) -- d f x a
+  push_nil()
+  push_false(v)
+  push_true(v)
 
   nil;
   false;
@@ -71,16 +78,6 @@ end
   push("baz")
   settable($t)
   setlist($t)
-
-
-
-
-
-
-
-
-
-
 
 ]]
 ---------------------------------------------------------------------------
@@ -270,8 +267,7 @@ local attrs = {
   "declare", "resolve", "var", "env";
   "def_label", "ref_label", "label";
   "adjust";
-  "binop", "unop";
-  "type";
+  "hint";
 }
 if verbose then
   for _, attr in ipairs{"i", "j", "f", "n", "c", "s"} do
@@ -307,13 +303,25 @@ local function dump_node(out, u, n)
   end
   dump_attrs(out, u, attrs)
 
-  if #u == 0 then
+  local code = u.code
+
+  if #u == 0 and (code == nil or #code == 0) then
     out:write "/>\n"
   else
     out:write ">\n"
+
     for _, v in ipairs(u) do
       dump_node(out, v, n)
     end
+
+    if code ~= nil then
+      out:write(("  "):rep(n + 1), "<code op=", quote(code[0]))
+      for i, v in ipairs(code) do
+        out:write(" a", i, "=", quote(v))
+      end
+      out:write "/>\n"
+    end
+
     out:write(("  "):rep(n), "</node>\n")
   end
 end

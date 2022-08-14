@@ -12,6 +12,10 @@ local main = function ()
     local function scope()
       return {}
     end
+
+    local function code(op, ...)
+      return { [0] = op, ... }
+    end
   
 
     return { function ()
@@ -82,55 +86,61 @@ function ()SS=S[1] append(S[3]) S[3].declare=true
 end;
 function ()SS=create(82) append(S[1])
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='add'
+function ()SS=S[1] SS.code=code'push_nil'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='sub'
+function ()SS=S[1] SS.code=code'push_false'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='mul'
+function ()SS=S[1] SS.code=code'push_true'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='div'
+function ()SS=S[1] SS.code=code('push_number',SS.v,SS.hint)
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='idiv'
+function ()SS=S[1] SS.code=code('push_string',SS.v)
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='pow'
+function ()SS=S[2] append(S[1],S[3]) SS.code=code'add'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='mod'
+function ()SS=S[2] append(S[1],S[3]) SS.code=code'sub'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='band'
+function ()SS=S[2] append(S[1],S[3]) SS.code=code'mul'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='bxor'
+function ()SS=S[2] append(S[1],S[3]) SS.code=code'div'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='bor'
+function ()SS=S[2] append(S[1],S[3]) SS.code=code'idiv'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='shr'
+function ()SS=S[2] append(S[1],S[3]) SS.code=code'pow'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='shl'
+function ()SS=S[2] append(S[1],S[3]) SS.code=code'mod'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='concat'
+function ()SS=S[2] append(S[1],S[3]) SS.code=code'band'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='lt'
+function ()SS=S[2] append(S[1],S[3]) SS.code=code'bxor'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='le'
+function ()SS=S[2] append(S[1],S[3]) SS.code=code'bor'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='gt'
+function ()SS=S[2] append(S[1],S[3]) SS.code=code'shr'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='ge'
+function ()SS=S[2] append(S[1],S[3]) SS.code=code'shl'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='eq'
+function ()SS=S[2] append(S[1],S[3]) SS.code=code'concat'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='ne'
+function ()SS=S[2] append(S[1],S[3]) SS.code=code'lt'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='and'
+function ()SS=S[2] append(S[1],S[3]) SS.code=code'le'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='or'
+function ()SS=S[2] append(S[1],S[3]) SS.code=code'gt'
 end;
-function ()SS=S[1] append(S[2]) SS.unop='unm'
+function ()SS=S[2] append(S[1],S[3]) SS.code=code'ge'
 end;
-function ()SS=S[1] append(S[2]) SS.unop='not'
+function ()SS=S[2] append(S[1],S[3]) SS.code=code'eq'
 end;
-function ()SS=S[1] append(S[2]) SS.unop='len'
+function ()SS=S[2] append(S[1],S[3]) SS.code=code'ne'
 end;
-function ()SS=S[1] append(S[2]) SS.unop='bnot'
+function ()SS=S[1] append(S[2]) SS.code=code'unm'
+end;
+function ()SS=S[1] append(S[2]) SS.code=code'not'
+end;
+function ()SS=S[1] append(S[2]) SS.code=code'len'
+end;
+function ()SS=S[1] append(S[2]) SS.code=code'bnot'
 end;
 function ()SS=S[2]
 end;
@@ -156,17 +166,15 @@ function ()SS=S[0] append(S[5],S[2])
 end;
 function ()SS=S[0] append(S[3],S[1])
 end;
-function ()SS=S[0] SS.v=S[1].v SS.type='LongLiteralString'
+function ()SS=S[0] SS.v=S[1].v
 end;
-function ()SS=S[0] SS.v=S[1].v SS.type='ShortLiteralString'
+function ()SS=S[0] SS.v=S[1].v SS.hint='DecimalIntegerNumeral'
 end;
-function ()SS=S[0] SS.v=S[1].v SS.type='DecimalIntegerNumeral'
+function ()SS=S[0] SS.v=S[1].v SS.hint='DecimalFloatingNumeral'
 end;
-function ()SS=S[0] SS.v=S[1].v SS.type='DecimalFloatingNumeral'
+function ()SS=S[0] SS.v=S[1].v SS.hint='HexadecimalIntegerNumeral'
 end;
-function ()SS=S[0] SS.v=S[1].v SS.type='HexadecimalIntegerNumeral'
-end;
-function ()SS=S[0] SS.v=S[1].v SS.type='HexadecimalFloatingNumeral'
+function ()SS=S[0] SS.v=S[1].v SS.hint='HexadecimalFloatingNumeral'
 end;
  }
   end)()
@@ -494,7 +502,7 @@ actions={
 };
 heads={64,65,66,66,67,67,67,68,68,68,68,68,68,68,68,68,68,68,68,68,68,68,69,69,69,70,70,71,72,73,73,74,74,75,75,75,75,76,77,77,78,78,79,79,80,80,80,80,80,81,81,82,82,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,84,84,85,85,85,85,86,86,86,86,87,88,88,89,89,89,90,90,91,91,92,92,93,93,93,94,94,95,95,96,96,96,96,};
 sizes={1,1,1,2,0,2,2,3,1,1,1,2,3,5,4,6,7,1,3,1,2,4,0,2,5,3,5,7,4,2,4,0,3,1,2,2,3,3,1,3,1,3,1,3,1,4,3,4,3,1,3,1,3,1,1,1,1,1,1,1,1,1,1,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,2,1,3,2,4,2,4,2,3,1,1,2,4,5,1,3,1,2,3,1,2,1,3,5,3,1,1,1,1,1,1,1,1,1,};
-semantic_actions={1,2,3,4,5,3,4,6,7,4,3,8,9,10,11,12,13,3,14,3,15,16,17,9,12,18,19,20,21,22,23,1,24,25,25,4,4,26,3,27,28,29,30,31,28,29,29,29,29,32,33,34,31,3,3,3,3,3,3,3,3,3,3,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,3,60,1,61,1,61,62,60,34,34,63,64,65,3,66,67,68,60,3,3,69,31,70,71,1,1,1,72,73,74,75,76,77,};
+semantic_actions={1,2,3,4,5,3,4,6,7,4,3,8,9,10,11,12,13,3,14,3,15,16,17,9,12,18,19,20,21,22,23,1,24,25,25,4,4,26,3,27,28,29,30,31,28,29,29,29,29,32,33,34,31,35,36,37,38,39,3,3,3,3,3,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,29,29,59,60,61,62,3,63,1,64,1,64,65,63,34,34,66,67,68,3,69,70,71,63,3,3,72,31,73,74,1,1,1,75,75,76,77,78,79,};
  }
 local metatable = {
   __call = function (self, token)

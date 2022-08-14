@@ -152,9 +152,6 @@ local right = parser.grammar.right
 -- declare    Nameにつける  変数を宣言する
 -- resolve    Nameにつける  変数を参照する
 
--- 不要かも？
--- type       定数の副種別
-
 local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
   [[
     local function proto(vararg)
@@ -163,6 +160,10 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 
     local function scope()
       return {}
+    end
+
+    local function code(op, ...)
+      return { [0] = op, ... }
     end
   ]];
 
@@ -270,43 +271,43 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"explist" "," "exp"                                 %"$$=$1 append($3)";
 
   exp
-    = _"nil"                                               %"$$=$1"
-    + _"false"                                             %"$$=$1"
-    + _"true"                                              %"$$=$1"
-    + _"Numeral"                                           %"$$=$1"
-    + _"LiteralString"                                     %"$$=$1"
+    = _"nil"                                               %"$$=$1 $$.code=code'push_nil'"
+    + _"false"                                             %"$$=$1 $$.code=code'push_false'"
+    + _"true"                                              %"$$=$1 $$.code=code'push_true'"
+    + _"Numeral"                                           %"$$=$1 $$.code=code('push_number',$$.v,$$.hint)"
+    + _"LiteralString"                                     %"$$=$1 $$.code=code('push_string',$$.v)"
     + _"..."                                               %"$$=$1"
     + _"functiondef"                                       %"$$=$1"
     + _"prefixexp"                                         %"$$=$1"
     + _"functioncall"                                      %"$$=$1"
     + _"tableconstructor"                                  %"$$=$1"
     -- binop
-    + _"exp" "+"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='add'"
-    + _"exp" "-"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='sub'"
-    + _"exp" "*"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='mul'"
-    + _"exp" "/"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='div'"
-    + _"exp" "//"  "exp"                                   %"$$=$2 append($1,$3) $$.binop='idiv'"
-    + _"exp" "^"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='pow'"
-    + _"exp" "%"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='mod'"
-    + _"exp" "&"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='band'"
-    + _"exp" "~"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='bxor'"
-    + _"exp" "|"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='bor'"
-    + _"exp" ">>"  "exp"                                   %"$$=$2 append($1,$3) $$.binop='shr'"
-    + _"exp" "<<"  "exp"                                   %"$$=$2 append($1,$3) $$.binop='shl'"
-    + _"exp" ".."  "exp"                                   %"$$=$2 append($1,$3) $$.binop='concat'"
-    + _"exp" "<"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='lt'"
-    + _"exp" "<="  "exp"                                   %"$$=$2 append($1,$3) $$.binop='le'"
-    + _"exp" ">"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='gt'"
-    + _"exp" ">="  "exp"                                   %"$$=$2 append($1,$3) $$.binop='ge'"
-    + _"exp" "=="  "exp"                                   %"$$=$2 append($1,$3) $$.binop='eq'"
-    + _"exp" "~="  "exp"                                   %"$$=$2 append($1,$3) $$.binop='ne'"
-    + _"exp" "and" "exp"                                   %"$$=$2 append($1,$3) $$.binop='and'"
-    + _"exp" "or"  "exp"                                   %"$$=$2 append($1,$3) $$.binop='or'"
+    + _"exp" "+"   "exp"                                   %"$$=$2 append($1,$3) $$.code=code'add'"
+    + _"exp" "-"   "exp"                                   %"$$=$2 append($1,$3) $$.code=code'sub'"
+    + _"exp" "*"   "exp"                                   %"$$=$2 append($1,$3) $$.code=code'mul'"
+    + _"exp" "/"   "exp"                                   %"$$=$2 append($1,$3) $$.code=code'div'"
+    + _"exp" "//"  "exp"                                   %"$$=$2 append($1,$3) $$.code=code'idiv'"
+    + _"exp" "^"   "exp"                                   %"$$=$2 append($1,$3) $$.code=code'pow'"
+    + _"exp" "%"   "exp"                                   %"$$=$2 append($1,$3) $$.code=code'mod'"
+    + _"exp" "&"   "exp"                                   %"$$=$2 append($1,$3) $$.code=code'band'"
+    + _"exp" "~"   "exp"                                   %"$$=$2 append($1,$3) $$.code=code'bxor'"
+    + _"exp" "|"   "exp"                                   %"$$=$2 append($1,$3) $$.code=code'bor'"
+    + _"exp" ">>"  "exp"                                   %"$$=$2 append($1,$3) $$.code=code'shr'"
+    + _"exp" "<<"  "exp"                                   %"$$=$2 append($1,$3) $$.code=code'shl'"
+    + _"exp" ".."  "exp"                                   %"$$=$2 append($1,$3) $$.code=code'concat'"
+    + _"exp" "<"   "exp"                                   %"$$=$2 append($1,$3) $$.code=code'lt'"
+    + _"exp" "<="  "exp"                                   %"$$=$2 append($1,$3) $$.code=code'le'"
+    + _"exp" ">"   "exp"                                   %"$$=$2 append($1,$3) $$.code=code'gt'"
+    + _"exp" ">="  "exp"                                   %"$$=$2 append($1,$3) $$.code=code'ge'"
+    + _"exp" "=="  "exp"                                   %"$$=$2 append($1,$3) $$.code=code'eq'"
+    + _"exp" "~="  "exp"                                   %"$$=$2 append($1,$3) $$.code=code'ne'"
+    + _"exp" "and" "exp"                                   %"$$=$2 append($1,$3)"
+    + _"exp" "or"  "exp"                                   %"$$=$2 append($1,$3)"
     -- unop
-    + _"-"   "exp" :prec "UNM"                             %"$$=$1 append($2) $$.unop='unm'"
-    + _"not" "exp"                                         %"$$=$1 append($2) $$.unop='not'"
-    + _"#"   "exp"                                         %"$$=$1 append($2) $$.unop='len'"
-    + _"~"   "exp" :prec "BNOT"                            %"$$=$1 append($2) $$.unop='bnot'";
+    + _"-"   "exp" :prec "UNM"                             %"$$=$1 append($2) $$.code=code'unm'"
+    + _"not" "exp"                                         %"$$=$1 append($2) $$.code=code'not'"
+    + _"#"   "exp"                                         %"$$=$1 append($2) $$.code=code'len'"
+    + _"~"   "exp" :prec "BNOT"                            %"$$=$1 append($2) $$.code=code'bnot'";
 
   -- The Complete Syntax of LuaのEBNFは、prefixexpとfunctioncallが相互に依存し
   -- ている。そのまま利用するとshift/shift競合が発生する。これを回避するため、
@@ -361,14 +362,14 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _";";
 
   LiteralString
-    = _"LongLiteralString"                                 %"$$=$0 $$.v=$1.v $$.type='LongLiteralString'"
-    + _"ShortLiteralString"                                %"$$=$0 $$.v=$1.v $$.type='ShortLiteralString'";
+    = _"LongLiteralString"                                 %"$$=$0 $$.v=$1.v"
+    + _"ShortLiteralString"                                %"$$=$0 $$.v=$1.v";
 
   Numeral
-    = _"DecimalIntegerNumeral"                             %"$$=$0 $$.v=$1.v $$.type='DecimalIntegerNumeral'"
-    + _"DecimalFloatingNumeral"                            %"$$=$0 $$.v=$1.v $$.type='DecimalFloatingNumeral'"
-    + _"HexadecimalIntegerNumeral"                         %"$$=$0 $$.v=$1.v $$.type='HexadecimalIntegerNumeral'"
-    + _"HexadecimalFloatingNumeral"                        %"$$=$0 $$.v=$1.v $$.type='HexadecimalFloatingNumeral'";
+    = _"DecimalIntegerNumeral"                             %"$$=$0 $$.v=$1.v $$.hint='DecimalIntegerNumeral'"
+    + _"DecimalFloatingNumeral"                            %"$$=$0 $$.v=$1.v $$.hint='DecimalFloatingNumeral'"
+    + _"HexadecimalIntegerNumeral"                         %"$$=$0 $$.v=$1.v $$.hint='HexadecimalIntegerNumeral'"
+    + _"HexadecimalFloatingNumeral"                        %"$$=$0 $$.v=$1.v $$.hint='HexadecimalFloatingNumeral'";
 }))
 
 for _, message in conflictions:ipairs() do
