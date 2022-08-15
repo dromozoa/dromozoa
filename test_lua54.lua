@@ -193,7 +193,7 @@ local function process1(protos, proto, scope, u)
     u.proto.upvalues = array()
     u.proto.parent = proto
     proto = u.proto
-    protos:append(proto)
+    proto.index = protos:append(proto):size()
   end
 
   if u.scope ~= nil then
@@ -247,6 +247,8 @@ local function process1(protos, proto, scope, u)
     local v = #u > 0 and u[#u] or nil
     local v_name = v ~= nil and lua54_parser.symbol_names[v[0]] or nil
     if a == nil then
+      -- 末尾がfunctioncallまたは...で、かつnomultretが真でなければ、戻り値の個
+      -- 数を調節しない。
       if (v_name == "functioncall" or v_name == "...") and not v.nomultret then
         v.nr = -1
         u.nr = #u - 1
@@ -294,12 +296,10 @@ local function process1(protos, proto, scope, u)
 
   elseif u_name == "fieldlist" then
     -- key=value形式でないfieldの個数を数える。
-    local x
-    local y
+    local x, y
     local nlist = 0
     for i, v in ipairs(u) do
-      x = v[1]
-      y = v[2]
+      x, y = v[1], v[2]
       if y == nil then
         nlist = nlist + 1
       else
@@ -307,6 +307,8 @@ local function process1(protos, proto, scope, u)
       end
     end
     u.nlist = nlist
+    -- 末尾がkey=value形式でなく、functioncallまたは...で、かつnomultretが真で
+    -- なければ、戻り値の個数を調節しない。
     if x ~= nil and y == nil then
       local x_name = lua54_parser.symbol_names[x[0]]
       if (x_name == "functioncall" or x_name == "...") and not x.nomultret then
@@ -315,13 +317,27 @@ local function process1(protos, proto, scope, u)
       end
     end
 
-  end
-
-  if u_name == "functioncall" or u_name == "..." then
+  elseif u_name == "functioncall" or u_name == "..." then
+    -- まだ決定されていなければ、戻り値の個数を1個に調節する。
     if u.nr == nil then
       u.nr = 1
     end
   end
+
+  -- varがrefなのかdefなのかを決める
+  -- まず、varlistの子はdefである
+  -- functionのfuncnameもdefである
+  -- local変数 (for, local_function, local) のdeclareをdefとみなさない
+  -- defの場合、
+  -- a . b . c . d = v
+  -- get_local(a)
+  -- push_string(b)
+  -- get_table(2)
+  -- push_string(c)
+  -- get_table(2)
+  -- push_string(d)
+  -- get_local(v)
+
 
   for _, v in ipairs(u) do
     process1(protos, proto, scope, v)
@@ -332,6 +348,10 @@ local function process1(protos, proto, scope, u)
     for _, v in ipairs(u.code) do
       append_code(code, u, v[0], v.a, v.b)
     end
+  elseif u_name == "..." then
+    append_code(code, u, "vararg", u.nr)
+  elseif u_name == "functiondef" then
+    append_code(code, u, "closure", u[1].proto.index)
   elseif u.binop ~= nil then
     append_code_unpack(code, u[1].code)
     append_code_unpack(code, u[2].code)
@@ -355,8 +375,6 @@ local function process1(protos, proto, scope, u)
   elseif u.unop ~= nil then
     append_code_unpack(code, u[1].code)
     append_code(code, u, u.unop)
-  elseif u_name == "..." then
-    append_code(code, u, "vararg", u.nr)
   elseif u_name == "fieldlist" then
     append_code(code, u, "newtable")
     for _, v in ipairs(u) do
@@ -501,8 +519,8 @@ end
 local function dump_protos(out, protos)
   out:write "<protos>\n"
   for i, proto in protos:ipairs() do
-    out:write("  <proto index=\"", i, "\"")
-    dump_attrs(out, proto, {"self", "vararg"})
+    out:write "  <proto"
+    dump_attrs(out, proto, {"index", "self", "vararg"})
     out:write ">\n"
 
     if proto.labels:empty() then
