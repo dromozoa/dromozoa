@@ -175,7 +175,15 @@ local function code(u, op, a, b, c)
 end
 
 local function append_code(self, u, op, a, b)
-  return self:append{[0]=op, a=a, b=b, c=c, node=u}
+  local v = { [0] = op, a = a, b = b, c = c, node = u }
+  self[#self + 1] = v
+  return v
+end
+
+local function append_code_unpack(self, that)
+  for _, v in ipairs(that) do
+    self[#self + 1] = v
+  end
 end
 
 local function process1(protos, proto, scope, u)
@@ -297,6 +305,7 @@ local function process1(protos, proto, scope, u)
         -- key=value形式である
         v[1].multret = nil
       end
+      v.nlist = nlist
     end
     u.nlist = nlist
 
@@ -316,35 +325,40 @@ local function process1(protos, proto, scope, u)
     process1(protos, proto, scope, v)
   end
 
-  local code = array()
+  local code = {}
   if u.code ~= nil then
     for _, v in ipairs(u.code) do
       append_code(code, u, v[0], v.a, v.b)
     end
   elseif u.binop ~= nil then
-    code:append(u[1].code:unpack())
-    code:append(u[2].code:unpack())
+    append_code_unpack(code, u[1].code)
+    append_code_unpack(code, u[2].code)
     append_code(code, u, u.binop)
+  elseif u_name == "and" then
+    append_code_unpack(code, u[1].code)
+    append_code(code, u, "dup")
+    local conditional = append_code(code, u, "if")
+    local then_block = append_code(conditional, u, "then_block")
+    local else_block = append_code(conditional, u, "else_block")
+    append_code(then_block, u, "pop")
+    append_code_unpack(then_block, u[2].code)
+  elseif u_name == "or" then
+    append_code_unpack(code, u[1].code)
+    append_code(code, u, "dup")
+    local conditional = append_code(code, u, "if")
+    local then_block = append_code(conditional, u, "then_block")
+    local else_block = append_code(conditional, u, "else_block")
+    append_code(else_block, u, "pop")
+    append_code_unpack(else_block, u[2].code)
   elseif u.unop ~= nil then
-    code:append(u[1].code:unpack())
+    append_code_unpack(code, u[1].code)
     append_code(code, u, u.unop)
   elseif u_name == "..." then
     append_code(code, u, "vararg", u.nr)
   elseif u_name == "fieldlist" then
     append_code(code, u, "newtable")
-    if #u > 0 then
-      append_code(code, u, "dup")
-      for i, v in ipairs(u) do
-        if i < #u then
-          code:append(v.code:unpack())
-          if v[2] == nil then
-            append_code(code, u, "swap")
-          end
-        else
-          append_code(code, u, "pop")
-          code:append(v.code:unpack())
-        end
-      end
+    for _, v in ipairs(u) do
+      append_code_unpack(code, v.code)
     end
     if u.nr ~= nil then
       append_code(code, u, "setlist_nr", u.nr)
@@ -353,11 +367,11 @@ local function process1(protos, proto, scope, u)
     end
   elseif u_name == "field" then
     if u[2] == nil then
-      code:append(u[1].code:unpack())
+      append_code_unpack(code, u[1].code)
     else
-      code:append(u[1].code:unpack())
-      code:append(u[2].code:unpack())
-      append_code(code, u, "settable")
+      append_code_unpack(code, u[1].code)
+      append_code_unpack(code, u[2].code)
+      append_code(code, u, "settable", u.nlist + 3)
     end
   end
   u.code = code
@@ -437,7 +451,7 @@ local function dump_code(out, u, n)
     out:write(" b=", quote(u.b))
   end
 
-  if ipairs(u) then
+  if #u == 0 then
     out:write "/>\n"
   else
     out:write ">\n"
@@ -473,7 +487,7 @@ local function dump_node(out, u, n)
     end
 
     if u.code ~= nil then
-      for _, v in u.code:ipairs() do
+      for _, v in ipairs(u.code) do
         dump_code(out, v, n)
       end
     end

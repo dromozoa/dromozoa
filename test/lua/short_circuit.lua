@@ -15,20 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local function f() end
-
-local function a()
-  return f() and f() and f()
-end
-
-local function b()
-  return f() and f() or f()
-end
-
-local function b()
-  return f() or f() and f()
-end
-
-local function b()
-  return f() or f() or f()
-end
+local _ = function () return 1 and 2 and 3 end
+local _ = function () return 4 and 5 or 6 end
+local _ = function () return 7 or 8 and 9 end
+local _ = function () return 10 or 11 or 12 end
