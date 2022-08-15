@@ -243,67 +243,49 @@ local function process1(protos, proto, scope, u)
   end
 
   if u_name == "explist" then
-    -- explistの末尾であれば、multretになりえる。
-    -- for i = 1, #u - 1 do
-    --   u[i].multret = nil
-    -- end
-
     local a = u.adjust
     local v = #u > 0 and u[#u] or nil
     local v_name = v ~= nil and lua54_parser.symbol_names[v[0]] or nil
     if a == nil then
-      if v_name == "functioncall" or v_name == "..." then
-        if v ~= nil and not v.nomultret then
-          v.nr = -1
-          u.nr = #u - 1
-        end
+      if (v_name == "functioncall" or v_name == "...") and not v.nomultret then
+        v.nr = -1
+        u.nr = #u - 1
       end
-
-      -- if v ~= nil and v.multret then
-      --   u.nr = #u - 1
-      -- end
     else
       -- #u < a
-      --   1. 末尾がfunctioncallまたは...で、nomultretが真でなければ、戻り値の
-      --      個数を(a-#u+1)個に設定する。
-      --   2. さもなければ、(a-#u)個のpush_nil()を追加する。
+      --   1. 末尾がfunctioncallまたは...で、かつnomultretが真でなければ、戻り
+      --      値の個数を(a-#u+1)個に調節する。
+      --   2. 末尾がfunctioncallまたは...で、かつnomultretが真ならば、戻り値の
+      --      個数を1個に調節し、(a-#u)個のpush_nil()を追加する。
+      --   3. さもなければ、(a-#u)個のpush_nil()を追加する。
       -- #u == a
-      --   1. 末尾がfunctioncallまたは...ならば、戻り値の個数を1個に設定する。
+      --   1. 末尾がfunctioncallまたは...ならば、戻り値の個数を1個に調節する。
       -- #u == a+1
-      --   1. 末尾がfunctioncallまたは...ならば、戻り値の個数を0個に設定する。
+      --   1. 末尾がfunctioncallまたは...ならば、戻り値の個数を0個に調節する。
       --   2. さもなければ、pop(1)を追加する。
       -- #u > a+1
-      --   1. 末尾がfunctioncallまたは...ならば、戻り値の個数を0個に設定し、
+      --   1. 末尾がfunctioncallまたは...ならば、戻り値の個数を0個に調節し、
       --      pop(#u-a-1)を追加する。
       --   2. さもなければ、pop(#u-a)を追加する。
-      if #u < a then
-        if v_name == "functioncall" or v_name == "..." then
-          if v ~= nil and not v.nomultret then
+      if v_name == "functioncall" or v_name == "..." then
+        if #u < a then
+          if not v.nomultret then
             v.nr = a - #u + 1
           else
             v.nr = 1
             u.push = a - #u
           end
+        elseif #u == a then
+          v.nr = 1
         else
-          u.push = a - #u
-        end
-
-        -- if v ~= nil and not v.nomultret then
-        --   v.nr = a - #u + 1
-        -- else
-        --   u.push = a - #u
-        -- end
-      else
-        -- local v_name = lua54_parser.symbol_names[v[0]]
-        if v_name == "functioncall" or v_name == "..." then
-          if #u == a then
-            v.nr = 1
-          else
-            v.nr = 0
-            if #u > a + 1 then
-              u.pop = #u - a - 1
-            end
+          v.nr = 0
+          if #u > a + 1 then
+            u.pop = #u - a - 1
           end
+        end
+      else
+        if #u < a then
+          u.push = a - #u
         elseif #u > a then
           u.pop = #u - a
         end
@@ -311,31 +293,35 @@ local function process1(protos, proto, scope, u)
     end
 
   elseif u_name == "fieldlist" then
-    -- 1. key=value形式でないfieldの個数を数える。
-    -- 2. fieldlistの末尾であり、かつkey=value形式でなければ、multretになりえる。
+    -- key=value形式でないfieldの個数を数える。
     local nlist = 0
     for i, v in ipairs(u) do
       if v[2] == nil then
-        -- key=value形式でない
         nlist = nlist + 1
-        -- if i < #u then
-        --   v[1].multret = nil
-        -- end
       else
-        -- key=value形式である
-        -- v[1].multret = nil
+        v.nlist = nlist
       end
-      v.nlist = nlist
     end
     u.nlist = nlist
 
-    local v = #u > 0 and u[#u] or nil
-    local v_name = v ~= nil and lua54_parser.symbol_names[v[1][0]] or nil
-    if v_name == "functioncall" or v_name == "..." then
-      if not v[1].nomultret and v[2] == nil then
-        v[1].nr = -1
+    if #u > 0 then
+      local v = u[#u]
+      local x = v[1]
+      local x_name = lua54_parser.symbol_names[x[0]]
+      if (x_name == "functioncall" or x_name == "...") and not x.nomultret and v[2] == nil then
+        x.nr = -1
         u.nr = nlist - 1
       end
+
+      -- local field = #u > 0 and u[#u] or nil
+      -- local v_name = field ~= nil and lua54_parser.symbol_names[field[1][0]] or nil
+      -- if v_name == "functioncall" or v_name == "..." then
+      --   if not field[1].nomultret and field[2] == nil then
+      --     field[1].nr = -1
+      --     u.nr = nlist - 1
+      --   end
+      -- end
+
     end
   end
 
