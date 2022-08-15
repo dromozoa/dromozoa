@@ -312,17 +312,8 @@ local function process1(protos, proto, scope, u)
         x.nr = -1
         u.nr = nlist - 1
       end
-
-      -- local field = #u > 0 and u[#u] or nil
-      -- local v_name = field ~= nil and lua54_parser.symbol_names[field[1][0]] or nil
-      -- if v_name == "functioncall" or v_name == "..." then
-      --   if not field[1].nomultret and field[2] == nil then
-      --     field[1].nr = -1
-      --     u.nr = nlist - 1
-      --   end
-      -- end
-
     end
+
   end
 
   if u_name == "functioncall" or u_name == "..." then
