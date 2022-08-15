@@ -104,8 +104,8 @@ end
 --   |        |
 -- scope----proto <= external
 
-local function declare(scope, name, u)
-  local var = scope.proto.locals:append{name=name, node=u}:size()
+local function declare(scope, name, u, attribute)
+  local var = scope.proto.locals:append{name=name, attribute=attribute, node=u}:size()
   scope.locals:append(var)
   return var
 end
@@ -226,11 +226,11 @@ local function process1(protos, proto, scope, u)
     u.var = declare(scope, "(for state)", u)
     declare(scope, "(for state)", u)
     declare(scope, "(for state)", u)
-    declare(scope, "(for state)", u)
+    declare(scope, "(for state)", u, "close")
   end
 
   if u.declare then
-    u.var = declare(scope, u.v, u)
+    u.var = declare(scope, u.v, u, u.attribute)
   elseif u.resolve then
     local var = resolve(scope, u.v)
     if var == nil then
@@ -548,9 +548,9 @@ local function dump_protos(out, protos)
       out:write "    <locals>\n"
       for j, v in proto.locals:ipairs() do
         out:write("      <local index=\"", j, "\"")
-        dump_attrs(out, v, {"name"})
+        dump_attrs(out, v, {"name", "attribute"})
         if v.node ~= nil then
-          dump_attrs(out, v.node, {"attribute", "n", "c"})
+          dump_attrs(out, v.node, {"n", "c"})
         end
         out:write "/>\n"
       end
