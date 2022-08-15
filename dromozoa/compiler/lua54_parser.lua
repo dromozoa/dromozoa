@@ -44,7 +44,7 @@ function ()SS=S[1] append(S[2],S[4],S[5]) S[4].scope=scope()
 end;
 function ()SS=S[1] append(S[2],S[4],S[6]) SS.scope=scope() S[2].declare=true
 end;
-function ()SS=S[1] append(S[2],S[3]) S[3].proto.self=S[2].self
+function ()SS=S[1] append(S[2],S[3]) S[2].define=true S[3].proto.self=S[2].self
 end;
 function ()SS=S[1] append(S[2],S[4]) S[4].adjust=#S[2]
 end;
@@ -68,29 +68,31 @@ function ()SS=S[1] append(create(82))
 end;
 function ()SS=S[0] append(S[2]) S[2].def_label=true
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.self=true
+function ()SS=create(59) append(S[1],S[3]) SS.self=true S[3].code=code('push_literal',S[3].v)
 end;
 function ()SS=S[1] SS.resolve=true
 end;
-function ()SS=S[2] append(S[1],S[3])
+function ()SS=S[2] append(S[1],S[3]) S[3].code=code('push_literal',S[3].v)
 end;
-function ()SS=S[0] append(S[1])
+function ()SS=S[0] append(S[1]) S[1].define=true
 end;
-function ()SS=S[1] append(S[3])
+function ()SS=S[1] append(S[3]) S[3].define=true
+end;
+function ()SS=create(59) append(S[1],S[3])
 end;
 function ()SS=S[0] append(S[1]) S[1].declare=true
 end;
 function ()SS=S[1] append(S[3]) S[3].declare=true
+end;
+function ()SS=S[0] append(S[1])
+end;
+function ()SS=S[1] append(S[3])
 end;
 function ()SS=S[1] SS.code=code'push_nil'
 end;
 function ()SS=S[1] SS.code=code'push_false'
 end;
 function ()SS=S[1] SS.code=code'push_true'
-end;
-function ()SS=S[1] SS.code=code('push_number',SS.v,SS.hint)
-end;
-function ()SS=S[1] SS.code=code('push_string',SS.v)
 end;
 function ()SS=S[2] append(S[1],S[3]) SS.binop='add'
 end;
@@ -130,6 +132,8 @@ function ()SS=S[2] append(S[1],S[3]) SS.binop='eq'
 end;
 function ()SS=S[2] append(S[1],S[3]) SS.binop='ne'
 end;
+function ()SS=S[2] append(S[1],S[3])
+end;
 function ()SS=S[1] append(S[2]) SS.unop='unm'
 end;
 function ()SS=S[1] append(S[2]) SS.unop='not'
@@ -164,17 +168,17 @@ function ()SS=create(91) append(S[1])
 end;
 function ()SS=S[0] append(S[2],S[5])
 end;
-function ()SS=S[0] append(S[1],S[3]) S[1].code=code('push_string',S[1].v)
+function ()SS=S[0] append(S[1],S[3]) S[1].code=code('push_literal',S[1].v)
 end;
-function ()SS=S[0] SS.v=S[1].v
+function ()SS=S[0] SS.code=code('push_literal',S[1].v)
 end;
-function ()SS=S[0] SS.v=S[1].v SS.hint='DecimalIntegerNumeral'
+function ()SS=S[0] SS.code=code('push_numeral',S[1].v,'DecimalIntegerNumeral')
 end;
-function ()SS=S[0] SS.v=S[1].v SS.hint='DecimalFloatingNumeral'
+function ()SS=S[0] SS.code=code('push_numeral',S[1].v,'DecimalFloatingNumeral')
 end;
-function ()SS=S[0] SS.v=S[1].v SS.hint='HexadecimalIntegerNumeral'
+function ()SS=S[0] SS.code=code('push_numeral',S[1].v,'HexadecimalIntegerNumeral')
 end;
-function ()SS=S[0] SS.v=S[1].v SS.hint='HexadecimalFloatingNumeral'
+function ()SS=S[0] SS.code=code('push_numeral',S[1].v,'HexadecimalFloatingNumeral')
 end;
  }
   end)()
@@ -502,7 +506,7 @@ actions={
 };
 heads={64,65,66,66,67,67,67,68,68,68,68,68,68,68,68,68,68,68,68,68,68,68,69,69,69,70,70,71,72,73,73,74,74,75,75,75,75,76,77,77,78,78,79,79,80,80,80,80,80,81,81,82,82,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,84,84,85,85,85,85,86,86,86,86,87,88,88,89,89,89,90,90,91,91,92,92,93,93,93,94,94,95,95,96,96,96,96,};
 sizes={1,1,1,2,0,2,2,3,1,1,1,2,3,5,4,6,7,1,3,1,2,4,0,2,5,3,5,7,4,2,4,0,3,1,2,2,3,3,1,3,1,3,1,3,1,4,3,4,3,1,3,1,3,1,1,1,1,1,1,1,1,1,1,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,2,1,3,2,4,2,4,2,3,1,1,2,4,5,1,3,1,2,3,1,2,1,3,5,3,1,1,1,1,1,1,1,1,1,};
-semantic_actions={1,2,3,4,5,3,4,6,7,4,3,8,9,10,11,12,13,3,14,3,4,15,16,9,12,17,18,19,20,21,22,1,23,24,24,4,4,25,3,26,27,28,29,30,27,28,28,28,28,31,32,29,30,33,34,35,36,37,3,3,3,3,3,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,28,28,57,58,59,60,3,61,1,62,1,62,63,64,65,65,66,67,68,3,69,70,71,64,3,3,72,30,73,74,1,1,1,75,75,76,77,78,79,};
+semantic_actions={1,2,3,4,5,3,4,6,7,4,3,8,9,10,11,12,13,3,14,3,4,15,16,9,12,17,18,19,20,21,22,1,23,24,24,4,4,25,3,26,27,28,29,30,27,31,28,31,28,32,33,34,35,36,37,38,3,3,3,3,3,3,3,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,58,59,60,61,62,3,63,1,64,1,64,65,66,67,67,68,69,70,3,71,72,73,66,3,3,74,35,75,76,1,1,1,77,77,78,79,80,81,};
  }
 local metatable = {
   __call = function (self, token)

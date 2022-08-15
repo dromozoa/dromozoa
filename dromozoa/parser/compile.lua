@@ -66,7 +66,7 @@ return function (grammar, actions)
     end
     local semantic_action = semantic_action
       :gsub("$([%a_][%w_]*)", substitute)
-      :gsub([[${"(..-)"}]], substitute)
+      :gsub([[${'(..-)'}]], substitute)
       :gsub("$([1-9]%d*)", "S[%1]")
       :gsub("$0", "S[0]")
       :gsub("$%$", "SS")

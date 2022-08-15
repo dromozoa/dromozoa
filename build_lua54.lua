@@ -206,7 +206,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"if" "exp" "then" "block" "else_clause" "end"       %"$$=$1 append($2,$4,$5) $4.scope=scope()"
     + _"for" "Name" "=" "exp_2or3" "do" "block" "end"      %"$$=$1 append($2,$4,$6) $$.scope=scope() $2.declare=true"
     + _"for_in"                                            %"$$=$1"
-    + _"function" "funcname" "funcbody"                    %"$$=$1 append($2,$3) $3.proto.self=$2.self"
+    + _"function" "funcname" "funcbody"                    %"$$=$1 append($2,$3) $2.define=true $3.proto.self=$2.self"
     + _"local_function"                                    %"$$=$1"
     + _"local" "attnamelist"                               %"$$=$1 append($2)"
     + _"local" "attnamelist" "=" "explist"                 %"$$=$1 append($2,$4) $4.adjust=#$2";
@@ -246,22 +246,22 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 
   funcname
     = _"funcname_"                                         %"$$=$1"
-    + _"funcname_" ":" "Name"                              %"$$=$2 append($1,$3) $$.self=true";
+    + _"funcname_" ":" "Name"                              %"$$=create(${'.'}) append($1,$3) $$.self=true $3.code=code('push_literal',$3.v)";
 
   funcname_
     = _"Name"                                              %"$$=$1 $$.resolve=true"
-    + _"funcname_" "." "Name"                              %"$$=$2 append($1,$3)";
+    + _"funcname_" "." "Name"                              %"$$=$2 append($1,$3) $3.code=code('push_literal',$3.v)";
 
   varlist
-    = _"var"                                               %"$$=$0 append($1)"
-    + _"varlist" "," "var"                                 %"$$=$1 append($3)";
+    = _"var"                                               %"$$=$0 append($1) $1.define=true"
+    + _"varlist" "," "var"                                 %"$$=$1 append($3) $3.define=true";
 
   var
     = _"Name"                                              %"$$=$1 $$.resolve=true"
-    + _"prefixexp" "[" "exp" "]"                           %"$$=$2 append($1,$3)"
-    + _"prefixexp" "." "Name"                              %"$$=$2 append($1,$3)"
-    + _"functioncall" "[" "exp" "]"                        %"$$=$2 append($1,$3)"
-    + _"functioncall" "." "Name"                           %"$$=$2 append($1,$3)";
+    + _"prefixexp" "[" "exp" "]"                           %"$$=create(${'.'}) append($1,$3)"
+    + _"prefixexp" "." "Name"                              %"$$=$2 append($1,$3) $3.code=code('push_literal',$3.v)"
+    + _"functioncall" "[" "exp" "]"                        %"$$=create(${'.'}) append($1,$3)"
+    + _"functioncall" "." "Name"                           %"$$=$2 append($1,$3) $3.code=code('push_literal',$3.v)";
 
   namelist
     = _"Name"                                              %"$$=$0 append($1) $1.declare=true"
@@ -275,8 +275,8 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     = _"nil"                                               %"$$=$1 $$.code=code'push_nil'"
     + _"false"                                             %"$$=$1 $$.code=code'push_false'"
     + _"true"                                              %"$$=$1 $$.code=code'push_true'"
-    + _"Numeral"                                           %"$$=$1 $$.code=code('push_number',$$.v,$$.hint)"
-    + _"LiteralString"                                     %"$$=$1 $$.code=code('push_string',$$.v)"
+    + _"Numeral"                                           %"$$=$1"
+    + _"LiteralString"                                     %"$$=$1"
     + _"..."                                               %"$$=$1"
     + _"functiondef"                                       %"$$=$1"
     + _"prefixexp"                                         %"$$=$1"
@@ -356,7 +356,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 
   field
     = _"[" "exp" "]" "=" "exp"                             %"$$=$0 append($2,$5)"
-    + _"Name" "=" "exp"                                    %"$$=$0 append($1,$3) $1.code=code('push_string',$1.v)"
+    + _"Name" "=" "exp"                                    %"$$=$0 append($1,$3) $1.code=code('push_literal',$1.v)"
     + _"exp";
 
   fieldsep
@@ -364,14 +364,14 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _";";
 
   LiteralString
-    = _"LongLiteralString"                                 %"$$=$0 $$.v=$1.v"
-    + _"ShortLiteralString"                                %"$$=$0 $$.v=$1.v";
+    = _"LongLiteralString"                                 %"$$=$0 $$.code=code('push_literal',$1.v)"
+    + _"ShortLiteralString"                                %"$$=$0 $$.code=code('push_literal',$1.v)";
 
   Numeral
-    = _"DecimalIntegerNumeral"                             %"$$=$0 $$.v=$1.v $$.hint='DecimalIntegerNumeral'"
-    + _"DecimalFloatingNumeral"                            %"$$=$0 $$.v=$1.v $$.hint='DecimalFloatingNumeral'"
-    + _"HexadecimalIntegerNumeral"                         %"$$=$0 $$.v=$1.v $$.hint='HexadecimalIntegerNumeral'"
-    + _"HexadecimalFloatingNumeral"                        %"$$=$0 $$.v=$1.v $$.hint='HexadecimalFloatingNumeral'";
+    = _"DecimalIntegerNumeral"                             %"$$=$0 $$.code=code('push_numeral',$1.v,'DecimalIntegerNumeral')"
+    + _"DecimalFloatingNumeral"                            %"$$=$0 $$.code=code('push_numeral',$1.v,'DecimalFloatingNumeral')"
+    + _"HexadecimalIntegerNumeral"                         %"$$=$0 $$.code=code('push_numeral',$1.v,'HexadecimalIntegerNumeral')"
+    + _"HexadecimalFloatingNumeral"                        %"$$=$0 $$.code=code('push_numeral',$1.v,'HexadecimalFloatingNumeral')";
 }))
 
 for _, message in conflictions:ipairs() do

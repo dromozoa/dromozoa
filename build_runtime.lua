@@ -52,7 +52,7 @@ local function build(source, result)
       break
     end
 
-    assert(match(buffer, "^$([%a_][%w_]*)(.*)") or match(buffer, [[^${"(..-)"}(.*)]]))
+    assert(match(buffer, "^$([%a_][%w_]*)(.*)") or match(buffer, "^${'(..-)'}(.*)"))
     out:write(("context[%q];\n"):format(_1))
     buffer = _2
   end

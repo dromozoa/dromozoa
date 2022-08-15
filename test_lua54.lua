@@ -342,7 +342,7 @@ local function process2(scope, u)
       end
     end
   elseif u_name == "functioncall" or u_name == "..." then
-    -- まだ決定されていなければ、戻り値の個数を1個に調節する。
+    -- 戻り値の個数が調節されていないfunctioncallと...は、1個に調節する。
     if u.nr == nil then
       u.nr = 1
     end
@@ -586,8 +586,8 @@ local attrs = {
   "attribute";
   "declare", "resolve", "var", "env";
   "def_label", "ref_label", "label";
-  "adjust", "multret", "nr", "push", "pop", "nlist";
-  "hint";
+  "define",
+  "adjust", "nomultret", "nr", "ns", "push", "pop";
 }
 if verbose then
   for _, attr in ipairs{"i", "j", "f", "n", "c", "s"} do

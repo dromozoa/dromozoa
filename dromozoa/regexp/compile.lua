@@ -30,7 +30,7 @@ local function insert_action(context, action)
 
   local action = action
     :gsub("$([%a_][%w_]*)", substitute)
-    :gsub([[${"(..-)"}]], substitute)
+    :gsub([[${'(..-)'}]], substitute)
     :gsub([[${<(..-)>}]], function (s)
       local buffer = {}
       for i, v in ipairs { s:byte(1, #s) } do
