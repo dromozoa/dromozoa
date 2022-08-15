@@ -270,17 +270,16 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     = _"exp"                                               %"$$=$0 append($1)"
     + _"explist" "," "exp"                                 %"$$=$1 append($3)";
 
-  -- TODO multretの解決をもっとかっこよくする
   exp
     = _"nil"                                               %"$$=$1 $$.code=code'push_nil'"
     + _"false"                                             %"$$=$1 $$.code=code'push_false'"
     + _"true"                                              %"$$=$1 $$.code=code'push_true'"
     + _"Numeral"                                           %"$$=$1 $$.code=code('push_number',$$.v,$$.hint)"
     + _"LiteralString"                                     %"$$=$1 $$.code=code('push_string',$$.v)"
-    + _"..."                                               %"$$=$1 $$.multret=true"
+    + _"..."                                               %"$$=$1"
     + _"functiondef"                                       %"$$=$1"
     + _"prefixexp"                                         %"$$=$1"
-    + _"functioncall"                                      %"$$=$1 $$.multret=true"
+    + _"functioncall"                                      %"$$=$1"
     + _"tableconstructor"                                  %"$$=$1"
     -- binop
     + _"exp" "+"  "exp"                                    %"$$=$2 append($1,$3) $$.binop='add'"
@@ -316,7 +315,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
   -- prefixexpを参照する箇所にfunctioncallを展開する。
   prefixexp
     = _"var"                                               %"$$=$1"
-    + _"(" "exp" ")"                                       %"$$=$2 $$.multret=nil";
+    + _"(" "exp" ")"                                       %"$$=$2 $$.nomultret=true";
 
   functioncall
     = _"prefixexp" "args"

@@ -244,19 +244,28 @@ local function process1(protos, proto, scope, u)
 
   if u_name == "explist" then
     -- explistの末尾であれば、multretになりえる。
-    for i = 1, #u - 1 do
-      u[i].multret = nil
-    end
+    -- for i = 1, #u - 1 do
+    --   u[i].multret = nil
+    -- end
 
     local a = u.adjust
     local v = #u > 0 and u[#u] or nil
+    local v_name = v ~= nil and lua54_parser.symbol_names[v[0]] or nil
     if a == nil then
-      if v ~= nil and v.multret then
-        u.nr = #u - 1
+      if v_name == "functioncall" or v_name == "..." then
+        if v ~= nil and not v.nomultret then
+          v.nr = -1
+          u.nr = #u - 1
+        end
       end
+
+      -- if v ~= nil and v.multret then
+      --   u.nr = #u - 1
+      -- end
     else
       -- #u < a
-      --   1. 末尾がmultretならば、戻り値の個数を(a-#u+1)個に設定する。
+      --   1. 末尾がfunctioncallまたは...で、nomultretが真でなければ、戻り値の
+      --      個数を(a-#u+1)個に設定する。
       --   2. さもなければ、(a-#u)個のpush_nil()を追加する。
       -- #u == a
       --   1. 末尾がfunctioncallまたは...ならば、戻り値の個数を1個に設定する。
@@ -268,13 +277,24 @@ local function process1(protos, proto, scope, u)
       --      pop(#u-a-1)を追加する。
       --   2. さもなければ、pop(#u-a)を追加する。
       if #u < a then
-        if v ~= nil and v.multret then
-          v.nr = a - #u + 1
+        if v_name == "functioncall" or v_name == "..." then
+          if v ~= nil and not v.nomultret then
+            v.nr = a - #u + 1
+          else
+            v.nr = 1
+            u.push = a - #u
+          end
         else
           u.push = a - #u
         end
+
+        -- if v ~= nil and not v.nomultret then
+        --   v.nr = a - #u + 1
+        -- else
+        --   u.push = a - #u
+        -- end
       else
-        local v_name = lua54_parser.symbol_names[v[0]]
+        -- local v_name = lua54_parser.symbol_names[v[0]]
         if v_name == "functioncall" or v_name == "..." then
           if #u == a then
             v.nr = 1
@@ -298,26 +318,30 @@ local function process1(protos, proto, scope, u)
       if v[2] == nil then
         -- key=value形式でない
         nlist = nlist + 1
-        if i < #u then
-          v[1].multret = nil
-        end
+        -- if i < #u then
+        --   v[1].multret = nil
+        -- end
       else
         -- key=value形式である
-        v[1].multret = nil
+        -- v[1].multret = nil
       end
       v.nlist = nlist
     end
     u.nlist = nlist
 
     local v = #u > 0 and u[#u] or nil
-    if v ~= nil and v[1].multret then
-      u.nr = nlist - 1
+    local v_name = v ~= nil and lua54_parser.symbol_names[v[1][0]] or nil
+    if v_name == "functioncall" or v_name == "..." then
+      if not v[1].nomultret and v[2] == nil then
+        v[1].nr = -1
+        u.nr = nlist - 1
+      end
     end
   end
 
   if u_name == "functioncall" or u_name == "..." then
     if u.nr == nil then
-      u.nr = u.multret and -1 or 1
+      u.nr = 1
     end
   end
 
