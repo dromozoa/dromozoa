@@ -170,6 +170,14 @@ local function ref_label(scope, name, u)
   return label
 end
 
+local function code(u, op, a, b, c)
+  return { [0] = op, a = a, b = b, c = c, node = u }
+end
+
+local function append_code(self, u, op, a, b)
+  return self:append{[0]=op, a=a, b=b, c=c, node=u}
+end
+
 local function process1(protos, proto, scope, u)
   if u.proto ~= nil then
     u.proto.labels = array()
@@ -307,6 +315,52 @@ local function process1(protos, proto, scope, u)
   for _, v in ipairs(u) do
     process1(protos, proto, scope, v)
   end
+
+  local code = array()
+  if u.code ~= nil then
+    for _, v in ipairs(u.code) do
+      append_code(code, u, v[0], v.a, v.b)
+    end
+  elseif u.binop ~= nil then
+    code:append(u[1].code:unpack())
+    code:append(u[2].code:unpack())
+    append_code(code, u, u.binop)
+  elseif u.unop ~= nil then
+    code:append(u[1].code:unpack())
+    append_code(code, u, u.unop)
+  elseif u_name == "..." then
+    append_code(code, u, "vararg", u.nr)
+  elseif u_name == "fieldlist" then
+    append_code(code, u, "newtable")
+    if #u > 0 then
+      append_code(code, u, "dup")
+      for i, v in ipairs(u) do
+        if i < #u then
+          code:append(v.code:unpack())
+          if v[2] == nil then
+            append_code(code, u, "swap")
+          end
+        else
+          append_code(code, u, "pop")
+          code:append(v.code:unpack())
+        end
+      end
+    end
+    if u.nr ~= nil then
+      append_code(code, u, "setlist_nr", u.nr)
+    elseif u.nlist > 0 then
+      append_code(code, u, "setlist", u.nlist)
+    end
+  elseif u_name == "field" then
+    if u[2] == nil then
+      code:append(u[1].code:unpack())
+    else
+      code:append(u[1].code:unpack())
+      code:append(u[2].code:unpack())
+      append_code(code, u, "settable")
+    end
+  end
+  u.code = code
 end
 
 local function process2(scope, u)
@@ -383,7 +437,7 @@ local function dump_code(out, u, n)
     out:write(" b=", quote(u.b))
   end
 
-  if #u == 0 then
+  if ipairs(u) then
     out:write "/>\n"
   else
     out:write ">\n"
@@ -419,7 +473,9 @@ local function dump_node(out, u, n)
     end
 
     if u.code ~= nil then
-      dump_code(out, u.code, n)
+      for _, v in u.code:ipairs() do
+        dump_code(out, v, n)
+      end
     end
 
     out:write(("  "):rep(n), "</node>\n")

@@ -163,7 +163,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     end
 
     local function code(op, a, b)
-      return { [0] = op, a = a, b = b }
+      return { { [0] = op, a = a, b = b } }
     end
   ]];
 
@@ -282,32 +282,32 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"functioncall"                                      %"$$=$1 $$.multret=true"
     + _"tableconstructor"                                  %"$$=$1"
     -- binop
-    + _"exp" "+"   "exp"                                   %"$$=$2 append($1,$3) $$.code=code'add'"
-    + _"exp" "-"   "exp"                                   %"$$=$2 append($1,$3) $$.code=code'sub'"
-    + _"exp" "*"   "exp"                                   %"$$=$2 append($1,$3) $$.code=code'mul'"
-    + _"exp" "/"   "exp"                                   %"$$=$2 append($1,$3) $$.code=code'div'"
-    + _"exp" "//"  "exp"                                   %"$$=$2 append($1,$3) $$.code=code'idiv'"
-    + _"exp" "^"   "exp"                                   %"$$=$2 append($1,$3) $$.code=code'pow'"
-    + _"exp" "%"   "exp"                                   %"$$=$2 append($1,$3) $$.code=code'mod'"
-    + _"exp" "&"   "exp"                                   %"$$=$2 append($1,$3) $$.code=code'band'"
-    + _"exp" "~"   "exp"                                   %"$$=$2 append($1,$3) $$.code=code'bxor'"
-    + _"exp" "|"   "exp"                                   %"$$=$2 append($1,$3) $$.code=code'bor'"
-    + _"exp" ">>"  "exp"                                   %"$$=$2 append($1,$3) $$.code=code'shr'"
-    + _"exp" "<<"  "exp"                                   %"$$=$2 append($1,$3) $$.code=code'shl'"
-    + _"exp" ".."  "exp"                                   %"$$=$2 append($1,$3) $$.code=code'concat'"
-    + _"exp" "<"   "exp"                                   %"$$=$2 append($1,$3) $$.code=code'lt'"
-    + _"exp" "<="  "exp"                                   %"$$=$2 append($1,$3) $$.code=code'le'"
-    + _"exp" ">"   "exp"                                   %"$$=$2 append($1,$3) $$.code=code'gt'"
-    + _"exp" ">="  "exp"                                   %"$$=$2 append($1,$3) $$.code=code'ge'"
-    + _"exp" "=="  "exp"                                   %"$$=$2 append($1,$3) $$.code=code'eq'"
-    + _"exp" "~="  "exp"                                   %"$$=$2 append($1,$3) $$.code=code'ne'"
+    + _"exp" "+"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='add'"
+    + _"exp" "-"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='sub'"
+    + _"exp" "*"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='mul'"
+    + _"exp" "/"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='div'"
+    + _"exp" "//"  "exp"                                   %"$$=$2 append($1,$3) $$.binop='idiv'"
+    + _"exp" "^"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='pow'"
+    + _"exp" "%"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='mod'"
+    + _"exp" "&"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='band'"
+    + _"exp" "~"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='bxor'"
+    + _"exp" "|"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='bor'"
+    + _"exp" ">>"  "exp"                                   %"$$=$2 append($1,$3) $$.binop='shr'"
+    + _"exp" "<<"  "exp"                                   %"$$=$2 append($1,$3) $$.binop='shl'"
+    + _"exp" ".."  "exp"                                   %"$$=$2 append($1,$3) $$.binop='concat'"
+    + _"exp" "<"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='lt'"
+    + _"exp" "<="  "exp"                                   %"$$=$2 append($1,$3) $$.binop='le'"
+    + _"exp" ">"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='gt'"
+    + _"exp" ">="  "exp"                                   %"$$=$2 append($1,$3) $$.binop='ge'"
+    + _"exp" "=="  "exp"                                   %"$$=$2 append($1,$3) $$.binop='eq'"
+    + _"exp" "~="  "exp"                                   %"$$=$2 append($1,$3) $$.binop='ne'"
     + _"exp" "and" "exp"                                   %"$$=$2 append($1,$3)"
     + _"exp" "or"  "exp"                                   %"$$=$2 append($1,$3)"
     -- unop
-    + _"-"   "exp" :prec "UNM"                             %"$$=$1 append($2) $$.code=code'unm'"
-    + _"not" "exp"                                         %"$$=$1 append($2) $$.code=code'not'"
-    + _"#"   "exp"                                         %"$$=$1 append($2) $$.code=code'len'"
-    + _"~"   "exp" :prec "BNOT"                            %"$$=$1 append($2) $$.code=code'bnot'";
+    + _"-"   "exp" :prec "UNM"                             %"$$=$1 append($2) $$.unop='unm'"
+    + _"not" "exp"                                         %"$$=$1 append($2) $$.unop='not'"
+    + _"#"   "exp"                                         %"$$=$1 append($2) $$.unop='len'"
+    + _"~"   "exp" :prec "BNOT"                            %"$$=$1 append($2) $$.unop='bnot'";
 
   -- The Complete Syntax of LuaのEBNFは、prefixexpとfunctioncallが相互に依存し
   -- ている。そのまま利用するとshift/shift競合が発生する。これを回避するため、
@@ -354,7 +354,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 
   field
     = _"[" "exp" "]" "=" "exp"                             %"$$=$0 append($5,$2)"
-    + _"Name" "=" "exp"                                    %"$$=$0 append($3,$1)"
+    + _"Name" "=" "exp"                                    %"$$=$0 append($3,$1) $1.code=code('push_string',$1.v)"
     + _"exp";
 
   fieldsep

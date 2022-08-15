@@ -14,7 +14,7 @@ local main = function ()
     end
 
     local function code(op, a, b)
-      return { [0] = op, a = a, b = b }
+      return { { [0] = op, a = a, b = b } }
     end
   
 
@@ -96,51 +96,51 @@ function ()SS=S[1] SS.code=code('push_string',SS.v)
 end;
 function ()SS=S[1] SS.multret=true
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.code=code'add'
+function ()SS=S[2] append(S[1],S[3]) SS.binop='add'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.code=code'sub'
+function ()SS=S[2] append(S[1],S[3]) SS.binop='sub'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.code=code'mul'
+function ()SS=S[2] append(S[1],S[3]) SS.binop='mul'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.code=code'div'
+function ()SS=S[2] append(S[1],S[3]) SS.binop='div'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.code=code'idiv'
+function ()SS=S[2] append(S[1],S[3]) SS.binop='idiv'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.code=code'pow'
+function ()SS=S[2] append(S[1],S[3]) SS.binop='pow'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.code=code'mod'
+function ()SS=S[2] append(S[1],S[3]) SS.binop='mod'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.code=code'band'
+function ()SS=S[2] append(S[1],S[3]) SS.binop='band'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.code=code'bxor'
+function ()SS=S[2] append(S[1],S[3]) SS.binop='bxor'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.code=code'bor'
+function ()SS=S[2] append(S[1],S[3]) SS.binop='bor'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.code=code'shr'
+function ()SS=S[2] append(S[1],S[3]) SS.binop='shr'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.code=code'shl'
+function ()SS=S[2] append(S[1],S[3]) SS.binop='shl'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.code=code'concat'
+function ()SS=S[2] append(S[1],S[3]) SS.binop='concat'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.code=code'lt'
+function ()SS=S[2] append(S[1],S[3]) SS.binop='lt'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.code=code'le'
+function ()SS=S[2] append(S[1],S[3]) SS.binop='le'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.code=code'gt'
+function ()SS=S[2] append(S[1],S[3]) SS.binop='gt'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.code=code'ge'
+function ()SS=S[2] append(S[1],S[3]) SS.binop='ge'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.code=code'eq'
+function ()SS=S[2] append(S[1],S[3]) SS.binop='eq'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.code=code'ne'
+function ()SS=S[2] append(S[1],S[3]) SS.binop='ne'
 end;
-function ()SS=S[1] append(S[2]) SS.code=code'unm'
+function ()SS=S[1] append(S[2]) SS.unop='unm'
 end;
-function ()SS=S[1] append(S[2]) SS.code=code'not'
+function ()SS=S[1] append(S[2]) SS.unop='not'
 end;
-function ()SS=S[1] append(S[2]) SS.code=code'len'
+function ()SS=S[1] append(S[2]) SS.unop='len'
 end;
-function ()SS=S[1] append(S[2]) SS.code=code'bnot'
+function ()SS=S[1] append(S[2]) SS.unop='bnot'
 end;
 function ()SS=S[2] SS.multret=nil
 end;
@@ -168,7 +168,7 @@ function ()SS=create(91) append(S[1])
 end;
 function ()SS=S[0] append(S[5],S[2])
 end;
-function ()SS=S[0] append(S[3],S[1])
+function ()SS=S[0] append(S[3],S[1]) S[1].code=code('push_string',S[1].v)
 end;
 function ()SS=S[0] SS.v=S[1].v
 end;
