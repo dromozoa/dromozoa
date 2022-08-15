@@ -21,5 +21,5 @@ local f1
 function f1() end
 function a.f2() end
 function a:f3() end
-function a.b.f4() end
-function a.b:f5() end
+function a.b.f4(x) end
+function a.b:f5(y) end

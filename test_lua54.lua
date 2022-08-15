@@ -206,6 +206,174 @@ local function process1(protos, proto, scope, u)
 
   local u_name = lua54_parser.symbol_names[u[0]]
 
+  if u_name == "for" then
+    -- 制御式の名前解決を先に行う。
+    process1(protos, proto, scope, u[2])
+    -- 内部的に使用する3個の変数を宣言する。
+    u.var = declare(scope, "(for state)", u)
+    declare(scope, "(for state)", u)
+    declare(scope, "(for state)", u)
+    process1(protos, proto, scope, u[1])
+    process1(protos, proto, scope, u[3])
+  elseif u_name == "for_in" then
+    -- 制御式の名前解決を先に行う。
+    process1(protos, proto, scope, u[2])
+    -- 内部的に使用する4個の変数を宣言する。Lua 5.3以前は3個だったが、Lua 5.4で
+    -- to-be-closed変数が追加された。
+    u.var = declare(scope, "(for state)", u)
+    declare(scope, "(for state)", u)
+    declare(scope, "(for state)", u)
+    declare(scope, "(for state)", u, "close")
+    process1(protos, proto, scope, u[1])
+    process1(protos, proto, scope, u[3])
+  elseif u_name == "local" then
+    -- 左辺に式があれば、式の名前解決を先に行う。
+    if u[2] ~= nil then
+      process1(protos, proto, scope, u[2])
+    end
+    process1(protos, proto, scope, u[1])
+  elseif u_name == "funcbody" then
+    -- colon syntaxで関数が定義されたら、暗黙の仮引数selfを宣言する。
+    if proto.self then
+      u.var = declare(scope, "self", u)
+    end
+    process1(protos, proto, scope, u[1])
+    process1(protos, proto, scope, u[2])
+  else
+    if u.declare then
+      u.var = declare(scope, u.v, u, u.attribute)
+    elseif u.resolve then
+      local var = resolve(scope, u.v)
+      if var == nil then
+        u.env = resolve(scope, "_ENV")
+      else
+        u.var = var
+      end
+    elseif u.def_label then
+      u.label = def_label(scope, u.v, u)
+    end
+
+    for _, v in ipairs(u) do
+      process1(protos, proto, scope, v)
+    end
+  end
+end
+
+local function process2(scope, u)
+  if u.scope ~= nil then
+    scope = u.scope
+  end
+
+  if u.ref_label then
+    u.label = ref_label(scope, u.v, u)
+  end
+
+  if u_name == "explist" then
+    local a = u.adjust
+    local v = #u > 0 and u[#u] or nil
+    local v_name = v ~= nil and lua54_parser.symbol_names[v[0]] or nil
+    if a == nil then
+      -- 末尾がfunctioncallまたは...で、かつnomultretが真でなければ、戻り値の個
+      -- 数を調節しない。
+      if (v_name == "functioncall" or v_name == "...") and not v.nomultret then
+        v.nr = -1
+        u.nr = #u - 1
+      end
+    else
+      -- #u < a
+      --   1. 末尾がfunctioncallまたは...で、かつnomultretが真でなければ、戻り
+      --      値の個数を(a-#u+1)個に調節する。
+      --   2. 末尾がfunctioncallまたは...で、かつnomultretが真ならば、戻り値の
+      --      個数を1個に調節し、(a-#u)個のpush_nil()を追加する。
+      --   3. さもなければ、(a-#u)個のpush_nil()を追加する。
+      -- #u == a
+      --   1. 末尾がfunctioncallまたは...ならば、戻り値の個数を1個に調節する。
+      -- #u == a+1
+      --   1. 末尾がfunctioncallまたは...ならば、戻り値の個数を0個に調節する。
+      --   2. さもなければ、pop(1)を追加する。
+      -- #u > a+1
+      --   1. 末尾がfunctioncallまたは...ならば、戻り値の個数を0個に調節し、
+      --      pop(#u-a-1)を追加する。
+      --   2. さもなければ、pop(#u-a)を追加する。
+      if v_name == "functioncall" or v_name == "..." then
+        if #u < a then
+          if not v.nomultret then
+            v.nr = a - #u + 1
+          else
+            v.nr = 1
+            u.push = a - #u
+          end
+        elseif #u == a then
+          v.nr = 1
+        else
+          v.nr = 0
+          if #u > a + 1 then
+            u.pop = #u - a - 1
+          end
+        end
+      else
+        if #u < a then
+          u.push = a - #u
+        elseif #u > a then
+          u.pop = #u - a
+        end
+      end
+    end
+  elseif u_name == "fieldlist" then
+    -- key=value形式でないfieldの個数を数える。
+    local x, y
+    local ns = 0
+    for i, v in ipairs(u) do
+      x, y = v[1], v[2]
+      if y == nil then
+        ns = ns + 1
+      else
+        v.ns = ns
+      end
+    end
+    u.ns = ns
+    -- 末尾がkey=value形式でなく、functioncallまたは...で、かつnomultretが真で
+    -- なければ、戻り値の個数を調節しない。
+    if x ~= nil and y == nil then
+      local x_name = lua54_parser.symbol_names[x[0]]
+      if (x_name == "functioncall" or x_name == "...") and not x.nomultret then
+        x.nr = -1
+        u.nr = ns - 1
+      end
+    end
+  elseif u_name == "functioncall" or u_name == "..." then
+    -- まだ決定されていなければ、戻り値の個数を1個に調節する。
+    if u.nr == nil then
+      u.nr = 1
+    end
+  end
+
+  for _, v in ipairs(u) do
+    process2(scope, v)
+  end
+end
+
+
+local function process1_(protos, proto, scope, u)
+  if u.proto ~= nil then
+    u.proto.labels = array()
+    u.proto.locals = array()
+    u.proto.upvalues = array()
+    u.proto.parent = proto
+    proto = u.proto
+    proto.index = protos:append(proto):size()
+  end
+
+  if u.scope ~= nil then
+    u.scope.labels = array()
+    u.scope.locals = array()
+    u.scope.proto = proto
+    u.scope.parent = scope
+    scope = u.scope
+  end
+
+  local u_name = lua54_parser.symbol_names[u[0]]
+
   if u_name == "funcbody" then
     assert(u.proto == proto)
     assert(u.scope == scope)
@@ -340,7 +508,7 @@ local function process1(protos, proto, scope, u)
 
 
   for _, v in ipairs(u) do
-    process1(protos, proto, scope, v)
+    process1_(protos, proto, scope, v)
   end
 
   local code = {}
@@ -395,20 +563,6 @@ local function process1(protos, proto, scope, u)
     end
   end
   u.code = code
-end
-
-local function process2(scope, u)
-  if u.scope ~= nil then
-    scope = u.scope
-  end
-
-  if u.ref_label then
-    u.label = ref_label(scope, u.v, u)
-  end
-
-  for _, v in ipairs(u) do
-    process2(scope, v)
-  end
 end
 
 local function process(chunk)

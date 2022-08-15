@@ -182,8 +182,6 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
   right "not" "#" "UNM" "BNOT";
   right "^";
 
-  -- TODO 結局、順番いれかえちゃだめみたい。
-
   chunk
     = _"block"                                             %"$$.proto=proto(true) $$.scope=scope()";
 
@@ -197,7 +195,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"block_" "stat"                                     %"$$=$1 append($2)";
 
   stat
-    = _"varlist" "=" "explist"                             %"$$=$2 append($3,$1) $3.adjust=#$1"
+    = _"varlist" "=" "explist"                             %"$$=$2 append($1,$3) $3.adjust=#$1"
     + _"functioncall"                                      %"$$=$1 $$.nr=0"
     + _"label"                                             %"$$=$1 append($2)"
     + _"break"                                             %"$$=$1"
@@ -206,24 +204,25 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"while" "exp" "do" "block" "end"                    %"$$=$1 append($2,$4) $4.scope=scope()"
     + _"repeat" "block" "until" "exp"                      %"$$=$1 append($2,$4) $$.scope=scope()"
     + _"if" "exp" "then" "block" "else_clause" "end"       %"$$=$1 append($2,$4,$5) $4.scope=scope()"
-    + _"for" "Name" "=" "exp2_3" "do" "block" "end"        %"$$=$1 append($4,$2,$6) $$.scope=scope() $2.declare=true"
+    + _"for" "Name" "=" "exp_2or3" "do" "block" "end"      %"$$=$1 append($2,$4,$6) $$.scope=scope() $2.declare=true"
     + _"for_in"                                            %"$$=$1"
-    + _"function" "funcname" "funcbody"                    %"$$=$1 append($3,$2) $3.proto.self=$2.self"
+    + _"function" "funcname" "funcbody"                    %"$$=$1 append($2,$3) $3.proto.self=$2.self"
     + _"local_function"                                    %"$$=$1"
-    + _"local" "attnamelist"                               %"$$=$1 append(create($explist),$2) $$[1].adjust=#$2"
-    + _"local" "attnamelist" "=" "explist"                 %"$$=$1 append($4,$2) $4.adjust=#$2";
+    + _"local" "attnamelist"                               %"$$=$1 append($2)"
+    + _"local" "attnamelist" "=" "explist"                 %"$$=$1 append($2,$4) $4.adjust=#$2";
 
   else_clause
     = _                                                    %"$$=create($else)"
     + _"else" "block"                                      %"$$=$1 append($2) $2.scope=scope()"
     + _"elseif" "exp" "then" "block" "else_clause"         %"$$=$1 append($2,$4,$5) $4.scope=scope()";
 
-  exp2_3
-    = _"exp" "," "exp"                                     %"$$=create($explist) append($1,$3) $$.adjust=3"
-    + _"exp" "," "exp" "," "exp"                           %"$$=create($explist) append($1,$3,$5) $$.adjust=3";
+  -- TODO 表現をよくかんがえる explistやめちゃえば？
+  exp_2or3
+    = _"exp" "," "exp"                                     %"$$=$0 append($1,$3)"
+    + _"exp" "," "exp" "," "exp"                           %"$$=$0 append($1,$3,$5)";
 
   for_in
-    = _"for" "namelist" "in" "explist" "do" "block" "end"  %"$$=$0 append($4,$2,$6) $$.scope=scope() $4.adjust=4";
+    = _"for" "namelist" "in" "explist" "do" "block" "end"  %"$$=$0 append($2,$4,$6) $$.scope=scope() $4.adjust=4";
 
   local_function
     = _"local" "function" "Name" "funcbody"                %"$$=$0 append($3,$4) $3.declare=true";
@@ -303,7 +302,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"exp" ">=" "exp"                                    %"$$=$2 append($1,$3) $$.binop='ge'"
     + _"exp" "==" "exp"                                    %"$$=$2 append($1,$3) $$.binop='eq'"
     + _"exp" "~=" "exp"                                    %"$$=$2 append($1,$3) $$.binop='ne'"
-    -- short-circuit
+    -- binop (short-circuit)
     + _"exp" "and" "exp"                                   %"$$=$2 append($1,$3)"
     + _"exp" "or"  "exp"                                   %"$$=$2 append($1,$3)"
     -- unop
@@ -356,8 +355,8 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"fieldlist_" "fieldsep" "field"                     %"$$=$1 append($3)";
 
   field
-    = _"[" "exp" "]" "=" "exp"                             %"$$=$0 append($5,$2)"
-    + _"Name" "=" "exp"                                    %"$$=$0 append($3,$1) $1.code=code('push_string',$1.v)"
+    = _"[" "exp" "]" "=" "exp"                             %"$$=$0 append($2,$5)"
+    + _"Name" "=" "exp"                                    %"$$=$0 append($1,$3) $1.code=code('push_string',$1.v)"
     + _"exp";
 
   fieldsep

@@ -28,7 +28,7 @@ function ()SS=S[1] append(S[2])
 end;
 function ()SS=create(66)
 end;
-function ()SS=S[2] append(S[3],S[1]) S[3].adjust=#S[1]
+function ()SS=S[2] append(S[1],S[3]) S[3].adjust=#S[1]
 end;
 function ()SS=S[1] SS.nr=0
 end;
@@ -42,21 +42,19 @@ function ()SS=S[1] append(S[2],S[4]) SS.scope=scope()
 end;
 function ()SS=S[1] append(S[2],S[4],S[5]) S[4].scope=scope()
 end;
-function ()SS=S[1] append(S[4],S[2],S[6]) SS.scope=scope() S[2].declare=true
+function ()SS=S[1] append(S[2],S[4],S[6]) SS.scope=scope() S[2].declare=true
 end;
-function ()SS=S[1] append(S[3],S[2]) S[3].proto.self=S[2].self
+function ()SS=S[1] append(S[2],S[3]) S[3].proto.self=S[2].self
 end;
-function ()SS=S[1] append(create(82),S[2]) SS[1].adjust=#S[2]
-end;
-function ()SS=S[1] append(S[4],S[2]) S[4].adjust=#S[2]
+function ()SS=S[1] append(S[2],S[4]) S[4].adjust=#S[2]
 end;
 function ()SS=create(10)
 end;
-function ()SS=create(82) append(S[1],S[3]) SS.adjust=3
+function ()SS=S[0] append(S[1],S[3])
 end;
-function ()SS=create(82) append(S[1],S[3],S[5]) SS.adjust=3
+function ()SS=S[0] append(S[1],S[3],S[5])
 end;
-function ()SS=S[0] append(S[4],S[2],S[6]) SS.scope=scope() S[4].adjust=4
+function ()SS=S[0] append(S[2],S[4],S[6]) SS.scope=scope() S[4].adjust=4
 end;
 function ()SS=S[0] append(S[3],S[4]) S[3].declare=true
 end;
@@ -164,9 +162,9 @@ function ()SS=create(91)
 end;
 function ()SS=create(91) append(S[1])
 end;
-function ()SS=S[0] append(S[5],S[2])
+function ()SS=S[0] append(S[2],S[5])
 end;
-function ()SS=S[0] append(S[3],S[1]) S[1].code=code('push_string',S[1].v)
+function ()SS=S[0] append(S[1],S[3]) S[1].code=code('push_string',S[1].v)
 end;
 function ()SS=S[0] SS.v=S[1].v
 end;
@@ -267,7 +265,7 @@ end;
     end
   end
 end
-local static_data = { symbol_names={"LongLiteralString","ShortLiteralString","DecimalIntegerNumeral","DecimalFloatingNumeral","HexadecimalIntegerNumeral","HexadecimalFloatingNumeral","and","break","do","else","elseif","end","false","for","function","goto","if","in","local","nil","not","or","repeat","return","then","true","until","while","+","-","*","/","%","^","#","&","~","|","<<",">>","//","==","~=","<=",">=","<",">","=","(",")","{","}","[","]","::",";",":",",",".","..","...","Name","$","chunk'","chunk","block","block_","stat","else_clause","exp2_3","for_in","local_function","attnamelist","attrib","retstat","label","funcname","funcname_","varlist","var","namelist","explist","exp","prefixexp","functioncall","args","functiondef","funcbody","parlist","tableconstructor","fieldlist","fieldlist_","field","fieldsep","LiteralString","Numeral",};
+local static_data = { symbol_names={"LongLiteralString","ShortLiteralString","DecimalIntegerNumeral","DecimalFloatingNumeral","HexadecimalIntegerNumeral","HexadecimalFloatingNumeral","and","break","do","else","elseif","end","false","for","function","goto","if","in","local","nil","not","or","repeat","return","then","true","until","while","+","-","*","/","%","^","#","&","~","|","<<",">>","//","==","~=","<=",">=","<",">","=","(",")","{","}","[","]","::",";",":",",",".","..","...","Name","$","chunk'","chunk","block","block_","stat","else_clause","exp_2or3","for_in","local_function","attnamelist","attrib","retstat","label","funcname","funcname_","varlist","var","namelist","explist","exp","prefixexp","functioncall","args","functiondef","funcbody","parlist","tableconstructor","fieldlist","fieldlist_","field","fieldsep","LiteralString","Numeral",};
 max_terminal_symbol=63;
 actions={
 {0,0,0,0,0,0,0,236,236,0,0,0,0,236,236,236,236,0,236,0,0,0,236,236,0,0,0,236,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,236,0,0,0,0,0,236,236,0,0,0,0,0,236,236,0,2,3,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
@@ -504,7 +502,7 @@ actions={
 };
 heads={64,65,66,66,67,67,67,68,68,68,68,68,68,68,68,68,68,68,68,68,68,68,69,69,69,70,70,71,72,73,73,74,74,75,75,75,75,76,77,77,78,78,79,79,80,80,80,80,80,81,81,82,82,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,84,84,85,85,85,85,86,86,86,86,87,88,88,89,89,89,90,90,91,91,92,92,93,93,93,94,94,95,95,96,96,96,96,};
 sizes={1,1,1,2,0,2,2,3,1,1,1,2,3,5,4,6,7,1,3,1,2,4,0,2,5,3,5,7,4,2,4,0,3,1,2,2,3,3,1,3,1,3,1,3,1,4,3,4,3,1,3,1,3,1,1,1,1,1,1,1,1,1,1,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,2,1,3,2,4,2,4,2,3,1,1,2,4,5,1,3,1,2,3,1,2,1,3,5,3,1,1,1,1,1,1,1,1,1,};
-semantic_actions={1,2,3,4,5,3,4,6,7,4,3,8,9,10,11,12,13,3,14,3,15,16,17,9,12,18,19,20,21,22,23,1,24,25,25,4,4,26,3,27,28,29,30,31,28,29,29,29,29,32,33,30,31,34,35,36,37,38,3,3,3,3,3,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,29,29,58,59,60,61,3,62,1,63,1,63,64,65,66,66,67,68,69,3,70,71,72,65,3,3,73,31,74,75,1,1,1,76,76,77,78,79,80,};
+semantic_actions={1,2,3,4,5,3,4,6,7,4,3,8,9,10,11,12,13,3,14,3,4,15,16,9,12,17,18,19,20,21,22,1,23,24,24,4,4,25,3,26,27,28,29,30,27,28,28,28,28,31,32,29,30,33,34,35,36,37,3,3,3,3,3,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,28,28,57,58,59,60,3,61,1,62,1,62,63,64,65,65,66,67,68,3,69,70,71,64,3,3,72,30,73,74,1,1,1,75,75,76,77,78,79,};
  }
 local metatable = {
   __call = function (self, token)

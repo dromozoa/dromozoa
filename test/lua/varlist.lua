@@ -20,10 +20,15 @@ local function f()
   v = v * 2 + 1
   return v
 end
-local t = {}
+local t = {[0]={}}
 
-t[f()], t[f()], t[f()] = f(), f(), f()
+local g = function ()
+  local z = 0
+  t[z][f()], t[z][f()], t[z][f()] = f(), f(), f()
+  t[f()], t[f()], t[f()] = f(), f(), f()
+end
 
+g()
 print(1, t[1]) -- 15
 print(3, t[3]) -- 31
 print(7, t[7]) -- 63
