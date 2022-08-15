@@ -17,13 +17,14 @@
 
 local v = 0
 local function f()
-  v = v + 1
+  v = v * 2 + 1
   return v
 end
 local t = {}
 
-t[f()] = f()
+t[f()], t[f()], t[f()] = f(), f(), f()
 
-print(t[1])
-print(t[2])
-print(v)
+print(1, t[1]) -- 15
+print(3, t[3]) -- 31
+print(7, t[7]) -- 63
+print("v", v)  -- 63

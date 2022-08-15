@@ -182,6 +182,8 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
   right "not" "#" "UNM" "BNOT";
   right "^";
 
+  -- TODO 結局、順番いれかえちゃだめみたい。
+
   chunk
     = _"block"                                             %"$$.proto=proto(true) $$.scope=scope()";
 
