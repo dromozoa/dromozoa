@@ -294,21 +294,22 @@ local function process1(protos, proto, scope, u)
 
   elseif u_name == "fieldlist" then
     -- key=value形式でないfieldの個数を数える。
+    local x
+    local y
     local nlist = 0
     for i, v in ipairs(u) do
-      if v[2] == nil then
+      x = v[1]
+      y = v[2]
+      if y == nil then
         nlist = nlist + 1
       else
         v.nlist = nlist
       end
     end
     u.nlist = nlist
-
-    if #u > 0 then
-      local v = u[#u]
-      local x = v[1]
+    if x ~= nil and y == nil then
       local x_name = lua54_parser.symbol_names[x[0]]
-      if (x_name == "functioncall" or x_name == "...") and not x.nomultret and v[2] == nil then
+      if (x_name == "functioncall" or x_name == "...") and not x.nomultret then
         x.nr = -1
         u.nr = nlist - 1
       end
