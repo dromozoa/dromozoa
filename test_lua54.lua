@@ -110,12 +110,16 @@ local function declare(scope, name, u, attribute)
   return var
 end
 
-local function resolve(scope, name)
+local function resolve(scope, name, u, define)
   local proto = scope.proto
   repeat
     for i = scope.locals:size(), 1, -1 do
       local var = scope.locals:get(i)
-      if proto.locals:get(var).name == name then
+      local v = proto.locals:get(var)
+      if v.name == name then
+        if define and (v.attribute == "const" or v.attribute == "close") then
+          compiler_error("attempt to assign to const variable " .. name, u)
+        end
         return var
       end
     end
@@ -125,7 +129,7 @@ local function resolve(scope, name)
     end
   until proto ~= scope.proto
 
-  local var = resolve(scope, name)
+  local var = resolve(scope, name, u, define)
   if var == nil then
     return
   end
@@ -243,7 +247,7 @@ local function process1(protos, proto, scope, u)
     if u.declare then
       u.var = declare(scope, u.v, u, u.attribute)
     elseif u.resolve then
-      local var = resolve(scope, u.v)
+      local var = resolve(scope, u.v, u, u.define)
       if var == nil then
         u.env = resolve(scope, "_ENV")
       else
@@ -400,7 +404,7 @@ local function process1_(protos, proto, scope, u)
   if u.declare then
     u.var = declare(scope, u.v, u, u.attribute)
   elseif u.resolve then
-    local var = resolve(scope, u.v)
+    local var = resolve(scope, u.v, u, u.define)
     if var == nil then
       u.env = resolve(scope, "_ENV")
     else

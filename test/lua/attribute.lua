@@ -17,3 +17,11 @@
 
 local a, b <const>, c = 1, 2, 3
 local h <close> = io.open "/dev/null"
+
+function f()
+  function g ()
+    a = 42
+    -- b = 69
+    -- h = io.open "/dev/null"
+  end
+end
