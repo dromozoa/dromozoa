@@ -272,6 +272,8 @@ local function process2(scope, u)
     u.label = ref_label(scope, u.v, u)
   end
 
+  local u_name = lua54_parser.symbol_names[u[0]]
+
   if u_name == "explist" then
     local a = u.adjust
     local v = #u > 0 and u[#u] or nil
@@ -355,6 +357,97 @@ local function process2(scope, u)
   for _, v in ipairs(u) do
     process2(scope, v)
   end
+
+  if u.code ~= nil then
+    for _, v in ipairs(u.code) do
+      v.node = u
+    end
+    return
+  end
+
+  u.code = {}
+  if u_name == "..." then
+    append_code(u.code, u, "vararg", u.nr)
+  elseif u_name == "functiondef" then
+    append_code(u.code, u, "closure", u[1].proto.index)
+  elseif u.binop ~= nil then
+    append_code_unpack(u.code, u[1].code)
+    append_code_unpack(u.code, u[2].code)
+    append_code(u.code, u, u.binop)
+  elseif u_name == "and" then
+    append_code_unpack(u.code, u[1].code)
+    append_code(u.code, u, "dup", 1)
+    local cond = append_code(u.code, u, "if")
+    append_code(cond, u, "block")
+    append_code(cond, u, "block")
+    append_code(cond[1], u, "pop", 1)
+    append_code_unpack(cond[1], u[2].code)
+  elseif u_name == "or" then
+    append_code_unpack(u.code, u[1].code)
+    append_code(u.code, u, "dup", 1)
+    local cond = append_code(u.code, u, "if")
+    append_code(cond, u, "block")
+    append_code(cond, u, "block")
+    append_code(cond[2], u, "pop", 1)
+    append_code_unpack(cond[2], u[2].code)
+  elseif u.unop ~= nil then
+    append_code_unpack(u.code, u[1].code)
+    append_code(u.code, u, u.unop)
+  elseif u_name == "fieldlist" then
+    append_code(u.code, u, "new_table")
+    for _, v in ipairs(u) do
+      append_code_unpack(u.code, v.code)
+    end
+    if u.nr ~= nil then
+      append_code(u.code, u, "set_list_nr", u.nr)
+    elseif u.ns > 0 then
+      append_code(u.code, u, "set_list", u.ns)
+    end
+  elseif u_name == "field" then
+    if u[2] == nil then
+      append_code_unpack(u.code, u[1].code)
+    else
+      append_code_unpack(u.code, u[1].code)
+      append_code_unpack(u.code, u[2].code)
+      append_code(u.code, u, "set_table", u.ns + 3)
+    end
+  elseif u_name == "Name" then
+    -- 1. declareが真ならば、文で命令を生成する。
+    -- 2. resolveが真でdefineが真ならば、文で命令を生成する。
+    -- 3. resolveが真でdefineが真でなければ、参照命令を生成する。
+    -- 4. さもなければ、テーブルインデックスとして使用するための文字列リテラル
+    --    命令を生成する。
+    if not u.declare then
+      if u.resolve then
+        if not u.define then
+          if u.var ~= nil then
+            if u.var <= 65536 then
+              append_code(u.code, u, "get_local", u.var)
+            else
+              append_code(u.code, u, "get_upvalue", u.var - 65536)
+            end
+          else
+            assert(u.env ~= nil)
+            if u.env <= 65536 then
+              append_code(u.code, u, "get_local", u.env)
+            else
+              append_code(u.code, u, "get_upvalue", u.env - 65536)
+            end
+            append_code(u.code, u, "push_literal", u.v)
+            append_code(u.code, u, "get_table", 2)
+          end
+        end
+      else
+        append_code(u.code, u, "push_literal", u.v)
+      end
+    end
+  end
+
+
+
+
+
+
 end
 
 
@@ -588,9 +681,8 @@ end
 local attrs = {
   "v";
   "attribute";
-  "declare", "resolve", "var", "env";
+  "declare", "resolve", "define", "var", "env";
   "def_label", "ref_label", "label";
-  "define",
   "adjust", "nomultret", "nr", "ns", "push", "pop";
 }
 if verbose then

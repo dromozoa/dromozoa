@@ -216,7 +216,6 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"else" "block"                                      %"$$=$1 append($2) $2.scope=scope()"
     + _"elseif" "exp" "then" "block" "else_clause"         %"$$=$1 append($2,$4,$5) $4.scope=scope()";
 
-  -- TODO 表現をよくかんがえる explistやめちゃえば？
   exp_2or3
     = _"exp" "," "exp"                                     %"$$=$0 append($1,$3)"
     + _"exp" "," "exp" "," "exp"                           %"$$=$0 append($1,$3,$5)";
@@ -246,11 +245,11 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 
   funcname
     = _"funcname_"                                         %"$$=$1"
-    + _"funcname_" ":" "Name"                              %"$$=create(${'.'}) append($1,$3) $$.self=true $3.code=code('push_literal',$3.v)";
+    + _"funcname_" ":" "Name"                              %"$$=create(${'.'}) append($1,$3) $$.self=true";
 
   funcname_
     = _"Name"                                              %"$$=$1 $$.resolve=true"
-    + _"funcname_" "." "Name"                              %"$$=$2 append($1,$3) $3.code=code('push_literal',$3.v)";
+    + _"funcname_" "." "Name"                              %"$$=$2 append($1,$3)";
 
   varlist
     = _"var"                                               %"$$=$0 append($1) $1.define=true"
@@ -259,9 +258,9 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
   var
     = _"Name"                                              %"$$=$1 $$.resolve=true"
     + _"prefixexp" "[" "exp" "]"                           %"$$=create(${'.'}) append($1,$3)"
-    + _"prefixexp" "." "Name"                              %"$$=$2 append($1,$3) $3.code=code('push_literal',$3.v)"
+    + _"prefixexp" "." "Name"                              %"$$=$2 append($1,$3)"
     + _"functioncall" "[" "exp" "]"                        %"$$=create(${'.'}) append($1,$3)"
-    + _"functioncall" "." "Name"                           %"$$=$2 append($1,$3) $3.code=code('push_literal',$3.v)";
+    + _"functioncall" "." "Name"                           %"$$=$2 append($1,$3)";
 
   namelist
     = _"Name"                                              %"$$=$0 append($1) $1.declare=true"
@@ -356,7 +355,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 
   field
     = _"[" "exp" "]" "=" "exp"                             %"$$=$0 append($2,$5)"
-    + _"Name" "=" "exp"                                    %"$$=$0 append($1,$3) $1.code=code('push_literal',$1.v)"
+    + _"Name" "=" "exp"                                    %"$$=$0 append($1,$3)"
     + _"exp";
 
   fieldsep

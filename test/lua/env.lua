@@ -15,16 +15,16 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
--- local print = print
--- local env = _ENV
+local print = print
+local env = _ENV
 
 x = 1
--- print(env.x, x)
+print(env.x, x)
 
 _ENV = {}
 x = 2
--- print(env.x, x)
+print(env.x, x)
 
 local _ENV = {}
 x = 3
--- print(env.x, x)
+print(env.x, x)
