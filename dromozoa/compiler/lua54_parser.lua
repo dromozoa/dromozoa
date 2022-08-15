@@ -30,7 +30,7 @@ function ()SS=create(66)
 end;
 function ()SS=S[2] append(S[3],S[1]) S[3].adjust=#S[1]
 end;
-function ()SS=S[1] SS.multret=nil SS.nr=0
+function ()SS=S[1] SS.nr=0
 end;
 function ()SS=S[1] append(S[2]) S[2].ref_label=true
 end;

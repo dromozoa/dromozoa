@@ -196,7 +196,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 
   stat
     = _"varlist" "=" "explist"                             %"$$=$2 append($3,$1) $3.adjust=#$1"
-    + _"functioncall"                                      %"$$=$1 $$.multret=nil $$.nr=0"
+    + _"functioncall"                                      %"$$=$1 $$.nr=0"
     + _"label"                                             %"$$=$1 append($2)"
     + _"break"                                             %"$$=$1"
     + _"goto" "Name"                                       %"$$=$1 append($2) $2.ref_label=true"
@@ -270,6 +270,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     = _"exp"                                               %"$$=$0 append($1)"
     + _"explist" "," "exp"                                 %"$$=$1 append($3)";
 
+  -- TODO multretの解決をもっとかっこよくする
   exp
     = _"nil"                                               %"$$=$1 $$.code=code'push_nil'"
     + _"false"                                             %"$$=$1 $$.code=code'push_false'"
@@ -282,25 +283,26 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"functioncall"                                      %"$$=$1 $$.multret=true"
     + _"tableconstructor"                                  %"$$=$1"
     -- binop
-    + _"exp" "+"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='add'"
-    + _"exp" "-"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='sub'"
-    + _"exp" "*"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='mul'"
-    + _"exp" "/"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='div'"
-    + _"exp" "//"  "exp"                                   %"$$=$2 append($1,$3) $$.binop='idiv'"
-    + _"exp" "^"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='pow'"
-    + _"exp" "%"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='mod'"
-    + _"exp" "&"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='band'"
-    + _"exp" "~"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='bxor'"
-    + _"exp" "|"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='bor'"
-    + _"exp" ">>"  "exp"                                   %"$$=$2 append($1,$3) $$.binop='shr'"
-    + _"exp" "<<"  "exp"                                   %"$$=$2 append($1,$3) $$.binop='shl'"
-    + _"exp" ".."  "exp"                                   %"$$=$2 append($1,$3) $$.binop='concat'"
-    + _"exp" "<"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='lt'"
-    + _"exp" "<="  "exp"                                   %"$$=$2 append($1,$3) $$.binop='le'"
-    + _"exp" ">"   "exp"                                   %"$$=$2 append($1,$3) $$.binop='gt'"
-    + _"exp" ">="  "exp"                                   %"$$=$2 append($1,$3) $$.binop='ge'"
-    + _"exp" "=="  "exp"                                   %"$$=$2 append($1,$3) $$.binop='eq'"
-    + _"exp" "~="  "exp"                                   %"$$=$2 append($1,$3) $$.binop='ne'"
+    + _"exp" "+"  "exp"                                    %"$$=$2 append($1,$3) $$.binop='add'"
+    + _"exp" "-"  "exp"                                    %"$$=$2 append($1,$3) $$.binop='sub'"
+    + _"exp" "*"  "exp"                                    %"$$=$2 append($1,$3) $$.binop='mul'"
+    + _"exp" "/"  "exp"                                    %"$$=$2 append($1,$3) $$.binop='div'"
+    + _"exp" "//" "exp"                                    %"$$=$2 append($1,$3) $$.binop='idiv'"
+    + _"exp" "^"  "exp"                                    %"$$=$2 append($1,$3) $$.binop='pow'"
+    + _"exp" "%"  "exp"                                    %"$$=$2 append($1,$3) $$.binop='mod'"
+    + _"exp" "&"  "exp"                                    %"$$=$2 append($1,$3) $$.binop='band'"
+    + _"exp" "~"  "exp"                                    %"$$=$2 append($1,$3) $$.binop='bxor'"
+    + _"exp" "|"  "exp"                                    %"$$=$2 append($1,$3) $$.binop='bor'"
+    + _"exp" ">>" "exp"                                    %"$$=$2 append($1,$3) $$.binop='shr'"
+    + _"exp" "<<" "exp"                                    %"$$=$2 append($1,$3) $$.binop='shl'"
+    + _"exp" ".." "exp"                                    %"$$=$2 append($1,$3) $$.binop='concat'"
+    + _"exp" "<"  "exp"                                    %"$$=$2 append($1,$3) $$.binop='lt'"
+    + _"exp" "<=" "exp"                                    %"$$=$2 append($1,$3) $$.binop='le'"
+    + _"exp" ">"  "exp"                                    %"$$=$2 append($1,$3) $$.binop='gt'"
+    + _"exp" ">=" "exp"                                    %"$$=$2 append($1,$3) $$.binop='ge'"
+    + _"exp" "==" "exp"                                    %"$$=$2 append($1,$3) $$.binop='eq'"
+    + _"exp" "~=" "exp"                                    %"$$=$2 append($1,$3) $$.binop='ne'"
+    -- short-circuit
     + _"exp" "and" "exp"                                   %"$$=$2 append($1,$3)"
     + _"exp" "or"  "exp"                                   %"$$=$2 append($1,$3)"
     -- unop
