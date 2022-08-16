@@ -33,3 +33,11 @@ print(1, t[1]) -- 15
 print(3, t[3]) -- 31
 print(7, t[7]) -- 63
 print("v", v)  -- 63
+
+u, v = 42, 69
+print(u, v)
+u, v = v, u
+print(u, v)
+u, u, u = 1, 2, 3
+v, v, v = 4, 5, 6
+print(u, v)

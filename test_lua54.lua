@@ -64,21 +64,6 @@ end
     baz=5;
   }
 
-  newtable(hint_nkeys, hint_nitems)
-  $t=$top
-  push(1)
-  push("foo")
-  settable($t)
-  push(2)
-  push(3)
-  push("bar")
-  settable($t)
-  push(4)
-  push(5)
-  push("baz")
-  settable($t)
-  setlist($t)
-
 ]]
 ---------------------------------------------------------------------------
 
@@ -331,10 +316,9 @@ local function process2(scope, u)
     local ns = 0
     for i, v in ipairs(u) do
       x, y = v[1], v[2]
+      v.ns = ns
       if y == nil then
         ns = ns + 1
-      else
-        v.ns = ns
       end
     end
     u.ns = ns
@@ -437,6 +421,19 @@ local function process2(scope, u)
             append_code(u.code, u, "push_literal", u.v)
             append_code(u.code, u, "get_table", 2)
           end
+        else
+
+          -- set_fieldを準備
+          if u.var == nil then
+            assert(u.env ~= nil)
+            if u.env <= 65536 then
+              append_code(u.code, u, "get_local", u.env)
+            else
+              append_code(u.code, u, "get_upvalue", u.env - 65536)
+            end
+            append_code(u.code, u, "push_literal", u.v)
+          end
+
         end
       else
         append_code(u.code, u, "push_literal", u.v)
@@ -447,6 +444,10 @@ local function process2(scope, u)
       append_code_unpack(u.code, u[1].code)
       append_code_unpack(u.code, u[2].code)
       append_code(u.code, u, "get_table", 2)
+    else
+      -- set_fieldを準備する
+      append_code_unpack(u.code, u[1].code)
+      append_code_unpack(u.code, u[2].code)
     end
   elseif u_name == "explist" then
     for _, v in ipairs(u) do
@@ -481,221 +482,39 @@ local function process2(scope, u)
         append_code(u.code, u, "call", #y, u.nr)
       end
     end
-  end
-
-
-end
-
-
-local function process1_(protos, proto, scope, u)
-  if u.proto ~= nil then
-    u.proto.labels = array()
-    u.proto.locals = array()
-    u.proto.upvalues = array()
-    u.proto.parent = proto
-    proto = u.proto
-    proto.index = protos:append(proto):size()
-  end
-
-  if u.scope ~= nil then
-    u.scope.labels = array()
-    u.scope.locals = array()
-    u.scope.proto = proto
-    u.scope.parent = scope
-    scope = u.scope
-  end
-
-  local u_name = lua54_parser.symbol_names[u[0]]
-
-  if u_name == "funcbody" then
-    assert(u.proto == proto)
-    assert(u.scope == scope)
-    -- colon syntaxで関数が定義されたら、暗黙の仮引数selfを追加する。
-    if proto.self then
-      u.var = declare(scope, "self", u)
-    end
-  elseif u_name == "for" then
-    assert(u.scope == scope)
-    -- 内部的に3個の変数を使用する。
-    u.var = declare(scope, "(for state)", u)
-    declare(scope, "(for state)", u)
-    declare(scope, "(for state)", u)
-  elseif u_name == "for_in" then
-    -- 内部的に4個の変数を使用する。Lua 5.3以前は3個だったが、Lua 5.4で
-    -- to-be-closed変数が追加された。
-    assert(u.scope == scope)
-    u.var = declare(scope, "(for state)", u)
-    declare(scope, "(for state)", u)
-    declare(scope, "(for state)", u)
-    declare(scope, "(for state)", u, "close")
-  end
-
-  if u.declare then
-    u.var = declare(scope, u.v, u, u.attribute)
-  elseif u.resolve then
-    local var = resolve(scope, u.v, u, u.define)
-    if var == nil then
-      u.env = resolve(scope, "_ENV")
-    else
-      u.var = var
-    end
-  elseif u.def_label then
-    u.label = def_label(scope, u.v, u)
-  end
-
-  if u_name == "explist" then
-    local a = u.adjust
-    local v = #u > 0 and u[#u] or nil
-    local v_name = v ~= nil and lua54_parser.symbol_names[v[0]] or nil
-    if a == nil then
-      -- 末尾がfunctioncallまたは...で、かつnomultretが真でなければ、戻り値の個
-      -- 数を調節しない。
-      if (v_name == "functioncall" or v_name == "...") and not v.nomultret then
-        v.nr = -1
-        u.nr = #u - 1
-      end
-    else
-      -- #u < a
-      --   1. 末尾がfunctioncallまたは...で、かつnomultretが真でなければ、戻り
-      --      値の個数を(a-#u+1)個に調節する。
-      --   2. 末尾がfunctioncallまたは...で、かつnomultretが真ならば、戻り値の
-      --      個数を1個に調節し、(a-#u)個のpush_nil()を追加する。
-      --   3. さもなければ、(a-#u)個のpush_nil()を追加する。
-      -- #u == a
-      --   1. 末尾がfunctioncallまたは...ならば、戻り値の個数を1個に調節する。
-      -- #u == a+1
-      --   1. 末尾がfunctioncallまたは...ならば、戻り値の個数を0個に調節する。
-      --   2. さもなければ、pop(1)を追加する。
-      -- #u > a+1
-      --   1. 末尾がfunctioncallまたは...ならば、戻り値の個数を0個に調節し、
-      --      pop(#u-a-1)を追加する。
-      --   2. さもなければ、pop(#u-a)を追加する。
-      if v_name == "functioncall" or v_name == "..." then
-        if #u < a then
-          if not v.nomultret then
-            v.nr = a - #u + 1
-          else
-            v.nr = 1
-            u.push = a - #u
-          end
-        elseif #u == a then
-          v.nr = 1
-        else
-          v.nr = 0
-          if #u > a + 1 then
-            u.pop = #u - a - 1
-          end
-        end
-      else
-        if #u < a then
-          u.push = a - #u
-        elseif #u > a then
-          u.pop = #u - a
-        end
-      end
-    end
-
-  elseif u_name == "fieldlist" then
-    -- key=value形式でないfieldの個数を数える。
-    local x, y
-    local nlist = 0
-    for i, v in ipairs(u) do
-      x, y = v[1], v[2]
-      if y == nil then
-        nlist = nlist + 1
-      else
-        v.nlist = nlist
-      end
-    end
-    u.nlist = nlist
-    -- 末尾がkey=value形式でなく、functioncallまたは...で、かつnomultretが真で
-    -- なければ、戻り値の個数を調節しない。
-    if x ~= nil and y == nil then
-      local x_name = lua54_parser.symbol_names[x[0]]
-      if (x_name == "functioncall" or x_name == "...") and not x.nomultret then
-        x.nr = -1
-        u.nr = nlist - 1
-      end
-    end
-
-  elseif u_name == "functioncall" or u_name == "..." then
-    -- まだ決定されていなければ、戻り値の個数を1個に調節する。
-    if u.nr == nil then
-      u.nr = 1
-    end
-  end
-
-  -- varがrefなのかdefなのかを決める
-  -- まず、varlistの子はdefである
-  -- functionのfuncnameもdefである
-  -- local変数 (for, local_function, local) のdeclareをdefとみなさない
-  -- defの場合、
-  -- a . b . c . d = v
-  -- get_local(a)
-  -- push_string(b)
-  -- get_table(2)
-  -- push_string(c)
-  -- get_table(2)
-  -- push_string(d)
-  -- get_local(v)
-
-
-  for _, v in ipairs(u) do
-    process1_(protos, proto, scope, v)
-  end
-
-  local code = {}
-  if u.code ~= nil then
-    for _, v in ipairs(u.code) do
-      append_code(code, u, v[0], v.a, v.b)
-    end
-  elseif u_name == "..." then
-    append_code(code, u, "vararg", u.nr)
-  elseif u_name == "functiondef" then
-    append_code(code, u, "closure", u[1].proto.index)
-  elseif u.binop ~= nil then
-    append_code_unpack(code, u[1].code)
-    append_code_unpack(code, u[2].code)
-    append_code(code, u, u.binop)
-  elseif u_name == "and" then
-    append_code_unpack(code, u[1].code)
-    append_code(code, u, "dup")
-    local conditional = append_code(code, u, "if")
-    local then_block = append_code(conditional, u, "then_block")
-    local else_block = append_code(conditional, u, "else_block")
-    append_code(then_block, u, "pop")
-    append_code_unpack(then_block, u[2].code)
-  elseif u_name == "or" then
-    append_code_unpack(code, u[1].code)
-    append_code(code, u, "dup")
-    local conditional = append_code(code, u, "if")
-    local then_block = append_code(conditional, u, "then_block")
-    local else_block = append_code(conditional, u, "else_block")
-    append_code(else_block, u, "pop")
-    append_code_unpack(else_block, u[2].code)
-  elseif u.unop ~= nil then
-    append_code_unpack(code, u[1].code)
-    append_code(code, u, u.unop)
-  elseif u_name == "fieldlist" then
-    append_code(code, u, "newtable")
+  elseif u_name == "varlist" then
+    local ns = 0
     for _, v in ipairs(u) do
-      append_code_unpack(code, v.code)
+      v.ns = ns
+      if #v.code > 0 then
+        ns = ns + 2
+        append_code_unpack(u.code, v.code)
+      end
     end
-    if u.nr ~= nil then
-      append_code(code, u, "setlist_nr", u.nr)
-    elseif u.nlist > 0 then
-      append_code(code, u, "setlist", u.nlist)
+    u.ns = ns
+  elseif u_name == "=" then
+    local x, y = u[1], u[2]
+    append_code_unpack(u.code, x.code)
+    append_code_unpack(u.code, y.code)
+    for i = #x, 1, -1 do
+      local v = x[i]
+      if #v.code > 0 then
+        local j = i + x.ns - v.ns
+        append_code(u.code, u, "set_field", j, j - 1)
+      else
+        assert(v.var ~= nil)
+        if v.var <= 65536 then
+          append_code(u.code, u, "set_local", v.var)
+        else
+          append_code(u.code, u, "set_upvalue", v.var - 65536)
+        end
+      end
     end
-  elseif u_name == "field" then
-    if u[2] == nil then
-      append_code_unpack(code, u[1].code)
-    else
-      append_code_unpack(code, u[1].code)
-      append_code_unpack(code, u[2].code)
-      append_code(code, u, "settable", u.nlist + 3)
+    if x.ns > 0 then
+      append_code(u.code, u, "pop", x.ns)
     end
+
   end
-  u.code = code
 end
 
 local function process(chunk)
