@@ -271,7 +271,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"explist" "," "exp"                                 %"$$=$1 append($3)";
 
   exp
-    = _"nil"                                               %"$$=$1 $$.code=code'push_nil'"
+    = _"nil"                                               %"$$=$1 $$.code=code('push_nil',1)"
     + _"false"                                             %"$$=$1 $$.code=code'push_false'"
     + _"true"                                              %"$$=$1 $$.code=code'push_true'"
     + _"Numeral"                                           %"$$=$1"

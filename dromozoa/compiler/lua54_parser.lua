@@ -88,7 +88,7 @@ function ()SS=S[0] append(S[1])
 end;
 function ()SS=S[1] append(S[3])
 end;
-function ()SS=S[1] SS.code=code'push_nil'
+function ()SS=S[1] SS.code=code('push_nil',1)
 end;
 function ()SS=S[1] SS.code=code'push_false'
 end;

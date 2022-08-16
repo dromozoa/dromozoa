@@ -393,6 +393,7 @@ local function process2(scope, u)
   elseif u.unop ~= nil then
     append_code_unpack(u.code, u[1].code)
     append_code(u.code, u, u.unop)
+
   elseif u_name == "fieldlist" then
     append_code(u.code, u, "new_table")
     for _, v in ipairs(u) do
@@ -441,11 +442,22 @@ local function process2(scope, u)
         append_code(u.code, u, "push_literal", u.v)
       end
     end
+  elseif u_name == "." then
+    if not u.define then
+      append_code_unpack(u.code, u[1].code)
+      append_code_unpack(u.code, u[2].code)
+      append_code(u.code, u, "get_table", 2)
+    end
+  elseif u_name == "explist" then
+    for _, v in ipairs(u) do
+      append_code_unpack(u.code, v.code)
+    end
+    if u.push ~= nil then
+      append_code(u.code, u, "push_nil", u.push)
+    elseif u.pop ~= nil then
+      append_code(u.code, u, "pop", u.pop)
+    end
   end
-
-
-
-
 
 
 end
