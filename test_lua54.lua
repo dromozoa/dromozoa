@@ -457,6 +457,30 @@ local function process2(scope, u)
     elseif u.pop ~= nil then
       append_code(u.code, u, "pop", u.pop)
     end
+  elseif u_name == "functioncall" then
+    local x, y = u[1], u[2]
+    local x_name = lua54_parser.symbol_names[x[0]]
+    if x_name == ":" then
+      append_code_unpack(u.code, x[1].code)
+      append_code(u.code, u, "dup", 1)
+      append_code_unpack(u.code, x[2].code)
+      append_code(u.code, u, "get_table", 2)
+      append_code(u.code, u, "swap", 2)
+      append_code_unpack(u.code, y.code)
+      if y.nr ~= nil then
+        append_code(u.code, u, "call_nr", y.nr + 1, u.nr)
+      else
+        append_code(u.code, u, "call", #y + 1, u.nr)
+      end
+    else
+      append_code_unpack(u.code, x.code)
+      append_code_unpack(u.code, y.code)
+      if y.nr ~= nil then
+        append_code(u.code, u, "call_nr", y.nr, u.nr)
+      else
+        append_code(u.code, u, "call", #y, u.nr)
+      end
+    end
   end
 
 
