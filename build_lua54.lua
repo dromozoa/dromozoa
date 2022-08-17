@@ -220,6 +220,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     = _"exp" "," "exp"                                     %"$$=$0 append($1,$3)"
     + _"exp" "," "exp" "," "exp"                           %"$$=$0 append($1,$3,$5)";
 
+  -- TODO for_inはtbcを扱うために二重のスコープが必要（forは不要なはず）
   for_in
     = _"for" "namelist" "in" "explist" "do" "block" "end"  %"$$=$0 append($2,$4,$6) $$.scope=scope() $4.adjust=4";
 

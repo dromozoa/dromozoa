@@ -400,8 +400,9 @@ local function process2(scope, u)
     -- 1. declareが真ならば、文で命令を生成する。
     -- 2. resolveが真でdefineが真ならば、文で命令を生成する。
     -- 3. resolveが真でdefineが真でなければ、参照命令を生成する。
-    -- 4. さもなければ、テーブルインデックスとして使用するための文字列リテラル
-    --    命令を生成する。
+    -- 4. def_labelまたはref_labelが真ならば、文で命令を生成する。
+    -- 5. さもなければ、テーブルインデックスとして使用する文字列リテラル命令を
+    --    生成する。
     if not u.declare then
       if u.resolve then
         if not u.define then
@@ -435,7 +436,7 @@ local function process2(scope, u)
           end
 
         end
-      else
+      elseif not u.def_label and not u.ref_label then
         append_code(u.code, u, "push_literal", u.v)
       end
     end
@@ -513,7 +514,52 @@ local function process2(scope, u)
     if x.ns > 0 then
       append_code(u.code, u, "pop", x.ns)
     end
+  elseif u_name == "label" then
+    append_code(u.code, u, "label", u[1].label)
+  elseif u_name == "goto" then
+    append_code(u.code, u, "goto", u[1].label)
+  elseif u_name == "block" then
+    local block = append_code(u.code, u, "block")
+    for _, v in ipairs(u) do
+      append_code_unpack(block, v.code)
+    end
+  elseif u_name == "do" then
+    append_code_unpack(u.code, u[1].code)
 
+  elseif u_name == "while" then
+    local block = append_code(u.code, u, "block")
+    append_code_unpack(block, u[1].code)
+    local cond = append_code(block, u, "if")
+    append_code(cond, u, "block")
+    append_code(cond, u, "block")
+    local loop = append_code(cond[1], u, "loop")
+    append_code_unpack(loop, u[2].code)
+    append_code_unpack(loop, u[1].code)
+    local cond = append_code(loop, u, "if")
+    append_code(cond, u, "block")
+    append_code(cond, u, "block")
+    append_code(cond[2], u, "break")
+
+  elseif u_name == "repeat" then
+    local loop = append_code(u.code, u, "loop")
+    append_code_unpack(loop, u[1].code)
+    append_code_unpack(loop, u[2].code)
+    local cond = append_code(loop, u, "if")
+    append_code(cond, u, "block")
+    append_code(cond, u, "block")
+    append_code(cond[1], u, "break")
+
+  elseif u_name == "local" then
+    local x, y = u[1], u[2]
+    if y == nil then
+      append_code(u.code, u, "push_nil", #x)
+    else
+      append_code_unpack(u.code, y.code)
+    end
+    for i = #x, 1, -1 do
+      local v = x[i]
+      append_code(u.code, u, "set_local", v.var)
+    end
   end
 end
 
