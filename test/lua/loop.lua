@@ -26,8 +26,31 @@ local function tbc(v)
   return setmetatable({v=v}, metatable)
 end
 
+local function p(...)
+  print("p", ...)
+  return ...
+end
+
+local i = 0
+print "while start"
+while p(i <= 4) do
+  local tbc1 <close> = tbc(1)
+  local tbc2 <close> = tbc(2)
+  i = i + 1
+end
+print "while end"
+
+local i = 0
+print "repeat start"
+repeat
+  local tbc1 <close> = tbc(1)
+  local tbc2 <close> = tbc(2)
+  i = i + 1
+until p(i > 4)
+print "repeat end"
+
 local function f(x, y)
-  if y < 10 then
+  if y < 6 then
     return y + 1, y + 2, y + 3, y + 4
   end
 end
@@ -38,27 +61,9 @@ for a, b, c, d in f, tbc(1), 0, tbc(2) do
   local tbc2 <close> = tbc(4)
   print(a, b, c, d)
   if a == 4 then
-    break
+    -- TBCつきのgeneric forでbreakするとバグを踏む。
+    -- break
   end
 end
 print "for end"
-
-local function p(...)
-  print("p", ...)
-  return ...
-end
-
-local i = 0
-
--- while i <= 4 do
---   local tbc1 <close> = tbc(3)
---   local tbc2 <close> = tbc(4)
---   i = i + 1
--- end
-
--- repeat
---   local tbc1 <close> = tbc(1)
---   local tbc2 <close> = tbc(2)
---   i = i + 1
--- until i > 4
 
