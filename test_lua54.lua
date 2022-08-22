@@ -180,6 +180,7 @@ local function process1(protos, proto, scope, u)
     u.proto.labels = array()
     u.proto.locals = array()
     u.proto.upvalues = array()
+    u.proto.scopes = array()
     u.proto.parent = proto
     proto = u.proto
     proto.index = protos:append(proto):size()
@@ -191,6 +192,7 @@ local function process1(protos, proto, scope, u)
     u.scope.proto = proto
     u.scope.parent = scope
     scope = u.scope
+    scope.index = proto.scopes:append(scope):size()
   end
 
   local u_name = lua54_parser.symbol_names[u[0]]
@@ -709,11 +711,29 @@ local function dump_protos(out, protos)
     else
       out:write "    <upvalues>\n"
       for j, v in proto.upvalues:ipairs() do
-        out:write("       <upvalue index=\"", j, "\"")
+        out:write("      <upvalue index=\"", j, "\"")
         dump_attrs(out, v, {"name", "var"})
         out:write "/>\n"
       end
       out:write "    </upvalues>\n"
+    end
+
+    if proto.scopes:empty() then
+      out:write "    <scopes/>\n"
+    else
+      out:write "    <scopes>\n"
+      for j, scope in proto.scopes:ipairs() do
+        if scope.locals:empty() then
+          out:write("      <scope index=\"", j, "\"/>\n")
+        else
+          out:write("      <scope index=\"", j, "\">\n")
+          for _, v in scope.locals:ipairs() do
+            out:write("        <local index=\"", v, "\"/>\n")
+          end
+          out:write "      </scope>\n"
+        end
+      end
+      out:write "    </scopes>\n"
     end
 
     out:write "  </proto>\n"
