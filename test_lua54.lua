@@ -34,38 +34,6 @@ local function compiler_error(message, u)
 end
 
 ---------------------------------------------------------------------------
---[[
-
-  basic blockを作ることを考えたら、if else endはあってもいい？
-
-  定数は
-    string literal
-    numeral
-  の2種類で、numeralは解析するとint64_tかdoubleかわかる。
-
-  push_string const_string("...")
-  push_number const_number("...", hint) -- d f x a
-  push_nil()
-  push_false(v)
-  push_true(v)
-
-  nil;
-  false;
-  true;
-  i64.const "..." [hex|dec];
-  f64.const "..." [hex|dec];
-  string.const "...";
-
-  {
-    foo=1;
-    2;
-    bar=3;
-    4;
-    baz=5;
-  }
-
-]]
----------------------------------------------------------------------------
 
 -- scope--
 --   |    \
@@ -189,6 +157,7 @@ local function process1(protos, proto, scope, u)
   if u.scope ~= nil then
     u.scope.labels = array()
     u.scope.locals = array()
+    u.scope.opened = array() -- その時点で開いているtbc
     u.scope.proto = proto
     u.scope.parent = scope
     scope = u.scope
@@ -196,6 +165,17 @@ local function process1(protos, proto, scope, u)
   end
 
   local u_name = lua54_parser.symbol_names[u[0]]
+
+  -- tbcを宣言するときにopen命令を入れることにする
+  -- スコープを出るときにclose命令を入れる
+
+  -- 下記の命令の前にもclose命令を入れる
+  -- break
+  -- goto
+  -- return
+  -- 簡単のためにopen index, close indexとする
+  -- どの変数がopenされているかは静的に定まるが、コードの順序を考えないといけない
+  -- break, goto, returnはスコープを出る方向にしか働かない。
 
   if u_name == "for" then
     -- 制御式の名前解決を先に行う。
@@ -251,6 +231,20 @@ local function process1(protos, proto, scope, u)
 end
 
 local function process2(scope, u)
+  if u.scope ~= nil then
+    scope = u.scope
+  end
+
+  if u.ref_label then
+    u.label = ref_label(scope, u.v, u)
+  end
+
+  for _, v in ipairs(u) do
+    process2(scope, v)
+  end
+end
+
+local function process2_(scope, u)
   if u.scope ~= nil then
     scope = u.scope
   end
