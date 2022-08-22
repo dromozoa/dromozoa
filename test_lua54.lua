@@ -143,6 +143,8 @@ local function append_code_unpack(self, that)
   end
 end
 
+---------------------------------------------------------------------------
+
 local function process1(protos, proto, scope, u)
   if u.proto ~= nil then
     u.proto.labels = array()
@@ -230,6 +232,8 @@ local function process1(protos, proto, scope, u)
   end
 end
 
+---------------------------------------------------------------------------
+
 local function process2(scope, u)
   if u.scope ~= nil then
     scope = u.scope
@@ -243,6 +247,8 @@ local function process2(scope, u)
     process2(scope, v)
   end
 end
+
+---------------------------------------------------------------------------
 
 local function process2_(scope, u)
   if u.scope ~= nil then
