@@ -9,8 +9,8 @@ local main = function ()
       return { vararg = vararg }
     end
 
-    local function scope(loop)
-      return { loop = loop }
+    local function scope()
+      return {}
     end
 
     local function code(op, a, b)
@@ -36,13 +36,13 @@ function ()SS=S[1] append(S[2]) S[2].resolve_label=true
 end;
 function ()SS=S[1] append(S[2]) S[2].scope=scope()
 end;
-function ()SS=S[1] append(S[2],S[4]) S[4].scope=scope(true)
+function ()SS=S[1] append(S[2],S[4]) SS.loop=true S[4].scope=scope()
 end;
-function ()SS=S[1] append(S[2],S[4]) SS.scope=scope(true)
+function ()SS=S[1] append(S[2],S[4]) SS.loop=true SS.scope=scope()
 end;
 function ()SS=S[1] append(S[2],S[4],S[5]) S[4].scope=scope()
 end;
-function ()SS=S[1] append(S[2],S[4],S[6]) SS.scope=scope(true) S[6].scope=scope() S[2].declare=true
+function ()SS=S[1] append(S[2],S[4],S[6]) SS.loop=true SS.scope=scope() S[6].scope=scope() S[2].declare=true
 end;
 function ()SS=S[1] append(S[2],S[3]) S[2].define=true S[3].proto.self=S[2].self
 end;
@@ -54,7 +54,7 @@ function ()SS=S[0] append(S[1],S[3])
 end;
 function ()SS=S[0] append(S[1],S[3],S[5])
 end;
-function ()SS=S[0] append(S[2],S[4],S[6]) SS.scope=scope(true) S[6].scope=scope() S[4].adjust=4
+function ()SS=S[0] append(S[2],S[4],S[6]) SS.loop=true SS.scope=scope() S[6].scope=scope() S[4].adjust=4
 end;
 function ()SS=S[0] append(S[3],S[4]) S[3].declare=true
 end;
