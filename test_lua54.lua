@@ -109,7 +109,7 @@ local function find_label(scope, name)
   until proto ~= scope.proto
 end
 
-local function def_label(scope, name, u)
+local function define_label(scope, name, u)
   local label, v = find_label(scope, name)
   if label ~= nil then
     compiler_error("label " .. name .. " already defined on line " .. v.node.n, u)
@@ -119,7 +119,7 @@ local function def_label(scope, name, u)
   return label
 end
 
-local function ref_label(scope, name, u)
+local function resolve_label(scope, name, u)
   local label = find_label(scope, name)
   if label == nil then
     compiler_error("no visible label " .. name, u)
@@ -159,7 +159,7 @@ local function process1(protos, proto, scope, u)
   if u.scope ~= nil then
     u.scope.labels = array()
     u.scope.locals = array()
-    u.scope.opened = array() -- その時点で開いているtbc
+    u.scope.opened = array() -- TODO その時点で開いているtbc
     u.scope.proto = proto
     u.scope.parent = scope
     scope = u.scope
@@ -167,17 +167,6 @@ local function process1(protos, proto, scope, u)
   end
 
   local u_name = lua54_parser.symbol_names[u[0]]
-
-  -- tbcを宣言するときにopen命令を入れることにする
-  -- スコープを出るときにclose命令を入れる
-
-  -- 下記の命令の前にもclose命令を入れる
-  -- break
-  -- goto
-  -- return
-  -- 簡単のためにopen index, close indexとする
-  -- どの変数がopenされているかは静的に定まるが、コードの順序を考えないといけない
-  -- break, goto, returnはスコープを出る方向にしか働かない。
 
   if u_name == "for" then
     -- 制御式の名前解決を先に行う。
@@ -222,8 +211,8 @@ local function process1(protos, proto, scope, u)
       else
         u.var = var
       end
-    elseif u.def_label then
-      u.label = def_label(scope, u.v, u)
+    elseif u.define_label then
+      u.label = define_label(scope, u.v, u)
     end
 
     for _, v in ipairs(u) do
@@ -239,9 +228,92 @@ local function process2(scope, u)
     scope = u.scope
   end
 
-  if u.ref_label then
-    u.label = ref_label(scope, u.v, u)
+  if u.resolve_label then
+    u.label = resolve_label(scope, u.v, u)
   end
+
+  local u_name = lua54_parser.symbol_names[u[0]]
+  if u_name == "break" then
+    local s = scope
+    local proto = s.proto
+    repeat
+      if s.loop then
+        break
+      end
+      s = s.parent
+    until proto ~= s.proto
+
+    if not s.loop then
+      compiler_error("break outside loop at line " .. u.n, u)
+    end
+
+    -- sまでcloseする
+  elseif u_name == "goto" then
+
+  elseif u_name == "return" then
+  elseif u_name == "..." then
+  end
+
+  -- ラベルの名前解決を先にやる
+  -- ::label::にその時点のローカルのリストを持たせる
+
+  -- breakのチェック（ループのなかにいるか）
+  -- ...のチェック
+
+  -- tbcを宣言する直前にopen命令を入れることにする
+  -- スコープを出るときにclose命令を入れる
+
+  -- 下記の命令の前にもclose命令を入れる
+  -- break
+  -- goto
+  -- return
+  -- 簡単のためにopen index, close indexとする
+  -- どの変数がopenされているかは静的に定まるが、コードの順序を考えないといけない
+  -- break, goto, returnはスコープを出る方向にしか働かない。
+  -- ジャンプ先によって、どのスコープまでcloseするか決める
+  -- returnの場合、proto.scopes[1]になる。
+  -- gotoの場合、goto先のラベルが含まれるscopeまで探す
+  -- breakの場合、一番内側のループになる。
+
+  --[[
+
+    local a<close>, b<close>, c<close> = ...
+    do
+      break
+    end
+    local d<close> = ...
+    do
+      return f()
+    end
+    local e<close> = ...
+
+    open 1
+    open 2
+    open 3
+    vararg 3
+    setlocal 3
+    setlocal 2
+    setlocal 1
+    ??? close 3 2 1
+    break
+    open 4
+    vararg 1
+    setlocal 4
+    getupval 42
+    call 1 -1
+    ??? close 4 3 2 1
+    return
+
+    open 5
+    vararg 1
+    setlocal 5
+    ??? close 5 4 3 2 1
+
+
+
+  ]]
+
+
 
   for _, v in ipairs(u) do
     process2(scope, v)
@@ -255,8 +327,8 @@ local function process2_(scope, u)
     scope = u.scope
   end
 
-  if u.ref_label then
-    u.label = ref_label(scope, u.v, u)
+  if u.resolve_label then
+    u.label = resolve_label(scope, u.v, u)
   end
 
   local u_name = lua54_parser.symbol_names[u[0]]
@@ -402,7 +474,7 @@ local function process2_(scope, u)
     -- 1. declareが真ならば、文で命令を生成する。
     -- 2. resolveが真でdefineが真ならば、文で命令を生成する。
     -- 3. resolveが真でdefineが真でなければ、参照命令を生成する。
-    -- 4. def_labelまたはref_labelが真ならば、文で命令を生成する。
+    -- 4. define_labelまたはresolve_labelが真ならば、文で命令を生成する。
     -- 5. さもなければ、テーブルインデックスとして使用する文字列リテラル命令を
     --    生成する。
     if not u.declare then
@@ -438,7 +510,7 @@ local function process2_(scope, u)
           end
 
         end
-      elseif not u.def_label and not u.ref_label then
+      elseif not u.define_label and not u.resolve_label then
         append_code(u.code, u, "push_literal", u.v)
       end
     end
@@ -585,7 +657,7 @@ local attrs = {
   "v";
   "attribute";
   "declare", "resolve", "define", "var", "env";
-  "def_label", "ref_label", "label";
+  "define_label", "resolve_label", "label";
   "adjust", "nomultret", "nr", "ns", "push", "pop";
 }
 if verbose then

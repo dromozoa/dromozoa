@@ -158,8 +158,8 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
       return { vararg = vararg }
     end
 
-    local function scope()
-      return {}
+    local function scope(loop)
+      return { loop = loop }
     end
 
     local function code(op, a, b)
@@ -199,12 +199,12 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"functioncall"                                      %"$$=$1 $$.nr=0"
     + _"label"                                             %"$$=$1 append($2)"
     + _"break"                                             %"$$=$1"
-    + _"goto" "Name"                                       %"$$=$1 append($2) $2.ref_label=true"
+    + _"goto" "Name"                                       %"$$=$1 append($2) $2.resolve_label=true"
     + _"do" "block" "end"                                  %"$$=$1 append($2) $2.scope=scope()"
-    + _"while" "exp" "do" "block" "end"                    %"$$=$1 append($2,$4) $4.scope=scope()"
-    + _"repeat" "block" "until" "exp"                      %"$$=$1 append($2,$4) $$.scope=scope()"
+    + _"while" "exp" "do" "block" "end"                    %"$$=$1 append($2,$4) $4.scope=scope(true)"
+    + _"repeat" "block" "until" "exp"                      %"$$=$1 append($2,$4) $$.scope=scope(true)"
     + _"if" "exp" "then" "block" "else_clause" "end"       %"$$=$1 append($2,$4,$5) $4.scope=scope()"
-    + _"for" "Name" "=" "exp_2or3" "do" "block" "end"      %"$$=$1 append($2,$4,$6) $$.scope=scope() $6.scope=scope() $2.declare=true"
+    + _"for" "Name" "=" "exp_2or3" "do" "block" "end"      %"$$=$1 append($2,$4,$6) $$.scope=scope(true) $6.scope=scope() $2.declare=true"
     + _"for_in"                                            %"$$=$1"
     + _"function" "funcname" "funcbody"                    %"$$=$1 append($2,$3) $2.define=true $3.proto.self=$2.self"
     + _"local_function"                                    %"$$=$1"
@@ -221,7 +221,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"exp" "," "exp" "," "exp"                           %"$$=$0 append($1,$3,$5)";
 
   for_in
-    = _"for" "namelist" "in" "explist" "do" "block" "end"  %"$$=$0 append($2,$4,$6) $$.scope=scope() $6.scope=scope() $4.adjust=4";
+    = _"for" "namelist" "in" "explist" "do" "block" "end"  %"$$=$0 append($2,$4,$6) $$.scope=scope(true) $6.scope=scope() $4.adjust=4";
 
   local_function
     = _"local" "function" "Name" "funcbody"                %"$$=$0 append($3,$4) $3.declare=true";
@@ -241,7 +241,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"return" "explist" ";"                              %"$$=$1 append($2)";
 
   label
-    = _"::" "Name" "::"                                    %"$$=$0 append($2) $2.def_label=true";
+    = _"::" "Name" "::"                                    %"$$=$0 append($2) $2.define_label=true";
 
   funcname
     = _"funcname_"                                         %"$$=$1"

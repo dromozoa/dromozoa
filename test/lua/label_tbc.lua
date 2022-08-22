@@ -23,53 +23,31 @@ local metatable = {
 }
 
 local function tbc(v)
-  return setmetatable({v=v}, metatable)
+  local self = setmetatable({v=v}, metatable)
+  print("tbc", self, self.v)
+  return self
 end
 
-local function p(...)
-  print("p", ...)
-  return ...
-end
+local v = 0
 
-local i = 0
-print "while start"
-while p(i <= 4) do
-  local tbc1 <close> = tbc(1)
-  local tbc2 <close> = tbc(2)
-  i = i + 1
-end
-print "while end"
+local a <close> = tbc(100)
+do
+  local c <close> = tbc(200)
+  ::L1::
+  local b <close> = tbc(v)
 
-local i = 0
-print "repeat start"
-repeat
-  local tbc1 <close> = tbc(1)
-  local tbc2 <close> = tbc(2)
-  i = i + 1
-until p(i > 4)
-print "repeat end"
-
-local function f(x, y)
-  if y < 6 then
-    return y + 1, y + 2, y + 3, y + 4
+  if v == 0 then
+    local c <close> = tbc(300)
+    v = 1
+    goto L1
+    local d <close> = tbc(400)
+  else
+    goto L2
   end
+
+  -- lua: label_tbc.lua:49: <goto L2> at line 44 jumps into the scope of local 'e'
+  -- local e <close> = tbc(500)
+  ::L2::
+  local f <close> = tbc(600)
 end
 
-print "for start"
-for a, b, c, d in f, tbc(1), 0, tbc(2) do
-  local tbc1 <close> = tbc(3)
-  local tbc2 <close> = tbc(4)
-  print(a, b, c, d)
-  if a == 4 then
-    -- TBCつきのgeneric forでbreakするとバグを踏む。
-    -- break
-  end
-end
-print "for end"
-
-local function g()
-  -- print(...)
-  do
-    -- break
-  end
-end

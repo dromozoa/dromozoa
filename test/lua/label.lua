@@ -40,3 +40,11 @@ print "ok 3"
 -- do
 --   ::L3::
 -- end
+
+goto L4
+-- local a = 1
+::L4::
+local b = 2
+
+-- Lua:    label.lua:47: <goto L4> at line 44 jumps into the scope of local 'a'
+-- LuaJIT: label.lua:44: <goto L4> jumps into the scope of local 'a'
