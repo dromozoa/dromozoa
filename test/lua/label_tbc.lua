@@ -47,8 +47,7 @@ do
   end
 
   -- lua: label_tbc.lua:49: <goto L2> at line 44 jumps into the scope of local 'e'
-  local g <close> = tbc(500)
+  local g <close> = tbc(600)
   ::L2::
-  -- local g <close> = tbc(600)
+  -- local h <close> = tbc(700)
 end
-

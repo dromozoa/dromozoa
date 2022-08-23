@@ -49,7 +49,6 @@ local b = 2
 -- Lua:    label.lua:47: <goto L4> at line 44 jumps into the scope of local 'a'
 -- LuaJIT: label.lua:44: <goto L4> jumps into the scope of local 'a'
 
-
 do
   local a = 3
   do
@@ -69,3 +68,17 @@ print "done"
 --   do,while,for,if
 -- 飛べない:
 --   repeat: 式があるから？
+
+do
+  local a = 6
+  local b = 7
+  do
+    local c = 8
+    local d = 9
+    goto L8
+  end
+  local e = 10
+  local f = 11
+  ::L8::
+  -- break
+end

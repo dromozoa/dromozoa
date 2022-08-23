@@ -139,42 +139,6 @@ local function resolve_label(scope, name, u)
   return label
 end
 
-local function check_jump(u, v)
-  local m = u.locals:size()
-  local n = v.locals:size()
-
-  -- 7 6 5 4 3 2 1 m=7
-  --         3 2 1 n=3
-  --         3 2 1
-
-  -- 7 6 5 4 3 2 1 m=7
-  --       8 7 2 1 n=4
-  --           2 1
-
-  --         3 2 1 m=3
-  --         8 2 1 n=3
-  --           2 1
-
-  if not v.end_of_scope then
-    if m < n then
-      return false
-    end
-    for i = 1, n do
-      if u.locals:get(m - n + i) ~= v.locals:get(i) then
-        return false
-      end
-    end
-  end
-
-  for i = 0, n do
-    if u.locals:get(m - i) ~= v.locals:get(n - i) then
-      return i
-    end
-  end
-  assert(m == n)
-  return m
-end
-
 ---------------------------------------------------------------------------
 
 local function code(u, op, a, b, c)
@@ -270,7 +234,7 @@ local function process1(protos, proto, scope, u, loop)
     process1(protos, proto, scope, u[2], loop)
   else
     if u_name == "block" then
-      -- empty statementsは解析の時点でとりのぞかれるので、ラベル文だけがvoid
+      -- empty statementsは解析の時点でとりのぞかれるので、label文だけがvoid
       -- statementsとして残る。repeat-until文以外のスコープは、スコープの最後の
       -- void statementsの前でスコープを終了する。ブロックの末尾にラベル文があ
       -- るかどうかを検査する。
@@ -310,7 +274,11 @@ local function process1(protos, proto, scope, u, loop)
     elseif u.define_label then
       -- ジャンプ解決用にラベルと変数リストを逆順で記録する。
       u.label = define_label(scope, u.v, u)
-      u.locals = collect(scope)
+      if u.end_of_scope then
+        u.locals = collect(scope.parent)
+      else
+        u.locals = collect(scope)
+      end
     elseif u.resolve_label then
       -- ジャンプ解決用に変数リストを逆順で記録する。
       u.locals = collect(scope)
@@ -339,40 +307,50 @@ local function process2(scope, u)
     process2(scope, v)
   end
 
-  if u_name == "break" then
-  elseif u_name == "goto" then
-    local x = u[1]
-    local y = assert(scope.proto.labels:get(x.label).node)
-    local result = check_jump(x, y)
-
-    if not result then
-      compiler_error("<goto " .. x.v .. "> jumps into the scope of local " .. scope.proto.locals:get(y.locals:get(1)).name, u)
+  if u.code ~= nil then
+    for _, v in ipairs(u.code) do
+      v.node = u
     end
+    return
+  end
 
-    -- goto文とlabel文にcloseをはりつける
-    -- scopeのcloseを生成するときは、label文をチェックする
-    -- これだと、複数のラベル文をひとつにまとめる必要がある。
+  u.code = {}
 
-    print("x.locals", x.locals:concat",")
-    print("y.locals", y.locals:concat",")
+  local function append_code(op, a, b, c)
+    local v = { [0] = op, a = a, b = b, c = c, node = u }
+    u.code[#u.code + 1] = v
+    return v
+  end
 
-    print("goto", x.v)
-    for i = 1, x.locals:size() - result do
-      local var = x.locals:get(i)
-      if scope.proto.locals:get(var).attribute == "close" then
-        print("close x", var)
-      end
-    end
-    for i = 1, y.locals:size() - result do
-      local var = y.locals:get(i)
-      if scope.proto.locals:get(var).attribute == "close" then
-        print("close y", var)
-      end
+  local function append_code_unpack(that)
+    for _, v in ipairs(that) do
+      u.code[#u.code + 1] = v
     end
   end
--- Lua:    label.lua:47: <goto L4> at line 44 jumps into the scope of local 'a'
--- LuaJIT: label.lua:44: <goto L4> jumps into the scope of local 'a'
 
+  if u_name == "block" then
+  elseif u_name == "goto" then
+    local x = u[1]
+    local y = scope.proto.labels:get(x.label).node
+    local m = x.locals:size()
+    local n = y.locals:size()
+    if m <= n then
+      for i = 0, n - 1 do
+        local var = y.locals:get(n - i)
+        if x.locals:get(m - i) ~= var then
+          compiler_error("<goto " .. x.v .. "> jumps into the scope of local " .. scope.proto.locals:get(var).name, u)
+        end
+      end
+    end
+
+    for i = 1, m - n do
+      local var = x.locals:get(i)
+      if scope.proto.locals:get(var).attribute == "close" then
+        append_code("close", var)
+      end
+    end
+    append_code("goto", x.label)
+  end
 end
 
 ---------------------------------------------------------------------------
