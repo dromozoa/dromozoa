@@ -38,3 +38,16 @@ do
   local h3 <const>, h4 <close>
   local h5 <const>, h6 <const>
 end
+
+local x = 1
+repeat
+  local c1 <close>
+  x = 2
+  if x == 3 then
+    local c2 <close>
+    break
+  end
+  local c3 <close>
+  x = 3
+until false
+

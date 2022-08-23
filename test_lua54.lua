@@ -450,6 +450,25 @@ local function process2(scope, u)
   elseif u_name == "label" then
     append_code(u.code, u, "label", u[1].label)
 
+  elseif u_name == "break" then
+    local v = u.target
+
+    local m = u.locals:size()
+    local n = v.locals:size()
+
+    assert(m >= n)
+    for i = 0, n - 1 do
+      assert(u.locals:get(m - i) == v.locals:get(n - i))
+    end
+
+    for i = 1, m - n do
+      local var = u.locals:get(i)
+      if scope.proto.locals:get(var).attribute == "close" then
+        append_code(u.code, u, "close", var)
+      end
+    end
+    append_code(u.code, u, "break")
+
   elseif u_name == "goto" then
     local x = u[1]
     local y = scope.proto.labels:get(x.label).node
@@ -471,6 +490,9 @@ local function process2(scope, u)
       end
     end
     append_code(u.code, u, "goto", x.label)
+
+  elseif u_name == "do" then
+    append_code_unpack(u.code, u[1].code)
 
   elseif u_name == "while" then
     local loop = append_code(u.code, u, "loop")
@@ -510,6 +532,9 @@ local function process2(scope, u)
     if u[1] ~= nil then
       append_code_unpack(u.code, u[1].code)
     end
+
+
+
 
   elseif u_name == "local" then
     local x, y = u[1], u[2]
