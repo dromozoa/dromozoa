@@ -23,3 +23,7 @@ function f2()
   f1()
 end
 
+function f1()
+  print "foo"
+end
+
