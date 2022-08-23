@@ -18,7 +18,18 @@
 local a = { b = { f = function () end } }
 local f = function () end
 
-f(1)
+f(f(),1,2,3)
+f(f(),1,2)
+f(f(),1)
+f(f())
+f(1, f())
+f(1, 2, f())
+f(1, 2, 3, f())
+f(1, 2, 3, (f()))
+f(1, 2, (f()))
+f(1, (f()))
+f((f()))
+
 a.b.f(2)
 a.b:f(3)
 a["b"].f(4)

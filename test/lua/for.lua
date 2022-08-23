@@ -15,11 +15,11 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local a = { b = {} }
-local f1
+for f = 0.5, 1.5, 0.5 do
+  print(f)
+end
 
-function f1() end
-function a.f2() end
-function a:f3() end
-function a.b.f4(x) end
-function a.b:f5(y) end
+for x, y in pairs{} do
+  print(x)
+end
+

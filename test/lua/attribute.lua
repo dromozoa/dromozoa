@@ -17,3 +17,37 @@
 
 local a, b <const>, c = 1, 2, 3
 local h <close> = io.open "/dev/null"
+
+function f()
+  function g ()
+    a = 42
+    -- b = 69
+    -- h = io.open "/dev/null"
+  end
+end
+
+do
+  -- local h1 <close>, h2 <close>
+  -- lua: attribute.lua:32: multiple to-be-closed variables in local list
+  a = 69
+  a = 42
+end
+
+do
+  local h1 <close>, h2 <const>
+  local h3 <const>, h4 <close>
+  local h5 <const>, h6 <const>
+end
+
+local x = 1
+repeat
+  local c1 <close>
+  x = 2
+  if x == 3 then
+    local c2 <close>
+    break
+  end
+  local c3 <close>
+  x = 3
+until false
+

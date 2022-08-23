@@ -15,11 +15,16 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local a = { b = {} }
-local f1
+-- break
 
-function f1() end
-function a.f2() end
-function a:f3() end
-function a.b.f4(x) end
-function a.b:f5(y) end
+while true do
+  print "foo"
+  break
+  print "bar"
+
+  local function f()
+    -- break
+  end
+end
+
+

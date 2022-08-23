@@ -41,3 +41,44 @@ print "ok 3"
 --   ::L3::
 -- end
 
+goto L4
+-- local a = 1
+::L4::
+local b = 2
+
+-- Lua:    label.lua:47: <goto L4> at line 44 jumps into the scope of local 'a'
+-- LuaJIT: label.lua:44: <goto L4> jumps into the scope of local 'a'
+
+do
+  local a = 3
+  do
+    local b = 4
+    goto L5
+  end
+
+  local c <close> = 5
+  ::L5::
+  ::L6::
+  ;;;;;;
+end
+print "done"
+
+-- ラベル以降にvoid statementsしかない場合
+-- 飛べる:
+--   do,while,for,if
+-- 飛べない:
+--   repeat: 式があるから？
+
+do
+  local a = 6
+  local b = 7
+  do
+    local c = 8
+    local d = 9
+    goto L8
+  end
+  local e = 10
+  local f = 11
+  ::L8::
+  -- break
+end

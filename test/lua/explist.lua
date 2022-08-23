@@ -15,11 +15,21 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local a = { b = {} }
-local f1
+local function f(x)
+  return x, x, x
+end
 
-function f1() end
-function a.f2() end
-function a:f3() end
-function a.b.f4(x) end
-function a.b:f5(y) end
+local a, b, c = f(), 1, 2, 3, 4
+local a, b, c = f(), 1, 2, 3
+local a, b, c = f(), 1, 2
+local a, b, c = f(), 1
+local a, b, c = f()
+local a, b, c = 1, f()
+local a, b, c = 1, 2, f()
+local a, b, c = 1, 2, 3, f()
+local a, b, c = 1, 2, 3, 4, f()
+local a, b, c = 1, 2, 3, 4, (f())
+local a, b, c = 1, 2, 3, (f())
+local a, b, c = 1, 2, (f())
+local a, b, c = 1, (f())
+local a, b, c = (f())

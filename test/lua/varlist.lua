@@ -15,11 +15,29 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local a = { b = {} }
-local f1
+local v = 0
+local function f()
+  v = v * 2 + 1
+  return v
+end
+local t = {[0]={}}
 
-function f1() end
-function a.f2() end
-function a:f3() end
-function a.b.f4(x) end
-function a.b:f5(y) end
+local g = function ()
+  local z = 0
+  t[z][f()], t[z][f()], t[z][f()] = f(), f(), f()
+  t[f()], t[f()], t[f()] = f(), f(), f()
+end
+
+g()
+print(1, t[1]) -- 15
+print(3, t[3]) -- 31
+print(7, t[7]) -- 63
+print("v", v)  -- 63
+
+u, v = 42, 69
+print(u, v)
+u, v = v, u
+print(u, v)
+u, u, u = 1, 2, 3
+v, v, v = 4, 5, 6
+print(u, v)

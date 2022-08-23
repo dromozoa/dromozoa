@@ -165,8 +165,7 @@ local main = function ()
     append(string.byte(source, i, j))
   end
 
-  -- if utf8 ~= nil and utf8.char ~= nil then
-  if false then
+  if utf8 ~= nil and utf8.char ~= nil then
     function append_unicode(a)
       append(string.byte(utf8.char(a), 1, -1))
     end
