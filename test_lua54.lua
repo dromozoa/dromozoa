@@ -242,7 +242,8 @@ local function process1(protos, proto, scope, u, loop)
         for i = #u, 1, -1 do
           local v = u[i]
           if lua54_parser.symbol_names[v[0]] == "label" then
-            v[1].end_of_scope = true
+            u.end_of_scope = i
+            v[1].end_of_scope = i
           else
             break
           end
@@ -316,19 +317,32 @@ local function process2(scope, u)
 
   u.code = {}
 
-  local function append_code(op, a, b, c)
-    local v = { [0] = op, a = a, b = b, c = c, node = u }
-    u.code[#u.code + 1] = v
-    return v
-  end
-
-  local function append_code_unpack(that)
-    for _, v in ipairs(that) do
-      u.code[#u.code + 1] = v
-    end
-  end
-
   if u_name == "block" then
+    local end_of_scope = u.end_of_scope
+    for i, v in ipairs(u) do
+      if end_of_scope == i then
+        for j = scope.locals:size(), 1, -1 do
+          local var = scope.locals:get(j)
+          if scope.proto.locals:get(var).attribute == "close" then
+            append_code(u.code, u, "close", var)
+          end
+        end
+      end
+      append_code_unpack(u.code, v.code)
+    end
+
+    if not scope.repeat_until and end_of_scope == nil then
+      for j = scope.locals:size(), 1, -1 do
+        local var = scope.locals:get(j)
+        if scope.proto.locals:get(var).attribute == "close" then
+          append_code(u.code, u, "close", var)
+        end
+      end
+    end
+
+  elseif u_name == "label" then
+    append_code(u.code, u, "label", u[1].label)
+
   elseif u_name == "goto" then
     local x = u[1]
     local y = scope.proto.labels:get(x.label).node
@@ -346,10 +360,40 @@ local function process2(scope, u)
     for i = 1, m - n do
       local var = x.locals:get(i)
       if scope.proto.locals:get(var).attribute == "close" then
-        append_code("close", var)
+        append_code(u.code, u, "close", var)
       end
     end
-    append_code("goto", x.label)
+    append_code(u.code, u, "goto", x.label)
+
+  elseif u_name == "if" or u_name == "elseif" then
+    append_code_unpack(u.code, u[1].code)
+    local cond = append_code(u.code, u, "if")
+    append_code(cond, u, "block")
+    append_code(cond, u, "block")
+    append_code_unpack(cond[1], u[2].code)
+    append_code_unpack(cond[2], u[3].code)
+
+  elseif u_name == "else" then
+    append_code_unpack(u.code, u[1].code)
+
+  elseif u_name == "local" then
+    local x, y = u[1], u[2]
+    if y == nil then
+      append_code(u.code, u, "push_nil", #x)
+    else
+      append_code_unpack(u.code, y.code)
+    end
+    for i = #x, 1, -1 do
+      local v = x[i]
+      if v.attribute == "close" then
+        append_code(u.code, u, "tbc", v.var)
+      else
+        append_code(u.code, u, "set_local", v.var)
+      end
+    end
+
+
+
   end
 end
 
