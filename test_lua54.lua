@@ -527,6 +527,10 @@ local function process2(scope, u)
       end
     end
 
+  elseif u_name == "local_function" then
+    append_code(u.code, u, "closure", u[2].proto.index)
+    append_code(u.code, u, "set_local", u[1].var)
+
   -------------------------------------------------------------------------
 
   elseif u_name == "varlist" then
