@@ -692,6 +692,17 @@ local function process2(scope, u)
     end
     u.ns = ns
 
+  elseif u_name == "." then
+    if not u.define then
+      append_code_unpack(u.code, u[1].code)
+      append_code_unpack(u.code, u[2].code)
+      append_code(u.code, u, "get_table", 2)
+    else
+      -- set_fieldを準備する
+      append_code_unpack(u.code, u[1].code)
+      append_code_unpack(u.code, u[2].code)
+    end
+
   elseif u_name == "explist" then
     for _, v in ipairs(u) do
       append_code_unpack(u.code, v.code)
@@ -709,42 +720,6 @@ local function process2(scope, u)
 
   elseif u_name == "functiondef" then
     append_code(u.code, u, "closure", u[1].proto.index)
-
-  elseif u_name == "functioncall" then
-    local x, y = u[1], u[2]
-    local x_name = lua54_parser.symbol_names[x[0]]
-    if x_name == ":" then
-      append_code_unpack(u.code, x[1].code)
-      append_code(u.code, u, "dup", 1)
-      append_code_unpack(u.code, x[2].code)
-      append_code(u.code, u, "get_table", 2)
-      append_code(u.code, u, "swap", 2)
-      append_code_unpack(u.code, y.code)
-      if y.nr ~= nil then
-        append_code(u.code, u, "call_nr", y.nr + 1, u.nr)
-      else
-        append_code(u.code, u, "call", #y + 1, u.nr)
-      end
-    else
-      append_code_unpack(u.code, x.code)
-      append_code_unpack(u.code, y.code)
-      if y.nr ~= nil then
-        append_code(u.code, u, "call_nr", y.nr, u.nr)
-      else
-        append_code(u.code, u, "call", #y, u.nr)
-      end
-    end
-
-  elseif u_name == "varlist" then
-    local ns = 0
-    for _, v in ipairs(u) do
-      v.ns = ns
-      if #v.code > 0 then
-        ns = ns + 2
-        append_code_unpack(u.code, v.code)
-      end
-    end
-    u.ns = ns
 
   elseif u.binop ~= nil then
     append_code_unpack(u.code, u[1].code)
@@ -773,15 +748,31 @@ local function process2(scope, u)
     append_code_unpack(u.code, u[1].code)
     append_code(u.code, u, u.unop)
 
-  elseif u_name == "." then
-    if not u.define then
-      append_code_unpack(u.code, u[1].code)
-      append_code_unpack(u.code, u[2].code)
+  -------------------------------------------------------------------------
+
+  elseif u_name == "functioncall" then
+    local x, y = u[1], u[2]
+    local x_name = lua54_parser.symbol_names[x[0]]
+    if x_name == ":" then
+      append_code_unpack(u.code, x[1].code)
+      append_code(u.code, u, "dup", 1)
+      append_code_unpack(u.code, x[2].code)
       append_code(u.code, u, "get_table", 2)
+      append_code(u.code, u, "swap", 2)
+      append_code_unpack(u.code, y.code)
+      if y.nr ~= nil then
+        append_code(u.code, u, "call_nr", y.nr + 1, u.nr)
+      else
+        append_code(u.code, u, "call", #y + 1, u.nr)
+      end
     else
-      -- set_fieldを準備する
-      append_code_unpack(u.code, u[1].code)
-      append_code_unpack(u.code, u[2].code)
+      append_code_unpack(u.code, x.code)
+      append_code_unpack(u.code, y.code)
+      if y.nr ~= nil then
+        append_code(u.code, u, "call_nr", y.nr, u.nr)
+      else
+        append_code(u.code, u, "call", #y, u.nr)
+      end
     end
 
   -------------------------------------------------------------------------

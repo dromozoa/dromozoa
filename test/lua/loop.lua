@@ -62,7 +62,7 @@ for a, b, c, d in f, tbc(1), 0, tbc(2) do
   print(a, b, c, d)
   if a == 4 then
     -- TBCつきのgeneric forでbreakするとバグを踏む。
-    -- break
+    break
   end
 end
 print "for end"
