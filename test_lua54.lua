@@ -247,6 +247,15 @@ local function process1(protos, proto, scope, u, loop)
     process1(protos, proto, scope, u[1], loop)
     process1(protos, proto, scope, u[3], loop)
   elseif u_name == "local" then
+    local n = 0
+    for _, v in ipairs(u[1]) do
+      if v.attribute == "close" then
+        n = n + 1
+        if n > 1 then
+          compiler_error("multiple to-be-closed variables in local list", v)
+        end
+      end
+    end
     -- 左辺に式があれば、式の名前解決を先に行う。
     if u[2] ~= nil then
       process1(protos, proto, scope, u[2], loop)
@@ -262,9 +271,9 @@ local function process1(protos, proto, scope, u, loop)
   else
     if u_name == "block" then
       -- empty statementsは解析の時点でとりのぞかれるので、ラベル文だけがvoid
-      -- statementsである。スコープは、スコープの最後のvoid statementsの前で終
-      -- 了するとみなす。repeat-until文以外のスコープで、ブロックの末尾にラベル
-      -- 文があるかどうかを検査する。
+      -- statementsとして残る。repeat-until文以外のスコープは、スコープの最後の
+      -- void statementsの前でスコープを終了する。ブロックの末尾にラベル文があ
+      -- るかどうかを検査する。
       if not scope.repeat_until then
         for i = #u, 1, -1 do
           local v = u[i]
