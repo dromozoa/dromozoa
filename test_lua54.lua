@@ -533,8 +533,126 @@ local function process2(scope, u)
       append_code_unpack(u.code, u[1].code)
     end
 
+  elseif u_name == "for" then
+    append_code_unpack(u.code, u[2].code)
+    append_code(u.code, u, "set_local", u.var + 2)
+    append_code(u.code, u, "set_local", u.var + 1)
+    append_code(u.code, u, "set_local", u.var)
 
+    append_code(u.code, u, "prepare_for", u.var)
+    local cond = append_code(u.code, u, "if")
+    append_code(cond, u, "block")
+    append_code(cond, u, "block")
+    local loop = append_code(cond[1], u, "loop")
+    append_code_unpack(loop, u[3].code)
 
+    -- | var   | u.var     |
+    -- | limit | u.var + 1 |
+    -- | step  | u.var + 2 |
+    --
+    -- var = var + step
+    -- if step > 0 then
+    --   if var > limit then
+    --     break
+    --   end
+    -- else
+    --   if var < limit then
+    --     break
+    --   end
+    -- end
+
+    append_code(loop, u, "get_local", u.var)
+    append_code(loop, u, "get_local", u.var + 2)
+    append_code(loop, u, "add")
+    append_code(loop, u, "set_local", u.var)
+
+    append_code(loop, u, "get_local", u.var + 2)
+    append_code(loop, u, "push_numeral", "0", "DecimalIntegerNumeral")
+    append_code(loop, u, "gt")
+
+    local cond = append_code(loop, u, "if")
+    append_code(cond, u, "block")
+    append_code(cond, u, "block")
+
+    append_code(cond[1], u, "get_local", u.var)
+    append_code(cond[1], u, "get_local", u.var + 1)
+    append_code(cond[1], u, "gt")
+    local cond2 = append_code(cond[1], u, "if")
+    append_code(cond2, u, "block")
+    append_code(cond2, u, "block")
+    append_code(cond2[1], u, "break")
+
+    append_code(cond[2], u, "get_local", u.var)
+    append_code(cond[2], u, "get_local", u.var + 1)
+    append_code(cond[2], u, "lt")
+    local cond2 = append_code(cond[2], u, "if")
+    append_code(cond2, u, "block")
+    append_code(cond2, u, "block")
+    append_code(cond2[1], u, "break")
+
+    append_code(loop, u, "get_local", u.var)
+    append_code(loop, u, "set_local", u.var + 3)
+    assert(u.var + 3 == u[1].var)
+
+  elseif u_name == "exp_2or3" then
+    append_code_unpack(u.code, u[1].code)
+    append_code_unpack(u.code, u[2].code)
+    if u[3] == nil then
+      append_code(u.code, u, "push_numeral", "1", "DecimalIntegerNumeral")
+    else
+      append_code_unpack(u.code, u[3].code)
+    end
+
+  elseif u_name == "for_in" then
+    local x = u[1]
+
+    append_code_unpack(u.code, u[2].code)
+    append_code(u.code, u, "set_local_tbc", u.var + 3)
+    append_code(u.code, u, "set_local", u.var + 2)
+    append_code(u.code, u, "set_local", u.var + 1)
+    append_code(u.code, u, "set_local", u.var)
+
+    -- | f   | u.var     |
+    -- | s   | u.var + 1 |
+    -- | var | u.var + 2 |
+    -- | tbc | u.var + 3 |
+    -- | v   | u.var + 4 |
+
+    --  while true do
+    --    v, ... = f(s, var)
+    --    if v == nil then
+    --      break
+    --    end
+    --  end
+
+    local loop = append_code(u.code, u, "loop")
+    append_code(loop, u, "get_local", u.var)
+    append_code(loop, u, "get_local", u.var + 1)
+    append_code(loop, u, "get_local", u.var + 2)
+    append_code(loop, u, "call", 2, #x)
+    for i = #x, 1, -1 do
+      local v = x[i]
+      append_code(u.code, u, "set_local", v.var)
+    end
+
+    append_code(loop, u, "get_local", u.var + 4)
+    assert(u.var + 4 == x[1].var)
+    append_code(loop, u, "push_nil", 1)
+    append_code(loop, u, "eq")
+
+    local cond = append_code(loop, u, "if")
+    append_code(cond, u, "block")
+    append_code(cond, u, "block")
+    append_code(cond[1], u, "close", u.var + 3)
+    append_code(cond[1], u, "break")
+    append_code(cond[2], u, "get_local", u.var + 4)
+    append_code(cond[2], u, "set_local", u.var + 2)
+
+    append_code_unpack(loop, u[3].code)
+
+  elseif u_name == "local_function" then
+    append_code(u.code, u, "closure", u[2].proto.index)
+    append_code(u.code, u, "set_local", u[1].var)
 
   elseif u_name == "local" then
     local x, y = u[1], u[2]
@@ -546,15 +664,20 @@ local function process2(scope, u)
     for i = #x, 1, -1 do
       local v = x[i]
       if v.attribute == "close" then
-        append_code(u.code, u, "tbc", v.var)
+        append_code(u.code, u, "set_local_tbc", v.var)
       else
         append_code(u.code, u, "set_local", v.var)
       end
     end
 
-  elseif u_name == "local_function" then
-    append_code(u.code, u, "closure", u[2].proto.index)
-    append_code(u.code, u, "set_local", u[1].var)
+  elseif u_name == "return" then
+    local v = u[1]
+    append_code_unpack(u.code, v.code)
+    if v.nr then
+      append_code(u.code, u, "return_nr", v.nr)
+    else
+      append_code(u.code, u, "return", #v)
+    end
 
   -------------------------------------------------------------------------
 
