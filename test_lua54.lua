@@ -141,10 +141,6 @@ end
 
 ---------------------------------------------------------------------------
 
-local function code(u, op, a, b, c)
-  return { [0] = op, a = a, b = b, c = c, node = u }
-end
-
 local function append_code(self, u, op, a, b)
   local v = { [0] = op, a = a, b = b, c = c, node = u }
   self[#self + 1] = v
