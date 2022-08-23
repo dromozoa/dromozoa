@@ -9,8 +9,8 @@ local main = function ()
       return { vararg = vararg }
     end
 
-    local function scope()
-      return {}
+    local function scope(repeat_until)
+      return { repeat_until = repeat_until }
     end
 
     local function code(op, a, b)
@@ -38,7 +38,7 @@ function ()SS=S[1] append(S[2]) S[2].scope=scope()
 end;
 function ()SS=S[1] append(S[2],S[4]) SS.loop=true S[4].scope=scope()
 end;
-function ()SS=S[1] append(S[2],S[4]) SS.loop=true SS.scope=scope()
+function ()SS=S[1] append(S[2],S[4]) SS.loop=true SS.scope=scope(true)
 end;
 function ()SS=S[1] append(S[2],S[4],S[5]) S[4].scope=scope()
 end;

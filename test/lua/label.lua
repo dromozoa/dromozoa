@@ -48,3 +48,24 @@ local b = 2
 
 -- Lua:    label.lua:47: <goto L4> at line 44 jumps into the scope of local 'a'
 -- LuaJIT: label.lua:44: <goto L4> jumps into the scope of local 'a'
+
+
+do
+  local a = 3
+  do
+    local b = 4
+    goto L5
+  end
+
+  local c <close> = 5
+  ::L5::
+  ::L6::
+  ;;;;;;
+end
+print "done"
+
+-- ラベル以降にvoid statementsしかない場合
+-- 飛べる:
+--   do,while,for,if
+-- 飛べない:
+--   repeat: 式があるから？

@@ -32,22 +32,23 @@ local v = 0
 
 local a <close> = tbc(100)
 do
-  local c <close> = tbc(200)
+  local b <close> = tbc(200)
   ::L1::
-  local b <close> = tbc(v)
+  local c <close> = tbc(v)
 
   if v == 0 then
-    local c <close> = tbc(300)
+    local d <close> = tbc(300)
     v = 1
     goto L1
-    local d <close> = tbc(400)
+    local e <close> = tbc(400)
   else
+    local f <close> = tbc(500)
     goto L2
   end
 
   -- lua: label_tbc.lua:49: <goto L2> at line 44 jumps into the scope of local 'e'
-  -- local e <close> = tbc(500)
+  local g <close> = tbc(500)
   ::L2::
-  local f <close> = tbc(600)
+  -- local g <close> = tbc(600)
 end
 

@@ -144,22 +144,14 @@ local expect = parser.grammar.expect
 local left = parser.grammar.left
 local right = parser.grammar.right
 
--- 使わない属性、使えない属性は修正する
--- attribute  Lua 5.4の局所変数の属性
--- proto      プロトタイプ (vararg,selfを外からつける）
--- scope      局所変数とラベルのスコープ
-
--- declare    Nameにつける  変数を宣言する
--- resolve    Nameにつける  変数を参照する
-
 local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
   [[
     local function proto(vararg)
       return { vararg = vararg }
     end
 
-    local function scope()
-      return {}
+    local function scope(repeat_until)
+      return { repeat_until = repeat_until }
     end
 
     local function code(op, a, b)
@@ -202,7 +194,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"goto" "Name"                                       %"$$=$1 append($2) $2.resolve_label=true"
     + _"do" "block" "end"                                  %"$$=$1 append($2) $2.scope=scope()"
     + _"while" "exp" "do" "block" "end"                    %"$$=$1 append($2,$4) $$.loop=true $4.scope=scope()"
-    + _"repeat" "block" "until" "exp"                      %"$$=$1 append($2,$4) $$.loop=true $$.scope=scope()"
+    + _"repeat" "block" "until" "exp"                      %"$$=$1 append($2,$4) $$.loop=true $$.scope=scope(true)"
     + _"if" "exp" "then" "block" "else_clause" "end"       %"$$=$1 append($2,$4,$5) $4.scope=scope()"
     + _"for" "Name" "=" "exp_2or3" "do" "block" "end"      %"$$=$1 append($2,$4,$6) $$.loop=true $$.scope=scope() $6.scope=scope() $2.declare=true"
     + _"for_in"                                            %"$$=$1"

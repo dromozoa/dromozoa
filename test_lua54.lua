@@ -139,6 +139,44 @@ local function resolve_label(scope, name, u)
   return label
 end
 
+local function check_jump(u, v)
+  local m = u.locals:size()
+  local n = v.locals:size()
+
+  -- 7 6 5 4 3 2 1 m=7
+  --         3 2 1 n=3
+  --         3 2 1
+
+  -- 7 6 5 4 3 2 1 m=7
+  --       8 7 2 1 n=4
+  --           2 1
+
+  --         3 2 1 m=3
+  --         8 2 1 n=3
+  --           2 1
+
+  if not v.end_of_scope then
+    if m < n then
+      return false
+    end
+    for i = 1, n do
+      if u.locals:get(m - n + i) ~= v.locals:get(i) then
+        return false
+      end
+    end
+  end
+
+  for i = 0, n do
+    if u.locals:get(m - i) ~= v.locals:get(n - i) then
+      return i
+    end
+  end
+  assert(m == n)
+  return m
+end
+
+---------------------------------------------------------------------------
+
 local function code(u, op, a, b, c)
   return { [0] = op, a = a, b = b, c = c, node = u }
 end
@@ -222,23 +260,36 @@ local function process1(protos, proto, scope, u, loop)
     process1(protos, proto, scope, u[1], loop)
     process1(protos, proto, scope, u[2], loop)
   else
-    if u_name == "break" then
+    if u_name == "block" then
+      -- empty statementsは解析の時点でとりのぞかれるので、ラベル文だけがvoid
+      -- statementsである。スコープは、スコープの最後のvoid statementsの前で終
+      -- 了するとみなす。repeat-until文以外のスコープで、ブロックの末尾にラベル
+      -- 文があるかどうかを検査する。
+      if not scope.repeat_until then
+        for i = #u, 1, -1 do
+          local v = u[i]
+          if lua54_parser.symbol_names[v[0]] == "label" then
+            v[1].end_of_scope = true
+          else
+            break
+          end
+        end
+      end
+    elseif u_name == "break" then
       if loop == nil then
         compiler_error("break outside loop", u)
       end
       -- ジャンプ解決用にbreak対象と変数リストを逆順で記録する。
-      u.loop = loop
+      u.target = loop
       u.locals = collect(scope)
-    elseif u_name == "label" or u_name == "goto" or u.loop then
+    elseif u.loop then
       -- ジャンプ解決用に変数リストを逆順で記録する。
       u.locals = collect(scope)
     elseif u_name == "..." then
       if not proto.vararg then
         compiler_error("cannot use ... outside a vararg function", u)
       end
-    end
-
-    if u.declare then
+    elseif u.declare then
       u.var = declare(scope, u.v, u, u.attribute)
     elseif u.resolve then
       local var = resolve(scope, u.v, u, u.define)
@@ -248,7 +299,12 @@ local function process1(protos, proto, scope, u, loop)
         u.var = var
       end
     elseif u.define_label then
+      -- ジャンプ解決用にラベルと変数リストを逆順で記録する。
       u.label = define_label(scope, u.v, u)
+      u.locals = collect(scope)
+    elseif u.resolve_label then
+      -- ジャンプ解決用に変数リストを逆順で記録する。
+      u.locals = collect(scope)
     end
 
     for _, v in ipairs(u) do
@@ -268,70 +324,46 @@ local function process2(scope, u)
     u.label = resolve_label(scope, u.v, u)
   end
 
-  -- ラベルの名前解決を先にやる
-  -- ::label::にその時点のローカルのリストを持たせる
-
-  -- breakのチェック（ループのなかにいるか）
-  -- ...のチェック
-
-  -- tbcを宣言する直前にopen命令を入れることにする
-  -- スコープを出るときにclose命令を入れる
-
-  -- 下記の命令の前にもclose命令を入れる
-  -- break
-  -- goto
-  -- return
-  -- 簡単のためにopen index, close indexとする
-  -- どの変数がopenされているかは静的に定まるが、コードの順序を考えないといけない
-  -- break, goto, returnはスコープを出る方向にしか働かない。
-  -- ジャンプ先によって、どのスコープまでcloseするか決める
-  -- returnの場合、proto.scopes[1]になる。
-  -- gotoの場合、goto先のラベルが含まれるscopeまで探す
-  -- breakの場合、一番内側のループになる。
-
-  --[[
-
-    local a<close>, b<close>, c<close> = ...
-    do
-      break
-    end
-    local d<close> = ...
-    do
-      return f()
-    end
-    local e<close> = ...
-
-    open 1
-    open 2
-    open 3
-    vararg 3
-    setlocal 3
-    setlocal 2
-    setlocal 1
-    ??? close 3 2 1
-    break
-    open 4
-    vararg 1
-    setlocal 4
-    getupval 42
-    call 1 -1
-    ??? close 4 3 2 1
-    return
-
-    open 5
-    vararg 1
-    setlocal 5
-    ??? close 5 4 3 2 1
-
-
-
-  ]]
-
-
+  local u_name = lua54_parser.symbol_names[u[0]]
 
   for _, v in ipairs(u) do
     process2(scope, v)
   end
+
+  if u_name == "break" then
+  elseif u_name == "goto" then
+    local x = u[1]
+    local y = assert(scope.proto.labels:get(x.label).node)
+    local result = check_jump(x, y)
+
+    if not result then
+      compiler_error("<goto " .. x.v .. "> jumps into the scope of local " .. scope.proto.locals:get(y.locals:get(1)).name, u)
+    end
+
+    -- goto文とlabel文にcloseをはりつける
+    -- scopeのcloseを生成するときは、label文をチェックする
+    -- これだと、複数のラベル文をひとつにまとめる必要がある。
+
+    print("x.locals", x.locals:concat",")
+    print("y.locals", y.locals:concat",")
+
+    print("goto", x.v)
+    for i = 1, x.locals:size() - result do
+      local var = x.locals:get(i)
+      if scope.proto.locals:get(var).attribute == "close" then
+        print("close x", var)
+      end
+    end
+    for i = 1, y.locals:size() - result do
+      local var = y.locals:get(i)
+      if scope.proto.locals:get(var).attribute == "close" then
+        print("close y", var)
+      end
+    end
+  end
+-- Lua:    label.lua:47: <goto L4> at line 44 jumps into the scope of local 'a'
+-- LuaJIT: label.lua:44: <goto L4> jumps into the scope of local 'a'
+
 end
 
 ---------------------------------------------------------------------------
