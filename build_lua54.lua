@@ -145,6 +145,7 @@ local left = parser.grammar.left
 local right = parser.grammar.right
 
 -- TODO 属性でテーブルを作らない
+-- TODO multretではなくmulti resultsかもしれない（Luaの用語だけど）
 local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
   [[
     local function proto(vararg)
