@@ -289,13 +289,25 @@ end
 
 ---------------------------------------------------------------------------
 
-local function process2(scope, u, code)
+local function process2(scope, u, code, top)
+  local save_top = top
+  local restore_top
+
   if u.scope ~= nil then
     if u.scope.proto ~= scope.proto then
       code = u.scope.proto.code
+      top = 0
+      restore_top = true
     end
     scope = u.scope
   end
+
+  -- local function assert() end
+
+  -- print(code, save_top, top)
+  assert(top)
+  -- print(u.f, u.v, top)
+  u.top = top
 
   if u.resolve_label then
     u.label = resolve_label(scope, u.v, u)
@@ -317,7 +329,7 @@ local function process2(scope, u, code)
           end
         end
       end
-      process2(scope, v, code)
+      top = process2(scope, v, code, top)
     end
 
     if not scope.repeat_until and end_of_scope == nil then
@@ -364,22 +376,25 @@ local function process2(scope, u, code)
   elseif u_name == "if" or u_name == "elseif" then
     traversed = true
 
-    process2(scope, u[1], code)
+    top = process2(scope, u[1], code, top)
     local cond = append_code(code, u, "if")
+    assert(top == 0)
     append_code(cond, u, "block")
     append_code(cond, u, "block")
 
-    process2(scope, u[2], cond[1])
-    process2(scope, u[3], cond[2])
+    top = process2(scope, u[2], cond[1], top)
+    top = process2(scope, u[3], cond[2], top)
+    assert(top == 0)
 
   elseif u_name == "for" then
     traversed = true
 
-    process2(scope, u[2], code)
-
+    top = process2(scope, u[2], code, top)
     append_code(code, u, "set_local", u.var + 2)
     append_code(code, u, "set_local", u.var + 1)
     append_code(code, u, "set_local", u.var)
+    top = top - 3
+    assert(top == 0)
 
     append_code(code, u, "prepare_for", u.var)
     local cond = append_code(code, u, "if")
@@ -387,7 +402,8 @@ local function process2(scope, u, code)
     append_code(cond, u, "block")
     local loop = append_code(cond[1], u, "loop")
 
-    process2(scope, u[3], loop)
+    top = process2(scope, u[3], loop, top)
+    assert(top == 0)
 
     -- | var   | u.var     |
     -- | limit | u.var + 1 |
@@ -440,12 +456,14 @@ local function process2(scope, u, code)
   elseif u_name == "for_in" then
     traversed = true
 
-    process2(scope, u[2], code)
+    top = process2(scope, u[2], code, top)
 
     append_code(code, u, "set_local_tbc", u.var + 3)
     append_code(code, u, "set_local", u.var + 2)
     append_code(code, u, "set_local", u.var + 1)
     append_code(code, u, "set_local", u.var)
+    top = top - 4
+    assert(top == 0)
 
     -- | f   | u.var     |
     -- | s   | u.var + 1 |
@@ -485,7 +503,8 @@ local function process2(scope, u, code)
     append_code(cond[2], u, "get_local", u.var + 4)
     append_code(cond[2], u, "set_local", u.var + 2)
 
-    process2(scope, u[3], loop)
+    top = process2(scope, u[3], loop, top)
+    assert(top == 0)
 
   elseif u_name == "local_function" then
     append_code(code, u, "closure", u[2].proto.index)
@@ -551,14 +570,22 @@ local function process2(scope, u, code)
     end
 
     append_code(code, u, "vararg", u.nr)
+    if u.nr == -1 then
+      assert(top >= 0)
+      top = u.nr - top
+    else
+      assert(u.nr > 0)
+      top = top + u.nr
+    end
 
   elseif u_name == "functiondef" then
     append_code(code, u, "closure", u[1].proto.index)
+    top = top + 1
 
   elseif u_name == "and" then
     traversed = true
 
-    process2(scope, u[1], code)
+    top = process2(scope, u[1], code, top)
 
     append_code(code, u, "dup", 1)
     local cond = append_code(code, u, "if")
@@ -566,12 +593,12 @@ local function process2(scope, u, code)
     append_code(cond, u, "block")
     append_code(cond[1], u, "pop", 1)
 
-    process2(scope, u[2], cond[1])
+    top = process2(scope, u[2], cond[1], top)
 
   elseif u_name == "or" then
     traversed = true
 
-    process2(scope, u[1], code)
+    top = process2(scope, u[1], code, top)
 
     append_code(code, u, "dup", 1)
     local cond = append_code(code, u, "if")
@@ -579,19 +606,21 @@ local function process2(scope, u, code)
     append_code(cond, u, "block")
     append_code(cond[2], u, "pop", 1)
 
-    process2(scope, u[2], cond[2])
+    top = process2(scope, u[2], cond[2], top)
 
   elseif u_name == "." then
     if u.define then
       u.ns_item = 2
+      top = top + 2
     end
 
   elseif u_name == ":" then
     traversed = true
 
-    process2(scope, u[1], code)
+    top = process2(scope, u[1], code, top)
     append_code(code, u, "dup", 1)
-    process2(scope, u[2], code)
+    top = top + 1
+    top = process2(scope, u[2], code, top)
 
   elseif u_name == "functioncall" then
     -- 戻り値の個数が調節されていないfunctioncallと...は、1個に調節する。
@@ -605,25 +634,66 @@ local function process2(scope, u, code)
     local x_name = lua54_parser.symbol_names[x[0]]
     if x_name == ":" then
       -- append_code(code, u, "dup", 1)
-      process2(scope, u[1], code)
+      top = process2(scope, u[1], code, top)
 
       append_code(code, u, "get_table", 2)
+      top = top - 1
       append_code(code, u, "swap", 2) -- TODO このswapいる？　dup Nでできない？
 
-      process2(scope, u[2], code)
+      top = process2(scope, u[2], code, top)
 
       if y.nr ~= nil then
+        --   -4,-3,-2,-1
+        --            -5
+        -- x, F, a, b, nr
+        -- 0, 1, 2, 3
         append_code(code, u, "call_nr", y.nr + 1, u.nr)
+        assert(top < 0)
+        top = -top - y.nr - 3
+        if u.nr == -1 then
+          assert(top >= 0)
+          top = u.nr - top
+        else
+          top = top + u.nr
+        end
       else
         append_code(code, u, "call", #y + 1, u.nr)
+        assert(top >= 0)
+        top = top - #y - 2
+        if u.nr == -1 then
+          assert(top >= 0)
+          top = u.nr - top
+        else
+          top = top + u.nr
+        end
       end
     else
-      process2(scope, u[1], code)
-      process2(scope, u[2], code)
+      top = process2(scope, u[1], code, top)
+      top = process2(scope, u[2], code, top)
       if y.nr ~= nil then
         append_code(code, u, "call_nr", y.nr, u.nr)
+
+        assert(top < 0)
+        top = -top - y.nr - 2
+        if u.nr == -1 then
+          assert(top >= 0)
+          top = u.nr - top
+        else
+          top = top + u.nr
+        end
+
       else
         append_code(code, u, "call", #y, u.nr)
+
+        assert(top >= 0)
+        top = top - #y - 1
+        if u.nr == -1 then
+          assert(top >= 0)
+          top = u.nr - top
+        else
+          top = top + u.nr
+        end
+
       end
     end
 
@@ -652,6 +722,7 @@ local function process2(scope, u, code)
     end
 
     append_code(code, u, "new_table")
+    top = top + 1
 
   elseif u_name == "Name" then
     -- 1. declareが真ならば、文で命令を生成する。
@@ -669,6 +740,7 @@ local function process2(scope, u, code)
             else
               append_code(code, u, "get_upvalue", u.var - 65536)
             end
+            top = top + 1
           else
             assert(u.env ~= nil)
             if u.env <= 65536 then
@@ -678,10 +750,11 @@ local function process2(scope, u, code)
             end
             append_code(code, u, "push_literal", u.v)
             append_code(code, u, "get_table", 2)
+            top = top + 1
           end
         else
 
-          -- set_fieldを準備
+          -- set_table/set_fieldを準備
           if u.var == nil then
             assert(u.env ~= nil)
             if u.env <= 65536 then
@@ -691,11 +764,13 @@ local function process2(scope, u, code)
             end
             append_code(code, u, "push_literal", u.v)
             u.ns_item = 2
+            top = top + 2
           end
 
         end
       elseif not u.define_label and not u.resolve_label then
         append_code(code, u, "push_literal", u.v)
+        top = top + 1
       end
     end
 
@@ -705,13 +780,14 @@ local function process2(scope, u, code)
 
   if not traversed then
     for _, v in ipairs(u) do
-      process2(scope, v, code)
+      top = assert(process2(scope, v, code, top))
     end
   end
 
   if u.code ~= nil then
     for _, v in ipairs(u.code) do
       append_code(code, u, v[0], v.a, v.b)
+      top = top + 1
     end
   end
 
@@ -725,6 +801,7 @@ local function process2(scope, u, code)
       if v.ns_item then
         local j = i + x.ns - v.ns
         append_code(code, u, "set_field", j, j - 1)
+        top = top - 1
       else
         assert(v.var ~= nil)
         if v.var <= 65536 then
@@ -732,11 +809,14 @@ local function process2(scope, u, code)
         else
           append_code(code, u, "set_upvalue", v.var - 65536)
         end
+        top = top - 1
       end
     end
     if x.ns > 0 then
       append_code(code, u, "pop", x.ns)
+      top = top - x.ns
     end
+    assert(top == 0)
 
   -- TODO ラベルが解決されていないのであとまわし。
   elseif u_name == "goto" then
@@ -771,6 +851,8 @@ local function process2(scope, u, code)
     end
 
     local cond = append_code(code, u, "if")
+    top = top - 1
+    assert(top == 0)
     append_code(cond, u, "block")
     append_code(cond, u, "block")
     append_code(cond[1], u, "break")
@@ -778,13 +860,17 @@ local function process2(scope, u, code)
   elseif u_name == "exp_2or3" then
     if u[3] == nil then
       append_code(code, u, "push_numeral", "1", "DecimalIntegerNumeral")
+      top = top + 1
     end
 
   elseif u_name == "function" then
     local v = u[1]
     append_code(code, u, "closure", u[2].proto.index)
+    top = top + 1
     if v.ns_item then
       append_code(code, u, "set_table", 3)
+      append_code(code, u, "pop", 1)
+      top = top - 1
     else
       assert(v.var ~= nil)
       if v.var <= 65536 then
@@ -792,13 +878,18 @@ local function process2(scope, u, code)
       else
         append_code(code, u, "set_upvalue", v.var - 65536)
       end
+      top = top - 1
     end
+    assert(top == 0)
 
   elseif u_name == "local" then
     local x, y = u[1], u[2]
     if y == nil then
       append_code(code, u, "push_nil", #x)
+      top = top + #x
     end
+
+    assert(top == #x)
 
     for i = #x, 1, -1 do
       local v = x[i]
@@ -807,7 +898,10 @@ local function process2(scope, u, code)
       else
         append_code(code, u, "set_local", v.var)
       end
+      top = top - 1
     end
+
+    assert(top == 0)
 
   elseif u_name == "return" then
     local v = u[1]
@@ -820,9 +914,12 @@ local function process2(scope, u, code)
 
     if v.nr then
       append_code(code, u, "return_nr", v.nr)
+      top = -top - v.nr - 1
     else
       append_code(code, u, "return", #v)
+      top = top - #v
     end
+    assert(top == 0)
 
   -------------------------------------------------------------------------
 
@@ -842,19 +939,23 @@ local function process2(scope, u, code)
   elseif u_name == "." then
     if not u.define then
       append_code(code, u, "get_table", 2)
+      top = top - 1
     end
 
   elseif u_name == "explist" then
     if u.push ~= nil then
       append_code(code, u, "push_nil", u.push)
+      top = top + u.push
     elseif u.pop ~= nil then
       append_code(code, u, "pop", u.pop)
+      top = top - u.pop
     end
 
   -------------------------------------------------------------------------
 
   elseif u.binop ~= nil then
     append_code(code, u, u.binop)
+    top = top - 1
   elseif u.unop ~= nil then
     append_code(code, u, u.unop)
 
@@ -863,15 +964,27 @@ local function process2(scope, u, code)
   elseif u_name == "fieldlist" then
     if u.nr ~= nil then
       append_code(code, u, "set_list_nr", u.nr)
+      top = -top - u.nr - 1
+
     elseif u.ns > 0 then
       append_code(code, u, "set_list", u.ns)
+      top = top - u.ns
     end
 
   elseif u_name == "field" then
     if u[2] ~= nil then
       append_code(code, u, "set_table", u.ns + 3)
+      top = top - 2
     end
 
+  end
+
+  u.top = top
+  -- print(restore_top, save_top)
+  if restore_top then
+    return save_top
+  else
+    return top
   end
 end
 
@@ -920,6 +1033,7 @@ local attrs = {
   "declare", "resolve", "define", "var", "env";
   "define_label", "resolve_label", "label";
   "adjust", "nomultret", "nr", "ns", "push", "pop";
+  "top";
 }
 if verbose then
   for _, attr in ipairs{"i", "j", "f", "n", "c", "s"} do
