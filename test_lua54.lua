@@ -912,11 +912,12 @@ local function process2(scope, u, code, top)
       end
     end
 
+    append_code(code, u, "return")
     if v.nr then
-      append_code(code, u, "return_nr", v.nr)
+      -- append_code(code, u, "return_nr", v.nr)
       top = -top - v.nr - 1
     else
-      append_code(code, u, "return", #v)
+      -- append_code(code, u, "return", #v)
       top = top - #v
     end
     assert(top == 0, u.f)
@@ -963,12 +964,12 @@ local function process2(scope, u, code, top)
 
   elseif u_name == "fieldlist" then
     if u.nr ~= nil then
-      append_code(code, u, "set_list_nr", u.nr)
       top = -top - u.nr - 1
+      append_code(code, u, "set_list", top)
 
     elseif u.ns > 0 then
-      append_code(code, u, "set_list", u.ns)
       top = top - u.ns
+      append_code(code, u, "set_list", top)
     end
 
   elseif u_name == "field" then
@@ -1034,18 +1035,10 @@ end
   -2  set_table t         v=pop() k=pop() t[k]=v
 
       call f nresults     スタックトップまでを引数として呼ぶ
-
-
-      call nargs nresults
-      call_nr nargs nresults
-
-      return nargs
-      return_nr nargs
-
-      set_list nargs
-      set_list_nr nargs
-
+      return              スタックトップまでを引数として返す
       vararg nresults
+
+      set_list t          スタックトップまでをリストとしてテーブルに設定する
 
       dup 位置？
 
