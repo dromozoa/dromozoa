@@ -255,6 +255,9 @@ local function process1(protos, proto, scope, u, loop)
     elseif u.loop then
       -- ジャンプ解決用に変数リストを逆順で記録する。
       u.locals = collect(scope)
+    elseif u_name == "return" then
+      -- ジャンプ解決用に変数リストを逆順で記録する。
+      u.locals = collect(scope)
     elseif u_name == "..." then
       if not proto.vararg then
         compiler_error("cannot use ... outside a vararg function", u)
@@ -684,6 +687,13 @@ local function process2(scope, u)
   elseif u_name == "return" then
     local v = u[1]
     append_code_unpack(u.code, v.code)
+
+    for _, var in u.locals:ipairs() do
+      if scope.proto.locals:get(var).attribute == "close" then
+        append_code(u.code, u, "close", var)
+      end
+    end
+
     if v.nr then
       append_code(u.code, u, "return_nr", v.nr)
     else
@@ -857,6 +867,15 @@ local function process2(scope, u)
 
   end
 end
+
+---------------------------------------------------------------------------
+
+-- 仮引数の数
+-- 可変長引数を持つか
+-- ローカル変数の数（仮引数を含む）
+--
+-- TODO 暗黙のreturnをどうするか検討する
+--   chunkとfuncbodyで違う？
 
 local function process(chunk)
   local protos = array()
