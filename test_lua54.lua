@@ -601,7 +601,7 @@ local function process2(scope, u, code, top)
 
     top = process2(scope, u[1], code, top)
 
-    append_code(code, u, "dup", 1)
+    append_code(code, u, "dup")
     local cond = append_code(code, u, "if")
     top = top - 1
     append_code(cond, u, "block")
@@ -615,7 +615,7 @@ local function process2(scope, u, code, top)
 
     top = process2(scope, u[1], code, top)
 
-    append_code(code, u, "dup", 1)
+    append_code(code, u, "dup")
     local cond = append_code(code, u, "if")
     top = top - 1
     append_code(cond, u, "block")
@@ -634,7 +634,7 @@ local function process2(scope, u, code, top)
     traversed = true
 
     top = process2(scope, u[1], code, top)
-    append_code(code, u, "dup", 1)
+    append_code(code, u, "dup")
     top = top + 1
     top = process2(scope, u[2], code, top)
 
@@ -652,12 +652,15 @@ local function process2(scope, u, code, top)
       top = process2(scope, u[1], code, top)
       -- この時点で self self key になっている
 
+      -- self key
+      -- self self key
+
       append_code(code, u, "get_table", 2)
       top = top - 1
       -- この時点で self fun になっている
       --                [top]
 
-      append_code(code, u, "swap", 2) -- TODO このswapいる？　dup Nでできない？
+      append_code(code, u, "swap")
       -- この時点で fun self になっている
       --               [top]
       local f = top - 1
@@ -1040,7 +1043,8 @@ end
 
       set_list t          スタックトップまでをリストとしてテーブルに設定する
 
-      dup 位置？
+      dup                 スタックトップを複製する
+      swap                スタックトップとその下の要素を交換する
 
 
 ]]
