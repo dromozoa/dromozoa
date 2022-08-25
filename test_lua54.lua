@@ -887,6 +887,8 @@ end
 -- 5. 命令コードの解析はどちらがやりやすい？　どちらにせよ、スタックを計算しな
 --    がら作るからいっしょ？
 
+-- TODO arrayに依存しないようにする
+
 local function process(chunk)
   local protos = array()
   local proto = { locals = array() }

@@ -144,6 +144,8 @@ local expect = parser.grammar.expect
 local left = parser.grammar.left
 local right = parser.grammar.right
 
+-- TODO codeを外に出す
+-- TODO 属性でテーブルを作らない
 local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
   [[
     local function proto(vararg)
