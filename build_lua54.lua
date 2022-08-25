@@ -144,7 +144,6 @@ local expect = parser.grammar.expect
 local left = parser.grammar.left
 local right = parser.grammar.right
 
--- TODO codeを外に出す
 -- TODO 属性でテーブルを作らない
 local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
   [[
@@ -154,10 +153,6 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 
     local function scope(repeat_until)
       return { repeat_until = repeat_until }
-    end
-
-    local function code(op, a, b)
-      return { { [0] = op, a = a, b = b } }
     end
   ]];
 
@@ -265,9 +260,9 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"explist" "," "exp"                                 %"$$=$1 append($3)";
 
   exp
-    = _"nil"                                               %"$$=$1 $$.code=code('push_nil',1)"
-    + _"false"                                             %"$$=$1 $$.code=code'push_false'"
-    + _"true"                                              %"$$=$1 $$.code=code'push_true'"
+    = _"nil"                                               %"$$=$1"
+    + _"false"                                             %"$$=$1"
+    + _"true"                                              %"$$=$1"
     + _"Numeral"                                           %"$$=$1"
     + _"LiteralString"                                     %"$$=$1"
     + _"..."                                               %"$$=$1"
@@ -357,14 +352,14 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _";";
 
   LiteralString
-    = _"LongLiteralString"                                 %"$$=$0 $$.code=code('push_literal',$1.v)"
-    + _"ShortLiteralString"                                %"$$=$0 $$.code=code('push_literal',$1.v)";
+    = _"LongLiteralString"                                 %"$$=$0 $$.v=$1.v"
+    + _"ShortLiteralString"                                %"$$=$0 $$.v=$1.v";
 
   Numeral
-    = _"DecimalIntegerNumeral"                             %"$$=$0 $$.code=code('push_numeral',$1.v,'DecimalIntegerNumeral')"
-    + _"DecimalFloatingNumeral"                            %"$$=$0 $$.code=code('push_numeral',$1.v,'DecimalFloatingNumeral')"
-    + _"HexadecimalIntegerNumeral"                         %"$$=$0 $$.code=code('push_numeral',$1.v,'HexadecimalIntegerNumeral')"
-    + _"HexadecimalFloatingNumeral"                        %"$$=$0 $$.code=code('push_numeral',$1.v,'HexadecimalFloatingNumeral')";
+    = _"DecimalIntegerNumeral"                             %"$$=$0 $$.v=$1.v $$.hint='DecimalIntegerNumeral'"
+    + _"DecimalFloatingNumeral"                            %"$$=$0 $$.v=$1.v $$.hint='DecimalFloatingNumeral'"
+    + _"HexadecimalIntegerNumeral"                         %"$$=$0 $$.v=$1.v $$.hint='HexadecimalIntegerNumeral'"
+    + _"HexadecimalFloatingNumeral"                        %"$$=$0 $$.v=$1.v $$.hint='HexadecimalFloatingNumeral'";
 }))
 
 for _, message in conflictions:ipairs() do

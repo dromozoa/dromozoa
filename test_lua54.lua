@@ -723,6 +723,26 @@ local function process2(scope, u, code, top)
     append_code(code, u, "new_table")
     top = top + 1
 
+  elseif u_name == "nil" then
+    append_code(code, u, "push_nil", 1)
+    top = top + 1
+
+  elseif u_name == "false" then
+    append_code(code, u, "push_false")
+    top = top + 1
+
+  elseif u_name == "true" then
+    append_code(code, u, "push_true")
+    top = top + 1
+
+  elseif u_name == "LiteralString" then
+    append_code(code, u, "push_literal", u.v)
+    top = top + 1
+
+  elseif u_name == "Numeral" then
+    append_code(code, u, "push_numeral", u.v, u.hint)
+    top = top + 1
+
   elseif u_name == "Name" then
     -- 1. declareが真ならば、文で命令を生成する。
     -- 2. resolveが真でdefineが真ならば、文で命令を生成する。
@@ -1001,15 +1021,7 @@ end
 -- TODO 暗黙のreturnをどうするか検討する
 --   chunkとfuncbodyで違う？
 
--- TODO スタックに対して相対位置を持つのと、絶対位置を持つのはどちらがよいのか？
--- 1. 相対位置の場合は、トップからの距離とする。
--- 2. 実行時には、トップからの位置をアドレスに変換する必要がある。
--- 3. ステートメントの前後では、スタックはかならず空になる。制御文であっても真。
---    TBCのスタックは別。
--- 4. 相対位置のほうがやりやすいことはあるか？　考えられるのは、インライン展開
---    などの最適化？
--- 5. 命令コードの解析はどちらがやりやすい？　どちらにせよ、スタックを計算しな
---    がら作るからいっしょ？
+-- TODO スタックの状況を計算する方法を洗練する
 
 -- TODO arrayに依存しないようにする
 
@@ -1045,7 +1057,6 @@ end
 
       dup                 スタックトップを複製する
       swap                スタックトップとその下の要素を交換する
-
 
 ]]
 
