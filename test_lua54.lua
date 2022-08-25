@@ -182,6 +182,8 @@ local function process1(protos, proto, scope, u, loop)
 
   local u_name = lua54_parser.symbol_names[u[0]]
 
+  -- TODO u.localsじゃなくて、var_stackとかのほうがいいかな？
+
   if u_name == "for" then
     -- ジャンプ解決用に変数リストを逆順で記録する。
     u.locals = collect(scope)
@@ -312,6 +314,7 @@ local function process2(scope, u)
       -- 数を調節しない。
       if (v_name == "functioncall" or v_name == "...") and not v.nomultret then
         v.nr = -1
+        -- TODO これは不要？
         u.nr = #u - 1
       end
     else
@@ -373,6 +376,7 @@ local function process2(scope, u)
       local x_name = lua54_parser.symbol_names[x[0]]
       if (x_name == "functioncall" or x_name == "...") and not x.nomultret then
         x.nr = -1
+        -- TODO これは不要？
         u.nr = ns - 1
       end
     end
@@ -886,6 +890,8 @@ end
 --    などの最適化？
 -- 5. 命令コードの解析はどちらがやりやすい？　どちらにせよ、スタックを計算しな
 --    がら作るからいっしょ？
+
+-- TODO ループに入るときに、コードを生成すれば、コードのコピーはいらない。
 
 -- TODO arrayに依存しないようにする
 
