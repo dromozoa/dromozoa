@@ -407,11 +407,12 @@ local function process2(scope, u, code, top)
     top = top - 3
     assert(top == 0)
 
-    append_code(code, u, "prepare_for", u.var)
-    local cond = append_code(code, u, "if")
-    append_code(cond, u, "block")
-    append_code(cond, u, "block")
-    local loop = append_code(cond[1], u, "loop")
+    local loop = append_code(code, u, "for", u.var)
+
+    -- local cond = append_code(code, u, "if")
+    -- append_code(cond, u, "block")
+    -- append_code(cond, u, "block")
+    -- local loop = append_code(cond[1], u, "loop")
 
     top = process2(scope, u[3], loop, top)
     assert(top == 0)
@@ -431,37 +432,37 @@ local function process2(scope, u, code, top)
     --   end
     -- end
 
-    append_code(loop, u, "get_local", u.var)
-    append_code(loop, u, "get_local", u.var + 2)
-    append_code(loop, u, "add")
-    append_code(loop, u, "set_local", u.var)
+    -- append_code(loop, u, "get_local", u.var)
+    -- append_code(loop, u, "get_local", u.var + 2)
+    -- append_code(loop, u, "add")
+    -- append_code(loop, u, "set_local", u.var)
 
-    append_code(loop, u, "get_local", u.var + 2)
-    append_code(loop, u, "push_numeral", "0", "DecimalIntegerNumeral")
-    append_code(loop, u, "gt")
+    -- append_code(loop, u, "get_local", u.var + 2)
+    -- append_code(loop, u, "push_numeral", "0", "DecimalIntegerNumeral")
+    -- append_code(loop, u, "gt")
 
-    local cond = append_code(loop, u, "if")
-    append_code(cond, u, "block")
-    append_code(cond, u, "block")
+    -- local cond = append_code(loop, u, "if")
+    -- append_code(cond, u, "block")
+    -- append_code(cond, u, "block")
 
-    append_code(cond[1], u, "get_local", u.var)
-    append_code(cond[1], u, "get_local", u.var + 1)
-    append_code(cond[1], u, "gt")
-    local cond2 = append_code(cond[1], u, "if")
-    append_code(cond2, u, "block")
-    append_code(cond2, u, "block")
-    append_code(cond2[1], u, "break")
+    -- append_code(cond[1], u, "get_local", u.var)
+    -- append_code(cond[1], u, "get_local", u.var + 1)
+    -- append_code(cond[1], u, "gt")
+    -- local cond2 = append_code(cond[1], u, "if")
+    -- append_code(cond2, u, "block")
+    -- append_code(cond2, u, "block")
+    -- append_code(cond2[1], u, "break")
 
-    append_code(cond[2], u, "get_local", u.var)
-    append_code(cond[2], u, "get_local", u.var + 1)
-    append_code(cond[2], u, "lt")
-    local cond2 = append_code(cond[2], u, "if")
-    append_code(cond2, u, "block")
-    append_code(cond2, u, "block")
-    append_code(cond2[1], u, "break")
+    -- append_code(cond[2], u, "get_local", u.var)
+    -- append_code(cond[2], u, "get_local", u.var + 1)
+    -- append_code(cond[2], u, "lt")
+    -- local cond2 = append_code(cond[2], u, "if")
+    -- append_code(cond2, u, "block")
+    -- append_code(cond2, u, "block")
+    -- append_code(cond2[1], u, "break")
 
-    append_code(loop, u, "get_local", u.var)
-    append_code(loop, u, "set_local", u.var + 3)
+    -- append_code(loop, u, "get_local", u.var)
+    -- append_code(loop, u, "set_local", u.var + 3)
     assert(u.var + 3 == u[1].var)
 
   elseif u_name == "for_in" then
@@ -1035,7 +1036,6 @@ end
    0  block               条件文で使うブロックを定義する
   -1  set_local local     スタックトップをローカル変数に保存する
   -1  set_local_tbc local スタックトップをローカル変数に保存する
-  +1  prepare_for local   数値for文の準備をする ループを開始するかの真偽値を積む
   +1  get_local local     スタックにローカル変数を積む
   +1  get_upvalue upval   スタックに上位値を積む
   -1  binop
@@ -1057,6 +1057,8 @@ end
 
       dup                 スタックトップを複製する
       swap                スタックトップとその下の要素を交換する
+
+    0 for local code      数値forループの特殊命令
 
 ]]
 
