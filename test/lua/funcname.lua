@@ -18,6 +18,7 @@
 local a = { b = {} }
 local f1
 
+function f0() end
 function f1() end
 function a.f2() end
 function a:f3() end

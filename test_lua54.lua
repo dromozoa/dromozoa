@@ -364,9 +364,19 @@ local function process2(scope, u, code, top)
     append_code(code, u, "break")
 
   elseif u_name == "while" then
+    traversed = true
+
     local loop = append_code(code, u, "loop")
+
+    top = process2(scope, u[1], code, top)
+
     local cond = append_code(loop, u, "if")
-    code = append_code(cond, u, "block")
+    top = top - 1
+
+    append_code(cond, u, "block")
+
+    top = process2(scope, u[2], code[1], top)
+
     append_code(cond, u, "block")
     append_code(cond[2], u, "break")
 
@@ -377,8 +387,9 @@ local function process2(scope, u, code, top)
     traversed = true
 
     top = process2(scope, u[1], code, top)
+    assert(top == 1)
     local cond = append_code(code, u, "if")
-    assert(top == 0)
+    top = top - 1
     append_code(cond, u, "block")
     append_code(cond, u, "block")
 
@@ -481,14 +492,17 @@ local function process2(scope, u, code, top)
     local x = u[1]
 
     local loop = append_code(code, u, "loop")
+    -- この時点でスタックは空
     append_code(loop, u, "get_local", u.var)
     append_code(loop, u, "get_local", u.var + 1)
     append_code(loop, u, "get_local", u.var + 2)
-    append_code(loop, u, "call", 2, #x)
+
+    append_code(loop, u, "call", 1, #x)
     for i = #x, 1, -1 do
       local v = x[i]
       append_code(loop, u, "set_local", v.var)
     end
+    -- この時点でスタックは空
 
     append_code(loop, u, "get_local", u.var + 4)
     assert(u.var + 4 == x[1].var)
@@ -589,6 +603,7 @@ local function process2(scope, u, code, top)
 
     append_code(code, u, "dup", 1)
     local cond = append_code(code, u, "if")
+    top = top - 1
     append_code(cond, u, "block")
     append_code(cond, u, "block")
     append_code(cond[1], u, "pop", 1)
@@ -602,6 +617,7 @@ local function process2(scope, u, code, top)
 
     append_code(code, u, "dup", 1)
     local cond = append_code(code, u, "if")
+    top = top - 1
     append_code(cond, u, "block")
     append_code(cond, u, "block")
     append_code(cond[2], u, "pop", 1)
@@ -611,7 +627,7 @@ local function process2(scope, u, code, top)
   elseif u_name == "." then
     if u.define then
       u.ns_item = 2
-      top = top + 2
+      -- top = top + 2
     end
 
   elseif u_name == ":" then
@@ -633,70 +649,50 @@ local function process2(scope, u, code, top)
     local x, y = u[1], u[2]
     local x_name = lua54_parser.symbol_names[x[0]]
     if x_name == ":" then
-      -- append_code(code, u, "dup", 1)
       top = process2(scope, u[1], code, top)
+      -- この時点で self self key になっている
 
       append_code(code, u, "get_table", 2)
       top = top - 1
-      append_code(code, u, "swap", 2) -- TODO このswapいる？　dup Nでできない？
+      -- この時点で self fun になっている
+      --                [top]
 
+      append_code(code, u, "swap", 2) -- TODO このswapいる？　dup Nでできない？
+      -- この時点で fun self になっている
+      --               [top]
+      local f = top - 1
+      assert(f > 0)
+
+      -- 引数を積む
       top = process2(scope, u[2], code, top)
 
-      if y.nr ~= nil then
-        --   -4,-3,-2,-1
-        --            -5
-        -- x, F, a, b, nr
-        -- 0, 1, 2, 3
-        append_code(code, u, "call_nr", y.nr + 1, u.nr)
-        assert(top < 0)
-        top = -top - y.nr - 3
-        if u.nr == -1 then
-          assert(top >= 0)
-          top = u.nr - top
-        else
-          top = top + u.nr
-        end
+      append_code(code, u, "call", f, u.nr)
+      -- assert(top >= 0)
+      -- top = top - #y - 2
+      top = f - 1
+      if u.nr == -1 then
+        top = u.nr - top
       else
-        append_code(code, u, "call", #y + 1, u.nr)
-        assert(top >= 0)
-        top = top - #y - 2
-        if u.nr == -1 then
-          assert(top >= 0)
-          top = u.nr - top
-        else
-          top = top + u.nr
-        end
+        top = top + u.nr
       end
+
     else
       top = process2(scope, u[1], code, top)
+      local f = top
+      assert(f > 0)
       top = process2(scope, u[2], code, top)
-      if y.nr ~= nil then
-        append_code(code, u, "call_nr", y.nr, u.nr)
 
-        assert(top < 0)
-        top = -top - y.nr - 2
-        if u.nr == -1 then
-          assert(top >= 0)
-          top = u.nr - top
-        else
-          top = top + u.nr
-        end
+      append_code(code, u, "call", f, u.nr)
 
+      -- assert(top >= 0)
+      top = f - 1
+      if u.nr == -1 then
+        top = u.nr - top
       else
-        append_code(code, u, "call", #y, u.nr)
-
-        assert(top >= 0)
-        top = top - #y - 1
-        if u.nr == -1 then
-          assert(top >= 0)
-          top = u.nr - top
-        else
-          top = top + u.nr
-        end
-
+        top = top + u.nr
       end
-    end
 
+    end
 
   elseif u_name == "fieldlist" then
     -- key=value形式でないfieldの個数を数える。
@@ -791,6 +787,8 @@ local function process2(scope, u, code, top)
     end
   end
 
+  -- print(u.v, top)
+
   -------------------------------------------------------------------------
 
   if u_name == "=" then
@@ -864,13 +862,14 @@ local function process2(scope, u, code, top)
     end
 
   elseif u_name == "function" then
+    -- print(top)
     local v = u[1]
     append_code(code, u, "closure", u[2].proto.index)
     top = top + 1
     if v.ns_item then
       append_code(code, u, "set_table", 3)
       append_code(code, u, "pop", 1)
-      top = top - 1
+      top = top - 3
     else
       assert(v.var ~= nil)
       if v.var <= 65536 then
@@ -880,7 +879,8 @@ local function process2(scope, u, code, top)
       end
       top = top - 1
     end
-    assert(top == 0)
+
+    assert(top == 0, top)
 
   elseif u_name == "local" then
     local x, y = u[1], u[2]
@@ -889,7 +889,7 @@ local function process2(scope, u, code, top)
       top = top + #x
     end
 
-    assert(top == #x)
+    assert(top == #x, u.f)
 
     for i = #x, 1, -1 do
       local v = x[i]
@@ -919,7 +919,7 @@ local function process2(scope, u, code, top)
       append_code(code, u, "return", #v)
       top = top - #v
     end
-    assert(top == 0)
+    assert(top == 0, u.f)
 
   -------------------------------------------------------------------------
 
@@ -1008,6 +1008,49 @@ end
 --    がら作るからいっしょ？
 
 -- TODO arrayに依存しないようにする
+
+--[[
+
+   0  close local         TBCを閉じる
+   0  label label         ラベルを定義する
+   0  break               ループから出る
+   0  loop code           ループを定義する
+  -1  if code code        条件文を定義する
+   0  block               条件文で使うブロックを定義する
+  -1  set_local local     スタックトップをローカル変数に保存する
+  -1  set_local_tbc local スタックトップをローカル変数に保存する
+  +1  prepare_for local   数値for文の準備をする ループを開始するかの真偽値を積む
+  +1  get_local local     スタックにローカル変数を積む
+  +1  get_upvalue upval   スタックに上位値を積む
+  -1  binop
+  +1  push                スタックに定数を積む
+  +n  push_nil n          スタックにnilをn個積む
+  +1  closure proto       スタックにクロージャを積む
+  -n  pop n               スタックからn個とりのぞく
+   0  goto label          ジャンプする
+
+  -1  get_table           k=pop(), t=pop() push(t[k])
+  -1  set_field t k       t[k]=pop()
+  -2  set_table t         v=pop() k=pop() t[k]=v
+
+      call f nresults     スタックトップまでを引数として呼ぶ
+
+
+      call nargs nresults
+      call_nr nargs nresults
+
+      return nargs
+      return_nr nargs
+
+      set_list nargs
+      set_list_nr nargs
+
+      vararg nresults
+
+      dup 位置？
+
+
+]]
 
 local function process(chunk)
   local protos = array()
