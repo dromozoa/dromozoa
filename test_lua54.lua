@@ -409,60 +409,9 @@ local function process2(scope, u, code, top)
 
     local loop = append_code(code, u, "for", u.var)
 
-    -- local cond = append_code(code, u, "if")
-    -- append_code(cond, u, "block")
-    -- append_code(cond, u, "block")
-    -- local loop = append_code(cond[1], u, "loop")
-
     top = process2(scope, u[3], loop, top)
     assert(top == 0)
 
-    -- | var   | u.var     |
-    -- | limit | u.var + 1 |
-    -- | step  | u.var + 2 |
-    --
-    -- var = var + step
-    -- if step > 0 then
-    --   if var > limit then
-    --     break
-    --   end
-    -- else
-    --   if var < limit then
-    --     break
-    --   end
-    -- end
-
-    -- append_code(loop, u, "get_local", u.var)
-    -- append_code(loop, u, "get_local", u.var + 2)
-    -- append_code(loop, u, "add")
-    -- append_code(loop, u, "set_local", u.var)
-
-    -- append_code(loop, u, "get_local", u.var + 2)
-    -- append_code(loop, u, "push_numeral", "0", "DecimalIntegerNumeral")
-    -- append_code(loop, u, "gt")
-
-    -- local cond = append_code(loop, u, "if")
-    -- append_code(cond, u, "block")
-    -- append_code(cond, u, "block")
-
-    -- append_code(cond[1], u, "get_local", u.var)
-    -- append_code(cond[1], u, "get_local", u.var + 1)
-    -- append_code(cond[1], u, "gt")
-    -- local cond2 = append_code(cond[1], u, "if")
-    -- append_code(cond2, u, "block")
-    -- append_code(cond2, u, "block")
-    -- append_code(cond2[1], u, "break")
-
-    -- append_code(cond[2], u, "get_local", u.var)
-    -- append_code(cond[2], u, "get_local", u.var + 1)
-    -- append_code(cond[2], u, "lt")
-    -- local cond2 = append_code(cond[2], u, "if")
-    -- append_code(cond2, u, "block")
-    -- append_code(cond2, u, "block")
-    -- append_code(cond2[1], u, "break")
-
-    -- append_code(loop, u, "get_local", u.var)
-    -- append_code(loop, u, "set_local", u.var + 3)
     assert(u.var + 3 == u[1].var)
 
   elseif u_name == "for_in" then
@@ -628,7 +577,6 @@ local function process2(scope, u, code, top)
   elseif u_name == "." then
     if u.define then
       u.ns_item = 2
-      -- top = top + 2
     end
 
   elseif u_name == ":" then
@@ -638,6 +586,12 @@ local function process2(scope, u, code, top)
     append_code(code, u, "dup")
     top = top + 1
     top = process2(scope, u[2], code, top)
+
+    -- self self key => self f
+    append_code(code, u, "get_table", 2)
+    top = top - 1
+    -- self f => f self
+    append_code(code, u, "swap")
 
   elseif u_name == "functioncall" then
     -- 戻り値の個数が調節されていないfunctioncallと...は、1個に調節する。
@@ -649,53 +603,25 @@ local function process2(scope, u, code, top)
 
     local x, y = u[1], u[2]
     local x_name = lua54_parser.symbol_names[x[0]]
+
+    -- TODO xに関数のインデックスをうけておくと、なんかうまい具合にいく？
+    top = process2(scope, u[1], code, top)
+    local f
     if x_name == ":" then
-      top = process2(scope, u[1], code, top)
-      -- この時点で self self key になっている
-
-      -- self key
-      -- self self key
-
-      append_code(code, u, "get_table", 2)
-      top = top - 1
-      -- この時点で self fun になっている
-      --                [top]
-
-      append_code(code, u, "swap")
-      -- この時点で fun self になっている
-      --               [top]
-      local f = top - 1
-      assert(f > 0)
-
-      -- 引数を積む
-      top = process2(scope, u[2], code, top)
-
-      append_code(code, u, "call", f, u.nr)
-      -- assert(top >= 0)
-      -- top = top - #y - 2
-      top = f - 1
-      if u.nr == -1 then
-        top = u.nr - top
-      else
-        top = top + u.nr
-      end
-
+      f = top - 1
     else
-      top = process2(scope, u[1], code, top)
-      local f = top
-      assert(f > 0)
-      top = process2(scope, u[2], code, top)
+      f = top
+    end
+    assert(f > 0)
 
-      append_code(code, u, "call", f, u.nr)
+    top = process2(scope, u[2], code, top)
 
-      -- assert(top >= 0)
-      top = f - 1
-      if u.nr == -1 then
-        top = u.nr - top
-      else
-        top = top + u.nr
-      end
-
+    append_code(code, u, "call", f, u.nr)
+    top = f - 1
+    if u.nr == -1 then
+      top = u.nr - top
+    else
+      top = top + u.nr
     end
 
   elseif u_name == "fieldlist" then
