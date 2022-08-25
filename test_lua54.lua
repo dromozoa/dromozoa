@@ -1007,8 +1007,6 @@ end
 -- 5. 命令コードの解析はどちらがやりやすい？　どちらにせよ、スタックを計算しな
 --    がら作るからいっしょ？
 
--- TODO topをprocess2にもちまわる
-
 -- TODO arrayに依存しないようにする
 
 local function process(chunk)
