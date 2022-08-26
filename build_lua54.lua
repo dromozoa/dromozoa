@@ -189,7 +189,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"functioncall"                                      %"$$=$1 $$.nr=0"
     + _"label"                                             %"$$=$1 append($2)"
     + _"break"                                             %"$$=$1"
-    + _"goto" "Name"                                       %"$$=$1 append($2) $2.resolve_label=true"
+    + _"goto" "Name"                                       %"$$=$1 append($2) $2.label=true"
     + _"do" "block" "end"                                  %"$$=$1 append($2) $2.scope=scope()"
     + _"while" "exp" "do" "block" "end"                    %"$$=$1 append($2,$4) $$.loop=true $4.scope=scope()"
     + _"repeat" "block" "until" "exp"                      %"$$=$1 append($2,$4) $$.loop=true $$.scope=scope(true)"
@@ -231,7 +231,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"return" "explist" ";"                              %"$$=$1 append($2)";
 
   label
-    = _"::" "Name" "::"                                    %"$$=$0 append($2) $2.define_label=true";
+    = _"::" "Name" "::"                                    %"$$=$0 append($2) $2.label=true";
 
   funcname
     = _"funcname_"                                         %"$$=$1"

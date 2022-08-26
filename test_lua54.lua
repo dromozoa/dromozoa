@@ -236,11 +236,20 @@ local function process1(protos, proto, scope, u, loop)
           local v = u[i]
           if lua54_parser.symbol_names[v[0]] == "label" then
             u.end_of_scope = i
-            v[1].end_of_scope = i
+            v.end_of_scope = i
           else
             break
           end
         end
+      end
+    elseif u_name == "label" then
+      -- ジャンプ解決用にラベルと変数リストを逆順で記録する。
+      local v = u[1]
+      u.label = define_label(scope, v.v, u)
+      if u.end_of_scope then
+        u.locals = collect(scope.parent)
+      else
+        u.locals = collect(scope)
       end
     elseif u_name == "break" then
       if loop == nil then
@@ -248,6 +257,9 @@ local function process1(protos, proto, scope, u, loop)
       end
       -- ジャンプ解決用にbreak対象と変数リストを逆順で記録する。
       u.target = loop
+      u.locals = collect(scope)
+    elseif u_name == "goto" then
+      -- ジャンプ解決用に変数リストを逆順で記録する。
       u.locals = collect(scope)
     elseif u.loop then
       -- ジャンプ解決用に変数リストを逆順で記録する。
@@ -268,17 +280,6 @@ local function process1(protos, proto, scope, u, loop)
       else
         u.var = var
       end
-    elseif u.define_label then
-      -- ジャンプ解決用にラベルと変数リストを逆順で記録する。
-      u.label = define_label(scope, u.v, u)
-      if u.end_of_scope then
-        u.locals = collect(scope.parent)
-      else
-        u.locals = collect(scope)
-      end
-    elseif u.resolve_label then
-      -- ジャンプ解決用に変数リストを逆順で記録する。
-      u.locals = collect(scope)
     end
 
     for _, v in ipairs(u) do
@@ -309,9 +310,9 @@ local function process2(scope, u, code, top)
   -- print(u.f, u.v, top)
   u.top = top
 
-  if u.resolve_label then
-    u.label = resolve_label(scope, u.v, u)
-  end
+  -- if u.resolve_label then
+  --   u.label = resolve_label(scope, u.v, u)
+  -- end
 
   local u_name = lua54_parser.symbol_names[u[0]]
   local traversed
@@ -342,7 +343,7 @@ local function process2(scope, u, code, top)
     end
 
   elseif u_name == "label" then
-    append_code(code, u, "label", u[1].label)
+    append_code(code, u, "label", u.label)
 
   elseif u_name == "break" then
     local v = u.target
@@ -362,6 +363,33 @@ local function process2(scope, u, code, top)
       end
     end
     append_code(code, u, "break")
+
+  elseif u_name == "goto" then
+    local v = u[1]
+    u.label = resolve_label(scope, v.v, u)
+
+    -- local x = u[1]
+    local y = scope.proto.labels:get(u.label).node
+
+    local m = u.locals:size()
+    local n = y.locals:size()
+    if m <= n then
+      for i = 0, n - 1 do
+        local var = y.locals:get(n - i)
+        if u.locals:get(m - i) ~= var then
+          compiler_error("<goto " .. v.v .. "> jumps into the scope of local " .. scope.proto.locals:get(var).name, u)
+        end
+      end
+    end
+
+    for i = 1, m - n do
+      local var = u.locals:get(i)
+      if scope.proto.locals:get(var).attribute == "close" then
+        append_code(code, u, "close", var)
+      end
+    end
+    append_code(code, u, "goto", u.label)
+
 
   elseif u_name == "while" then
     traversed = true
@@ -674,7 +702,7 @@ local function process2(scope, u, code, top)
     -- 1. declareが真ならば、文で命令を生成する。
     -- 2. resolveが真でdefineが真ならば、文で命令を生成する。
     -- 3. resolveが真でdefineが真でなければ、参照命令を生成する。
-    -- 4. define_labelまたはresolve_labelが真ならば、文で命令を生成する。
+    -- 4. labelが真ならば、文で命令を生成する。
     -- 5. さもなければ、テーブルインデックスとして使用する文字列リテラル命令を
     --    生成する。
     if not u.declare then
@@ -714,7 +742,7 @@ local function process2(scope, u, code, top)
           end
 
         end
-      elseif not u.define_label and not u.resolve_label then
+      elseif not u.label then
         append_code(code, u, "push_literal", u.v)
         top = top + 1
       end
@@ -766,6 +794,7 @@ local function process2(scope, u, code, top)
     end
     assert(top == 0)
 
+--[[
   -- TODO ラベルが解決されていないのであとまわし。
   elseif u_name == "goto" then
     local x = u[1]
@@ -789,6 +818,7 @@ local function process2(scope, u, code, top)
       end
     end
     append_code(code, u, "goto", x.label)
+]]
 
   elseif u_name == "repeat" then
     for j = scope.locals:size(), 1, -1 do

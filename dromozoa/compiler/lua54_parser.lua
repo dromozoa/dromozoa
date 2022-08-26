@@ -28,7 +28,7 @@ function ()SS=S[2] append(S[1],S[3]) S[3].adjust=#S[1]
 end;
 function ()SS=S[1] SS.nr=0
 end;
-function ()SS=S[1] append(S[2]) S[2].resolve_label=true
+function ()SS=S[1] append(S[2]) S[2].label=true
 end;
 function ()SS=S[1] append(S[2]) S[2].scope=scope()
 end;
@@ -62,7 +62,7 @@ function ()SS=S[0] SS.v=S[2].v
 end;
 function ()SS=S[1] append(create(82))
 end;
-function ()SS=S[0] append(S[2]) S[2].define_label=true
+function ()SS=S[0] append(S[2]) S[2].label=true
 end;
 function ()SS=create(59) append(S[1],S[3]) SS.self=true
 end;
