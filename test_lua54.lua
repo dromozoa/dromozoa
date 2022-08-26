@@ -189,7 +189,8 @@ local function process1(protos, proto, scope, u, loop)
     declare(scope, "(for state)", u)
     declare(scope, "(for state)", u)
     process1(protos, proto, scope, u[1], loop)
-    process1(protos, proto, scope, u[3], loop)
+    return process1(protos, proto, scope, u[3], loop)
+
   elseif u_name == "for_in" then
     -- ジャンプ解決用に変数リストを逆順で記録する。
     u.locals = collect(scope)
@@ -202,7 +203,8 @@ local function process1(protos, proto, scope, u, loop)
     declare(scope, "(for state)", u)
     declare(scope, "(for state)", u, "close")
     process1(protos, proto, scope, u[1], loop)
-    process1(protos, proto, scope, u[3], loop)
+    return process1(protos, proto, scope, u[3], loop)
+
   elseif u_name == "local" then
     local n = 0
     for _, v in ipairs(u[1]) do
@@ -217,16 +219,17 @@ local function process1(protos, proto, scope, u, loop)
     if u[2] ~= nil then
       process1(protos, proto, scope, u[2], loop)
     end
-    process1(protos, proto, scope, u[1], loop)
+    return process1(protos, proto, scope, u[1], loop)
+
   elseif u_name == "funcbody" then
     -- colon syntaxで関数が定義されたら、暗黙の仮引数selfを宣言する。
     if proto.self then
       u.var = declare(scope, "self", u)
     end
     process1(protos, proto, scope, u[1], loop)
-    process1(protos, proto, scope, u[2], loop)
-  else
-    if u_name == "block" then
+    return process1(protos, proto, scope, u[2], loop)
+
+  elseif u_name == "block" then
       -- empty statementsは解析の時点でとりのぞかれるので、label文だけがvoid
       -- statementsとして残る。repeat-until文以外のスコープは、スコープの最後の
       -- void statementsの前でスコープを終了する。ブロックの末尾にラベル文があ
@@ -242,49 +245,56 @@ local function process1(protos, proto, scope, u, loop)
           end
         end
       end
-    elseif u_name == "label" then
-      -- ジャンプ解決用にラベルと変数リストを逆順で記録する。
-      local v = u[1]
-      u.label = define_label(scope, v.v, u)
-      if u.end_of_scope then
-        u.locals = collect(scope.parent)
-      else
-        u.locals = collect(scope)
-      end
-    elseif u_name == "break" then
-      if loop == nil then
-        compiler_error("break outside loop", u)
-      end
-      -- ジャンプ解決用にbreak対象と変数リストを逆順で記録する。
-      u.target = loop
+
+  elseif u_name == "label" then
+    -- ジャンプ解決用にラベルと変数リストを逆順で記録する。
+    local v = u[1]
+    u.label = define_label(scope, v.v, u)
+    if u.end_of_scope then
+      u.locals = collect(scope.parent)
+    else
       u.locals = collect(scope)
-    elseif u_name == "goto" then
-      -- ジャンプ解決用に変数リストを逆順で記録する。
-      u.locals = collect(scope)
-    elseif u.loop then
-      -- ジャンプ解決用に変数リストを逆順で記録する。
-      u.locals = collect(scope)
-    elseif u_name == "return" then
-      -- ジャンプ解決用に変数リストを逆順で記録する。
-      u.locals = collect(scope)
-    elseif u_name == "..." then
-      if not proto.vararg then
-        compiler_error("cannot use ... outside a vararg function", u)
-      end
-    elseif u.declare then
-      u.var = declare(scope, u.v, u, u.attribute)
-    elseif u.resolve then
-      local var = resolve(scope, u.v, u, u.define)
-      if var == nil then
-        u.env = resolve(scope, "_ENV")
-      else
-        u.var = var
-      end
     end
 
-    for _, v in ipairs(u) do
-      process1(protos, proto, scope, v, loop)
+  elseif u_name == "break" then
+    if loop == nil then
+      compiler_error("break outside loop", u)
     end
+    -- ジャンプ解決用にbreak対象と変数リストを逆順で記録する。
+    u.target = loop
+    u.locals = collect(scope)
+
+  elseif u_name == "goto" then
+    -- ジャンプ解決用に変数リストを逆順で記録する。
+    u.locals = collect(scope)
+
+  elseif u.loop then
+    -- ジャンプ解決用に変数リストを逆順で記録する。
+    u.locals = collect(scope)
+
+  elseif u_name == "return" then
+    -- ジャンプ解決用に変数リストを逆順で記録する。
+    u.locals = collect(scope)
+
+  elseif u_name == "..." then
+    if not proto.vararg then
+      compiler_error("cannot use ... outside a vararg function", u)
+    end
+
+  elseif u.declare then
+    u.var = declare(scope, u.v, u, u.attribute)
+
+  elseif u.resolve then
+    local var = resolve(scope, u.v, u, u.define)
+    if var == nil then
+      u.env = resolve(scope, "_ENV")
+    else
+      u.var = var
+    end
+  end
+
+  for _, v in ipairs(u) do
+    process1(protos, proto, scope, v, loop)
   end
 end
 
