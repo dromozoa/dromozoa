@@ -763,22 +763,10 @@ local function process2(proto, scope, u, code, target)
     if not u.nr then
       u.nr = 1
     end
-
-    -- TODO xに関数のインデックスをうけておくと、なんかうまい具合にいく？
-    process2(proto, scope, u[1], code)
-    local f
-    if lua54_parser.symbol_names[x[0]] == ":" then
-      f = proto.top - 1
-    else
-      f = proto.top
-    end
-    assert(f > 0)
-
-    process2(proto, scope, u[2], code)
-
-    append_code(proto, code, u, "call", f, u.nr)
-
-    return
+    local top = proto.top
+    process2(proto, scope, x, code)
+    process2(proto, scope, y, code)
+    append_code(proto, code, u, "call", top + 1, u.nr)
 
   elseif u_name == "fieldlist" then
     -- 末尾がkey=value形式でなく、functioncallまたは...で、かつnomultretが真で
