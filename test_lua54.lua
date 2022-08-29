@@ -320,16 +320,8 @@ local function process2(scope, u, code, top)
     scope = u.scope
   end
 
-  -- local function assert() end
-
-  -- print(code, save_top, top)
   assert(top)
-  -- print(u.f, u.v, top)
   u.top = top
-
-  -- if u.resolve_label then
-  --   u.label = resolve_label(scope, u.v, u)
-  -- end
 
   local u_name = lua54_parser.symbol_names[u[0]]
   local traversed
@@ -385,7 +377,6 @@ local function process2(scope, u, code, top)
     local v = u[1]
     u.label = resolve_label(scope, v.v, u)
 
-    -- local x = u[1]
     local y = scope.proto.labels:get(u.label).node
 
     local m = u.locals:size()
@@ -523,15 +514,7 @@ local function process2(scope, u, code, top)
     local a = u.adjust
     local v = #u > 0 and u[#u] or nil
     local v_name = v ~= nil and lua54_parser.symbol_names[v[0]] or nil
-    if a == nil then
-      -- 末尾がfunctioncallまたは...で、かつnrが定まっていなければ、戻り値の個
-      -- 数を調節しない。
-      if (v_name == "functioncall" or v_name == "...") and not v.nr then
-        v.nr = -1
-        -- TODO これは不要？
-        u.nr = #u - 1
-      end
-    else
+    if a then
       -- #u < a
       --   1. 末尾がfunctioncallまたは...で、かつnomultretが真でなければ、戻り
       --      値の個数を(a-#u+1)個に調節する。
@@ -569,6 +552,14 @@ local function process2(scope, u, code, top)
         elseif #u > a then
           u.pop = #u - a
         end
+      end
+    else
+      -- 末尾がfunctioncallまたは...で、かつnrが定まっていなければ、戻り値の個
+      -- 数を調節しない。
+      if (v_name == "functioncall" or v_name == "...") and not v.nr then
+        v.nr = -1
+        -- TODO これは不要？
+        u.nr = #u - 1
       end
     end
 
