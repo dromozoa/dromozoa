@@ -673,6 +673,12 @@ local function process2(scope, u, code)
   elseif u_name == "functiondef" then
     append_code(proto, code, u, "closure", u[1].proto.index)
 
+  elseif u.binop ~= nil then
+    append_code(proto, code, u, u.binop)
+
+  elseif u.unop ~= nil then
+    append_code(proto, code, u, u.unop)
+
   elseif u_name == "and" then
 
     process2(scope, u[1], code)
@@ -935,14 +941,6 @@ local function process2(scope, u, code)
     elseif u.pop ~= nil then
       append_code(proto, code, u, "pop", u.pop)
     end
-
-  -------------------------------------------------------------------------
-
-  elseif u.binop ~= nil then
-    append_code(proto, code, u, u.binop)
-
-  elseif u.unop ~= nil then
-    append_code(proto, code, u, u.unop)
 
   -------------------------------------------------------------------------
 
