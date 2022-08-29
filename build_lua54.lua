@@ -188,7 +188,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"goto" "Name"                                       %"$$=$1 append($2) $2.label=true"
     + _"do" "block" "end"                                  %"$$=$1 append($2) $2.scope=scope()"
     + _"while" "exp" "do" "block" "end"                    %"$$=$1 append($2,$4) $$.loop=true $4.scope=scope()"
-    + _"repeat" "block" "until" "exp"                      %"$$=$1 append($2,$4) $$.loop=true $$.scope=scope(true)"
+    + _"repeat" "block" "until" "exp"                      %"$$=$1 append($2,$4) $$.loop=true $$.repeat_until=true $$.scope=scope()"
     + _"if" "exp" "then" "block" "else_clause" "end"       %"$$=$1 append($2,$4,$5) $4.scope=scope()"
     + _"for" "Name" "=" "exp_2or3" "do" "block" "end"      %"$$=$1 append($2,$4,$6) $$.loop=true $$.scope=scope() $6.scope=scope() $2.declare=true"
     + _"for_in"                                            %"$$=$1"

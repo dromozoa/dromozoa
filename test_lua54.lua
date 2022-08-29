@@ -168,6 +168,7 @@ local function process1(protos, proto, scope, u, loop)
   end
 
   if u.scope ~= nil then
+    u.scope.repeat_until = u.repeat_until
     u.scope.labels = array()
     u.scope.locals = array()
     u.scope.proto = proto
