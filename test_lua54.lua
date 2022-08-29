@@ -553,6 +553,17 @@ local function process2(proto, scope, u, code)
     assert(u.var + 3 == u[1].var)
     return
 
+
+  elseif u_name == "exp_2or3" then
+    process2(proto, scope, u[1], code)
+    process2(proto, scope, u[2], code)
+    if u[3] then
+      process2(proto, scope, u[3], code)
+    else
+      append_code(proto, code, u, "push_numeral", "1", "DecimalIntegerNumeral")
+    end
+    return
+
   elseif u_name == "for_in" then
     process2(proto, scope, u[2], code)
 
@@ -863,11 +874,6 @@ local function process2(proto, scope, u, code)
       append_code(proto, code, u, "pop", x.ns)
     end
 
-  elseif u_name == "exp_2or3" then
-    if u[3] == nil then
-      append_code(proto, code, u, "push_numeral", "1", "DecimalIntegerNumeral")
-    end
-
   elseif u_name == "function" then
     local v = u[1]
     append_code(proto, code, u, "closure", u[2].proto.index)
@@ -882,7 +888,6 @@ local function process2(proto, scope, u, code)
         append_code(proto, code, u, "set_upvalue", v.var - 65536)
       end
     end
-
 
   elseif u_name == "local" then
     local x, y = u[1], u[2]
