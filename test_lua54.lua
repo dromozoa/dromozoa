@@ -764,12 +764,10 @@ local function process2(proto, scope, u, code, target)
       u.nr = 1
     end
 
-    local x_name = lua54_parser.symbol_names[x[0]]
-
     -- TODO xに関数のインデックスをうけておくと、なんかうまい具合にいく？
     process2(proto, scope, u[1], code)
     local f
-    if x_name == ":" then
+    if lua54_parser.symbol_names[x[0]] == ":" then
       f = proto.top - 1
     else
       f = proto.top
