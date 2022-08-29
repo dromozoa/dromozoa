@@ -649,6 +649,9 @@ local function process2(proto, scope, u, code)
     local a = u.adjust
     local v = #u > 0 and u[#u] or nil
     local v_name = v ~= nil and lua54_parser.symbol_names[v[0]] or nil
+    local push
+    local pop
+
     if a then
       -- #u < a
       --   1. 末尾がfunctioncallまたは...で、かつnomultretが真でなければ、戻り
@@ -671,21 +674,21 @@ local function process2(proto, scope, u, code)
             v.nr = a - #u + 1
           else
             v.nr = 1
-            u.push = a - #u
+            push = a - #u
           end
         elseif #u == a then
           v.nr = 1
         else
           v.nr = 0
           if #u > a + 1 then
-            u.pop = #u - a - 1
+            pop = #u - a - 1
           end
         end
       else
         if #u < a then
-          u.push = a - #u
+          push = a - #u
         elseif #u > a then
-          u.pop = #u - a
+          pop = #u - a
         end
       end
     else
@@ -701,10 +704,10 @@ local function process2(proto, scope, u, code)
     for _, v in ipairs(u) do
       process2(proto, scope, v, code)
     end
-    if u.push ~= nil then
-      append_code(proto, code, u, "push_nil", u.push)
-    elseif u.pop ~= nil then
-      append_code(proto, code, u, "pop", u.pop)
+    if push then
+      append_code(proto, code, u, "push_nil", push)
+    elseif pop then
+      append_code(proto, code, u, "pop", pop)
     end
     return
 
