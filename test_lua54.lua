@@ -424,7 +424,6 @@ local function process2(scope, u, code)
   local proto = scope.proto
 
   local u_name = lua54_parser.symbol_names[u[0]]
-  local traversed
 
   if u_name == "block" then
 
@@ -837,10 +836,8 @@ local function process2(scope, u, code)
 
   -------------------------------------------------------------------------
 
-  if not traversed then
-    for _, v in ipairs(u) do
-      process2(scope, v, code)
-    end
+  for _, v in ipairs(u) do
+    process2(scope, v, code)
   end
 
   -------------------------------------------------------------------------
