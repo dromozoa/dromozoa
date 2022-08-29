@@ -646,6 +646,25 @@ local function process2(proto, scope, u, code)
     append_code(proto, code, u, "closure", u[2].proto.index)
     append_code(proto, code, u, "set_local", u[1].var)
 
+  elseif u_name == "varlist" then
+    for _, v in ipairs(u) do
+      process2(proto, scope, v, code)
+    end
+
+    local ns = 0
+    for _, v in ipairs(u) do
+      v.ns = ns
+      -- TODO settableの場合、スタックに2個つまれる。_ENVを参照する場合を考慮し
+      -- てコード生成後に調べる。最終的には、スタックの状態を数えるようにする。
+      -- if #v.code > 0 then
+      if v.ns_item then
+        ns = ns + 2
+      end
+    end
+    u.ns = ns
+
+    return
+
   elseif u_name == "explist" then
     local a = u.adjust
     local v = #u > 0 and u[#u] or nil
@@ -699,6 +718,17 @@ local function process2(proto, scope, u, code)
       end
     end
 
+    for _, v in ipairs(u) do
+      process2(proto, scope, v, code)
+    end
+    if u.push ~= nil then
+      append_code(proto, code, u, "push_nil", u.push)
+    elseif u.pop ~= nil then
+      append_code(proto, code, u, "pop", u.pop)
+    end
+    return
+
+
   elseif u_name == "..." then
     -- 戻り値の個数が調節されていないfunctioncallと...は、1個に調節する。
     if u.nr == nil then
@@ -712,10 +742,15 @@ local function process2(proto, scope, u, code)
     append_code(proto, code, u, "closure", u[1].proto.index)
 
   elseif u.binop ~= nil then
+    process2(proto, scope, u[1], code)
+    process2(proto, scope, u[2], code)
     append_code(proto, code, u, u.binop)
+    return
 
   elseif u.unop ~= nil then
+    process2(proto, scope, u[1], code)
     append_code(proto, code, u, u.unop)
+    return
 
   elseif u_name == "and" then
 
@@ -737,9 +772,15 @@ local function process2(proto, scope, u, code)
 
   elseif u_name == "." then
     -- TODO ns_itemはいらなくなるはず
+    process2(proto, scope, u[1], code)
+    process2(proto, scope, u[2], code)
+
     if u.define then
       u.ns_item = 2
+    else
+      append_code(proto, code, u, "get_table", 2)
     end
+    return
 
   elseif u_name == ":" then
 
@@ -915,6 +956,7 @@ local function process2(proto, scope, u, code)
 
   -------------------------------------------------------------------------
 
+--[[
   elseif u_name == "varlist" then
     local ns = 0
     for _, v in ipairs(u) do
@@ -928,17 +970,13 @@ local function process2(proto, scope, u, code)
     end
     u.ns = ns
 
-  elseif u_name == "." then
-    if not u.define then
-      append_code(proto, code, u, "get_table", 2)
-    end
-
   elseif u_name == "explist" then
     if u.push ~= nil then
       append_code(proto, code, u, "push_nil", u.push)
     elseif u.pop ~= nil then
       append_code(proto, code, u, "pop", u.pop)
     end
+]]
 
   -------------------------------------------------------------------------
 
