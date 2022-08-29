@@ -543,6 +543,7 @@ local function process2(proto, scope, u, code)
     local loop = append_code(proto, code, u, "loop")
 
     process2(proto, scope, u[1], loop)
+    process2(proto, scope, u[2], loop)
 
     for j = scope.locals:size(), 1, -1 do
       local var = scope.locals:get(j)
