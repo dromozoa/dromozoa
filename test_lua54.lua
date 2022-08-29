@@ -763,10 +763,10 @@ local function process2(proto, scope, u, code, target)
     if not u.nr then
       u.nr = 1
     end
-    local top = proto.top
+    local target = proto.top + 1
     process2(proto, scope, x, code)
     process2(proto, scope, y, code)
-    append_code(proto, code, u, "call", top + 1, u.nr)
+    append_code(proto, code, u, "call", target, u.nr)
 
   elseif u_name == "fieldlist" then
     -- 末尾がkey=value形式でなく、functioncallまたは...で、かつnomultretが真で
@@ -781,13 +781,11 @@ local function process2(proto, scope, u, code, target)
     end
 
     append_code(proto, code, u, "new_table")
-    local top = proto.top
+    local target = proto.top
     for _, v in ipairs(u) do
-      process2(proto, scope, v, code, top)
+      process2(proto, scope, v, code, target)
     end
-    append_code(proto, code, u, "set_list", top)
-
-    return
+    append_code(proto, code, u, "set_list", target)
 
   elseif u_name == "field" then
     process2(proto, scope, u[1], code)
