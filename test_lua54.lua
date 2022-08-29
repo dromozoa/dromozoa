@@ -576,44 +576,26 @@ local function process2(proto, scope, u, code, target)
     append_code(proto, code, u, "set_local", u.var + 1)
     append_code(proto, code, u, "set_local", u.var)
 
-    -- | f   | u.var     |
-    -- | s   | u.var + 1 |
-    -- | var | u.var + 2 |
-    -- | tbc | u.var + 3 |
-    -- | v   | u.var + 4 |
-
-    --  while true do
-    --    v, ... = f(s, var)
-    --    if v == nil then
-    --      break
-    --    end
-    --  end
-
     local loop_block = append_code(proto, code, u, "loop")
     append_code(proto, loop_block, u, "get_local", u.var)
     append_code(proto, loop_block, u, "get_local", u.var + 1)
     append_code(proto, loop_block, u, "get_local", u.var + 2)
-
     append_code(proto, loop_block, u, "call", 1, #x)
     for i = #x, 1, -1 do
       local v = x[i]
       append_code(proto, loop_block, u, "set_local", v.var)
     end
-    -- この時点でスタックは空
 
     append_code(proto, loop_block, u, "get_local", u.var + 4)
-    assert(u.var + 4 == x[1].var)
     append_code(proto, loop_block, u, "push_nil", 1)
     append_code(proto, loop_block, u, "eq")
-
-    local then_block, else_block = append_if(proto, code, u)
-
+    local then_block, else_block = append_if(proto, loop_block, u)
     append_code(proto, then_block, u, "close", u.var + 3)
     append_code(proto, then_block, u, "break")
     append_code(proto, else_block, u, "get_local", u.var + 4)
     append_code(proto, else_block, u, "set_local", u.var + 2)
 
-    process2(proto, scope, u[3], loop_block)
+    process2(proto, scope, u[3], else_block)
 
   elseif u_name == "function" then
     assert(proto.top == 0)
