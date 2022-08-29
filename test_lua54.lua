@@ -646,58 +646,46 @@ local function process2(proto, scope, u, code)
     append_code(proto, code, u, "return")
 
   elseif u_name == "explist" then
-    local a = u.adjust
-    local v = #u > 0 and u[#u] or nil
-    local v_name = v ~= nil and lua54_parser.symbol_names[v[0]] or nil
     local push
     local pop
 
-    if a then
-      -- #u < a
-      --   1. 末尾がfunctioncallまたは...で、かつnomultretが真でなければ、戻り
-      --      値の個数を(a-#u+1)個に調節する。
-      --   2. 末尾がfunctioncallまたは...で、かつnomultretが真ならば、戻り値の
-      --      個数を1個に調節し、(a-#u)個のpush_nil()を追加する。
-      --   3. さもなければ、(a-#u)個のpush_nil()を追加する。
-      -- #u == a
-      --   1. 末尾がfunctioncallまたは...ならば、戻り値の個数を1個に調節する。
-      -- #u == a+1
-      --   1. 末尾がfunctioncallまたは...ならば、戻り値の個数を0個に調節する。
-      --   2. さもなければ、pop(1)を追加する。
-      -- #u > a+1
-      --   1. 末尾がfunctioncallまたは...ならば、戻り値の個数を0個に調節し、
-      --      pop(#u-a-1)を追加する。
-      --   2. さもなければ、pop(#u-a)を追加する。
-      if v_name == "functioncall" or v_name == "..." then
-        if #u < a then
-          if not v.nr then
-            v.nr = a - #u + 1
-          else
+    -- 空の式リストは、空の引数リストを表現する場合にだけ出現し、この場合は調節
+    -- を行う必要がない。
+    if x then
+      local v = u[#u]
+      local v_name = lua54_parser.symbol_names[v[0]]
+      if u.adjust then
+        -- 末尾が関数呼び出し式または可変長引数式である場合、可能な限り戻り値の
+        -- 個数の調節を行い、不足分をpush/popで調節する。
+        if v_name == "functioncall" or v_name == "..." then
+          if #u < u.adjust then
+            if not v.nr then
+              v.nr = u.adjust - #u + 1
+            else
+              v.nr = 1
+              push = u.adjust - #u
+            end
+          elseif #u == u.adjust then
             v.nr = 1
-            push = a - #u
+          else
+            v.nr = 0
+            if #u > u.adjust + 1 then
+              pop = #u - u.adjust - 1
+            end
           end
-        elseif #u == a then
-          v.nr = 1
         else
-          v.nr = 0
-          if #u > a + 1 then
-            pop = #u - a - 1
+          if #u < u.adjust then
+            push = u.adjust - #u
+          elseif #u > u.adjust then
+            pop = #u - u.adjust
           end
         end
       else
-        if #u < a then
-          push = a - #u
-        elseif #u > a then
-          pop = #u - a
+        -- 末尾が関数呼び出し式または可変長引数式で、丸括弧で囲われていなければ、
+        -- 戻り値の個数を調節しない。
+        if (v_name == "functioncall" or v_name == "...") and not v.nr then
+          v.nr = -1
         end
-      end
-    else
-      -- 末尾がfunctioncallまたは...で、かつnrが定まっていなければ、戻り値の個
-      -- 数を調節しない。
-      if (v_name == "functioncall" or v_name == "...") and not v.nr then
-        v.nr = -1
-        -- TODO これは不要？
-        u.nr = #u - 1
       end
     end
 
@@ -709,7 +697,6 @@ local function process2(proto, scope, u, code)
     elseif pop then
       append_code(proto, code, u, "pop", pop)
     end
-    return
 
   elseif u_name == "..." then
     append_code(proto, code, u, "vararg", u.nr or 1)
@@ -762,17 +749,15 @@ local function process2(proto, scope, u, code)
     append_code(proto, code, u, "call", target, u.nr or 1)
 
   elseif u_name == "fieldlist" then
-    -- 末尾がkey=value形式でなく、丸括弧で囲われていない関数呼び出し式または可
-    -- 変長引数式の場合は、戻り値の個数を調節しない。
+    -- 末尾がkey=value形式でなく、関数呼び出し式または可変長引数式で、丸括弧で
+    -- 囲われていなければ、戻り値の個数を調節しない。
     if x then
       local field = u[#u]
       if not field[2] then
         local v = field[1]
-        if not v.nr then
-          local v_name = lua54_parser.symbol_names[v[0]]
-          if v_name == "functioncall" or v_name == "..." then
-            v.nr = -1
-          end
+        local v_name = lua54_parser.symbol_names[v[0]]
+        if (v_name == "functioncall" or v_name == "...") and not v.nr then
+          v.nr = -1
         end
       end
     end
