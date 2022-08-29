@@ -831,43 +831,48 @@ local function process2(proto, scope, u, code)
     -- 4. labelが真ならば、文で命令を生成する。
     -- 5. さもなければ、テーブルインデックスとして使用する文字列リテラル命令を
     --    生成する。
-    if not u.declare then
-      if u.resolve then
-        if not u.define then
-          if u.var ~= nil then
-            if u.var <= 65536 then
-              append_code(proto, code, u, "get_local", u.var)
-            else
-              append_code(proto, code, u, "get_upvalue", u.var - 65536)
-            end
-          else
-            assert(u.env ~= nil)
-            if u.env <= 65536 then
-              append_code(proto, code, u, "get_local", u.env)
-            else
-              append_code(proto, code, u, "get_upvalue", u.env - 65536)
-            end
-            append_code(proto, code, u, "push_literal", u.v)
-            append_code(proto, code, u, "get_table", 2)
-          end
+
+    if u.declare or u.label then
+      return
+    end
+
+    if not u.resolve then
+      append_code(proto, code, u, "push_literal", u.v)
+      return
+    end
+
+
+    if not u.define then
+      if u.var ~= nil then
+        if u.var <= 65536 then
+          append_code(proto, code, u, "get_local", u.var)
         else
-
-          -- set_table/set_fieldを準備
-          if u.var == nil then
-            assert(u.env ~= nil)
-            if u.env <= 65536 then
-              append_code(proto, code, u, "get_local", u.env)
-            else
-              append_code(proto, code, u, "get_upvalue", u.env - 65536)
-            end
-            append_code(proto, code, u, "push_literal", u.v)
-            u.ns_item = 2
-          end
-
+          append_code(proto, code, u, "get_upvalue", u.var - 65536)
         end
-      elseif not u.label then
+      else
+        assert(u.env ~= nil)
+        if u.env <= 65536 then
+          append_code(proto, code, u, "get_local", u.env)
+        else
+          append_code(proto, code, u, "get_upvalue", u.env - 65536)
+        end
         append_code(proto, code, u, "push_literal", u.v)
+        append_code(proto, code, u, "get_table", 2)
       end
+    else
+
+      -- set_table/set_fieldを準備
+      if u.var == nil then
+        assert(u.env ~= nil)
+        if u.env <= 65536 then
+          append_code(proto, code, u, "get_local", u.env)
+        else
+          append_code(proto, code, u, "get_upvalue", u.env - 65536)
+        end
+        append_code(proto, code, u, "push_literal", u.v)
+        u.ns_item = 2
+      end
+
     end
     return
 
