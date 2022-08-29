@@ -5,14 +5,10 @@ local main = function ()
   local S
   local SS
   local action_data = (function ()
-        local function scope(repeat_until)
-      return { repeat_until = repeat_until }
-    end
-  
-
+    
     return { function ()
 end;
-function ()SS.vararg=true SS.proto=true SS.scope=scope()
+function ()SS.vararg=true SS.proto=true SS.scope=true
 end;
 function ()SS=S[1]
 end;
@@ -26,15 +22,15 @@ function ()SS=S[1] SS.nr=0
 end;
 function ()SS=S[1] append(S[2]) S[2].label=true
 end;
-function ()SS=S[1] append(S[2]) S[2].scope=scope()
+function ()SS=S[1] append(S[2]) S[2].scope=true
 end;
-function ()SS=S[1] append(S[2],S[4]) SS.loop=true S[4].scope=scope()
+function ()SS=S[1] append(S[2],S[4]) SS.loop=true S[4].scope=true
 end;
-function ()SS=S[1] append(S[2],S[4]) SS.loop=true SS.repeat_until=true SS.scope=scope()
+function ()SS=S[1] append(S[2],S[4]) SS.loop=true SS.repeat_until=true SS.scope=true
 end;
-function ()SS=S[1] append(S[2],S[4],S[5]) S[4].scope=scope()
+function ()SS=S[1] append(S[2],S[4],S[5]) S[4].scope=true
 end;
-function ()SS=S[1] append(S[2],S[4],S[6]) SS.loop=true SS.scope=scope() S[6].scope=scope() S[2].declare=true
+function ()SS=S[1] append(S[2],S[4],S[6]) SS.loop=true SS.scope=true S[6].scope=true S[2].declare=true
 end;
 function ()SS=S[1] append(S[2],S[3]) S[2].define=true S[3].self=S[2].self
 end;
@@ -46,7 +42,7 @@ function ()SS=S[0] append(S[1],S[3])
 end;
 function ()SS=S[0] append(S[1],S[3],S[5])
 end;
-function ()SS=S[0] append(S[2],S[4],S[6]) SS.loop=true SS.scope=scope() S[6].scope=scope() S[4].adjust=4
+function ()SS=S[0] append(S[2],S[4],S[6]) SS.loop=true SS.scope=true S[6].scope=true S[4].adjust=4
 end;
 function ()SS=S[0] append(S[3],S[4]) S[3].declare=true
 end;
@@ -138,9 +134,9 @@ function ()SS=create(82) append(S[1])
 end;
 function ()SS=S[0] append(S[2])
 end;
-function ()SS=S[0] append(create(81),S[3]) SS.proto=true SS.scope=scope()
+function ()SS=S[0] append(create(81),S[3]) SS.proto=true SS.scope=true
 end;
-function ()SS=S[0] append(S[2],S[4]) SS.vararg=S[2].vararg SS.proto=true SS.scope=scope()
+function ()SS=S[0] append(S[2],S[4]) SS.vararg=S[2].vararg SS.proto=true SS.scope=true
 end;
 function ()SS=S[1] SS.vararg=true
 end;

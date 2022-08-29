@@ -161,18 +161,19 @@ local function process1(protos, proto, scope, u, loop)
       code = {};
       parent = proto;
     }
-
     proto = u.proto
     proto.index = protos:append(proto):size()
     loop = nil
   end
 
-  if u.scope ~= nil then
-    u.scope.repeat_until = u.repeat_until
-    u.scope.labels = array()
-    u.scope.locals = array()
-    u.scope.proto = proto
-    u.scope.parent = scope
+  if u.scope then
+    u.scope = {
+      repeat_until = u.repeat_until;
+      labels = array();
+      locals = array();
+      proto = proto;
+      parent = scope;
+    }
     scope = u.scope
     scope.index = proto.scopes:append(scope):size()
   end
