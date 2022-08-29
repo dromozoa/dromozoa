@@ -793,32 +793,6 @@ local function process2(scope, u, code, top)
     end
     assert(top == 0)
 
---[[
-  -- TODO ラベルが解決されていないのであとまわし。
-  elseif u_name == "goto" then
-    local x = u[1]
-    local y = scope.proto.labels:get(x.label).node
-
-    local m = x.locals:size()
-    local n = y.locals:size()
-    if m <= n then
-      for i = 0, n - 1 do
-        local var = y.locals:get(n - i)
-        if x.locals:get(m - i) ~= var then
-          compiler_error("<goto " .. x.v .. "> jumps into the scope of local " .. scope.proto.locals:get(var).name, u)
-        end
-      end
-    end
-
-    for i = 1, m - n do
-      local var = x.locals:get(i)
-      if scope.proto.locals:get(var).attribute == "close" then
-        append_code(code, u, "close", var)
-      end
-    end
-    append_code(code, u, "goto", x.label)
-]]
-
   elseif u_name == "repeat" then
     for j = scope.locals:size(), 1, -1 do
       local var = scope.locals:get(j)
