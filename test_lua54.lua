@@ -452,6 +452,32 @@ local function process2(proto, scope, u, code)
 
     return
 
+  elseif u_name == "=" then
+
+    process2(proto, scope, u[1], code)
+    process2(proto, scope, u[2], code)
+
+    local x, y = u[1], u[2]
+    for i = #x, 1, -1 do
+      local v = x[i]
+      if v.ns_item then
+        local j = i + x.ns - v.ns
+        append_code(proto, code, u, "set_field", j, j - 1)
+      else
+        assert(v.var ~= nil)
+        if v.var <= 65536 then
+          append_code(proto, code, u, "set_local", v.var)
+        else
+          append_code(proto, code, u, "set_upvalue", v.var - 65536)
+        end
+      end
+    end
+    if x.ns > 0 then
+      append_code(proto, code, u, "pop", x.ns)
+    end
+
+    return
+
   elseif u_name == "label" then
     append_code(proto, code, u, "label", u.label)
     return
@@ -854,27 +880,7 @@ local function process2(proto, scope, u, code)
 
   -------------------------------------------------------------------------
 
-  if u_name == "=" then
-    local x, y = u[1], u[2]
-    for i = #x, 1, -1 do
-      local v = x[i]
-      if v.ns_item then
-        local j = i + x.ns - v.ns
-        append_code(proto, code, u, "set_field", j, j - 1)
-      else
-        assert(v.var ~= nil)
-        if v.var <= 65536 then
-          append_code(proto, code, u, "set_local", v.var)
-        else
-          append_code(proto, code, u, "set_upvalue", v.var - 65536)
-        end
-      end
-    end
-    if x.ns > 0 then
-      append_code(proto, code, u, "pop", x.ns)
-    end
-
-  elseif u_name == "function" then
+  if u_name == "function" then
     local v = u[1]
     append_code(proto, code, u, "closure", u[2].proto.index)
     if v.ns_item then
