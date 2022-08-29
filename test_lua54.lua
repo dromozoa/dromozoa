@@ -766,15 +766,6 @@ local function process2(scope, u, code, top)
     end
   end
 
-  if u.code ~= nil then
-    for _, v in ipairs(u.code) do
-      append_code(code, u, v[0], v.a, v.b)
-      top = top + 1
-    end
-  end
-
-  -- print(u.v, top)
-
   -------------------------------------------------------------------------
 
   if u_name == "=" then
