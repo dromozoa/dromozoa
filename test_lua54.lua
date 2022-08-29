@@ -150,6 +150,8 @@ end
 ---------------------------------------------------------------------------
 
 local function process1(protos, proto, scope, u, loop)
+  local u_name = lua54_parser.symbol_names[u[0]]
+
   if u.proto then
     u.proto = {
       vararg = u.vararg;
@@ -168,7 +170,7 @@ local function process1(protos, proto, scope, u, loop)
 
   if u.scope then
     u.scope = {
-      repeat_until = u.repeat_until;
+      repeat_until = u_name == "repeat";
       labels = array();
       locals = array();
       proto = proto;
@@ -181,8 +183,6 @@ local function process1(protos, proto, scope, u, loop)
   if u.loop then
     loop = u
   end
-
-  local u_name = lua54_parser.symbol_names[u[0]]
 
   -- TODO u.localsじゃなくて、var_stackとかのほうがいいかな？
 

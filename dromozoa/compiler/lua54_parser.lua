@@ -26,7 +26,7 @@ function ()SS=S[1] append(S[2]) S[2].scope=true
 end;
 function ()SS=S[1] append(S[2],S[4]) SS.loop=true S[4].scope=true
 end;
-function ()SS=S[1] append(S[2],S[4]) SS.loop=true SS.repeat_until=true SS.scope=true
+function ()SS=S[1] append(S[2],S[4]) SS.loop=true SS.scope=true
 end;
 function ()SS=S[1] append(S[2],S[4],S[5]) S[4].scope=true
 end;
