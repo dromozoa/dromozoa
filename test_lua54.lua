@@ -425,6 +425,9 @@ local function process2(proto, scope, u, code, target)
   end
 
   local u_name = lua54_parser.symbol_names[u[0]]
+  local x = u[1]
+  local y = u[2]
+  local z = u[3]
 
   if u_name == "block" then
 
@@ -450,19 +453,11 @@ local function process2(proto, scope, u, code, target)
       end
     end
 
-    return
-
   elseif u_name == "=" then
-
-    assert(proto.top == 0)
-
-    process2(proto, scope, u[1], code)
+    process2(proto, scope, x, code)
     local top = proto.top
+    process2(proto, scope, y, code)
 
-    process2(proto, scope, u[2], code)
-
-    local x, y = u[1], u[2]
-    local t = top
     for i = #x, 1, -1 do
       local v = x[i]
       if v.var then
@@ -472,22 +467,17 @@ local function process2(proto, scope, u, code, target)
           append_code(proto, code, u, "set_upvalue", v.var - 65536)
         end
       else
-        assert(t > 0)
-        append_code(proto, code, u, "set_field", t - 1, t)
-        t = t - 2
+        append_code(proto, code, u, "set_field", top - 1, top)
+        top = top - 2
       end
     end
-    assert(t == 0)
-    assert(top == proto.top)
-    if top > 0 then
-      append_code(proto, code, u, "pop", top)
-    end
 
-    return
+    if proto.top > 0 then
+      append_code(proto, code, u, "pop", proto.top)
+    end
 
   elseif u_name == "label" then
     append_code(proto, code, u, "label", u.label)
-    return
 
   elseif u_name == "break" then
     local v = u.target
@@ -507,7 +497,6 @@ local function process2(proto, scope, u, code, target)
       end
     end
     append_code(proto, code, u, "break")
-    return
 
   elseif u_name == "goto" then
     local v = u[1]
@@ -533,18 +522,13 @@ local function process2(proto, scope, u, code, target)
       end
     end
     append_code(proto, code, u, "goto", u.label)
-    return
 
   elseif u_name == "while" then
-    local loop = append_code(proto, code, u, "loop")
-
-    process2(proto, scope, u[1], loop)
-
-    local then_block, else_block = append_if(proto, loop, u)
-    process2(proto, scope, u[2], then_block)
-    append_code(proto, then_block, u, "break")
-
-    return
+    local loop_block = append_code(proto, code, u, "loop")
+    process2(proto, scope, x, loop_block)
+    local then_block, else_block = append_if(proto, loop_block, u)
+    process2(proto, scope, y, then_block)
+    append_code(proto, else_block, u, "break")
 
   elseif u_name == "repeat" then
     local loop = append_code(proto, code, u, "loop")
@@ -955,8 +939,6 @@ local function process2(proto, scope, u, code, target)
     end
     return
   end
-
-  error "unreacheable"
 end
 
 ---------------------------------------------------------------------------
