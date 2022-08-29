@@ -30,7 +30,7 @@ function ()SS=S[1] append(S[2],S[4]) SS.loop=true SS.repeat_until=true SS.scope=
 end;
 function ()SS=S[1] append(S[2],S[4],S[5]) S[4].scope=true
 end;
-function ()SS=S[1] append(S[2],S[4],S[6]) SS.loop=true SS.scope=true S[6].scope=true S[2].declare=true
+function ()SS=S[1] append(S[2],S[4],S[6]) SS.loop=true SS.scope=true S[2].declare=true S[6].scope=true
 end;
 function ()SS=S[1] append(S[2],S[3]) S[2].define=true S[3].self=S[2].self
 end;

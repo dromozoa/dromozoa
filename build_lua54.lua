@@ -144,8 +144,9 @@ local expect = parser.grammar.expect
 local left = parser.grammar.left
 local right = parser.grammar.right
 
--- TODO 属性でテーブルを作らない
 -- TODO multretではなくmulti resultsかもしれない（Luaの用語だけど）
+-- TODO Nameにindexというのをつける？
+-- TODO repeat_untilを廃止する。
 local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
   expect(3);
 
@@ -184,7 +185,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"while" "exp" "do" "block" "end"                    %"$$=$1 append($2,$4) $$.loop=true $4.scope=true"
     + _"repeat" "block" "until" "exp"                      %"$$=$1 append($2,$4) $$.loop=true $$.repeat_until=true $$.scope=true"
     + _"if" "exp" "then" "block" "else_clause" "end"       %"$$=$1 append($2,$4,$5) $4.scope=true"
-    + _"for" "Name" "=" "exp_2or3" "do" "block" "end"      %"$$=$1 append($2,$4,$6) $$.loop=true $$.scope=true $6.scope=true $2.declare=true"
+    + _"for" "Name" "=" "exp_2or3" "do" "block" "end"      %"$$=$1 append($2,$4,$6) $$.loop=true $$.scope=true $2.declare=true $6.scope=true"
     + _"for_in"                                            %"$$=$1"
     + _"function" "funcname" "funcbody"                    %"$$=$1 append($2,$3) $2.define=true $3.self=$2.self"
     + _"local_function"                                    %"$$=$1"
