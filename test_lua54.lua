@@ -150,15 +150,18 @@ end
 ---------------------------------------------------------------------------
 
 local function process1(protos, proto, scope, u, loop)
-  if u.proto ~= nil then
-    u.proto.vararg = u.vararg
-    u.proto.self = u.self
-    u.proto.labels = array()
-    u.proto.locals = array()
-    u.proto.upvalues = array()
-    u.proto.scopes = array()
-    u.proto.code = {}
-    u.proto.parent = proto
+  if u.proto then
+    u.proto = {
+      vararg = u.vararg;
+      self = u.self;
+      labels = array();
+      locals = array();
+      upvalues = array();
+      scopes = array();
+      code = {};
+      parent = proto;
+    }
+
     proto = u.proto
     proto.index = protos:append(proto):size()
     loop = nil
