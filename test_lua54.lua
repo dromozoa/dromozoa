@@ -649,16 +649,29 @@ local function process2(proto, scope, u, code)
     process2(proto, scope, u[3], loop)
     return
 
+  elseif u_name == "function" then
+    assert(proto.top == 0)
+
+    process2(proto, scope, u[1], code)
+    process2(proto, scope, u[2], code)
+
+    local v = u[1]
+    append_code(proto, code, u, "closure", u[2].proto.index)
+    if v.var then
+      if v.var <= 65536 then
+        append_code(proto, code, u, "set_local", v.var)
+      else
+        append_code(proto, code, u, "set_upvalue", v.var - 65536)
+      end
+    else
+      append_code(proto, code, u, "set_table", 3)
+      append_code(proto, code, u, "pop", 1)
+    end
+    return
+
   elseif u_name == "local_function" then
     append_code(proto, code, u, "closure", u[2].proto.index)
     append_code(proto, code, u, "set_local", u[1].var)
-
-  elseif u_name == "varlist" then
-    for _, v in ipairs(u) do
-      process2(proto, scope, v, code)
-    end
-
-    return
 
   elseif u_name == "explist" then
     local a = u.adjust
@@ -723,7 +736,6 @@ local function process2(proto, scope, u, code)
     end
     return
 
-
   elseif u_name == "..." then
     -- 戻り値の個数が調節されていないfunctioncallと...は、1個に調節する。
     if u.nr == nil then
@@ -766,13 +778,9 @@ local function process2(proto, scope, u, code)
     return
 
   elseif u_name == "." then
-    -- TODO ns_itemはいらなくなるはず
     process2(proto, scope, u[1], code)
     process2(proto, scope, u[2], code)
-
-    if u.define then
-      u.ns_item = 2
-    else
+    if not u.define then
       append_code(proto, code, u, "get_table", 2)
     end
     return
@@ -880,8 +888,6 @@ local function process2(proto, scope, u, code)
       append_code(proto, code, u, "push_literal", u.v)
       if not u.define then
         append_code(proto, code, u, "get_table", 2)
-      else
-        u.ns_item = 2
       end
       return
     end
@@ -906,22 +912,7 @@ local function process2(proto, scope, u, code)
 
   -------------------------------------------------------------------------
 
-  if u_name == "function" then
-    local v = u[1]
-    append_code(proto, code, u, "closure", u[2].proto.index)
-    if v.ns_item then
-      append_code(proto, code, u, "set_table", 3)
-      append_code(proto, code, u, "pop", 1)
-    else
-      assert(v.var ~= nil)
-      if v.var <= 65536 then
-        append_code(proto, code, u, "set_local", v.var)
-      else
-        append_code(proto, code, u, "set_upvalue", v.var - 65536)
-      end
-    end
-
-  elseif u_name == "local" then
+  if u_name == "local" then
     local x, y = u[1], u[2]
     if y == nil then
       append_code(proto, code, u, "push_nil", #x)
@@ -948,30 +939,6 @@ local function process2(proto, scope, u, code)
     end
 
     append_code(proto, code, u, "return")
-
-  -------------------------------------------------------------------------
-
---[[
-  elseif u_name == "varlist" then
-    local ns = 0
-    for _, v in ipairs(u) do
-      v.ns = ns
-      -- TODO settableの場合、スタックに2個つまれる。_ENVを参照する場合を考慮し
-      -- てコード生成後に調べる。最終的には、スタックの状態を数えるようにする。
-      -- if #v.code > 0 then
-      if v.ns_item then
-        ns = ns + 2
-      end
-    end
-    u.ns = ns
-
-  elseif u_name == "explist" then
-    if u.push ~= nil then
-      append_code(proto, code, u, "push_nil", u.push)
-    elseif u.pop ~= nil then
-      append_code(proto, code, u, "pop", u.pop)
-    end
-]]
 
   -------------------------------------------------------------------------
 
