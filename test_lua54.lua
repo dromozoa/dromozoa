@@ -793,27 +793,21 @@ local function process2(proto, scope, u, code, target)
       process2(proto, scope, u[2], code)
       append_code(proto, code, u, "set_table", target)
     end
-    return
 
   elseif u_name == "nil" then
     append_code(proto, code, u, "push_nil", 1)
-    return
 
   elseif u_name == "false" then
     append_code(proto, code, u, "push_false")
-    return
 
   elseif u_name == "true" then
     append_code(proto, code, u, "push_true")
-    return
 
   elseif u_name == "LiteralString" then
     append_code(proto, code, u, "push_literal", u.v)
-    return
 
   elseif u_name == "Numeral" then
     append_code(proto, code, u, "push_numeral", u.v, u.hint)
-    return
 
   elseif u_name == "Name" then
     if u.declare or u.label then
@@ -826,7 +820,6 @@ local function process2(proto, scope, u, code, target)
     end
 
     if not u.var then
-      assert(u.env ~= nil)
       if u.env <= 65536 then
         append_code(proto, code, u, "get_local", u.env)
       else
@@ -847,14 +840,10 @@ local function process2(proto, scope, u, code, target)
       end
     end
 
-    return
-
   else
-    -- print(u_name)
     for _, v in ipairs(u) do
       process2(proto, scope, v, code)
     end
-    return
   end
 end
 
