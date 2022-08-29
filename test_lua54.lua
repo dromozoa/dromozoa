@@ -949,7 +949,7 @@ local function process2(scope, u, code)
 
   end
 
-  u.top = proto.top
+  -- u.top = proto.top
 end
 
 ---------------------------------------------------------------------------
