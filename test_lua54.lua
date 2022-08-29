@@ -207,9 +207,6 @@ local codes = {
 
 local function append_code(proto, code, u, op, a, b)
   local v = { [0] = op, a = a, b = b, c = c, node = u }
-  if op == "if" or op == "block" or op == "loop" or op == "for" then
-    v.top = 0
-  end
 
   code[#code + 1] = v
   local t = codes[op]
@@ -245,7 +242,15 @@ local function append_code(proto, code, u, op, a, b)
   else
     error("unknown op " .. op)
   end
+
   return v
+end
+
+local function append_if(proto, code, u)
+  local cond = append_code(proto, code, u, "if")
+  local then_block = append_code(proto, cond, u, "block")
+  local else_block = append_code(proto, cond, u, "block")
+  return then_block, else_block
 end
 
 ---------------------------------------------------------------------------
@@ -501,12 +506,9 @@ local function process2(scope, u, code)
 
     process2(scope, u[1], loop)
 
-    local cond = append_code(proto, loop, u, "if")
-    append_code(proto, cond, u, "block")
-    append_code(proto, cond, u, "block")
-
-    process2(scope, u[2], cond[1])
-    append_code(proto, cond[2], u, "break")
+    local then_block, else_block = append_if(proto, loop, u)
+    process2(scope, u[2], then_block)
+    append_code(proto, then_block, u, "break")
 
   elseif u_name == "repeat" then
     code = append_code(proto, code, u, "loop")
@@ -515,12 +517,10 @@ local function process2(scope, u, code)
     traversed = true
 
     process2(scope, u[1], code)
-    local cond = append_code(proto, code, u, "if")
-    append_code(proto, cond, u, "block")
-    append_code(proto, cond, u, "block")
 
-    process2(scope, u[2], cond[1])
-    process2(scope, u[3], cond[2])
+    local then_block, else_block = append_if(proto, code, u)
+    process2(scope, u[2], then_block)
+    process2(scope, u[3], else_block)
 
   elseif u_name == "for" then
     traversed = true
@@ -579,13 +579,12 @@ local function process2(scope, u, code)
     append_code(proto, loop, u, "push_nil", 1)
     append_code(proto, loop, u, "eq")
 
-    local cond = append_code(proto, loop, u, "if")
-    append_code(proto, cond, u, "block")
-    append_code(proto, cond, u, "block")
-    append_code(proto, cond[1], u, "close", u.var + 3)
-    append_code(proto, cond[1], u, "break")
-    append_code(proto, cond[2], u, "get_local", u.var + 4)
-    append_code(proto, cond[2], u, "set_local", u.var + 2)
+    local then_block, else_block = append_if(proto, code, u)
+
+    append_code(proto, then_block, u, "close", u.var + 3)
+    append_code(proto, then_block, u, "break")
+    append_code(proto, else_block, u, "get_local", u.var + 4)
+    append_code(proto, else_block, u, "set_local", u.var + 2)
 
     process2(scope, u[3], loop)
 
@@ -661,27 +660,19 @@ local function process2(scope, u, code)
     traversed = true
 
     process2(scope, u[1], code)
-
     append_code(proto, code, u, "dup")
-    local cond = append_code(proto, code, u, "if")
-    append_code(proto, cond, u, "block")
-    append_code(proto, cond, u, "block")
-    append_code(proto, cond[1], u, "pop", 1)
-
-    process2(scope, u[2], cond[1])
+    local then_block = append_if(proto, code, u)
+    append_code(proto, then_block, u, "pop", 1)
+    process2(scope, u[2], then_block)
 
   elseif u_name == "or" then
     traversed = true
 
     process2(scope, u[1], code)
-
     append_code(proto, code, u, "dup")
-    local cond = append_code(proto, code, u, "if")
-    append_code(proto, cond, u, "block")
-    append_code(proto, cond, u, "block")
-    append_code(proto, cond[2], u, "pop", 1)
-
-    process2(scope, u[2], cond[2])
+    local _, else_block = append_if(proto, code, u)
+    append_code(proto, else_block, u, "pop", 1)
+    process2(scope, u[2], else_block)
 
   elseif u_name == "." then
     if u.define then
@@ -852,10 +843,8 @@ local function process2(scope, u, code)
       end
     end
 
-    local cond = append_code(proto, code, u, "if")
-    append_code(proto, cond, u, "block")
-    append_code(proto, cond, u, "block")
-    append_code(proto, cond[1], u, "break")
+    local then_block = append_if(proto, code, u)
+    append_code(proto, then_block, u, "break")
 
   elseif u_name == "exp_2or3" then
     if u[3] == nil then
@@ -961,12 +950,6 @@ local function process2(scope, u, code)
   end
 
   u.top = proto.top
-  -- print(restore_top, save_top)
-  -- if restore_top then
-  --   return save_top
-  -- else
-  --   return top
-  -- end
 end
 
 ---------------------------------------------------------------------------
