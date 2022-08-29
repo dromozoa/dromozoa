@@ -846,7 +846,6 @@ local function process2(scope, u, code)
     local x, y = u[1], u[2]
     for i = #x, 1, -1 do
       local v = x[i]
-      -- if #v.code > 0 then
       if v.ns_item then
         local j = i + x.ns - v.ns
         append_code(proto, code, u, "set_field", j, j - 1)
