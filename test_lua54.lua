@@ -598,34 +598,26 @@ local function process2(proto, scope, u, code, target)
     process2(proto, scope, u[3], else_block)
 
   elseif u_name == "function" then
-    assert(proto.top == 0)
-
-    process2(proto, scope, u[1], code)
-
-    local v = u[1]
-    append_code(proto, code, u, "closure", u[2].proto.index)
-    if v.var then
-      if v.var <= 65536 then
-        append_code(proto, code, u, "set_local", v.var)
+    process2(proto, scope, x, code)
+    append_code(proto, code, u, "closure", y.proto.index)
+    if x.var then
+      if x.var <= 65536 then
+        append_code(proto, code, u, "set_local", x.var)
       else
-        append_code(proto, code, u, "set_upvalue", v.var - 65536)
+        append_code(proto, code, u, "set_upvalue", x.var - 65536)
       end
     else
       append_code(proto, code, u, "set_table", 3)
       append_code(proto, code, u, "pop", 1)
     end
 
-    process2(proto, scope, u[2], code)
-
-    return
+    process2(proto, scope, y, code)
 
   elseif u_name == "local_function" then
-    append_code(proto, code, u, "closure", u[2].proto.index)
-    append_code(proto, code, u, "set_local", u[1].var)
+    append_code(proto, code, u, "closure", y.proto.index)
+    append_code(proto, code, u, "set_local", x.var)
 
-    process2(proto, scope, u[2], code)
-
-    return
+    process2(proto, scope, y, code)
 
   elseif u_name == "local" then
     local x, y = u[1], u[2]
