@@ -196,10 +196,10 @@ local codes = {
   swap  = 0;
   close = 0;
 
-  -- call t
-  -- return t
-  -- vararg
-  -- set_list
+  -- call t nr
+  -- return
+  -- vararg nr
+  -- set_list t
 
   -- push_nil n
   -- pop n
@@ -653,7 +653,6 @@ local function process2(proto, scope, u, code, target)
     assert(proto.top == 0)
 
     process2(proto, scope, u[1], code)
-    process2(proto, scope, u[2], code)
 
     local v = u[1]
     append_code(proto, code, u, "closure", u[2].proto.index)
@@ -667,11 +666,52 @@ local function process2(proto, scope, u, code, target)
       append_code(proto, code, u, "set_table", 3)
       append_code(proto, code, u, "pop", 1)
     end
+
+    process2(proto, scope, u[2], code)
+
     return
 
   elseif u_name == "local_function" then
     append_code(proto, code, u, "closure", u[2].proto.index)
     append_code(proto, code, u, "set_local", u[1].var)
+
+    process2(proto, scope, u[2], code)
+
+    return
+
+  elseif u_name == "local" then
+    local x, y = u[1], u[2]
+    process2(proto, scope, x, code)
+    if y then
+      process2(proto, scope, y, code)
+    else
+      append_code(proto, code, u, "push_nil", #x)
+    end
+
+    for i = #x, 1, -1 do
+      local v = x[i]
+      if v.attribute == "close" then
+        append_code(proto, code, u, "set_local_tbc", v.var)
+      else
+        append_code(proto, code, u, "set_local", v.var)
+      end
+    end
+
+    return
+
+  elseif u_name == "return" then
+    local v = u[1]
+
+    process2(proto, scope, v, code)
+
+    for _, var in u.locals:ipairs() do
+      if scope.proto.locals:get(var).attribute == "close" then
+        append_code(proto, code, u, "close", var)
+      end
+    end
+
+    append_code(proto, code, u, "return")
+    return
 
   elseif u_name == "explist" then
     local a = u.adjust
@@ -747,6 +787,8 @@ local function process2(proto, scope, u, code, target)
 
   elseif u_name == "functiondef" then
     append_code(proto, code, u, "closure", u[1].proto.index)
+    process2(proto, scope, u[1], code)
+    return
 
   elseif u.binop ~= nil then
     process2(proto, scope, u[1], code)
@@ -824,43 +866,24 @@ local function process2(proto, scope, u, code, target)
     return
 
   elseif u_name == "fieldlist" then
-    -- key=value形式でないfieldの個数を数える。
-    local x, y
-    local ns = 0
-    for i, v in ipairs(u) do
-      x, y = v[1], v[2]
-      v.ns = ns
-      if y == nil then
-        ns = ns + 1
-      end
-    end
-    u.ns = ns
     -- 末尾がkey=value形式でなく、functioncallまたは...で、かつnomultretが真で
     -- なければ、戻り値の個数を調節しない。
-    if x ~= nil and y == nil then
+    if #u > 0 then
+      local v = u[#u]
+      local x, y = v[1], v[2]
       local x_name = lua54_parser.symbol_names[x[0]]
       if (x_name == "functioncall" or x_name == "...") and not x.nr then
         x.nr = -1
-        -- TODO これは不要？
-        u.nr = ns - 1
       end
     end
 
     append_code(proto, code, u, "new_table")
     local top = proto.top
-
     for _, v in ipairs(u) do
       process2(proto, scope, v, code, top)
     end
+    append_code(proto, code, u, "set_list", top)
 
-    if u.nr ~= nil then
-      -- top = -top - u.nr - 1
-      append_code(proto, code, u, "set_list", -proto.top - u.nr - 1)
-
-    elseif u.ns > 0 then
-      -- top = top - u.ns
-      append_code(proto, code, u, "set_list", proto.top - u.ns)
-    end
     return
 
   elseif u_name == "field" then
@@ -925,66 +948,15 @@ local function process2(proto, scope, u, code, target)
 
     return
 
+  else
+    -- print(u_name)
+    for _, v in ipairs(u) do
+      process2(proto, scope, v, code)
+    end
+    return
   end
 
-  -------------------------------------------------------------------------
-
-  for _, v in ipairs(u) do
-    process2(proto, scope, v, code)
-  end
-
-  -------------------------------------------------------------------------
-
-  if u_name == "local" then
-    local x, y = u[1], u[2]
-    if y == nil then
-      append_code(proto, code, u, "push_nil", #x)
-    end
-
-
-    for i = #x, 1, -1 do
-      local v = x[i]
-      if v.attribute == "close" then
-        append_code(proto, code, u, "set_local_tbc", v.var)
-      else
-        append_code(proto, code, u, "set_local", v.var)
-      end
-    end
-
-
-  elseif u_name == "return" then
-    local v = u[1]
-
-    for _, var in u.locals:ipairs() do
-      if scope.proto.locals:get(var).attribute == "close" then
-        append_code(proto, code, u, "close", var)
-      end
-    end
-
-    append_code(proto, code, u, "return")
-
-  -------------------------------------------------------------------------
---[[
-  elseif u_name == "fieldlist" then
-    if u.nr ~= nil then
-      -- top = -top - u.nr - 1
-      append_code(proto, code, u, "set_list", -proto.top - u.nr - 1)
-
-    elseif u.ns > 0 then
-      -- top = top - u.ns
-      append_code(proto, code, u, "set_list", proto.top - u.ns)
-    end
-
-  elseif u_name == "field" then
-    if u[2] ~= nil then
-      append_code(proto, code, u, "set_table", u.ns + 3)
-    end
-
-
-]]
-
-  end
-
+  error "unreacheable"
 end
 
 ---------------------------------------------------------------------------
