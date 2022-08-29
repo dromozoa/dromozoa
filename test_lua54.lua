@@ -524,9 +524,9 @@ local function process2(scope, u, code, top)
     local v = #u > 0 and u[#u] or nil
     local v_name = v ~= nil and lua54_parser.symbol_names[v[0]] or nil
     if a == nil then
-      -- 末尾がfunctioncallまたは...で、かつnomultretが真でなければ、戻り値の個
+      -- 末尾がfunctioncallまたは...で、かつnrが定まっていなければ、戻り値の個
       -- 数を調節しない。
-      if (v_name == "functioncall" or v_name == "...") and not v.nomultret then
+      if (v_name == "functioncall" or v_name == "...") and not v.nr then
         v.nr = -1
         -- TODO これは不要？
         u.nr = #u - 1
@@ -549,7 +549,7 @@ local function process2(scope, u, code, top)
       --   2. さもなければ、pop(#u-a)を追加する。
       if v_name == "functioncall" or v_name == "..." then
         if #u < a then
-          if not v.nomultret then
+          if not v.nr then
             v.nr = a - #u + 1
           else
             v.nr = 1
@@ -685,7 +685,7 @@ local function process2(scope, u, code, top)
     -- なければ、戻り値の個数を調節しない。
     if x ~= nil and y == nil then
       local x_name = lua54_parser.symbol_names[x[0]]
-      if (x_name == "functioncall" or x_name == "...") and not x.nomultret then
+      if (x_name == "functioncall" or x_name == "...") and not x.nr then
         x.nr = -1
         -- TODO これは不要？
         u.nr = ns - 1

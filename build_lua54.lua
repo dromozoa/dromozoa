@@ -296,7 +296,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
   -- prefixexpを参照する箇所にfunctioncallを展開する。
   prefixexp
     = _"var"                                               %"$$=$1"
-    + _"(" "exp" ")"                                       %"$$=$2 $$.nomultret=true";
+    + _"(" "exp" ")"                                       %"$$=$2 $$.nr=1";
 
   functioncall
     = _"prefixexp" "args"

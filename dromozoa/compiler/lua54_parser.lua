@@ -122,7 +122,7 @@ function ()SS=S[1] append(S[2]) SS.unop='len'
 end;
 function ()SS=S[1] append(S[2]) SS.unop='bnot'
 end;
-function ()SS=S[2] SS.nomultret=true
+function ()SS=S[2] SS.nr=1
 end;
 function ()SS=S[2] append(S[1],S[3]) SS=S[0] append(S[2],S[4])
 end;
