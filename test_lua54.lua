@@ -414,7 +414,7 @@ end
 
 ---------------------------------------------------------------------------
 
-local function process2(proto, scope, u, code, target)
+local function process2(proto, scope, u, code)
   if u.proto then
     proto = u.proto
     code = proto.code
@@ -430,7 +430,6 @@ local function process2(proto, scope, u, code, target)
   local z = u[3]
 
   if u_name == "block" then
-
     local end_of_scope = u.end_of_scope
     for i, v in ipairs(u) do
       if end_of_scope == i then
@@ -455,7 +454,7 @@ local function process2(proto, scope, u, code, target)
 
   elseif u_name == "=" then
     process2(proto, scope, x, code)
-    local top = proto.top
+    local target = proto.top
     process2(proto, scope, y, code)
 
     for i = #x, 1, -1 do
@@ -467,8 +466,8 @@ local function process2(proto, scope, u, code, target)
           append_code(proto, code, u, "set_upvalue", v.var - 65536)
         end
       else
-        append_code(proto, code, u, "set_field", top - 1, top)
-        top = top - 2
+        append_code(proto, code, u, "set_field", target - 1, target)
+        target = target - 2
       end
     end
 
@@ -616,7 +615,6 @@ local function process2(proto, scope, u, code, target)
   elseif u_name == "local_function" then
     append_code(proto, code, u, "closure", y.proto.index)
     append_code(proto, code, u, "set_local", x.var)
-
     process2(proto, scope, y, code)
 
   elseif u_name == "local" then
@@ -761,29 +759,34 @@ local function process2(proto, scope, u, code, target)
     append_code(proto, code, u, "call", target, u.nr or 1)
 
   elseif u_name == "fieldlist" then
-    -- 末尾がkey=value形式でなく、functioncallまたは...で、かつnomultretが真で
-    -- なければ、戻り値の個数を調節しない。
-    if #u > 0 then
-      local v = u[#u]
-      local x, y = v[1], v[2]
-      local x_name = lua54_parser.symbol_names[x[0]]
-      if (x_name == "functioncall" or x_name == "...") and not x.nr then
-        x.nr = -1
+    -- 末尾がkey=value形式でなく、丸括弧で囲われていない関数呼び出し式または可
+    -- 変長引数式の場合は、戻り値の個数を調節しない。
+    if x then
+      local field = u[#u]
+      if not field[2] then
+        local v = field[1]
+        if not v.nr then
+          local v_name = lua54_parser.symbol_names[v[0]]
+          if v_name == "functioncall" or v_name == "..." then
+            v.nr = -1
+          end
+        end
       end
     end
 
     append_code(proto, code, u, "new_table")
     local target = proto.top
-    for _, v in ipairs(u) do
-      process2(proto, scope, v, code, target)
+    for i, v in ipairs(u) do
+      v.target = target
+      process2(proto, scope, v, code)
     end
     append_code(proto, code, u, "set_list", target)
 
   elseif u_name == "field" then
-    process2(proto, scope, u[1], code)
-    if u[2] then
-      process2(proto, scope, u[2], code)
-      append_code(proto, code, u, "set_table", target)
+    process2(proto, scope, x, code)
+    if y then
+      process2(proto, scope, y, code)
+      append_code(proto, code, u, "set_table", u.target)
     end
 
   elseif u_name == "nil" then
