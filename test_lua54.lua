@@ -414,7 +414,7 @@ end
 
 ---------------------------------------------------------------------------
 
-local function process2(proto, scope, u, code)
+local function process2(proto, scope, u, code, target)
   if u.proto then
     proto = u.proto
     code = proto.code
@@ -847,6 +847,29 @@ local function process2(proto, scope, u, code)
     end
 
     append_code(proto, code, u, "new_table")
+    local top = proto.top
+
+    for _, v in ipairs(u) do
+      process2(proto, scope, v, code, top)
+    end
+
+    if u.nr ~= nil then
+      -- top = -top - u.nr - 1
+      append_code(proto, code, u, "set_list", -proto.top - u.nr - 1)
+
+    elseif u.ns > 0 then
+      -- top = top - u.ns
+      append_code(proto, code, u, "set_list", proto.top - u.ns)
+    end
+    return
+
+  elseif u_name == "field" then
+    process2(proto, scope, u[1], code)
+    if u[2] then
+      process2(proto, scope, u[2], code)
+      append_code(proto, code, u, "set_table", target)
+    end
+    return
 
   elseif u_name == "nil" then
     append_code(proto, code, u, "push_nil", 1)
@@ -941,7 +964,7 @@ local function process2(proto, scope, u, code)
     append_code(proto, code, u, "return")
 
   -------------------------------------------------------------------------
-
+--[[
   elseif u_name == "fieldlist" then
     if u.nr ~= nil then
       -- top = -top - u.nr - 1
@@ -956,6 +979,9 @@ local function process2(proto, scope, u, code)
     if u[2] ~= nil then
       append_code(proto, code, u, "set_table", u.ns + 3)
     end
+
+
+]]
 
   end
 
