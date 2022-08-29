@@ -454,26 +454,33 @@ local function process2(proto, scope, u, code)
 
   elseif u_name == "=" then
 
+    assert(proto.top == 0)
+
     process2(proto, scope, u[1], code)
+    local top = proto.top
+
     process2(proto, scope, u[2], code)
 
     local x, y = u[1], u[2]
+    local t = top
     for i = #x, 1, -1 do
       local v = x[i]
-      if v.ns_item then
-        local j = i + x.ns - v.ns
-        append_code(proto, code, u, "set_field", j, j - 1)
-      else
-        assert(v.var ~= nil)
+      if v.var then
         if v.var <= 65536 then
           append_code(proto, code, u, "set_local", v.var)
         else
           append_code(proto, code, u, "set_upvalue", v.var - 65536)
         end
+      else
+        assert(t > 0)
+        append_code(proto, code, u, "set_field", t - 1, t)
+        t = t - 2
       end
     end
-    if x.ns > 0 then
-      append_code(proto, code, u, "pop", x.ns)
+    assert(t == 0)
+    assert(top == proto.top)
+    if top > 0 then
+      append_code(proto, code, u, "pop", top)
     end
 
     return
@@ -650,18 +657,6 @@ local function process2(proto, scope, u, code)
     for _, v in ipairs(u) do
       process2(proto, scope, v, code)
     end
-
-    local ns = 0
-    for _, v in ipairs(u) do
-      v.ns = ns
-      -- TODO settableの場合、スタックに2個つまれる。_ENVを参照する場合を考慮し
-      -- てコード生成後に調べる。最終的には、スタックの状態を数えるようにする。
-      -- if #v.code > 0 then
-      if v.ns_item then
-        ns = ns + 2
-      end
-    end
-    u.ns = ns
 
     return
 
