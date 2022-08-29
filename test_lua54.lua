@@ -531,56 +531,43 @@ local function process2(proto, scope, u, code, target)
     append_code(proto, else_block, u, "break")
 
   elseif u_name == "repeat" then
-    local loop = append_code(proto, code, u, "loop")
+    local loop_block = append_code(proto, code, u, "loop")
 
-    process2(proto, scope, u[1], loop)
-    process2(proto, scope, u[2], loop)
+    process2(proto, scope, x, loop_block)
+    process2(proto, scope, y, loop_block)
 
     for j = scope.locals:size(), 1, -1 do
       local var = scope.locals:get(j)
       if scope.proto.locals:get(var).attribute == "close" then
-        append_code(proto, loop, u, "close", var)
+        append_code(proto, loop_block, u, "close", var)
       end
     end
 
-    local then_block = append_if(proto, loop, u)
+    local then_block = append_if(proto, loop_block, u)
     append_code(proto, then_block, u, "break")
 
-    return
-
   elseif u_name == "if" or u_name == "elseif" then
-
-    process2(proto, scope, u[1], code)
-
+    process2(proto, scope, x, code)
     local then_block, else_block = append_if(proto, code, u)
-    process2(proto, scope, u[2], then_block)
-    process2(proto, scope, u[3], else_block)
-
-    return
+    process2(proto, scope, y, then_block)
+    process2(proto, scope, z, else_block)
 
   elseif u_name == "for" then
-    process2(proto, scope, u[2], code)
+    process2(proto, scope, y, code)
     append_code(proto, code, u, "set_local", u.var + 2)
     append_code(proto, code, u, "set_local", u.var + 1)
     append_code(proto, code, u, "set_local", u.var)
-
-    local loop = append_code(proto, code, u, "for", u.var)
-
-    process2(proto, scope, u[3], loop)
-
-    assert(u.var + 3 == u[1].var)
-    return
-
+    local loop_block = append_code(proto, code, u, "for", u.var)
+    process2(proto, scope, z, loop_block)
 
   elseif u_name == "exp_2or3" then
-    process2(proto, scope, u[1], code)
-    process2(proto, scope, u[2], code)
-    if u[3] then
-      process2(proto, scope, u[3], code)
+    process2(proto, scope, x, code)
+    process2(proto, scope, y, code)
+    if z then
+      process2(proto, scope, z, code)
     else
       append_code(proto, code, u, "push_numeral", "1", "DecimalIntegerNumeral")
     end
-    return
 
   elseif u_name == "for_in" then
     process2(proto, scope, u[2], code)
