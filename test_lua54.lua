@@ -414,14 +414,18 @@ end
 
 ---------------------------------------------------------------------------
 
-local function process2(scope, u, code)
+local function process2(proto, scope, u, code)
+  if u.proto then
+    proto = u.proto
+    code = proto.code
+  end
+
   if u.scope ~= nil then
-    if u.scope.proto ~= scope.proto then
-      code = u.scope.proto.code
-    end
+    -- if u.scope.proto ~= scope.proto then
+    --   code = u.scope.proto.code
+    -- end
     scope = u.scope
   end
-  local proto = scope.proto
 
   local u_name = lua54_parser.symbol_names[u[0]]
 
@@ -437,7 +441,7 @@ local function process2(scope, u, code)
           end
         end
       end
-      process2(scope, v, code)
+      process2(proto, scope, v, code)
     end
 
     if not scope.repeat_until and end_of_scope == nil then
@@ -504,10 +508,10 @@ local function process2(scope, u, code)
   elseif u_name == "while" then
     local loop = append_code(proto, code, u, "loop")
 
-    process2(scope, u[1], loop)
+    process2(proto, scope, u[1], loop)
 
     local then_block, else_block = append_if(proto, loop, u)
-    process2(scope, u[2], then_block)
+    process2(proto, scope, u[2], then_block)
     append_code(proto, then_block, u, "break")
 
     return
@@ -515,7 +519,7 @@ local function process2(scope, u, code)
   elseif u_name == "repeat" then
     local loop = append_code(proto, code, u, "loop")
 
-    process2(scope, u[1], loop)
+    process2(proto, scope, u[1], loop)
 
     for j = scope.locals:size(), 1, -1 do
       local var = scope.locals:get(j)
@@ -531,29 +535,29 @@ local function process2(scope, u, code)
 
   elseif u_name == "if" or u_name == "elseif" then
 
-    process2(scope, u[1], code)
+    process2(proto, scope, u[1], code)
 
     local then_block, else_block = append_if(proto, code, u)
-    process2(scope, u[2], then_block)
-    process2(scope, u[3], else_block)
+    process2(proto, scope, u[2], then_block)
+    process2(proto, scope, u[3], else_block)
 
     return
 
   elseif u_name == "for" then
-    process2(scope, u[2], code)
+    process2(proto, scope, u[2], code)
     append_code(proto, code, u, "set_local", u.var + 2)
     append_code(proto, code, u, "set_local", u.var + 1)
     append_code(proto, code, u, "set_local", u.var)
 
     local loop = append_code(proto, code, u, "for", u.var)
 
-    process2(scope, u[3], loop)
+    process2(proto, scope, u[3], loop)
 
     assert(u.var + 3 == u[1].var)
     return
 
   elseif u_name == "for_in" then
-    process2(scope, u[2], code)
+    process2(proto, scope, u[2], code)
 
     append_code(proto, code, u, "set_local_tbc", u.var + 3)
     append_code(proto, code, u, "set_local", u.var + 2)
@@ -600,7 +604,7 @@ local function process2(scope, u, code)
     append_code(proto, else_block, u, "get_local", u.var + 4)
     append_code(proto, else_block, u, "set_local", u.var + 2)
 
-    process2(scope, u[3], loop)
+    process2(proto, scope, u[3], loop)
     return
 
   elseif u_name == "local_function" then
@@ -680,20 +684,20 @@ local function process2(scope, u, code)
 
   elseif u_name == "and" then
 
-    process2(scope, u[1], code)
+    process2(proto, scope, u[1], code)
     append_code(proto, code, u, "dup")
     local then_block = append_if(proto, code, u)
     append_code(proto, then_block, u, "pop", 1)
-    process2(scope, u[2], then_block)
+    process2(proto, scope, u[2], then_block)
     return
 
   elseif u_name == "or" then
 
-    process2(scope, u[1], code)
+    process2(proto, scope, u[1], code)
     append_code(proto, code, u, "dup")
     local _, else_block = append_if(proto, code, u)
     append_code(proto, else_block, u, "pop", 1)
-    process2(scope, u[2], else_block)
+    process2(proto, scope, u[2], else_block)
     return
 
   elseif u_name == "." then
@@ -704,9 +708,9 @@ local function process2(scope, u, code)
 
   elseif u_name == ":" then
 
-    process2(scope, u[1], code)
+    process2(proto, scope, u[1], code)
     append_code(proto, code, u, "dup")
-    process2(scope, u[2], code)
+    process2(proto, scope, u[2], code)
 
     -- self self key => self f
     append_code(proto, code, u, "get_table", 2)
@@ -725,7 +729,7 @@ local function process2(scope, u, code)
     local x_name = lua54_parser.symbol_names[x[0]]
 
     -- TODO xに関数のインデックスをうけておくと、なんかうまい具合にいく？
-    process2(scope, u[1], code)
+    process2(proto, scope, u[1], code)
     local f
     if x_name == ":" then
       f = proto.top - 1
@@ -734,7 +738,7 @@ local function process2(scope, u, code)
     end
     assert(f > 0)
 
-    process2(scope, u[2], code)
+    process2(proto, scope, u[2], code)
 
     append_code(proto, code, u, "call", f, u.nr)
 
@@ -837,7 +841,7 @@ local function process2(scope, u, code)
   -------------------------------------------------------------------------
 
   for _, v in ipairs(u) do
-    process2(scope, v, code)
+    process2(proto, scope, v, code)
   end
 
   -------------------------------------------------------------------------
@@ -1014,7 +1018,7 @@ local function process(chunk)
   local scope = { locals = array(), proto = proto }
   declare(scope, "_ENV")
   process1(protos, proto, scope, chunk)
-  process2(scope, chunk)
+  process2(proto, scope, chunk)
   return protos
 end
 
