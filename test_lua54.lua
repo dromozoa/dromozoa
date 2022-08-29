@@ -841,39 +841,29 @@ local function process2(proto, scope, u, code)
       return
     end
 
-
-    if not u.define then
-      if u.var ~= nil then
+    if not u.var then
+      assert(u.env ~= nil)
+      if u.env <= 65536 then
+        append_code(proto, code, u, "get_local", u.env)
+      else
+        append_code(proto, code, u, "get_upvalue", u.env - 65536)
+      end
+      append_code(proto, code, u, "push_literal", u.v)
+      if not u.define then
+        append_code(proto, code, u, "get_table", 2)
+      else
+        u.ns_item = 2
+      end
+    else
+      if not u.define then
         if u.var <= 65536 then
           append_code(proto, code, u, "get_local", u.var)
         else
           append_code(proto, code, u, "get_upvalue", u.var - 65536)
         end
-      else
-        assert(u.env ~= nil)
-        if u.env <= 65536 then
-          append_code(proto, code, u, "get_local", u.env)
-        else
-          append_code(proto, code, u, "get_upvalue", u.env - 65536)
-        end
-        append_code(proto, code, u, "push_literal", u.v)
-        append_code(proto, code, u, "get_table", 2)
       end
-    else
-
-      -- set_table/set_fieldを準備
-      if u.var == nil then
-        assert(u.env ~= nil)
-        if u.env <= 65536 then
-          append_code(proto, code, u, "get_local", u.env)
-        else
-          append_code(proto, code, u, "get_upvalue", u.env - 65536)
-        end
-        append_code(proto, code, u, "push_literal", u.v)
-        u.ns_item = 2
-      end
-
     end
+
     return
 
   end
