@@ -427,7 +427,6 @@ local function process2(scope, u, code)
   local traversed
 
   if u_name == "block" then
-    traversed = true
 
     local end_of_scope = u.end_of_scope
     for i, v in ipairs(u) do
@@ -451,8 +450,11 @@ local function process2(scope, u, code)
       end
     end
 
+    return
+
   elseif u_name == "label" then
     append_code(proto, code, u, "label", u.label)
+    return
 
   elseif u_name == "break" then
     local v = u.target
@@ -472,6 +474,7 @@ local function process2(scope, u, code)
       end
     end
     append_code(proto, code, u, "break")
+    return
 
   elseif u_name == "goto" then
     local v = u[1]
@@ -497,11 +500,9 @@ local function process2(scope, u, code)
       end
     end
     append_code(proto, code, u, "goto", u.label)
-
+    return
 
   elseif u_name == "while" then
-    traversed = true
-
     local loop = append_code(proto, code, u, "loop")
 
     process2(scope, u[1], loop)
@@ -510,11 +511,26 @@ local function process2(scope, u, code)
     process2(scope, u[2], then_block)
     append_code(proto, then_block, u, "break")
 
+    return
+
   elseif u_name == "repeat" then
-    code = append_code(proto, code, u, "loop")
+    local loop = append_code(proto, code, u, "loop")
+
+    process2(scope, u[1], loop)
+
+    for j = scope.locals:size(), 1, -1 do
+      local var = scope.locals:get(j)
+      if scope.proto.locals:get(var).attribute == "close" then
+        append_code(proto, loop, u, "close", var)
+      end
+    end
+
+    local then_block = append_if(proto, loop, u)
+    append_code(proto, then_block, u, "break")
+
+    return
 
   elseif u_name == "if" or u_name == "elseif" then
-    traversed = true
 
     process2(scope, u[1], code)
 
@@ -522,9 +538,9 @@ local function process2(scope, u, code)
     process2(scope, u[2], then_block)
     process2(scope, u[3], else_block)
 
-  elseif u_name == "for" then
-    traversed = true
+    return
 
+  elseif u_name == "for" then
     process2(scope, u[2], code)
     append_code(proto, code, u, "set_local", u.var + 2)
     append_code(proto, code, u, "set_local", u.var + 1)
@@ -535,10 +551,9 @@ local function process2(scope, u, code)
     process2(scope, u[3], loop)
 
     assert(u.var + 3 == u[1].var)
+    return
 
   elseif u_name == "for_in" then
-    traversed = true
-
     process2(scope, u[2], code)
 
     append_code(proto, code, u, "set_local_tbc", u.var + 3)
@@ -587,6 +602,7 @@ local function process2(scope, u, code)
     append_code(proto, else_block, u, "set_local", u.var + 2)
 
     process2(scope, u[3], loop)
+    return
 
   elseif u_name == "local_function" then
     append_code(proto, code, u, "closure", u[2].proto.index)
@@ -652,35 +668,36 @@ local function process2(scope, u, code)
     end
 
     append_code(proto, code, u, "vararg", u.nr)
+    return
 
   elseif u_name == "functiondef" then
     append_code(proto, code, u, "closure", u[1].proto.index)
 
   elseif u_name == "and" then
-    traversed = true
 
     process2(scope, u[1], code)
     append_code(proto, code, u, "dup")
     local then_block = append_if(proto, code, u)
     append_code(proto, then_block, u, "pop", 1)
     process2(scope, u[2], then_block)
+    return
 
   elseif u_name == "or" then
-    traversed = true
 
     process2(scope, u[1], code)
     append_code(proto, code, u, "dup")
     local _, else_block = append_if(proto, code, u)
     append_code(proto, else_block, u, "pop", 1)
     process2(scope, u[2], else_block)
+    return
 
   elseif u_name == "." then
+    -- TODO ns_itemはいらなくなるはず
     if u.define then
       u.ns_item = 2
     end
 
   elseif u_name == ":" then
-    traversed = true
 
     process2(scope, u[1], code)
     append_code(proto, code, u, "dup")
@@ -691,13 +708,13 @@ local function process2(scope, u, code)
     -- self f => f self
     append_code(proto, code, u, "swap")
 
+    return
+
   elseif u_name == "functioncall" then
     -- 戻り値の個数が調節されていないfunctioncallと...は、1個に調節する。
     if u.nr == nil then
       u.nr = 1
     end
-
-    traversed = true
 
     local x, y = u[1], u[2]
     local x_name = lua54_parser.symbol_names[x[0]]
@@ -715,6 +732,8 @@ local function process2(scope, u, code)
     process2(scope, u[2], code)
 
     append_code(proto, code, u, "call", f, u.nr)
+
+    return
 
   elseif u_name == "fieldlist" then
     -- key=value形式でないfieldの個数を数える。
@@ -743,18 +762,23 @@ local function process2(scope, u, code)
 
   elseif u_name == "nil" then
     append_code(proto, code, u, "push_nil", 1)
+    return
 
   elseif u_name == "false" then
     append_code(proto, code, u, "push_false")
+    return
 
   elseif u_name == "true" then
     append_code(proto, code, u, "push_true")
+    return
 
   elseif u_name == "LiteralString" then
     append_code(proto, code, u, "push_literal", u.v)
+    return
 
   elseif u_name == "Numeral" then
     append_code(proto, code, u, "push_numeral", u.v, u.hint)
+    return
 
   elseif u_name == "Name" then
     -- 1. declareが真ならば、文で命令を生成する。
@@ -801,6 +825,7 @@ local function process2(scope, u, code)
         append_code(proto, code, u, "push_literal", u.v)
       end
     end
+    return
 
   end
 
@@ -834,17 +859,6 @@ local function process2(scope, u, code)
     if x.ns > 0 then
       append_code(proto, code, u, "pop", x.ns)
     end
-
-  elseif u_name == "repeat" then
-    for j = scope.locals:size(), 1, -1 do
-      local var = scope.locals:get(j)
-      if scope.proto.locals:get(var).attribute == "close" then
-        append_code(proto, code, u, "close", var)
-      end
-    end
-
-    local then_block = append_if(proto, code, u)
-    append_code(proto, then_block, u, "break")
 
   elseif u_name == "exp_2or3" then
     if u[3] == nil then
@@ -949,7 +963,6 @@ local function process2(scope, u, code)
 
   end
 
-  -- u.top = proto.top
 end
 
 ---------------------------------------------------------------------------
