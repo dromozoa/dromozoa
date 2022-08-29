@@ -620,7 +620,6 @@ local function process2(proto, scope, u, code, target)
     process2(proto, scope, y, code)
 
   elseif u_name == "local" then
-    local x, y = u[1], u[2]
     process2(proto, scope, x, code)
     if y then
       process2(proto, scope, y, code)
@@ -637,12 +636,8 @@ local function process2(proto, scope, u, code, target)
       end
     end
 
-    return
-
   elseif u_name == "return" then
-    local v = u[1]
-
-    process2(proto, scope, v, code)
+    process2(proto, scope, x, code)
 
     for _, var in u.locals:ipairs() do
       if scope.proto.locals:get(var).attribute == "close" then
@@ -651,7 +646,6 @@ local function process2(proto, scope, u, code, target)
     end
 
     append_code(proto, code, u, "return")
-    return
 
   elseif u_name == "explist" then
     local a = u.adjust
@@ -717,76 +711,59 @@ local function process2(proto, scope, u, code, target)
     return
 
   elseif u_name == "..." then
-    -- 戻り値の個数が調節されていないfunctioncallと...は、1個に調節する。
-    if u.nr == nil then
+    -- 戻り値の個数が調節されていない...は、1個に調節する。
+    if not u.nr then
       u.nr = 1
     end
-
     append_code(proto, code, u, "vararg", u.nr)
-    return
 
   elseif u_name == "functiondef" then
-    append_code(proto, code, u, "closure", u[1].proto.index)
-    process2(proto, scope, u[1], code)
-    return
+    append_code(proto, code, u, "closure", x.proto.index)
+    process2(proto, scope, x, code)
 
-  elseif u.binop ~= nil then
-    process2(proto, scope, u[1], code)
-    process2(proto, scope, u[2], code)
+  elseif u.binop then
+    process2(proto, scope, x, code)
+    process2(proto, scope, y, code)
     append_code(proto, code, u, u.binop)
-    return
 
-  elseif u.unop ~= nil then
-    process2(proto, scope, u[1], code)
+  elseif u.unop then
+    process2(proto, scope, x, code)
     append_code(proto, code, u, u.unop)
-    return
 
   elseif u_name == "and" then
-
-    process2(proto, scope, u[1], code)
+    process2(proto, scope, x, code)
     append_code(proto, code, u, "dup")
     local then_block = append_if(proto, code, u)
     append_code(proto, then_block, u, "pop", 1)
-    process2(proto, scope, u[2], then_block)
-    return
+    process2(proto, scope, y, then_block)
 
   elseif u_name == "or" then
-
-    process2(proto, scope, u[1], code)
+    process2(proto, scope, x, code)
     append_code(proto, code, u, "dup")
     local _, else_block = append_if(proto, code, u)
     append_code(proto, else_block, u, "pop", 1)
-    process2(proto, scope, u[2], else_block)
-    return
+    process2(proto, scope, y, else_block)
 
   elseif u_name == "." then
-    process2(proto, scope, u[1], code)
-    process2(proto, scope, u[2], code)
+    process2(proto, scope, x, code)
+    process2(proto, scope, y, code)
     if not u.define then
       append_code(proto, code, u, "get_table", 2)
     end
-    return
 
   elseif u_name == ":" then
-
-    process2(proto, scope, u[1], code)
+    process2(proto, scope, x, code)
     append_code(proto, code, u, "dup")
-    process2(proto, scope, u[2], code)
-
-    -- self self key => self f
+    process2(proto, scope, y, code)
     append_code(proto, code, u, "get_table", 2)
-    -- self f => f self
     append_code(proto, code, u, "swap")
 
-    return
-
   elseif u_name == "functioncall" then
-    -- 戻り値の個数が調節されていないfunctioncallと...は、1個に調節する。
-    if u.nr == nil then
+    -- 戻り値の個数が調節されていないfunctioncallは、1個に調節する。
+    if not u.nr then
       u.nr = 1
     end
 
-    local x, y = u[1], u[2]
     local x_name = lua54_parser.symbol_names[x[0]]
 
     -- TODO xに関数のインデックスをうけておくと、なんかうまい具合にいく？
