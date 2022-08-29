@@ -711,11 +711,7 @@ local function process2(proto, scope, u, code, target)
     return
 
   elseif u_name == "..." then
-    -- 戻り値の個数が調節されていない...は、1個に調節する。
-    if not u.nr then
-      u.nr = 1
-    end
-    append_code(proto, code, u, "vararg", u.nr)
+    append_code(proto, code, u, "vararg", u.nr or 1)
 
   elseif u_name == "functiondef" then
     append_code(proto, code, u, "closure", x.proto.index)
@@ -759,14 +755,10 @@ local function process2(proto, scope, u, code, target)
     append_code(proto, code, u, "swap")
 
   elseif u_name == "functioncall" then
-    -- 戻り値の個数が調節されていないfunctioncallは、1個に調節する。
-    if not u.nr then
-      u.nr = 1
-    end
     local target = proto.top + 1
     process2(proto, scope, x, code)
     process2(proto, scope, y, code)
-    append_code(proto, code, u, "call", target, u.nr)
+    append_code(proto, code, u, "call", target, u.nr or 1)
 
   elseif u_name == "fieldlist" then
     -- 末尾がkey=value形式でなく、functioncallまたは...で、かつnomultretが真で
