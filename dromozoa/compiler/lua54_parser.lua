@@ -5,8 +5,8 @@ local main = function ()
   local S
   local SS
   local action_data = (function ()
-        local function proto(vararg)
-      return { vararg = vararg }
+        local function proto()
+      return {}
     end
 
     local function scope(repeat_until)
@@ -16,7 +16,7 @@ local main = function ()
 
     return { function ()
 end;
-function ()SS.proto=proto(true) SS.scope=scope()
+function ()SS.vararg=true SS.proto=proto() SS.scope=scope()
 end;
 function ()SS=S[1]
 end;
@@ -144,7 +144,7 @@ function ()SS=S[0] append(S[2])
 end;
 function ()SS=S[0] append(create(81),S[3]) SS.proto=proto() SS.scope=scope()
 end;
-function ()SS=S[0] append(S[2],S[4]) SS.proto=proto(S[2].vararg) SS.scope=scope()
+function ()SS=S[0] append(S[2],S[4]) SS.vararg=S[2].vararg SS.proto=proto() SS.scope=scope()
 end;
 function ()SS=S[1] SS.vararg=true
 end;

@@ -148,8 +148,8 @@ local right = parser.grammar.right
 -- TODO multretではなくmulti resultsかもしれない（Luaの用語だけど）
 local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
   [[
-    local function proto(vararg)
-      return { vararg = vararg }
+    local function proto()
+      return {}
     end
 
     local function scope(repeat_until)
@@ -173,7 +173,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
   right "^";
 
   chunk
-    = _"block"                                             %"$$.proto=proto(true) $$.scope=scope()";
+    = _"block"                                             %"$$.vararg=true $$.proto=proto() $$.scope=scope()";
 
   block
     = _"block_"                                            %"$$=$1"
@@ -324,7 +324,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 
   funcbody
     = _"(" ")" "block" "end"                               %"$$=$0 append(create($namelist),$3) $$.proto=proto() $$.scope=scope()"
-    + _"(" "parlist" ")" "block" "end"                     %"$$=$0 append($2,$4) $$.proto=proto($2.vararg) $$.scope=scope()";
+    + _"(" "parlist" ")" "block" "end"                     %"$$=$0 append($2,$4) $$.vararg=$2.vararg $$.proto=proto() $$.scope=scope()";
 
   parlist
     = _"namelist"                                          %"$$=$1"

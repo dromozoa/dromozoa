@@ -151,6 +151,7 @@ end
 
 local function process1(protos, proto, scope, u, loop)
   if u.proto ~= nil then
+    u.proto.vararg = u.vararg
     u.proto.labels = array()
     u.proto.locals = array()
     u.proto.upvalues = array()
