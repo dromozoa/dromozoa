@@ -420,10 +420,7 @@ local function process2(proto, scope, u, code)
     code = proto.code
   end
 
-  if u.scope ~= nil then
-    -- if u.scope.proto ~= scope.proto then
-    --   code = u.scope.proto.code
-    -- end
+  if u.scope then
     scope = u.scope
   end
 
