@@ -570,8 +570,7 @@ local function process2(proto, scope, u, code, target)
     end
 
   elseif u_name == "for_in" then
-    process2(proto, scope, u[2], code)
-
+    process2(proto, scope, y, code)
     append_code(proto, code, u, "set_local_tbc", u.var + 3)
     append_code(proto, code, u, "set_local", u.var + 2)
     append_code(proto, code, u, "set_local", u.var + 1)
@@ -590,25 +589,22 @@ local function process2(proto, scope, u, code, target)
     --    end
     --  end
 
-    local x = u[1]
+    local loop_block = append_code(proto, code, u, "loop")
+    append_code(proto, loop_block, u, "get_local", u.var)
+    append_code(proto, loop_block, u, "get_local", u.var + 1)
+    append_code(proto, loop_block, u, "get_local", u.var + 2)
 
-    local loop = append_code(proto, code, u, "loop")
-    -- この時点でスタックは空
-    append_code(proto, loop, u, "get_local", u.var)
-    append_code(proto, loop, u, "get_local", u.var + 1)
-    append_code(proto, loop, u, "get_local", u.var + 2)
-
-    append_code(proto, loop, u, "call", 1, #x)
+    append_code(proto, loop_block, u, "call", 1, #x)
     for i = #x, 1, -1 do
       local v = x[i]
-      append_code(proto, loop, u, "set_local", v.var)
+      append_code(proto, loop_block, u, "set_local", v.var)
     end
     -- この時点でスタックは空
 
-    append_code(proto, loop, u, "get_local", u.var + 4)
+    append_code(proto, loop_block, u, "get_local", u.var + 4)
     assert(u.var + 4 == x[1].var)
-    append_code(proto, loop, u, "push_nil", 1)
-    append_code(proto, loop, u, "eq")
+    append_code(proto, loop_block, u, "push_nil", 1)
+    append_code(proto, loop_block, u, "eq")
 
     local then_block, else_block = append_if(proto, code, u)
 
@@ -617,8 +613,7 @@ local function process2(proto, scope, u, code, target)
     append_code(proto, else_block, u, "get_local", u.var + 4)
     append_code(proto, else_block, u, "set_local", u.var + 2)
 
-    process2(proto, scope, u[3], loop)
-    return
+    process2(proto, scope, u[3], loop_block)
 
   elseif u_name == "function" then
     assert(proto.top == 0)
