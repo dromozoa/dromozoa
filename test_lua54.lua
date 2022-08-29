@@ -847,13 +847,14 @@ local function process2(proto, scope, u, code)
       else
         u.ns_item = 2
       end
-    else
-      if not u.define then
-        if u.var <= 65536 then
-          append_code(proto, code, u, "get_local", u.var)
-        else
-          append_code(proto, code, u, "get_upvalue", u.var - 65536)
-        end
+      return
+    end
+
+    if not u.define then
+      if u.var <= 65536 then
+        append_code(proto, code, u, "get_local", u.var)
+      else
+        append_code(proto, code, u, "get_upvalue", u.var - 65536)
       end
     end
 
