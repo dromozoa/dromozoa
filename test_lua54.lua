@@ -825,13 +825,6 @@ local function process2(proto, scope, u, code)
     return
 
   elseif u_name == "Name" then
-    -- 1. declareが真ならば、文で命令を生成する。
-    -- 2. resolveが真でdefineが真ならば、文で命令を生成する。
-    -- 3. resolveが真でdefineが真でなければ、参照命令を生成する。
-    -- 4. labelが真ならば、文で命令を生成する。
-    -- 5. さもなければ、テーブルインデックスとして使用する文字列リテラル命令を
-    --    生成する。
-
     if u.declare or u.label then
       return
     end
