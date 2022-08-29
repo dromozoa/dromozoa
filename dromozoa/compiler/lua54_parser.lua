@@ -40,7 +40,7 @@ function ()SS=S[1] append(S[2],S[4],S[5]) S[4].scope=scope()
 end;
 function ()SS=S[1] append(S[2],S[4],S[6]) SS.loop=true SS.scope=scope() S[6].scope=scope() S[2].declare=true
 end;
-function ()SS=S[1] append(S[2],S[3]) S[2].define=true S[3].proto.self=S[2].self
+function ()SS=S[1] append(S[2],S[3]) S[2].define=true S[3].self=S[2].self
 end;
 function ()SS=S[1] append(S[2],S[4]) S[4].adjust=#S[2]
 end;

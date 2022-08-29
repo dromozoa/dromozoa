@@ -196,7 +196,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"if" "exp" "then" "block" "else_clause" "end"       %"$$=$1 append($2,$4,$5) $4.scope=scope()"
     + _"for" "Name" "=" "exp_2or3" "do" "block" "end"      %"$$=$1 append($2,$4,$6) $$.loop=true $$.scope=scope() $6.scope=scope() $2.declare=true"
     + _"for_in"                                            %"$$=$1"
-    + _"function" "funcname" "funcbody"                    %"$$=$1 append($2,$3) $2.define=true $3.proto.self=$2.self"
+    + _"function" "funcname" "funcbody"                    %"$$=$1 append($2,$3) $2.define=true $3.self=$2.self"
     + _"local_function"                                    %"$$=$1"
     + _"local" "attnamelist"                               %"$$=$1 append($2)"
     + _"local" "attnamelist" "=" "explist"                 %"$$=$1 append($2,$4) $4.adjust=#$2";
