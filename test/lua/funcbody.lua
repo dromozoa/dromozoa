@@ -15,12 +15,62 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local a = { b = {} }
-local f1
+local function f1()
+end
 
-function f0() end
-function f1() end
-function a.f2() end
-function a:f3() end
-function a.b.f4(x) end
-function a.b:f5(y) end
+local function f2(a)
+end
+
+local function f3(...)
+end
+
+local function f1()
+  return
+end
+
+local function f2(a)
+  return
+end
+
+local function f3(...)
+  return
+end
+
+local function f1()
+  return 1
+end
+
+local function f2(a)
+  return 2
+end
+
+local function f3(...)
+  return 3
+end
+
+local function f1()
+  return 1
+end
+
+local function f2(a)
+  return 2, a
+end
+
+local function f3(...)
+  return 3, ...
+end
+
+local function f1()
+  local f <close> = io.open "/dev/null"
+  return 1
+end
+
+local function f2(a)
+  local f <close> = io.open "/dev/null"
+  return 2
+end
+
+local function f3(...)
+  local f <close> = io.open "/dev/null"
+  return 3
+end

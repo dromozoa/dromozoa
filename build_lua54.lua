@@ -145,20 +145,6 @@ local left = parser.grammar.left
 local right = parser.grammar.right
 
 local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
-  [[
-    local function proto(vararg)
-      return { vararg = vararg }
-    end
-
-    local function scope(repeat_until)
-      return { repeat_until = repeat_until }
-    end
-
-    local function code(op, a, b)
-      return { { [0] = op, a = a, b = b } }
-    end
-  ]];
-
   expect(3);
 
   left "or";
@@ -175,7 +161,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
   right "^";
 
   chunk
-    = _"block"                                             %"$$.proto=proto(true) $$.scope=scope()";
+    = _"block"                                             %"$$.vararg=true $$.proto=true $$.scope=true";
 
   block
     = _"block_"                                            %"$$=$1"
@@ -191,29 +177,29 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"functioncall"                                      %"$$=$1 $$.nr=0"
     + _"label"                                             %"$$=$1 append($2)"
     + _"break"                                             %"$$=$1"
-    + _"goto" "Name"                                       %"$$=$1 append($2) $2.resolve_label=true"
-    + _"do" "block" "end"                                  %"$$=$1 append($2) $2.scope=scope()"
-    + _"while" "exp" "do" "block" "end"                    %"$$=$1 append($2,$4) $$.loop=true $4.scope=scope()"
-    + _"repeat" "block" "until" "exp"                      %"$$=$1 append($2,$4) $$.loop=true $$.scope=scope(true)"
-    + _"if" "exp" "then" "block" "else_clause" "end"       %"$$=$1 append($2,$4,$5) $4.scope=scope()"
-    + _"for" "Name" "=" "exp_2or3" "do" "block" "end"      %"$$=$1 append($2,$4,$6) $$.loop=true $$.scope=scope() $6.scope=scope() $2.declare=true"
+    + _"goto" "Name"                                       %"$$=$1 append($2) $2.label=true"
+    + _"do" "block" "end"                                  %"$$=$1 append($2) $2.scope=true"
+    + _"while" "exp" "do" "block" "end"                    %"$$=$1 append($2,$4) $$.loop=true $4.scope=true"
+    + _"repeat" "block" "until" "exp"                      %"$$=$1 append($2,$4) $$.loop=true $$.scope=true"
+    + _"if" "exp" "then" "block" "else_clause" "end"       %"$$=$1 append($2,$4,$5) $4.scope=true"
+    + _"for" "Name" "=" "exp_2or3" "do" "block" "end"      %"$$=$1 append($2,$4,$6) $$.loop=true $$.scope=true $2.declare=true $6.scope=true"
     + _"for_in"                                            %"$$=$1"
-    + _"function" "funcname" "funcbody"                    %"$$=$1 append($2,$3) $2.define=true $3.proto.self=$2.self"
+    + _"function" "funcname" "funcbody"                    %"$$=$1 append($2,$3) $2.define=true $3.self=$2.self"
     + _"local_function"                                    %"$$=$1"
     + _"local" "attnamelist"                               %"$$=$1 append($2)"
     + _"local" "attnamelist" "=" "explist"                 %"$$=$1 append($2,$4) $4.adjust=#$2";
 
   else_clause
     = _                                                    %"$$=create($else)"
-    + _"else" "block"                                      %"$$=$1 append($2) $2.scope=scope()"
-    + _"elseif" "exp" "then" "block" "else_clause"         %"$$=$1 append($2,$4,$5) $4.scope=scope()";
+    + _"else" "block"                                      %"$$=$1 append($2) $2.scope=true"
+    + _"elseif" "exp" "then" "block" "else_clause"         %"$$=$1 append($2,$4,$5) $4.scope=true";
 
   exp_2or3
     = _"exp" "," "exp"                                     %"$$=$0 append($1,$3)"
     + _"exp" "," "exp" "," "exp"                           %"$$=$0 append($1,$3,$5)";
 
   for_in
-    = _"for" "namelist" "in" "explist" "do" "block" "end"  %"$$=$0 append($2,$4,$6) $$.loop=true $$.scope=scope() $6.scope=scope() $4.adjust=4";
+    = _"for" "namelist" "in" "explist" "do" "block" "end"  %"$$=$0 append($2,$4,$6) $$.loop=true $$.scope=true $6.scope=true $4.adjust=4";
 
   local_function
     = _"local" "function" "Name" "funcbody"                %"$$=$0 append($3,$4) $3.declare=true";
@@ -233,7 +219,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"return" "explist" ";"                              %"$$=$1 append($2)";
 
   label
-    = _"::" "Name" "::"                                    %"$$=$0 append($2) $2.define_label=true";
+    = _"::" "Name" "::"                                    %"$$=$0 append($2) $2.label=true";
 
   funcname
     = _"funcname_"                                         %"$$=$1"
@@ -263,9 +249,9 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"explist" "," "exp"                                 %"$$=$1 append($3)";
 
   exp
-    = _"nil"                                               %"$$=$1 $$.code=code('push_nil',1)"
-    + _"false"                                             %"$$=$1 $$.code=code'push_false'"
-    + _"true"                                              %"$$=$1 $$.code=code'push_true'"
+    = _"nil"                                               %"$$=$1"
+    + _"false"                                             %"$$=$1"
+    + _"true"                                              %"$$=$1"
     + _"Numeral"                                           %"$$=$1"
     + _"LiteralString"                                     %"$$=$1"
     + _"..."                                               %"$$=$1"
@@ -307,7 +293,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
   -- prefixexpを参照する箇所にfunctioncallを展開する。
   prefixexp
     = _"var"                                               %"$$=$1"
-    + _"(" "exp" ")"                                       %"$$=$2 $$.nomultret=true";
+    + _"(" "exp" ")"                                       %"$$=$2 $$.nr=1";
 
   functioncall
     = _"prefixexp" "args"
@@ -325,8 +311,8 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     = _"function" "funcbody"                               %"$$=$0 append($2)";
 
   funcbody
-    = _"(" ")" "block" "end"                               %"$$=$0 append(create($namelist),$3) $$.proto=proto() $$.scope=scope()"
-    + _"(" "parlist" ")" "block" "end"                     %"$$=$0 append($2,$4) $$.proto=proto($2.vararg) $$.scope=scope()";
+    = _"(" ")" "block" "end"                               %"$$=$0 append(create($namelist),$3) $$.proto=true $$.scope=true"
+    + _"(" "parlist" ")" "block" "end"                     %"$$=$0 append($2,$4) $$.vararg=$2.vararg $$.proto=true $$.scope=true";
 
   parlist
     = _"namelist"                                          %"$$=$1"
@@ -355,14 +341,14 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _";";
 
   LiteralString
-    = _"LongLiteralString"                                 %"$$=$0 $$.code=code('push_literal',$1.v)"
-    + _"ShortLiteralString"                                %"$$=$0 $$.code=code('push_literal',$1.v)";
+    = _"LongLiteralString"                                 %"$$=$0 $$.v=$1.v"
+    + _"ShortLiteralString"                                %"$$=$0 $$.v=$1.v";
 
   Numeral
-    = _"DecimalIntegerNumeral"                             %"$$=$0 $$.code=code('push_numeral',$1.v,'DecimalIntegerNumeral')"
-    + _"DecimalFloatingNumeral"                            %"$$=$0 $$.code=code('push_numeral',$1.v,'DecimalFloatingNumeral')"
-    + _"HexadecimalIntegerNumeral"                         %"$$=$0 $$.code=code('push_numeral',$1.v,'HexadecimalIntegerNumeral')"
-    + _"HexadecimalFloatingNumeral"                        %"$$=$0 $$.code=code('push_numeral',$1.v,'HexadecimalFloatingNumeral')";
+    = _"DecimalIntegerNumeral"                             %"$$=$0 $$.v=$1.v $$.hint='DecimalIntegerNumeral'"
+    + _"DecimalFloatingNumeral"                            %"$$=$0 $$.v=$1.v $$.hint='DecimalFloatingNumeral'"
+    + _"HexadecimalIntegerNumeral"                         %"$$=$0 $$.v=$1.v $$.hint='HexadecimalIntegerNumeral'"
+    + _"HexadecimalFloatingNumeral"                        %"$$=$0 $$.v=$1.v $$.hint='HexadecimalFloatingNumeral'";
 }))
 
 for _, message in conflictions:ipairs() do

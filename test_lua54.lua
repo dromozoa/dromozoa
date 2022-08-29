@@ -141,37 +141,148 @@ end
 
 ---------------------------------------------------------------------------
 
-local function append_code(self, u, op, a, b)
+local codes = {
+  label     =  0;
+  ["break"] =  0;
+  ["goto"]  =  0;
+  ["if"]    = -1;
+  block     =  0;
+  loop      =  0;
+  ["for"]   =  0;
+
+  add    = -1;
+  sub    = -1;
+  mul    = -1;
+  div    = -1;
+  idiv   = -1;
+  mod    = -1;
+  pow    = -1;
+  band   = -1;
+  bxor   = -1;
+  bor    = -1;
+  shr    = -1;
+  shl    = -1;
+  concat = -1;
+  lt     = -1;
+  le     = -1;
+  gt     = -1;
+  ge     = -1;
+  eq     = -1;
+  ne     = -1;
+
+  unm     = 0;
+  ["not"] = 0;
+  len     = 0;
+  bnot    = 0;
+
+  set_local     = -1;
+  set_local_tbc = -1;
+  set_upvalue   = -1;
+  set_field     = -1;
+  set_table     = -2;
+
+  get_local   =  1;
+  get_upvalue =  1;
+  get_table   = -1;
+
+  new_table    = 1;
+  closure      = 1;
+  push_false   = 1;
+  push_true    = 1;
+  push_literal = 1;
+  push_numeral = 1;
+
+  dup   = 1;
+  swap  = 0;
+  close = 0;
+
+  -- call t
+  -- return t
+  -- vararg
+  -- set_list
+
+  -- push_nil n
+  -- pop n
+}
+
+local function append_code(proto, code, u, op, a, b)
   local v = { [0] = op, a = a, b = b, c = c, node = u }
-  self[#self + 1] = v
+
+  code[#code + 1] = v
+  local t = codes[op]
+  if t then
+    proto.top = proto.top + t
+  elseif op == "call" then
+    assert(a > 0)
+    local top = a - 1
+    if b < 0 then
+      assert(b == -1)
+      proto.top = b - top
+    else
+      assert(b >= 0)
+      proto.top = top + b
+    end
+  elseif op == "return" then
+    proto.top = 0
+  elseif op == "vararg" then
+    if a < 0 then
+      assert(proto.top >= 0)
+      assert(a == -1)
+      proto.top = a - proto.top
+    else
+      assert(a > 0)
+      proto.top = proto.top + a
+    end
+  elseif op == "set_list" then
+    proto.top = a
+  elseif op == "push_nil" then
+    proto.top = proto.top + a
+  elseif op == "pop" then
+    proto.top = proto.top - a
+  else
+    error("unknown op " .. op)
+  end
+
   return v
 end
 
-local function append_code_unpack(self, that)
-  for _, v in ipairs(that) do
-    self[#self + 1] = v
-  end
+local function append_if(proto, code, u)
+  local cond = append_code(proto, code, u, "if")
+  local then_block = append_code(proto, cond, u, "block")
+  local else_block = append_code(proto, cond, u, "block")
+  return then_block, else_block
 end
 
 ---------------------------------------------------------------------------
 
 local function process1(protos, proto, scope, u, loop)
-  if u.proto ~= nil then
-    u.proto.labels = array()
-    u.proto.locals = array()
-    u.proto.upvalues = array()
-    u.proto.scopes = array()
-    u.proto.parent = proto
+  local u_name = lua54_parser.symbol_names[u[0]]
+
+  if u.proto then
+    u.proto = {
+      vararg = u.vararg;
+      self = u.self;
+      labels = array();
+      locals = array();
+      upvalues = array();
+      scopes = array();
+      code = {};
+      top = 0;
+      parent = proto;
+    }
     proto = u.proto
     proto.index = protos:append(proto):size()
     loop = nil
   end
 
-  if u.scope ~= nil then
-    u.scope.labels = array()
-    u.scope.locals = array()
-    u.scope.proto = proto
-    u.scope.parent = scope
+  if u.scope then
+    u.scope = {
+      repeat_until = u_name == "repeat";
+      labels = array();
+      locals = array();
+      proto = proto;
+      parent = scope;
+    }
     scope = u.scope
     scope.index = proto.scopes:append(scope):size()
   end
@@ -180,7 +291,7 @@ local function process1(protos, proto, scope, u, loop)
     loop = u
   end
 
-  local u_name = lua54_parser.symbol_names[u[0]]
+  -- TODO u.localsじゃなくて、var_stackとかのほうがいいかな？
 
   if u_name == "for" then
     -- ジャンプ解決用に変数リストを逆順で記録する。
@@ -192,7 +303,8 @@ local function process1(protos, proto, scope, u, loop)
     declare(scope, "(for state)", u)
     declare(scope, "(for state)", u)
     process1(protos, proto, scope, u[1], loop)
-    process1(protos, proto, scope, u[3], loop)
+    return process1(protos, proto, scope, u[3], loop)
+
   elseif u_name == "for_in" then
     -- ジャンプ解決用に変数リストを逆順で記録する。
     u.locals = collect(scope)
@@ -205,7 +317,8 @@ local function process1(protos, proto, scope, u, loop)
     declare(scope, "(for state)", u)
     declare(scope, "(for state)", u, "close")
     process1(protos, proto, scope, u[1], loop)
-    process1(protos, proto, scope, u[3], loop)
+    return process1(protos, proto, scope, u[3], loop)
+
   elseif u_name == "local" then
     local n = 0
     for _, v in ipairs(u[1]) do
@@ -220,16 +333,17 @@ local function process1(protos, proto, scope, u, loop)
     if u[2] ~= nil then
       process1(protos, proto, scope, u[2], loop)
     end
-    process1(protos, proto, scope, u[1], loop)
+    return process1(protos, proto, scope, u[1], loop)
+
   elseif u_name == "funcbody" then
     -- colon syntaxで関数が定義されたら、暗黙の仮引数selfを宣言する。
     if proto.self then
       u.var = declare(scope, "self", u)
     end
     process1(protos, proto, scope, u[1], loop)
-    process1(protos, proto, scope, u[2], loop)
-  else
-    if u_name == "block" then
+    return process1(protos, proto, scope, u[2], loop)
+
+  elseif u_name == "block" then
       -- empty statementsは解析の時点でとりのぞかれるので、label文だけがvoid
       -- statementsとして残る。repeat-until文以外のスコープは、スコープの最後の
       -- void statementsの前でスコープを終了する。ブロックの末尾にラベル文があ
@@ -239,79 +353,304 @@ local function process1(protos, proto, scope, u, loop)
           local v = u[i]
           if lua54_parser.symbol_names[v[0]] == "label" then
             u.end_of_scope = i
-            v[1].end_of_scope = i
+            v.end_of_scope = i
           else
             break
           end
         end
       end
-    elseif u_name == "break" then
-      if loop == nil then
-        compiler_error("break outside loop", u)
-      end
-      -- ジャンプ解決用にbreak対象と変数リストを逆順で記録する。
-      u.target = loop
-      u.locals = collect(scope)
-    elseif u.loop then
-      -- ジャンプ解決用に変数リストを逆順で記録する。
-      u.locals = collect(scope)
-    elseif u_name == "..." then
-      if not proto.vararg then
-        compiler_error("cannot use ... outside a vararg function", u)
-      end
-    elseif u.declare then
-      u.var = declare(scope, u.v, u, u.attribute)
-    elseif u.resolve then
-      local var = resolve(scope, u.v, u, u.define)
-      if var == nil then
-        u.env = resolve(scope, "_ENV")
-      else
-        u.var = var
-      end
-    elseif u.define_label then
-      -- ジャンプ解決用にラベルと変数リストを逆順で記録する。
-      u.label = define_label(scope, u.v, u)
-      if u.end_of_scope then
-        u.locals = collect(scope.parent)
-      else
-        u.locals = collect(scope)
-      end
-    elseif u.resolve_label then
-      -- ジャンプ解決用に変数リストを逆順で記録する。
+
+  elseif u_name == "label" then
+    -- ジャンプ解決用にラベルと変数リストを逆順で記録する。
+    local v = u[1]
+    u.label = define_label(scope, v.v, u)
+    if u.end_of_scope then
+      u.locals = collect(scope.parent)
+    else
       u.locals = collect(scope)
     end
 
-    for _, v in ipairs(u) do
-      process1(protos, proto, scope, v, loop)
+  elseif u_name == "break" then
+    if loop == nil then
+      compiler_error("break outside loop", u)
     end
+    -- ジャンプ解決用にbreak対象と変数リストを逆順で記録する。
+    u.target = loop
+    u.locals = collect(scope)
+
+  elseif u_name == "goto" then
+    -- ジャンプ解決用に変数リストを逆順で記録する。
+    u.locals = collect(scope)
+
+  elseif u.loop then
+    -- ジャンプ解決用に変数リストを逆順で記録する。
+    u.locals = collect(scope)
+
+  elseif u_name == "return" then
+    -- ジャンプ解決用に変数リストを逆順で記録する。
+    u.locals = collect(scope)
+
+  elseif u_name == "..." then
+    if not proto.vararg then
+      compiler_error("cannot use ... outside a vararg function", u)
+    end
+
+  elseif u.declare then
+    u.var = declare(scope, u.v, u, u.attribute)
+
+  elseif u.resolve then
+    local var = resolve(scope, u.v, u, u.define)
+    if var == nil then
+      u.env = resolve(scope, "_ENV")
+    else
+      u.var = var
+    end
+  end
+
+  for _, v in ipairs(u) do
+    process1(protos, proto, scope, v, loop)
   end
 end
 
 ---------------------------------------------------------------------------
 
-local function process2(scope, u)
-  if u.scope ~= nil then
-    scope = u.scope
+local function process2(proto, scope, u, code)
+  if u.proto then
+    proto = u.proto
+    code = proto.code
   end
 
-  if u.resolve_label then
-    u.label = resolve_label(scope, u.v, u)
+  if u.scope then
+    scope = u.scope
   end
 
   local u_name = lua54_parser.symbol_names[u[0]]
 
-  if u_name == "explist" then
+  if u_name == "block" then
+
+    local end_of_scope = u.end_of_scope
+    for i, v in ipairs(u) do
+      if end_of_scope == i then
+        for j = scope.locals:size(), 1, -1 do
+          local var = scope.locals:get(j)
+          if scope.proto.locals:get(var).attribute == "close" then
+            append_code(proto, code, u, "close", var)
+          end
+        end
+      end
+      process2(proto, scope, v, code)
+    end
+
+    if not scope.repeat_until and end_of_scope == nil then
+      for j = scope.locals:size(), 1, -1 do
+        local var = scope.locals:get(j)
+        if scope.proto.locals:get(var).attribute == "close" then
+          append_code(proto, code, u, "close", var)
+        end
+      end
+    end
+
+    return
+
+  elseif u_name == "=" then
+
+    process2(proto, scope, u[1], code)
+    process2(proto, scope, u[2], code)
+
+    local x, y = u[1], u[2]
+    for i = #x, 1, -1 do
+      local v = x[i]
+      if v.ns_item then
+        local j = i + x.ns - v.ns
+        append_code(proto, code, u, "set_field", j, j - 1)
+      else
+        assert(v.var ~= nil)
+        if v.var <= 65536 then
+          append_code(proto, code, u, "set_local", v.var)
+        else
+          append_code(proto, code, u, "set_upvalue", v.var - 65536)
+        end
+      end
+    end
+    if x.ns > 0 then
+      append_code(proto, code, u, "pop", x.ns)
+    end
+
+    return
+
+  elseif u_name == "label" then
+    append_code(proto, code, u, "label", u.label)
+    return
+
+  elseif u_name == "break" then
+    local v = u.target
+
+    local m = u.locals:size()
+    local n = v.locals:size()
+
+    assert(m >= n)
+    for i = 0, n - 1 do
+      assert(u.locals:get(m - i) == v.locals:get(n - i))
+    end
+
+    for i = 1, m - n do
+      local var = u.locals:get(i)
+      if scope.proto.locals:get(var).attribute == "close" then
+        append_code(proto, code, u, "close", var)
+      end
+    end
+    append_code(proto, code, u, "break")
+    return
+
+  elseif u_name == "goto" then
+    local v = u[1]
+    u.label = resolve_label(scope, v.v, u)
+
+    local y = scope.proto.labels:get(u.label).node
+
+    local m = u.locals:size()
+    local n = y.locals:size()
+    if m <= n then
+      for i = 0, n - 1 do
+        local var = y.locals:get(n - i)
+        if u.locals:get(m - i) ~= var then
+          compiler_error("<goto " .. v.v .. "> jumps into the scope of local " .. scope.proto.locals:get(var).name, u)
+        end
+      end
+    end
+
+    for i = 1, m - n do
+      local var = u.locals:get(i)
+      if scope.proto.locals:get(var).attribute == "close" then
+        append_code(proto, code, u, "close", var)
+      end
+    end
+    append_code(proto, code, u, "goto", u.label)
+    return
+
+  elseif u_name == "while" then
+    local loop = append_code(proto, code, u, "loop")
+
+    process2(proto, scope, u[1], loop)
+
+    local then_block, else_block = append_if(proto, loop, u)
+    process2(proto, scope, u[2], then_block)
+    append_code(proto, then_block, u, "break")
+
+    return
+
+  elseif u_name == "repeat" then
+    local loop = append_code(proto, code, u, "loop")
+
+    process2(proto, scope, u[1], loop)
+    process2(proto, scope, u[2], loop)
+
+    for j = scope.locals:size(), 1, -1 do
+      local var = scope.locals:get(j)
+      if scope.proto.locals:get(var).attribute == "close" then
+        append_code(proto, loop, u, "close", var)
+      end
+    end
+
+    local then_block = append_if(proto, loop, u)
+    append_code(proto, then_block, u, "break")
+
+    return
+
+  elseif u_name == "if" or u_name == "elseif" then
+
+    process2(proto, scope, u[1], code)
+
+    local then_block, else_block = append_if(proto, code, u)
+    process2(proto, scope, u[2], then_block)
+    process2(proto, scope, u[3], else_block)
+
+    return
+
+  elseif u_name == "for" then
+    process2(proto, scope, u[2], code)
+    append_code(proto, code, u, "set_local", u.var + 2)
+    append_code(proto, code, u, "set_local", u.var + 1)
+    append_code(proto, code, u, "set_local", u.var)
+
+    local loop = append_code(proto, code, u, "for", u.var)
+
+    process2(proto, scope, u[3], loop)
+
+    assert(u.var + 3 == u[1].var)
+    return
+
+
+  elseif u_name == "exp_2or3" then
+    process2(proto, scope, u[1], code)
+    process2(proto, scope, u[2], code)
+    if u[3] then
+      process2(proto, scope, u[3], code)
+    else
+      append_code(proto, code, u, "push_numeral", "1", "DecimalIntegerNumeral")
+    end
+    return
+
+  elseif u_name == "for_in" then
+    process2(proto, scope, u[2], code)
+
+    append_code(proto, code, u, "set_local_tbc", u.var + 3)
+    append_code(proto, code, u, "set_local", u.var + 2)
+    append_code(proto, code, u, "set_local", u.var + 1)
+    append_code(proto, code, u, "set_local", u.var)
+
+    -- | f   | u.var     |
+    -- | s   | u.var + 1 |
+    -- | var | u.var + 2 |
+    -- | tbc | u.var + 3 |
+    -- | v   | u.var + 4 |
+
+    --  while true do
+    --    v, ... = f(s, var)
+    --    if v == nil then
+    --      break
+    --    end
+    --  end
+
+    local x = u[1]
+
+    local loop = append_code(proto, code, u, "loop")
+    -- この時点でスタックは空
+    append_code(proto, loop, u, "get_local", u.var)
+    append_code(proto, loop, u, "get_local", u.var + 1)
+    append_code(proto, loop, u, "get_local", u.var + 2)
+
+    append_code(proto, loop, u, "call", 1, #x)
+    for i = #x, 1, -1 do
+      local v = x[i]
+      append_code(proto, loop, u, "set_local", v.var)
+    end
+    -- この時点でスタックは空
+
+    append_code(proto, loop, u, "get_local", u.var + 4)
+    assert(u.var + 4 == x[1].var)
+    append_code(proto, loop, u, "push_nil", 1)
+    append_code(proto, loop, u, "eq")
+
+    local then_block, else_block = append_if(proto, code, u)
+
+    append_code(proto, then_block, u, "close", u.var + 3)
+    append_code(proto, then_block, u, "break")
+    append_code(proto, else_block, u, "get_local", u.var + 4)
+    append_code(proto, else_block, u, "set_local", u.var + 2)
+
+    process2(proto, scope, u[3], loop)
+    return
+
+  elseif u_name == "local_function" then
+    append_code(proto, code, u, "closure", u[2].proto.index)
+    append_code(proto, code, u, "set_local", u[1].var)
+
+  elseif u_name == "explist" then
     local a = u.adjust
     local v = #u > 0 and u[#u] or nil
     local v_name = v ~= nil and lua54_parser.symbol_names[v[0]] or nil
-    if a == nil then
-      -- 末尾がfunctioncallまたは...で、かつnomultretが真でなければ、戻り値の個
-      -- 数を調節しない。
-      if (v_name == "functioncall" or v_name == "...") and not v.nomultret then
-        v.nr = -1
-        u.nr = #u - 1
-      end
-    else
+    if a then
       -- #u < a
       --   1. 末尾がfunctioncallまたは...で、かつnomultretが真でなければ、戻り
       --      値の個数を(a-#u+1)個に調節する。
@@ -329,7 +668,7 @@ local function process2(scope, u)
       --   2. さもなければ、pop(#u-a)を追加する。
       if v_name == "functioncall" or v_name == "..." then
         if #u < a then
-          if not v.nomultret then
+          if not v.nr then
             v.nr = a - #u + 1
           else
             v.nr = 1
@@ -350,7 +689,95 @@ local function process2(scope, u)
           u.pop = #u - a
         end
       end
+    else
+      -- 末尾がfunctioncallまたは...で、かつnrが定まっていなければ、戻り値の個
+      -- 数を調節しない。
+      if (v_name == "functioncall" or v_name == "...") and not v.nr then
+        v.nr = -1
+        -- TODO これは不要？
+        u.nr = #u - 1
+      end
     end
+
+  elseif u_name == "..." then
+    -- 戻り値の個数が調節されていないfunctioncallと...は、1個に調節する。
+    if u.nr == nil then
+      u.nr = 1
+    end
+
+    append_code(proto, code, u, "vararg", u.nr)
+    return
+
+  elseif u_name == "functiondef" then
+    append_code(proto, code, u, "closure", u[1].proto.index)
+
+  elseif u.binop ~= nil then
+    append_code(proto, code, u, u.binop)
+
+  elseif u.unop ~= nil then
+    append_code(proto, code, u, u.unop)
+
+  elseif u_name == "and" then
+
+    process2(proto, scope, u[1], code)
+    append_code(proto, code, u, "dup")
+    local then_block = append_if(proto, code, u)
+    append_code(proto, then_block, u, "pop", 1)
+    process2(proto, scope, u[2], then_block)
+    return
+
+  elseif u_name == "or" then
+
+    process2(proto, scope, u[1], code)
+    append_code(proto, code, u, "dup")
+    local _, else_block = append_if(proto, code, u)
+    append_code(proto, else_block, u, "pop", 1)
+    process2(proto, scope, u[2], else_block)
+    return
+
+  elseif u_name == "." then
+    -- TODO ns_itemはいらなくなるはず
+    if u.define then
+      u.ns_item = 2
+    end
+
+  elseif u_name == ":" then
+
+    process2(proto, scope, u[1], code)
+    append_code(proto, code, u, "dup")
+    process2(proto, scope, u[2], code)
+
+    -- self self key => self f
+    append_code(proto, code, u, "get_table", 2)
+    -- self f => f self
+    append_code(proto, code, u, "swap")
+
+    return
+
+  elseif u_name == "functioncall" then
+    -- 戻り値の個数が調節されていないfunctioncallと...は、1個に調節する。
+    if u.nr == nil then
+      u.nr = 1
+    end
+
+    local x, y = u[1], u[2]
+    local x_name = lua54_parser.symbol_names[x[0]]
+
+    -- TODO xに関数のインデックスをうけておくと、なんかうまい具合にいく？
+    process2(proto, scope, u[1], code)
+    local f
+    if x_name == ":" then
+      f = proto.top - 1
+    else
+      f = proto.top
+    end
+    assert(f > 0)
+
+    process2(proto, scope, u[2], code)
+
+    append_code(proto, code, u, "call", f, u.nr)
+
+    return
 
   elseif u_name == "fieldlist" then
     -- key=value形式でないfieldの個数を数える。
@@ -368,453 +795,40 @@ local function process2(scope, u)
     -- なければ、戻り値の個数を調節しない。
     if x ~= nil and y == nil then
       local x_name = lua54_parser.symbol_names[x[0]]
-      if (x_name == "functioncall" or x_name == "...") and not x.nomultret then
+      if (x_name == "functioncall" or x_name == "...") and not x.nr then
         x.nr = -1
+        -- TODO これは不要？
         u.nr = ns - 1
       end
     end
 
-  elseif u_name == "functioncall" or u_name == "..." then
-    -- 戻り値の個数が調節されていないfunctioncallと...は、1個に調節する。
-    if u.nr == nil then
-      u.nr = 1
-    end
-  end
+    append_code(proto, code, u, "new_table")
 
-  for _, v in ipairs(u) do
-    process2(scope, v)
-  end
-
-  if u.code ~= nil then
-    for _, v in ipairs(u.code) do
-      v.node = u
-    end
+  elseif u_name == "nil" then
+    append_code(proto, code, u, "push_nil", 1)
     return
-  end
 
-  u.code = {}
+  elseif u_name == "false" then
+    append_code(proto, code, u, "push_false")
+    return
 
-  -------------------------------------------------------------------------
+  elseif u_name == "true" then
+    append_code(proto, code, u, "push_true")
+    return
 
-  if u_name == "block" then
-    local end_of_scope = u.end_of_scope
-    for i, v in ipairs(u) do
-      if end_of_scope == i then
-        for j = scope.locals:size(), 1, -1 do
-          local var = scope.locals:get(j)
-          if scope.proto.locals:get(var).attribute == "close" then
-            append_code(u.code, u, "close", var)
-          end
-        end
-      end
-      append_code_unpack(u.code, v.code)
-    end
+  elseif u_name == "LiteralString" then
+    append_code(proto, code, u, "push_literal", u.v)
+    return
 
-    if not scope.repeat_until and end_of_scope == nil then
-      for j = scope.locals:size(), 1, -1 do
-        local var = scope.locals:get(j)
-        if scope.proto.locals:get(var).attribute == "close" then
-          append_code(u.code, u, "close", var)
-        end
-      end
-    end
-
-  -------------------------------------------------------------------------
-
-  elseif u_name == "=" then
-    local x, y = u[1], u[2]
-    append_code_unpack(u.code, x.code)
-    append_code_unpack(u.code, y.code)
-    for i = #x, 1, -1 do
-      local v = x[i]
-      if #v.code > 0 then
-        local j = i + x.ns - v.ns
-        append_code(u.code, u, "set_field", j, j - 1)
-      else
-        assert(v.var ~= nil)
-        if v.var <= 65536 then
-          append_code(u.code, u, "set_local", v.var)
-        else
-          append_code(u.code, u, "set_upvalue", v.var - 65536)
-        end
-      end
-    end
-    if x.ns > 0 then
-      append_code(u.code, u, "pop", x.ns)
-    end
-
-  elseif u_name == "label" then
-    append_code(u.code, u, "label", u[1].label)
-
-  elseif u_name == "break" then
-    local v = u.target
-
-    local m = u.locals:size()
-    local n = v.locals:size()
-
-    assert(m >= n)
-    for i = 0, n - 1 do
-      assert(u.locals:get(m - i) == v.locals:get(n - i))
-    end
-
-    for i = 1, m - n do
-      local var = u.locals:get(i)
-      if scope.proto.locals:get(var).attribute == "close" then
-        append_code(u.code, u, "close", var)
-      end
-    end
-    append_code(u.code, u, "break")
-
-  elseif u_name == "goto" then
-    local x = u[1]
-    local y = scope.proto.labels:get(x.label).node
-    local m = x.locals:size()
-    local n = y.locals:size()
-    if m <= n then
-      for i = 0, n - 1 do
-        local var = y.locals:get(n - i)
-        if x.locals:get(m - i) ~= var then
-          compiler_error("<goto " .. x.v .. "> jumps into the scope of local " .. scope.proto.locals:get(var).name, u)
-        end
-      end
-    end
-
-    for i = 1, m - n do
-      local var = x.locals:get(i)
-      if scope.proto.locals:get(var).attribute == "close" then
-        append_code(u.code, u, "close", var)
-      end
-    end
-    append_code(u.code, u, "goto", x.label)
-
-  elseif u_name == "do" then
-    append_code_unpack(u.code, u[1].code)
-
-  elseif u_name == "while" then
-    local loop = append_code(u.code, u, "loop")
-    append_code_unpack(loop, u[1].code)
-    local cond = append_code(loop, u, "if")
-    append_code(cond, u, "block")
-    append_code(cond, u, "block")
-    append_code_unpack(cond[1], u[2].code)
-    append_code(cond[2], u, "break")
-
-  elseif u_name == "repeat" then
-    local loop = append_code(u.code, u, "loop")
-    append_code_unpack(loop, u[1].code)
-    append_code_unpack(loop, u[2].code)
-
-    for j = scope.locals:size(), 1, -1 do
-      local var = scope.locals:get(j)
-      if scope.proto.locals:get(var).attribute == "close" then
-        append_code(loop, u, "close", var)
-      end
-    end
-
-    local cond = append_code(loop, u, "if")
-    append_code(cond, u, "block")
-    append_code(cond, u, "block")
-    append_code(cond[1], u, "break")
-
-  elseif u_name == "if" or u_name == "elseif" then
-    append_code_unpack(u.code, u[1].code)
-    local cond = append_code(u.code, u, "if")
-    append_code(cond, u, "block")
-    append_code(cond, u, "block")
-    append_code_unpack(cond[1], u[2].code)
-    append_code_unpack(cond[2], u[3].code)
-
-  elseif u_name == "else" then
-    if u[1] ~= nil then
-      append_code_unpack(u.code, u[1].code)
-    end
-
-  elseif u_name == "for" then
-    append_code_unpack(u.code, u[2].code)
-    append_code(u.code, u, "set_local", u.var + 2)
-    append_code(u.code, u, "set_local", u.var + 1)
-    append_code(u.code, u, "set_local", u.var)
-
-    append_code(u.code, u, "prepare_for", u.var)
-    local cond = append_code(u.code, u, "if")
-    append_code(cond, u, "block")
-    append_code(cond, u, "block")
-    local loop = append_code(cond[1], u, "loop")
-    append_code_unpack(loop, u[3].code)
-
-    -- | var   | u.var     |
-    -- | limit | u.var + 1 |
-    -- | step  | u.var + 2 |
-    --
-    -- var = var + step
-    -- if step > 0 then
-    --   if var > limit then
-    --     break
-    --   end
-    -- else
-    --   if var < limit then
-    --     break
-    --   end
-    -- end
-
-    append_code(loop, u, "get_local", u.var)
-    append_code(loop, u, "get_local", u.var + 2)
-    append_code(loop, u, "add")
-    append_code(loop, u, "set_local", u.var)
-
-    append_code(loop, u, "get_local", u.var + 2)
-    append_code(loop, u, "push_numeral", "0", "DecimalIntegerNumeral")
-    append_code(loop, u, "gt")
-
-    local cond = append_code(loop, u, "if")
-    append_code(cond, u, "block")
-    append_code(cond, u, "block")
-
-    append_code(cond[1], u, "get_local", u.var)
-    append_code(cond[1], u, "get_local", u.var + 1)
-    append_code(cond[1], u, "gt")
-    local cond2 = append_code(cond[1], u, "if")
-    append_code(cond2, u, "block")
-    append_code(cond2, u, "block")
-    append_code(cond2[1], u, "break")
-
-    append_code(cond[2], u, "get_local", u.var)
-    append_code(cond[2], u, "get_local", u.var + 1)
-    append_code(cond[2], u, "lt")
-    local cond2 = append_code(cond[2], u, "if")
-    append_code(cond2, u, "block")
-    append_code(cond2, u, "block")
-    append_code(cond2[1], u, "break")
-
-    append_code(loop, u, "get_local", u.var)
-    append_code(loop, u, "set_local", u.var + 3)
-    assert(u.var + 3 == u[1].var)
-
-  elseif u_name == "exp_2or3" then
-    append_code_unpack(u.code, u[1].code)
-    append_code_unpack(u.code, u[2].code)
-    if u[3] == nil then
-      append_code(u.code, u, "push_numeral", "1", "DecimalIntegerNumeral")
-    else
-      append_code_unpack(u.code, u[3].code)
-    end
-
-  elseif u_name == "for_in" then
-    local x = u[1]
-
-    append_code_unpack(u.code, u[2].code)
-    append_code(u.code, u, "set_local_tbc", u.var + 3)
-    append_code(u.code, u, "set_local", u.var + 2)
-    append_code(u.code, u, "set_local", u.var + 1)
-    append_code(u.code, u, "set_local", u.var)
-
-    -- | f   | u.var     |
-    -- | s   | u.var + 1 |
-    -- | var | u.var + 2 |
-    -- | tbc | u.var + 3 |
-    -- | v   | u.var + 4 |
-
-    --  while true do
-    --    v, ... = f(s, var)
-    --    if v == nil then
-    --      break
-    --    end
-    --  end
-
-    local loop = append_code(u.code, u, "loop")
-    append_code(loop, u, "get_local", u.var)
-    append_code(loop, u, "get_local", u.var + 1)
-    append_code(loop, u, "get_local", u.var + 2)
-    append_code(loop, u, "call", 2, #x)
-    for i = #x, 1, -1 do
-      local v = x[i]
-      append_code(u.code, u, "set_local", v.var)
-    end
-
-    append_code(loop, u, "get_local", u.var + 4)
-    assert(u.var + 4 == x[1].var)
-    append_code(loop, u, "push_nil", 1)
-    append_code(loop, u, "eq")
-
-    local cond = append_code(loop, u, "if")
-    append_code(cond, u, "block")
-    append_code(cond, u, "block")
-    append_code(cond[1], u, "close", u.var + 3)
-    append_code(cond[1], u, "break")
-    append_code(cond[2], u, "get_local", u.var + 4)
-    append_code(cond[2], u, "set_local", u.var + 2)
-
-    append_code_unpack(loop, u[3].code)
-
-  elseif u_name == "function" then
-    local v = u[1]
-    append_code_unpack(u.code, v.code)
-    append_code(u.code, u, "closure", u[2].proto.index)
-    if #v.code > 0 then
-      append_code(u.code, u, "set_table", 3)
-    else
-      assert(v.var ~= nil)
-      if v.var <= 65536 then
-        append_code(u.code, u, "set_local", v.var)
-      else
-        append_code(u.code, u, "set_upvalue", v.var - 65536)
-      end
-    end
-
-  elseif u_name == "local_function" then
-    append_code(u.code, u, "closure", u[2].proto.index)
-    append_code(u.code, u, "set_local", u[1].var)
-
-  elseif u_name == "local" then
-    local x, y = u[1], u[2]
-    if y == nil then
-      append_code(u.code, u, "push_nil", #x)
-    else
-      append_code_unpack(u.code, y.code)
-    end
-    for i = #x, 1, -1 do
-      local v = x[i]
-      if v.attribute == "close" then
-        append_code(u.code, u, "set_local_tbc", v.var)
-      else
-        append_code(u.code, u, "set_local", v.var)
-      end
-    end
-
-  elseif u_name == "return" then
-    local v = u[1]
-    append_code_unpack(u.code, v.code)
-    if v.nr then
-      append_code(u.code, u, "return_nr", v.nr)
-    else
-      append_code(u.code, u, "return", #v)
-    end
-
-  -------------------------------------------------------------------------
-
-  elseif u_name == "varlist" then
-    local ns = 0
-    for _, v in ipairs(u) do
-      v.ns = ns
-      if #v.code > 0 then
-        ns = ns + 2
-        append_code_unpack(u.code, v.code)
-      end
-    end
-    u.ns = ns
-
-  elseif u_name == "." then
-    if not u.define then
-      append_code_unpack(u.code, u[1].code)
-      append_code_unpack(u.code, u[2].code)
-      append_code(u.code, u, "get_table", 2)
-    else
-      -- set_fieldを準備する
-      append_code_unpack(u.code, u[1].code)
-      append_code_unpack(u.code, u[2].code)
-    end
-
-  elseif u_name == "explist" then
-    for _, v in ipairs(u) do
-      append_code_unpack(u.code, v.code)
-    end
-    if u.push ~= nil then
-      append_code(u.code, u, "push_nil", u.push)
-    elseif u.pop ~= nil then
-      append_code(u.code, u, "pop", u.pop)
-    end
-
-  -------------------------------------------------------------------------
-
-  elseif u_name == "..." then
-    append_code(u.code, u, "vararg", u.nr)
-
-  elseif u_name == "functiondef" then
-    append_code(u.code, u, "closure", u[1].proto.index)
-
-  elseif u.binop ~= nil then
-    append_code_unpack(u.code, u[1].code)
-    append_code_unpack(u.code, u[2].code)
-    append_code(u.code, u, u.binop)
-
-  elseif u_name == "and" then
-    append_code_unpack(u.code, u[1].code)
-    append_code(u.code, u, "dup", 1)
-    local cond = append_code(u.code, u, "if")
-    append_code(cond, u, "block")
-    append_code(cond, u, "block")
-    append_code(cond[1], u, "pop", 1)
-    append_code_unpack(cond[1], u[2].code)
-
-  elseif u_name == "or" then
-    append_code_unpack(u.code, u[1].code)
-    append_code(u.code, u, "dup", 1)
-    local cond = append_code(u.code, u, "if")
-    append_code(cond, u, "block")
-    append_code(cond, u, "block")
-    append_code(cond[2], u, "pop", 1)
-    append_code_unpack(cond[2], u[2].code)
-
-  elseif u.unop ~= nil then
-    append_code_unpack(u.code, u[1].code)
-    append_code(u.code, u, u.unop)
-
-  -------------------------------------------------------------------------
-
-  elseif u_name == "functioncall" then
-    local x, y = u[1], u[2]
-    local x_name = lua54_parser.symbol_names[x[0]]
-    if x_name == ":" then
-      append_code_unpack(u.code, x[1].code)
-      append_code(u.code, u, "dup", 1)
-      append_code_unpack(u.code, x[2].code)
-      append_code(u.code, u, "get_table", 2)
-      append_code(u.code, u, "swap", 2)
-      append_code_unpack(u.code, y.code)
-      if y.nr ~= nil then
-        append_code(u.code, u, "call_nr", y.nr + 1, u.nr)
-      else
-        append_code(u.code, u, "call", #y + 1, u.nr)
-      end
-    else
-      append_code_unpack(u.code, x.code)
-      append_code_unpack(u.code, y.code)
-      if y.nr ~= nil then
-        append_code(u.code, u, "call_nr", y.nr, u.nr)
-      else
-        append_code(u.code, u, "call", #y, u.nr)
-      end
-    end
-
-  -------------------------------------------------------------------------
-
-  elseif u_name == "fieldlist" then
-    append_code(u.code, u, "new_table")
-    for _, v in ipairs(u) do
-      append_code_unpack(u.code, v.code)
-    end
-    if u.nr ~= nil then
-      append_code(u.code, u, "set_list_nr", u.nr)
-    elseif u.ns > 0 then
-      append_code(u.code, u, "set_list", u.ns)
-    end
-
-  elseif u_name == "field" then
-    if u[2] == nil then
-      append_code_unpack(u.code, u[1].code)
-    else
-      append_code_unpack(u.code, u[1].code)
-      append_code_unpack(u.code, u[2].code)
-      append_code(u.code, u, "set_table", u.ns + 3)
-    end
-
-  -------------------------------------------------------------------------
+  elseif u_name == "Numeral" then
+    append_code(proto, code, u, "push_numeral", u.v, u.hint)
+    return
 
   elseif u_name == "Name" then
     -- 1. declareが真ならば、文で命令を生成する。
     -- 2. resolveが真でdefineが真ならば、文で命令を生成する。
     -- 3. resolveが真でdefineが真でなければ、参照命令を生成する。
-    -- 4. define_labelまたはresolve_labelが真ならば、文で命令を生成する。
+    -- 4. labelが真ならば、文で命令を生成する。
     -- 5. さもなければ、テーブルインデックスとして使用する文字列リテラル命令を
     --    生成する。
     if not u.declare then
@@ -822,41 +836,190 @@ local function process2(scope, u)
         if not u.define then
           if u.var ~= nil then
             if u.var <= 65536 then
-              append_code(u.code, u, "get_local", u.var)
+              append_code(proto, code, u, "get_local", u.var)
             else
-              append_code(u.code, u, "get_upvalue", u.var - 65536)
+              append_code(proto, code, u, "get_upvalue", u.var - 65536)
             end
           else
             assert(u.env ~= nil)
             if u.env <= 65536 then
-              append_code(u.code, u, "get_local", u.env)
+              append_code(proto, code, u, "get_local", u.env)
             else
-              append_code(u.code, u, "get_upvalue", u.env - 65536)
+              append_code(proto, code, u, "get_upvalue", u.env - 65536)
             end
-            append_code(u.code, u, "push_literal", u.v)
-            append_code(u.code, u, "get_table", 2)
+            append_code(proto, code, u, "push_literal", u.v)
+            append_code(proto, code, u, "get_table", 2)
           end
         else
 
-          -- set_fieldを準備
+          -- set_table/set_fieldを準備
           if u.var == nil then
             assert(u.env ~= nil)
             if u.env <= 65536 then
-              append_code(u.code, u, "get_local", u.env)
+              append_code(proto, code, u, "get_local", u.env)
             else
-              append_code(u.code, u, "get_upvalue", u.env - 65536)
+              append_code(proto, code, u, "get_upvalue", u.env - 65536)
             end
-            append_code(u.code, u, "push_literal", u.v)
+            append_code(proto, code, u, "push_literal", u.v)
+            u.ns_item = 2
           end
 
         end
-      elseif not u.define_label and not u.resolve_label then
-        append_code(u.code, u, "push_literal", u.v)
+      elseif not u.label then
+        append_code(proto, code, u, "push_literal", u.v)
+      end
+    end
+    return
+
+  end
+
+  -------------------------------------------------------------------------
+
+  for _, v in ipairs(u) do
+    process2(proto, scope, v, code)
+  end
+
+  -------------------------------------------------------------------------
+
+  if u_name == "function" then
+    local v = u[1]
+    append_code(proto, code, u, "closure", u[2].proto.index)
+    if v.ns_item then
+      append_code(proto, code, u, "set_table", 3)
+      append_code(proto, code, u, "pop", 1)
+    else
+      assert(v.var ~= nil)
+      if v.var <= 65536 then
+        append_code(proto, code, u, "set_local", v.var)
+      else
+        append_code(proto, code, u, "set_upvalue", v.var - 65536)
       end
     end
 
+  elseif u_name == "local" then
+    local x, y = u[1], u[2]
+    if y == nil then
+      append_code(proto, code, u, "push_nil", #x)
+    end
+
+
+    for i = #x, 1, -1 do
+      local v = x[i]
+      if v.attribute == "close" then
+        append_code(proto, code, u, "set_local_tbc", v.var)
+      else
+        append_code(proto, code, u, "set_local", v.var)
+      end
+    end
+
+
+  elseif u_name == "return" then
+    local v = u[1]
+
+    for _, var in u.locals:ipairs() do
+      if scope.proto.locals:get(var).attribute == "close" then
+        append_code(proto, code, u, "close", var)
+      end
+    end
+
+    append_code(proto, code, u, "return")
+
+  -------------------------------------------------------------------------
+
+  elseif u_name == "varlist" then
+    local ns = 0
+    for _, v in ipairs(u) do
+      v.ns = ns
+      -- TODO settableの場合、スタックに2個つまれる。_ENVを参照する場合を考慮し
+      -- てコード生成後に調べる。最終的には、スタックの状態を数えるようにする。
+      -- if #v.code > 0 then
+      if v.ns_item then
+        ns = ns + 2
+      end
+    end
+    u.ns = ns
+
+  elseif u_name == "." then
+    if not u.define then
+      append_code(proto, code, u, "get_table", 2)
+    end
+
+  elseif u_name == "explist" then
+    if u.push ~= nil then
+      append_code(proto, code, u, "push_nil", u.push)
+    elseif u.pop ~= nil then
+      append_code(proto, code, u, "pop", u.pop)
+    end
+
+  -------------------------------------------------------------------------
+
+  elseif u_name == "fieldlist" then
+    if u.nr ~= nil then
+      -- top = -top - u.nr - 1
+      append_code(proto, code, u, "set_list", -proto.top - u.nr - 1)
+
+    elseif u.ns > 0 then
+      -- top = top - u.ns
+      append_code(proto, code, u, "set_list", proto.top - u.ns)
+    end
+
+  elseif u_name == "field" then
+    if u[2] ~= nil then
+      append_code(proto, code, u, "set_table", u.ns + 3)
+    end
+
   end
+
 end
+
+---------------------------------------------------------------------------
+
+-- 仮引数の数
+-- 可変長引数を持つか
+-- ローカル変数の数（仮引数を含む）
+--
+-- TODO 暗黙のreturnをどうするか検討する
+--   chunkとfuncbodyで違う？
+
+-- TODO スタックの状況を計算する方法を洗練する
+
+-- TODO arrayに依存しないようにする
+
+--[[
+
+   0  close local         TBCを閉じる
+   0  label label         ラベルを定義する
+   0  break               ループから出る
+   0  loop code           ループを定義する
+  -1  if code code        条件文を定義する
+   0  block               条件文で使うブロックを定義する
+  -1  set_local local     スタックトップをローカル変数に保存する
+  -1  set_local_tbc local スタックトップをローカル変数に保存する
+  +1  get_local local     スタックにローカル変数を積む
+  +1  get_upvalue upval   スタックに上位値を積む
+  -1  binop
+  +1  push                スタックに定数を積む
+  +n  push_nil n          スタックにnilをn個積む
+  +1  closure proto       スタックにクロージャを積む
+  -n  pop n               スタックからn個とりのぞく
+   0  goto label          ジャンプする
+
+  -1  get_table           k=pop(), t=pop() push(t[k])
+  -1  set_field t k       t[k]=pop()
+  -2  set_table t         v=pop() k=pop() t[k]=v
+
+      call f nresults     スタックトップまでを引数として呼ぶ
+      return              スタックトップまでを引数として返す
+      vararg nresults
+
+      set_list t          スタックトップまでをリストとしてテーブルに設定する
+
+      dup                 スタックトップを複製する
+      swap                スタックトップとその下の要素を交換する
+
+    0 for local code      数値forループの特殊命令
+
+]]
 
 local function process(chunk)
   local protos = array()
@@ -864,7 +1027,7 @@ local function process(chunk)
   local scope = { locals = array(), proto = proto }
   declare(scope, "_ENV")
   process1(protos, proto, scope, chunk)
-  process2(scope, chunk)
+  process2(proto, scope, chunk)
   return protos
 end
 
@@ -880,6 +1043,7 @@ local attrs = {
   "declare", "resolve", "define", "var", "env";
   "define_label", "resolve_label", "label";
   "adjust", "nomultret", "nr", "ns", "push", "pop";
+  "top";
 }
 if verbose then
   for _, attr in ipairs{"i", "j", "f", "n", "c", "s"} do
@@ -1027,6 +1191,12 @@ local function dump_protos(out, protos)
         end
       end
       out:write "    </scopes>\n"
+    end
+
+    if proto.code ~= nil then
+      for _, v in ipairs(proto.code) do
+        dump_code(out, v, 1)
+      end
     end
 
     out:write "  </proto>\n"

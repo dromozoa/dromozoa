@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-for f = 0.5, 1.5, 0.5 do
+for f = 0.5, 1.5, 0.75 do
   print(f)
 end
 

@@ -50,4 +50,3 @@ repeat
   local c3 <close>
   x = 3
 until false
-

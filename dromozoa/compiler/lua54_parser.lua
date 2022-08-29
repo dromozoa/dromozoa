@@ -5,22 +5,10 @@ local main = function ()
   local S
   local SS
   local action_data = (function ()
-        local function proto(vararg)
-      return { vararg = vararg }
-    end
-
-    local function scope(repeat_until)
-      return { repeat_until = repeat_until }
-    end
-
-    local function code(op, a, b)
-      return { { [0] = op, a = a, b = b } }
-    end
-  
-
+    
     return { function ()
 end;
-function ()SS.proto=proto(true) SS.scope=scope()
+function ()SS.vararg=true SS.proto=true SS.scope=true
 end;
 function ()SS=S[1]
 end;
@@ -32,19 +20,19 @@ function ()SS=S[2] append(S[1],S[3]) S[3].adjust=#S[1]
 end;
 function ()SS=S[1] SS.nr=0
 end;
-function ()SS=S[1] append(S[2]) S[2].resolve_label=true
+function ()SS=S[1] append(S[2]) S[2].label=true
 end;
-function ()SS=S[1] append(S[2]) S[2].scope=scope()
+function ()SS=S[1] append(S[2]) S[2].scope=true
 end;
-function ()SS=S[1] append(S[2],S[4]) SS.loop=true S[4].scope=scope()
+function ()SS=S[1] append(S[2],S[4]) SS.loop=true S[4].scope=true
 end;
-function ()SS=S[1] append(S[2],S[4]) SS.loop=true SS.scope=scope(true)
+function ()SS=S[1] append(S[2],S[4]) SS.loop=true SS.scope=true
 end;
-function ()SS=S[1] append(S[2],S[4],S[5]) S[4].scope=scope()
+function ()SS=S[1] append(S[2],S[4],S[5]) S[4].scope=true
 end;
-function ()SS=S[1] append(S[2],S[4],S[6]) SS.loop=true SS.scope=scope() S[6].scope=scope() S[2].declare=true
+function ()SS=S[1] append(S[2],S[4],S[6]) SS.loop=true SS.scope=true S[2].declare=true S[6].scope=true
 end;
-function ()SS=S[1] append(S[2],S[3]) S[2].define=true S[3].proto.self=S[2].self
+function ()SS=S[1] append(S[2],S[3]) S[2].define=true S[3].self=S[2].self
 end;
 function ()SS=S[1] append(S[2],S[4]) S[4].adjust=#S[2]
 end;
@@ -54,7 +42,7 @@ function ()SS=S[0] append(S[1],S[3])
 end;
 function ()SS=S[0] append(S[1],S[3],S[5])
 end;
-function ()SS=S[0] append(S[2],S[4],S[6]) SS.loop=true SS.scope=scope() S[6].scope=scope() S[4].adjust=4
+function ()SS=S[0] append(S[2],S[4],S[6]) SS.loop=true SS.scope=true S[6].scope=true S[4].adjust=4
 end;
 function ()SS=S[0] append(S[3],S[4]) S[3].declare=true
 end;
@@ -66,7 +54,7 @@ function ()SS=S[0] SS.v=S[2].v
 end;
 function ()SS=S[1] append(create(82))
 end;
-function ()SS=S[0] append(S[2]) S[2].define_label=true
+function ()SS=S[0] append(S[2]) S[2].label=true
 end;
 function ()SS=create(59) append(S[1],S[3]) SS.self=true
 end;
@@ -87,12 +75,6 @@ end;
 function ()SS=S[0] append(S[1])
 end;
 function ()SS=S[1] append(S[3])
-end;
-function ()SS=S[1] SS.code=code('push_nil',1)
-end;
-function ()SS=S[1] SS.code=code'push_false'
-end;
-function ()SS=S[1] SS.code=code'push_true'
 end;
 function ()SS=S[2] append(S[1],S[3]) SS.binop='add'
 end;
@@ -140,7 +122,7 @@ function ()SS=S[1] append(S[2]) SS.unop='len'
 end;
 function ()SS=S[1] append(S[2]) SS.unop='bnot'
 end;
-function ()SS=S[2] SS.nomultret=true
+function ()SS=S[2] SS.nr=1
 end;
 function ()SS=S[2] append(S[1],S[3]) SS=S[0] append(S[2],S[4])
 end;
@@ -152,9 +134,9 @@ function ()SS=create(82) append(S[1])
 end;
 function ()SS=S[0] append(S[2])
 end;
-function ()SS=S[0] append(create(81),S[3]) SS.proto=proto() SS.scope=scope()
+function ()SS=S[0] append(create(81),S[3]) SS.proto=true SS.scope=true
 end;
-function ()SS=S[0] append(S[2],S[4]) SS.proto=proto(S[2].vararg) SS.scope=scope()
+function ()SS=S[0] append(S[2],S[4]) SS.vararg=S[2].vararg SS.proto=true SS.scope=true
 end;
 function ()SS=S[1] SS.vararg=true
 end;
@@ -166,15 +148,15 @@ function ()SS=create(91) append(S[1])
 end;
 function ()SS=S[0] append(S[2],S[5])
 end;
-function ()SS=S[0] SS.code=code('push_literal',S[1].v)
+function ()SS=S[0] SS.v=S[1].v
 end;
-function ()SS=S[0] SS.code=code('push_numeral',S[1].v,'DecimalIntegerNumeral')
+function ()SS=S[0] SS.v=S[1].v SS.hint='DecimalIntegerNumeral'
 end;
-function ()SS=S[0] SS.code=code('push_numeral',S[1].v,'DecimalFloatingNumeral')
+function ()SS=S[0] SS.v=S[1].v SS.hint='DecimalFloatingNumeral'
 end;
-function ()SS=S[0] SS.code=code('push_numeral',S[1].v,'HexadecimalIntegerNumeral')
+function ()SS=S[0] SS.v=S[1].v SS.hint='HexadecimalIntegerNumeral'
 end;
-function ()SS=S[0] SS.code=code('push_numeral',S[1].v,'HexadecimalFloatingNumeral')
+function ()SS=S[0] SS.v=S[1].v SS.hint='HexadecimalFloatingNumeral'
 end;
  }
   end)()
@@ -502,7 +484,7 @@ actions={
 };
 heads={64,65,66,66,67,67,67,68,68,68,68,68,68,68,68,68,68,68,68,68,68,68,69,69,69,70,70,71,72,73,73,74,74,75,75,75,75,76,77,77,78,78,79,79,80,80,80,80,80,81,81,82,82,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,83,84,84,85,85,85,85,86,86,86,86,87,88,88,89,89,89,90,90,91,91,92,92,93,93,93,94,94,95,95,96,96,96,96,};
 sizes={1,1,1,2,0,2,2,3,1,1,1,2,3,5,4,6,7,1,3,1,2,4,0,2,5,3,5,7,4,2,4,0,3,1,2,2,3,3,1,3,1,3,1,3,1,4,3,4,3,1,3,1,3,1,1,1,1,1,1,1,1,1,1,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,2,1,3,2,4,2,4,2,3,1,1,2,4,5,1,3,1,2,3,1,2,1,3,5,3,1,1,1,1,1,1,1,1,1,};
-semantic_actions={1,2,3,4,5,3,4,6,7,4,3,8,9,10,11,12,13,3,14,3,4,15,16,9,12,17,18,19,20,21,22,1,23,24,24,4,4,25,3,26,27,28,29,30,27,31,28,31,28,32,33,34,35,36,37,38,3,3,3,3,3,3,3,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,28,28,58,59,60,61,3,62,1,63,1,63,64,65,66,66,67,68,69,3,70,71,72,65,3,3,73,35,74,17,1,1,1,75,75,76,77,78,79,};
+semantic_actions={1,2,3,4,5,3,4,6,7,4,3,8,9,10,11,12,13,3,14,3,4,15,16,9,12,17,18,19,20,21,22,1,23,24,24,4,4,25,3,26,27,28,29,30,27,31,28,31,28,32,33,34,35,3,3,3,3,3,3,3,3,3,3,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,28,28,55,56,57,58,3,59,1,60,1,60,61,62,63,63,64,65,66,3,67,68,69,62,3,3,70,35,71,17,1,1,1,72,72,73,74,75,76,};
  }
 local metatable = {
   __call = function (self, token)
