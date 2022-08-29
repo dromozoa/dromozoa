@@ -141,9 +141,110 @@ end
 
 ---------------------------------------------------------------------------
 
+local codes = {
+  label     =  0;
+  ["break"] =  0;
+  ["goto"]  =  0;
+  ["if"]    = -1;
+  block     =  0;
+  loop      =  0;
+  ["for"]   =  0;
+
+  add    = -1;
+  sub    = -1;
+  mul    = -1;
+  div    = -1;
+  idiv   = -1;
+  mod    = -1;
+  pow    = -1;
+  band   = -1;
+  bxor   = -1;
+  bor    = -1;
+  shr    = -1;
+  shl    = -1;
+  concat = -1;
+  lt     = -1;
+  le     = -1;
+  gt     = -1;
+  ge     = -1;
+  eq     = -1;
+  ne     = -1;
+
+  unm     = 0;
+  ["not"] = 0;
+  len     = 0;
+  bnot    = 0;
+
+  set_local     = -1;
+  set_local_tbc = -1;
+  set_upvalue   = -1;
+  set_field     = -1;
+  set_table     = -2;
+
+  get_local   =  1;
+  get_upvalue =  1;
+  get_table   = -1;
+
+  new_table    = 1;
+  closure      = 1;
+  push_false   = 1;
+  push_true    = 1;
+  push_literal = 1;
+  push_numeral = 1;
+
+  dup   = 1;
+  swap  = 0;
+  close = 0;
+
+  -- call t
+  -- return t
+  -- vararg
+  -- set_list
+
+  -- push_nil n
+  -- pop n
+}
+
 local function append_code(code, u, op, a, b)
   local v = { [0] = op, a = a, b = b, c = c, node = u }
+  if op == "if" or op == "block" or op == "loop" or op == "for" then
+    v.top = 0
+  end
+
   code[#code + 1] = v
+  local t = codes[op]
+  if t then
+    code.top = code.top + t
+  elseif op == "call" then
+    assert(a > 0)
+    local top = a - 1
+    if b < 0 then
+      assert(b == -1)
+      code.top = b - top
+    else
+      assert(b >= 0)
+      code.top = top + b
+    end
+  elseif op == "return" then
+    code.top = 0
+  elseif op == "vararg" then
+    if a < 0 then
+      assert(code.top >= 0)
+      assert(a == -1)
+      code.top = a - code.top
+    else
+      assert(a > 0)
+      code.top = code.top + a
+    end
+  elseif op == "set_list" then
+    code.top = a
+  elseif op == "push_nil" then
+    code.top = code.top + a
+  elseif op == "pop" then
+    code.top = code.top - a
+  else
+    error("unknown op " .. op)
+  end
   return v
 end
 
@@ -160,7 +261,7 @@ local function process1(protos, proto, scope, u, loop)
       locals = array();
       upvalues = array();
       scopes = array();
-      code = {};
+      code = { top = 0 };
       parent = proto;
     }
     proto = u.proto
@@ -320,11 +421,12 @@ local function process2(scope, u, code, top)
     scope = u.scope
   end
 
-  assert(top)
-  u.top = top
-
   local u_name = lua54_parser.symbol_names[u[0]]
   local traversed
+
+  assert(top)
+  u.top = top
+  -- assert(top == code.top, u_name .. " " .. top .. "/" .. code.top .. " " .. tostring(u.v))
 
   if u_name == "block" then
     traversed = true
@@ -404,16 +506,14 @@ local function process2(scope, u, code, top)
 
     local loop = append_code(code, u, "loop")
 
-    top = process2(scope, u[1], code, top)
+    top = process2(scope, u[1], loop, top)
 
     local cond = append_code(loop, u, "if")
     top = top - 1
-
+    append_code(cond, u, "block")
     append_code(cond, u, "block")
 
-    top = process2(scope, u[2], code[1], top)
-
-    append_code(cond, u, "block")
+    top = process2(scope, u[2], cond[1], top)
     append_code(cond[2], u, "break")
 
   elseif u_name == "repeat" then
