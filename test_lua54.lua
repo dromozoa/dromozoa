@@ -490,6 +490,7 @@ local function process2(proto, scope, u, code)
     append_code(proto, code, u, "break")
 
   elseif u_name == "goto" then
+    -- TODO local label
     u.label = resolve_label(scope, x.v, u)
 
     local v = proto.labels[u.label].node
@@ -499,7 +500,7 @@ local function process2(proto, scope, u, code)
       for i = 0, n - 1 do
         local var = v.stack[n - i]
         if u.stack[m - i] ~= var then
-          compiler_error("<goto " .. v.v .. "> jumps into the scope of local " .. proto.locals[var].name, u)
+          compiler_error("<goto " .. x.v .. "> jumps into the scope of local " .. proto.locals[var].name, u)
         end
       end
     end
@@ -818,23 +819,30 @@ end
 
 ---------------------------------------------------------------------------
 
+local quotes = {
+  ['&'] = '&amp;';
+  ['<'] = '&lt;';
+  ['>'] = '&gt;';
+  ['"'] = '&quot;';
+}
+
 local function quote(s)
-  return '"' .. string.gsub(s, '[&<>"]', { ['&'] = '&amp;', ['<'] = '&lt;', ['>'] = '&gt;', ['"'] = '&quot;' }) .. '"'
+  return '"' .. string.gsub(s, '[&<>"]', quotes) .. '"'
 end
 
 local attrs = {
   "v";
+  "declare", "resolve", "define", "label";
+  "var", "env";
+  "adjust", "nr";
+  "loop";
+  "self", "vararg";
   "attribute";
-  "declare", "resolve", "define", "var", "env";
-  "define_label", "resolve_label", "label";
-  "adjust", "nomultret", "nr", "ns", "push", "pop";
-  "top";
+  "binop", "unop";
+  "hint";
+  "end_of_scope";
+  "stack";
 }
-if verbose then
-  for _, attr in ipairs{"i", "j", "f", "n", "c", "s"} do
-    attrs[#attrs + 1] = attr
-  end
-end
 
 local function dump_attrs(out, u, attrs)
   for _, attr in ipairs(attrs) do
@@ -845,7 +853,7 @@ local function dump_attrs(out, u, attrs)
       if t == "boolean" or t == "number" or t == "string" then
         out:write(quote(tostring(v)))
       else
-        out:write(quote(t))
+        out:write(quote(table.concat(v, ",")))
       end
     end
   end
