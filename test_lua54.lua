@@ -33,6 +33,13 @@ local function compiler_error(message, u)
   end
 end
 
+local function append(t, v)
+  assert(v ~= nil)
+  local n = #t + 1
+  t[n] = v
+  return n
+end
+
 ---------------------------------------------------------------------------
 
 -- scope--
@@ -129,11 +136,8 @@ local function define_label(scope, name, u)
   if label then
     compiler_error("label " .. name .. " already defined on line " .. v.node.n, u)
   end
-  local proto_labels = scope.proto.labels
-  proto_labels[#proto_labels + 1] = { name = name, node = u }
-  local label = #proto_labels
-  local scope_labels = scope.labels
-  scope_labels[#scope_labels + 1] = label
+  local label = append(scope.proto.labels, { name = name, node = u })
+  append(scope.labels, label)
   return label
 end
 
