@@ -531,12 +531,9 @@ local function process2(proto, scope, u, code)
 
   elseif u_name == "repeat" then
     local loop_block = append_code(proto, code, u, "loop")
-
     process2(proto, scope, x, loop_block)
     process2(proto, scope, y, loop_block)
-
     append_close_scope(proto, loop_block, u, scope)
-
     local then_block = append_if(proto, loop_block, u)
     append_code(proto, then_block, u, "break")
 
@@ -604,7 +601,6 @@ local function process2(proto, scope, u, code)
       append_code(proto, code, u, "set_table", 3)
       append_code(proto, code, u, "pop", 1)
     end
-
     process2(proto, scope, y, code)
 
   elseif u_name == "local_function" then
