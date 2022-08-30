@@ -284,7 +284,7 @@ local function process1(protos, proto, scope, u, loop)
       parent = proto;
     }
     proto = u.proto
-    proto.index = protos:append(proto):size()
+    proto.index = append(protos, proto)
     loop = nil
   end
 
@@ -884,7 +884,7 @@ end
 ]]
 
 local function process(chunk)
-  local protos = array()
+  local protos = {}
   local proto = { locals = {} }
   local scope = { locals = {}, proto = proto }
   declare(scope, "_ENV")
@@ -990,7 +990,7 @@ end
 
 local function dump_protos(out, protos)
   out:write "<protos>\n"
-  for i, proto in protos:ipairs() do
+  for i, proto in ipairs(protos) do
     out:write "  <proto"
     dump_attrs(out, proto, {"index", "self", "vararg"})
     out:write ">\n"
