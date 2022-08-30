@@ -806,9 +806,6 @@ end
 -- 仮引数の数
 -- 可変長引数を持つか
 -- ローカル変数の数（仮引数を含む）
---
--- TODO 暗黙のreturnをどうするか検討する
---   chunkとfuncbodyで違う？
 
 local function process(chunk)
   local protos = {}
