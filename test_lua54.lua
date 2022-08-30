@@ -114,8 +114,8 @@ end
 local function find_label(scope, name)
   local proto = scope.proto
   repeat
-    for i, label in scope.labels:ipairs() do
-      local v = proto.labels:get(label)
+    for i, label in ipairs(scope.labels) do
+      local v = proto.labels[label]
       if v.name == name then
         return label, v
       end
@@ -129,8 +129,11 @@ local function define_label(scope, name, u)
   if label then
     compiler_error("label " .. name .. " already defined on line " .. v.node.n, u)
   end
-  local label = scope.proto.labels:append{name=name, node=u}:size()
-  scope.labels:append(label)
+  local proto_labels = scope.proto.labels
+  proto_labels[#proto_labels + 1] = { name = name, node = u }
+  local label = #proto_labels
+  local scope_labels = scope.labels
+  scope_labels[#scope_labels + 1] = label
   return label
 end
 
@@ -268,7 +271,7 @@ local function process1(protos, proto, scope, u, loop)
     u.proto = {
       vararg = u.vararg;
       self = u.self;
-      labels = array();
+      labels = {};
       locals = array();
       upvalues = array();
       scopes = array();
@@ -284,7 +287,7 @@ local function process1(protos, proto, scope, u, loop)
   if u.scope then
     u.scope = {
       repeat_until = u_name == "repeat";
-      labels = array();
+      labels = {};
       locals = array();
       proto = proto;
       parent = scope;
@@ -365,10 +368,9 @@ local function process1(protos, proto, scope, u, loop)
   elseif u_name == "label" then
     u.label = define_label(scope, x.v, u)
     -- goto用に変数リストを記録する。ラベル文がブロックの末尾にある場合、現在の
-    -- スコープは終了しているので、親スコープの変数を調べる。
+    -- スコープは終了しているので親スコープを調べる。
     if u.end_of_scope then
-      -- TODO protoの外にしみだす危険性がある
-      if scope.parent.proto == proto then
+      if proto == scope.parent.proto then
         u.stack = collect(scope.parent)
       else
         u.stack = array()
@@ -382,15 +384,11 @@ local function process1(protos, proto, scope, u, loop)
       compiler_error("break outside loop", u)
     end
     u.target = loop
-    -- 変数リストを記録する。
+    -- ジャンプ前の変数リストを記録する。
     u.stack = collect(scope)
 
-  elseif u_name == "goto" then
-    -- 変数リストを記録する。
-    u.stack = collect(scope)
-
-  elseif u_name == "return" then
-    -- 変数リストを記録する。
+  elseif u_name == "goto" or u_name == "return" then
+    -- ジャンプ前の変数リストを記録する。
     u.stack = collect(scope)
 
   elseif u_name == "..." then
@@ -505,7 +503,7 @@ local function process2(proto, scope, u, code)
     local v = u[1]
     u.label = resolve_label(scope, v.v, u)
 
-    local y = proto.labels:get(u.label).node
+    local y = proto.labels[u.label].node
 
     local m = u.stack:size()
     local n = y.stack:size()
@@ -843,8 +841,6 @@ end
 -- TODO 暗黙のreturnをどうするか検討する
 --   chunkとfuncbodyで違う？
 
--- TODO スタックの状況を計算する方法を洗練する
-
 -- TODO arrayに依存しないようにする
 
 --[[
@@ -995,11 +991,11 @@ local function dump_protos(out, protos)
     dump_attrs(out, proto, {"index", "self", "vararg"})
     out:write ">\n"
 
-    if proto.labels:empty() then
+    if next(proto.labels) == nil then
       out:write "    <labels/>\n"
     else
       out:write "    <labels>\n"
-      for j, v in proto.labels:ipairs() do
+      for j, v in ipairs(proto.labels) do
         out:write("      <label index=\"", j, "\"")
         dump_attrs(out, v, {"name"})
         if v.node ~= nil then
