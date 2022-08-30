@@ -272,12 +272,10 @@ local function append_close_scope(proto, code, u, scope)
 end
 
 local function append_close_stack(proto, code, u, stack, n)
-  for i, var in ipairs(stack) do
+  for i = 1, n or #stack do
+    local var = stack[i]
     if proto.locals[var].attribute == "close" then
       append_code(proto, code, u, "close", var)
-    end
-    if i == n then
-      break
     end
   end
 end
