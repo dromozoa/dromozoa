@@ -262,11 +262,22 @@ local function append_if(proto, code, u)
   return then_block, else_block
 end
 
-local function append_close(proto, code, u, locals)
+local function append_close_locals(proto, code, u, locals)
   for i = #locals, 1, -1 do
     local var = locals[i]
     if proto.locals[var].attribute == "close" then
       append_code(proto, code, u, "close", var)
+    end
+  end
+end
+
+local function append_close_stack(proto, code, u, stack, n)
+  for i, var in ipairs(stack) do
+    if proto.locals[var].attribute == "close" then
+      append_code(proto, code, u, "close", var)
+    end
+    if i == n then
+      break
     end
   end
 end
@@ -447,13 +458,13 @@ local function process2(proto, scope, u, code)
     local end_of_scope = u.end_of_scope
     for i, v in ipairs(u) do
       if end_of_scope == i then
-        append_close(proto, code, u, scope.locals)
+        append_close_locals(proto, code, u, scope.locals)
       end
       process2(proto, scope, v, code)
     end
 
     if not scope.repeat_until and not end_of_scope then
-      append_close(proto, code, u, scope.locals)
+      append_close_locals(proto, code, u, scope.locals)
     end
 
   elseif u_name == "=" then
@@ -492,12 +503,7 @@ local function process2(proto, scope, u, code)
       assert(u.stack[m - i] == v.stack[n - i])
     end
 
-    for i = 1, m - n do
-      local var = u.stack[i]
-      if proto.locals[var].attribute == "close" then
-        append_code(proto, code, u, "close", var)
-      end
-    end
+    append_close_stack(proto, code, u, u.stack, m - n)
     append_code(proto, code, u, "break")
 
   elseif u_name == "goto" then
@@ -515,12 +521,7 @@ local function process2(proto, scope, u, code)
       end
     end
 
-    for i = 1, m - n do
-      local var = u.stack[i]
-      if proto.locals[var].attribute == "close" then
-        append_code(proto, code, u, "close", var)
-      end
-    end
+    append_close_stack(proto, code, u, u.stack, m - n)
     append_code(proto, code, u, "goto", u.label)
 
   elseif u_name == "while" then
@@ -536,12 +537,7 @@ local function process2(proto, scope, u, code)
     process2(proto, scope, x, loop_block)
     process2(proto, scope, y, loop_block)
 
-    for j = #scope.locals, 1, -1 do
-      local var = scope.locals[j]
-      if proto.locals[var].attribute == "close" then
-        append_code(proto, loop_block, u, "close", var)
-      end
-    end
+    append_close_locals(proto, loop_block, u, scope.locals)
 
     local then_block = append_if(proto, loop_block, u)
     append_code(proto, then_block, u, "break")
