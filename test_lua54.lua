@@ -275,8 +275,9 @@ local function process1(protos, proto, scope, u, loop)
 
   if u.proto then
     u.proto = {
-      vararg = u.vararg;
+      nparams = 0;
       self = u.self;
+      vararg = u.vararg;
       locals = {};
       upvalues = {};
       labels = {};
@@ -369,6 +370,9 @@ local function process1(protos, proto, scope, u, loop)
     -- colon syntaxで関数が定義されたら、暗黙の仮引数selfを宣言する。
     if proto.self then
       u.var = declare(scope, "self", u)
+      proto.nparams = #x + 1
+    else
+      proto.nparams = #x
     end
 
   elseif u_name == "label" then
@@ -930,7 +934,7 @@ local function dump_protos(out, protos)
   out:write "<protos>\n"
   for _, proto in ipairs(protos) do
     out:write "  <proto"
-    dump_attrs(out, proto, { "index", "self", "vararg" })
+    dump_attrs(out, proto, { "index", "nparams", "self", "vararg" })
     out:write ">\n"
 
     dump_proto_list(out, proto.locals, "locals", "local")
