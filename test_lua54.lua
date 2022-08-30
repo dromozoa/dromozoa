@@ -24,19 +24,19 @@ local lua54_parser = require "dromozoa.compiler.lua54_parser"
 
 ---------------------------------------------------------------------------
 
-local function append(t, v)
-  assert(v ~= nil)
-  local n = #t + 1
-  t[n] = v
-  return n
-end
-
 local function compiler_error(message, u)
   if u ~= nil and u.f ~= nil and u.n ~= nil and u.c ~= nil then
     error(u.f .. ":" .. u.n .. ":" .. u.c .. ": compiler error (" .. message .. ")")
   else
     error("compiler error (" .. message .. ")")
   end
+end
+
+local function append(t, v)
+  assert(v ~= nil)
+  local n = #t + 1
+  t[n] = v
+  return n
 end
 
 ---------------------------------------------------------------------------
