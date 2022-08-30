@@ -97,13 +97,13 @@ local function resolve(scope, name, u, define)
     return
   end
 
-  for i, v in proto.upvalues:ipairs() do
+  for i, v in ipairs(proto.upvalues) do
     if v.var == var then
       assert(v.name == name)
       return -i
     end
   end
-  return -proto.upvalues:append{name=name, var=var}:size()
+  return -append(proto.upvalues, {name = name, var = var })
 end
 
 local function collect(scope)
@@ -277,7 +277,7 @@ local function process1(protos, proto, scope, u, loop)
       self = u.self;
       labels = {};
       locals = array();
-      upvalues = array();
+      upvalues = {};
       scopes = array();
       code = {};
       top = 0;
@@ -1025,11 +1025,11 @@ local function dump_protos(out, protos)
       out:write "    </locals>\n"
     end
 
-    if proto.upvalues:empty() then
+    if next(proto.upvalues) == nil then
       out:write "    <upvalues/>\n"
     else
       out:write "    <upvalues>\n"
-      for j, v in proto.upvalues:ipairs() do
+      for j, v in ipairs(proto.upvalues) do
         out:write("      <upvalue index=\"", j, "\"")
         dump_attrs(out, v, {"name", "var"})
         out:write "/>\n"
