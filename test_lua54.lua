@@ -367,7 +367,12 @@ local function process1(protos, proto, scope, u, loop)
     -- goto用に変数リストを記録する。ラベル文がブロックの末尾にある場合、現在の
     -- スコープは終了しているので、親スコープの変数を調べる。
     if u.end_of_scope then
-      u.stack = collect(scope.parent)
+      -- TODO protoの外にしみだす危険性がある
+      if scope.parent.proto == proto then
+        u.stack = collect(scope.parent)
+      else
+        u.stack = array()
+      end
     else
       u.stack = collect(scope)
     end

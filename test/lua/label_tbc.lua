@@ -52,3 +52,20 @@ do
   ::L3::
   -- local h <close> = tbc(700)
 end
+
+function f1()
+  local a1 <close> = tbc(1000)
+  local a2 <close> = tbc(1100)
+  local a3 <close> = tbc(1200)
+
+  function f2()
+    local b1 <close> = tbc(2000)
+    goto LABEL
+    local b2 <close> = tbc(2100)
+    ::LABEL::
+  end
+
+  local a4 <close> = tbc(1300)
+  local a5 <close> = tbc(1400)
+  local a6 <close> = tbc(1500)
+end
