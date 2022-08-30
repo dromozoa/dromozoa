@@ -58,6 +58,9 @@ end
 -- scope----proto <= external
 
 local function declare(scope, name, u, attribute)
+  if attribute and attribute ~= "const" and attribute ~= "close" then
+    compiler_error("unknown attribute " .. attribute, u)
+  end
   local var = scope.proto.locals:append{name=name, attribute=attribute, node=u}:size()
   scope.locals:append(var)
   return var
