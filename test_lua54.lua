@@ -296,6 +296,7 @@ local function process1(protos, proto, scope, u, loop)
   if u_name == "for" then
     -- ジャンプ解決用に変数リストを逆順で記録する。
     u.locals = collect(scope)
+
     -- 制御式の名前解決を先に行う。
     process1(protos, proto, scope, u[2], loop)
     -- 内部的に使用する3個の変数を宣言する。
@@ -308,6 +309,7 @@ local function process1(protos, proto, scope, u, loop)
   elseif u_name == "for_in" then
     -- ジャンプ解決用に変数リストを逆順で記録する。
     u.locals = collect(scope)
+
     -- 制御式の名前解決を先に行う。
     process1(protos, proto, scope, u[2], loop)
     -- 内部的に使用する4個の変数を宣言する。Lua 5.3以前は3個だったが、Lua 5.4で
@@ -344,21 +346,21 @@ local function process1(protos, proto, scope, u, loop)
     return process1(protos, proto, scope, u[2], loop)
 
   elseif u_name == "block" then
-      -- empty statementsは解析の時点でとりのぞかれるので、label文だけがvoid
-      -- statementsとして残る。repeat-until文以外のスコープは、スコープの最後の
-      -- void statementsの前でスコープを終了する。ブロックの末尾にラベル文があ
-      -- るかどうかを検査する。
-      if not scope.repeat_until then
-        for i = #u, 1, -1 do
-          local v = u[i]
-          if lua54_parser.symbol_names[v[0]] == "label" then
-            u.end_of_scope = i
-            v.end_of_scope = i
-          else
-            break
-          end
+    -- empty statementsは解析の時点でとりのぞかれるので、label文だけがvoid
+    -- statementsとして残る。repeat-until文以外のスコープは、スコープの最後の
+    -- void statementsの前でスコープを終了する。ブロックの末尾にラベル文があ
+    -- るかどうかを検査する。
+    if not scope.repeat_until then
+      for i = #u, 1, -1 do
+        local v = u[i]
+        if lua54_parser.symbol_names[v[0]] == "label" then
+          u.end_of_scope = i
+          v.end_of_scope = i
+        else
+          break
         end
       end
+    end
 
   elseif u_name == "label" then
     -- ジャンプ解決用にラベルと変数リストを逆順で記録する。
