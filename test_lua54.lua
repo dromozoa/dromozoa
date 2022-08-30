@@ -93,10 +93,10 @@ local function resolve(scope, name, u, define)
   for i, v in proto.upvalues:ipairs() do
     if v.var == var then
       assert(v.name == name)
-      return i + 65536
+      return -i
     end
   end
-  return proto.upvalues:append{name=name, var=var}:size() + 65536
+  return -proto.upvalues:append{name=name, var=var}:size()
 end
 
 local function collect(scope)
@@ -465,10 +465,10 @@ local function process2(proto, scope, u, code)
     for i = #x, 1, -1 do
       local v = x[i]
       if v.var then
-        if v.var <= 65536 then
-          append_code(proto, code, u, "set_local", v.var)
+        if v.var < 0 then
+          append_code(proto, code, u, "set_upvalue", -v.var)
         else
-          append_code(proto, code, u, "set_upvalue", v.var - 65536)
+          append_code(proto, code, u, "set_local", v.var)
         end
       else
         append_code(proto, code, u, "set_field", target - 1, target)
@@ -605,10 +605,10 @@ local function process2(proto, scope, u, code)
     process2(proto, scope, x, code)
     append_code(proto, code, u, "closure", y.proto.index)
     if x.var then
-      if x.var <= 65536 then
-        append_code(proto, code, u, "set_local", x.var)
+      if x.var < 0 then
+        append_code(proto, code, u, "set_upvalue", -x.var)
       else
-        append_code(proto, code, u, "set_upvalue", x.var - 65536)
+        append_code(proto, code, u, "set_local", x.var)
       end
     else
       append_code(proto, code, u, "set_table", 3)
@@ -808,10 +808,10 @@ local function process2(proto, scope, u, code)
     end
 
     if not u.var then
-      if u.env <= 65536 then
-        append_code(proto, code, u, "get_local", u.env)
+      if u.env < 0 then
+        append_code(proto, code, u, "get_upvalue", -u.env)
       else
-        append_code(proto, code, u, "get_upvalue", u.env - 65536)
+        append_code(proto, code, u, "get_local", u.env)
       end
       append_code(proto, code, u, "push_literal", u.v)
       if not u.define then
@@ -821,10 +821,10 @@ local function process2(proto, scope, u, code)
     end
 
     if not u.define then
-      if u.var <= 65536 then
-        append_code(proto, code, u, "get_local", u.var)
+      if u.var < 0 then
+        append_code(proto, code, u, "get_upvalue", -u.var)
       else
-        append_code(proto, code, u, "get_upvalue", u.var - 65536)
+        append_code(proto, code, u, "get_local", u.var)
       end
     end
 
