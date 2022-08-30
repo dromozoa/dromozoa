@@ -68,17 +68,17 @@ local function declare(scope, name, u, attribute)
   if attribute and attribute ~= "const" and attribute ~= "close" then
     compiler_error("unknown attribute " .. attribute, u)
   end
-  local var = scope.proto.locals:append{name=name, attribute=attribute, node=u}:size()
-  scope.locals:append(var)
+  local var = append(scope.proto.locals, { name = name, attribute = attribute, node = u })
+  append(scope.locals, var)
   return var
 end
 
 local function resolve(scope, name, u, define)
   local proto = scope.proto
   repeat
-    for i = scope.locals:size(), 1, -1 do
-      local var = scope.locals:get(i)
-      local v = proto.locals:get(var)
+    for i = #scope.locals, 1, -1 do
+      local var = scope.locals[i]
+      local v = proto.locals[var]
       if v.name == name then
         if define and (v.attribute == "const" or v.attribute == "close") then
           compiler_error("attempt to assign to const variable " .. name, u)
@@ -110,8 +110,8 @@ local function collect(scope)
   local stack = array()
   local proto = scope.proto
   repeat
-    for i = scope.locals:size(), 1, -1 do
-      stack:append(scope.locals:get(i))
+    for i = #scope.locals, 1, -1 do
+      stack:append(scope.locals[i])
     end
     scope = scope.parent
   until proto ~= scope.proto
@@ -276,7 +276,7 @@ local function process1(protos, proto, scope, u, loop)
       vararg = u.vararg;
       self = u.self;
       labels = {};
-      locals = array();
+      locals = {};
       upvalues = {};
       scopes = {};
       code = {};
@@ -292,7 +292,7 @@ local function process1(protos, proto, scope, u, loop)
     u.scope = {
       repeat_until = u_name == "repeat";
       labels = {};
-      locals = array();
+      locals = {};
       proto = proto;
       parent = scope;
     }
@@ -439,9 +439,9 @@ local function process2(proto, scope, u, code)
     local end_of_scope = u.end_of_scope
     for i, v in ipairs(u) do
       if end_of_scope == i then
-        for j = scope.locals:size(), 1, -1 do
-          local var = scope.locals:get(j)
-          if proto.locals:get(var).attribute == "close" then
+        for j = #scope.locals, 1, -1 do
+          local var = scope.locals[j]
+          if proto.locals[var].attribute == "close" then
             append_code(proto, code, u, "close", var)
           end
         end
@@ -450,9 +450,9 @@ local function process2(proto, scope, u, code)
     end
 
     if not scope.repeat_until and end_of_scope == nil then
-      for j = scope.locals:size(), 1, -1 do
-        local var = scope.locals:get(j)
-        if proto.locals:get(var).attribute == "close" then
+      for j = #scope.locals, 1, -1 do
+        local var = scope.locals[j]
+        if proto.locals[var].attribute == "close" then
           append_code(proto, code, u, "close", var)
         end
       end
@@ -497,7 +497,7 @@ local function process2(proto, scope, u, code)
 
     for i = 1, m - n do
       local var = u.stack:get(i)
-      if proto.locals:get(var).attribute == "close" then
+      if proto.locals[var].attribute == "close" then
         append_code(proto, code, u, "close", var)
       end
     end
@@ -515,14 +515,14 @@ local function process2(proto, scope, u, code)
       for i = 0, n - 1 do
         local var = y.stack:get(n - i)
         if u.stack:get(m - i) ~= var then
-          compiler_error("<goto " .. v.v .. "> jumps into the scope of local " .. proto.locals:get(var).name, u)
+          compiler_error("<goto " .. v.v .. "> jumps into the scope of local " .. proto.locals[var].name, u)
         end
       end
     end
 
     for i = 1, m - n do
       local var = u.stack:get(i)
-      if proto.locals:get(var).attribute == "close" then
+      if proto.locals[var].attribute == "close" then
         append_code(proto, code, u, "close", var)
       end
     end
@@ -541,9 +541,9 @@ local function process2(proto, scope, u, code)
     process2(proto, scope, x, loop_block)
     process2(proto, scope, y, loop_block)
 
-    for j = scope.locals:size(), 1, -1 do
-      local var = scope.locals:get(j)
-      if proto.locals:get(var).attribute == "close" then
+    for j = #scope.locals, 1, -1 do
+      local var = scope.locals[j]
+      if proto.locals[var].attribute == "close" then
         append_code(proto, loop_block, u, "close", var)
       end
     end
@@ -644,7 +644,7 @@ local function process2(proto, scope, u, code)
     process2(proto, scope, x, code)
 
     for _, var in u.stack:ipairs() do
-      if proto.locals:get(var).attribute == "close" then
+      if proto.locals[var].attribute == "close" then
         append_code(proto, code, u, "close", var)
       end
     end
@@ -885,8 +885,8 @@ end
 
 local function process(chunk)
   local protos = array()
-  local proto = { locals = array() }
-  local scope = { locals = array(), proto = proto }
+  local proto = { locals = {} }
+  local scope = { locals = {}, proto = proto }
   declare(scope, "_ENV")
   process1(protos, proto, scope, chunk)
   process2(proto, scope, chunk)
@@ -1010,11 +1010,11 @@ local function dump_protos(out, protos)
       out:write "    </labels>\n"
     end
 
-    if proto.locals:empty() then
+    if next(proto.locals) == nil then
       out:write "    <locals/>\n"
     else
       out:write "    <locals>\n"
-      for j, v in proto.locals:ipairs() do
+      for j, v in ipairs(proto.locals) do
         out:write("      <local index=\"", j, "\"")
         dump_attrs(out, v, {"name", "attribute"})
         if v.node ~= nil then
@@ -1042,11 +1042,11 @@ local function dump_protos(out, protos)
     else
       out:write "    <scopes>\n"
       for j, scope in ipairs(proto.scopes) do
-        if scope.locals:empty() then
+        if next(scope.locals) == nill then
           out:write("      <scope index=\"", j, "\"/>\n")
         else
           out:write("      <scope index=\"", j, "\">\n")
-          for _, v in scope.locals:ipairs() do
+          for _, v in ipairs(scope.locals) do
             out:write("        <local index=\"", v, "\"/>\n")
           end
           out:write "      </scope>\n"
