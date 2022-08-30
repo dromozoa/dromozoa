@@ -260,6 +260,9 @@ end
 
 local function process1(protos, proto, scope, u, loop)
   local u_name = lua54_parser.symbol_names[u[0]]
+  local x = u[1]
+  local y = u[2]
+  local z = u[3]
 
   if u.proto then
     u.proto = {
@@ -294,61 +297,7 @@ local function process1(protos, proto, scope, u, loop)
     loop = u
   end
 
-  -- TODO u.localsじゃなくて、var_stackとかのほうがいいかな？
-
-  if u_name == "for" then
-    -- ジャンプ解決用に変数リストを逆順で記録する。
-    u.stack = collect(scope)
-
-    -- 制御式の名前解決を先に行う。
-    process1(protos, proto, scope, u[2], loop)
-    -- 内部的に使用する3個の変数を宣言する。
-    u.var = declare(scope, "(for state)", u)
-    declare(scope, "(for state)", u)
-    declare(scope, "(for state)", u)
-    process1(protos, proto, scope, u[1], loop)
-    return process1(protos, proto, scope, u[3], loop)
-
-  elseif u_name == "for_in" then
-    -- ジャンプ解決用に変数リストを逆順で記録する。
-    u.stack = collect(scope)
-
-    -- 制御式の名前解決を先に行う。
-    process1(protos, proto, scope, u[2], loop)
-    -- 内部的に使用する4個の変数を宣言する。Lua 5.3以前は3個だったが、Lua 5.4で
-    -- to-be-closed変数が追加された。
-    u.var = declare(scope, "(for state)", u)
-    declare(scope, "(for state)", u)
-    declare(scope, "(for state)", u)
-    declare(scope, "(for state)", u, "close")
-    process1(protos, proto, scope, u[1], loop)
-    return process1(protos, proto, scope, u[3], loop)
-
-  elseif u_name == "local" then
-    local n = 0
-    for _, v in ipairs(u[1]) do
-      if v.attribute == "close" then
-        n = n + 1
-        if n > 1 then
-          compiler_error("multiple to-be-closed variables in local list", v)
-        end
-      end
-    end
-    -- 左辺に式があれば、式の名前解決を先に行う。
-    if u[2] ~= nil then
-      process1(protos, proto, scope, u[2], loop)
-    end
-    return process1(protos, proto, scope, u[1], loop)
-
-  elseif u_name == "funcbody" then
-    -- colon syntaxで関数が定義されたら、暗黙の仮引数selfを宣言する。
-    if proto.self then
-      u.var = declare(scope, "self", u)
-    end
-    process1(protos, proto, scope, u[1], loop)
-    return process1(protos, proto, scope, u[2], loop)
-
-  elseif u_name == "block" then
+  if u_name == "block" then
     -- empty statementsは解析の時点でとりのぞかれるので、label文だけがvoid
     -- statementsとして残る。repeat-until文以外のスコープは、スコープの最後の
     -- void statementsの前でスコープを終了する。ブロックの末尾にラベル文があ
@@ -365,10 +314,60 @@ local function process1(protos, proto, scope, u, loop)
       end
     end
 
+  elseif u_name == "for" then
+    -- break用に変数リストを記録する。
+    u.stack = collect(scope)
+
+    -- 制御式の名前解決を先に行う。
+    process1(protos, proto, scope, y, loop)
+    -- 内部的に使用する3個の変数を宣言する。
+    u.var = declare(scope, "(for state)", u)
+    declare(scope, "(for state)", u)
+    declare(scope, "(for state)", u)
+    process1(protos, proto, scope, x, loop)
+    return process1(protos, proto, scope, z, loop)
+
+  elseif u_name == "for_in" then
+    -- break用に変数リストを記録する。
+    u.stack = collect(scope)
+
+    -- 制御式の名前解決を先に行う。
+    process1(protos, proto, scope, y, loop)
+    -- 内部的に使用する4個の変数を宣言する。Lua 5.3以前は3個だったが、Lua 5.4で
+    -- to-be-closed変数が追加された。
+    u.var = declare(scope, "(for state)", u)
+    declare(scope, "(for state)", u)
+    declare(scope, "(for state)", u)
+    declare(scope, "(for state)", u, "close")
+    process1(protos, proto, scope, x, loop)
+    return process1(protos, proto, scope, z, loop)
+
+  elseif u_name == "local" then
+    local n = 0
+    for _, v in ipairs(x) do
+      if v.attribute == "close" then
+        n = n + 1
+        if n > 1 then
+          compiler_error("multiple to-be-closed variables in local list", v)
+        end
+      end
+    end
+
+    -- 左辺に式があれば、式の名前解決を先に行う。
+    if y then
+      process1(protos, proto, scope, y, loop)
+    end
+    return process1(protos, proto, scope, x, loop)
+
+  elseif u_name == "funcbody" then
+    -- colon syntaxで関数が定義されたら、暗黙の仮引数selfを宣言する。
+    if proto.self then
+      u.var = declare(scope, "self", u)
+    end
+
   elseif u_name == "label" then
-    -- ジャンプ解決用にラベルと変数リストを逆順で記録する。
-    local v = u[1]
-    u.label = define_label(scope, v.v, u)
+    u.label = define_label(scope, x.v, u)
+    -- goto用に変数リストを記録する。
     if u.end_of_scope then
       u.stack = collect(scope.parent)
     else
@@ -379,20 +378,20 @@ local function process1(protos, proto, scope, u, loop)
     if loop == nil then
       compiler_error("break outside loop", u)
     end
-    -- ジャンプ解決用にbreak対象と変数リストを逆順で記録する。
     u.target = loop
+    -- 変数リストを記録する。
     u.stack = collect(scope)
 
   elseif u_name == "goto" then
-    -- ジャンプ解決用に変数リストを逆順で記録する。
+    -- 変数リストを逆順で記録する。
     u.stack = collect(scope)
 
   elseif u.loop then
-    -- ジャンプ解決用に変数リストを逆順で記録する。
+    -- break用に変数リストを記録する。
     u.stack = collect(scope)
 
   elseif u_name == "return" then
-    -- ジャンプ解決用に変数リストを逆順で記録する。
+    -- 変数リストを記録する。
     u.stack = collect(scope)
 
   elseif u_name == "..." then
@@ -400,15 +399,16 @@ local function process1(protos, proto, scope, u, loop)
       compiler_error("cannot use ... outside a vararg function", u)
     end
 
-  elseif u.declare then
-    u.var = declare(scope, u.v, u, u.attribute)
-
-  elseif u.resolve then
-    local var = resolve(scope, u.v, u, u.define)
-    if var == nil then
-      u.env = resolve(scope, "_ENV")
-    else
-      u.var = var
+  elseif u_name == "Name" then
+    if u.declare then
+      u.var = declare(scope, u.v, u, u.attribute)
+    elseif u.resolve then
+      local var = resolve(scope, u.v, u, u.define)
+      if var == nil then
+        u.env = resolve(scope, "_ENV")
+      else
+        u.var = var
+      end
     end
   end
 
@@ -420,6 +420,11 @@ end
 ---------------------------------------------------------------------------
 
 local function process2(proto, scope, u, code)
+  local u_name = lua54_parser.symbol_names[u[0]]
+  local x = u[1]
+  local y = u[2]
+  local z = u[3]
+
   if u.proto then
     proto = u.proto
     code = proto.code
@@ -428,11 +433,6 @@ local function process2(proto, scope, u, code)
   if u.scope then
     scope = u.scope
   end
-
-  local u_name = lua54_parser.symbol_names[u[0]]
-  local x = u[1]
-  local y = u[2]
-  local z = u[3]
 
   if u_name == "block" then
     local end_of_scope = u.end_of_scope
