@@ -80,13 +80,13 @@ local function resolve(scope, name, u, define)
       end
     end
     scope = scope.parent
-    if scope == nil then
+    if not scope then
       return
     end
   until proto ~= scope.proto
 
   local var = resolve(scope, name, u, define)
-  if var == nil then
+  if not var then
     return
   end
 
@@ -126,7 +126,7 @@ end
 
 local function define_label(scope, name, u)
   local label, v = find_label(scope, name)
-  if label ~= nil then
+  if label then
     compiler_error("label " .. name .. " already defined on line " .. v.node.n, u)
   end
   local label = scope.proto.labels:append{name=name, node=u}:size()
@@ -136,7 +136,7 @@ end
 
 local function resolve_label(scope, name, u)
   local label = find_label(scope, name)
-  if label == nil then
+  if not label then
     compiler_error("no visible label " .. name, u)
   end
   return label
