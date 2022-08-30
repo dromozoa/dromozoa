@@ -24,19 +24,19 @@ local lua54_parser = require "dromozoa.compiler.lua54_parser"
 
 ---------------------------------------------------------------------------
 
+local function append(t, v)
+  assert(v ~= nil)
+  local n = #t + 1
+  t[n] = v
+  return n
+end
+
 local function compiler_error(message, u)
   if u ~= nil and u.f ~= nil and u.n ~= nil and u.c ~= nil then
     error(u.f .. ":" .. u.n .. ":" .. u.c .. ": compiler error (" .. message .. ")")
   else
     error("compiler error (" .. message .. ")")
   end
-end
-
-local function append(t, v)
-  assert(v ~= nil)
-  local n = #t + 1
-  t[n] = v
-  return n
 end
 
 ---------------------------------------------------------------------------
@@ -485,7 +485,6 @@ local function process2(proto, scope, u, code)
 
   elseif u_name == "break" then
     local v = u.target
-
     local m = #u.stack
     local n = #v.stack
 
@@ -503,16 +502,14 @@ local function process2(proto, scope, u, code)
     append_code(proto, code, u, "break")
 
   elseif u_name == "goto" then
-    local v = u[1]
-    u.label = resolve_label(scope, v.v, u)
+    u.label = resolve_label(scope, x.v, u)
 
-    local y = proto.labels[u.label].node
-
+    local v = proto.labels[u.label].node
     local m = #u.stack
-    local n = #y.stack
+    local n = #v.stack
     if m <= n then
       for i = 0, n - 1 do
-        local var = y.stack[n - i]
+        local var = v.stack[n - i]
         if u.stack[m - i] ~= var then
           compiler_error("<goto " .. v.v .. "> jumps into the scope of local " .. proto.locals[var].name, u)
         end
