@@ -207,20 +207,20 @@ local opcodes = {
 }
 
 local function append_code(proto, code, u, op, a, b)
-  local v = { [0] = op, a = a, b = b, c = c, node = u }
+  local v = { [0] = op, a = a, b = b, node = u }
 
   code[#code + 1] = v
-  local add = opcodes[op]
-  if add then
-    proto.top = proto.top + add
+  local x = opcodes[op]
+  if x then
+    proto.top = proto.top + x
   elseif op == "return" then
     proto.top = 0
   elseif op == "call" then
-    local top = a - 1
+    -- local top = a - 1
     if b < 0 then
-      proto.top = b - top
+      proto.top = b - a + 1
     else
-      proto.top = top + b
+      proto.top = a + b - 1
     end
   elseif op == "vararg" then
     if a < 0 then
