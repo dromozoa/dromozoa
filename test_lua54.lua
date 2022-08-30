@@ -150,7 +150,7 @@ end
 
 ---------------------------------------------------------------------------
 
-local codes = {
+local opcodes = {
   label     =  0;
   ["break"] =  0;
   ["goto"]  =  0;
@@ -204,42 +204,28 @@ local codes = {
   dup   = 1;
   swap  = 0;
   close = 0;
-
-  -- call t nr
-  -- return
-  -- vararg nr
-  -- set_list t
-
-  -- push_nil n
-  -- pop n
 }
 
 local function append_code(proto, code, u, op, a, b)
   local v = { [0] = op, a = a, b = b, c = c, node = u }
 
   code[#code + 1] = v
-  local t = codes[op]
-  if t then
-    proto.top = proto.top + t
-  elseif op == "call" then
-    assert(a > 0)
-    local top = a - 1
-    if b < 0 then
-      assert(b == -1)
-      proto.top = b - top
-    else
-      assert(b >= 0)
-      proto.top = top + b
-    end
+  local add = opcodes[op]
+  if add then
+    proto.top = proto.top + add
   elseif op == "return" then
     proto.top = 0
+  elseif op == "call" then
+    local top = a - 1
+    if b < 0 then
+      proto.top = b - top
+    else
+      proto.top = top + b
+    end
   elseif op == "vararg" then
     if a < 0 then
-      assert(proto.top >= 0)
-      assert(a == -1)
       proto.top = a - proto.top
     else
-      assert(a > 0)
       proto.top = proto.top + a
     end
   elseif op == "set_list" then
@@ -823,42 +809,6 @@ end
 --
 -- TODO 暗黙のreturnをどうするか検討する
 --   chunkとfuncbodyで違う？
-
---[[
-
-   0  close local         TBCを閉じる
-   0  label label         ラベルを定義する
-   0  break               ループから出る
-   0  loop code           ループを定義する
-  -1  if code code        条件文を定義する
-   0  block               条件文で使うブロックを定義する
-  -1  set_local local     スタックトップをローカル変数に保存する
-  -1  set_local_tbc local スタックトップをローカル変数に保存する
-  +1  get_local local     スタックにローカル変数を積む
-  +1  get_upvalue upval   スタックに上位値を積む
-  -1  binop
-  +1  push                スタックに定数を積む
-  +n  push_nil n          スタックにnilをn個積む
-  +1  closure proto       スタックにクロージャを積む
-  -n  pop n               スタックからn個とりのぞく
-   0  goto label          ジャンプする
-
-  -1  get_table           k=pop(), t=pop() push(t[k])
-  -1  set_field t k       t[k]=pop()
-  -2  set_table t         v=pop() k=pop() t[k]=v
-
-      call f nresults     スタックトップまでを引数として呼ぶ
-      return              スタックトップまでを引数として返す
-      vararg nresults
-
-      set_list t          スタックトップまでをリストとしてテーブルに設定する
-
-      dup                 スタックトップを複製する
-      swap                スタックトップとその下の要素を交換する
-
-    0 for local code      数値forループの特殊命令
-
-]]
 
 local function process(chunk)
   local protos = {}
