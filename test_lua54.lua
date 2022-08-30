@@ -490,10 +490,9 @@ local function process2(proto, scope, u, code)
     append_code(proto, code, u, "break")
 
   elseif u_name == "goto" then
-    -- TODO local label
-    u.label = resolve_label(scope, x.v, u)
+    local label = resolve_label(scope, x.v, u)
 
-    local v = proto.labels[u.label].node
+    local v = proto.labels[label].node
     local m = #u.stack
     local n = #v.stack
     if m <= n then
@@ -506,7 +505,7 @@ local function process2(proto, scope, u, code)
     end
 
     append_close_stack(proto, code, u, u.stack, m - n)
-    append_code(proto, code, u, "goto", u.label)
+    append_code(proto, code, u, "goto", label)
 
   elseif u_name == "while" then
     local loop_block = append_code(proto, code, u, "loop")
