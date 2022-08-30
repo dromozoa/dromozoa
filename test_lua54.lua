@@ -19,7 +19,6 @@ local verbose = os.getenv "VERBOSE" == "1"
 
 local dir = assert(...)
 
-local array = require "dromozoa.array"
 local lua54_regexp = require "dromozoa.compiler.lua54_regexp"
 local lua54_parser = require "dromozoa.compiler.lua54_parser"
 
@@ -107,11 +106,11 @@ local function resolve(scope, name, u, define)
 end
 
 local function collect(scope)
-  local stack = array()
+  local stack = {}
   local proto = scope.proto
   repeat
     for i = #scope.locals, 1, -1 do
-      stack:append(scope.locals[i])
+      append(stack, scope.locals[i])
     end
     scope = scope.parent
   until proto ~= scope.proto
@@ -377,7 +376,7 @@ local function process1(protos, proto, scope, u, loop)
       if proto == scope.parent.proto then
         u.stack = collect(scope.parent)
       else
-        u.stack = array()
+        u.stack = {}
       end
     else
       u.stack = collect(scope)
@@ -487,16 +486,16 @@ local function process2(proto, scope, u, code)
   elseif u_name == "break" then
     local v = u.target
 
-    local m = u.stack:size()
-    local n = v.stack:size()
+    local m = #u.stack
+    local n = #v.stack
 
     assert(m >= n)
     for i = 0, n - 1 do
-      assert(u.stack:get(m - i) == v.stack:get(n - i))
+      assert(u.stack[m - i] == v.stack[n - i])
     end
 
     for i = 1, m - n do
-      local var = u.stack:get(i)
+      local var = u.stack[i]
       if proto.locals[var].attribute == "close" then
         append_code(proto, code, u, "close", var)
       end
@@ -509,19 +508,19 @@ local function process2(proto, scope, u, code)
 
     local y = proto.labels[u.label].node
 
-    local m = u.stack:size()
-    local n = y.stack:size()
+    local m = #u.stack
+    local n = #y.stack
     if m <= n then
       for i = 0, n - 1 do
-        local var = y.stack:get(n - i)
-        if u.stack:get(m - i) ~= var then
+        local var = y.stack[n - i]
+        if u.stack[m - i] ~= var then
           compiler_error("<goto " .. v.v .. "> jumps into the scope of local " .. proto.locals[var].name, u)
         end
       end
     end
 
     for i = 1, m - n do
-      local var = u.stack:get(i)
+      local var = u.stack[i]
       if proto.locals[var].attribute == "close" then
         append_code(proto, code, u, "close", var)
       end
@@ -643,7 +642,7 @@ local function process2(proto, scope, u, code)
   elseif u_name == "return" then
     process2(proto, scope, x, code)
 
-    for _, var in u.stack:ipairs() do
+    for _, var in ipairs(u.stack) do
       if proto.locals[var].attribute == "close" then
         append_code(proto, code, u, "close", var)
       end
@@ -844,8 +843,6 @@ end
 --
 -- TODO 暗黙のreturnをどうするか検討する
 --   chunkとfuncbodyで違う？
-
--- TODO arrayに依存しないようにする
 
 --[[
 
