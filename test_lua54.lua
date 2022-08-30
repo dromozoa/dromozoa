@@ -208,22 +208,22 @@ local opcodes = {
 
 local function append_code(proto, code, u, op, a, b)
   local v = { [0] = op, a = a, b = b, node = u }
-
   code[#code + 1] = v
-  local x = opcodes[op]
-  if x then
-    proto.top = proto.top + x
+  local c = opcodes[op]
+  if c then
+    proto.top = proto.top + c
   elseif op == "return" then
     proto.top = 0
   elseif op == "call" then
-    -- local top = a - 1
     if b < 0 then
-      proto.top = b - a + 1
+      assert(b == -1)
+      proto.top = -a
     else
       proto.top = a + b - 1
     end
   elseif op == "vararg" then
     if a < 0 then
+      assert(a == -1)
       proto.top = a - proto.top
     else
       proto.top = proto.top + a
@@ -237,7 +237,6 @@ local function append_code(proto, code, u, op, a, b)
   else
     error("unknown op " .. op)
   end
-
   return v
 end
 
@@ -387,7 +386,7 @@ local function process1(protos, proto, scope, u, loop)
     end
 
   elseif u_name == "break" then
-    if loop == nil then
+    if not loop then
       compiler_error("break outside loop", u)
     end
     u.target = loop
