@@ -100,15 +100,15 @@ local function resolve(scope, name, u, define)
 end
 
 local function collect(scope)
-  local locals = array()
+  local stack = array()
   local proto = scope.proto
   repeat
     for i = scope.locals:size(), 1, -1 do
-      locals:append(scope.locals:get(i))
+      stack:append(scope.locals:get(i))
     end
     scope = scope.parent
   until proto ~= scope.proto
-  return locals
+  return stack
 end
 
 local function find_label(scope, name)
@@ -298,7 +298,7 @@ local function process1(protos, proto, scope, u, loop)
 
   if u_name == "for" then
     -- ジャンプ解決用に変数リストを逆順で記録する。
-    u.locals = collect(scope)
+    u.stack = collect(scope)
 
     -- 制御式の名前解決を先に行う。
     process1(protos, proto, scope, u[2], loop)
@@ -311,7 +311,7 @@ local function process1(protos, proto, scope, u, loop)
 
   elseif u_name == "for_in" then
     -- ジャンプ解決用に変数リストを逆順で記録する。
-    u.locals = collect(scope)
+    u.stack = collect(scope)
 
     -- 制御式の名前解決を先に行う。
     process1(protos, proto, scope, u[2], loop)
@@ -370,9 +370,9 @@ local function process1(protos, proto, scope, u, loop)
     local v = u[1]
     u.label = define_label(scope, v.v, u)
     if u.end_of_scope then
-      u.locals = collect(scope.parent)
+      u.stack = collect(scope.parent)
     else
-      u.locals = collect(scope)
+      u.stack = collect(scope)
     end
 
   elseif u_name == "break" then
@@ -381,19 +381,19 @@ local function process1(protos, proto, scope, u, loop)
     end
     -- ジャンプ解決用にbreak対象と変数リストを逆順で記録する。
     u.target = loop
-    u.locals = collect(scope)
+    u.stack = collect(scope)
 
   elseif u_name == "goto" then
     -- ジャンプ解決用に変数リストを逆順で記録する。
-    u.locals = collect(scope)
+    u.stack = collect(scope)
 
   elseif u.loop then
     -- ジャンプ解決用に変数リストを逆順で記録する。
-    u.locals = collect(scope)
+    u.stack = collect(scope)
 
   elseif u_name == "return" then
     -- ジャンプ解決用に変数リストを逆順で記録する。
-    u.locals = collect(scope)
+    u.stack = collect(scope)
 
   elseif u_name == "..." then
     if not proto.vararg then
@@ -486,16 +486,16 @@ local function process2(proto, scope, u, code)
   elseif u_name == "break" then
     local v = u.target
 
-    local m = u.locals:size()
-    local n = v.locals:size()
+    local m = u.stack:size()
+    local n = v.stack:size()
 
     assert(m >= n)
     for i = 0, n - 1 do
-      assert(u.locals:get(m - i) == v.locals:get(n - i))
+      assert(u.stack:get(m - i) == v.stack:get(n - i))
     end
 
     for i = 1, m - n do
-      local var = u.locals:get(i)
+      local var = u.stack:get(i)
       if scope.proto.locals:get(var).attribute == "close" then
         append_code(proto, code, u, "close", var)
       end
@@ -508,19 +508,19 @@ local function process2(proto, scope, u, code)
 
     local y = scope.proto.labels:get(u.label).node
 
-    local m = u.locals:size()
-    local n = y.locals:size()
+    local m = u.stack:size()
+    local n = y.stack:size()
     if m <= n then
       for i = 0, n - 1 do
-        local var = y.locals:get(n - i)
-        if u.locals:get(m - i) ~= var then
+        local var = y.stack:get(n - i)
+        if u.stack:get(m - i) ~= var then
           compiler_error("<goto " .. v.v .. "> jumps into the scope of local " .. scope.proto.locals:get(var).name, u)
         end
       end
     end
 
     for i = 1, m - n do
-      local var = u.locals:get(i)
+      local var = u.stack:get(i)
       if scope.proto.locals:get(var).attribute == "close" then
         append_code(proto, code, u, "close", var)
       end
@@ -642,7 +642,7 @@ local function process2(proto, scope, u, code)
   elseif u_name == "return" then
     process2(proto, scope, x, code)
 
-    for _, var in u.locals:ipairs() do
+    for _, var in u.stack:ipairs() do
       if scope.proto.locals:get(var).attribute == "close" then
         append_code(proto, code, u, "close", var)
       end
