@@ -262,6 +262,15 @@ local function append_if(proto, code, u)
   return then_block, else_block
 end
 
+local function append_close(proto, code, u, locals)
+  for i = #locals, 1, -1 do
+    local var = locals[i]
+    if proto.locals[var].attribute == "close" then
+      append_code(proto, code, u, "close", var)
+    end
+  end
+end
+
 ---------------------------------------------------------------------------
 
 local function process1(protos, proto, scope, u, loop)
@@ -438,23 +447,13 @@ local function process2(proto, scope, u, code)
     local end_of_scope = u.end_of_scope
     for i, v in ipairs(u) do
       if end_of_scope == i then
-        for j = #scope.locals, 1, -1 do
-          local var = scope.locals[j]
-          if proto.locals[var].attribute == "close" then
-            append_code(proto, code, u, "close", var)
-          end
-        end
+        append_close(proto, code, u, scope.locals)
       end
       process2(proto, scope, v, code)
     end
 
-    if not scope.repeat_until and end_of_scope == nil then
-      for j = #scope.locals, 1, -1 do
-        local var = scope.locals[j]
-        if proto.locals[var].attribute == "close" then
-          append_code(proto, code, u, "close", var)
-        end
-      end
+    if not scope.repeat_until and not end_of_scope then
+      append_close(proto, code, u, scope.locals)
     end
 
   elseif u_name == "=" then
