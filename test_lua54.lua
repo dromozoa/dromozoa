@@ -738,7 +738,9 @@ local function process2(proto, scope, u, code)
       v.target = target
       process2(proto, scope, v, code)
     end
-    append_code(proto, code, u, "set_list", target)
+    if proto.top > target then
+      append_code(proto, code, u, "set_list", target)
+    end
 
   elseif u_name == "field" then
     process2(proto, scope, x, code)
@@ -829,7 +831,21 @@ local function quote(s)
   return '"' .. string.gsub(s, '[&<>"]', quotes) .. '"'
 end
 
-local attrs = {
+local function dump_attrs(out, u, attrs)
+  for _, attr in ipairs(attrs) do
+    local v = u[attr]
+    if v ~= nil then
+      local t = type(v)
+      if t == "boolean" or t == "number" or t == "string" then
+        out:write(" ", attr, "=", quote(tostring(v)))
+      elseif #v > 0 then
+        out:write(" ", attr, "=", quote(table.concat(v, ",")))
+      end
+    end
+  end
+end
+
+local node_attrs = {
   "v";
   "declare", "resolve", "define", "label";
   "var", "env";
@@ -843,22 +859,48 @@ local attrs = {
   "stack";
 }
 
-local function dump_attrs(out, u, attrs)
-  for _, attr in ipairs(attrs) do
-    local v = u[attr]
-    if v ~= nil then
-      local t = type(v)
-      out:write(" ", attr, "=")
-      if t == "boolean" or t == "number" or t == "string" then
-        out:write(quote(tostring(v)))
-      else
-        out:write(quote(table.concat(v, ",")))
-      end
+local function dump_node(out, u, n)
+  if n == nil then
+    n = 0
+  else
+    n = n + 1
+  end
+
+  out:write(("  "):rep(n), "<node")
+  if u[0] ~= nil then
+    out:write(" name=", quote(lua54_parser.symbol_names[u[0]]))
+  end
+  dump_attrs(out, u, node_attrs)
+
+  if #u == 0 then
+    out:write "/>\n"
+  else
+    out:write ">\n"
+    for _, v in ipairs(u) do
+      dump_node(out, v, n)
     end
+    out:write(("  "):rep(n), "</node>\n")
   end
 end
 
-local function dump_code(out, u, n)
+local function dump_proto_list(out, list, list_name, name)
+  if #list == 0 then
+    out:write("    <", list_name, "/>\n")
+  else
+    out:write("    <", list_name, ">\n")
+    for i, v in ipairs(list) do
+      out:write("      <", name, " index=\"", i, "\"")
+      dump_attrs(out, v, { "name", "attribute", "var" })
+      if v.node then
+        dump_attrs(out, v.node, { "n", "c" })
+      end
+      out:write "/>\n"
+    end
+    out:write("    </", list_name, ">\n")
+  end
+end
+
+local function dump_proto_code(out, u, n)
   if n == nil then
     n = 0
   else
@@ -878,107 +920,39 @@ local function dump_code(out, u, n)
   else
     out:write ">\n"
     for _, v in ipairs(u) do
-      dump_code(out, v, n)
+      dump_proto_code(out, v, n)
     end
     out:write(("  "):rep(n), "</code>\n")
   end
 end
 
-local function dump_node(out, u, n)
-  if n == nil then
-    n = 0
-  else
-    n = n + 1
-  end
-
-  out:write(("  "):rep(n), "<node")
-  if u[0] ~= nil then
-    out:write(" name=", quote(lua54_parser.symbol_names[u[0]]))
-  end
-  dump_attrs(out, u, attrs)
-
-  if #u == 0 then
-    out:write "/>\n"
-  else
-    out:write ">\n"
-    for _, v in ipairs(u) do
-      dump_node(out, v, n)
-    end
-    out:write(("  "):rep(n), "</node>\n")
-  end
-end
-
 local function dump_protos(out, protos)
   out:write "<protos>\n"
-  for i, proto in ipairs(protos) do
+  for _, proto in ipairs(protos) do
     out:write "  <proto"
-    dump_attrs(out, proto, {"index", "self", "vararg"})
+    dump_attrs(out, proto, { "index", "self", "vararg" })
     out:write ">\n"
 
-    if next(proto.labels) == nil then
-      out:write "    <labels/>\n"
-    else
-      out:write "    <labels>\n"
-      for j, v in ipairs(proto.labels) do
-        out:write("      <label index=\"", j, "\"")
-        dump_attrs(out, v, {"name"})
-        if v.node ~= nil then
-          dump_attrs(out, v.node, {"n", "c"})
-        end
-        out:write "/>\n"
-      end
-      out:write "    </labels>\n"
-    end
+    dump_proto_list(out, proto.labels, "labels", "label")
+    dump_proto_list(out, proto.locals, "locals", "local")
+    dump_proto_list(out, proto.upvalues, "upvalues", "upvalue")
 
-    if next(proto.locals) == nil then
-      out:write "    <locals/>\n"
-    else
-      out:write "    <locals>\n"
-      for j, v in ipairs(proto.locals) do
-        out:write("      <local index=\"", j, "\"")
-        dump_attrs(out, v, {"name", "attribute"})
-        if v.node ~= nil then
-          dump_attrs(out, v.node, {"n", "c"})
-        end
-        out:write "/>\n"
-      end
-      out:write "    </locals>\n"
+    out:write "    <scopes>\n"
+    for _, scope in ipairs(proto.scopes) do
+      out:write "      <scope"
+      dump_attrs(out, scope, { "index", "repeat_until", "labels", "locals" })
+      out:write "/>\n"
     end
+    out:write "    </scopes>\n"
 
-    if next(proto.upvalues) == nil then
-      out:write "    <upvalues/>\n"
+    if #proto.code == 0 then
+      out:write "    <codes/>\n"
     else
-      out:write "    <upvalues>\n"
-      for j, v in ipairs(proto.upvalues) do
-        out:write("      <upvalue index=\"", j, "\"")
-        dump_attrs(out, v, {"name", "var"})
-        out:write "/>\n"
-      end
-      out:write "    </upvalues>\n"
-    end
-
-    if next(proto.scopes) == nil then
-      out:write "    <scopes/>\n"
-    else
-      out:write "    <scopes>\n"
-      for j, scope in ipairs(proto.scopes) do
-        if next(scope.locals) == nill then
-          out:write("      <scope index=\"", j, "\"/>\n")
-        else
-          out:write("      <scope index=\"", j, "\">\n")
-          for _, v in ipairs(scope.locals) do
-            out:write("        <local index=\"", v, "\"/>\n")
-          end
-          out:write "      </scope>\n"
-        end
-      end
-      out:write "    </scopes>\n"
-    end
-
-    if proto.code ~= nil then
+      out:write "    <codes>\n"
       for _, v in ipairs(proto.code) do
-        dump_code(out, v, 1)
+        dump_proto_code(out, v, 2)
       end
+      out:write "    </codes>\n"
     end
 
     out:write "  </proto>\n"
