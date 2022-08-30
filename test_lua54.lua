@@ -278,7 +278,7 @@ local function process1(protos, proto, scope, u, loop)
       labels = {};
       locals = array();
       upvalues = {};
-      scopes = array();
+      scopes = {};
       code = {};
       top = 0;
       parent = proto;
@@ -297,7 +297,7 @@ local function process1(protos, proto, scope, u, loop)
       parent = scope;
     }
     scope = u.scope
-    scope.index = proto.scopes:append(scope):size()
+    scope.index = append(proto.scopes, scope)
   end
 
   if u.loop then
@@ -1037,11 +1037,11 @@ local function dump_protos(out, protos)
       out:write "    </upvalues>\n"
     end
 
-    if proto.scopes:empty() then
+    if next(proto.scopes) == nil then
       out:write "    <scopes/>\n"
     else
       out:write "    <scopes>\n"
-      for j, scope in proto.scopes:ipairs() do
+      for j, scope in ipairs(proto.scopes) do
         if scope.locals:empty() then
           out:write("      <scope index=\"", j, "\"/>\n")
         else
