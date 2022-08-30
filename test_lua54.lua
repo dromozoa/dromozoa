@@ -897,23 +897,13 @@ local function dump_node(out, u, n)
   end
   dump_attrs(out, u, attrs)
 
-  local code = u.code
-
-  if #u == 0 and u.code == nil then
+  if #u == 0 then
     out:write "/>\n"
   else
     out:write ">\n"
-
     for _, v in ipairs(u) do
       dump_node(out, v, n)
     end
-
-    if u.code ~= nil then
-      for _, v in ipairs(u.code) do
-        dump_code(out, v, n)
-      end
-    end
-
     out:write(("  "):rep(n), "</node>\n")
   end
 end
