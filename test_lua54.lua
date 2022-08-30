@@ -440,7 +440,7 @@ local function process2(proto, scope, u, code)
       if end_of_scope == i then
         for j = scope.locals:size(), 1, -1 do
           local var = scope.locals:get(j)
-          if scope.proto.locals:get(var).attribute == "close" then
+          if proto.locals:get(var).attribute == "close" then
             append_code(proto, code, u, "close", var)
           end
         end
@@ -451,7 +451,7 @@ local function process2(proto, scope, u, code)
     if not scope.repeat_until and end_of_scope == nil then
       for j = scope.locals:size(), 1, -1 do
         local var = scope.locals:get(j)
-        if scope.proto.locals:get(var).attribute == "close" then
+        if proto.locals:get(var).attribute == "close" then
           append_code(proto, code, u, "close", var)
         end
       end
@@ -496,7 +496,7 @@ local function process2(proto, scope, u, code)
 
     for i = 1, m - n do
       local var = u.stack:get(i)
-      if scope.proto.locals:get(var).attribute == "close" then
+      if proto.locals:get(var).attribute == "close" then
         append_code(proto, code, u, "close", var)
       end
     end
@@ -506,7 +506,7 @@ local function process2(proto, scope, u, code)
     local v = u[1]
     u.label = resolve_label(scope, v.v, u)
 
-    local y = scope.proto.labels:get(u.label).node
+    local y = proto.labels:get(u.label).node
 
     local m = u.stack:size()
     local n = y.stack:size()
@@ -514,14 +514,14 @@ local function process2(proto, scope, u, code)
       for i = 0, n - 1 do
         local var = y.stack:get(n - i)
         if u.stack:get(m - i) ~= var then
-          compiler_error("<goto " .. v.v .. "> jumps into the scope of local " .. scope.proto.locals:get(var).name, u)
+          compiler_error("<goto " .. v.v .. "> jumps into the scope of local " .. proto.locals:get(var).name, u)
         end
       end
     end
 
     for i = 1, m - n do
       local var = u.stack:get(i)
-      if scope.proto.locals:get(var).attribute == "close" then
+      if proto.locals:get(var).attribute == "close" then
         append_code(proto, code, u, "close", var)
       end
     end
@@ -542,7 +542,7 @@ local function process2(proto, scope, u, code)
 
     for j = scope.locals:size(), 1, -1 do
       local var = scope.locals:get(j)
-      if scope.proto.locals:get(var).attribute == "close" then
+      if proto.locals:get(var).attribute == "close" then
         append_code(proto, loop_block, u, "close", var)
       end
     end
@@ -643,7 +643,7 @@ local function process2(proto, scope, u, code)
     process2(proto, scope, x, code)
 
     for _, var in u.stack:ipairs() do
-      if scope.proto.locals:get(var).attribute == "close" then
+      if proto.locals:get(var).attribute == "close" then
         append_code(proto, code, u, "close", var)
       end
     end
