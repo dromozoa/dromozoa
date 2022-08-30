@@ -50,3 +50,6 @@ repeat
   local c3 <close>
   x = 3
 until false
+
+-- local nsa <no_such_attribute> = 0
+-- lua: attribute.lua:54: unknown attribute 'no_such_attribute'
