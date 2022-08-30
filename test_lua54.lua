@@ -277,9 +277,9 @@ local function process1(protos, proto, scope, u, loop)
     u.proto = {
       vararg = u.vararg;
       self = u.self;
-      labels = {};
       locals = {};
       upvalues = {};
+      labels = {};
       scopes = {};
       code = {};
       top = 0;
@@ -293,8 +293,8 @@ local function process1(protos, proto, scope, u, loop)
   if u.scope then
     u.scope = {
       repeat_until = u_name == "repeat";
-      labels = {};
       locals = {};
+      labels = {};
       proto = proto;
       parent = scope;
     }
@@ -933,9 +933,9 @@ local function dump_protos(out, protos)
     dump_attrs(out, proto, { "index", "self", "vararg" })
     out:write ">\n"
 
-    dump_proto_list(out, proto.labels, "labels", "label")
     dump_proto_list(out, proto.locals, "locals", "local")
     dump_proto_list(out, proto.upvalues, "upvalues", "upvalue")
+    dump_proto_list(out, proto.labels, "labels", "label")
 
     out:write "    <scopes>\n"
     for _, scope in ipairs(proto.scopes) do
