@@ -262,9 +262,9 @@ local function append_if(proto, code, u)
   return then_block, else_block
 end
 
-local function append_close_locals(proto, code, u, locals)
-  for i = #locals, 1, -1 do
-    local var = locals[i]
+local function append_close_scope(proto, code, u, scope)
+  for i = #scope.locals, 1, -1 do
+    local var = scope.locals[i]
     if proto.locals[var].attribute == "close" then
       append_code(proto, code, u, "close", var)
     end
@@ -458,13 +458,13 @@ local function process2(proto, scope, u, code)
     local end_of_scope = u.end_of_scope
     for i, v in ipairs(u) do
       if end_of_scope == i then
-        append_close_locals(proto, code, u, scope.locals)
+        append_close_scope(proto, code, u, scope)
       end
       process2(proto, scope, v, code)
     end
 
     if not scope.repeat_until and not end_of_scope then
-      append_close_locals(proto, code, u, scope.locals)
+      append_close_scope(proto, code, u, scope)
     end
 
   elseif u_name == "=" then
@@ -537,7 +537,7 @@ local function process2(proto, scope, u, code)
     process2(proto, scope, x, loop_block)
     process2(proto, scope, y, loop_block)
 
-    append_close_locals(proto, loop_block, u, scope.locals)
+    append_close_scope(proto, loop_block, u, scope)
 
     local then_block = append_if(proto, loop_block, u)
     append_code(proto, then_block, u, "break")
@@ -633,13 +633,7 @@ local function process2(proto, scope, u, code)
 
   elseif u_name == "return" then
     process2(proto, scope, x, code)
-
-    for _, var in ipairs(u.stack) do
-      if proto.locals[var].attribute == "close" then
-        append_code(proto, code, u, "close", var)
-      end
-    end
-
+    append_close_stack(proto, code, u, u.stack)
     append_code(proto, code, u, "return")
 
   elseif u_name == "explist" then
