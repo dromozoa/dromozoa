@@ -295,6 +295,9 @@ local function process1(protos, proto, scope, u, loop)
 
   if u.loop then
     loop = u
+
+    -- break用に変数リストを記録する。
+    u.stack = collect(scope)
   end
 
   if u_name == "block" then
@@ -315,9 +318,6 @@ local function process1(protos, proto, scope, u, loop)
     end
 
   elseif u_name == "for" then
-    -- break用に変数リストを記録する。
-    u.stack = collect(scope)
-
     -- 制御式の名前解決を先に行う。
     process1(protos, proto, scope, y, loop)
     -- 内部的に使用する3個の変数を宣言する。
@@ -328,9 +328,6 @@ local function process1(protos, proto, scope, u, loop)
     return process1(protos, proto, scope, z, loop)
 
   elseif u_name == "for_in" then
-    -- break用に変数リストを記録する。
-    u.stack = collect(scope)
-
     -- 制御式の名前解決を先に行う。
     process1(protos, proto, scope, y, loop)
     -- 内部的に使用する4個の変数を宣言する。Lua 5.3以前は3個だったが、Lua 5.4で
@@ -367,7 +364,8 @@ local function process1(protos, proto, scope, u, loop)
 
   elseif u_name == "label" then
     u.label = define_label(scope, x.v, u)
-    -- goto用に変数リストを記録する。
+    -- goto用に変数リストを記録する。ラベル文がブロックの末尾にある場合、現在の
+    -- スコープは終了しているので、親スコープの変数を調べる。
     if u.end_of_scope then
       u.stack = collect(scope.parent)
     else
@@ -383,11 +381,7 @@ local function process1(protos, proto, scope, u, loop)
     u.stack = collect(scope)
 
   elseif u_name == "goto" then
-    -- 変数リストを逆順で記録する。
-    u.stack = collect(scope)
-
-  elseif u.loop then
-    -- break用に変数リストを記録する。
+    -- 変数リストを記録する。
     u.stack = collect(scope)
 
   elseif u_name == "return" then
@@ -404,10 +398,10 @@ local function process1(protos, proto, scope, u, loop)
       u.var = declare(scope, u.v, u, u.attribute)
     elseif u.resolve then
       local var = resolve(scope, u.v, u, u.define)
-      if var == nil then
-        u.env = resolve(scope, "_ENV")
-      else
+      if var then
         u.var = var
+      else
+        u.env = resolve(scope, "_ENV")
       end
     end
   end
