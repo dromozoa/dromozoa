@@ -24,19 +24,19 @@ local lua54_parser = require "dromozoa.compiler.lua54_parser"
 
 ---------------------------------------------------------------------------
 
-local function append(t, v)
-  assert(v ~= nil)
-  local n = #t + 1
-  t[n] = v
-  return n
-end
-
 local function compiler_error(message, u)
   if u ~= nil and u.f ~= nil and u.n ~= nil and u.c ~= nil then
     error(u.f .. ":" .. u.n .. ":" .. u.c .. ": compiler error (" .. message .. ")")
   else
     error("compiler error (" .. message .. ")")
   end
+end
+
+local function append(t, v)
+  assert(v ~= nil)
+  local n = #t + 1
+  t[n] = v
+  return n
 end
 
 ---------------------------------------------------------------------------
@@ -207,23 +207,23 @@ local opcodes = {
 }
 
 local function append_code(proto, code, u, op, a, b)
-  local v = { [0] = op, a = a, b = b, c = c, node = u }
-
+  local v = { [0] = op, a = a, b = b, node = u }
   code[#code + 1] = v
-  local add = opcodes[op]
-  if add then
-    proto.top = proto.top + add
+  local c = opcodes[op]
+  if c then
+    proto.top = proto.top + c
   elseif op == "return" then
     proto.top = 0
   elseif op == "call" then
-    local top = a - 1
     if b < 0 then
-      proto.top = b - top
+      assert(b == -1)
+      proto.top = -a
     else
-      proto.top = top + b
+      proto.top = a + b - 1
     end
   elseif op == "vararg" then
     if a < 0 then
+      assert(a == -1)
       proto.top = a - proto.top
     else
       proto.top = proto.top + a
@@ -237,7 +237,6 @@ local function append_code(proto, code, u, op, a, b)
   else
     error("unknown op " .. op)
   end
-
   return v
 end
 
@@ -276,11 +275,12 @@ local function process1(protos, proto, scope, u, loop)
 
   if u.proto then
     u.proto = {
-      vararg = u.vararg;
+      nparams = 0;
       self = u.self;
-      labels = {};
+      vararg = u.vararg;
       locals = {};
       upvalues = {};
+      labels = {};
       scopes = {};
       code = {};
       top = 0;
@@ -294,8 +294,8 @@ local function process1(protos, proto, scope, u, loop)
   if u.scope then
     u.scope = {
       repeat_until = u_name == "repeat";
-      labels = {};
       locals = {};
+      labels = {};
       proto = proto;
       parent = scope;
     }
@@ -370,6 +370,9 @@ local function process1(protos, proto, scope, u, loop)
     -- colon syntaxで関数が定義されたら、暗黙の仮引数selfを宣言する。
     if proto.self then
       u.var = declare(scope, "self", u)
+      proto.nparams = #x + 1
+    else
+      proto.nparams = #x
     end
 
   elseif u_name == "label" then
@@ -387,7 +390,7 @@ local function process1(protos, proto, scope, u, loop)
     end
 
   elseif u_name == "break" then
-    if loop == nil then
+    if not loop then
       compiler_error("break outside loop", u)
     end
     u.target = loop
@@ -491,22 +494,22 @@ local function process2(proto, scope, u, code)
     append_code(proto, code, u, "break")
 
   elseif u_name == "goto" then
-    u.label = resolve_label(scope, x.v, u)
+    local label = resolve_label(scope, x.v, u)
 
-    local v = proto.labels[u.label].node
+    local v = proto.labels[label].node
     local m = #u.stack
     local n = #v.stack
     if m <= n then
       for i = 0, n - 1 do
         local var = v.stack[n - i]
         if u.stack[m - i] ~= var then
-          compiler_error("<goto " .. v.v .. "> jumps into the scope of local " .. proto.locals[var].name, u)
+          compiler_error("<goto " .. x.v .. "> jumps into the scope of local " .. proto.locals[var].name, u)
         end
       end
     end
 
     append_close_stack(proto, code, u, u.stack, m - n)
-    append_code(proto, code, u, "goto", u.label)
+    append_code(proto, code, u, "goto", label)
 
   elseif u_name == "while" then
     local loop_block = append_code(proto, code, u, "loop")
@@ -703,14 +706,14 @@ local function process2(proto, scope, u, code)
     process2(proto, scope, x, code)
     process2(proto, scope, y, code)
     if not u.define then
-      append_code(proto, code, u, "get_table", 2)
+      append_code(proto, code, u, "get_table")
     end
 
   elseif u_name == ":" then
     process2(proto, scope, x, code)
     append_code(proto, code, u, "dup")
     process2(proto, scope, y, code)
-    append_code(proto, code, u, "get_table", 2)
+    append_code(proto, code, u, "get_table")
     append_code(proto, code, u, "swap")
 
   elseif u_name == "functioncall" then
@@ -739,7 +742,9 @@ local function process2(proto, scope, u, code)
       v.target = target
       process2(proto, scope, v, code)
     end
-    append_code(proto, code, u, "set_list", target)
+    if proto.top > target then
+      append_code(proto, code, u, "set_list", target)
+    end
 
   elseif u_name == "field" then
     process2(proto, scope, x, code)
@@ -781,7 +786,7 @@ local function process2(proto, scope, u, code)
       end
       append_code(proto, code, u, "push_literal", u.v)
       if not u.define then
-        append_code(proto, code, u, "get_table", 2)
+        append_code(proto, code, u, "get_table")
       end
       return
     end
@@ -803,10 +808,6 @@ end
 
 ---------------------------------------------------------------------------
 
--- 仮引数の数
--- 可変長引数を持つか
--- ローカル変数の数（仮引数を含む）
-
 local function process(chunk)
   local protos = {}
   local proto = { locals = {} }
@@ -819,22 +820,124 @@ end
 
 ---------------------------------------------------------------------------
 
+--[[
+  ES出力
+]]
+
 local function quote(s)
-  return '"' .. string.gsub(s, '[&<>"]', { ['&'] = '&amp;', ['<'] = '&lt;', ['>'] = '&gt;', ['"'] = '&quot;' }) .. '"'
+  return '"' .. s .. '"'
 end
 
-local attrs = {
-  "v";
-  "attribute";
-  "declare", "resolve", "define", "var", "env";
-  "define_label", "resolve_label", "label";
-  "adjust", "nomultret", "nr", "ns", "push", "pop";
-  "top";
-}
-if verbose then
-  for _, attr in ipairs{"i", "j", "f", "n", "c", "s"} do
-    attrs[#attrs + 1] = attr
+local function generate_proto_code(out, u, n)
+  n = n + 1
+
+  local u_name = u[0]
+  local a = u.a
+  local b = u.b
+
+  if u_name == "break" then
+    out:write(("  "):rep(n), "break;\n")
+  elseif u_name == "block" then
+    for i = 1, #u do
+      generate_proto_code(out, u[i], n - 1)
+    end
+  elseif u_name == "if" then
+    out:write(("  "):rep(n), "if (S.pop()) {\n")
+    generate_proto_code(out, u[1], n)
+    out:write(("  "):rep(n), "} else {\n")
+    generate_proto_code(out, u[2], n)
+    out:write(("  "):rep(n), "}\n")
+  elseif u_name == "loop" then
+    out:write(("  "):rep(n), "do {\n")
+    for i = 1, #u do
+      generate_proto_code(out, u[i], n)
+    end
+    out:write(("  "):rep(n), "} while (true);\n")
+
+  elseif u_name == "add" then
+    out:write(("  "):rep(n), "a=S.pop(); S.push(a+S.pop());\n")
+
+  elseif u_name == "set_local" then
+    out:write(("  "):rep(n), "V", a, "[0]=S.pop();\n")
+  elseif u_name == "set_upvalue" then
+    out:write(("  "):rep(n), "U", a, "[0]=S.pop();\n")
+  elseif u_name == "set_field" then
+    out:write(("  "):rep(n), "a=S[", a - 1, "]; b=S[", b - 1, "]; a.set(b, S.pop());\n")
+  elseif u_name == "set_table" then
+    out:write(("  "):rep(n), "a=S[", a - 1, "]; c=S.pop(); b=S.pop(); a.set(b, c);\n")
+
+  elseif u_name == "get_local" then
+    out:write(("  "):rep(n), "S.push(V", a, "[0]);\n")
+  elseif u_name == "get_upvalue" then
+    out:write(("  "):rep(n), "S.push(U", a, "[0]);\n")
+  elseif u_name == "get_table" then
+    out:write(("  "):rep(n), "b=S.pop(); a=S.pop(); S.push(a.get(b));\n")
+
+  elseif u_name == "new_table" then
+    out:write(("  "):rep(n), "S.push(new Map());\n")
+
+  elseif u_name == "push_false" then
+    out:write(("  "):rep(n), "S.push(false);\n")
+  elseif u_name == "push_true" then
+    out:write(("  "):rep(n), "S.push(true);\n")
+  elseif u_name == "push_literal" then
+    -- TODO hexadecimal floatをどうにかする
+    out:write(("  "):rep(n), "S.push(", quote(a), ");\n")
+  elseif u_name == "push_numeral" then
+    -- TODO hexadecimal floatをどうにかする
+    out:write(("  "):rep(n), "S.push(", a, ");\n")
   end
+
+end
+
+local function generate_proto(out, proto)
+  out:write("const P", proto.index, " = (")
+  for i = 1, #proto.upvalues do
+    if i > 1 then
+      out:write ", "
+    end
+    out:write("U", i)
+  end
+  out:write ") => {\n"
+  out:write "  return ("
+  for i = 1, proto.nparams do
+    if i > 1 then
+      out:write ", "
+    end
+    out:write("V", i)
+  end
+  if proto.vararg then
+    if proto.nparams > 0 then
+      out:write ", "
+    end
+    out:write "...VA"
+  end
+  out:write ") => {\n"
+
+  out:write "    let S=[], a, b, c;\n"
+  for i = proto.nparams + 1, #proto.locals do
+    out:write("    let V", i, "=[undefined];\n")
+  end
+
+  for _, v in ipairs(proto.code) do
+    generate_proto_code(out, v, 1)
+  end
+
+  out:write "  };\n"
+  out:write "};\n"
+end
+
+---------------------------------------------------------------------------
+
+local quotes = {
+  ['&'] = '&amp;';
+  ['<'] = '&lt;';
+  ['>'] = '&gt;';
+  ['"'] = '&quot;';
+}
+
+local function quote(s)
+  return '"' .. string.gsub(s, '[&<>"]', quotes) .. '"'
 end
 
 local function dump_attrs(out, u, attrs)
@@ -842,17 +945,71 @@ local function dump_attrs(out, u, attrs)
     local v = u[attr]
     if v ~= nil then
       local t = type(v)
-      out:write(" ", attr, "=")
       if t == "boolean" or t == "number" or t == "string" then
-        out:write(quote(tostring(v)))
-      else
-        out:write(quote(t))
+        out:write(" ", attr, "=", quote(tostring(v)))
+      elseif #v > 0 then
+        out:write(" ", attr, "=", quote(table.concat(v, ",")))
       end
     end
   end
 end
 
-local function dump_code(out, u, n)
+local node_attrs = {
+  "v";
+  "declare", "resolve", "define", "label";
+  "var", "env";
+  "adjust", "nr";
+  "loop";
+  "self", "vararg";
+  "attribute";
+  "binop", "unop";
+  "hint";
+  "end_of_scope";
+  "stack";
+}
+
+local function dump_node(out, u, n)
+  if n == nil then
+    n = 0
+  else
+    n = n + 1
+  end
+
+  out:write(("  "):rep(n), "<node")
+  if u[0] ~= nil then
+    out:write(" name=", quote(lua54_parser.symbol_names[u[0]]))
+  end
+  dump_attrs(out, u, node_attrs)
+
+  if #u == 0 then
+    out:write "/>\n"
+  else
+    out:write ">\n"
+    for _, v in ipairs(u) do
+      dump_node(out, v, n)
+    end
+    out:write(("  "):rep(n), "</node>\n")
+  end
+end
+
+local function dump_proto_list(out, list, list_name, name)
+  if #list == 0 then
+    out:write("    <", list_name, "/>\n")
+  else
+    out:write("    <", list_name, ">\n")
+    for i, v in ipairs(list) do
+      out:write("      <", name, " index=\"", i, "\"")
+      dump_attrs(out, v, { "name", "attribute", "var" })
+      if v.node then
+        dump_attrs(out, v.node, { "n", "c" })
+      end
+      out:write "/>\n"
+    end
+    out:write("    </", list_name, ">\n")
+  end
+end
+
+local function dump_proto_code(out, u, n)
   if n == nil then
     n = 0
   else
@@ -872,117 +1029,39 @@ local function dump_code(out, u, n)
   else
     out:write ">\n"
     for _, v in ipairs(u) do
-      dump_code(out, v, n)
+      dump_proto_code(out, v, n)
     end
     out:write(("  "):rep(n), "</code>\n")
   end
 end
 
-local function dump_node(out, u, n)
-  if n == nil then
-    n = 0
-  else
-    n = n + 1
-  end
-
-  out:write(("  "):rep(n), "<node")
-  if u[0] ~= nil then
-    out:write(" name=", quote(lua54_parser.symbol_names[u[0]]))
-  end
-  dump_attrs(out, u, attrs)
-
-  local code = u.code
-
-  if #u == 0 and u.code == nil then
-    out:write "/>\n"
-  else
-    out:write ">\n"
-
-    for _, v in ipairs(u) do
-      dump_node(out, v, n)
-    end
-
-    if u.code ~= nil then
-      for _, v in ipairs(u.code) do
-        dump_code(out, v, n)
-      end
-    end
-
-    out:write(("  "):rep(n), "</node>\n")
-  end
-end
-
 local function dump_protos(out, protos)
   out:write "<protos>\n"
-  for i, proto in ipairs(protos) do
+  for _, proto in ipairs(protos) do
     out:write "  <proto"
-    dump_attrs(out, proto, {"index", "self", "vararg"})
+    dump_attrs(out, proto, { "index", "nparams", "self", "vararg" })
     out:write ">\n"
 
-    if next(proto.labels) == nil then
-      out:write "    <labels/>\n"
-    else
-      out:write "    <labels>\n"
-      for j, v in ipairs(proto.labels) do
-        out:write("      <label index=\"", j, "\"")
-        dump_attrs(out, v, {"name"})
-        if v.node ~= nil then
-          dump_attrs(out, v.node, {"n", "c"})
-        end
-        out:write "/>\n"
-      end
-      out:write "    </labels>\n"
-    end
+    dump_proto_list(out, proto.locals, "locals", "local")
+    dump_proto_list(out, proto.upvalues, "upvalues", "upvalue")
+    dump_proto_list(out, proto.labels, "labels", "label")
 
-    if next(proto.locals) == nil then
-      out:write "    <locals/>\n"
-    else
-      out:write "    <locals>\n"
-      for j, v in ipairs(proto.locals) do
-        out:write("      <local index=\"", j, "\"")
-        dump_attrs(out, v, {"name", "attribute"})
-        if v.node ~= nil then
-          dump_attrs(out, v.node, {"n", "c"})
-        end
-        out:write "/>\n"
-      end
-      out:write "    </locals>\n"
+    out:write "    <scopes>\n"
+    for _, scope in ipairs(proto.scopes) do
+      out:write "      <scope"
+      dump_attrs(out, scope, { "index", "repeat_until", "labels", "locals" })
+      out:write "/>\n"
     end
+    out:write "    </scopes>\n"
 
-    if next(proto.upvalues) == nil then
-      out:write "    <upvalues/>\n"
+    if #proto.code == 0 then
+      out:write "    <codes/>\n"
     else
-      out:write "    <upvalues>\n"
-      for j, v in ipairs(proto.upvalues) do
-        out:write("      <upvalue index=\"", j, "\"")
-        dump_attrs(out, v, {"name", "var"})
-        out:write "/>\n"
-      end
-      out:write "    </upvalues>\n"
-    end
-
-    if next(proto.scopes) == nil then
-      out:write "    <scopes/>\n"
-    else
-      out:write "    <scopes>\n"
-      for j, scope in ipairs(proto.scopes) do
-        if next(scope.locals) == nill then
-          out:write("      <scope index=\"", j, "\"/>\n")
-        else
-          out:write("      <scope index=\"", j, "\">\n")
-          for _, v in ipairs(scope.locals) do
-            out:write("        <local index=\"", v, "\"/>\n")
-          end
-          out:write "      </scope>\n"
-        end
-      end
-      out:write "    </scopes>\n"
-    end
-
-    if proto.code ~= nil then
+      out:write "    <codes>\n"
       for _, v in ipairs(proto.code) do
-        dump_code(out, v, 1)
+        dump_proto_code(out, v, 2)
       end
+      out:write "    </codes>\n"
     end
 
     out:write "  </proto>\n"
@@ -1019,5 +1098,11 @@ for i = 2, #arg do
 
   local out = assert(io.open(result_basename .. "_protos.xml", "w"))
   dump_protos(out, protos)
+  out:close()
+
+  local out = assert(io.open(result_basename .. ".js", "w"))
+  for i = #protos, 1, -1 do
+    generate_proto(out, protos[i])
+  end
   out:close()
 end
