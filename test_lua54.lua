@@ -706,14 +706,14 @@ local function process2(proto, scope, u, code)
     process2(proto, scope, x, code)
     process2(proto, scope, y, code)
     if not u.define then
-      append_code(proto, code, u, "get_table", 2)
+      append_code(proto, code, u, "get_table")
     end
 
   elseif u_name == ":" then
     process2(proto, scope, x, code)
     append_code(proto, code, u, "dup")
     process2(proto, scope, y, code)
-    append_code(proto, code, u, "get_table", 2)
+    append_code(proto, code, u, "get_table")
     append_code(proto, code, u, "swap")
 
   elseif u_name == "functioncall" then
@@ -786,7 +786,7 @@ local function process2(proto, scope, u, code)
       end
       append_code(proto, code, u, "push_literal", u.v)
       if not u.define then
-        append_code(proto, code, u, "get_table", 2)
+        append_code(proto, code, u, "get_table")
       end
       return
     end
@@ -808,10 +808,6 @@ end
 
 ---------------------------------------------------------------------------
 
--- 仮引数の数
--- 可変長引数を持つか
--- ローカル変数の数（仮引数を含む）
-
 local function process(chunk)
   local protos = {}
   local proto = { locals = {} }
@@ -820,6 +816,115 @@ local function process(chunk)
   process1(protos, proto, scope, chunk)
   process2(proto, scope, chunk)
   return protos
+end
+
+---------------------------------------------------------------------------
+
+--[[
+  ES出力
+]]
+
+local function quote(s)
+  return '"' .. s .. '"'
+end
+
+local function generate_proto_code(out, u, n)
+  n = n + 1
+
+  local u_name = u[0]
+  local a = u.a
+  local b = u.b
+
+  if u_name == "break" then
+    out:write(("  "):rep(n), "break;\n")
+  elseif u_name == "block" then
+    for i = 1, #u do
+      generate_proto_code(out, u[i], n - 1)
+    end
+  elseif u_name == "if" then
+    out:write(("  "):rep(n), "if (S.pop()) {\n")
+    generate_proto_code(out, u[1], n)
+    out:write(("  "):rep(n), "} else {\n")
+    generate_proto_code(out, u[2], n)
+    out:write(("  "):rep(n), "}\n")
+  elseif u_name == "loop" then
+    out:write(("  "):rep(n), "do {\n")
+    for i = 1, #u do
+      generate_proto_code(out, u[i], n)
+    end
+    out:write(("  "):rep(n), "} while (true);\n")
+
+  elseif u_name == "add" then
+    out:write(("  "):rep(n), "a=S.pop(); S.push(a+S.pop());\n")
+
+  elseif u_name == "set_local" then
+    out:write(("  "):rep(n), "V", a, "[0]=S.pop();\n")
+  elseif u_name == "set_upvalue" then
+    out:write(("  "):rep(n), "U", a, "[0]=S.pop();\n")
+  elseif u_name == "set_field" then
+    out:write(("  "):rep(n), "a=S[", a - 1, "]; b=S[", b - 1, "]; a.set(b, S.pop());\n")
+  elseif u_name == "set_table" then
+    out:write(("  "):rep(n), "a=S[", a - 1, "]; c=S.pop(); b=S.pop(); a.set(b, c);\n")
+
+  elseif u_name == "get_local" then
+    out:write(("  "):rep(n), "S.push(V", a, "[0]);\n")
+  elseif u_name == "get_upvalue" then
+    out:write(("  "):rep(n), "S.push(U", a, "[0]);\n")
+  elseif u_name == "get_table" then
+    out:write(("  "):rep(n), "b=S.pop(); a=S.pop(); S.push(a.get(b));\n")
+
+  elseif u_name == "new_table" then
+    out:write(("  "):rep(n), "S.push(new Map());\n")
+
+  elseif u_name == "push_false" then
+    out:write(("  "):rep(n), "S.push(false);\n")
+  elseif u_name == "push_true" then
+    out:write(("  "):rep(n), "S.push(true);\n")
+  elseif u_name == "push_literal" then
+    -- TODO hexadecimal floatをどうにかする
+    out:write(("  "):rep(n), "S.push(", quote(a), ");\n")
+  elseif u_name == "push_numeral" then
+    -- TODO hexadecimal floatをどうにかする
+    out:write(("  "):rep(n), "S.push(", a, ");\n")
+  end
+
+end
+
+local function generate_proto(out, proto)
+  out:write("const P", proto.index, " = (")
+  for i = 1, #proto.upvalues do
+    if i > 1 then
+      out:write ", "
+    end
+    out:write("U", i)
+  end
+  out:write ") => {\n"
+  out:write "  return ("
+  for i = 1, proto.nparams do
+    if i > 1 then
+      out:write ", "
+    end
+    out:write("V", i)
+  end
+  if proto.vararg then
+    if proto.nparams > 0 then
+      out:write ", "
+    end
+    out:write "...VA"
+  end
+  out:write ") => {\n"
+
+  out:write "    let S=[], a, b, c;\n"
+  for i = proto.nparams + 1, #proto.locals do
+    out:write("    let V", i, "=[undefined];\n")
+  end
+
+  for _, v in ipairs(proto.code) do
+    generate_proto_code(out, v, 1)
+  end
+
+  out:write "  };\n"
+  out:write "};\n"
 end
 
 ---------------------------------------------------------------------------
@@ -993,5 +1098,11 @@ for i = 2, #arg do
 
   local out = assert(io.open(result_basename .. "_protos.xml", "w"))
   dump_protos(out, protos)
+  out:close()
+
+  local out = assert(io.open(result_basename .. ".js", "w"))
+  for i = #protos, 1, -1 do
+    generate_proto(out, protos[i])
+  end
   out:close()
 end
