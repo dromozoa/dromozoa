@@ -15,30 +15,40 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-io.write "A\n"
-
-if true then
-  io.write "B\n"
-else
-  io.write "C\n"
+local function f1()
+  io.write "f1\n"
 end
 
-if false then
-  io.write "D\n"
-else
-  io.write "E\n"
+local function f2(a, b)
+  io.write "f2\n"
+  io.write(a)
+  io.write(b)
 end
 
-while true do
-  io.write "F\n"
-  break
-  io.write "G\n"
-end
-io.write "H\n"
+f1()
+f2("foo\n", "bar\n")
+f1()
 
-repeat
-  io.write "I\n"
-  break
-  io.write "J\n"
-until false
-io.write "K\n"
+local t = { "a", "b", "c", "d" }
+local function f(t, i)
+  i = i + 1
+  local v = t[i]
+  if v == nil then
+    return
+  else
+    return i, v
+  end
+end
+
+for i, v in f, t, 0 do
+  io.write(v)
+  io.write "\n"
+end
+
+for i, v in f, t, 0 do
+  if i == 3 then
+    break
+  end
+  io.write(v)
+  io.write "\n"
+end

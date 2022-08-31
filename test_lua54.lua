@@ -102,7 +102,7 @@ local function resolve(scope, name, u, define)
       return -i
     end
   end
-  return -append(proto.upvalues, {name = name, var = var })
+  return -append(proto.upvalues, { name = name, var = var })
 end
 
 local function collect(scope)
@@ -184,11 +184,12 @@ local opcodes = {
   len     = 0;
   bnot    = 0;
 
-  set_local     = -1;
-  set_local_tbc = -1;
-  set_upvalue   = -1;
-  set_field     = -1;
-  set_table     = -2;
+  new_local   = -1;
+  tbc_local   = -1;
+  set_local   = -1;
+  set_upvalue = -1;
+  set_field   = -1;
+  set_table   = -2;
 
   get_local   =  1;
   get_upvalue =  1;
@@ -534,9 +535,9 @@ local function process2(proto, scope, u, code)
 
   elseif u_name == "for" then
     process2(proto, scope, y, code)
-    append_code(proto, code, u, "set_local", u.var + 2)
-    append_code(proto, code, u, "set_local", u.var + 1)
-    append_code(proto, code, u, "set_local", u.var)
+    append_code(proto, code, u, "new_local", u.var + 2)
+    append_code(proto, code, u, "new_local", u.var + 1)
+    append_code(proto, code, u, "new_local", u.var)
     local loop_block = append_code(proto, code, u, "for", u.var)
     process2(proto, scope, z, loop_block)
 
@@ -551,10 +552,16 @@ local function process2(proto, scope, u, code)
 
   elseif u_name == "for_in" then
     process2(proto, scope, y, code)
-    append_code(proto, code, u, "set_local_tbc", u.var + 3)
-    append_code(proto, code, u, "set_local", u.var + 2)
-    append_code(proto, code, u, "set_local", u.var + 1)
-    append_code(proto, code, u, "set_local", u.var)
+    append_code(proto, code, u, "tbc_local", u.var + 3)
+    append_code(proto, code, u, "new_local", u.var + 2)
+    append_code(proto, code, u, "new_local", u.var + 1)
+    append_code(proto, code, u, "new_local", u.var)
+
+    append_code(proto, code, u, "push_nil", #x)
+    for i = #x, 1, -1 do
+      local v = x[i]
+      append_code(proto, code, u, "new_local", v.var)
+    end
 
     local loop_block = append_code(proto, code, u, "loop")
     append_code(proto, loop_block, u, "get_local", u.var)
@@ -594,7 +601,7 @@ local function process2(proto, scope, u, code)
 
   elseif u_name == "local_function" then
     append_code(proto, code, u, "closure", y.proto.index)
-    append_code(proto, code, u, "set_local", x.var)
+    append_code(proto, code, u, "new_local", x.var)
     process2(proto, scope, y, code)
 
   elseif u_name == "local" then
@@ -608,9 +615,9 @@ local function process2(proto, scope, u, code)
     for i = #x, 1, -1 do
       local v = x[i]
       if v.attribute == "close" then
-        append_code(proto, code, u, "set_local_tbc", v.var)
+        append_code(proto, code, u, "tbc_local", v.var)
       else
-        append_code(proto, code, u, "set_local", v.var)
+        append_code(proto, code, u, "new_local", v.var)
       end
     end
 
@@ -838,7 +845,7 @@ local function quote(s)
   return '"' .. s:gsub("[\0-\31\"\\]", quotes):gsub(LS, [[\u2028]]):gsub(PS, [[\u2029]]) .. '"'
 end
 
-local function generate_proto_code(out, u, n)
+local function generate_proto_code(out, protos, u, n)
   n = n + 1
 
   local u_name = u[0]
@@ -850,20 +857,21 @@ local function generate_proto_code(out, u, n)
     out:write "break;"
 
   elseif u_name == "if" then
-    out:write "if (S.pop()) {\n"
+    out:write "a=S.pop();"
+    out:write "if (a !== undefined && a !== false) {\n"
     for _, v in ipairs(u[1]) do
-      generate_proto_code(out, v, n)
+      generate_proto_code(out, protos, v, n)
     end
     out:write(("  "):rep(n), "} else {\n")
     for _, v in ipairs(u[2]) do
-      generate_proto_code(out, v, n)
+      generate_proto_code(out, protos, v, n)
     end
     out:write(("  "):rep(n), "}")
 
   elseif u_name == "loop" then
     out:write "do {\n"
-    for i = 1, #u do
-      generate_proto_code(out, u[i], n)
+    for _, v in ipairs(u) do
+      generate_proto_code(out, protos, v, n)
     end
     out:write(("  "):rep(n), "} while (true);")
 
@@ -871,6 +879,18 @@ local function generate_proto_code(out, u, n)
     out:write "b=S.pop();"
     out:write "a=S.pop();"
     out:write "S.push(a+b);"
+
+  elseif u_name == "eq" then
+    out:write "b=S.pop();"
+    out:write "a=S.pop();"
+    out:write "S.push(a===b);"
+
+  elseif u_name == "new_local" then
+    out:write("V", a, "=[S.pop()];")
+
+  elseif u_name == "tbc_local" then
+    -- TODO tbcを実装する
+    out:write("V", a, "=[S.pop()];")
 
   elseif u_name == "set_local" then
     out:write("V", a, "[0]=S.pop();")
@@ -904,6 +924,20 @@ local function generate_proto_code(out, u, n)
   elseif u_name == "new_table" then
     out:write "S.push(new Map());"
 
+  elseif u_name == "closure" then
+    out:write("S.push(P", a, "(")
+    for i, v in ipairs(protos[a].upvalues) do
+      if i > 1 then
+        out:write ", "
+      end
+      if v.var < 0 then
+        out:write("U", -v.var)
+      else
+        out:write("V", v.var)
+      end
+    end
+    out:write "));"
+
   elseif u_name == "push_false" then
     out:write "S.push(false);"
 
@@ -912,9 +946,13 @@ local function generate_proto_code(out, u, n)
 
   elseif u_name == "push_literal" then
     out:write("S.push(", quote(a), ");")
+
   elseif u_name == "push_numeral" then
     -- TODO hexadecimal floatをどうにかする
     out:write("S.push(", a, ");")
+
+  elseif u_name == "return" then
+    out:write "return S"
 
   elseif u_name == "call" then
     out:write("b=S.splice(", a, ");")
@@ -924,10 +962,25 @@ local function generate_proto_code(out, u, n)
     else
       out:write "c=a(...b);"
       if b ~= -1 then
-        out:write("c=c.slice(0,", b, ");")
+        out:write("if (c.length<", b, ") c[", b - 1, "]=undefined; else c=c.slice(0,", b, ");")
       end
       out:write "S.push(...c);"
     end
+
+  elseif u_name == "set_list" then
+    out:write("b=S.splice(", a, ");")
+    out:write("a=S[", a - 1, "];")
+    out:write("for (let i=0; i<b.length; ++i) a.set(i+1, b[i]);")
+
+  elseif u_name == "push_nil" then
+    out:write "S.push("
+    for i = 1, a do
+      if i > 1 then
+        out:write ", "
+      end
+      out:write "undefined"
+    end
+    out:write ");"
 
   else
     out:write("/* ", u_name , " */")
@@ -935,7 +988,7 @@ local function generate_proto_code(out, u, n)
   out:write "\n"
 end
 
-local function generate_proto(out, proto)
+local function generate_proto(out, protos, proto)
   out:write("const P", proto.index, " = (")
   for i = 1, #proto.upvalues do
     if i > 1 then
@@ -949,7 +1002,7 @@ local function generate_proto(out, proto)
     if i > 1 then
       out:write ", "
     end
-    out:write("V", i)
+    out:write("A", i)
   end
   if proto.vararg then
     if proto.nparams > 0 then
@@ -960,12 +1013,16 @@ local function generate_proto(out, proto)
   out:write ") => {\n"
 
   out:write "    let S=[], a, b, c;\n"
-  for i = proto.nparams + 1, #proto.locals do
-    out:write("    let V", i, "=[undefined];\n")
+  for i = 1, #proto.locals do
+    out:write("    let V", i)
+    if i <= proto.nparams then
+      out:write("=[A", i, "]")
+    end
+    out:write ";\n"
   end
 
   for _, v in ipairs(proto.code) do
-    generate_proto_code(out, v, 1)
+    generate_proto_code(out, protos, v, 1)
   end
 
   out:write "  };\n"
@@ -1161,7 +1218,7 @@ for i = 2, #arg do
 
   local out = assert(io.open(result_basename .. ".js", "w"))
   for i = #protos, 1, -1 do
-    generate_proto(out, protos[i])
+    generate_proto(out, protos, protos[i])
   end
   generate_chunk(out);
   out:close()
