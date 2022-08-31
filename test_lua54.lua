@@ -820,12 +820,22 @@ end
 
 ---------------------------------------------------------------------------
 
---[[
-  ES出力
-]]
+local quotes = {}
+for byte = 0x00, 0x1F do
+  quotes[string.char(byte)] = ([[\x%02X]]):format(byte)
+end
+quotes["\b"] = [[\b]]
+quotes["\t"] = [[\t]]
+quotes["\n"] = [[\n]]
+quotes["\v"] = [[\v]]
+quotes["\f"] = [[\f]]
+quotes["\r"] = [[\r]]
+
+local LS = string.char(0xE2, 0x80, 0xA8)
+local PS = string.char(0xE2, 0x80, 0xA9)
 
 local function quote(s)
-  return '"' .. s .. '"'
+  return '"' .. s:gsub("[\0-\31\"\\]", quotes):gsub(LS, [[\u2028]]):gsub(PS, [[\u2029]]) .. '"'
 end
 
 local function generate_proto_code(out, u, n)
@@ -835,59 +845,94 @@ local function generate_proto_code(out, u, n)
   local a = u.a
   local b = u.b
 
+  out:write(("  "):rep(n))
   if u_name == "break" then
-    out:write(("  "):rep(n), "break;\n")
-  elseif u_name == "block" then
-    for i = 1, #u do
-      generate_proto_code(out, u[i], n - 1)
-    end
+    out:write "break;"
+
   elseif u_name == "if" then
-    out:write(("  "):rep(n), "if (S.pop()) {\n")
-    generate_proto_code(out, u[1], n)
+    out:write "if (S.pop()) {\n"
+    for _, v in ipairs(u[1]) do
+      generate_proto_code(out, v, n)
+    end
     out:write(("  "):rep(n), "} else {\n")
-    generate_proto_code(out, u[2], n)
-    out:write(("  "):rep(n), "}\n")
+    for _, v in ipairs(u[2]) do
+      generate_proto_code(out, v, n)
+    end
+    out:write(("  "):rep(n), "}")
+
   elseif u_name == "loop" then
-    out:write(("  "):rep(n), "do {\n")
+    out:write "do {\n"
     for i = 1, #u do
       generate_proto_code(out, u[i], n)
     end
-    out:write(("  "):rep(n), "} while (true);\n")
+    out:write(("  "):rep(n), "} while (true);")
 
   elseif u_name == "add" then
-    out:write(("  "):rep(n), "a=S.pop(); S.push(a+S.pop());\n")
+    out:write "b=S.pop();"
+    out:write "a=S.pop();"
+    out:write "S.push(a+b);"
 
   elseif u_name == "set_local" then
-    out:write(("  "):rep(n), "V", a, "[0]=S.pop();\n")
+    out:write("V", a, "[0]=S.pop();")
+
   elseif u_name == "set_upvalue" then
-    out:write(("  "):rep(n), "U", a, "[0]=S.pop();\n")
+    out:write("U", a, "[0]=S.pop();")
+
   elseif u_name == "set_field" then
-    out:write(("  "):rep(n), "a=S[", a - 1, "]; b=S[", b - 1, "]; a.set(b, S.pop());\n")
+    out:write "c=S.pop();"
+    out:write("b=S[", b - 1, "];")
+    out:write("a=S[", a - 1, "];")
+    out:write "a.set(b, c);"
+
   elseif u_name == "set_table" then
-    out:write(("  "):rep(n), "a=S[", a - 1, "]; c=S.pop(); b=S.pop(); a.set(b, c);\n")
+    out:write "c=S.pop();"
+    out:write "b=S.pop();"
+    out:write("a=S[", a - 1, "];")
+    out:write "a.set(b, c);"
 
   elseif u_name == "get_local" then
-    out:write(("  "):rep(n), "S.push(V", a, "[0]);\n")
+    out:write("S.push(V", a, "[0]);")
+
   elseif u_name == "get_upvalue" then
-    out:write(("  "):rep(n), "S.push(U", a, "[0]);\n")
+    out:write("S.push(U", a, "[0]);")
+
   elseif u_name == "get_table" then
-    out:write(("  "):rep(n), "b=S.pop(); a=S.pop(); S.push(a.get(b));\n")
+    out:write "b=S.pop();"
+    out:write "a=S.pop();"
+    out:write "S.push(a.get(b));"
 
   elseif u_name == "new_table" then
-    out:write(("  "):rep(n), "S.push(new Map());\n")
+    out:write "S.push(new Map());"
 
   elseif u_name == "push_false" then
-    out:write(("  "):rep(n), "S.push(false);\n")
+    out:write "S.push(false);"
+
   elseif u_name == "push_true" then
-    out:write(("  "):rep(n), "S.push(true);\n")
+    out:write "S.push(true);"
+
   elseif u_name == "push_literal" then
-    -- TODO hexadecimal floatをどうにかする
-    out:write(("  "):rep(n), "S.push(", quote(a), ");\n")
+    out:write("S.push(", quote(a), ");")
   elseif u_name == "push_numeral" then
     -- TODO hexadecimal floatをどうにかする
-    out:write(("  "):rep(n), "S.push(", a, ");\n")
-  end
+    out:write("S.push(", a, ");")
 
+  elseif u_name == "call" then
+    out:write("b=S.splice(", a, ");")
+    out:write "a=S.pop();"
+    if b == 0 then
+      out:write "a(...b);"
+    else
+      out:write "c=a(...b);"
+      if b ~= -1 then
+        out:write("c=c.slice(0,", b, ");")
+      end
+      out:write "S.push(...c);"
+    end
+
+  else
+    out:write("/* ", u_name , " */")
+  end
+  out:write "\n"
 end
 
 local function generate_proto(out, proto)
@@ -925,6 +970,20 @@ local function generate_proto(out, proto)
 
   out:write "  };\n"
   out:write "};\n"
+end
+
+local function generate_chunk(out)
+  out:write [[
+const fs = require("fs");
+const io = new Map();
+io.set("write", (s) => {
+  fs.writeSync(1, s);
+});
+const env = new Map();
+env.set("io", io);
+const chunk = P1([env]);
+chunk(...process.argv.slice(2));
+]]
 end
 
 ---------------------------------------------------------------------------
@@ -1104,5 +1163,6 @@ for i = 2, #arg do
   for i = #protos, 1, -1 do
     generate_proto(out, protos[i])
   end
+  generate_chunk(out);
   out:close()
 end
