@@ -157,7 +157,7 @@ local opcodes = {
   ["if"]    = -1;
   block     =  0;
   loop      =  0;
-  ["for"]   =  0;
+  check_for =  0;
 
   add    = -1;
   sub    = -1;
@@ -534,12 +534,71 @@ local function process2(proto, scope, u, code)
     process2(proto, scope, z, else_block)
 
   elseif u_name == "for" then
+    -- Lua 5.2のマニュアルを元に実装する。
+    --
+    -- Lua 5.3のマニュアルでは、制御変数を計算する位置が変わった。
+    --
+    -- Lua 5.4のマニュアルでは、制御変数が整数である場合の意味論が変更された。
+    -- この変更は必要に応じてOP_CHECK_FORで吸収する。
+    -- 1. stepが0の場合にエラーになる。
+    -- 2. ラップアラウンドしなくなった。
+    --
+    -- for v = e1, e2, e3 do block end
+    --
+    -- do
+    --   local var, limit, step = e1, e2, e3
+    --   OP_CHECK_FOR(var, limit, step)
+    --   while true do
+    --     if step >= 0 then
+    --       if var > limit then
+    --         break
+    --       end
+    --     else
+    --       if var < limit then
+    --         break
+    --       end
+    --     end
+    --     local v = var
+    --     block
+    --     var = var + step
+    --   end
+    -- end
+
     process2(proto, scope, y, code)
     append_code(proto, code, u, "new_local", u.var + 2)
     append_code(proto, code, u, "new_local", u.var + 1)
     append_code(proto, code, u, "new_local", u.var)
-    local loop_block = append_code(proto, code, u, "for", u.var)
+
+    append_code(proto, code, u, "check_for", u.var)
+
+    local loop_block = append_code(proto, code, u, "loop")
+
+    append_code(proto, loop_block, u, "get_local", u.var + 2)
+    append_code(proto, loop_block, u, "push_numeral", "0", "DecimalIntegerNumeral")
+    append_code(proto, loop_block, u, "ge")
+    local then_block, else_block = append_if(proto, loop_block, u)
+
+    append_code(proto, then_block, u, "get_local", u.var)
+    append_code(proto, then_block, u, "get_local", u.var + 1)
+    append_code(proto, then_block, u, "gt")
+    local then_block = append_if(proto, then_block, u)
+    append_code(proto, then_block, u, "break")
+
+    append_code(proto, else_block, u, "get_local", u.var)
+    append_code(proto, else_block, u, "get_local", u.var + 1)
+    append_code(proto, else_block, u, "lt")
+    local then_block = append_if(proto, else_block, u)
+    append_code(proto, then_block, u, "break")
+
+    append_code(proto, loop_block, u, "get_local", u.var)
+    append_code(proto, loop_block, u, "new_local", u.var + 3)
+
     process2(proto, scope, z, loop_block)
+
+    append_code(proto, loop_block, u, "get_local", u.var)
+    append_code(proto, loop_block, u, "get_local", u.var + 2)
+    append_code(proto, loop_block, u, "add")
+    append_code(proto, loop_block, u, "set_local", u.var)
 
   elseif u_name == "exp_2or3" then
     process2(proto, scope, x, code)
@@ -551,38 +610,52 @@ local function process2(proto, scope, u, code)
     end
 
   elseif u_name == "for_in" then
+    -- Lua 5.3のマニュアルの元にtbcを足して実装する。
+    --
+    -- for var_1, ..., var_N in explist do block end
+    --
+    -- do
+    --   local f, s, var, tbc <close> = explist
+    --   while true do
+    --     local var_1, ..., var_N = f(s, var)
+    --     if var_1 == nil then
+    --       OP_CLOSE(tbc)
+    --       break
+    --     end
+    --     var = var_1
+    --     block
+    --   end
+    -- end
+
     process2(proto, scope, y, code)
     append_code(proto, code, u, "tbc_local", u.var + 3)
     append_code(proto, code, u, "new_local", u.var + 2)
     append_code(proto, code, u, "new_local", u.var + 1)
     append_code(proto, code, u, "new_local", u.var)
 
-    append_code(proto, code, u, "push_nil", #x)
-    for i = #x, 1, -1 do
-      local v = x[i]
-      append_code(proto, code, u, "new_local", v.var)
-    end
-
     local loop_block = append_code(proto, code, u, "loop")
+
     append_code(proto, loop_block, u, "get_local", u.var)
     append_code(proto, loop_block, u, "get_local", u.var + 1)
     append_code(proto, loop_block, u, "get_local", u.var + 2)
     append_code(proto, loop_block, u, "call", 1, #x)
     for i = #x, 1, -1 do
       local v = x[i]
-      append_code(proto, loop_block, u, "set_local", v.var)
+      append_code(proto, loop_block, u, "new_local", v.var)
     end
 
     append_code(proto, loop_block, u, "get_local", u.var + 4)
     append_code(proto, loop_block, u, "push_nil", 1)
     append_code(proto, loop_block, u, "eq")
     local then_block, else_block = append_if(proto, loop_block, u)
+
     append_code(proto, then_block, u, "close", u.var + 3)
     append_code(proto, then_block, u, "break")
+
     append_code(proto, else_block, u, "get_local", u.var + 4)
     append_code(proto, else_block, u, "set_local", u.var + 2)
 
-    process2(proto, scope, u[3], else_block)
+    process2(proto, scope, z, else_block)
 
   elseif u_name == "function" then
     process2(proto, scope, x, code)
@@ -875,15 +948,56 @@ local function generate_proto_code(out, protos, u, n)
     end
     out:write(("  "):rep(n), "} while (true);")
 
+--[[
+  elseif u_name == "for" then
+    out:write "do {"
+    out:write("a=V", a, "[0];")
+    out:write("b=V", a + 1, "[0];")
+    out:write("c=V", a + 2, "[0];")
+    out:write("if ((c>=0 && a>b) || (c<0 && a<b)) break;")
+    out:write("V", a + 3, "=[a];\n")
+    for _, v in ipairs(u) do
+      generate_proto_code(out, protos, v, n)
+    end
+    out:write(("  "):rep(n))
+    out:write("V", a, "[0]+=V", a + 2, "[0];")
+    out:write("} while (true);")
+]]
+
   elseif u_name == "add" then
     out:write "b=S.pop();"
     out:write "a=S.pop();"
     out:write "S.push(a+b);"
 
+  elseif u_name == "lt" then
+    out:write "b=S.pop();"
+    out:write "a=S.pop();"
+    out:write "S.push(a<b);"
+
+  elseif u_name == "le" then
+    out:write "b=S.pop();"
+    out:write "a=S.pop();"
+    out:write "S.push(a<=b);"
+
+  elseif u_name == "gt" then
+    out:write "b=S.pop();"
+    out:write "a=S.pop();"
+    out:write "S.push(a>b);"
+
+  elseif u_name == "ge" then
+    out:write "b=S.pop();"
+    out:write "a=S.pop();"
+    out:write "S.push(a>=b);"
+
   elseif u_name == "eq" then
     out:write "b=S.pop();"
     out:write "a=S.pop();"
     out:write "S.push(a===b);"
+
+  elseif u_name == "ne" then
+    out:write "b=S.pop();"
+    out:write "a=S.pop();"
+    out:write "S.push(a!==b);"
 
   elseif u_name == "new_local" then
     out:write("V", a, "=[S.pop()];")
