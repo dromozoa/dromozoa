@@ -215,7 +215,7 @@ local function append_code(proto, code, u, op, a, b)
     proto.top = proto.top + c
   elseif op == "return" then
     proto.top = 0
-  elseif op == "call" then
+  elseif op == "call" or op == "self" then
     if b < 0 then
       assert(b == -1)
       proto.top = -a
@@ -791,10 +791,10 @@ local function process2(proto, scope, u, code)
 
   elseif u_name == ":" then
     process2(proto, scope, x, code)
-    append_code(proto, code, u, "dup")
+    -- append_code(proto, code, u, "dup")
     process2(proto, scope, y, code)
-    append_code(proto, code, u, "get_table")
-    append_code(proto, code, u, "swap")
+    -- append_code(proto, code, u, "get_table")
+    -- append_code(proto, code, u, "swap")
 
   elseif u_name == "functioncall" then
     -- call: f, a1, a2, ...
@@ -808,7 +808,7 @@ local function process2(proto, scope, u, code)
       local target = proto.top + 1
       process2(proto, scope, x, code)
       process2(proto, scope, y, code)
-      append_code(proto, code, u, "call", target, u.nr or 1)
+      append_code(proto, code, u, "self", target, u.nr or 1)
     else
       local target = proto.top + 1
       process2(proto, scope, x, code)
@@ -1087,6 +1087,22 @@ local function generate_proto_code(out, protos, u, n)
       end
       out:write "S.push(...c);"
     end
+
+  elseif u_name == "self" then
+    out:write("c=S.splice(", a + 1, ");")
+    out:write "b=S.pop();"
+    out:write "a=S.pop();"
+
+    if b == 0 then
+      out:write "(a.get(b))(a, ...c);"
+    else
+      out:write "c=(a.get(b))(...c);"
+      if b ~= -1 then
+        out:write("if (c.length<", b, ") c[", b - 1, "]=undefined; else c=c.slice(0,", b, ");")
+      end
+      out:write "S.push(...c);"
+    end
+
 
   elseif u_name == "set_list" then
     out:write("b=S.splice(", a, ");")
