@@ -57,3 +57,14 @@ for i = 1, 4 do
   io.write(t[i])
   io.write "\n"
 end
+
+t.f = function (a)
+  if a then
+    io.write "t.f(a)\n"
+  else
+    io.write "t.f()\n"
+  end
+end
+t.f()
+t:f()
+

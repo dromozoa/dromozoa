@@ -797,10 +797,24 @@ local function process2(proto, scope, u, code)
     append_code(proto, code, u, "swap")
 
   elseif u_name == "functioncall" then
-    local target = proto.top + 1
-    process2(proto, scope, x, code)
-    process2(proto, scope, y, code)
-    append_code(proto, code, u, "call", target, u.nr or 1)
+    -- call: f, a1, a2, ...
+    -- es:   f(...A)
+    -- self: t, k, a1, a2, ....
+    -- es:   t.k(...A)
+    -- call: t[k], t, a1, a2, ...
+    -- es:   t[k](t, ...A)
+
+    if lua54_parser.symbol_names[x[0]] == ":" then
+      local target = proto.top + 1
+      process2(proto, scope, x, code)
+      process2(proto, scope, y, code)
+      append_code(proto, code, u, "call", target, u.nr or 1)
+    else
+      local target = proto.top + 1
+      process2(proto, scope, x, code)
+      process2(proto, scope, y, code)
+      append_code(proto, code, u, "call", target, u.nr or 1)
+    end
 
   elseif u_name == "fieldlist" then
     -- 末尾がkey=value形式でなく、関数呼び出し式または可変長引数式で、丸括弧で
@@ -948,22 +962,6 @@ local function generate_proto_code(out, protos, u, n)
     end
     out:write(("  "):rep(n), "} while (true);")
 
---[[
-  elseif u_name == "for" then
-    out:write "do {"
-    out:write("a=V", a, "[0];")
-    out:write("b=V", a + 1, "[0];")
-    out:write("c=V", a + 2, "[0];")
-    out:write("if ((c>=0 && a>b) || (c<0 && a<b)) break;")
-    out:write("V", a + 3, "=[a];\n")
-    for _, v in ipairs(u) do
-      generate_proto_code(out, protos, v, n)
-    end
-    out:write(("  "):rep(n))
-    out:write("V", a, "[0]+=V", a + 2, "[0];")
-    out:write("} while (true);")
-]]
-
   elseif u_name == "add" then
     out:write "b=S.pop();"
     out:write "a=S.pop();"
@@ -1065,6 +1063,15 @@ local function generate_proto_code(out, protos, u, n)
     -- TODO hexadecimal floatをどうにかする
     out:write("S.push(", a, ");")
 
+  elseif u_name == "dup" then
+    out:write "S.push(S[S.length-1]);"
+
+  elseif u_name == "swap" then
+    out:write "b=S.pop();"
+    out:write "a=S.pop();"
+    out:write "S.push(b);"
+    out:write "S.push(a);"
+
   elseif u_name == "return" then
     out:write "return S"
 
@@ -1095,6 +1102,9 @@ local function generate_proto_code(out, protos, u, n)
       out:write "undefined"
     end
     out:write ");"
+
+  elseif u_name == "pop" then
+    out:write("S.splice(-", a, ");")
 
   else
     out:write("/* ", u_name , " */")
