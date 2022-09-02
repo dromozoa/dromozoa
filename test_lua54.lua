@@ -203,7 +203,6 @@ local opcodes = {
   push_numeral = 1;
 
   dup   = 1;
-  swap  = 0;
   close = 0;
 }
 
@@ -791,28 +790,15 @@ local function process2(proto, scope, u, code)
 
   elseif u_name == ":" then
     process2(proto, scope, x, code)
-    -- append_code(proto, code, u, "dup")
     process2(proto, scope, y, code)
-    -- append_code(proto, code, u, "get_table")
-    -- append_code(proto, code, u, "swap")
 
   elseif u_name == "functioncall" then
-    -- call: f, a1, a2, ...
-    -- es:   f(...A)
-    -- self: t, k, a1, a2, ....
-    -- es:   t.k(...A)
-    -- call: t[k], t, a1, a2, ...
-    -- es:   t[k](t, ...A)
-
+    local target = proto.top + 1
+    process2(proto, scope, x, code)
+    process2(proto, scope, y, code)
     if lua54_parser.symbol_names[x[0]] == ":" then
-      local target = proto.top + 1
-      process2(proto, scope, x, code)
-      process2(proto, scope, y, code)
       append_code(proto, code, u, "self", target, u.nr or 1)
     else
-      local target = proto.top + 1
-      process2(proto, scope, x, code)
-      process2(proto, scope, y, code)
       append_code(proto, code, u, "call", target, u.nr or 1)
     end
 
@@ -1065,12 +1051,6 @@ local function generate_proto_code(out, protos, u, n)
 
   elseif u_name == "dup" then
     out:write "S.push(S[S.length-1]);"
-
-  elseif u_name == "swap" then
-    out:write "b=S.pop();"
-    out:write "a=S.pop();"
-    out:write "S.push(b);"
-    out:write "S.push(a);"
 
   elseif u_name == "return" then
     out:write "return S"
