@@ -21,7 +21,7 @@ local dir = assert(...)
 
 local lua54_regexp = require "dromozoa.compiler.lua54_regexp"
 local lua54_parser = require "dromozoa.compiler.lua54_parser"
-local lua54_generator = require "dromozoa.compiler.lua54_generator"
+local generate = require "dromozoa.compiler.generate"
 
 ---------------------------------------------------------------------------
 
@@ -441,7 +441,7 @@ for i = 2, #arg do
   out:write "</nodes>\n"
   out:close()
 
-  local protos = lua54_generator(root)
+  local protos = generate(root)
 
   local out = assert(io.open(result_basename .. "_tree.xml", "w"))
   dump_node(out, root)
