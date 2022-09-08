@@ -18,12 +18,13 @@
 local tree_set = require "dromozoa.tree_set"
 local runtime = require "dromozoa.parser.runtime"
 
-local function append(t, ...)
-  local n = #t
+local function append(data, ...)
+  local n = #data
   for i = 1, select("#", ...) do
     local v = select(i, ...)
-    assert(v ~= nil)
-    t[n + i] = v
+    local t = type(v)
+    assert(t == "number" or t == "string")
+    data[n + i] = v
   end
 end
 
