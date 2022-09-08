@@ -29,7 +29,8 @@ end
 
 return function (grammar, actions)
   local static_data = {}
-  -- local action_data = tree_set()
+  local action_map = {}
+  local action_set = {}
 
   append(static_data, "symbol_names={")
   for i, v in grammar.symbol_names:ipairs() do
@@ -57,9 +58,6 @@ return function (grammar, actions)
     return result
   end
 
-  local action_map = {}
-  local action_set = {}
-
   for i, production in grammar.productions:ipairs() do
     local semantic_action = production.semantic_action
     if semantic_action == nil then
@@ -73,22 +71,18 @@ return function (grammar, actions)
       :gsub("$%$", "SS")
 
     local v = "function ()" .. semantic_action .. "\nend;\n"
-    local n
-    if not action_map[v] then
+    local n = action_map[v]
+    if not n then
       n = #action_set + 1
       action_map[v] = n
       action_set[n] = v
-    else
-      n = action_map[v]
     end
-
     append(static_data, n, ",")
   end
   append(static_data, "};\n")
 
   return table.concat(runtime {
     custom_data = grammar.custom_data:concat();
-    -- action_data = action_data:concat();
     action_data = table.concat(action_set);
     static_data = table.concat(static_data);
   })
