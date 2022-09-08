@@ -15,7 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local tree_set = require "dromozoa.tree_set"
 local runtime = require "dromozoa.parser.runtime"
 
 local function append(data, ...)
@@ -30,7 +29,7 @@ end
 
 return function (grammar, actions)
   local static_data = {}
-  local action_data = tree_set()
+  -- local action_data = tree_set()
 
   append(static_data, "symbol_names={")
   for i, v in grammar.symbol_names:ipairs() do
@@ -58,6 +57,9 @@ return function (grammar, actions)
     return result
   end
 
+  local action_map = {}
+  local action_set = {}
+
   for i, production in grammar.productions:ipairs() do
     local semantic_action = production.semantic_action
     if semantic_action == nil then
@@ -69,13 +71,25 @@ return function (grammar, actions)
       :gsub("$([1-9]%d*)", "S[%1]")
       :gsub("$0", "S[0]")
       :gsub("$%$", "SS")
-    append(static_data, select(2, action_data:insert("function ()" .. semantic_action .. "\nend;\n")), ",")
+
+    local v = "function ()" .. semantic_action .. "\nend;\n"
+    local n
+    if not action_map[v] then
+      n = #action_set + 1
+      action_map[v] = n
+      action_set[n] = v
+    else
+      n = action_map[v]
+    end
+
+    append(static_data, n, ",")
   end
   append(static_data, "};\n")
 
   return table.concat(runtime {
     custom_data = grammar.custom_data:concat();
-    action_data = action_data:concat();
+    -- action_data = action_data:concat();
+    action_data = table.concat(action_set);
     static_data = table.concat(static_data);
   })
 end
