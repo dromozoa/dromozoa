@@ -20,4 +20,16 @@ local lua54_parser = require "dromozoa.compiler.lua54_parser"
 local generate = require "dromozoa.compiler.generate"
 local generate_js = require "dromozoa.compiler.generate_js"
 
+local source_filename, result_filename = ...
 
+local handle = assert(io.open(source_filename))
+local source = handle:read "*a"
+handle:close()
+
+local parse = lua54_parser()
+local root = lua54_regexp(source, source_filename, lua54_parser.max_terminal_symbol, parse)
+local protos = generate(root)
+
+local out = assert(io.open(result_filename, "w"))
+generate_js(out, protos)
+out:close()
