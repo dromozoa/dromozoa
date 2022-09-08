@@ -28,6 +28,19 @@ do
   esac
 done
 
+for i in test/run/*.lua
+do
+  j=`expr "X$i" : 'Xtest/run/\([^/]*\)\.lua$'`
+  case X$# in
+    X0) lua test/run_js.lua "$i" "test-$j.js";;
+    *) "$@" test/run_js.lua "$i" "test-$j.js";;
+  esac
+
+  lua "$i" >"test-$j.lua-out"
+  node "test-$j.js" >"test-$j.js-out"
+  diff -u "test-$j.lua-out" "test-$j.js-out"
+done
+
 case X$DROMOZOA_TEST_DEBUG in
-  X|X0) rm -f test*.dot test-gen*.lua;;
+  X|X0) rm -f test*.dot test-gen*.lua test*.js test*.lua-out test*.js-out;;
 esac
