@@ -47,7 +47,6 @@ local function table_slice(t, i, j)
     error "value is nil"
   end
   return { table_unpack(t, i, j) }
-  -- return construct { table_unpack(priv, i, j) }
 end
 
 ---------------------------------------------------------------------------
@@ -99,10 +98,10 @@ local function eliminate_left_recursion(grammar)
       end
     end
 
-    for j, body in ipairs(i_bodies) do
+    for _, body in ipairs(i_bodies) do
       new_productions:insert { head = i, body = body }
     end
-    for j, body in ipairs(n_bodies) do
+    for _, body in ipairs(n_bodies) do
       new_productions:insert { head = n, body = body }
     end
   end
