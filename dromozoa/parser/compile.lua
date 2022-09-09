@@ -82,7 +82,7 @@ return function (grammar, actions)
   append(static_data, "};\n")
 
   return table.concat(runtime {
-    custom_data = grammar.custom_data:concat();
+    custom_data = table.concat(grammar.custom_data);
     action_data = table.concat(action_set);
     static_data = table.concat(static_data);
   })

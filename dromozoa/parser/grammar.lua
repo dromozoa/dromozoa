@@ -164,14 +164,14 @@ function metatable:__call(token_names, that)
   end
   local max_terminal_symbol = append(symbol_names, "$")
 
-  local custom_data = array()
+  local custom_data = {}
   local expect_sr
   local precedence = 0
   local precedence_table = tree_map()
   local symbol_precedences = {}
   for _, v in ipairs(that) do
     if type(v) == "string" then
-      custom_data:append(v, "\n")
+      append(custom_data, v .. "\n")
     elseif v[0] == "expect" then
       assert(getmetatable(v).__name == "dromozoa.parser.grammar.expect")
       expect_sr = v[1]
