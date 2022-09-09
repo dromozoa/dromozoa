@@ -42,12 +42,16 @@ end
 
 function class:each_production(head)
   local map = assert(self.map[head])
-  return coroutine.wrap(function ()
-    for i = 1, #map do
+  local i = 0
+  local n = #map
+
+  return function ()
+    i = i + 1
+    if i <= n then
       local j = map[i]
-      coroutine.yield(j, self[j].body)
+      return j, self[j].body
     end
-  end)
+  end
 end
 
 function class:get(i)
