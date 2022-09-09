@@ -91,8 +91,8 @@ local function construct_table(context, u, max_state, transitions, transition_ac
   for _, t in ipairs(u.transitions) do
     local code = t.v.index
     if t.action ~= nil then
-      code = max_state + transition_actions:append(insert_action(context, t.action)):size()
-      transition_states:append(t.v.index)
+      code = max_state + append(transition_actions, insert_action(context, t.action))
+      append(transition_states, t.v.index)
     end
     for byte in pairs(t.set) do
       transitions:get(byte + 1):set(u.index, code)
@@ -117,8 +117,8 @@ local function generate(context, index, machine)
   for i = 1, 256 do
     transitions:append(array.fill(max_state, 0))
   end
-  local transition_actions = array()
-  local transition_states = array()
+  local transition_actions = {}
+  local transition_states = {}
   construct_table(context, u, max_state, transitions, transition_actions, transition_states, {})
 
   context.static.out:append(
