@@ -32,6 +32,26 @@ local function append(t, ...)
   return m + n
 end
 
+local private = setmetatable({}, { __mode = "k" })
+
+local function insert(t, v)
+  assert(type(v) == "string")
+  local p = private[t]
+  if not p then
+    p = {}
+    private[t] = p
+  end
+  local n = p[v]
+  if n then
+    return n
+  end
+
+  n = #t + 1
+  p[v] = n
+  t[n] = v
+  return n, true
+end
+
 local function insert_action(context, action)
   local function substitute(variable)
     local result = context.action.variables[variable]
@@ -52,7 +72,7 @@ local function insert_action(context, action)
       return table.concat(buffer, ",")
     end)
 
-  local _, i, inserted = context.action.set:insert("function()" .. action .. "\nend;\n")
+  local i, inserted = insert(context.action.set, "function()" .. action .. "\nend;\n")
 
   if inserted then
     -- コルーチンの必要性をおおまかに検査する。
@@ -73,7 +93,8 @@ local function insert_action(context, action)
 end
 
 local function insert_shared(context, shared)
-  return (select(2, context.shared.set:insert(shared)))
+  return (insert(context.shared.set, table.concat(shared, ",")))
+  -- return (select(2, context.shared.set:insert(table.concat(shared, ","))))
 end
 
 local function update_state_indices_nonaccept(u, index, color)
@@ -154,8 +175,8 @@ end
 return function (that)
   local context = {
     custom = { out = {} };
-    action = { set = tree_set(), variables = {}, threads = {} };
-    shared = { set = tree_set(), out = {} };
+    action = { set = {}, variables = {}, threads = {} };
+    shared = { set = {}, out = {} };
     static = { out = {} };
   }
 
@@ -190,13 +211,13 @@ return function (that)
   end
   append(context.static.out, "action_threads=_[", insert_shared(context, context.action.threads), "];\n")
 
-  for _, v in context.shared.set:ipairs() do
-    append(context.shared.out, "{", table.concat(v, ","), "};\n")
+  for _, v in ipairs(context.shared.set) do
+    append(context.shared.out, "{", v, "};\n")
   end
 
   return table.concat(runtime {
     custom_data = table.concat(context.custom.out);
-    action_data = context.action.set:concat();
+    action_data = table.concat(context.action.set);
     shared_data = table.concat(context.shared.out);
     static_data = table.concat(context.static.out);
   })
