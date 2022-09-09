@@ -15,7 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local array = require "dromozoa.array"
 local tree_map = require "dromozoa.tree_map"
 local tree_set = require "dromozoa.tree_set"
 
@@ -424,18 +423,23 @@ local function resolve_sr(grammar, item, saction, raction, buffer)
   local sp, sname = symbol_precedence(grammar, item.la)
 
   if sp < rp then
-    return raction, buffer:append("reduce (", sname, " < ", rname, ")")
+    append(buffer, "reduce (", sname, " < ", rname, ")")
+    return raction, buffer
   elseif rp < sp then
-    return saction, buffer:append("shift (", rname, " < ", sname, ")")
+    append(buffer, "shift (", rname, " < ", sname, ")")
+    return saction, buffer
   end
 
   if associativity == "left" then
-    return raction, buffer:append("reduce (left ", rname, ")")
+    append(buffer, "reduce (left ", rname, ")")
+    return raction, buffer
   elseif associativity == "right" then
-    return saction, buffer:append("shift (right ", rname, ")")
+    append(buffer, "shift (right ", rname, ")")
+    return saction, buffer
   else
     assert(associativity == "nonassoc")
-    return 0, buffer:append("an error (nonassoc ", rname, ")")
+    append(buffer, "an error (nonassoc ", rname, ")")
+    return 0, buffer
   end
 end
 
@@ -472,12 +476,12 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
           rr = rr + 1
         elseif action ~= 0 then
           -- shift/reduce
-          local buffer = array()
+          local buffer = {}
           data[item.la] = resolve_sr(grammar, item, action, item.index + max_state, buffer)
-          if buffer:empty() then
+          if next(buffer) == nil then
             sr = sr + 1
           else
-            append(conflictions, "[info] conflict between production " .. item.index .. " and symbol " .. symbol_names[item.la] .. " resolved as " .. buffer:concat())
+            append(conflictions, "[info] conflict between production " .. item.index .. " and symbol " .. symbol_names[item.la] .. " resolved as " .. table.concat(buffer))
           end
         end
       end
@@ -486,23 +490,23 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
     total_sr = total_sr + sr
     total_rr = total_rr + rr
     if sr > 0 or rr > 0 then
-      local buffer = array()
+      local buffer = {}
       if expect_sr == nil or expect_sr < total_sr or rr > 0 then
-        buffer:append "[warn]"
+        append(buffer, "[warn]")
       else
-        buffer:append "[info]"
+        append(buffer, "[info]")
       end
-      buffer:append(" state ", i, " conflicts: ")
+      append(buffer, " state ", i, " conflicts: ")
       if sr > 0 then
-        buffer:append(sr, " shift/reduce")
+        append(buffer, sr, " shift/reduce")
         if rr > 0 then
-          buffer:append ", "
+          append(buffer, ", ")
         end
       end
       if rr > 0 then
-        buffer:append(rr, " reduce/reduce")
+        append(buffer, rr, " reduce/reduce")
       end
-      append(conflictions, buffer:concat())
+      append(conflictions, table.concat(buffer))
     end
 
     for symbol in ipairs(symbol_names) do
@@ -514,17 +518,17 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
   end
 
   if total_sr > 0 then
-    local buffer = array()
+    local buffer = {}
     if expect_sr ~= total_sr then
-      buffer:append "[warn]"
+      append(buffer, "[warn]")
     else
-      buffer:append "[info]"
+      append(buffer, "[info]")
     end
-    buffer:append(" shift/reduce conflicts: ", total_sr, " found")
+    append(buffer, " shift/reduce conflicts: ", total_sr, " found")
     if expect_sr ~= nil then
-      buffer:append(", ", expect_sr, " expected")
+      append(buffer, ", ", expect_sr, " expected")
     end
-    append(conflictions, buffer:concat())
+    append(conflictions, table.concat(buffer))
   end
   if total_rr > 0 then
     append(conflictions, "[warn] reduce/reduce conflicts: " .. total_rr .. " found")
