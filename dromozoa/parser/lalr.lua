@@ -189,11 +189,11 @@ local function lr0_closure(grammar, items)
   local productions = grammar.productions
 
   local added = {}
-  for _, item in items:ipairs() do
+  for _, item in ipairs(items) do
     local symbol = productions:get(item.index).body[item.dot]
     if symbol ~= nil and symbol > max_terminal_symbol and not added[symbol] then
       for i in each_production(productions, symbol) do
-        items:append { index = i, dot = 1 }
+        append(items, { index = i, dot = 1 })
       end
       added[symbol] = true
     end
@@ -206,13 +206,14 @@ local function lr0_goto(grammar, items)
   local productions = grammar.productions
   local map_of_to_items = tree_map()
 
-  for _, item in items:ipairs() do
+  for _, item in ipairs(items) do
     local symbol = productions:get(item.index).body[item.dot]
     if symbol ~= nil then
       map_of_to_items:insert_or_update(symbol, function ()
-        return array():append { index = item.index, dot = item.dot + 1 }
+        return { { index = item.index, dot = item.dot + 1 } }
       end, function (items)
-        return items:append { index = item.index, dot = item.dot + 1 }
+        append(items, { index = item.index, dot = item.dot + 1 })
+        return items
       end)
     end
   end
@@ -225,7 +226,7 @@ end
 
 local function lr0_items(grammar)
   local transitions = {}
-  local set_of_items = tree_set():insert(lr0_closure(grammar, array():append { index = 1, dot = 1 }))
+  local set_of_items = tree_set():insert(lr0_closure(grammar, { { index = 1, dot = 1 } }))
   for i, items in set_of_items:ipairs() do
     local map_of_to_items = lr0_goto(grammar, items)
     local transition = tree_map()
@@ -316,7 +317,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
   for i, items in set_of_items:ipairs() do
     local kernel_items = array()
     local kernel_table = {}
-    for j, item in items:ipairs() do
+    for j, item in ipairs(items) do
       if item.index == 1 or item.dot > 1 then
         local t = kernel_table[item.index]
         if t == nil then
@@ -338,7 +339,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
   local propagations = array()
 
   for from_i, from_items in set_of_items:ipairs() do
-    for from_j, from_item in from_items:ipairs() do
+    for from_j, from_item in ipairs(from_items) do
       if productions:get(from_item.index).head == max_terminal_symbol + 1 or from_item.dot > 1 then
         local items = array():append { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
         lr1_closure(grammar, items)
