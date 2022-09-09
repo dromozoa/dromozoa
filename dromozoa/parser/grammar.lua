@@ -15,7 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local array = require "dromozoa.array"
 local tree_map = require "dromozoa.tree_map"
 local tree_set = require "dromozoa.tree_set"
 
