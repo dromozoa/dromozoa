@@ -15,16 +15,21 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local array = require "dromozoa.array"
 local tree_set = require "dromozoa.tree_set"
 local runtime = require "dromozoa.regexp.runtime"
 
 -- TODO machineと共通？
-local function append(t, v)
-  assert(v ~= nil)
-  local n = #t + 1
-  t[n] = v
-  return n
+local function append(t, ...)
+  local m = #t
+  local n = select("#", ...)
+
+  for i = 1, n do
+    local v = select(i, ...)
+    assert(v ~= nil)
+    t[m + i] = v
+  end
+
+  return m + n
 end
 
 local function insert_action(context, action)
@@ -125,33 +130,33 @@ local function generate(context, index, machine)
   local transition_states = {}
   construct_table(context, u, max_state, transitions, transition_actions, transition_states, {})
 
-  context.static.out:append(
+  append(context.static.out,
     "{\n",
     "start_state=", u.index, ";\n",
     "max_accept_state=", #accept_actions, ";\n",
     "max_state=", max_state, ";\n",
     "transitions={[0]=")
   for byte = 0x00, 0xFF do
-    context.static.out:append("_[", insert_shared(context, transitions[byte]), "],")
+    append(context.static.out, "_[", insert_shared(context, transitions[byte]), "],")
   end
-  context.static.out:append(
+  append(context.static.out,
     "};\n",
     "transition_actions=_[", insert_shared(context, transition_actions), "];\n",
     "transition_states=_[", insert_shared(context, transition_states), "];\n",
     "accept_actions=_[", insert_shared(context, accept_actions), "];\n")
   if machine.guard_action ~= nil then
-    context.static.out:append("guard_action=", insert_action(context, machine.guard_action), ";\n")
+    append(context.static.out, "guard_action=", insert_action(context, machine.guard_action), ";\n")
   end
-  context.static.out:append(
+  append(context.static.out,
     "};\n")
 end
 
 return function (that)
   local context = {
-    custom = { out = array() };
+    custom = { out = {} };
     action = { set = tree_set(), variables = {}, threads = {} };
-    shared = { set = tree_set(), out = array() };
-    static = { out = array() };
+    shared = { set = tree_set(), out = {} };
+    static = { out = {} };
   }
 
   local data = {}
@@ -163,7 +168,7 @@ return function (that)
   local j = 0
   for i, v in ipairs(that) do
     if type(v) == "string" then
-      context.custom.out:append(v, "\n")
+      append(context.custom.out, v, "\n")
     else
       j = j + 1
       append(data, { timestamp = v.timestamp, machine = v, main = j == 1 })
@@ -173,7 +178,7 @@ return function (that)
 
   for i, v in ipairs(data) do
     if v.main then
-      context.static.out:append("main=", i, ";\n")
+      append(context.static.out, "main=", i, ";\n")
     end
     if v.name ~= nil then
       context.action.variables[v.name] = i
@@ -183,20 +188,20 @@ return function (that)
   for i, v in ipairs(data) do
     generate(context, i, v.machine)
   end
-  context.static.out:append("action_threads=_[", insert_shared(context, context.action.threads), "];\n")
+  append(context.static.out, "action_threads=_[", insert_shared(context, context.action.threads), "];\n")
 
   for _, v in context.shared.set:ipairs() do
     if v.concat then
-      context.shared.out:append("{", v:concat ",", "};\n")
+      append(context.shared.out, "{", v:concat ",", "};\n")
     else
-      context.shared.out:append("{", table.concat(v, ","), "};\n")
+      append(context.shared.out, "{", table.concat(v, ","), "};\n")
     end
   end
 
   return table.concat(runtime {
-    custom_data = context.custom.out:concat();
+    custom_data = table.concat(context.custom.out);
     action_data = context.action.set:concat();
-    shared_data = context.shared.out:concat();
-    static_data = context.static.out:concat();
+    shared_data = table.concat(context.shared.out);
+    static_data = table.concat(context.static.out);
   })
 end
