@@ -95,7 +95,7 @@ local function construct_table(context, u, max_state, transitions, transition_ac
       append(transition_states, t.v.index)
     end
     for byte in pairs(t.set) do
-      transitions[byte]:set(u.index, code)
+      transitions[byte][u.index] = code
     end
     if color[t.v] == nil then
       construct_table(context, t.v, max_state, transitions, transition_actions, transition_states, color)
@@ -115,7 +115,11 @@ local function generate(context, index, machine)
 
   local transitions = {}
   for byte = 0x00, 0xFF do
-    transitions[byte] = array.fill(max_state, 0)
+    local t = {}
+    for i = 1, max_state do
+      t[i] = 0
+    end
+    transitions[byte] = t
   end
   local transition_actions = {}
   local transition_states = {}
