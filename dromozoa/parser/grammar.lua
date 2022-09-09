@@ -223,7 +223,7 @@ function metatable:__call(token_names, that)
     end
     assert(a.head_index ~= b.head_index)
     return a.head_index < b.head_index and -1 or 1
-  end):insert { head = start_head, head_index = 1, body = array(start_body) }
+  end):insert { head = start_head, head_index = 1, body = { start_body } }
 
   local used_symbols = {
     [max_terminal_symbol] = true;
@@ -234,13 +234,13 @@ function metatable:__call(token_names, that)
 
   for _, u in ipairs(data) do
     for i, v in ipairs(u.v) do
-      local body = array()
+      local body = {}
       for _, name in ipairs(v) do
         local symbol = symbol_table[name]
         if symbol == nil then
           error("symbol " .. name .. " not defined")
         end
-        body:append(symbol)
+        append(body, symbol)
         used_symbols[symbol] = true
       end
       local production = { head = u.k, head_index = i, body = body, semantic_action = v.semantic_action }

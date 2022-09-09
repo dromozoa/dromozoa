@@ -33,6 +33,23 @@ local function append(t, ...)
   return m + n
 end
 
+local table_unpack = table.unpack or unpack
+
+local function table_slice(t, i, j)
+  if i == nil then
+    i = 1
+  elseif i < 1 then
+    error "value is nil"
+  end
+  if j == nil then
+    j = #t
+  elseif i <= j and j > #t then
+    error "value is nil"
+  end
+  return { table_unpack(t, i, j) }
+  -- return construct { table_unpack(priv, i, j) }
+end
+
 ---------------------------------------------------------------------------
 
 local function each_production(productions, head)
@@ -59,39 +76,47 @@ local function eliminate_left_recursion(grammar)
 
   for i = max_terminal_symbol + 1, #symbol_names do
     local n = #new_symbol_names + 1
-    local n_bodies = array()
-    local i_bodies = array()
+    local n_bodies = {}
+    local i_bodies = {}
 
     for _, body in each_production(productions, i) do
-      local symbol = body:get(1)
+      local symbol = body[1]
       if symbol ~= nil and symbol > max_terminal_symbol and symbol < i then
         for _, src_body in each_production(new_productions, symbol) do
-          local new_body = src_body:slice():append(body:unpack(2))
-          if i == new_body:get(1) then
-            n_bodies:append(new_body:slice(2):append(n))
+          local new_body = { table_unpack(src_body) }
+          append(new_body, table_unpack(body, 2))
+          -- local new_body = src_body:slice():append(table_unpack(body, 2))
+          if i == new_body[1] then
+            local new_body = { table_unpack(new_body, 2) }
+            append(new_body, n)
+            append(n_bodies, new_body)
           else
-            i_bodies:append(new_body)
+            append(i_bodies, new_body)
           end
         end
       elseif i == symbol then
-        n_bodies:append(body:slice(2):append(n))
+        local new_body = { table_unpack(body, 2) }
+        append(new_body, n)
+        append(n_bodies, new_body)
+        -- n_bodies:append(body:slice(2):append(n))
       else
-        i_bodies:append(body:slice())
+        append(i_bodies, { table_unpack(body) })
+        -- i_bodies:append(body:slice())
       end
     end
 
-    if not n_bodies:empty() then
+    if n_bodies[1] then
       append(new_symbol_names, symbol_names[i] .. "'")
-      n_bodies:append(array())
-      for _, body in i_bodies:ipairs() do
-        body:append(n)
+      append(n_bodies, {})
+      for _, body in ipairs(i_bodies) do
+        append(body, n)
       end
     end
 
-    for j, body in i_bodies:ipairs() do
+    for j, body in ipairs(i_bodies) do
       new_productions:insert { head = i, head_index = j, body = body }
     end
-    for j, body in n_bodies:ipairs() do
+    for j, body in ipairs(n_bodies) do
       new_productions:insert { head = n, head_index = j, body = body }
     end
   end
@@ -125,7 +150,7 @@ local function first_symbol(grammar, symbol)
   else
     first = tree_set()
     for _, body in each_production(grammar.productions, symbol) do
-      if not body:empty() then
+      if body[1] then
         for _, symbol in first_symbols(grammar, body):ipairs() do
           first:insert(symbol)
         end
@@ -141,7 +166,7 @@ end
 
 function first_symbols(grammar, symbols)
   local first = tree_set()
-  for _, symbol in symbols:ipairs() do
+  for _, symbol in ipairs(symbols) do
     local epsilon = false
     for _, symbol in first_symbol(grammar, symbol):ipairs() do
       if symbol == marker_epsilon then
@@ -165,7 +190,7 @@ local function lr0_closure(grammar, items)
 
   local added = {}
   for _, item in items:ipairs() do
-    local symbol = productions:get(item.index).body:get(item.dot)
+    local symbol = productions:get(item.index).body[item.dot]
     if symbol ~= nil and symbol > max_terminal_symbol and not added[symbol] then
       for i in each_production(productions, symbol) do
         items:append { index = i, dot = 1 }
@@ -182,7 +207,7 @@ local function lr0_goto(grammar, items)
   local map_of_to_items = tree_map()
 
   for _, item in items:ipairs() do
-    local symbol = productions:get(item.index).body:get(item.dot)
+    local symbol = productions:get(item.index).body[item.dot]
     if symbol ~= nil then
       map_of_to_items:insert_or_update(symbol, function ()
         return array():append { index = item.index, dot = item.dot + 1 }
@@ -233,12 +258,12 @@ local function lr1_closure(grammar, items)
     -- を真に設定する。
     if not skip[item_key] then
       local body = productions:get(item.index).body
-      local symbol = body:get(item.dot)
+      local symbol = body[item.dot]
       if symbol ~= nil and symbol > max_terminal_symbol then
         -- FIRST(b)をキャッシュする。
         local first = lr1_closure_table[item_key]
         if first == nil then
-          first = first_symbols(grammar, body:slice(item.dot + 1))
+          first = first_symbols(grammar, { table_unpack(body, item.dot + 1) })
           lr1_closure_table[item_key] = first
         end
 
@@ -318,7 +343,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
         local items = array():append { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
         lr1_closure(grammar, items)
         for _, item in items:ipairs() do
-          local symbol = productions:get(item.index).body:get(item.dot)
+          local symbol = productions:get(item.index).body[item.dot]
           if symbol ~= nil then
             local to_i = transitions[from_i]:find(symbol)
             local to_j = map_of_kernel_items:get(to_i)[item.index][item.dot + 1]
@@ -380,8 +405,8 @@ local function production_precedence(grammar, index)
 
   local max_terminal_symbol = grammar.max_terminal_symbol
   local body = production.body
-  for i = body:size(), 1, -1 do
-    local symbol = body:get(i)
+  for i = #body, 1, -1 do
+    local symbol = body[i]
     if symbol <= max_terminal_symbol then
       return symbol_precedence(grammar, symbol)
     end
@@ -434,7 +459,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
     end
 
     for _, item in items:ipairs() do
-      if productions:get(item.index).body:get(item.dot) == nil then
+      if productions:get(item.index).body[item.dot] == nil then
         local action = data[item.la]
         if action == nil then
           data[item.la] = item.index + max_state

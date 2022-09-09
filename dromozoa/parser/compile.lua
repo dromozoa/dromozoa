@@ -46,7 +46,7 @@ return function (grammar, actions)
   end
   append(static_data, "};\n", "sizes={")
   for _, production in grammar.productions:ipairs() do
-    append(static_data, production.body:size(), ",")
+    append(static_data, #production.body, ",")
   end
   append(static_data, "};\n", "semantic_actions={")
 
