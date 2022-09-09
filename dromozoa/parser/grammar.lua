@@ -189,18 +189,18 @@ function metatable:__call(token_names, that)
     end
   end
 
-  local data = array()
+  local data = {}
   for k, v in pairs(that) do
     if type(k) == "string" then
-      data:append { timestamp = v.timestamp, k = k, v = v }
+      append(data, { timestamp = v.timestamp, k = k, v = v })
     end
   end
-  data:sort(function (a, b) return a.timestamp < b.timestamp end)
+  table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
-  local start_head = append(symbol_names, data:get(1).k .. "'")
+  local start_head = append(symbol_names, data[1].k .. "'")
   local start_body = start_head + 1
 
-  for _, u in data:ipairs() do
+  for _, u in ipairs(data) do
     local k = u.k
     local v = u.v
     if symbol_table[k] ~= nil then
@@ -232,7 +232,7 @@ function metatable:__call(token_names, that)
   }
   local used_precedences = {}
 
-  for _, u in data:ipairs() do
+  for _, u in ipairs(data) do
     for i, v in ipairs(u.v) do
       local body = array()
       for _, name in ipairs(v) do
