@@ -100,7 +100,7 @@ local function generate(context, index, machine)
   local u = machine.start_state
 
   local accept_actions = array()
-  for _, v in machine.accept_states:ipairs() do
+  for _, v in ipairs(machine.accept_states) do
     v.index = accept_actions:append(insert_action(context, v.accept_action)):size()
   end
   local max_state = update_state_indices_nonaccept(u, accept_actions:size(), {})

@@ -129,7 +129,7 @@ local function node_to_nfa(node)
           bv:update(node.timestamp, "")
           local cu, accept_states = difference(au, bu)
           transition(u, cu)
-          for _, cv in accept_states:ipairs() do
+          for _, cv in ipairs(accept_states) do
             cv.timestamp = nil
             cv.accept_action = nil
             transition(cv, v)
@@ -341,7 +341,7 @@ local function minimize(u)
   end
 
   local states = {}
-  local accept_states = array()
+  local accept_states = {}
 
   for i, partition in ipairs(partitions) do
     local u = state()
@@ -351,7 +351,7 @@ local function minimize(u)
     end
     states[partition] = u
     if u.accept_action ~= nil then
-      accept_states:append(u)
+      append(accept_states, u)
     end
   end
 
