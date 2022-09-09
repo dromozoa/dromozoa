@@ -311,11 +311,11 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
   local max_terminal_symbol = grammar.max_terminal_symbol
   local productions = grammar.productions
 
-  local set_of_kernel_items = array()
-  local map_of_kernel_items = array()
+  local set_of_kernel_items = {}
+  local map_of_kernel_items = {}
 
   for i, items in set_of_items:ipairs() do
-    local kernel_items = array()
+    local kernel_items = {}
     local kernel_table = {}
     for j, item in ipairs(items) do
       if item.index == 1 or item.dot > 1 then
@@ -330,10 +330,10 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
       if item.index == 1 and item.dot == 1 then
         la:insert(max_terminal_symbol)
       end
-      kernel_items:append { index = item.index, dot = item.dot, la = la }
+      append(kernel_items, { index = item.index, dot = item.dot, la = la })
     end
-    set_of_kernel_items:append(kernel_items)
-    map_of_kernel_items:append(kernel_table)
+    set_of_kernel_items[i] = kernel_items
+    map_of_kernel_items[i] = kernel_table
   end
 
   local propagations = array()
@@ -347,11 +347,11 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
           local symbol = productions:get(item.index).body[item.dot]
           if symbol ~= nil then
             local to_i = transitions[from_i]:find(symbol)
-            local to_j = map_of_kernel_items:get(to_i)[item.index][item.dot + 1]
+            local to_j = map_of_kernel_items[to_i][item.index][item.dot + 1]
             if item.la == marker_lookahead then
               propagations:append { from_i = from_i, from_j = from_j, to_i = to_i, to_j = to_j }
             else
-              set_of_kernel_items:get(to_i):get(to_j).la:insert(item.la)
+              set_of_kernel_items[to_i][to_j].la:insert(item.la)
             end
           end
         end
@@ -362,8 +362,8 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
   repeat
     local done = true
     for _, propagation in propagations:ipairs() do
-      local from_la = set_of_kernel_items:get(propagation.from_i):get(propagation.from_j).la
-      local to_la = set_of_kernel_items:get(propagation.to_i):get(propagation.to_j).la
+      local from_la = set_of_kernel_items[propagation.from_i][propagation.from_j].la
+      local to_la = set_of_kernel_items[propagation.to_i][propagation.to_j].la
       for _, la in from_la:ipairs() do
         if select(3, to_la:insert(la)) then
           done = false
@@ -372,15 +372,15 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
     end
   until done
 
-  local new_set_of_kernel_items = array()
-  for _, items in set_of_kernel_items:ipairs() do
+  local new_set_of_kernel_items = {}
+  for _, items in ipairs(set_of_kernel_items) do
     local new_items = array()
-    for _, item in items:ipairs() do
+    for _, item in ipairs(items) do
       for _, la in item.la:ipairs() do
         new_items:append { index = item.index, dot = item.dot, la = la }
       end
     end
-    new_set_of_kernel_items:append(new_items)
+    append(new_set_of_kernel_items, new_items)
   end
 
   return new_set_of_kernel_items
@@ -444,13 +444,13 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
   local expect_sr = grammar.expect_sr
   local productions = grammar.productions
 
-  local max_state = set_of_items:size()
+  local max_state = #set_of_items
   local actions = {}
   local conflictions = array()
   local total_sr = 0
   local total_rr = 0
 
-  for i, items in set_of_items:ipairs() do
+  for i, items in ipairs(set_of_items) do
     local sr = 0
     local rr = 0
 
@@ -548,7 +548,7 @@ return function (grammar)
   local lr0_set_of_items, transitions = lr0_items(grammar)
   grammar.lr1_closure_table = {}
   local lalr1_set_of_items = lalr1_kernels(grammar, lr0_set_of_items, transitions)
-  for i, items in lalr1_set_of_items:ipairs() do
+  for i, items in ipairs(lalr1_set_of_items) do
     lr1_closure(grammar, items)
   end
   local actions, conflictions = lr1_construct_table(grammar, lalr1_set_of_items, transitions)
