@@ -30,14 +30,14 @@ for byte = 0x00, 0xFF do
 end
 
 local function pattern(that)
-  if type(that) == "string" then
+  if that == nil then
+    return construct("[", any)
+  elseif type(that) == "string" then
     local self = construct("[", { [that:byte(1)] = true })
     for i = 2, #that do
       self = self + construct("[", { [that:byte(i)] = true })
     end
     return rawset(self, "literal", that)
-  elseif that == nil then
-    return construct("[", any)
   else
     assert(getmetatable(that) == metatable)
     return that
@@ -49,7 +49,7 @@ local function range(that)
     local set = {}
     for i = 1, #that, 2 do
       local a, b = that:byte(i, i + 1)
-      if b == nil then
+      if not b then
         b = a
       end
       for byte = a, b do
@@ -125,12 +125,12 @@ function metatable:__mul(that)
       end
     else
       m, n = that[1], that[2]
-      if n == nil then
+      if not n then
         n = m
       end
     end
 
-    if n == nil then
+    if not n then
       if m == 0 then
         return construct("*", self)
       elseif m == 1 then
