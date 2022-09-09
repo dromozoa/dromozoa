@@ -216,19 +216,12 @@ function metatable:__unm()
   end
 end
 
--- TODO いるのかな？
-function metatable:__index(that)
-  assert(getmetatable(self) == metatable)
-  if rawget(self, 0) == nil then
+return setmetatable({}, {
+  __index = function (_, that)
     return range(that)
-  else
-    error "not supported"
-  end
-end
+  end;
 
-function metatable:__call(that)
-  assert(getmetatable(self) == metatable)
-  if rawget(self, 0) == nil then
+  __call = function (_, that)
     if type(that) == "table" and getmetatable(that) ~= metatable then
       local result = set(that[1])
       for i = 2, #that do
@@ -238,9 +231,5 @@ function metatable:__call(that)
     else
       return pattern(that)
     end
-  else
-    error "not supported"
-  end
-end
-
-return setmetatable({}, metatable)
+  end;
+})
