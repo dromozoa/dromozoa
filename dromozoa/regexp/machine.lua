@@ -23,7 +23,9 @@ local tree_map = require "dromozoa.tree_map"
 
 local function append(t, v)
   assert(v ~= nil)
-  t[#t + 1] = v
+  local n = #t + 1
+  t[n] = v
+  return n
 end
 
 ---------------------------------------------------------------------------
@@ -151,7 +153,8 @@ end
 
 local function update_state_indices_impl(u, states, color)
   color[u] = 1
-  u.index = states:append(u):size()
+  -- u.index = states:append(u):size()
+  u.index = append(states, u)
   for _, t in ipairs(u.transitions) do
     if color[t.v] == nil then
       update_state_indices_impl(t.v, states, color)
@@ -161,7 +164,7 @@ local function update_state_indices_impl(u, states, color)
 end
 
 local function update_state_indices(u)
-  local states = array()
+  local states = {}
   update_state_indices_impl(u, states, {})
   return states
 end
@@ -435,15 +438,15 @@ local function difference_impl(x, y)
   local null = state()
   null.index = 0
 
-  local x_n = x_states:size()
-  local y_n = y_states:size()
+  local x_n = #x_states
+  local y_n = #y_states
   local n = y_n + 1
 
   local z_states = {}
   for i = 0, x_n do
-    local x = i == 0 and null or x_states:get(i)
+    local x = i == 0 and null or x_states[i]
     for j = i == 0 and 1 or 0, y_n do
-      local y = j == 0 and null or y_states:get(j)
+      local y = j == 0 and null or y_states[j]
       local z = state()
       if y.accept_action == nil then
         z:update(x.timestamp, x.accept_action)
@@ -453,10 +456,10 @@ local function difference_impl(x, y)
   end
 
   for i = 0, x_n do
-    local x_u = i == 0 and null or x_states:get(i)
+    local x_u = i == 0 and null or x_states[i]
 
     for j = i == 0 and 1 or 0, y_n do
-      local y_u = j == 0 and null or y_states:get(j)
+      local y_u = j == 0 and null or y_states[j]
       local z_u = z_states[i * n + j]
 
       local transition_map = tree_map()
