@@ -38,15 +38,17 @@ local function pattern(that)
       self = self + construct("[", { [that:byte(i)] = true })
     end
     return rawset(self, "literal", that)
+  elseif that == nil then
+    return construct("[", any)
   else
     assert(getmetatable(that) == metatable)
-    if rawget(that, 0) == nil then
-      assert(rawget(that, "timestamp") == nil)
-      return construct("[", any)
-    else
+    -- if rawget(that, 0) == nil then
+    --   assert(rawget(that, "timestamp") == nil)
+    --   return construct("[", any)
+    -- else
       assert(rawget(that, "timestamp") ~= nil)
       return that
-    end
+    -- end
   end
 end
 
