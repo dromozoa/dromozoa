@@ -19,6 +19,14 @@ local array = require "dromozoa.array"
 local tree_set = require "dromozoa.tree_set"
 local runtime = require "dromozoa.regexp.runtime"
 
+-- TODO machineと共通？
+local function append(t, v)
+  assert(v ~= nil)
+  local n = #t + 1
+  t[n] = v
+  return n
+end
+
 local function insert_action(context, action)
   local function substitute(variable)
     local result = context.action.variables[variable]
@@ -99,11 +107,11 @@ end
 local function generate(context, index, machine)
   local u = machine.start_state
 
-  local accept_actions = array()
+  local accept_actions = {}
   for _, v in ipairs(machine.accept_states) do
-    v.index = accept_actions:append(insert_action(context, v.accept_action)):size()
+    v.index = append(accept_actions, insert_action(context, v.accept_action))
   end
-  local max_state = update_state_indices_nonaccept(u, accept_actions:size(), {})
+  local max_state = update_state_indices_nonaccept(u, #accept_actions, {})
 
   local transitions = array()
   for i = 1, 256 do
@@ -116,7 +124,7 @@ local function generate(context, index, machine)
   context.static.out:append(
     "{\n",
     "start_state=", u.index, ";\n",
-    "max_accept_state=", accept_actions:size(), ";\n",
+    "max_accept_state=", #accept_actions, ";\n",
     "max_state=", max_state, ";\n",
     "transitions={[0]=")
   for _, v in transitions:ipairs() do
@@ -174,7 +182,11 @@ return function (that)
   context.static.out:append("action_threads=_[", insert_shared(context, context.action.threads), "];\n")
 
   for _, v in context.shared.set:ipairs() do
-    context.shared.out:append("{", v:concat ",", "};\n")
+    if v.concat then
+      context.shared.out:append("{", v:concat ",", "};\n")
+    else
+      context.shared.out:append("{", table.concat(v, ","), "};\n")
+    end
   end
 
   return table.concat(runtime {
