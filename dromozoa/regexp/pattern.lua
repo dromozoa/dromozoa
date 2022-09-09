@@ -17,18 +17,16 @@
 
 local metatable = { __name = "dromozoa.regexp.pattern" }
 
--- TODO anyを_で表現するために自然でないコードになっている
-
-local any = {}
-for byte = 0x00, 0xFF do
-  any[byte] = true
-end
-
 local timestamp = 0
 
 local function construct(code, ...)
   timestamp = timestamp + 1
   return setmetatable({ timestamp = timestamp, [0] = code, ... }, metatable)
+end
+
+local any = {}
+for byte = 0x00, 0xFF do
+  any[byte] = true
 end
 
 local function pattern(that)
@@ -42,13 +40,7 @@ local function pattern(that)
     return construct("[", any)
   else
     assert(getmetatable(that) == metatable)
-    -- if rawget(that, 0) == nil then
-    --   assert(rawget(that, "timestamp") == nil)
-    --   return construct("[", any)
-    -- else
-      assert(rawget(that, "timestamp") ~= nil)
-      return that
-    -- end
+    return that
   end
 end
 
@@ -192,10 +184,10 @@ end
 
 function metatable:__div(that)
   local self = pattern(self)
-  if self[0] == "[" then
-    return construct("/", self, that)
-  else
+  if self[0] ~= "[" then
     error "not supported"
+  else
+    return construct("/", self, that)
   end
 end
 
@@ -210,7 +202,9 @@ end
 
 function metatable:__unm()
   local self = pattern(self)
-  if self[0] == "[" then
+  if self[0] ~= "[" then
+    error "not supported"
+  else
     local neg = self[1]
     local set = {}
     for byte = 0x00, 0xFF do
@@ -219,11 +213,10 @@ function metatable:__unm()
       end
     end
     return construct("[", set)
-  else
-    error "not supported"
   end
 end
 
+-- TODO いるのかな？
 function metatable:__index(that)
   assert(getmetatable(self) == metatable)
   if rawget(self, 0) == nil then
