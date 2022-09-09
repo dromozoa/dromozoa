@@ -36,15 +36,15 @@ local g, actions, conflictions, data = lalr(grammar(array("+", "*", "(", ")", "i
 }))
 
 local buffer = array()
-for _, message in conflictions:ipairs() do
+for _, message in ipairs(conflictions) do
   buffer:append(message, "\n")
 end
 
 local max_terminal_symbol = g.max_terminal_symbol
 local symbol_names = g.symbol_names
 local symbol_table = {}
-for i = max_terminal_symbol + 2, symbol_names:size() do
-  symbol_table[symbol_names:get(i)] = i
+for i = max_terminal_symbol + 2, #symbol_names do
+  symbol_table[symbol_names[i]] = i
 end
 local first_table = g.first_table
 
@@ -60,7 +60,7 @@ for _, name in ipairs { "F", "T", "E", "E'", "T'" } do
     if k == 0 then
       buffer:append "e"
     else
-      buffer:append(g.symbol_names:get(k))
+      buffer:append(g.symbol_names[k])
     end
   end
   buffer:append " }\n"

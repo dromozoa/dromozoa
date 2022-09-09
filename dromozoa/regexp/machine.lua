@@ -15,9 +15,17 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local array = require "dromozoa.array"
 local compare = require "dromozoa.compare"
 local tree_map = require "dromozoa.tree_map"
+
+---------------------------------------------------------------------------
+
+local function append(t, v)
+  assert(v ~= nil)
+  local n = #t + 1
+  t[n] = v
+  return n
+end
 
 ---------------------------------------------------------------------------
 
@@ -25,7 +33,7 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.regexp.machine.state" }
 
 function class:simulate(byte, resolved)
-  for _, t in self.transitions:ipairs() do
+  for _, t in ipairs(self.transitions) do
     if t.set ~= nil and t.set[byte] then
       if resolved ~= nil and (resolved.timestamp == nil or resolved.timestamp > t.timestamp) then
         resolved.timestamp = t.timestamp
@@ -45,7 +53,7 @@ function class:update(timestamp, accept_action)
 end
 
 local function state()
-  return setmetatable({ transitions = array() }, metatable)
+  return setmetatable({ transitions = {} }, metatable)
 end
 
 ---------------------------------------------------------------------------
@@ -63,7 +71,7 @@ end
 
 local function transition(u, v, set, timestamp, action)
   local self = setmetatable({ v = v, set = set, timestamp = timestamp, action = action }, metatable)
-  u.transitions:append(self)
+  append(u.transitions, self)
   return self
 end
 
@@ -72,22 +80,21 @@ end
 local difference
 
 local function node_to_nfa(node)
-  local timestamp = rawget(node, "timestamp")
-  assert(timestamp ~= nil)
-
   local code = node[0]
   if code == "[" then
     local u = state()
     local v = state()
-    transition(u, v, node[1], timestamp)
+    transition(u, v, node[1], node.timestamp)
     return u, v
   else
     local au, av = node_to_nfa(node[1])
     if code == "/" then
-      au.transitions:get(1).action = node[2]
+      assert(#au.transitions == 1)
+      au.transitions[1].action = node[2]
+      -- au.transitions:get(1).action = node[2]
       return au, av
     elseif code == "%" then
-      av:update(timestamp, node[2])
+      av:update(node.timestamp, node[2])
       return au, av
     elseif code == "." then
       local bu, bv = node_to_nfa(node[2])
@@ -117,11 +124,11 @@ local function node_to_nfa(node)
           transition(av, v)
           transition(bv, v)
         elseif code == "-" then
-          av:update(timestamp, "")
-          bv:update(timestamp, "")
+          av:update(node.timestamp, "")
+          bv:update(node.timestamp, "")
           local cu, accept_states = difference(au, bu)
           transition(u, cu)
-          for _, cv in accept_states:ipairs() do
+          for _, cv in ipairs(accept_states) do
             cv.timestamp = nil
             cv.accept_action = nil
             transition(cv, v)
@@ -136,7 +143,7 @@ end
 local function tree_to_nfa(node)
   local u, v = node_to_nfa(node)
   if v.accept_action == nil then
-    v:update(rawget(node, "timestamp"), "")
+    v:update(node.timestamp, "")
   end
   return u, v
 end
@@ -145,8 +152,9 @@ end
 
 local function update_state_indices_impl(u, states, color)
   color[u] = 1
-  u.index = states:append(u):size()
-  for _, t in u.transitions:ipairs() do
+  -- u.index = states:append(u):size()
+  u.index = append(states, u)
+  for _, t in ipairs(u.transitions) do
     if color[t.v] == nil then
       update_state_indices_impl(t.v, states, color)
     end
@@ -155,7 +163,7 @@ local function update_state_indices_impl(u, states, color)
 end
 
 local function update_state_indices(u)
-  local states = array()
+  local states = {}
   update_state_indices_impl(u, states, {})
   return states
 end
@@ -163,7 +171,7 @@ end
 ---------------------------------------------------------------------------
 
 local function epsilon_closure_impl(u, closure)
-  for _, t in u.transitions:ipairs() do
+  for _, t in ipairs(u.transitions) do
     if t.set == nil then
       closure:insert(t.v.index, t.v)
       epsilon_closure_impl(t.v, closure)
@@ -246,12 +254,13 @@ local function create_initial_partitions(u, accept_partition_map, nonaccept_part
 
   local partition = nonaccept_partition
   if u.accept_action ~= nil then
-    partition = select(2, accept_partition_map:insert_or_update(u.accept_action, array))
+    partition = select(2, accept_partition_map:insert_or_update(u.accept_action, function () return {} end))
   end
-  partition:append(u)
+  -- partition:append(u)
+  append(partition, u)
   partition_map[u] = partition
 
-  for _, t in u.transitions:ipairs() do
+  for _, t in ipairs(u.transitions) do
     if color[t.v] == nil then
       create_initial_partitions(t.v, accept_partition_map, nonaccept_partition, partition_map, color)
     end
@@ -262,28 +271,28 @@ end
 
 local function minimize(u)
   local accept_partition_map = tree_map()
-  local partition = array()
+  local partition = {}
   local partition_map = {}
   create_initial_partitions(u, accept_partition_map, partition, partition_map, {})
 
-  local partitions = array()
+  local partitions = {}
   for _, partition in accept_partition_map:pairs() do
-    partitions:append(partition)
+    append(partitions, partition)
   end
-  if not partition:empty() then
-    partitions:append(partition)
+  if next(partition) ~= nil then
+    append(partitions, partition)
   end
 
   while true do
     local new_partition_map = {}
-    local new_partitions = array()
+    local new_partitions = {}
 
-    for _, partition in partitions:ipairs() do
+    for _, partition in ipairs(partitions) do
       -- パーティション内の状態の組(x,y)について同じ遷移をするか調べる。同じ遷
       -- 移をする場合、ひとつのパーティションにまとめる。
-      for i, x in partition:ipairs() do
+      for i, x in ipairs(partition) do
         for j = 1, i - 1 do
-          local y = partition:get(j)
+          local y = partition[j]
           -- 全ての文字について下記の条件が満たされていたら、同じ遷移をするとみ
           -- なす。
           -- 1. 遷移先の状態が同じパーティションに含まれている。
@@ -302,7 +311,7 @@ local function minimize(u)
             local new_partition = new_partition_map[x]
             if new_partition == nil then
               local new_partition = new_partition_map[y]
-              new_partition:append(x)
+              append(new_partition, x)
               new_partition_map[x] = new_partition
             else
               -- xがすでに新パーティションに登録されている。つまり、yよりも先に
@@ -315,14 +324,14 @@ local function minimize(u)
         end
 
         if new_partition_map[x] == nil then
-          local new_partition = array(x)
+          local new_partition = { x }
           new_partition_map[x] = new_partition
-          new_partitions:append(new_partition)
+          append(new_partitions, new_partition)
         end
       end
     end
 
-    if partitions:size() == new_partitions:size() then
+    if #partitions == #new_partitions then
       break
     end
 
@@ -331,32 +340,32 @@ local function minimize(u)
   end
 
   local states = {}
-  local accept_states = array()
+  local accept_states = {}
 
-  for i, partition in partitions:ipairs() do
+  for i, partition in ipairs(partitions) do
     local u = state()
     u.index = i
-    for _, x in partition:ipairs() do
+    for _, x in ipairs(partition) do
       u:update(x.timestamp, x.accept_action)
     end
     states[partition] = u
     if u.accept_action ~= nil then
-      accept_states:append(u)
+      append(accept_states, u)
     end
   end
 
-  for i, partition in partitions:ipairs() do
+  for i, partition in ipairs(partitions) do
     local u = states[partition]
     local transition_map = tree_map()
 
     for byte = 0x00, 0xFF do
       local resolved = {}
-      local x_to, _, x_action = partition:get(1):simulate(byte, resolved)
+      local x_to, _, x_action = partition[1]:simulate(byte, resolved)
       if x_to ~= nil then
         local p = partition_map[x_to]
 
-        for j = 2, partition:size() do
-          local y_to, _, y_action = partition:get(j):simulate(byte, resolved)
+        for j = 2, #partition do
+          local y_to, _, y_action = partition[j]:simulate(byte, resolved)
           assert(p == partition_map[y_to])
           assert(compare(x_action, y_action) == 0)
         end
@@ -383,7 +392,7 @@ local function collect_living_states(u, living_states, color)
     living_states[u] = true
   end
 
-  for _, t in u.transitions:ipairs() do
+  for _, t in ipairs(u.transitions) do
     if not color[t.v] then
       collect_living_states(t.v, living_states, color)
     end
@@ -400,10 +409,10 @@ local function remove_dead_states(u)
   collect_living_states(u, living_states, {})
 
   for v in pairs(living_states) do
-    local new_transitions = array()
-    for _, t in v.transitions:ipairs() do
+    local new_transitions = {}
+    for _, t in ipairs(v.transitions) do
       if living_states[t.v] then
-        new_transitions:append(t)
+        append(new_transitions, t)
       end
     end
     v.transitions = new_transitions
@@ -429,15 +438,15 @@ local function difference_impl(x, y)
   local null = state()
   null.index = 0
 
-  local x_n = x_states:size()
-  local y_n = y_states:size()
+  local x_n = #x_states
+  local y_n = #y_states
   local n = y_n + 1
 
   local z_states = {}
   for i = 0, x_n do
-    local x = i == 0 and null or x_states:get(i)
+    local x = i == 0 and null or x_states[i]
     for j = i == 0 and 1 or 0, y_n do
-      local y = j == 0 and null or y_states:get(j)
+      local y = j == 0 and null or y_states[j]
       local z = state()
       if y.accept_action == nil then
         z:update(x.timestamp, x.accept_action)
@@ -447,10 +456,10 @@ local function difference_impl(x, y)
   end
 
   for i = 0, x_n do
-    local x_u = i == 0 and null or x_states:get(i)
+    local x_u = i == 0 and null or x_states[i]
 
     for j = i == 0 and 1 or 0, y_n do
-      local y_u = j == 0 and null or y_states:get(j)
+      local y_u = j == 0 and null or y_states[j]
       local z_u = z_states[i * n + j]
 
       local transition_map = tree_map()
@@ -491,7 +500,7 @@ function module.union(that)
   for _, node in ipairs(that) do
     transition(s, (tree_to_nfa(node)))
   end
-  return machine(rawget(that[1], "timestamp"), s)
+  return machine(that[1].timestamp, s)
 end
 
 function module.guard(guard_action, that)
@@ -501,16 +510,16 @@ function module.guard(guard_action, that)
 end
 
 function module.lexer(token_names, that)
-  local data = array()
+  local data = {}
   for name, node in pairs(that) do
     if type(name) ~= "string" then
-      name = rawget(node, "literal")
+      name = node.literal
     end
-    local timestamp = rawget(node, "timestamp")
+    local timestamp = node.timestamp
     assert(timestamp ~= nil)
-    data:append { timestamp = timestamp, node = node, name = name }
+    append(data, { timestamp = timestamp, node = node, name = name })
   end
-  data:sort(function (a, b) return a.timestamp < b.timestamp end)
+  table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
   local token_table = {}
   for symbol, name in token_names:ipairs() do
@@ -518,7 +527,7 @@ function module.lexer(token_names, that)
   end
 
   local s = state()
-  for _, item in data:ipairs() do
+  for _, item in ipairs(data) do
     local u, v = tree_to_nfa(item.node)
     transition(s, u)
 
@@ -538,7 +547,7 @@ function module.lexer(token_names, that)
     end
   end
 
-  return machine(data:get(1).timestamp, s)
+  return machine(data[1].timestamp, s)
 end
 
 return module

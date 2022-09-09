@@ -31,8 +31,8 @@ local token_names = array()
 local code = compile {
   character_class = lexer(token_names, {
     ["]"] = _"]" %[[push() freturn()]];
-    escaped = _"\\" + _;
-    char = _(_);
+    escaped = _"\\" + _();
+    char = _();
   });
 
   lexer(token_names, {
@@ -43,8 +43,8 @@ local code = compile {
     }*"+";
 
     ["["] = _"[" %[[push() fcall($character_class)]];
-    escaped = _"\\" + _;
-    char = _(_);
+    escaped = _"\\" + _();
+    char = _();
   });
 }
 

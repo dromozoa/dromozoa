@@ -107,19 +107,19 @@ local buffer = array()
 for _, g in ipairs(G) do
   buffer:append(("-"):rep(75), "\n")
   local g, actions, conflictions = lalr(g)
-  for _, message in conflictions:ipairs() do
+  for _, message in ipairs(conflictions) do
     buffer:append(message, "\n")
   end
 
   buffer:append "|    |"
-  for i, name in g.symbol_names:ipairs() do
+  for i, name in ipairs(g.symbol_names) do
     buffer:append(("  %-2s |"):format(name))
   end
   buffer:append "\n"
 
   for i, data in ipairs(actions) do
     buffer:append(("| %2d |"):format(i))
-    for j in g.symbol_names:ipairs() do
+    for j in ipairs(g.symbol_names) do
       local v = data[j]
       if v == 0 then
         buffer:append "     |"

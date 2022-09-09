@@ -17,11 +17,6 @@
 
 local metatable = { __name = "dromozoa.regexp.pattern" }
 
-local any = {}
-for byte = 0x00, 0xFF do
-  any[byte] = true
-end
-
 local timestamp = 0
 
 local function construct(code, ...)
@@ -29,22 +24,24 @@ local function construct(code, ...)
   return setmetatable({ timestamp = timestamp, [0] = code, ... }, metatable)
 end
 
+local any = {}
+for byte = 0x00, 0xFF do
+  any[byte] = true
+end
+
 local function pattern(that)
-  if type(that) == "string" then
+  if that == nil then
+    return construct("[", any)
+  elseif type(that) == "string" then
     local self = construct("[", { [that:byte(1)] = true })
     for i = 2, #that do
       self = self + construct("[", { [that:byte(i)] = true })
     end
-    return rawset(self, "literal", that)
+    self.literal = that
+    return self
   else
     assert(getmetatable(that) == metatable)
-    if rawget(that, 0) == nil then
-      assert(rawget(that, "timestamp") == nil)
-      return construct("[", any)
-    else
-      assert(rawget(that, "timestamp") ~= nil)
-      return that
-    end
+    return that
   end
 end
 
@@ -53,7 +50,7 @@ local function range(that)
     local set = {}
     for i = 1, #that, 2 do
       local a, b = that:byte(i, i + 1)
-      if b == nil then
+      if not b then
         b = a
       end
       for byte = a, b do
@@ -129,12 +126,12 @@ function metatable:__mul(that)
       end
     else
       m, n = that[1], that[2]
-      if n == nil then
+      if not n then
         n = m
       end
     end
 
-    if n == nil then
+    if not n then
       if m == 0 then
         return construct("*", self)
       elseif m == 1 then
@@ -188,10 +185,10 @@ end
 
 function metatable:__div(that)
   local self = pattern(self)
-  if self[0] == "[" then
-    return construct("/", self, that)
-  else
+  if self[0] ~= "[" then
     error "not supported"
+  else
+    return construct("/", self, that)
   end
 end
 
@@ -200,13 +197,17 @@ function metatable:__mod(that)
   if self[0] == "%" then
     error "not supported"
   else
-    return rawset(construct("%", self, that), "literal", rawget(self, "literal"))
+    local result = construct("%", self, that)
+    result.literal = self.literal
+    return result
   end
 end
 
 function metatable:__unm()
   local self = pattern(self)
-  if self[0] == "[" then
+  if self[0] ~= "[" then
+    error "not supported"
+  else
     local neg = self[1]
     local set = {}
     for byte = 0x00, 0xFF do
@@ -215,27 +216,15 @@ function metatable:__unm()
       end
     end
     return construct("[", set)
-  else
-    error "not supported"
   end
 end
 
-function metatable:__index(that)
-  assert(getmetatable(self) == metatable)
-  if rawget(self, 0) == nil then
+return setmetatable({}, {
+  __index = function (_, that)
     return range(that)
-  else
-    error "not supported"
-  end
-end
+  end;
 
-function metatable:__newindex(that)
-  error "not supported"
-end
-
-function metatable:__call(that)
-  assert(getmetatable(self) == metatable)
-  if rawget(self, 0) == nil then
+  __call = function (_, that)
     if type(that) == "table" and getmetatable(that) ~= metatable then
       local result = set(that[1])
       for i = 2, #that do
@@ -245,9 +234,5 @@ function metatable:__call(that)
     else
       return pattern(that)
     end
-  else
-    error "not supported"
-  end
-end
-
-return setmetatable({}, metatable)
+  end;
+})

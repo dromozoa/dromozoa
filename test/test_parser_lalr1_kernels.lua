@@ -31,29 +31,29 @@ local g, actions, conflictions, data = lalr(grammar(array("=", "*", "id"), {
 }))
 
 local buffer = array()
-for _, message in conflictions:ipairs() do
+for _, message in ipairs(conflictions) do
   buffer:append(message, "\n")
 end
 
 local set_of_items = data.lalr1_set_of_items
 
-for i, items in set_of_items:ipairs() do
+for i, items in ipairs(set_of_items) do
   buffer:append(("="):rep(75), "\nI_", i, "\n")
-  for _, item in items:ipairs() do
+  for _, item in ipairs(items) do
     -- カーネル項だけを出力する
     if item.index == 1 or item.dot > 1 then
       local production = g.productions:get(item.index)
-      buffer:append("  ", g.symbol_names:get(production.head), " ->")
-      for j, symbol in production.body:ipairs() do
+      buffer:append("  ", g.symbol_names[production.head], " ->")
+      for j, symbol in ipairs(production.body) do
         if j == item.dot then
           buffer:append " ."
         end
-        buffer:append(" ", g.symbol_names:get(symbol))
+        buffer:append(" ", g.symbol_names[symbol])
       end
-      if production.body:get(item.dot) == nil then
+      if production.body[item.dot] == nil then
         buffer:append " ."
       end
-      buffer:append(", ", g.symbol_names:get(item.la), "\n")
+      buffer:append(", ", g.symbol_names[item.la], "\n")
     end
   end
 end

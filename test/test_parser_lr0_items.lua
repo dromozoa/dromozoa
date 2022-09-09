@@ -32,7 +32,7 @@ local g, actions, conflictions, data = lalr(grammar(array("+", "*", "(", ")", "i
 }))
 
 local buffer = array()
-for _, message in conflictions:ipairs() do
+for _, message in ipairs(conflictions) do
   buffer:append(message, "\n")
 end
 
@@ -41,16 +41,16 @@ local transitions = data.transitions
 
 for i, items in set_of_items:ipairs() do
   buffer:append(("="):rep(75), "\nI_", i, "\n")
-  for _, item in items:ipairs() do
+  for _, item in ipairs(items) do
     local production = g.productions:get(item.index)
-    buffer:append("  ", g.symbol_names:get(production.head), " ->")
-    for j, symbol in production.body:ipairs() do
+    buffer:append("  ", g.symbol_names[production.head], " ->")
+    for j, symbol in ipairs(production.body) do
       if j == item.dot then
         buffer:append " ."
       end
-      buffer:append(" ", g.symbol_names:get(symbol))
+      buffer:append(" ", g.symbol_names[symbol])
     end
-    if production.body:get(item.dot) == nil then
+    if production.body[item.dot] == nil then
       buffer:append " ."
     end
     buffer:append "\n"
@@ -59,7 +59,7 @@ for i, items in set_of_items:ipairs() do
     buffer:append "\n"
   end
   for symbol, j in transitions[i]:pairs() do
-    buffer:append("  I_", i, " -> I_", j, " ", g.symbol_names:get(symbol), "\n")
+    buffer:append("  I_", i, " -> I_", j, " ", g.symbol_names[symbol], "\n")
   end
 end
 buffer:append(("="):rep(75), "\n")

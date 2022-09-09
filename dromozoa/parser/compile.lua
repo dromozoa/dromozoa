@@ -15,41 +15,40 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local array = require "dromozoa.array"
-local tree_set = require "dromozoa.tree_set"
 local runtime = require "dromozoa.parser.runtime"
 
-return function (grammar, actions)
-  local static_data = array()
-  local action_data = tree_set()
+local function append(data, ...)
+  local n = #data
+  for i = 1, select("#", ...) do
+    local v = select(i, ...)
+    local t = type(v)
+    assert(t == "number" or t == "string")
+    data[n + i] = v
+  end
+end
 
-  static_data:append(
-    "symbol_names={")
-  for i, v in grammar.symbol_names:ipairs() do
-    static_data:append(("%q,"):format(v))
+return function (grammar, actions)
+  local static_data = {}
+  local action_map = {}
+  local action_set = {}
+
+  append(static_data, "symbol_names={")
+  for i, v in ipairs(grammar.symbol_names) do
+    append(static_data, ("%q,"):format(v))
   end
-  static_data:append(
-    "};\n",
-    "max_terminal_symbol=", grammar.max_terminal_symbol, ";\n",
-    "actions={\n")
+  append(static_data, "};\n", "max_terminal_symbol=", grammar.max_terminal_symbol, ";\n", "actions={\n")
   for _, action in ipairs(actions) do
-    static_data:append("{", table.concat(action, ","), "};\n")
+    append(static_data, "{", table.concat(action, ","), "};\n")
   end
-  static_data:append(
-    "};\n",
-    "heads={")
+  append(static_data, "};\n", "heads={")
   for _, production in grammar.productions:ipairs() do
-    static_data:append(production.head, ",")
+    append(static_data, production.head, ",")
   end
-  static_data:append(
-    "};\n",
-    "sizes={")
+  append(static_data, "};\n", "sizes={")
   for _, production in grammar.productions:ipairs() do
-    static_data:append(production.body:size(), ",")
+    append(static_data, #production.body, ",")
   end
-  static_data:append(
-    "};\n",
-    "semantic_actions={")
+  append(static_data, "};\n", "semantic_actions={")
 
   local function substitute(variable)
     local result = grammar.symbol_table[variable]
@@ -66,18 +65,25 @@ return function (grammar, actions)
     end
     local semantic_action = semantic_action
       :gsub("$([%a_][%w_]*)", substitute)
-      :gsub([[${'(..-)'}]], substitute)
+      :gsub("${'(..-)'}", substitute)
       :gsub("$([1-9]%d*)", "S[%1]")
       :gsub("$0", "S[0]")
       :gsub("$%$", "SS")
-    static_data:append(select(2, action_data:insert("function ()" .. semantic_action .. "\nend;\n")), ",")
+
+    local v = "function ()" .. semantic_action .. "\nend;\n"
+    local n = action_map[v]
+    if not n then
+      n = #action_set + 1
+      action_map[v] = n
+      action_set[n] = v
+    end
+    append(static_data, n, ",")
   end
-  static_data:append(
-    "};\n")
+  append(static_data, "};\n")
 
   return table.concat(runtime {
-    custom_data = grammar.custom_data:concat();
-    action_data = action_data:concat();
-    static_data = static_data:concat();
+    custom_data = table.concat(grammar.custom_data);
+    action_data = table.concat(action_set);
+    static_data = table.concat(static_data);
   })
 end

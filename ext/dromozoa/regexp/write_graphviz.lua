@@ -50,8 +50,7 @@ local function visit(out, u, indices, index, start, color)
     out:write(("  %d [%s];\n"):format(uid, table.concat(attrs, ",")))
   end
 
-  local transitions = u.transitions
-  for i, transition in transitions:ipairs() do
+  for i, transition in ipairs(u.transitions) do
     local v = transition.v
     if not color[v] then
       index = visit(out, v, indices, index, start, color)

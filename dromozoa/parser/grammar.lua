@@ -15,9 +15,25 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local array = require "dromozoa.array"
 local tree_map = require "dromozoa.tree_map"
 local tree_set = require "dromozoa.tree_set"
+local production_set = require "dromozoa.parser.production_set"
+
+---------------------------------------------------------------------------
+
+-- TODO 共通コード
+local function append(t, ...)
+  local m = #t
+  local n = select("#", ...)
+
+  for i = 1, n do
+    local v = select(i, ...)
+    assert(v ~= nil)
+    t[m + i] = v
+  end
+
+  return m + n
+end
 
 ---------------------------------------------------------------------------
 
@@ -138,24 +154,24 @@ end
 local metatable = { __name = "dromozoa.parser.grammar" }
 
 function metatable:__call(token_names, that)
-  local symbol_names = array()
+  local symbol_names = {}
   local symbol_table = {}
   for _, name in token_names:ipairs() do
     if symbol_table[name] ~= nil then
       error("symbol " .. name .. " redefined as a terminal")
     end
-    symbol_table[name] = symbol_names:append(name):size()
+    symbol_table[name] = append(symbol_names, name)
   end
-  local max_terminal_symbol = symbol_names:append "$":size()
+  local max_terminal_symbol = append(symbol_names, "$")
 
-  local custom_data = array()
+  local custom_data = {}
   local expect_sr
   local precedence = 0
   local precedence_table = tree_map()
   local symbol_precedences = {}
   for _, v in ipairs(that) do
     if type(v) == "string" then
-      custom_data:append(v, "\n")
+      append(custom_data, v .. "\n")
     elseif v[0] == "expect" then
       assert(getmetatable(v).__name == "dromozoa.parser.grammar.expect")
       expect_sr = v[1]
@@ -173,24 +189,24 @@ function metatable:__call(token_names, that)
     end
   end
 
-  local data = array()
+  local data = {}
   for k, v in pairs(that) do
     if type(k) == "string" then
-      data:append { timestamp = v.timestamp, k = k, v = v }
+      append(data, { timestamp = v.timestamp, k = k, v = v })
     end
   end
-  data:sort(function (a, b) return a.timestamp < b.timestamp end)
+  table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
-  local start_head = symbol_names:append(data:get(1).k .. "'"):size()
+  local start_head = append(symbol_names, data[1].k .. "'")
   local start_body = start_head + 1
 
-  for _, u in data:ipairs() do
+  for _, u in ipairs(data) do
     local k = u.k
     local v = u.v
     if symbol_table[k] ~= nil then
       error("symbol " .. k .. " redefined as a nonterminal")
     end
-    local symbol = symbol_names:append(k):size()
+    local symbol = append(symbol_names, k)
     symbol_table[k] = symbol
     u.k = symbol
     if v[0] == "body" then
@@ -201,13 +217,21 @@ function metatable:__call(token_names, that)
     end
   end
 
-  local productions = tree_set(function (a, b)
-    if a.head ~= b.head then
-      return a.head < b.head and -1 or 1
-    end
-    assert(a.head_index ~= b.head_index)
-    return a.head_index < b.head_index and -1 or 1
-  end):insert { head = start_head, head_index = 1, body = array(start_body) }
+  -- 生成規則は番号 (index) を持つ
+  -- 生成規則は頭部と本体で一意である
+  -- 頭部は非終端記号、本体は記号列で表される。
+  -- 同じ生成規則が存在するのはエラー時だけなので、挿入時に存在しないことを確認すればいい。
+
+  -- local productions = tree_set(function (a, b)
+  --   if a.head ~= b.head then
+  --     return a.head < b.head and -1 or 1
+  --   end
+  --   assert(a.head_index ~= b.head_index)
+  --   return a.head_index < b.head_index and -1 or 1
+  -- end):insert { head = start_head, head_index = 1, body = { start_body } }
+
+  local productions = production_set()
+  productions:insert { head = start_head, body = { start_body } }
 
   local used_symbols = {
     [max_terminal_symbol] = true;
@@ -216,18 +240,18 @@ function metatable:__call(token_names, that)
   }
   local used_precedences = {}
 
-  for _, u in data:ipairs() do
+  for _, u in ipairs(data) do
     for i, v in ipairs(u.v) do
-      local body = array()
+      local body = {}
       for _, name in ipairs(v) do
         local symbol = symbol_table[name]
         if symbol == nil then
           error("symbol " .. name .. " not defined")
         end
-        body:append(symbol)
+        append(body, symbol)
         used_symbols[symbol] = true
       end
-      local production = { head = u.k, head_index = i, body = body, semantic_action = v.semantic_action }
+      local production = { head = u.k, body = body, semantic_action = v.semantic_action }
       if v.precedence ~= nil then
         local precedence = precedence_table:find(v.precedence)
         if precedence == nil then
@@ -240,7 +264,7 @@ function metatable:__call(token_names, that)
     end
   end
 
-  for i, v in symbol_names:ipairs() do
+  for i, v in ipairs(symbol_names) do
     if used_symbols[i] == nil then
       error("symbol " .. v .. " not used")
     end
