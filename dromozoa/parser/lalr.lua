@@ -19,6 +19,20 @@ local array = require "dromozoa.array"
 local tree_map = require "dromozoa.tree_map"
 local tree_set = require "dromozoa.tree_set"
 
+-- TODO 共通コード
+local function append(t, ...)
+  local m = #t
+  local n = select("#", ...)
+
+  for i = 1, n do
+    local v = select(i, ...)
+    assert(v ~= nil)
+    t[m + i] = v
+  end
+
+  return m + n
+end
+
 ---------------------------------------------------------------------------
 
 local function each_production(productions, head)
@@ -36,11 +50,15 @@ local function eliminate_left_recursion(grammar)
   local max_terminal_symbol = grammar.max_terminal_symbol
   local productions = grammar.productions
 
-  local new_symbol_names = symbol_names:slice()
+  local new_symbol_names = {}
+  for i = 1, #symbol_names do
+    new_symbol_names[i] = symbol_names[i]
+  end
+  -- local new_symbol_names = symbol_names:slice()
   local new_productions = tree_set(productions.compare)
 
-  for i = max_terminal_symbol + 1, symbol_names:size() do
-    local n = new_symbol_names:size() + 1
+  for i = max_terminal_symbol + 1, #symbol_names do
+    local n = #new_symbol_names + 1
     local n_bodies = array()
     local i_bodies = array()
 
@@ -63,7 +81,7 @@ local function eliminate_left_recursion(grammar)
     end
 
     if not n_bodies:empty() then
-      new_symbol_names:append(symbol_names:get(i) .. "'")
+      append(new_symbol_names, symbol_names[i] .. "'")
       n_bodies:append(array())
       for _, body in i_bodies:ipairs() do
         body:append(n)
@@ -226,7 +244,7 @@ local function lr1_closure(grammar, items)
 
         -- 点の後の記号 (symbol) とFIRST(b la)に含まれる記号の組をキーとして扱
         -- う。FIRST(b la)は先読み記号 (#) を含む可能性がある。
-        local symbol_key = symbol * (symbol_names:size() + 2)
+        local symbol_key = symbol * (#symbol_names + 2)
 
         for _, la in first:ipairs() do
           if la ~= marker_epsilon then
@@ -349,7 +367,7 @@ local function symbol_precedence(grammar, symbol)
   if precedence ~= nil then
     return precedence.precedence, precedence.name, precedence.associativity
   end
-  return 0, grammar.symbol_names:get(symbol)
+  return 0, grammar.symbol_names[symbol]
 end
 
 local function production_precedence(grammar, index)
@@ -433,7 +451,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
           if buffer:empty() then
             sr = sr + 1
           else
-            conflictions:append("[info] conflict between production " .. item.index .. " and symbol " .. symbol_names:get(item.la) .. " resolved as " .. buffer:concat())
+            conflictions:append("[info] conflict between production " .. item.index .. " and symbol " .. symbol_names[item.la] .. " resolved as " .. buffer:concat())
           end
         end
       end
@@ -461,7 +479,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
       conflictions:append(buffer:concat())
     end
 
-    for symbol in symbol_names:ipairs() do
+    for symbol in ipairs(symbol_names) do
       if data[symbol] == nil then
         data[symbol] = 0
       end
@@ -496,7 +514,7 @@ return function (grammar)
   local grammar_without_left_recursion = eliminate_left_recursion(grammar)
   grammar_without_left_recursion.first_table = {}
   -- 元の文法の非終端記号が表に含まれることを保証する。
-  for symbol = grammar.max_terminal_symbol + 1, grammar.symbol_names:size() do
+  for symbol = grammar.max_terminal_symbol + 1, #grammar.symbol_names do
     first_symbol(grammar_without_left_recursion, symbol)
   end
   grammar.first_table = grammar_without_left_recursion.first_table

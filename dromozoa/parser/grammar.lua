@@ -21,6 +21,22 @@ local tree_set = require "dromozoa.tree_set"
 
 ---------------------------------------------------------------------------
 
+-- TODO 共通コード
+local function append(t, ...)
+  local m = #t
+  local n = select("#", ...)
+
+  for i = 1, n do
+    local v = select(i, ...)
+    assert(v ~= nil)
+    t[m + i] = v
+  end
+
+  return m + n
+end
+
+---------------------------------------------------------------------------
+
 local module = {}
 
 ---------------------------------------------------------------------------
@@ -138,15 +154,15 @@ end
 local metatable = { __name = "dromozoa.parser.grammar" }
 
 function metatable:__call(token_names, that)
-  local symbol_names = array()
+  local symbol_names = {}
   local symbol_table = {}
   for _, name in token_names:ipairs() do
     if symbol_table[name] ~= nil then
       error("symbol " .. name .. " redefined as a terminal")
     end
-    symbol_table[name] = symbol_names:append(name):size()
+    symbol_table[name] = append(symbol_names, name)
   end
-  local max_terminal_symbol = symbol_names:append "$":size()
+  local max_terminal_symbol = append(symbol_names, "$")
 
   local custom_data = array()
   local expect_sr
@@ -181,7 +197,7 @@ function metatable:__call(token_names, that)
   end
   data:sort(function (a, b) return a.timestamp < b.timestamp end)
 
-  local start_head = symbol_names:append(data:get(1).k .. "'"):size()
+  local start_head = append(symbol_names, data:get(1).k .. "'")
   local start_body = start_head + 1
 
   for _, u in data:ipairs() do
@@ -190,7 +206,7 @@ function metatable:__call(token_names, that)
     if symbol_table[k] ~= nil then
       error("symbol " .. k .. " redefined as a nonterminal")
     end
-    local symbol = symbol_names:append(k):size()
+    local symbol = append(symbol_names, k)
     symbol_table[k] = symbol
     u.k = symbol
     if v[0] == "body" then
@@ -240,7 +256,7 @@ function metatable:__call(token_names, that)
     end
   end
 
-  for i, v in symbol_names:ipairs() do
+  for i, v in ipairs(symbol_names) do
     if used_symbols[i] == nil then
       error("symbol " .. v .. " not used")
     end

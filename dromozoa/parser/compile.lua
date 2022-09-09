@@ -33,7 +33,7 @@ return function (grammar, actions)
   local action_set = {}
 
   append(static_data, "symbol_names={")
-  for i, v in grammar.symbol_names:ipairs() do
+  for i, v in ipairs(grammar.symbol_names) do
     append(static_data, ("%q,"):format(v))
   end
   append(static_data, "};\n", "max_terminal_symbol=", grammar.max_terminal_symbol, ";\n", "actions={\n")
