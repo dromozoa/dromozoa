@@ -336,7 +336,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
     map_of_kernel_items[i] = kernel_table
   end
 
-  local propagations = array()
+  local propagations = {}
 
   for from_i, from_items in set_of_items:ipairs() do
     for from_j, from_item in ipairs(from_items) do
@@ -349,7 +349,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
             local to_i = transitions[from_i]:find(symbol)
             local to_j = map_of_kernel_items[to_i][item.index][item.dot + 1]
             if item.la == marker_lookahead then
-              propagations:append { from_i = from_i, from_j = from_j, to_i = to_i, to_j = to_j }
+              append(propagations, { from_i = from_i, from_j = from_j, to_i = to_i, to_j = to_j })
             else
               set_of_kernel_items[to_i][to_j].la:insert(item.la)
             end
@@ -361,7 +361,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
 
   repeat
     local done = true
-    for _, propagation in propagations:ipairs() do
+    for _, propagation in ipairs(propagations) do
       local from_la = set_of_kernel_items[propagation.from_i][propagation.from_j].la
       local to_la = set_of_kernel_items[propagation.to_i][propagation.to_j].la
       for _, la in from_la:ipairs() do
