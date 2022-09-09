@@ -216,6 +216,13 @@ function metatable:__call(token_names, that)
     end
   end
 
+  -- 生成規則は番号 (index) を持つ
+  -- 生成規則は頭部と本体で一意である
+  -- 頭部は非終端記号、本体は記号列で表される
+  -- つまり、整数列で表される
+  -- 実装案1: カンマ区切り文字列
+  -- そもそも、同じ規則が存在するのはエラー時？
+
   local productions = tree_set(function (a, b)
     if a.head ~= b.head then
       return a.head < b.head and -1 or 1
@@ -251,7 +258,8 @@ function metatable:__call(token_names, that)
         production.precedence = precedence
         used_precedences[v.precedence] = true
       end
-      productions:insert(production)
+      local _, _, inserted = productions:insert(production)
+      assert(inserted)
     end
   end
 
