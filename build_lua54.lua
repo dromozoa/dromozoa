@@ -351,7 +351,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"HexadecimalFloatingNumeral"                        %"$$=$0 $$.v=$1.v $$.hint='HexadecimalFloatingNumeral'";
 }))
 
-for _, message in conflictions:ipairs() do
+for _, message in ipairs(conflictions) do
   if message:find "^%[warn%]" then
     print(message)
   end

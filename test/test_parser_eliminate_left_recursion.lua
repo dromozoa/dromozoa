@@ -31,7 +31,7 @@ local g, actions, conflictions, data = lalr(grammar(array("a", "b", "c", "d"), {
 }))
 
 local buffer = array()
-for _, message in conflictions:ipairs() do
+for _, message in ipairs(conflictions) do
   buffer:append(message, "\n")
 end
 

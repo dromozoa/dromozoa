@@ -150,7 +150,7 @@ local g, a, c = parser.lalr(parser.grammar(token_names, {
     ;
 
 }))
-for _, message in c:ipairs() do
+for _, message in ipairs(c) do
   if verbose or not message:find "^%[info%]" then
     print(message)
   end

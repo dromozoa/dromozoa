@@ -72,7 +72,7 @@ local g, a, c = parser.lalr(parser.grammar(token_names, {
     + _"number" %[[$$.v=tonumber($1.v) $$.code="PUSH "..$1.v.."\n"]]
     ;
 }))
-for _, message in c:ipairs() do
+for _, message in ipairs(c) do
   if verbose or not message:find "^%[info%]" then
     print(message)
   end

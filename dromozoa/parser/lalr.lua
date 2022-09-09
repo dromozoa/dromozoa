@@ -446,7 +446,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
 
   local max_state = #set_of_items
   local actions = {}
-  local conflictions = array()
+  local conflictions = {}
   local total_sr = 0
   local total_rr = 0
 
@@ -477,7 +477,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
           if buffer:empty() then
             sr = sr + 1
           else
-            conflictions:append("[info] conflict between production " .. item.index .. " and symbol " .. symbol_names[item.la] .. " resolved as " .. buffer:concat())
+            append(conflictions, "[info] conflict between production " .. item.index .. " and symbol " .. symbol_names[item.la] .. " resolved as " .. buffer:concat())
           end
         end
       end
@@ -502,7 +502,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
       if rr > 0 then
         buffer:append(rr, " reduce/reduce")
       end
-      conflictions:append(buffer:concat())
+      append(conflictions, buffer:concat())
     end
 
     for symbol in ipairs(symbol_names) do
@@ -524,10 +524,10 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
     if expect_sr ~= nil then
       buffer:append(", ", expect_sr, " expected")
     end
-    conflictions:append(buffer:concat())
+    append(conflictions, buffer:concat())
   end
   if total_rr > 0 then
-    conflictions:append("[warn] reduce/reduce conflicts: " .. total_rr .. " found")
+    append(conflictions, "[warn] reduce/reduce conflicts: " .. total_rr .. " found")
   end
 
   return actions, conflictions
