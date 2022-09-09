@@ -21,11 +21,18 @@ local tree_map = require "dromozoa.tree_map"
 
 ---------------------------------------------------------------------------
 
+local function append(t, v)
+  assert(v ~= nil)
+  t[#t + 1] = v
+end
+
+---------------------------------------------------------------------------
+
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.regexp.machine.state" }
 
 function class:simulate(byte, resolved)
-  for _, t in self.transitions:ipairs() do
+  for _, t in ipairs(self.transitions) do
     if t.set ~= nil and t.set[byte] then
       if resolved ~= nil and (resolved.timestamp == nil or resolved.timestamp > t.timestamp) then
         resolved.timestamp = t.timestamp
@@ -45,7 +52,7 @@ function class:update(timestamp, accept_action)
 end
 
 local function state()
-  return setmetatable({ transitions = array() }, metatable)
+  return setmetatable({ transitions = {} }, metatable)
 end
 
 ---------------------------------------------------------------------------
@@ -63,7 +70,7 @@ end
 
 local function transition(u, v, set, timestamp, action)
   local self = setmetatable({ v = v, set = set, timestamp = timestamp, action = action }, metatable)
-  u.transitions:append(self)
+  append(u.transitions, self)
   return self
 end
 
@@ -72,22 +79,21 @@ end
 local difference
 
 local function node_to_nfa(node)
-  local timestamp = node.timestamp
-  assert(timestamp ~= nil)
-
   local code = node[0]
   if code == "[" then
     local u = state()
     local v = state()
-    transition(u, v, node[1], timestamp)
+    transition(u, v, node[1], node.timestamp)
     return u, v
   else
     local au, av = node_to_nfa(node[1])
     if code == "/" then
-      au.transitions:get(1).action = node[2]
+      assert(#au.transitions == 1)
+      au.transitions[1].action = node[2]
+      -- au.transitions:get(1).action = node[2]
       return au, av
     elseif code == "%" then
-      av:update(timestamp, node[2])
+      av:update(node.timestamp, node[2])
       return au, av
     elseif code == "." then
       local bu, bv = node_to_nfa(node[2])
@@ -117,8 +123,8 @@ local function node_to_nfa(node)
           transition(av, v)
           transition(bv, v)
         elseif code == "-" then
-          av:update(timestamp, "")
-          bv:update(timestamp, "")
+          av:update(node.timestamp, "")
+          bv:update(node.timestamp, "")
           local cu, accept_states = difference(au, bu)
           transition(u, cu)
           for _, cv in accept_states:ipairs() do
@@ -146,7 +152,7 @@ end
 local function update_state_indices_impl(u, states, color)
   color[u] = 1
   u.index = states:append(u):size()
-  for _, t in u.transitions:ipairs() do
+  for _, t in ipairs(u.transitions) do
     if color[t.v] == nil then
       update_state_indices_impl(t.v, states, color)
     end
@@ -163,7 +169,7 @@ end
 ---------------------------------------------------------------------------
 
 local function epsilon_closure_impl(u, closure)
-  for _, t in u.transitions:ipairs() do
+  for _, t in ipairs(u.transitions) do
     if t.set == nil then
       closure:insert(t.v.index, t.v)
       epsilon_closure_impl(t.v, closure)
@@ -251,7 +257,7 @@ local function create_initial_partitions(u, accept_partition_map, nonaccept_part
   partition:append(u)
   partition_map[u] = partition
 
-  for _, t in u.transitions:ipairs() do
+  for _, t in ipairs(u.transitions) do
     if color[t.v] == nil then
       create_initial_partitions(t.v, accept_partition_map, nonaccept_partition, partition_map, color)
     end
@@ -383,7 +389,7 @@ local function collect_living_states(u, living_states, color)
     living_states[u] = true
   end
 
-  for _, t in u.transitions:ipairs() do
+  for _, t in ipairs(u.transitions) do
     if not color[t.v] then
       collect_living_states(t.v, living_states, color)
     end
@@ -400,10 +406,10 @@ local function remove_dead_states(u)
   collect_living_states(u, living_states, {})
 
   for v in pairs(living_states) do
-    local new_transitions = array()
-    for _, t in v.transitions:ipairs() do
+    local new_transitions = {}
+    for _, t in ipairs(v.transitions) do
       if living_states[t.v] then
-        new_transitions:append(t)
+        append(new_transitions, t)
       end
     end
     v.transitions = new_transitions

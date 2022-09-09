@@ -69,7 +69,7 @@ local function update_state_indices_nonaccept(u, index, color)
     index = index + 1
     u.index = index
   end
-  for _, t in u.transitions:ipairs() do
+  for _, t in ipairs(u.transitions) do
     if color[t.v] == nil then
       index = update_state_indices_nonaccept(t.v, index, color)
     end
@@ -80,7 +80,7 @@ end
 
 local function construct_table(context, u, max_state, transitions, transition_actions, transition_states, color)
   color[u] = 1
-  for _, t in u.transitions:ipairs() do
+  for _, t in ipairs(u.transitions) do
     local code = t.v.index
     if t.action ~= nil then
       code = max_state + transition_actions:append(insert_action(context, t.action)):size()
