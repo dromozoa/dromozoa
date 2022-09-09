@@ -61,7 +61,6 @@ local function eliminate_left_recursion(grammar)
   for i = 1, #symbol_names do
     new_symbol_names[i] = symbol_names[i]
   end
-  -- local new_productions = tree_set(productions.compare)
   local new_productions = production_set()
 
   for i = max_terminal_symbol + 1, #symbol_names do
