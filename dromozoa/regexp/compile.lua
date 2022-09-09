@@ -95,7 +95,7 @@ local function construct_table(context, u, max_state, transitions, transition_ac
       append(transition_states, t.v.index)
     end
     for byte in pairs(t.set) do
-      transitions:get(byte + 1):set(u.index, code)
+      transitions[byte + 1]:set(u.index, code)
     end
     if color[t.v] == nil then
       construct_table(context, t.v, max_state, transitions, transition_actions, transition_states, color)
@@ -113,9 +113,9 @@ local function generate(context, index, machine)
   end
   local max_state = update_state_indices_nonaccept(u, #accept_actions, {})
 
-  local transitions = array()
+  local transitions = {}
   for i = 1, 256 do
-    transitions:append(array.fill(max_state, 0))
+    append(transitions, array.fill(max_state, 0))
   end
   local transition_actions = {}
   local transition_states = {}
@@ -127,7 +127,7 @@ local function generate(context, index, machine)
     "max_accept_state=", #accept_actions, ";\n",
     "max_state=", max_state, ";\n",
     "transitions={[0]=")
-  for _, v in transitions:ipairs() do
+  for _, v in ipairs(transitions) do
     context.static.out:append("_[", insert_shared(context, v), "],")
   end
   context.static.out:append(
