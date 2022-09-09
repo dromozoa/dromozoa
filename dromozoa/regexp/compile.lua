@@ -191,11 +191,7 @@ return function (that)
   append(context.static.out, "action_threads=_[", insert_shared(context, context.action.threads), "];\n")
 
   for _, v in context.shared.set:ipairs() do
-    if v.concat then
-      append(context.shared.out, "{", v:concat ",", "};\n")
-    else
-      append(context.shared.out, "{", table.concat(v, ","), "};\n")
-    end
+    append(context.shared.out, "{", table.concat(v, ","), "};\n")
   end
 
   return table.concat(runtime {
