@@ -101,10 +101,10 @@ local function eliminate_left_recursion(grammar)
     end
 
     for j, body in ipairs(i_bodies) do
-      new_productions:insert { head = i, head_index = j, body = body }
+      new_productions:insert { head = i, body = body }
     end
     for j, body in ipairs(n_bodies) do
-      new_productions:insert { head = n, head_index = j, body = body }
+      new_productions:insert { head = n, body = body }
     end
   end
 
@@ -177,7 +177,7 @@ local function lr0_closure(grammar, items)
 
   local added = {}
   for _, item in ipairs(items) do
-    local symbol = productions:get(item.index).body[item.dot]
+    local symbol = productions[item.index].body[item.dot]
     if symbol ~= nil and symbol > max_terminal_symbol and not added[symbol] then
       for i in productions:each_production(symbol) do
         append(items, { index = i, dot = 1 })
@@ -194,7 +194,7 @@ local function lr0_goto(grammar, items)
   local map_of_to_items = tree_map()
 
   for _, item in ipairs(items) do
-    local symbol = productions:get(item.index).body[item.dot]
+    local symbol = productions[item.index].body[item.dot]
     if symbol ~= nil then
       map_of_to_items:insert_or_update(symbol, function ()
         return { { index = item.index, dot = item.dot + 1 } }
@@ -238,14 +238,14 @@ local function lr1_closure(grammar, items)
 
   for _, item in ipairs(items) do
     -- 生成規則の番号 (index) と点の位置 (dot) の組をキーとして使う。
-    local item_key = item.index + item.dot * productions:size()
+    local item_key = item.index + item.dot * #productions
 
     -- 項 [A -> a . B b, la] を考える。
     -- FIRST(b)がεを含まなければ、FIRST(b) == FIRST(b la)なので、laを考慮する必
     -- 要がない。つまり、laだけが異なる別の項の処理は省略できるので、skip[item_key]
     -- を真に設定する。
     if not skip[item_key] then
-      local body = productions:get(item.index).body
+      local body = productions[item.index].body
       local symbol = body[item.dot]
       if symbol ~= nil and symbol > max_terminal_symbol then
         -- FIRST(b)をキャッシュする。
@@ -327,11 +327,11 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
 
   for from_i, from_items in set_of_items:ipairs() do
     for from_j, from_item in ipairs(from_items) do
-      if productions:get(from_item.index).head == max_terminal_symbol + 1 or from_item.dot > 1 then
+      if productions[from_item.index].head == max_terminal_symbol + 1 or from_item.dot > 1 then
         local items = { { index = from_item.index, dot = from_item.dot, la = marker_lookahead } }
         lr1_closure(grammar, items)
         for _, item in ipairs(items) do
-          local symbol = productions:get(item.index).body[item.dot]
+          local symbol = productions[item.index].body[item.dot]
           if symbol ~= nil then
             local to_i = transitions[from_i]:find(symbol)
             local to_j = map_of_kernel_items[to_i][item.index][item.dot + 1]
@@ -384,7 +384,7 @@ local function symbol_precedence(grammar, symbol)
 end
 
 local function production_precedence(grammar, index)
-  local production = grammar.productions:get(index)
+  local production = grammar.productions[index]
 
   local precedence = production.precedence
   if precedence ~= nil then
@@ -452,7 +452,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
     end
 
     for _, item in ipairs(items) do
-      if productions:get(item.index).body[item.dot] == nil then
+      if productions[item.index].body[item.dot] == nil then
         local action = data[item.la]
         if action == nil then
           data[item.la] = item.index + max_state
