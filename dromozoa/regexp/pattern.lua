@@ -37,7 +37,8 @@ local function pattern(that)
     for i = 2, #that do
       self = self + construct("[", { [that:byte(i)] = true })
     end
-    return rawset(self, "literal", that)
+    self.literal = that
+    return self
   else
     assert(getmetatable(that) == metatable)
     return that
@@ -196,7 +197,9 @@ function metatable:__mod(that)
   if self[0] == "%" then
     error "not supported"
   else
-    return rawset(construct("%", self, that), "literal", rawget(self, "literal"))
+    local result = construct("%", self, that)
+    result.literal = self.literal
+    return result
   end
 end
 
