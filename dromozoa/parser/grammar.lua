@@ -17,6 +17,7 @@
 
 local tree_map = require "dromozoa.tree_map"
 local tree_set = require "dromozoa.tree_set"
+local production_set = require "dromozoa.parser.production_set"
 
 ---------------------------------------------------------------------------
 
@@ -218,18 +219,19 @@ function metatable:__call(token_names, that)
 
   -- 生成規則は番号 (index) を持つ
   -- 生成規則は頭部と本体で一意である
-  -- 頭部は非終端記号、本体は記号列で表される
-  -- つまり、整数列で表される
-  -- 実装案1: カンマ区切り文字列
-  -- そもそも、同じ規則が存在するのはエラー時？
+  -- 頭部は非終端記号、本体は記号列で表される。
+  -- 同じ生成規則が存在するのはエラー時だけなので、挿入時に存在しないことを確認すればいい。
 
-  local productions = tree_set(function (a, b)
-    if a.head ~= b.head then
-      return a.head < b.head and -1 or 1
-    end
-    assert(a.head_index ~= b.head_index)
-    return a.head_index < b.head_index and -1 or 1
-  end):insert { head = start_head, head_index = 1, body = { start_body } }
+  -- local productions = tree_set(function (a, b)
+  --   if a.head ~= b.head then
+  --     return a.head < b.head and -1 or 1
+  --   end
+  --   assert(a.head_index ~= b.head_index)
+  --   return a.head_index < b.head_index and -1 or 1
+  -- end):insert { head = start_head, head_index = 1, body = { start_body } }
+
+  local productions = production_set()
+  productions:insert { head = start_head, body = { start_body } }
 
   local used_symbols = {
     [max_terminal_symbol] = true;
@@ -249,7 +251,7 @@ function metatable:__call(token_names, that)
         append(body, symbol)
         used_symbols[symbol] = true
       end
-      local production = { head = u.k, head_index = i, body = body, semantic_action = v.semantic_action }
+      local production = { head = u.k, body = body, semantic_action = v.semantic_action }
       if v.precedence ~= nil then
         local precedence = precedence_table:find(v.precedence)
         if precedence == nil then
@@ -258,8 +260,7 @@ function metatable:__call(token_names, that)
         production.precedence = precedence
         used_precedences[v.precedence] = true
       end
-      local _, _, inserted = productions:insert(production)
-      assert(inserted)
+      productions:insert(production)
     end
   end
 

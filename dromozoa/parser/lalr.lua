@@ -17,6 +17,7 @@
 
 local tree_map = require "dromozoa.tree_map"
 local tree_set = require "dromozoa.tree_set"
+local production_set = require "dromozoa.parser.production_set"
 
 -- TODO 共通コード
 local function append(t, ...)
@@ -52,11 +53,12 @@ end
 ---------------------------------------------------------------------------
 
 local function each_production(productions, head)
-  return coroutine.wrap(function (self)
-    for i, production in productions:each({ head = head, head_index = 0 }, { head = head + 1, head_index = 0 }) do
-      coroutine.yield(i, production.body)
-    end
-  end), productions
+  -- return coroutine.wrap(function (self)
+  --   for i, production in productions:each({ head = head, head_index = 0 }, { head = head + 1, head_index = 0 }) do
+  --     coroutine.yield(i, production.body)
+  --   end
+  -- end), productions
+  return productions:each_production(head)
 end
 
 ---------------------------------------------------------------------------
@@ -70,7 +72,8 @@ local function eliminate_left_recursion(grammar)
   for i = 1, #symbol_names do
     new_symbol_names[i] = symbol_names[i]
   end
-  local new_productions = tree_set(productions.compare)
+  -- local new_productions = tree_set(productions.compare)
+  local new_productions = production_set()
 
   for i = max_terminal_symbol + 1, #symbol_names do
     local n = #new_symbol_names + 1
