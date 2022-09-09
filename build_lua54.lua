@@ -40,13 +40,13 @@ out:write(regexp.compile {
   long_comment = regexp.machine.guard("freturn()", {
     _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
     _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
-    _(_);
+    _();
   });
 
   long_literal_string = regexp.machine.guard("freturn()", {
     _"\n"/"append(0x0A) ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
     _"\r"/"append(0x0A) ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
-    _(_)/"append(fc)";
+    _()/"append(fc)";
   });
 
   short_literal_string = regexp.machine.guard("freturn()", {
@@ -85,7 +85,7 @@ out:write(regexp.compile {
 
     (_"\\" + _["09"]/"ra=fc-${<0>}" + _["09"]/"ra=ra*10+fc-${<0>}"*{0,2}) %"fassert(ra<=255,'decimal escape too large') append(ra)";
 
-    _(_)/"append(fc)";
+    _()/"append(fc)";
   });
 
   regexp.machine.lexer(token_names, {
