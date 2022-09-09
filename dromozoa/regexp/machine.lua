@@ -15,7 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local array = require "dromozoa.array"
 local compare = require "dromozoa.compare"
 local tree_map = require "dromozoa.tree_map"
 
@@ -511,16 +510,16 @@ function module.guard(guard_action, that)
 end
 
 function module.lexer(token_names, that)
-  local data = array()
+  local data = {}
   for name, node in pairs(that) do
     if type(name) ~= "string" then
       name = node.literal
     end
     local timestamp = node.timestamp
     assert(timestamp ~= nil)
-    data:append { timestamp = timestamp, node = node, name = name }
+    append(data, { timestamp = timestamp, node = node, name = name })
   end
-  data:sort(function (a, b) return a.timestamp < b.timestamp end)
+  table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
   local token_table = {}
   for symbol, name in token_names:ipairs() do
@@ -528,7 +527,7 @@ function module.lexer(token_names, that)
   end
 
   local s = state()
-  for _, item in data:ipairs() do
+  for _, item in ipairs(data) do
     local u, v = tree_to_nfa(item.node)
     transition(s, u)
 
@@ -548,7 +547,7 @@ function module.lexer(token_names, that)
     end
   end
 
-  return machine(data:get(1).timestamp, s)
+  return machine(data[1].timestamp, s)
 end
 
 return module
