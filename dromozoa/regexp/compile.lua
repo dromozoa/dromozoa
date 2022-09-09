@@ -154,10 +154,10 @@ return function (that)
     static = { out = array() };
   }
 
-  local data = array()
+  local data = {}
   for k, v in pairs(that) do
     if type(k) == "string" then
-      data:append { timestamp = v.timestamp, machine = v, name = k }
+      append(data, { timestamp = v.timestamp, machine = v, name = k })
     end
   end
   local j = 0
@@ -166,12 +166,12 @@ return function (that)
       context.custom.out:append(v, "\n")
     else
       j = j + 1
-      data:append { timestamp = v.timestamp, machine = v, main = j == 1 }
+      append(data, { timestamp = v.timestamp, machine = v, main = j == 1 })
     end
   end
-  data:sort(function (a, b) return a.timestamp < b.timestamp end)
+  table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
-  for i, v in data:ipairs() do
+  for i, v in ipairs(data) do
     if v.main then
       context.static.out:append("main=", i, ";\n")
     end
@@ -180,7 +180,7 @@ return function (that)
     end
   end
 
-  for i, v in data:ipairs() do
+  for i, v in ipairs(data) do
     generate(context, i, v.machine)
   end
   context.static.out:append("action_threads=_[", insert_shared(context, context.action.threads), "];\n")
