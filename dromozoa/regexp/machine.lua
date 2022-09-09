@@ -276,19 +276,19 @@ local function minimize(u)
   local partition_map = {}
   create_initial_partitions(u, accept_partition_map, partition, partition_map, {})
 
-  local partitions = array()
+  local partitions = {}
   for _, partition in accept_partition_map:pairs() do
-    partitions:append(partition)
+    append(partitions, partition)
   end
   if next(partition) ~= nil then
-    partitions:append(partition)
+    append(partitions, partition)
   end
 
   while true do
     local new_partition_map = {}
-    local new_partitions = array()
+    local new_partitions = {}
 
-    for _, partition in partitions:ipairs() do
+    for _, partition in ipairs(partitions) do
       -- パーティション内の状態の組(x,y)について同じ遷移をするか調べる。同じ遷
       -- 移をする場合、ひとつのパーティションにまとめる。
       for i, x in ipairs(partition) do
@@ -327,12 +327,12 @@ local function minimize(u)
         if new_partition_map[x] == nil then
           local new_partition = { x }
           new_partition_map[x] = new_partition
-          new_partitions:append(new_partition)
+          append(new_partitions, new_partition)
         end
       end
     end
 
-    if partitions:size() == new_partitions:size() then
+    if #partitions == #new_partitions then
       break
     end
 
@@ -343,7 +343,7 @@ local function minimize(u)
   local states = {}
   local accept_states = array()
 
-  for i, partition in partitions:ipairs() do
+  for i, partition in ipairs(partitions) do
     local u = state()
     u.index = i
     for _, x in ipairs(partition) do
@@ -355,7 +355,7 @@ local function minimize(u)
     end
   end
 
-  for i, partition in partitions:ipairs() do
+  for i, partition in ipairs(partitions) do
     local u = states[partition]
     local transition_map = tree_map()
 
