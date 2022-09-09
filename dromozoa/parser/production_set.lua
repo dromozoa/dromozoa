@@ -54,18 +54,6 @@ function class:each_production(head)
   end
 end
 
-function class:get(i)
-  return self[i]
-end
-
-function class:size()
-  return #self
-end
-
-function class:ipairs()
-  return ipairs(self)
-end
-
 return function ()
   return setmetatable({ map = {} }, metatable)
 end
