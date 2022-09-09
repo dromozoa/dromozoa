@@ -229,10 +229,6 @@ function metatable:__index(that)
   end
 end
 
-function metatable:__newindex(that)
-  error "not supported"
-end
-
 function metatable:__call(that)
   assert(getmetatable(self) == metatable)
   if rawget(self, 0) == nil then
