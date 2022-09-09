@@ -17,6 +17,8 @@
 
 local metatable = { __name = "dromozoa.regexp.pattern" }
 
+-- TODO anyを_で表現するために自然でないコードになっている
+
 local any = {}
 for byte = 0x00, 0xFF do
   any[byte] = true
