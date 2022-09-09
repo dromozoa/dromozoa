@@ -70,7 +70,6 @@ local function eliminate_left_recursion(grammar)
   for i = 1, #symbol_names do
     new_symbol_names[i] = symbol_names[i]
   end
-  -- local new_symbol_names = symbol_names:slice()
   local new_productions = tree_set(productions.compare)
 
   for i = max_terminal_symbol + 1, #symbol_names do
@@ -84,7 +83,6 @@ local function eliminate_left_recursion(grammar)
         for _, src_body in each_production(new_productions, symbol) do
           local new_body = { table_unpack(src_body) }
           append(new_body, table_unpack(body, 2))
-          -- local new_body = src_body:slice():append(table_unpack(body, 2))
           if i == new_body[1] then
             local new_body = { table_unpack(new_body, 2) }
             append(new_body, n)
@@ -97,10 +95,8 @@ local function eliminate_left_recursion(grammar)
         local new_body = { table_unpack(body, 2) }
         append(new_body, n)
         append(n_bodies, new_body)
-        -- n_bodies:append(body:slice(2):append(n))
       else
         append(i_bodies, { table_unpack(body) })
-        -- i_bodies:append(body:slice())
       end
     end
 
