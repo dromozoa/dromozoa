@@ -39,7 +39,7 @@ local set_of_items = data.lalr1_set_of_items
 
 for i, items in ipairs(set_of_items) do
   buffer:append(("="):rep(75), "\nI_", i, "\n")
-  for _, item in items:ipairs() do
+  for _, item in ipairs(items) do
     -- カーネル項だけを出力する
     if item.index == 1 or item.dot > 1 then
       local production = g.productions:get(item.index)

@@ -249,7 +249,7 @@ local function lr1_closure(grammar, items)
   local skip = {}
   local added = {}
 
-  for _, item in items:ipairs() do
+  for _, item in ipairs(items) do
     -- 生成規則の番号 (index) と点の位置 (dot) の組をキーとして使う。
     local item_key = item.index + item.dot * productions:size()
 
@@ -276,7 +276,7 @@ local function lr1_closure(grammar, items)
           if la ~= marker_epsilon then
             if not added[symbol_key + la] then
               for j in each_production(productions, symbol) do
-                items:append { index = j, dot = 1, la = la }
+                append(items, { index = j, dot = 1, la = la })
               end
               added[symbol_key + la] = true
             end
@@ -288,7 +288,7 @@ local function lr1_closure(grammar, items)
             assert(la ~= marker_epsilon)
             if not added[symbol_key + la] then
               for j in each_production(productions, symbol) do
-                items:append { index = j, dot = 1, la = la }
+                append(items, { index = j, dot = 1, la = la })
               end
               added[symbol_key + la] = true
             end
@@ -341,9 +341,9 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
   for from_i, from_items in set_of_items:ipairs() do
     for from_j, from_item in ipairs(from_items) do
       if productions:get(from_item.index).head == max_terminal_symbol + 1 or from_item.dot > 1 then
-        local items = array():append { index = from_item.index, dot = from_item.dot, la = marker_lookahead }
+        local items = { { index = from_item.index, dot = from_item.dot, la = marker_lookahead } }
         lr1_closure(grammar, items)
-        for _, item in items:ipairs() do
+        for _, item in ipairs(items) do
           local symbol = productions:get(item.index).body[item.dot]
           if symbol ~= nil then
             local to_i = transitions[from_i]:find(symbol)
@@ -374,10 +374,10 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
 
   local new_set_of_kernel_items = {}
   for _, items in ipairs(set_of_kernel_items) do
-    local new_items = array()
+    local new_items = {}
     for _, item in ipairs(items) do
       for _, la in item.la:ipairs() do
-        new_items:append { index = item.index, dot = item.dot, la = la }
+        append(new_items, { index = item.index, dot = item.dot, la = la })
       end
     end
     append(new_set_of_kernel_items, new_items)
@@ -459,7 +459,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
       data[symbol] = j
     end
 
-    for _, item in items:ipairs() do
+    for _, item in ipairs(items) do
       if productions:get(item.index).body[item.dot] == nil then
         local action = data[item.la]
         if action == nil then
