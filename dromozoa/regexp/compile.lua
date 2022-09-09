@@ -58,9 +58,9 @@ local function insert_action(context, action)
     -- 3. fcallという単語が最後に出現する位置を調べる。
     local q = s:find "[^%w_](fcall)%s*%b()%s*$"
     if p == q then
-      context.action.threads:append(0)
+      append(context.action.threads, 0)
     else
-      context.action.threads:append(1)
+      append(context.action.threads, 1)
     end
   end
 
@@ -149,7 +149,7 @@ end
 return function (that)
   local context = {
     custom = { out = array() };
-    action = { set = tree_set(), variables = {}, threads = array() };
+    action = { set = tree_set(), variables = {}, threads = {} };
     shared = { set = tree_set(), out = array() };
     static = { out = array() };
   }
