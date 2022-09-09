@@ -33,21 +33,16 @@ end
 
 local private = setmetatable({}, { __mode = "k" })
 
-local function insert(t, v)
+local function insert(map, set, v)
   assert(type(v) == "string")
-  local p = private[t]
-  if not p then
-    p = {}
-    private[t] = p
-  end
-  local n = p[v]
+  local n = map[v]
   if n then
     return n
   end
 
-  n = #t + 1
-  p[v] = n
-  t[n] = v
+  n = #set + 1
+  map[v] = n
+  set[n] = v
   return n, true
 end
 
@@ -71,7 +66,7 @@ local function insert_action(context, action)
       return table.concat(buffer, ",")
     end)
 
-  local i, inserted = insert(context.action.set, "function()" .. action .. "\nend;\n")
+  local i, inserted = insert(context.action.map, context.action.set, "function()" .. action .. "\nend;\n")
 
   if inserted then
     -- コルーチンの必要性をおおまかに検査する。
@@ -92,8 +87,7 @@ local function insert_action(context, action)
 end
 
 local function insert_shared(context, shared)
-  return (insert(context.shared.set, table.concat(shared, ",")))
-  -- return (select(2, context.shared.set:insert(table.concat(shared, ","))))
+  return insert(context.shared.map, context.shared.set, table.concat(shared, ","))
 end
 
 local function update_state_indices_nonaccept(u, index, color)
@@ -174,8 +168,8 @@ end
 return function (that)
   local context = {
     custom = { out = {} };
-    action = { set = {}, variables = {}, threads = {} };
-    shared = { set = {}, out = {} };
+    action = { map = {}, set = {}, variables = {}, threads = {} };
+    shared = { map = {}, set = {}, out = {} };
     static = { out = {} };
   }
 
