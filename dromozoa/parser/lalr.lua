@@ -67,10 +67,10 @@ local function eliminate_left_recursion(grammar)
     local n_bodies = {}
     local i_bodies = {}
 
-    for _, body in productions:each_production(i) do
+    for _, body in productions:each(i) do
       local symbol = body[1]
       if symbol ~= nil and symbol > max_terminal_symbol and symbol < i then
-        for _, src_body in new_productions:each_production(symbol) do
+        for _, src_body in new_productions:each(symbol) do
           local new_body = { table_unpack(src_body) }
           append(new_body, table_unpack(body, 2))
           if i == new_body[1] then
@@ -134,7 +134,7 @@ local function first_symbol(grammar, symbol)
     first = tree_set():insert(symbol)
   else
     first = tree_set()
-    for _, body in grammar.productions:each_production(symbol) do
+    for _, body in grammar.productions:each(symbol) do
       if body[1] then
         for _, symbol in first_symbols(grammar, body):ipairs() do
           first:insert(symbol)
@@ -177,7 +177,7 @@ local function lr0_closure(grammar, items)
   for _, item in ipairs(items) do
     local symbol = productions[item.index].body[item.dot]
     if symbol ~= nil and symbol > max_terminal_symbol and not added[symbol] then
-      for i in productions:each_production(symbol) do
+      for i in productions:each(symbol) do
         append(items, { index = i, dot = 1 })
       end
       added[symbol] = true
@@ -260,7 +260,7 @@ local function lr1_closure(grammar, items)
         for _, la in first:ipairs() do
           if la ~= marker_epsilon then
             if not added[symbol_key + la] then
-              for j in productions:each_production(symbol) do
+              for j in productions:each(symbol) do
                 append(items, { index = j, dot = 1, la = la })
               end
               added[symbol_key + la] = true
@@ -272,7 +272,7 @@ local function lr1_closure(grammar, items)
           for _, la in first_symbol(grammar, item.la):ipairs() do
             assert(la ~= marker_epsilon)
             if not added[symbol_key + la] then
-              for j in productions:each_production(symbol) do
+              for j in productions:each(symbol) do
                 append(items, { index = j, dot = 1, la = la })
               end
               added[symbol_key + la] = true
