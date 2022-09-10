@@ -115,6 +115,29 @@ end
 
 ---------------------------------------------------------------------------
 
+-- 記号の集合（挿入順付きのユニークな整数列）
+
+local class = {}
+local metatable = { __index = class, __name = "dromozoa.parser.symbol_set" }
+
+function class:insert(symbol)
+  local n = self.map[symbol]
+  if n then
+    return n
+  else
+    n = #self + 1
+    self[n] = symbol
+    self.map[symbol] = n
+    return n, true
+  end
+end
+
+local function symbol_set()
+  return setmetatable({ map = {} }, metatable)
+end
+
+---------------------------------------------------------------------------
+
 local marker_epsilon = 0
 
 local first_symbols
@@ -131,12 +154,15 @@ local function first_symbol(grammar, symbol)
   first_table[symbol] = false
 
   if symbol <= grammar.max_terminal_symbol then
-    first = tree_set():insert(symbol)
+    first = symbol_set()
+    first:insert(symbol)
+    -- first = tree_set():insert(symbol)
   else
-    first = tree_set()
+    first = symbol_set()
+    -- first = tree_set()
     for _, body in grammar.productions:each(symbol) do
       if body[1] then
-        for _, symbol in first_symbols(grammar, body):ipairs() do
+        for _, symbol in ipairs(first_symbols(grammar, body)) do
           first:insert(symbol)
         end
       else
@@ -150,10 +176,11 @@ local function first_symbol(grammar, symbol)
 end
 
 function first_symbols(grammar, symbols)
-  local first = tree_set()
+  local first = symbol_set()
+  -- local first = tree_set()
   for _, symbol in ipairs(symbols) do
     local epsilon = false
-    for _, symbol in first_symbol(grammar, symbol):ipairs() do
+    for _, symbol in ipairs(first_symbol(grammar, symbol)) do
       if symbol == marker_epsilon then
         epsilon = true
       else
@@ -164,7 +191,8 @@ function first_symbols(grammar, symbols)
       return first
     end
   end
-  return first:insert(marker_epsilon)
+  first:insert(marker_epsilon)
+  return first
 end
 
 ---------------------------------------------------------------------------
@@ -257,7 +285,7 @@ local function lr1_closure(grammar, items)
         -- う。FIRST(b la)は先読み記号 (#) を含む可能性がある。
         local symbol_key = symbol * (#symbol_names + 2)
 
-        for _, la in first:ipairs() do
+        for _, la in ipairs(first) do
           if la ~= marker_epsilon then
             if not added[symbol_key + la] then
               for j in productions:each(symbol) do
@@ -268,8 +296,9 @@ local function lr1_closure(grammar, items)
           end
         end
 
-        if first:find(marker_epsilon) then
-          for _, la in first_symbol(grammar, item.la):ipairs() do
+        if first.map[marker_epsilon] then
+        -- if first:find(marker_epsilon) then
+          for _, la in ipairs(first_symbol(grammar, item.la)) do
             assert(la ~= marker_epsilon)
             if not added[symbol_key + la] then
               for j in productions:each(symbol) do
