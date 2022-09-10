@@ -22,42 +22,56 @@ function class:insert(production)
   local head = production.head
   local body = production.body
 
-  local map = self.map[head]
-  if map == nil then
-    map = {}
-    self.map[head] = map
-  end
+  local n = #self + 1
+  local k = table.concat(body, ",")
 
-  -- check
-  -- print(#body)
-  local key = table.concat(body, ",")
-  -- if map[key] then
-  --   print(head, #body, key)
+  local group = self.groups[head]
+  if group then
+    assert(not group[k])
+    group[k] = n
+    group[#group + 1] = n
+  else
+    self.groups[head] = { [k] = n, n }
+  end
+  self[n] = production
+
+  -- if group == nil then
+  --   group = {}
+  --   self.groups[head] = group
   -- end
 
-  assert(not map[key])
-  if not map[key] then
-    local n = #self + 1
-    self[n] = production
-    map[key] = n
-    map[#map + 1] = n
-  end
+  -- local body = production.body
+
+  -- -- check
+  -- -- print(#body)
+  -- local key = table.concat(body, ",")
+  -- -- if map[key] then
+  -- --   print(head, #body, key)
+  -- -- end
+
+  -- assert(not group[key])
+  -- if not group[key] then
+  --   local n = #self + 1
+  --   self[n] = production
+  --   group[key] = n
+  --   group[#group + 1] = n
+  -- end
 end
 
 function class:each_production(head)
-  local map = assert(self.map[head])
+  local group = assert(self.groups[head])
   local i = 0
-  local n = #map
+  local n = #group
 
   return function ()
     i = i + 1
     if i <= n then
-      local j = map[i]
+      local j = group[i]
       return j, self[j].body
     end
   end
 end
 
 return function ()
-  return setmetatable({ map = {} }, metatable)
+  return setmetatable({ groups = {} }, metatable)
 end
