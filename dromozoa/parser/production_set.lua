@@ -31,7 +31,11 @@ function class:insert(production)
   -- check
   -- print(#body)
   local key = table.concat(body, ",")
-  -- assert(not map[key])
+  -- if map[key] then
+  --   print(head, #body, key)
+  -- end
+
+  assert(not map[key])
   if not map[key] then
     local n = #self + 1
     self[n] = production
