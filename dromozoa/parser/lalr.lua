@@ -337,7 +337,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
           t[item.dot] = j
         end
       end
-      local la = tree_set()
+      local la = symbol_set()
       if item.index == 1 and item.dot == 1 then
         la:insert(max_terminal_symbol)
       end
@@ -375,8 +375,8 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
     for _, propagation in ipairs(propagations) do
       local from_la = set_of_kernel_items[propagation.from_i][propagation.from_j].la
       local to_la = set_of_kernel_items[propagation.to_i][propagation.to_j].la
-      for _, la in from_la:ipairs() do
-        if select(3, to_la:insert(la)) then
+      for _, la in ipairs(from_la) do
+        if select(2, to_la:insert(la)) then
           done = false
         end
       end
@@ -387,7 +387,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
   for _, items in ipairs(set_of_kernel_items) do
     local new_items = {}
     for _, item in ipairs(items) do
-      for _, la in item.la:ipairs() do
+      for _, la in ipairs(item.la) do
         append(new_items, { index = item.index, dot = item.dot, la = la })
       end
     end
