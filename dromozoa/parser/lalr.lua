@@ -236,6 +236,7 @@ end
 
 local function lr0_items(grammar)
   local transitions = {}
+  -- TODO これはなんとかできるのかな？
   local set_of_items = tree_set():insert(lr0_closure(grammar, { { index = 1, dot = 1 } }))
   for i, items in set_of_items:ipairs() do
     local map_of_to_items = lr0_goto(grammar, items)
