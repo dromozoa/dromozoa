@@ -156,10 +156,8 @@ local function first_symbol(grammar, symbol)
   if symbol <= grammar.max_terminal_symbol then
     first = symbol_set()
     first:insert(symbol)
-    -- first = tree_set():insert(symbol)
   else
     first = symbol_set()
-    -- first = tree_set()
     for _, body in grammar.productions:each(symbol) do
       if body[1] then
         for _, symbol in ipairs(first_symbols(grammar, body)) do
@@ -177,7 +175,6 @@ end
 
 function first_symbols(grammar, symbols)
   local first = symbol_set()
-  -- local first = tree_set()
   for _, symbol in ipairs(symbols) do
     local epsilon = false
     for _, symbol in ipairs(first_symbol(grammar, symbol)) do
