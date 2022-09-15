@@ -52,7 +52,7 @@ for _, name in ipairs { "F", "T", "E", "E'", "T'" } do
   buffer:append("FIRST(", name, ") = { ")
   local first = first_table[symbol_table[name]]
   local i = 0
-  for _, k in first:ipairs() do
+  for _, k in ipairs(first) do
     i = i + 1
     if i > 1 then
       buffer:append ", "

@@ -42,7 +42,7 @@ for i, items in ipairs(set_of_items) do
   for _, item in ipairs(items) do
     -- カーネル項だけを出力する
     if item.index == 1 or item.dot > 1 then
-      local production = g.productions:get(item.index)
+      local production = g.productions[item.index]
       buffer:append("  ", g.symbol_names[production.head], " ->")
       for j, symbol in ipairs(production.body) do
         if j == item.dot then

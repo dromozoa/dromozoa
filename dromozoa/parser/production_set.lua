@@ -19,49 +19,31 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.production_set" }
 
 function class:insert(production)
-  local head = production.head
-  local body = production.body
+  local k = table.concat(production.body, ",")
+  local n = #self + 1
 
-  local map = self.map[head]
-  if map == nil then
-    map = {}
-    self.map[head] = map
+  local group = self.groups[production.head]
+  if group then
+    assert(not group[k])
+    group[k] = n
+    group[#group + 1] = n
+  else
+    self.groups[production.head] = { [k] = n, n }
   end
-
-  -- check
-  -- print(#body)
-  local key = table.concat(body, ",")
-  -- assert(not map[key])
-  if not map[key] then
-    local n = #self + 1
-    self[n] = production
-    map[key] = n
-    map[#map + 1] = n
-  end
+  self[n] = production
 end
 
-function class:each_production(head)
-  local map = assert(self.map[head])
-  return coroutine.wrap(function ()
-    for i = 1, #map do
-      local j = map[i]
-      coroutine.yield(j, self[j].body)
+function class:each(head)
+  local i = 0
+  return function (group)
+    i = i + 1
+    local j = group[i]
+    if j then
+      return j, self[j].body
     end
-  end)
-end
-
-function class:get(i)
-  return self[i]
-end
-
-function class:size()
-  return #self
-end
-
-function class:ipairs()
-  return ipairs(self)
+  end, assert(self.groups[head])
 end
 
 return function ()
-  return setmetatable({ map = {} }, metatable)
+  return setmetatable({ groups = {} }, metatable)
 end

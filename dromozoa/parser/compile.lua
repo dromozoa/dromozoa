@@ -41,11 +41,11 @@ return function (grammar, actions)
     append(static_data, "{", table.concat(action, ","), "};\n")
   end
   append(static_data, "};\n", "heads={")
-  for _, production in grammar.productions:ipairs() do
+  for _, production in ipairs(grammar.productions) do
     append(static_data, production.head, ",")
   end
   append(static_data, "};\n", "sizes={")
-  for _, production in grammar.productions:ipairs() do
+  for _, production in ipairs(grammar.productions) do
     append(static_data, #production.body, ",")
   end
   append(static_data, "};\n", "semantic_actions={")
@@ -58,7 +58,7 @@ return function (grammar, actions)
     return result
   end
 
-  for i, production in grammar.productions:ipairs() do
+  for i, production in ipairs(grammar.productions) do
     local semantic_action = production.semantic_action
     if semantic_action == nil then
       semantic_action = ""
