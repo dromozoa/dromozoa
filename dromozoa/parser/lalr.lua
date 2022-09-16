@@ -26,14 +26,11 @@ local metatable = { __index = class, __name = "dromozoa.parser.lalr.symbol_set" 
 
 function class:insert(symbol)
   local map = self.map
-  local n = map[symbol]
-  if n then
-    return n
-  else
+  if not map[symbol] then
     local n = #self + 1
     self[n] = symbol
     map[symbol] = n
-    return n, true
+    return true
   end
 end
 
@@ -377,7 +374,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
       local from_la = set_of_kernel_items[propagation.from_i][propagation.from_j].la
       local to_la = set_of_kernel_items[propagation.to_i][propagation.to_j].la
       for _, la in ipairs(from_la) do
-        if select(2, to_la:insert(la)) then
+        if to_la:insert(la) then
           done = false
         end
       end
