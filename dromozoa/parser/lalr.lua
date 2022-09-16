@@ -236,26 +236,45 @@ local function lr0_goto(grammar, items)
   return set_of_to_items
 end
 
+local function items_to_key(grammar, items)
+  local productions = grammar.productions
+
+  local result = {}
+  for i, item in ipairs(items) do
+    -- 生成規則の番号 (index) と点の位置 (dot) の組をキーとして使う。
+    result[i] = item.index + item.dot * #productions
+  end
+  return table.concat(result, ",")
+end
+
 local function lr0_items(grammar)
   local transitions = {}
   -- TODO これはなんとかできるのかな？
-  local map_of_items = tree_set():insert({ { index = 1, dot = 1 } })
+  local start_items = { { index = 1, dot = 1 } }
+  -- local map_of_items = tree_set():insert({ { index = 1, dot = 1 } })
+  local map_of_items = { [items_to_key(grammar, start_items)] = 1 }
   -- local set_of_items = tree_set():insert(lr0_closure(grammar, { { index = 1, dot = 1 } }))
-  local set_of_items = { lr0_closure(grammar, { { index = 1, dot = 1 } }) }
+  local set_of_items = { lr0_closure(grammar, start_items) }
   for i, items in ipairs(set_of_items) do
     local transition = {}
 
     local set_of_to_items = lr0_goto(grammar, items)
     for _, to_items in ipairs(set_of_to_items) do
-      local _, j, inserted = map_of_items:insert(to_items)
-      if inserted then
+      local items_key = items_to_key(grammar, to_items)
+      local j = map_of_items[items_key]
+
+      -- local _, j, inserted = map_of_items:insert(to_items)
+      if not j then
         -- print("?", j, to_items.symbol)
 
-        local data = {}
-        for i = 1, #to_items do
-          data[i] = to_items[i]
-        end
-        set_of_items[j] = lr0_closure(grammar, data)
+        -- local data = {}
+        -- for i = 1, #to_items do
+        --   data[i] = to_items[i]
+        -- end
+        -- print("?", #data)
+        j = append(set_of_items, lr0_closure(grammar, to_items))
+        map_of_items[items_key] = j
+
       end
       transition[to_items.symbol] = j
     end
