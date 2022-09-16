@@ -40,7 +40,7 @@ local function eliminate_left_recursion(grammar)
 
     for _, _, body in productions:each(i) do
       local symbol = body[1]
-      if symbol ~= nil and symbol > max_terminal_symbol and symbol < i then
+      if symbol and symbol > max_terminal_symbol and symbol < i then
         for _, _, src_body in new_productions:each(symbol) do
           local new_body = { table_unpack(src_body) }
           append(new_body, table_unpack(body, 2))
@@ -119,7 +119,7 @@ local function first_symbol(grammar, symbol)
   local first = first_table[symbol]
   if first == false then
     error "loop detected"
-  elseif first ~= nil then
+  elseif first then
     return first
   end
   first_table[symbol] = false
@@ -173,7 +173,7 @@ local function lr0_closure(grammar, items)
   local added = {}
   for _, item in ipairs(items) do
     local symbol = productions[item.index].body[item.dot]
-    if symbol ~= nil and symbol > max_terminal_symbol and not added[symbol] then
+    if symbol and symbol > max_terminal_symbol and not added[symbol] then
       for _, i in productions:each(symbol) do
         append(items, { index = i, dot = 1 })
       end
@@ -267,10 +267,10 @@ local function lr1_closure(grammar, items)
     if not skip[item_key] then
       local body = productions[item.index].body
       local symbol = body[item.dot]
-      if symbol ~= nil and symbol > max_terminal_symbol then
+      if symbol and symbol > max_terminal_symbol then
         -- FIRST(b)をキャッシュする。
         local first = lr1_closure_table[item_key]
-        if first == nil then
+        if not first then
           first = first_symbols(grammar, { table_unpack(body, item.dot + 1) })
           lr1_closure_table[item_key] = first
         end
@@ -327,10 +327,10 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
     for j, item in ipairs(items) do
       if item.index == 1 or item.dot > 1 then
         local t = kernel_table[item.index]
-        if t == nil then
-          kernel_table[item.index] = { [item.dot] = j }
-        else
+        if t then
           t[item.dot] = j
+        else
+          kernel_table[item.index] = { [item.dot] = j }
         end
       end
       local la = symbol_set()
@@ -352,7 +352,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
         lr1_closure(grammar, items)
         for _, item in ipairs(items) do
           local symbol = productions[item.index].body[item.dot]
-          if symbol ~= nil then
+          if symbol then
             local to_i = transitions[from_i][symbol]
             local to_j = map_of_kernel_items[to_i][item.index][item.dot + 1]
             if item.la == marker_lookahead then
@@ -397,7 +397,7 @@ end
 
 local function symbol_precedence(grammar, symbol)
   local precedence = grammar.symbol_precedences[symbol]
-  if precedence ~= nil then
+  if precedence then
     return precedence.precedence, precedence.name, precedence.associativity
   end
   return 0, grammar.symbol_names[symbol]
@@ -407,7 +407,7 @@ local function production_precedence(grammar, index)
   local production = grammar.productions[index]
 
   local precedence = production.precedence
-  if precedence ~= nil then
+  if precedence then
     return precedence.precedence, precedence.name, precedence.associativity
   end
 
@@ -472,9 +472,9 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
     end
 
     for _, item in ipairs(items) do
-      if productions[item.index].body[item.dot] == nil then
+      if not productions[item.index].body[item.dot] then
         local action = data[item.la]
-        if action == nil then
+        if not action then
           data[item.la] = item.index + max_state
         elseif action > max_state then
           -- reduce/reduce
@@ -486,10 +486,10 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
           -- shift/reduce
           local buffer = {}
           data[item.la] = resolve_sr(grammar, item, action, item.index + max_state, buffer)
-          if next(buffer) == nil then
-            sr = sr + 1
-          else
+          if next(buffer) then
             append(conflictions, "[info] conflict between production " .. item.index .. " and symbol " .. symbol_names[item.la] .. " resolved as " .. table.concat(buffer))
+          else
+            sr = sr + 1
           end
         end
       end
@@ -499,7 +499,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
     total_rr = total_rr + rr
     if sr > 0 or rr > 0 then
       local buffer = {}
-      if expect_sr == nil or expect_sr < total_sr or rr > 0 then
+      if not expect_sr or expect_sr < total_sr or rr > 0 then
         append(buffer, "[warn]")
       else
         append(buffer, "[info]")
@@ -518,7 +518,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
     end
 
     for symbol in ipairs(symbol_names) do
-      if data[symbol] == nil then
+      if not data[symbol] then
         data[symbol] = 0
       end
     end
@@ -533,7 +533,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
       append(buffer, "[info]")
     end
     append(buffer, " shift/reduce conflicts: ", total_sr, " found")
-    if expect_sr ~= nil then
+    if expect_sr then
       append(buffer, ", ", expect_sr, " expected")
     end
     append(conflictions, table.concat(buffer))
