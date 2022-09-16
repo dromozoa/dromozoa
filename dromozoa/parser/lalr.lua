@@ -239,16 +239,37 @@ end
 local function lr0_items(grammar)
   local transitions = {}
   -- TODO これはなんとかできるのかな？
-  local set_of_items = tree_set():insert(lr0_closure(grammar, { { index = 1, dot = 1 } }))
-  for i, items in set_of_items:ipairs() do
+  local map_of_items = tree_set():insert({ { index = 1, dot = 1 } })
+  -- local set_of_items = tree_set():insert(lr0_closure(grammar, { { index = 1, dot = 1 } }))
+  local set_of_items = { lr0_closure(grammar, { { index = 1, dot = 1 } }) }
+  for i, items in ipairs(set_of_items) do
     local transition = {}
 
     local set_of_to_items = lr0_goto(grammar, items)
     for _, to_items in ipairs(set_of_to_items) do
-      lr0_closure(grammar, to_items)
-      local _, j, inserted = set_of_items:insert(to_items)
+      local _, j, inserted = map_of_items:insert(to_items)
+      if inserted then
+        -- print("?", j, to_items.symbol)
+
+        local data = {}
+        for i = 1, #to_items do
+          data[i] = to_items[i]
+        end
+        set_of_items[j] = lr0_closure(grammar, data)
+      end
       transition[to_items.symbol] = j
     end
+
+    -- local transition = {}
+    -- local set_of_to_items = lr0_goto(grammar, items)
+    -- for _, to_items in ipairs(set_of_to_items) do
+    --   lr0_closure(grammar, to_items)
+    --   local _, j, inserted = set_of_items:insert(to_items)
+    --   if not inserted then
+    --     print("!", j, to_items.symbol)
+    --   end
+    --   transition[to_items.symbol] = j
+    -- end
 
     transitions[i] = transition
   end
@@ -332,7 +353,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
   local set_of_kernel_items = {}
   local map_of_kernel_items = {}
 
-  for i, items in set_of_items:ipairs() do
+  for i, items in ipairs(set_of_items) do
     local kernel_items = {}
     local kernel_table = {}
     for j, item in ipairs(items) do
@@ -356,7 +377,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
 
   local propagations = {}
 
-  for from_i, from_items in set_of_items:ipairs() do
+  for from_i, from_items in ipairs(set_of_items) do
     for from_j, from_item in ipairs(from_items) do
       if productions[from_item.index].head == max_terminal_symbol + 1 or from_item.dot > 1 then
         local items = { { index = from_item.index, dot = from_item.dot, la = marker_lookahead } }

@@ -39,7 +39,7 @@ end
 local set_of_items = data.lr0_set_of_items
 local transitions = data.transitions
 
-for i, items in set_of_items:ipairs() do
+for i, items in ipairs(set_of_items) do
   buffer:append(("="):rep(75), "\nI_", i, "\n")
   for _, item in ipairs(items) do
     local production = g.productions[item.index]
