@@ -15,7 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local tree_map = require "dromozoa.tree_map"
 local tree_set = require "dromozoa.tree_set"
 local production_set = require "dromozoa.parser.production_set"
 
@@ -198,6 +197,7 @@ local function lr0_closure(grammar, items)
   local max_terminal_symbol = grammar.max_terminal_symbol
   local productions = grammar.productions
 
+  -- 項のリストから、点の次の記号をとって、それを頭部に持つ生成規則のリストをつくる
   local added = {}
   for _, item in ipairs(items) do
     local symbol = productions[item.index].body[item.dot]
@@ -214,24 +214,26 @@ end
 
 local function lr0_goto(grammar, items)
   local productions = grammar.productions
-  local map_of_to_items = tree_map()
+
+  local map_of_to_items = {}
+  local set_of_to_items = {}
 
   for _, item in ipairs(items) do
     local symbol = productions[item.index].body[item.dot]
-    if symbol ~= nil then
-      map_of_to_items:insert_or_update(symbol, function ()
-        return { { index = item.index, dot = item.dot + 1 } }
-      end, function (items)
-        append(items, { index = item.index, dot = item.dot + 1 })
-        return items
-      end)
+    if symbol then
+      local n = map_of_to_items[symbol]
+      if n then
+        append(set_of_to_items[n], { index = item.index, dot = item.dot + 1 })
+      else
+        map_of_to_items[symbol] = append(set_of_to_items, { symbol = symbol, { index = item.index, dot = item.dot + 1 } })
+      end
     end
   end
-  for _, to_items in map_of_to_items:pairs() do
+  for _, to_items in ipairs(set_of_to_items) do
     lr0_closure(grammar, to_items)
   end
 
-  return map_of_to_items
+  return set_of_to_items
 end
 
 local function lr0_items(grammar)
@@ -239,16 +241,11 @@ local function lr0_items(grammar)
   -- TODO これはなんとかできるのかな？
   local set_of_items = tree_set():insert(lr0_closure(grammar, { { index = 1, dot = 1 } }))
   for i, items in set_of_items:ipairs() do
-    local map_of_to_items = lr0_goto(grammar, items)
+    local set_of_to_items = lr0_goto(grammar, items)
     local transition = {}
-    for symbol, to_items in map_of_to_items:pairs() do
-      -- TODO 複数回存在することはある。それはいつ？
-      -- transition:assign(symbol, select(2, set_of_items:insert(to_items)))
-      local _, i, inserted = set_of_items:insert(to_items)
-      -- if not inserted then
-      --   print(i)
-      -- end
-      transition[symbol] = i
+    for _, to_items in ipairs(set_of_to_items) do
+      local _, i = set_of_items:insert(to_items)
+      transition[to_items.symbol] = i
     end
     transitions[i] = transition
   end
