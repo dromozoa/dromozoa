@@ -27,7 +27,7 @@ local g, actions, conflictions, data = lalr(grammar({ "a", "b", "c", "d" }, {
     + _"b";
   A = _"A" "c"
     + _"S" "d"
-    + _;
+    + _();
 }))
 
 local buffer = array()

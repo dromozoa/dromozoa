@@ -60,7 +60,7 @@ local m3 = machine.lexer(token_names, {
   line_comment = "--" + (-_{"\n\r"}*0 - ("[[" + _()*0));
   block_comment = "--[[" + (_()*0 - (_()*0 + "]]" + _()*0) - (_()*0 + "]")) + "]]";
   c_comment = "/*" + (_()*0 - (_()*0 + "*/" + _()*0)) + "*/";
-  -- any = _;
+  -- any = _();
 })
 
 local out = assert(io.open("test-m3.dot", "w"))

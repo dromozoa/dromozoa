@@ -86,21 +86,29 @@ end
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.grammar.body" }
 
-module.body = setmetatable({}, metatable)
+-- module.body = setmetatable({}, metatable)
 
 local function body(that)
-  if type(that) == "string" then
+  if that == nil then
+    return construct(metatable, "body")
+  elseif type(that) == "string" then
     return construct(metatable, "body", that)
   else
     assert(getmetatable(that) == metatable)
-    if that[0] == nil then
-      assert(that.timestamp == nil)
-      return construct(metatable, "body")
-    else
-      assert(that.timestamp ~= nil)
-      return that
-    end
+    assert(that.timestamp)
+    return that
+    -- if that[0] == nil then
+    --   assert(that.timestamp == nil)
+    --   return construct(metatable, "body")
+    -- else
+    --   assert(that.timestamp ~= nil)
+    --   return that
+    -- end
   end
+end
+
+function module.body(that)
+  return body(that)
 end
 
 function class:prec(that)

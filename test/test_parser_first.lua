@@ -26,11 +26,11 @@ local g, actions, conflictions, data = lalr(grammar({ "+", "*", "(", ")", "id" }
   E = _"T" "E'";
   ["E'"]
     = _"+" "T" "E'"
-    + _;
+    + _();
   T = _"F" "T'";
   ["T'"]
     = _"*" "F" "T'"
-    + _;
+    + _();
   F = _"(" "E" ")"
     + _"id";
 }))

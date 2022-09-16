@@ -69,16 +69,16 @@ local G = {
   -- https://www.gnu.org/software/bison/manual/html_node/Reduce_002fReduce.html
   grammar({ "id" }, {
     expect(3); -- おおすぎるexpectのテスト
-    S = _
+    S = _()
       + _"K"
       + _"S" "id";
-    K = _
+    K = _()
       + _"id";
   });
 
   -- reduce/reduceが起こらない文法
   grammar({ "id" }, {
-    S = _
+    S = _()
       + _"S" "id"
   });
 
