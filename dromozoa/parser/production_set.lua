@@ -24,14 +24,16 @@ function class:insert(production)
 
   local k = table.concat(body, ",")
   local n = #self + 1
+  local item = { index = n, body = body }
 
-  local group = self.groups[head]
+  local groups = self.groups
+  local group = groups[head]
   if group then
     assert(not group[k])
-    group[k] = body
-    group[#group + 1] = n
+    group[k] = n
+    group[#group + 1] = item
   else
-    self.groups[head] = { [k] = body, n }
+    groups[head] = { [k] = n, item }
   end
   self[n] = production
 end
@@ -39,19 +41,9 @@ end
 function class:each(head)
   return function (group, i)
     i = i + 1
-    local j = group[i]
-    if j then
-      return i, self[j].body
-    end
-  end, assert(self.groups[head]), 0
-end
-
-function class:each_index(head)
-  return function (group, i)
-    i = i + 1
-    local j = group[i]
-    if j then
-      return i, j
+    local item = group[i]
+    if item then
+      return i, item.index, item.body
     end
   end, assert(self.groups[head]), 0
 end
