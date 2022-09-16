@@ -15,21 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local append = require "dromozoa.parser.append"
 local production_set = require "dromozoa.parser.production_set"
-
--- TODO 共通コード
-local function append(t, ...)
-  local m = #t
-  local n = select("#", ...)
-
-  for i = 1, n do
-    local v = select(i, ...)
-    assert(v ~= nil)
-    t[m + i] = v
-  end
-
-  return m + n
-end
 
 local table_unpack = table.unpack or unpack
 
