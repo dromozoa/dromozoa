@@ -23,7 +23,7 @@ local lalr = require "dromozoa.parser.lalr"
 local _ = grammar.body
 local left = grammar.left
 
-local g, actions, conflictions = lalr(grammar(array("id", "+", "*", "(", ")"), {
+local g, actions, conflictions = lalr(grammar({ "id", "+", "*", "(", ")" }, {
   left "+";
   left "*";
 

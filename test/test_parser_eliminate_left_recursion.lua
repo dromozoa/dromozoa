@@ -22,7 +22,7 @@ local lalr = require "dromozoa.parser.lalr"
 local _ = grammar.body
 
 -- P.214 Example 4.20
-local g, actions, conflictions, data = lalr(grammar(array("a", "b", "c", "d"), {
+local g, actions, conflictions, data = lalr(grammar({ "a", "b", "c", "d" }, {
   S = _"A" "a"
     + _"b";
   A = _"A" "c"

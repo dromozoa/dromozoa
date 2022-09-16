@@ -15,23 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local append = require "dromozoa.parser.append"
 local production_set = require "dromozoa.parser.production_set"
-
----------------------------------------------------------------------------
-
--- TODO 共通コード
-local function append(t, ...)
-  local m = #t
-  local n = select("#", ...)
-
-  for i = 1, n do
-    local v = select(i, ...)
-    assert(v ~= nil)
-    t[m + i] = v
-  end
-
-  return m + n
-end
 
 ---------------------------------------------------------------------------
 
@@ -44,6 +29,15 @@ local timestamp = 0
 local function construct(metatable, code, ...)
   timestamp = timestamp + 1
   return setmetatable({ timestamp = timestamp, [0] = code, ... }, metatable)
+end
+
+---------------------------------------------------------------------------
+
+local metatable = { __name = "dromozoa.parser.grammar.expect" }
+
+function module.expect(that)
+  assert(type(that) == "number")
+  return construct(metatable, "expect", that)
 end
 
 ---------------------------------------------------------------------------
@@ -70,15 +64,6 @@ end
 function module.nonassoc(that)
   assert(type(that) == "string")
   return construct(metatable, "nonassoc", that)
-end
-
----------------------------------------------------------------------------
-
-local metatable = { __name = "dromozoa.parser.grammar.expect" }
-
-function module.expect(that)
-  assert(type(that) == "number")
-  return construct(metatable, "expect", that)
 end
 
 ---------------------------------------------------------------------------
@@ -154,7 +139,7 @@ local metatable = { __name = "dromozoa.parser.grammar" }
 function metatable:__call(token_names, that)
   local symbol_names = {}
   local symbol_table = {}
-  for _, name in token_names:ipairs() do
+  for _, name in ipairs(token_names) do
     if symbol_table[name] ~= nil then
       error("symbol " .. name .. " redefined as a terminal")
     end

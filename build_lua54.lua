@@ -28,7 +28,7 @@ local parser = {
 }
 
 local regexp_filename, parser_filename = ...
-local token_names = array()
+local token_names = {}
 
 local _ = regexp.pattern
 

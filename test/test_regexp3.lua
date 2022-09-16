@@ -27,7 +27,7 @@ local union = machine.union
 local guard = machine.guard
 local lexer = machine.lexer
 
-local token_names = array()
+local token_names = {}
 local code = compile {
   character_class = lexer(token_names, {
     ["]"] = _"]" %[[push() freturn()]];
@@ -49,7 +49,7 @@ local code = compile {
 }
 
 local buffer = array()
-for _, name in token_names:ipairs() do
+for _, name in ipairs(token_names) do
   buffer:append(name, "\n")
 end
 
@@ -65,7 +65,7 @@ f [ g \1 h [ i \[ j \] k ] l
 ]], "@test", 0, function (token)
   if token[0] ~= nil then
     if token[0] ~= 0 then
-      buffer:append("push ", token[0], " ", token_names:get(token[0]), " ${<", token.v, ">}\n")
+      buffer:append("push ", token[0], " ", token_names[token[0]], " ${<", token.v, ">}\n")
     else
       buffer:append "push eof\n"
     end

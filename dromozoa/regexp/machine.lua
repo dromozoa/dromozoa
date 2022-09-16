@@ -522,7 +522,7 @@ function module.lexer(token_names, that)
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
   local token_table = {}
-  for symbol, name in token_names:ipairs() do
+  for symbol, name in ipairs(token_names) do
     token_table[name] = symbol
   end
 
@@ -535,7 +535,7 @@ function module.lexer(token_names, that)
     if item.name ~= nil then
       symbol = token_table[item.name]
       if symbol == nil then
-        symbol = token_names:append(item.name):size()
+        symbol = append(token_names, item.name)
         token_table[item.name] = symbol
       end
     end
