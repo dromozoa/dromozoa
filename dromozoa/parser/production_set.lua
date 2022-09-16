@@ -19,29 +19,33 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.production_set" }
 
 function class:insert(production)
-  local k = table.concat(production.body, ",")
-  local n = #self + 1
+  local head = production.head
+  local body = production.body
 
-  local group = self.groups[production.head]
+  local k = table.concat(body, ",")
+  local n = #self + 1
+  local item = { index = n, body = body }
+
+  local groups = self.groups
+  local group = groups[head]
   if group then
     assert(not group[k])
     group[k] = n
-    group[#group + 1] = n
+    group[#group + 1] = item
   else
-    self.groups[production.head] = { [k] = n, n }
+    groups[head] = { [k] = n, item }
   end
   self[n] = production
 end
 
 function class:each(head)
-  local i = 0
-  return function (group)
+  return function (group, i)
     i = i + 1
-    local j = group[i]
-    if j then
-      return j, self[j].body
+    local item = group[i]
+    if item then
+      return i, item.index, item.body
     end
-  end, assert(self.groups[head])
+  end, assert(self.groups[head]), 0
 end
 
 return function ()

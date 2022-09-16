@@ -15,8 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local tree_map = require "dromozoa.tree_map"
-local tree_set = require "dromozoa.tree_set"
 local production_set = require "dromozoa.parser.production_set"
 
 ---------------------------------------------------------------------------
@@ -167,7 +165,7 @@ function metatable:__call(token_names, that)
   local custom_data = {}
   local expect_sr
   local precedence = 0
-  local precedence_table = tree_map()
+  local precedence_table = {}
   local symbol_precedences = {}
   for _, v in ipairs(that) do
     if type(v) == "string" then
@@ -181,7 +179,7 @@ function metatable:__call(token_names, that)
       for _, name in ipairs(v) do
         local symbol = symbol_table[name]
         if symbol == nil then
-          precedence_table:assign(name, { name = name, precedence = precedence, associativity = v[0] })
+          precedence_table[name] = { name = name, precedence = precedence, associativity = v[0] }
         else
           symbol_precedences[symbol] = { name = name, precedence = precedence, associativity = v[0] }
         end
@@ -222,14 +220,6 @@ function metatable:__call(token_names, that)
   -- 頭部は非終端記号、本体は記号列で表される。
   -- 同じ生成規則が存在するのはエラー時だけなので、挿入時に存在しないことを確認すればいい。
 
-  -- local productions = tree_set(function (a, b)
-  --   if a.head ~= b.head then
-  --     return a.head < b.head and -1 or 1
-  --   end
-  --   assert(a.head_index ~= b.head_index)
-  --   return a.head_index < b.head_index and -1 or 1
-  -- end):insert { head = start_head, head_index = 1, body = { start_body } }
-
   local productions = production_set()
   productions:insert { head = start_head, body = { start_body } }
 
@@ -253,7 +243,7 @@ function metatable:__call(token_names, that)
       end
       local production = { head = u.k, body = body, semantic_action = v.semantic_action }
       if v.precedence ~= nil then
-        local precedence = precedence_table:find(v.precedence)
+        local precedence = precedence_table[v.precedence]
         if precedence == nil then
           error("precedence " .. v.precedence .. " not defined")
         end
@@ -269,7 +259,7 @@ function metatable:__call(token_names, that)
       error("symbol " .. v .. " not used")
     end
   end
-  for k in precedence_table:pairs() do
+  for k in pairs(precedence_table) do
     if used_precedences[k] == nil then
       error("precedence " .. k .. " not used")
     end
