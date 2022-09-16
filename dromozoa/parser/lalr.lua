@@ -15,7 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local tree_set = require "dromozoa.tree_set"
 local production_set = require "dromozoa.parser.production_set"
 
 -- TODO 共通コード
@@ -249,11 +248,9 @@ end
 
 local function lr0_items(grammar)
   local transitions = {}
-  -- TODO これはなんとかできるのかな？
+
   local start_items = { { index = 1, dot = 1 } }
-  -- local map_of_items = tree_set():insert({ { index = 1, dot = 1 } })
   local map_of_items = { [items_to_key(grammar, start_items)] = 1 }
-  -- local set_of_items = tree_set():insert(lr0_closure(grammar, { { index = 1, dot = 1 } }))
   local set_of_items = { lr0_closure(grammar, start_items) }
   for i, items in ipairs(set_of_items) do
     local transition = {}
@@ -263,32 +260,12 @@ local function lr0_items(grammar)
       local items_key = items_to_key(grammar, to_items)
       local j = map_of_items[items_key]
 
-      -- local _, j, inserted = map_of_items:insert(to_items)
       if not j then
-        -- print("?", j, to_items.symbol)
-
-        -- local data = {}
-        -- for i = 1, #to_items do
-        --   data[i] = to_items[i]
-        -- end
-        -- print("?", #data)
         j = append(set_of_items, lr0_closure(grammar, to_items))
         map_of_items[items_key] = j
-
       end
       transition[to_items.symbol] = j
     end
-
-    -- local transition = {}
-    -- local set_of_to_items = lr0_goto(grammar, items)
-    -- for _, to_items in ipairs(set_of_to_items) do
-    --   lr0_closure(grammar, to_items)
-    --   local _, j, inserted = set_of_items:insert(to_items)
-    --   if not inserted then
-    --     print("!", j, to_items.symbol)
-    --   end
-    --   transition[to_items.symbol] = j
-    -- end
 
     transitions[i] = transition
   end
