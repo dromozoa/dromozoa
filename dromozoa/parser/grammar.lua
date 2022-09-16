@@ -16,7 +16,6 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local tree_map = require "dromozoa.tree_map"
-local tree_set = require "dromozoa.tree_set"
 local production_set = require "dromozoa.parser.production_set"
 
 ---------------------------------------------------------------------------
