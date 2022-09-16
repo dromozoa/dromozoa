@@ -100,7 +100,7 @@ end
 function class:prec(that)
   local self = body(self)
   assert(type(that) == "string")
-  assert(self.precedence == nil)
+  assert(not self.precedence)
   self.precedence = that
   return self
 end
@@ -114,7 +114,7 @@ end
 function metatable:__mod(that)
   local self = body(self)
   assert(type(that) == "string")
-  assert(self.semantic_action == nil)
+  assert(not self.semantic_action)
   self.semantic_action = that
   return self
 end
