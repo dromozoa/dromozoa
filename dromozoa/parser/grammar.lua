@@ -166,7 +166,8 @@ function metatable:__call(token_names, that)
   local custom_data = {}
   local expect_sr
   local precedence = 0
-  local precedence_table = tree_map()
+  -- local precedence_table = tree_map()
+  local precedence_table = {}
   local symbol_precedences = {}
   for _, v in ipairs(that) do
     if type(v) == "string" then
@@ -180,7 +181,8 @@ function metatable:__call(token_names, that)
       for _, name in ipairs(v) do
         local symbol = symbol_table[name]
         if symbol == nil then
-          precedence_table:assign(name, { name = name, precedence = precedence, associativity = v[0] })
+          precedence_table[name] = { name = name, precedence = precedence, associativity = v[0] }
+          -- precedence_table:assign(name, { name = name, precedence = precedence, associativity = v[0] })
         else
           symbol_precedences[symbol] = { name = name, precedence = precedence, associativity = v[0] }
         end
@@ -244,7 +246,8 @@ function metatable:__call(token_names, that)
       end
       local production = { head = u.k, body = body, semantic_action = v.semantic_action }
       if v.precedence ~= nil then
-        local precedence = precedence_table:find(v.precedence)
+        local precedence = precedence_table[v.precedence]
+        -- local precedence = precedence_table:find(v.precedence)
         if precedence == nil then
           error("precedence " .. v.precedence .. " not defined")
         end
@@ -260,7 +263,8 @@ function metatable:__call(token_names, that)
       error("symbol " .. v .. " not used")
     end
   end
-  for k in precedence_table:pairs() do
+  for k in pairs(precedence_table) do
+  -- for k in precedence_table:pairs() do
     if used_precedences[k] == nil then
       error("precedence " .. k .. " not used")
     end
