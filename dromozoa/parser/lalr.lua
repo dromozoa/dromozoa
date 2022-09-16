@@ -78,7 +78,7 @@ local function eliminate_left_recursion(grammar)
             append(i_bodies, new_body)
           end
         end
-      elseif i == symbol then
+      elseif symbol == i then
         local new_body = { table_unpack(body, 2) }
         append(new_body, n)
         append(n_bodies, new_body)
@@ -171,7 +171,6 @@ local function lr0_closure(grammar, items)
   local max_terminal_symbol = grammar.max_terminal_symbol
   local productions = grammar.productions
 
-  -- 項のリストから、点の次の記号をとって、それを頭部に持つ生成規則のリストをつくる
   local added = {}
   for _, item in ipairs(items) do
     local symbol = productions[item.index].body[item.dot]
@@ -203,9 +202,6 @@ local function lr0_goto(grammar, items)
       end
     end
   end
-  -- for _, to_items in ipairs(set_of_to_items) do
-  --   lr0_closure(grammar, to_items)
-  -- end
 
   return set_of_to_items
 end
