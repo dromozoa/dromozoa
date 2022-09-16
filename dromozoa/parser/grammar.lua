@@ -22,8 +22,6 @@ local production_set = require "dromozoa.parser.production_set"
 
 local module = {}
 
----------------------------------------------------------------------------
-
 local timestamp = 0
 
 local function construct(metatable, code, ...)
@@ -70,10 +68,6 @@ end
 
 local metatable = { __name = "dromozoa.parser.grammar.bodies" }
 
-local function bodies(...)
-  return construct(metatable, "bodies", ...)
-end
-
 function metatable:__add(that)
   assert(getmetatable(self) == metatable)
   assert(getmetatable(that).__name == "dromozoa.parser.grammar.body")
@@ -81,22 +75,17 @@ function metatable:__add(that)
   return self
 end
 
+function module.bodies(...)
+  return construct(metatable, "bodies", ...)
+end
+
 ---------------------------------------------------------------------------
 
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.grammar.body" }
 
-local function body(that)
-  if that == nil or type(that) == "string" then
-    return construct(metatable, "body", that)
-  else
-    assert(getmetatable(that) == metatable)
-    return that
-  end
-end
-
 function class:prec(that)
-  local self = body(self)
+  local self = module.body(self)
   assert(type(that) == "string")
   assert(not self.precedence)
   self.precedence = that
@@ -104,13 +93,13 @@ function class:prec(that)
 end
 
 function metatable:__add(that)
-  local self = body(self)
+  local self = module.body(self)
   assert(getmetatable(that) == metatable)
-  return bodies(self, that)
+  return module.bodies(self, that)
 end
 
 function metatable:__mod(that)
-  local self = body(self)
+  local self = module.body(self)
   assert(type(that) == "string")
   assert(not self.semantic_action)
   self.semantic_action = that
@@ -118,13 +107,20 @@ function metatable:__mod(that)
 end
 
 function metatable:__call(that)
-  local self = body(self)
+  local self = module.body(self)
   assert(type(that) == "string")
   self[#self + 1] = that
   return self
 end
 
-module.body = body
+function module.body(that)
+  if that == nil or type(that) == "string" then
+    return construct(metatable, "body", that)
+  else
+    assert(getmetatable(that) == metatable)
+    return that
+  end
+end
 
 ---------------------------------------------------------------------------
 
@@ -188,14 +184,13 @@ function metatable:__call(token_names, that)
     u.k = symbol
     if v[0] == "body" then
       assert(getmetatable(v).__name == "dromozoa.parser.grammar.body")
-      u.v = bodies(v)
+      u.v = module.bodies(v)
     else
       assert(getmetatable(v).__name == "dromozoa.parser.grammar.bodies")
     end
   end
 
   local productions = production_set():insert { head = start_head, body = { start_body } }
-
   local used_symbols = {
     [max_terminal_symbol] = true;
     [start_head] = true;
@@ -208,16 +203,16 @@ function metatable:__call(token_names, that)
       local body = {}
       for _, name in ipairs(v) do
         local symbol = symbol_table[name]
-        if symbol == nil then
+        if not symbol then
           error("symbol " .. name .. " not defined")
         end
         append(body, symbol)
         used_symbols[symbol] = true
       end
       local production = { head = u.k, body = body, semantic_action = v.semantic_action }
-      if v.precedence ~= nil then
+      if v.precedence then
         local precedence = precedence_table[v.precedence]
-        if precedence == nil then
+        if not precedence then
           error("precedence " .. v.precedence .. " not defined")
         end
         production.precedence = precedence
@@ -228,12 +223,12 @@ function metatable:__call(token_names, that)
   end
 
   for i, v in ipairs(symbol_names) do
-    if used_symbols[i] == nil then
+    if not used_symbols[i] then
       error("symbol " .. v .. " not used")
     end
   end
   for k in pairs(precedence_table) do
-    if used_precedences[k] == nil then
+    if not used_precedences[k] then
       error("precedence " .. k .. " not used")
     end
   end
