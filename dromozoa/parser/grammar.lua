@@ -222,14 +222,6 @@ function metatable:__call(token_names, that)
   -- 頭部は非終端記号、本体は記号列で表される。
   -- 同じ生成規則が存在するのはエラー時だけなので、挿入時に存在しないことを確認すればいい。
 
-  -- local productions = tree_set(function (a, b)
-  --   if a.head ~= b.head then
-  --     return a.head < b.head and -1 or 1
-  --   end
-  --   assert(a.head_index ~= b.head_index)
-  --   return a.head_index < b.head_index and -1 or 1
-  -- end):insert { head = start_head, head_index = 1, body = { start_body } }
-
   local productions = production_set()
   productions:insert { head = start_head, body = { start_body } }
 
