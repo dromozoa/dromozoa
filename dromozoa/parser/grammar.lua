@@ -22,6 +22,8 @@ local production_set = require "dromozoa.parser.production_set"
 
 local module = {}
 
+---------------------------------------------------------------------------
+
 local timestamp = 0
 
 local function construct(metatable, code, ...)
