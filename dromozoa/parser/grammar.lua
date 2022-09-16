@@ -87,9 +87,7 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.grammar.body" }
 
 local function body(that)
-  if that == nil then
-    return construct(metatable, "body")
-  elseif type(that) == "string" then
+  if that == nil or type(that) == "string" then
     return construct(metatable, "body", that)
   else
     assert(getmetatable(that) == metatable)
@@ -136,7 +134,7 @@ function metatable:__call(token_names, that)
   local symbol_names = {}
   local symbol_table = {}
   for _, name in ipairs(token_names) do
-    if symbol_table[name] ~= nil then
+    if symbol_table[name] then
       error("symbol " .. name .. " redefined as a terminal")
     end
     symbol_table[name] = append(symbol_names, name)
@@ -159,10 +157,10 @@ function metatable:__call(token_names, that)
       precedence = precedence + 1
       for _, name in ipairs(v) do
         local symbol = symbol_table[name]
-        if symbol == nil then
-          precedence_table[name] = { name = name, precedence = precedence, associativity = v[0] }
-        else
+        if symbol then
           symbol_precedences[symbol] = { name = name, precedence = precedence, associativity = v[0] }
+        else
+          precedence_table[name] = { name = name, precedence = precedence, associativity = v[0] }
         end
       end
     end
@@ -182,7 +180,7 @@ function metatable:__call(token_names, that)
   for _, u in ipairs(data) do
     local k = u.k
     local v = u.v
-    if symbol_table[k] ~= nil then
+    if symbol_table[k] then
       error("symbol " .. k .. " redefined as a nonterminal")
     end
     local symbol = append(symbol_names, k)
@@ -196,13 +194,7 @@ function metatable:__call(token_names, that)
     end
   end
 
-  -- 生成規則は番号 (index) を持つ
-  -- 生成規則は頭部と本体で一意である
-  -- 頭部は非終端記号、本体は記号列で表される。
-  -- 同じ生成規則が存在するのはエラー時だけなので、挿入時に存在しないことを確認すればいい。
-
-  local productions = production_set()
-  productions:insert { head = start_head, body = { start_body } }
+  local productions = production_set():insert { head = start_head, body = { start_body } }
 
   local used_symbols = {
     [max_terminal_symbol] = true;

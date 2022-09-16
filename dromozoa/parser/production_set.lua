@@ -36,6 +36,8 @@ function class:insert(production)
     groups[head] = { [k] = n, item }
   end
   self[n] = production
+
+  return self
 end
 
 function class:each(head)
