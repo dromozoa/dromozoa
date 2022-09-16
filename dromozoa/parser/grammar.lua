@@ -86,8 +86,6 @@ end
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.grammar.body" }
 
--- module.body = setmetatable({}, metatable)
-
 local function body(that)
   if that == nil then
     return construct(metatable, "body")
@@ -95,20 +93,8 @@ local function body(that)
     return construct(metatable, "body", that)
   else
     assert(getmetatable(that) == metatable)
-    assert(that.timestamp)
     return that
-    -- if that[0] == nil then
-    --   assert(that.timestamp == nil)
-    --   return construct(metatable, "body")
-    -- else
-    --   assert(that.timestamp ~= nil)
-    --   return that
-    -- end
   end
-end
-
-function module.body(that)
-  return body(that)
 end
 
 function class:prec(that)
@@ -139,6 +125,8 @@ function metatable:__call(that)
   self[#self + 1] = that
   return self
 end
+
+module.body = body
 
 ---------------------------------------------------------------------------
 
