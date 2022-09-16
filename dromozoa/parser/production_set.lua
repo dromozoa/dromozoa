@@ -44,6 +44,16 @@ function class:each(head)
   end, assert(self.groups[head])
 end
 
+function class:each_index(head)
+  return function (group, i)
+    i = i + 1
+    local j = group[i]
+    if j then
+      return i, j
+    end
+  end, assert(self.groups[head]), 0
+end
+
 return function ()
   return setmetatable({ groups = {} }, metatable)
 end

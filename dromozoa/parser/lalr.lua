@@ -201,7 +201,7 @@ local function lr0_closure(grammar, items)
   for _, item in ipairs(items) do
     local symbol = productions[item.index].body[item.dot]
     if symbol ~= nil and symbol > max_terminal_symbol and not added[symbol] then
-      for i in productions:each(symbol) do
+      for _, i in productions:each_index(symbol) do
         append(items, { index = i, dot = 1 })
       end
       added[symbol] = true
@@ -309,8 +309,8 @@ local function lr1_closure(grammar, items)
         for _, la in ipairs(first) do
           if la ~= marker_epsilon then
             if not added[symbol_key + la] then
-              for j in productions:each(symbol) do
-                append(items, { index = j, dot = 1, la = la })
+              for _, i in productions:each_index(symbol) do
+                append(items, { index = i, dot = 1, la = la })
               end
               added[symbol_key + la] = true
             end
@@ -318,12 +318,11 @@ local function lr1_closure(grammar, items)
         end
 
         if first.map[marker_epsilon] then
-        -- if first:find(marker_epsilon) then
           for _, la in ipairs(first_symbol(grammar, item.la)) do
             assert(la ~= marker_epsilon)
             if not added[symbol_key + la] then
-              for j in productions:each(symbol) do
-                append(items, { index = j, dot = 1, la = la })
+              for _, i in productions:each_index(symbol) do
+                append(items, { index = i, dot = 1, la = la })
               end
               added[symbol_key + la] = true
             end
