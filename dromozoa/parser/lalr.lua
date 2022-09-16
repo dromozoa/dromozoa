@@ -229,9 +229,9 @@ local function lr0_goto(grammar, items)
       end
     end
   end
-  for _, to_items in ipairs(set_of_to_items) do
-    lr0_closure(grammar, to_items)
-  end
+  -- for _, to_items in ipairs(set_of_to_items) do
+  --   lr0_closure(grammar, to_items)
+  -- end
 
   return set_of_to_items
 end
@@ -241,12 +241,19 @@ local function lr0_items(grammar)
   -- TODO これはなんとかできるのかな？
   local set_of_items = tree_set():insert(lr0_closure(grammar, { { index = 1, dot = 1 } }))
   for i, items in set_of_items:ipairs() do
-    local set_of_to_items = lr0_goto(grammar, items)
     local transition = {}
+
+    local set_of_to_items = lr0_goto(grammar, items)
     for _, to_items in ipairs(set_of_to_items) do
-      local _, i = set_of_items:insert(to_items)
-      transition[to_items.symbol] = i
+      lr0_closure(grammar, to_items)
+      local _, j = set_of_items:insert(to_items)
+      transition[to_items.symbol] = j
     end
+
+    -- for _, to_items in ipairs(set_of_to_items) do
+    --   local _, i = set_of_items:insert(to_items)
+    --   transition[to_items.symbol] = i
+    -- end
     transitions[i] = transition
   end
   return set_of_items, transitions
