@@ -17,8 +17,32 @@
 
 local append = require "dromozoa.parser.append"
 local production_set = require "dromozoa.parser.production_set"
-
 local table_unpack = table.unpack or unpack
+
+---------------------------------------------------------------------------
+
+local class = {}
+local metatable = { __index = class, __name = "dromozoa.parser.lalr.symbol_set" }
+
+function class:insert(symbol)
+  local n = self.map[symbol]
+  if n then
+    return n
+  else
+    n = #self + 1
+    self[n] = symbol
+    self.map[symbol] = n
+    return n, true
+  end
+end
+
+function class:contains(symbol)
+  return self.map[symbol]
+end
+
+local function symbol_set()
+  return setmetatable({ map = {} }, metatable)
+end
 
 ---------------------------------------------------------------------------
 
@@ -82,29 +106,6 @@ local function eliminate_left_recursion(grammar)
     max_terminal_symbol = max_terminal_symbol;
     productions = new_productions;
   }
-end
-
----------------------------------------------------------------------------
-
--- 記号の集合（挿入順付きのユニークな整数列）
-
-local class = {}
-local metatable = { __index = class, __name = "dromozoa.parser.symbol_set" }
-
-function class:insert(symbol)
-  local n = self.map[symbol]
-  if n then
-    return n
-  else
-    n = #self + 1
-    self[n] = symbol
-    self.map[symbol] = n
-    return n, true
-  end
-end
-
-local function symbol_set()
-  return setmetatable({ map = {} }, metatable)
 end
 
 ---------------------------------------------------------------------------
@@ -290,7 +291,7 @@ local function lr1_closure(grammar, items)
           end
         end
 
-        if first.map[marker_epsilon] then
+        if first:contains(marker_epsilon) then
           for _, la in ipairs(first_symbol(grammar, item.la)) do
             assert(la ~= marker_epsilon)
             if not added[symbol_key + la] then

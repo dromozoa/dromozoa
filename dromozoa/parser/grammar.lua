@@ -192,7 +192,7 @@ function metatable:__call(token_names, that)
     end
   end
 
-  local productions = production_set():insert { head = start_head, body = { start_body } }
+  local productions = production_set { head = start_head, body = { start_body } }
   local used_symbols = {
     [max_terminal_symbol] = true;
     [start_head] = true;
