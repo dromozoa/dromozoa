@@ -40,8 +40,12 @@ function class:contains(symbol)
   return self.map[symbol]
 end
 
-local function symbol_set()
-  return setmetatable({ map = {} }, metatable)
+local function symbol_set(symbol)
+  local self = setmetatable({ map = {} }, metatable)
+  if symbol then
+    self:insert(symbol)
+  end
+  return self
 end
 
 ---------------------------------------------------------------------------
@@ -126,8 +130,7 @@ local function first_symbol(grammar, symbol)
   first_table[symbol] = false
 
   if symbol <= grammar.max_terminal_symbol then
-    first = symbol_set()
-    first:insert(symbol)
+    first = symbol_set(symbol)
   else
     first = symbol_set()
     for _, _, body in grammar.productions:each(symbol) do
