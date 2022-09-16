@@ -20,20 +20,6 @@ local production_set = require "dromozoa.parser.production_set"
 
 local table_unpack = table.unpack or unpack
 
-local function table_slice(t, i, j)
-  if i == nil then
-    i = 1
-  elseif i < 1 then
-    error "value is nil"
-  end
-  if j == nil then
-    j = #t
-  elseif i <= j and j > #t then
-    error "value is nil"
-  end
-  return { table_unpack(t, i, j) }
-end
-
 ---------------------------------------------------------------------------
 
 local function eliminate_left_recursion(grammar)
