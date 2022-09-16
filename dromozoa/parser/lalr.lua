@@ -218,10 +218,13 @@ local function items_to_key(grammar, items)
 end
 
 local function lr0_items(grammar)
+  local productions = grammar.productions
+
   local transitions = {}
 
   local start_items = { { index = 1, dot = 1 } }
-  local map_of_items = { [items_to_key(grammar, start_items)] = 1 }
+  local start_items_key = tostring(1 + #productions)
+  local map_of_items = { [start_items_key] = 1 }
   local set_of_items = { lr0_closure(grammar, start_items) }
   for i, items in ipairs(set_of_items) do
     local transition = {}
