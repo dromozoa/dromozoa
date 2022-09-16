@@ -25,13 +25,14 @@ local class = {}
 local metatable = { __index = class, __name = "dromozoa.parser.lalr.symbol_set" }
 
 function class:insert(symbol)
-  local n = self.map[symbol]
+  local map = self.map
+  local n = map[symbol]
   if n then
     return n
   else
-    n = #self + 1
+    local n = #self + 1
     self[n] = symbol
-    self.map[symbol] = n
+    map[symbol] = n
     return n, true
   end
 end
