@@ -15,8 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local tree_map = require "dromozoa.tree_map"
-local tree_set = require "dromozoa.tree_set"
 local production_set = require "dromozoa.parser.production_set"
 
 -- TODO 共通コード
@@ -198,6 +196,7 @@ local function lr0_closure(grammar, items)
   local max_terminal_symbol = grammar.max_terminal_symbol
   local productions = grammar.productions
 
+  -- 項のリストから、点の次の記号をとって、それを頭部に持つ生成規則のリストをつくる
   local added = {}
   for _, item in ipairs(items) do
     local symbol = productions[item.index].body[item.dot]
@@ -214,36 +213,60 @@ end
 
 local function lr0_goto(grammar, items)
   local productions = grammar.productions
-  local map_of_to_items = tree_map()
+
+  local map_of_to_items = {}
+  local set_of_to_items = {}
 
   for _, item in ipairs(items) do
     local symbol = productions[item.index].body[item.dot]
-    if symbol ~= nil then
-      map_of_to_items:insert_or_update(symbol, function ()
-        return { { index = item.index, dot = item.dot + 1 } }
-      end, function (items)
-        append(items, { index = item.index, dot = item.dot + 1 })
-        return items
-      end)
+    if symbol then
+      local n = map_of_to_items[symbol]
+      if n then
+        append(set_of_to_items[n], { index = item.index, dot = item.dot + 1 })
+      else
+        map_of_to_items[symbol] = append(set_of_to_items, { symbol = symbol, { index = item.index, dot = item.dot + 1 } })
+      end
     end
   end
-  for _, to_items in map_of_to_items:pairs() do
-    lr0_closure(grammar, to_items)
-  end
+  -- for _, to_items in ipairs(set_of_to_items) do
+  --   lr0_closure(grammar, to_items)
+  -- end
 
-  return map_of_to_items
+  return set_of_to_items
+end
+
+local function items_to_key(grammar, items)
+  local productions = grammar.productions
+
+  local result = {}
+  for i, item in ipairs(items) do
+    -- 生成規則の番号 (index) と点の位置 (dot) の組をキーとして使う。
+    result[i] = item.index + item.dot * #productions
+  end
+  return table.concat(result, ",")
 end
 
 local function lr0_items(grammar)
   local transitions = {}
-  -- TODO これはなんとかできるのかな？
-  local set_of_items = tree_set():insert(lr0_closure(grammar, { { index = 1, dot = 1 } }))
-  for i, items in set_of_items:ipairs() do
-    local map_of_to_items = lr0_goto(grammar, items)
-    local transition = tree_map()
-    for symbol, to_items in map_of_to_items:pairs() do
-      transition:assign(symbol, select(2, set_of_items:insert(to_items)))
+
+  local start_items = { { index = 1, dot = 1 } }
+  local map_of_items = { [items_to_key(grammar, start_items)] = 1 }
+  local set_of_items = { lr0_closure(grammar, start_items) }
+  for i, items in ipairs(set_of_items) do
+    local transition = {}
+
+    local set_of_to_items = lr0_goto(grammar, items)
+    for _, to_items in ipairs(set_of_to_items) do
+      local items_key = items_to_key(grammar, to_items)
+      local j = map_of_items[items_key]
+
+      if not j then
+        j = append(set_of_items, lr0_closure(grammar, to_items))
+        map_of_items[items_key] = j
+      end
+      transition[to_items.symbol] = j
     end
+
     transitions[i] = transition
   end
   return set_of_items, transitions
@@ -326,7 +349,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
   local set_of_kernel_items = {}
   local map_of_kernel_items = {}
 
-  for i, items in set_of_items:ipairs() do
+  for i, items in ipairs(set_of_items) do
     local kernel_items = {}
     local kernel_table = {}
     for j, item in ipairs(items) do
@@ -350,7 +373,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
 
   local propagations = {}
 
-  for from_i, from_items in set_of_items:ipairs() do
+  for from_i, from_items in ipairs(set_of_items) do
     for from_j, from_item in ipairs(from_items) do
       if productions[from_item.index].head == max_terminal_symbol + 1 or from_item.dot > 1 then
         local items = { { index = from_item.index, dot = from_item.dot, la = marker_lookahead } }
@@ -358,7 +381,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
         for _, item in ipairs(items) do
           local symbol = productions[item.index].body[item.dot]
           if symbol ~= nil then
-            local to_i = transitions[from_i]:find(symbol)
+            local to_i = transitions[from_i][symbol]
             local to_j = map_of_kernel_items[to_i][item.index][item.dot + 1]
             if item.la == marker_lookahead then
               append(propagations, { from_i = from_i, from_j = from_j, to_i = to_i, to_j = to_j })
@@ -472,7 +495,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
     local rr = 0
 
     local data = {}
-    for symbol, j in transitions[i]:pairs() do
+    for symbol, j in pairs(transitions[i]) do
       data[symbol] = j
     end
 

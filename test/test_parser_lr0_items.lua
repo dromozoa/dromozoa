@@ -39,7 +39,7 @@ end
 local set_of_items = data.lr0_set_of_items
 local transitions = data.transitions
 
-for i, items in set_of_items:ipairs() do
+for i, items in ipairs(set_of_items) do
   buffer:append(("="):rep(75), "\nI_", i, "\n")
   for _, item in ipairs(items) do
     local production = g.productions[item.index]
@@ -55,11 +55,17 @@ for i, items in set_of_items:ipairs() do
     end
     buffer:append "\n"
   end
-  if not transitions[i]:empty() then
+  if next(transitions[i]) then
     buffer:append "\n"
   end
-  for symbol, j in transitions[i]:pairs() do
-    buffer:append("  I_", i, " -> I_", j, " ", g.symbol_names[symbol], "\n")
+
+  local transition = {}
+  for symbol, j in pairs(transitions[i]) do
+    transition[#transition + 1] = { symbol = symbol, j = j }
+  end
+  table.sort(transition, function (a, b) return a.j < b.j end)
+  for _, t in ipairs(transition) do
+    buffer:append("  I_", i, " -> I_", t.j, " ", g.symbol_names[t.symbol], "\n")
   end
 end
 buffer:append(("="):rep(75), "\n")
@@ -106,11 +112,11 @@ I_5
   F -> . ( E )
   F -> . id
 
-  I_5 -> I_9 E
   I_5 -> I_3 T
   I_5 -> I_4 F
   I_5 -> I_5 (
   I_5 -> I_6 id
+  I_5 -> I_9 E
 ===========================================================================
 I_6
   F -> id .
@@ -122,26 +128,26 @@ I_7
   F -> . ( E )
   F -> . id
 
-  I_7 -> I_10 T
   I_7 -> I_4 F
   I_7 -> I_5 (
   I_7 -> I_6 id
+  I_7 -> I_10 T
 ===========================================================================
 I_8
   T -> T * . F
   F -> . ( E )
   F -> . id
 
-  I_8 -> I_11 F
   I_8 -> I_5 (
   I_8 -> I_6 id
+  I_8 -> I_11 F
 ===========================================================================
 I_9
   F -> ( E . )
   E -> E . + T
 
-  I_9 -> I_12 )
   I_9 -> I_7 +
+  I_9 -> I_12 )
 ===========================================================================
 I_10
   E -> E + T .
