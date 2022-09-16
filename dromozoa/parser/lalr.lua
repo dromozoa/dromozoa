@@ -246,14 +246,10 @@ local function lr0_items(grammar)
     local set_of_to_items = lr0_goto(grammar, items)
     for _, to_items in ipairs(set_of_to_items) do
       lr0_closure(grammar, to_items)
-      local _, j = set_of_items:insert(to_items)
+      local _, j, inserted = set_of_items:insert(to_items)
       transition[to_items.symbol] = j
     end
 
-    -- for _, to_items in ipairs(set_of_to_items) do
-    --   local _, i = set_of_items:insert(to_items)
-    --   transition[to_items.symbol] = i
-    -- end
     transitions[i] = transition
   end
   return set_of_items, transitions
