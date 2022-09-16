@@ -240,9 +240,15 @@ local function lr0_items(grammar)
   local set_of_items = tree_set():insert(lr0_closure(grammar, { { index = 1, dot = 1 } }))
   for i, items in set_of_items:ipairs() do
     local map_of_to_items = lr0_goto(grammar, items)
-    local transition = tree_map()
+    local transition = {}
     for symbol, to_items in map_of_to_items:pairs() do
-      transition:assign(symbol, select(2, set_of_items:insert(to_items)))
+      -- TODO 複数回存在することはある。それはいつ？
+      -- transition:assign(symbol, select(2, set_of_items:insert(to_items)))
+      local _, i, inserted = set_of_items:insert(to_items)
+      -- if not inserted then
+      --   print(i)
+      -- end
+      transition[symbol] = i
     end
     transitions[i] = transition
   end
@@ -358,7 +364,7 @@ local function lalr1_kernels(grammar, set_of_items, transitions)
         for _, item in ipairs(items) do
           local symbol = productions[item.index].body[item.dot]
           if symbol ~= nil then
-            local to_i = transitions[from_i]:find(symbol)
+            local to_i = transitions[from_i][symbol]
             local to_j = map_of_kernel_items[to_i][item.index][item.dot + 1]
             if item.la == marker_lookahead then
               append(propagations, { from_i = from_i, from_j = from_j, to_i = to_i, to_j = to_j })
@@ -472,7 +478,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
     local rr = 0
 
     local data = {}
-    for symbol, j in transitions[i]:pairs() do
+    for symbol, j in pairs(transitions[i]) do
       data[symbol] = j
     end
 
