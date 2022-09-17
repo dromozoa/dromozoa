@@ -206,43 +206,39 @@ local function lr0_goto(grammar, items)
   return set_of_to_items
 end
 
-local function items_to_key(grammar, items)
-  local productions = grammar.productions
-
-  local result = {}
-  for i, item in ipairs(items) do
-    -- 生成規則の番号 (index) と点の位置 (dot) の組をキーとして使う。
-    result[i] = item.index + item.dot * #productions
-  end
-  return table.concat(result, ",")
-end
-
 local function lr0_items(grammar)
-  local productions = grammar.productions
+  local n = #grammar.productions
 
-  local transitions = {}
+  -- 項のリストをカンマ区切りの文字列で表現する。
+  local function encode_items(items)
+    local result = {}
+    for i, item in ipairs(items) do
+      -- 生成規則の番号 (index) と点の位置 (dot) の組で項を表現する。
+      result[i] = item.index + item.dot * n
+    end
+    return table.concat(result, ",")
+  end
 
   local start_items = { { index = 1, dot = 1 } }
-  local start_items_key = tostring(1 + #productions)
-  local map_of_items = { [start_items_key] = 1 }
+  local map_of_items = { [encode_items(start_items)] = 1 }
   local set_of_items = { lr0_closure(grammar, start_items) }
+  local transitions = {}
+
   for i, items in ipairs(set_of_items) do
     local transition = {}
-
     local set_of_to_items = lr0_goto(grammar, items)
     for _, to_items in ipairs(set_of_to_items) do
-      local items_key = items_to_key(grammar, to_items)
+      local items_key = encode_items(to_items)
       local j = map_of_items[items_key]
-
       if not j then
         j = append(set_of_items, lr0_closure(grammar, to_items))
         map_of_items[items_key] = j
       end
       transition[to_items.symbol] = j
     end
-
     transitions[i] = transition
   end
+
   return set_of_items, transitions
 end
 
@@ -276,18 +272,16 @@ local function lr1_closure(grammar, items)
           lr1_closure_table[item_key] = first
         end
 
-        -- 点の後の記号 (symbol) とFIRST(b la)に含まれる記号の組をキーとして扱
+        -- 点の後の記号 (symbol) とFIRST(b la)に含まれる記号の組をキーとして使
         -- う。FIRST(b la)は先読み記号 (#) を含む可能性がある。
         local symbol_key = symbol * (#symbol_names + 2)
 
         for _, la in ipairs(first) do
-          if la ~= marker_epsilon then
-            if not added[symbol_key + la] then
-              for _, i in productions:each(symbol) do
-                append(items, { index = i, dot = 1, la = la })
-              end
-              added[symbol_key + la] = true
+          if la ~= marker_epsilon and not added[symbol_key + la] then
+            for _, i in productions:each(symbol) do
+              append(items, { index = i, dot = 1, la = la })
             end
+            added[symbol_key + la] = true
           end
         end
 
