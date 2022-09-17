@@ -555,7 +555,7 @@ return function (grammar)
   local lr0_set_of_items, transitions = lr0_items(grammar)
   grammar.lr1_closure_table = {}
   local lalr1_set_of_items = lalr1_kernels(grammar, lr0_set_of_items, transitions)
-  for i, items in ipairs(lalr1_set_of_items) do
+  for _, items in ipairs(lalr1_set_of_items) do
     lr1_closure(grammar, items)
   end
   local actions, conflictions = lr1_construct_table(grammar, lalr1_set_of_items, transitions)
