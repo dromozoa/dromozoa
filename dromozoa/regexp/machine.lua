@@ -26,8 +26,8 @@ local metatable = { __index = class, __name = "dromozoa.regexp.machine.state" }
 
 function class:simulate(byte, resolved)
   for _, t in ipairs(self.transitions) do
-    if t.set ~= nil and t.set[byte] then
-      if resolved ~= nil and (resolved.timestamp == nil or resolved.timestamp > t.timestamp) then
+    if t.set and t.set[byte] then
+      if resolved and (not resolved.timestamp or resolved.timestamp > t.timestamp) then
         resolved.timestamp = t.timestamp
         resolved.action = t.action
       end
@@ -37,7 +37,7 @@ function class:simulate(byte, resolved)
 end
 
 function class:update(timestamp, accept_action)
-  if timestamp ~= nil and accept_action ~= nil and (self.timestamp == nil or self.timestamp > timestamp) then
+  if timestamp and accept_action and (not self.timestamp or self.timestamp > timestamp) then
     self.timestamp = timestamp
     self.accept_action = accept_action
   end
@@ -134,7 +134,7 @@ end
 
 local function tree_to_nfa(node)
   local u, v = node_to_nfa(node)
-  if v.accept_action == nil then
+  if not v.accept_action then
     v:update(node.timestamp, "")
   end
   return u, v
@@ -144,10 +144,9 @@ end
 
 local function update_state_indices_impl(u, states, color)
   color[u] = 1
-  -- u.index = states:append(u):size()
   u.index = append(states, u)
   for _, t in ipairs(u.transitions) do
-    if color[t.v] == nil then
+    if not color[t.v] then
       update_state_indices_impl(t.v, states, color)
     end
   end
@@ -164,7 +163,7 @@ end
 
 local function epsilon_closure_impl(u, closure)
   for _, t in ipairs(u.transitions) do
-    if t.set == nil then
+    if not t.set then
       closure:insert(t.v.index, t.v)
       epsilon_closure_impl(t.v, closure)
     end
@@ -173,7 +172,7 @@ end
 
 local function epsilon_closure(u, epsilon_closures)
   local closure = epsilon_closures[u]
-  if closure == nil then
+  if not closure then
     closure = tree_map():insert(u.index, u)
     epsilon_closure_impl(u, closure)
     epsilon_closures[u] = closure
@@ -202,7 +201,7 @@ local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
     local v_closure = tree_map()
     for _, u in u_closure:pairs() do
       local to = u:simulate(byte, resolved)
-      if to ~= nil then
+      if to then
         for k, v in epsilon_closure(to, epsilon_closures):pairs() do
           v_closure:assign(k, v)
         end
@@ -221,7 +220,7 @@ local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
   end
 
   for v_closure, v in state_map:pairs() do
-    if color:find(v_closure) == nil then
+    if not color:find(v_closure) then
       nfa_to_dfa_impl(v_closure, v, epsilon_closures, states, color)
     end
   end
@@ -245,7 +244,7 @@ local function create_initial_partitions(u, accept_partition_map, nonaccept_part
   color[u] = 1
 
   local partition = nonaccept_partition
-  if u.accept_action ~= nil then
+  if u.accept_action then
     partition = select(2, accept_partition_map:insert_or_update(u.accept_action, function () return {} end))
   end
   -- partition:append(u)
@@ -253,7 +252,7 @@ local function create_initial_partitions(u, accept_partition_map, nonaccept_part
   partition_map[u] = partition
 
   for _, t in ipairs(u.transitions) do
-    if color[t.v] == nil then
+    if not color[t.v] then
       create_initial_partitions(t.v, accept_partition_map, nonaccept_partition, partition_map, color)
     end
   end
@@ -271,7 +270,7 @@ local function minimize(u)
   for _, partition in accept_partition_map:pairs() do
     append(partitions, partition)
   end
-  if next(partition) ~= nil then
+  if next(partition) then
     append(partitions, partition)
   end
 
@@ -301,7 +300,7 @@ local function minimize(u)
 
           if same_transition then
             local new_partition = new_partition_map[x]
-            if new_partition == nil then
+            if not new_partition then
               local new_partition = new_partition_map[y]
               append(new_partition, x)
               new_partition_map[x] = new_partition
@@ -315,7 +314,7 @@ local function minimize(u)
           end
         end
 
-        if new_partition_map[x] == nil then
+        if not new_partition_map[x] then
           local new_partition = { x }
           new_partition_map[x] = new_partition
           append(new_partitions, new_partition)
@@ -341,7 +340,7 @@ local function minimize(u)
       u:update(x.timestamp, x.accept_action)
     end
     states[partition] = u
-    if u.accept_action ~= nil then
+    if u.accept_action then
       append(accept_states, u)
     end
   end
@@ -353,7 +352,7 @@ local function minimize(u)
     for byte = 0x00, 0xFF do
       local resolved = {}
       local x_to, _, x_action = partition[1]:simulate(byte, resolved)
-      if x_to ~= nil then
+      if x_to then
         local p = partition_map[x_to]
 
         for j = 2, #partition do
@@ -380,7 +379,7 @@ end
 local function collect_living_states(u, living_states, color)
   color[u] = 1
 
-  if u.accept_action ~= nil then
+  if u.accept_action then
     living_states[u] = true
   end
 
@@ -415,9 +414,9 @@ end
 
 local function simulate(u, byte, resolved_timestamp, null)
   local v, timestamp, action = u:simulate(byte)
-  if v == nil then
+  if not v then
     return null, resolved_timestamp
-  elseif resolved_timestamp == nil then
+  elseif not resolved_timestamp then
     resolved_timestamp = timestamp
   end
   return v, resolved_timestamp, action
@@ -440,7 +439,7 @@ local function difference_impl(x, y)
     for j = i == 0 and 1 or 0, y_n do
       local y = j == 0 and null or y_states[j]
       local z = state()
-      if y.accept_action == nil then
+      if not y.accept_action then
         z:update(x.timestamp, x.accept_action)
       end
       z_states[i * n + j] = z
@@ -508,7 +507,7 @@ function module.lexer(token_names, that)
       name = node.literal
     end
     local timestamp = node.timestamp
-    assert(timestamp ~= nil)
+    assert(timestamp)
     append(data, { timestamp = timestamp, node = node, name = name })
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
@@ -524,9 +523,9 @@ function module.lexer(token_names, that)
     transition(s, u)
 
     local symbol = "nil"
-    if item.name ~= nil then
+    if item.name then
       symbol = token_table[item.name]
-      if symbol == nil then
+      if not symbol then
         symbol = append(token_names, item.name)
         token_table[item.name] = symbol
       end
