@@ -57,7 +57,7 @@ function class:update(timestamp, byte)
   if self.timestamp > timestamp then
     self.timestamp = timestamp
   end
-  self.set[byte] = byte
+  self.set[byte] = true
   return self
 end
 
