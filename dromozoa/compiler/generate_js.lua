@@ -30,7 +30,7 @@ local LS = string.char(0xE2, 0x80, 0xA8)
 local PS = string.char(0xE2, 0x80, 0xA9)
 
 local function quote(s)
-  return '"' .. s:gsub("[\0-\31\"\\]", quotes):gsub(LS, [[\u2028]]):gsub(PS, [[\u2029]]) .. '"'
+  return '"' .. s:gsub("[%z\1-\31\"\\]", quotes):gsub(LS, [[\u2028]]):gsub(PS, [[\u2029]]) .. '"'
 end
 
 local function generate_proto_code(out, protos, u, n)
