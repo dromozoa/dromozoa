@@ -15,17 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local append = require "dromozoa.parser.append"
 local runtime = require "dromozoa.parser.runtime"
-
-local function append(data, ...)
-  local n = #data
-  for i = 1, select("#", ...) do
-    local v = select(i, ...)
-    local t = type(v)
-    assert(t == "number" or t == "string")
-    data[n + i] = v
-  end
-end
 
 return function (grammar, actions)
   local static_data = {}
@@ -52,7 +43,7 @@ return function (grammar, actions)
 
   local function substitute(variable)
     local result = grammar.symbol_table[variable]
-    if result == nil then
+    if not result then
       error("variable " .. variable .. " not defined")
     end
     return result
@@ -60,7 +51,7 @@ return function (grammar, actions)
 
   for i, production in ipairs(grammar.productions) do
     local semantic_action = production.semantic_action
-    if semantic_action == nil then
+    if not semantic_action then
       semantic_action = ""
     end
     local semantic_action = semantic_action
