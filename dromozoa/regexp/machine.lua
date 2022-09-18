@@ -15,17 +15,9 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local append = require "dromozoa.append"
 local compare = require "dromozoa.compare"
 local tree_map = require "dromozoa.tree_map"
-
----------------------------------------------------------------------------
-
-local function append(t, v)
-  assert(v ~= nil)
-  local n = #t + 1
-  t[n] = v
-  return n
-end
 
 ---------------------------------------------------------------------------
 
