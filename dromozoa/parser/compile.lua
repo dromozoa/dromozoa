@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local append = require "dromozoa.parser.append"
+local append = require "dromozoa.append"
 local runtime = require "dromozoa.parser.runtime"
 
 return function (grammar, actions)
