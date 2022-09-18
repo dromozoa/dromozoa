@@ -206,21 +206,21 @@ local function lr0_goto(grammar, items)
   return set_of_to_items
 end
 
+local function encode_items(n, items)
+  -- 項のリストをカンマ区切りの文字列で表現する。
+  local result = {}
+  for i, item in ipairs(items) do
+    -- 生成規則の番号 (index) と点の位置 (dot) の組で項を表現する。
+    result[i] = item.index + item.dot * n
+  end
+  return table.concat(result, ",")
+end
+
 local function lr0_items(grammar)
   local n = #grammar.productions
 
-  -- 項のリストをカンマ区切りの文字列で表現する。
-  local function encode_items(items)
-    local result = {}
-    for i, item in ipairs(items) do
-      -- 生成規則の番号 (index) と点の位置 (dot) の組で項を表現する。
-      result[i] = item.index + item.dot * n
-    end
-    return table.concat(result, ",")
-  end
-
   local start_items = { { index = 1, dot = 1 } }
-  local map_of_items = { [encode_items(start_items)] = 1 }
+  local map_of_items = { [encode_items(n, start_items)] = 1 }
   local set_of_items = { lr0_closure(grammar, start_items) }
   local transitions = {}
 
@@ -228,7 +228,7 @@ local function lr0_items(grammar)
     local transition = {}
     local set_of_to_items = lr0_goto(grammar, items)
     for _, to_items in ipairs(set_of_to_items) do
-      local items_key = encode_items(to_items)
+      local items_key = encode_items(n, to_items)
       local j = map_of_items[items_key]
       if not j then
         j = append(set_of_items, lr0_closure(grammar, to_items))
