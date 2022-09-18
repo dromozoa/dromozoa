@@ -27,7 +27,7 @@ local union = machine.union
 local guard = machine.guard
 local lexer = machine.lexer
 
-local token_names = array()
+local token_names = {}
 
 local code = compile {
   [[local ra]];

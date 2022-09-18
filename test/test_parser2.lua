@@ -17,7 +17,6 @@
 
 local verbose = os.getenv "VERBOSE" == "1"
 
-local array = require "dromozoa.array"
 local regexp = {
   pattern = require "dromozoa.regexp.pattern";
   machine = require "dromozoa.regexp.machine";
@@ -31,7 +30,7 @@ local parser = {
 
 local _ = regexp.pattern
 
-local token_names = array()
+local token_names = {}
 
 local regexp_filename = "test-gen-parser2-regexp.lua"
 local out = assert(io.open(regexp_filename, "w"))

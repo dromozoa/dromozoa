@@ -186,13 +186,12 @@ end;
   while true do
     local token = coroutine.yield()
     local symbol = token[0]
-    if symbol ~= nil then
+    if symbol then
       while true do
         local state = stack[#stack]
         local action = actions[state][symbol]
         if action == 0 then
-          local at = ""
-          if token.f ~= nil and token.n ~= nil and token.c ~= nil and token.s ~= nil then
+          if token.f and token.n and token.c and token.s  then
             error(token.f .. ":" .. token.n .. ":" .. token.c .. ": parser error (cannot transition near " .. token.s .. ")")
           else
             error("parser error (cannot transition near " .. symbol_names[symbol] .. ")")
@@ -220,16 +219,16 @@ end;
           local s = nodes[n + i]
           S[i] = s
           SS[i] = s
-          if sf == nil then
+          if not sf then
             sf, si, sj, sn, sc = s.f, s.i, s.j, s.n, s.c
           elseif sf == s.f then
-            if si == nil or si > s.i then
+            if not si or si > s.i then
               si = s.i
             end
-            if sj == nil or sj < s.j then
+            if not sj or sj < s.j then
               sj = s.j
             end
-            if sn == nil or sn > s.n or (sn == s.n and (sc == nil or sc > s.c)) then
+            if not sn or sn > s.n or (sn == s.n and (not sc or sc > s.c)) then
               sn, sc = s.n, s.c
             end
           end

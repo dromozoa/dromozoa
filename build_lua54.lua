@@ -28,7 +28,7 @@ local parser = {
 }
 
 local regexp_filename, parser_filename = ...
-local token_names = array()
+local token_names = {}
 
 local _ = regexp.pattern
 
@@ -168,7 +168,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"block_" "retstat"                                  %"$$=$1 append($2)";
 
   block_
-    = _                                                    %"$$=create($block)"
+    = _()                                                  %"$$=create($block)"
     + _"block_" ";"                                        %"$$=$1"
     + _"block_" "stat"                                     %"$$=$1 append($2)";
 
@@ -190,7 +190,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"local" "attnamelist" "=" "explist"                 %"$$=$1 append($2,$4) $4.adjust=#$2";
 
   else_clause
-    = _                                                    %"$$=create($else)"
+    = _()                                                  %"$$=create($else)"
     + _"else" "block"                                      %"$$=$1 append($2) $2.scope=true"
     + _"elseif" "exp" "then" "block" "else_clause"         %"$$=$1 append($2,$4,$5) $4.scope=true";
 
@@ -209,7 +209,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"attnamelist" "," "Name" "attrib"                   %"$$=$1 append($3) $3.attribute=$4.v $3.declare=true";
 
   attrib
-    = _
+    = _()
     + _"<" "Name" ">"                                      %"$$=$0 $$.v=$2.v";
 
   retstat

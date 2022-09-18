@@ -48,6 +48,10 @@ function class:each(head)
   end, assert(self.groups[head]), 0
 end
 
-return function ()
-  return setmetatable({ groups = {} }, metatable)
+return function (production)
+  local self = setmetatable({ groups = {} }, metatable)
+  if production then
+    self:insert(production)
+  end
+  return self
 end
