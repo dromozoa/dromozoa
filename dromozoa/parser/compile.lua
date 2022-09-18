@@ -27,19 +27,19 @@ return function (grammar, actions)
   for i, v in ipairs(grammar.symbol_names) do
     append(static_data, ("%q,"):format(v))
   end
-  append(static_data, "};\n", "max_terminal_symbol=", grammar.max_terminal_symbol, ";\n", "actions={\n")
+  append(static_data, "};\nmax_terminal_symbol=", grammar.max_terminal_symbol, ";\nactions={\n")
   for _, action in ipairs(actions) do
     append(static_data, "{", table.concat(action, ","), "};\n")
   end
-  append(static_data, "};\n", "heads={")
+  append(static_data, "};\nheads={")
   for _, production in ipairs(grammar.productions) do
     append(static_data, production.head, ",")
   end
-  append(static_data, "};\n", "sizes={")
+  append(static_data, "};\nsizes={")
   for _, production in ipairs(grammar.productions) do
     append(static_data, #production.body, ",")
   end
-  append(static_data, "};\n", "semantic_actions={")
+  append(static_data, "};\nsemantic_actions={")
 
   local function substitute(variable)
     local result = grammar.symbol_table[variable]
