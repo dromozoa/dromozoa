@@ -71,7 +71,7 @@ local function insert_action(context, action)
 end
 
 local function insert_shared(context, shared)
-  return insert(context.shared, table.concat(shared, ","))
+  return "_[" .. insert(context.shared, table.concat(shared, ",")) .. "]"
 end
 
 local function update_state_indices_nonaccept(u, index, color)
@@ -129,26 +129,22 @@ local function generate(context, index, machine)
   construct_table(context, u, max_state, transitions, transition_actions, transition_states, {})
 
   local out = context.static.out
-
-  append(
-      context.static.out,
-      "{\nstart_state=", u.index,
-      ";\nmax_accept_state=", #accept_actions,
-      ";\nmax_state=", max_state,
-      ";\ntransitions={[0]=")
+  append(out, "{\n")
+  append(out, "start_state=", u.index, ";\n")
+  append(out, "max_accept_state=", #accept_actions, ";\n")
+  append(out, "max_state=", max_state, ";\n")
+  append(out, "transitions={[0]=")
   for byte = 0x00, 0xFF do
-    append(context.static.out, "_[", insert_shared(context, transitions[byte]), "],")
+    append(context.static.out, insert_shared(context, transitions[byte]), ",")
   end
-  append(
-      context.static.out,
-      "};\ntransition_actions=_[", insert_shared(context, transition_actions),
-      "];\ntransition_states=_[", insert_shared(context, transition_states),
-      "];\naccept_actions=_[", insert_shared(context, accept_actions),
-      "];\n")
+  append(out, "};\n")
+  append(out, "transition_actions=", insert_shared(context, transition_actions), ";\n")
+  append(out, "transition_states=", insert_shared(context, transition_states), ";\n")
+  append(out, "accept_actions=", insert_shared(context, accept_actions), ";\n")
   if machine.guard_action then
-    append(context.static.out, "guard_action=", insert_action(context, machine.guard_action), ";\n")
+    append(out, "guard_action=", insert_action(context, machine.guard_action), ";\n")
   end
-  append(context.static.out, "};\n")
+  append(out, "};\n")
 end
 
 return function (that)
@@ -188,7 +184,7 @@ return function (that)
   for i, v in ipairs(data) do
     generate(context, i, v.machine)
   end
-  append(context.static.out, "action_threads=_[", insert_shared(context, context.action.threads), "];\n")
+  append(context.static.out, "action_threads=", insert_shared(context, context.action.threads), ";\n")
 
   for _, v in ipairs(context.shared.set) do
     append(context.shared.out, "{", v, "};\n")
