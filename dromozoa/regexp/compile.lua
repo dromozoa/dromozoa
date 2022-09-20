@@ -128,25 +128,27 @@ local function generate(context, index, machine)
   local transition_states = {}
   construct_table(context, u, max_state, transitions, transition_actions, transition_states, {})
 
-  append(context.static.out,
-    "{\n",
-    "start_state=", u.index, ";\n",
-    "max_accept_state=", #accept_actions, ";\n",
-    "max_state=", max_state, ";\n",
-    "transitions={[0]=")
+  local out = context.static.out
+
+  append(
+      context.static.out,
+      "{\nstart_state=", u.index,
+      ";\nmax_accept_state=", #accept_actions,
+      ";\nmax_state=", max_state,
+      ";\ntransitions={[0]=")
   for byte = 0x00, 0xFF do
     append(context.static.out, "_[", insert_shared(context, transitions[byte]), "],")
   end
-  append(context.static.out,
-    "};\n",
-    "transition_actions=_[", insert_shared(context, transition_actions), "];\n",
-    "transition_states=_[", insert_shared(context, transition_states), "];\n",
-    "accept_actions=_[", insert_shared(context, accept_actions), "];\n")
+  append(
+      context.static.out,
+      "};\ntransition_actions=_[", insert_shared(context, transition_actions),
+      "];\ntransition_states=_[", insert_shared(context, transition_states),
+      "];\naccept_actions=_[", insert_shared(context, accept_actions),
+      "];\n")
   if machine.guard_action then
     append(context.static.out, "guard_action=", insert_action(context, machine.guard_action), ";\n")
   end
-  append(context.static.out,
-    "};\n")
+  append(context.static.out, "};\n")
 end
 
 return function (that)
