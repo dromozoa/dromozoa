@@ -36,7 +36,7 @@ end
 local function insert_action(context, action)
   local function substitute(variable)
     local result = context.action.variables[variable]
-    if result == nil then
+    if not result then
       error("variable " .. variable .. " not defined")
     end
     return result
@@ -79,12 +79,12 @@ end
 
 local function update_state_indices_nonaccept(u, index, color)
   color[u] = 1
-  if u.accept_action == nil then
+  if not u.accept_action then
     index = index + 1
     u.index = index
   end
   for _, t in ipairs(u.transitions) do
-    if color[t.v] == nil then
+    if not color[t.v] then
       index = update_state_indices_nonaccept(t.v, index, color)
     end
   end
@@ -96,14 +96,14 @@ local function construct_table(context, u, max_state, transitions, transition_ac
   color[u] = 1
   for _, t in ipairs(u.transitions) do
     local code = t.v.index
-    if t.action ~= nil then
+    if t.action then
       code = max_state + append(transition_actions, insert_action(context, t.action))
       append(transition_states, t.v.index)
     end
     for byte in pairs(t.set) do
       transitions[byte][u.index] = code
     end
-    if color[t.v] == nil then
+    if not color[t.v] then
       construct_table(context, t.v, max_state, transitions, transition_actions, transition_states, color)
     end
   end
@@ -145,7 +145,7 @@ local function generate(context, index, machine)
     "transition_actions=_[", insert_shared(context, transition_actions), "];\n",
     "transition_states=_[", insert_shared(context, transition_states), "];\n",
     "accept_actions=_[", insert_shared(context, accept_actions), "];\n")
-  if machine.guard_action ~= nil then
+  if machine.guard_action then
     append(context.static.out, "guard_action=", insert_action(context, machine.guard_action), ";\n")
   end
   append(context.static.out,
@@ -181,7 +181,7 @@ return function (that)
     if v.main then
       append(context.static.out, "main=", i, ";\n")
     end
-    if v.name ~= nil then
+    if v.name then
       context.action.variables[v.name] = i
     end
   end
