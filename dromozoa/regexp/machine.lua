@@ -475,18 +475,23 @@ local function difference_impl(x, y)
       local y_u = j == 0 and null or y_states[j]
       local z_u = z_states[i * n + j]
 
-      local transition_map = tree_map()
+      local tmap = {}
       for byte = 0x00, 0xFF do
         local x_v, timestamp, action = simulate(x_u, byte, nil, null)
         local y_v, timestamp = simulate(y_u, byte, timestamp, null)
         local index = x_v.index * n + y_v.index
         if index ~= 0 then
           local z_v = z_states[index]
-          transition_map:insert_or_update({ index = index, action = action }, function ()
-            return transition(z_u, z_v, {}, timestamp, action)
-          end, function (t)
-            return t:update(timestamp, byte)
-          end)
+          local tkey = index
+          if action then
+            tkey = index .. ";" .. action
+          end
+          local t = tmap[tkey]
+          if t then
+            t:update(timestamp, byte)
+          else
+            tmap[tkey] = transition(z_u, z_v, {}, timestamp, action)
+          end
         end
       end
     end
