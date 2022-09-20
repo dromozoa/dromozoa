@@ -233,10 +233,9 @@ local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
           nfa_to_dfa_impl(v_closure, v, epsilon_closures, states, color)
         end
       end
-
       local tkey = vkey
       if resolved.action then
-        tkey = vkey .. ";" .. resolved.action
+        tkey = tkey .. ";" .. resolved.action
       end
       local t = tmap[tkey]
       if t then
@@ -368,26 +367,22 @@ local function minimize(u)
 
   for i, partition in ipairs(partitions) do
     local u = states[partition]
-    local transition_map = tree_map()
-
+    local tmap = {}
     for byte = 0x00, 0xFF do
       local resolved = {}
       local x_to, _, x_action = partition[1]:simulate(byte, resolved)
       if x_to then
-        local p = partition_map[x_to]
-
-        for j = 2, #partition do
-          local y_to, _, y_action = partition[j]:simulate(byte, resolved)
-          assert(p == partition_map[y_to])
-          assert(compare(x_action, y_action) == 0)
+        local v = states[partition_map[x_to]]
+        local tkey = v.index
+        if resolved.action then
+          tkey = tkey .. ";" .. resolved.action
         end
-
-        local v = states[p]
-        transition_map:insert_or_update({ index = v.index, action = resolved.action }, function ()
-          return transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
-        end, function (t)
-          return t:update(resolved.timestamp, byte)
-        end)
+        local t = tmap[tkey]
+        if t then
+          t:update(resolved.timestamp, byte)
+        else
+          tmap[tkey] = transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
+        end
       end
     end
   end
@@ -480,16 +475,15 @@ local function difference_impl(x, y)
         local y_v, timestamp = simulate(y_u, byte, timestamp, null)
         local index = x_v.index * n + y_v.index
         if index ~= 0 then
-          local z_v = z_states[index]
           local tkey = index
           if action then
-            tkey = index .. ";" .. action
+            tkey = tkey .. ";" .. action
           end
           local t = tmap[tkey]
           if t then
             t:update(timestamp, byte)
           else
-            tmap[tkey] = transition(z_u, z_v, {}, timestamp, action)
+            tmap[tkey] = transition(z_u, z_states[index], {}, timestamp, action)
           end
         end
       end
