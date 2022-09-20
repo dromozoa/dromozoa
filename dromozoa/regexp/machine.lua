@@ -192,7 +192,7 @@ local function epsilon_closure(u, epsilon_closures)
   return closure
 end
 
-local function closure_to_state(closure, states)
+local function epsilon_closure_to_state(closure, states)
   local u = states[closure.key]
   if not u then
     u = state()
@@ -224,7 +224,7 @@ local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
     end
     local vkey = epsilon_closure_key(v_closure)
     if vkey then
-      local v = closure_to_state(v_closure, states)
+      local v = epsilon_closure_to_state(v_closure, states)
       if not vmap[vkey] then
         vmap[vkey] = true
         if not color[vkey] then
@@ -252,7 +252,7 @@ local function nfa_to_dfa(u)
   local epsilon_closures = {}
   local states = {}
   local u_closure = epsilon_closure(u, epsilon_closures)
-  local u = closure_to_state(u_closure, states)
+  local u = epsilon_closure_to_state(u_closure, states)
   nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, {})
   return u
 end

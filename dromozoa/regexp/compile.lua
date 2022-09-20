@@ -15,21 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local append = require "dromozoa.append"
 local runtime = require "dromozoa.regexp.runtime"
-
--- TODO machineと共通？
-local function append(t, ...)
-  local m = #t
-  local n = select("#", ...)
-
-  for i = 1, n do
-    local v = select(i, ...)
-    assert(v ~= nil)
-    t[m + i] = v
-  end
-
-  return m + n
-end
 
 local private = setmetatable({}, { __mode = "k" })
 
