@@ -380,7 +380,7 @@ local function minimize(u)
         for j = 2, #partition do
           local y_to, _, y_action = partition[j]:simulate(byte, resolved)
           assert(p == partition_map[y_to])
-          assert(compare(x_action, y_action) == 0)
+          -- assert(compare(x_action, y_action) == 0)
         end
 
         local v = states[p]
