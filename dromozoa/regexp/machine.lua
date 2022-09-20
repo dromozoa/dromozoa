@@ -17,7 +17,6 @@
 
 local append = require "dromozoa.append"
 local compare = require "dromozoa.compare"
-local tree_map = require "dromozoa.tree_map"
 
 ---------------------------------------------------------------------------
 
@@ -261,19 +260,25 @@ end
 
 ---------------------------------------------------------------------------
 
-local function create_initial_partitions(u, accept_partition_map, nonaccept_partition, partition_map, color)
+local function create_initial_partitions(u, accept_partitions, nonaccept_partition, partition_map, color)
   color[u] = 1
 
   local partition = nonaccept_partition
   if u.accept_action then
-    partition = select(2, accept_partition_map:insert_or_update(u.accept_action, function () return {} end))
+    local i = accept_partitions.map[u.accept_action]
+    if i then
+      partition = accept_partitions[i]
+    else
+      partition = {}
+      accept_partitions.map[u.accept_action] = append(accept_partitions, partition)
+    end
   end
   append(partition, u)
   partition_map[u] = partition
 
   for _, t in ipairs(u.transitions) do
     if not color[t.v] then
-      create_initial_partitions(t.v, accept_partition_map, nonaccept_partition, partition_map, color)
+      create_initial_partitions(t.v, accept_partitions, nonaccept_partition, partition_map, color)
     end
   end
 
@@ -281,13 +286,13 @@ local function create_initial_partitions(u, accept_partition_map, nonaccept_part
 end
 
 local function minimize(u)
-  local accept_partition_map = tree_map()
+  local accept_partitions = { map = {} }
   local partition = {}
   local partition_map = {}
-  create_initial_partitions(u, accept_partition_map, partition, partition_map, {})
+  create_initial_partitions(u, accept_partitions, partition, partition_map, {})
 
   local partitions = {}
-  for _, partition in accept_partition_map:pairs() do
+  for _, partition in ipairs(accept_partitions) do
     append(partitions, partition)
   end
   if next(partition) then
