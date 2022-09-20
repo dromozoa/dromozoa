@@ -264,9 +264,9 @@ local function create_initial_partitions(u, accept_partitions, nonaccept_partiti
 
   local partition = nonaccept_partition
   if u.accept_action then
-    local i = accept_partitions.map[u.accept_action]
-    if i then
-      partition = accept_partitions[i]
+    local n = accept_partitions.map[u.accept_action]
+    if n then
+      partition = accept_partitions[n]
     else
       partition = {}
       accept_partitions.map[u.accept_action] = append(accept_partitions, partition)

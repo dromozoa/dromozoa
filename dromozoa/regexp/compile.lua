@@ -18,8 +18,6 @@
 local append = require "dromozoa.append"
 local runtime = require "dromozoa.regexp.runtime"
 
-local private = setmetatable({}, { __mode = "k" })
-
 local function insert(map, set, v)
   assert(type(v) == "string")
   local n = map[v]
@@ -46,11 +44,11 @@ local function insert_action(context, action)
     :gsub("$([%a_][%w_]*)", substitute)
     :gsub([[${'(..-)'}]], substitute)
     :gsub([[${<(..-)>}]], function (s)
-      local buffer = {}
-      for i, v in ipairs { s:byte(1, #s) } do
-        buffer[i] = ("0x%02X"):format(v)
+      local result = {}
+      for i = 1, #s do
+        result[i] = ("0x%02X"):format(s:byte(i))
       end
-      return table.concat(buffer, ",")
+      return table.concat(result, ",")
     end)
 
   local i, inserted = insert(context.action.map, context.action.set, "function()" .. action .. "\nend;\n")
