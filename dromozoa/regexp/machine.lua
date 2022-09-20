@@ -169,6 +169,7 @@ local function make_closure_key(closure)
   table.sort(data)
   if data[1] then
     closure.key = table.concat(data, ",")
+    return closure.key
   end
 end
 
@@ -207,7 +208,8 @@ local function closure_to_state(closure, states)
 end
 
 local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
-  color[u_closure.key] = 1
+  local ukey = u_closure.key
+  color[ukey] = 1
 
   local state_map = {}
   local transition_map = {}
@@ -223,15 +225,19 @@ local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
         end
       end
     end
-    make_closure_key(v_closure)
+    local vkey = make_closure_key(v_closure)
 
-    if v_closure.key then
+    if vkey then
       local v = closure_to_state(v_closure, states)
-      if not state_map[v_closure.key] then
-        state_map[v_closure.key] = { closure = v_closure, v = v }
+      if not state_map[vkey] then
+        state_map[vkey] = true
+
+        if not color[vkey] then
+          nfa_to_dfa_impl(v_closure, v, epsilon_closures, states, color)
+        end
       end
 
-      local key = v_closure.key
+      local key = vkey
       if resolved.action then
         key = key .. ";" .. resolved.action
       end
@@ -244,13 +250,7 @@ local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
     end
   end
 
-  for _, x in pairs(state_map) do
-    if not color[x.closure.key] then
-      nfa_to_dfa_impl(x.closure, x.v, epsilon_closures, states, color)
-    end
-  end
-
-  color[u_closure.key] = 2
+  color[ukey] = 2
 end
 
 local function nfa_to_dfa(u)
