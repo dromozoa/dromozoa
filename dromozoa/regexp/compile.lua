@@ -18,17 +18,16 @@
 local append = require "dromozoa.append"
 local runtime = require "dromozoa.regexp.runtime"
 
-local function insert(map, set, v)
+local function insert(t, v)
   assert(type(v) == "string")
-  local n = map[v]
+  local n = t.map[v]
   if n then
     return n
+  else
+    local n = append(t.set, v)
+    t.map[v] = n
+    return n, true
   end
-
-  n = #set + 1
-  map[v] = n
-  set[n] = v
-  return n, true
 end
 
 local function insert_action(context, action)
@@ -51,7 +50,7 @@ local function insert_action(context, action)
       return table.concat(result, ",")
     end)
 
-  local i, inserted = insert(context.action.map, context.action.set, "function()" .. action .. "\nend;\n")
+  local i, inserted = insert(context.action, "function()" .. action .. "\nend;\n")
 
   if inserted then
     -- コルーチンの必要性をおおまかに検査する。
@@ -72,7 +71,7 @@ local function insert_action(context, action)
 end
 
 local function insert_shared(context, shared)
-  return insert(context.shared.map, context.shared.set, table.concat(shared, ","))
+  return insert(context.shared, table.concat(shared, ","))
 end
 
 local function update_state_indices_nonaccept(u, index, color)

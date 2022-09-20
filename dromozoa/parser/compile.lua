@@ -61,7 +61,7 @@ return function (grammar, actions)
       :gsub("$0", "S[0]")
       :gsub("$%$", "SS")
 
-    local v = "function ()" .. semantic_action .. "\nend;\n"
+    local v = "function()" .. semantic_action .. "\nend;\n"
     local n = action_map[v]
     if not n then
       n = #action_set + 1
