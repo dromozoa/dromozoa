@@ -160,16 +160,16 @@ end
 
 ---------------------------------------------------------------------------
 
-local function make_closure_key(closure)
-  assert(closure.key == nil)
-  local data = {}
+local function epsilon_closure_key(closure)
+  local result = {}
   for k in pairs(closure.map) do
-    append(data, k)
+    append(result, k)
   end
-  table.sort(data)
-  if data[1] then
-    closure.key = table.concat(data, ",")
-    return closure.key
+  if result[1] then
+    table.sort(result)
+    local key = table.concat(result, ",")
+    closure.key = key
+    return key
   end
 end
 
@@ -189,8 +189,7 @@ local function epsilon_closure(u, epsilon_closures)
     closure = { map = { [u.index] = u } }
     epsilon_closure_impl(u, closure)
     epsilon_closures[u] = closure
-
-    make_closure_key(closure)
+    epsilon_closure_key(closure)
   end
   return closure
 end
@@ -211,8 +210,8 @@ local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
   local ukey = u_closure.key
   color[ukey] = 1
 
-  local state_map = {}
-  local transition_map = {}
+  local vmap = {}
+  local tmap = {}
 
   for byte = 0x00, 0xFF do
     local resolved = {}
@@ -225,27 +224,25 @@ local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
         end
       end
     end
-    local vkey = make_closure_key(v_closure)
-
+    local vkey = epsilon_closure_key(v_closure)
     if vkey then
       local v = closure_to_state(v_closure, states)
-      if not state_map[vkey] then
-        state_map[vkey] = true
-
+      if not vmap[vkey] then
+        vmap[vkey] = true
         if not color[vkey] then
           nfa_to_dfa_impl(v_closure, v, epsilon_closures, states, color)
         end
       end
 
-      local key = vkey
+      local tkey = vkey
       if resolved.action then
-        key = key .. ";" .. resolved.action
+        tkey = vkey .. ";" .. resolved.action
       end
-      local t = transition_map[key]
+      local t = tmap[tkey]
       if t then
         t:update(resolved.timestamp, byte)
       else
-        transition_map[key] = transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
+        tmap[tkey] = transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
       end
     end
   end
