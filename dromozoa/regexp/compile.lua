@@ -15,41 +15,25 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local append = require "dromozoa.append"
 local runtime = require "dromozoa.regexp.runtime"
 
--- TODO machineと共通？
-local function append(t, ...)
-  local m = #t
-  local n = select("#", ...)
-
-  for i = 1, n do
-    local v = select(i, ...)
-    assert(v ~= nil)
-    t[m + i] = v
-  end
-
-  return m + n
-end
-
-local private = setmetatable({}, { __mode = "k" })
-
-local function insert(map, set, v)
+local function insert(t, v)
   assert(type(v) == "string")
-  local n = map[v]
+  local n = t.map[v]
   if n then
     return n
+  else
+    local n = append(t.set, v)
+    t.map[v] = n
+    return n, true
   end
-
-  n = #set + 1
-  map[v] = n
-  set[n] = v
-  return n, true
 end
 
 local function insert_action(context, action)
   local function substitute(variable)
     local result = context.action.variables[variable]
-    if result == nil then
+    if not result then
       error("variable " .. variable .. " not defined")
     end
     return result
@@ -59,14 +43,14 @@ local function insert_action(context, action)
     :gsub("$([%a_][%w_]*)", substitute)
     :gsub([[${'(..-)'}]], substitute)
     :gsub([[${<(..-)>}]], function (s)
-      local buffer = {}
-      for i, v in ipairs { s:byte(1, #s) } do
-        buffer[i] = ("0x%02X"):format(v)
+      local result = {}
+      for i = 1, #s do
+        result[i] = ("0x%02X"):format(s:byte(i))
       end
-      return table.concat(buffer, ",")
+      return table.concat(result, ",")
     end)
 
-  local i, inserted = insert(context.action.map, context.action.set, "function()" .. action .. "\nend;\n")
+  local i, inserted = insert(context.action, "function()" .. action .. "\nend;\n")
 
   if inserted then
     -- コルーチンの必要性をおおまかに検査する。
@@ -87,17 +71,17 @@ local function insert_action(context, action)
 end
 
 local function insert_shared(context, shared)
-  return insert(context.shared.map, context.shared.set, table.concat(shared, ","))
+  return "_[" .. insert(context.shared, table.concat(shared, ",")) .. "]"
 end
 
 local function update_state_indices_nonaccept(u, index, color)
   color[u] = 1
-  if u.accept_action == nil then
+  if not u.accept_action then
     index = index + 1
     u.index = index
   end
   for _, t in ipairs(u.transitions) do
-    if color[t.v] == nil then
+    if not color[t.v] then
       index = update_state_indices_nonaccept(t.v, index, color)
     end
   end
@@ -109,14 +93,14 @@ local function construct_table(context, u, max_state, transitions, transition_ac
   color[u] = 1
   for _, t in ipairs(u.transitions) do
     local code = t.v.index
-    if t.action ~= nil then
+    if t.action then
       code = max_state + append(transition_actions, insert_action(context, t.action))
       append(transition_states, t.v.index)
     end
     for byte in pairs(t.set) do
       transitions[byte][u.index] = code
     end
-    if color[t.v] == nil then
+    if not color[t.v] then
       construct_table(context, t.v, max_state, transitions, transition_actions, transition_states, color)
     end
   end
@@ -144,25 +128,23 @@ local function generate(context, index, machine)
   local transition_states = {}
   construct_table(context, u, max_state, transitions, transition_actions, transition_states, {})
 
-  append(context.static.out,
-    "{\n",
-    "start_state=", u.index, ";\n",
-    "max_accept_state=", #accept_actions, ";\n",
-    "max_state=", max_state, ";\n",
-    "transitions={[0]=")
+  local out = context.static.out
+  append(out, "{\n")
+  append(out, "start_state=", u.index, ";\n")
+  append(out, "max_accept_state=", #accept_actions, ";\n")
+  append(out, "max_state=", max_state, ";\n")
+  append(out, "transitions={[0]=")
   for byte = 0x00, 0xFF do
-    append(context.static.out, "_[", insert_shared(context, transitions[byte]), "],")
+    append(context.static.out, insert_shared(context, transitions[byte]), ",")
   end
-  append(context.static.out,
-    "};\n",
-    "transition_actions=_[", insert_shared(context, transition_actions), "];\n",
-    "transition_states=_[", insert_shared(context, transition_states), "];\n",
-    "accept_actions=_[", insert_shared(context, accept_actions), "];\n")
-  if machine.guard_action ~= nil then
-    append(context.static.out, "guard_action=", insert_action(context, machine.guard_action), ";\n")
+  append(out, "};\n")
+  append(out, "transition_actions=", insert_shared(context, transition_actions), ";\n")
+  append(out, "transition_states=", insert_shared(context, transition_states), ";\n")
+  append(out, "accept_actions=", insert_shared(context, accept_actions), ";\n")
+  if machine.guard_action then
+    append(out, "guard_action=", insert_action(context, machine.guard_action), ";\n")
   end
-  append(context.static.out,
-    "};\n")
+  append(out, "};\n")
 end
 
 return function (that)
@@ -194,7 +176,7 @@ return function (that)
     if v.main then
       append(context.static.out, "main=", i, ";\n")
     end
-    if v.name ~= nil then
+    if v.name then
       context.action.variables[v.name] = i
     end
   end
@@ -202,7 +184,7 @@ return function (that)
   for i, v in ipairs(data) do
     generate(context, i, v.machine)
   end
-  append(context.static.out, "action_threads=_[", insert_shared(context, context.action.threads), "];\n")
+  append(context.static.out, "action_threads=", insert_shared(context, context.action.threads), ";\n")
 
   for _, v in ipairs(context.shared.set) do
     append(context.shared.out, "{", v, "};\n")

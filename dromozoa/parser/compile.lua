@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local append = require "dromozoa.parser.append"
+local append = require "dromozoa.append"
 local runtime = require "dromozoa.parser.runtime"
 
 return function (grammar, actions)
@@ -61,7 +61,7 @@ return function (grammar, actions)
       :gsub("$0", "S[0]")
       :gsub("$%$", "SS")
 
-    local v = "function ()" .. semantic_action .. "\nend;\n"
+    local v = "function()" .. semantic_action .. "\nend;\n"
     local n = action_map[v]
     if not n then
       n = #action_set + 1

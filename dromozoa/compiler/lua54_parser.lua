@@ -6,157 +6,157 @@ local main = function ()
   local SS
   local action_data = (function ()
     
-    return { function ()
+    return { function()
 end;
-function ()SS.vararg=true SS.proto=true SS.scope=true
+function()SS.vararg=true SS.proto=true SS.scope=true
 end;
-function ()SS=S[1]
+function()SS=S[1]
 end;
-function ()SS=S[1] append(S[2])
+function()SS=S[1] append(S[2])
 end;
-function ()SS=create(66)
+function()SS=create(66)
 end;
-function ()SS=S[2] append(S[1],S[3]) S[3].adjust=#S[1]
+function()SS=S[2] append(S[1],S[3]) S[3].adjust=#S[1]
 end;
-function ()SS=S[1] SS.nr=0
+function()SS=S[1] SS.nr=0
 end;
-function ()SS=S[1] append(S[2]) S[2].label=true
+function()SS=S[1] append(S[2]) S[2].label=true
 end;
-function ()SS=S[1] append(S[2]) S[2].scope=true
+function()SS=S[1] append(S[2]) S[2].scope=true
 end;
-function ()SS=S[1] append(S[2],S[4]) SS.loop=true S[4].scope=true
+function()SS=S[1] append(S[2],S[4]) SS.loop=true S[4].scope=true
 end;
-function ()SS=S[1] append(S[2],S[4]) SS.loop=true SS.scope=true
+function()SS=S[1] append(S[2],S[4]) SS.loop=true SS.scope=true
 end;
-function ()SS=S[1] append(S[2],S[4],S[5]) S[4].scope=true
+function()SS=S[1] append(S[2],S[4],S[5]) S[4].scope=true
 end;
-function ()SS=S[1] append(S[2],S[4],S[6]) SS.loop=true SS.scope=true S[2].declare=true S[6].scope=true
+function()SS=S[1] append(S[2],S[4],S[6]) SS.loop=true SS.scope=true S[2].declare=true S[6].scope=true
 end;
-function ()SS=S[1] append(S[2],S[3]) S[2].define=true S[3].self=S[2].self
+function()SS=S[1] append(S[2],S[3]) S[2].define=true S[3].self=S[2].self
 end;
-function ()SS=S[1] append(S[2],S[4]) S[4].adjust=#S[2]
+function()SS=S[1] append(S[2],S[4]) S[4].adjust=#S[2]
 end;
-function ()SS=create(10)
+function()SS=create(10)
 end;
-function ()SS=S[0] append(S[1],S[3])
+function()SS=S[0] append(S[1],S[3])
 end;
-function ()SS=S[0] append(S[1],S[3],S[5])
+function()SS=S[0] append(S[1],S[3],S[5])
 end;
-function ()SS=S[0] append(S[2],S[4],S[6]) SS.loop=true SS.scope=true S[6].scope=true S[4].adjust=4
+function()SS=S[0] append(S[2],S[4],S[6]) SS.loop=true SS.scope=true S[6].scope=true S[4].adjust=4
 end;
-function ()SS=S[0] append(S[3],S[4]) S[3].declare=true
+function()SS=S[0] append(S[3],S[4]) S[3].declare=true
 end;
-function ()SS=create(81) append(S[1]) S[1].attribute=S[2].v S[1].declare=true
+function()SS=create(81) append(S[1]) S[1].attribute=S[2].v S[1].declare=true
 end;
-function ()SS=S[1] append(S[3]) S[3].attribute=S[4].v S[3].declare=true
+function()SS=S[1] append(S[3]) S[3].attribute=S[4].v S[3].declare=true
 end;
-function ()SS=S[0] SS.v=S[2].v
+function()SS=S[0] SS.v=S[2].v
 end;
-function ()SS=S[1] append(create(82))
+function()SS=S[1] append(create(82))
 end;
-function ()SS=S[0] append(S[2]) S[2].label=true
+function()SS=S[0] append(S[2]) S[2].label=true
 end;
-function ()SS=create(59) append(S[1],S[3]) SS.self=true
+function()SS=create(59) append(S[1],S[3]) SS.self=true
 end;
-function ()SS=S[1] SS.resolve=true
+function()SS=S[1] SS.resolve=true
 end;
-function ()SS=S[2] append(S[1],S[3])
+function()SS=S[2] append(S[1],S[3])
 end;
-function ()SS=S[0] append(S[1]) S[1].define=true
+function()SS=S[0] append(S[1]) S[1].define=true
 end;
-function ()SS=S[1] append(S[3]) S[3].define=true
+function()SS=S[1] append(S[3]) S[3].define=true
 end;
-function ()SS=create(59) append(S[1],S[3])
+function()SS=create(59) append(S[1],S[3])
 end;
-function ()SS=S[0] append(S[1]) S[1].declare=true
+function()SS=S[0] append(S[1]) S[1].declare=true
 end;
-function ()SS=S[1] append(S[3]) S[3].declare=true
+function()SS=S[1] append(S[3]) S[3].declare=true
 end;
-function ()SS=S[0] append(S[1])
+function()SS=S[0] append(S[1])
 end;
-function ()SS=S[1] append(S[3])
+function()SS=S[1] append(S[3])
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='add'
+function()SS=S[2] append(S[1],S[3]) SS.binop='add'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='sub'
+function()SS=S[2] append(S[1],S[3]) SS.binop='sub'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='mul'
+function()SS=S[2] append(S[1],S[3]) SS.binop='mul'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='div'
+function()SS=S[2] append(S[1],S[3]) SS.binop='div'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='idiv'
+function()SS=S[2] append(S[1],S[3]) SS.binop='idiv'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='pow'
+function()SS=S[2] append(S[1],S[3]) SS.binop='pow'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='mod'
+function()SS=S[2] append(S[1],S[3]) SS.binop='mod'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='band'
+function()SS=S[2] append(S[1],S[3]) SS.binop='band'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='bxor'
+function()SS=S[2] append(S[1],S[3]) SS.binop='bxor'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='bor'
+function()SS=S[2] append(S[1],S[3]) SS.binop='bor'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='shr'
+function()SS=S[2] append(S[1],S[3]) SS.binop='shr'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='shl'
+function()SS=S[2] append(S[1],S[3]) SS.binop='shl'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='concat'
+function()SS=S[2] append(S[1],S[3]) SS.binop='concat'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='lt'
+function()SS=S[2] append(S[1],S[3]) SS.binop='lt'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='le'
+function()SS=S[2] append(S[1],S[3]) SS.binop='le'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='gt'
+function()SS=S[2] append(S[1],S[3]) SS.binop='gt'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='ge'
+function()SS=S[2] append(S[1],S[3]) SS.binop='ge'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='eq'
+function()SS=S[2] append(S[1],S[3]) SS.binop='eq'
 end;
-function ()SS=S[2] append(S[1],S[3]) SS.binop='ne'
+function()SS=S[2] append(S[1],S[3]) SS.binop='ne'
 end;
-function ()SS=S[1] append(S[2]) SS.unop='unm'
+function()SS=S[1] append(S[2]) SS.unop='unm'
 end;
-function ()SS=S[1] append(S[2]) SS.unop='not'
+function()SS=S[1] append(S[2]) SS.unop='not'
 end;
-function ()SS=S[1] append(S[2]) SS.unop='len'
+function()SS=S[1] append(S[2]) SS.unop='len'
 end;
-function ()SS=S[1] append(S[2]) SS.unop='bnot'
+function()SS=S[1] append(S[2]) SS.unop='bnot'
 end;
-function ()SS=S[2] SS.nr=1
+function()SS=S[2] SS.nr=1
 end;
-function ()SS=S[2] append(S[1],S[3]) SS=S[0] append(S[2],S[4])
+function()SS=S[2] append(S[1],S[3]) SS=S[0] append(S[2],S[4])
 end;
-function ()SS=create(82)
+function()SS=create(82)
 end;
-function ()SS=S[2]
+function()SS=S[2]
 end;
-function ()SS=create(82) append(S[1])
+function()SS=create(82) append(S[1])
 end;
-function ()SS=S[0] append(S[2])
+function()SS=S[0] append(S[2])
 end;
-function ()SS=S[0] append(create(81),S[3]) SS.proto=true SS.scope=true
+function()SS=S[0] append(create(81),S[3]) SS.proto=true SS.scope=true
 end;
-function ()SS=S[0] append(S[2],S[4]) SS.vararg=S[2].vararg SS.proto=true SS.scope=true
+function()SS=S[0] append(S[2],S[4]) SS.vararg=S[2].vararg SS.proto=true SS.scope=true
 end;
-function ()SS=S[1] SS.vararg=true
+function()SS=S[1] SS.vararg=true
 end;
-function ()SS=create(81) SS.vararg=true
+function()SS=create(81) SS.vararg=true
 end;
-function ()SS=create(91)
+function()SS=create(91)
 end;
-function ()SS=create(91) append(S[1])
+function()SS=create(91) append(S[1])
 end;
-function ()SS=S[0] append(S[2],S[5])
+function()SS=S[0] append(S[2],S[5])
 end;
-function ()SS=S[0] SS.v=S[1].v
+function()SS=S[0] SS.v=S[1].v
 end;
-function ()SS=S[0] SS.v=S[1].v SS.hint='DecimalIntegerNumeral'
+function()SS=S[0] SS.v=S[1].v SS.hint='DecimalIntegerNumeral'
 end;
-function ()SS=S[0] SS.v=S[1].v SS.hint='DecimalFloatingNumeral'
+function()SS=S[0] SS.v=S[1].v SS.hint='DecimalFloatingNumeral'
 end;
-function ()SS=S[0] SS.v=S[1].v SS.hint='HexadecimalIntegerNumeral'
+function()SS=S[0] SS.v=S[1].v SS.hint='HexadecimalIntegerNumeral'
 end;
-function ()SS=S[0] SS.v=S[1].v SS.hint='HexadecimalFloatingNumeral'
+function()SS=S[0] SS.v=S[1].v SS.hint='HexadecimalFloatingNumeral'
 end;
  }
   end)()

@@ -15,17 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local compare = require "dromozoa.compare"
-local tree_map = require "dromozoa.tree_map"
-
----------------------------------------------------------------------------
-
-local function append(t, v)
-  assert(v ~= nil)
-  local n = #t + 1
-  t[n] = v
-  return n
-end
+local append = require "dromozoa.append"
 
 ---------------------------------------------------------------------------
 
@@ -34,8 +24,8 @@ local metatable = { __index = class, __name = "dromozoa.regexp.machine.state" }
 
 function class:simulate(byte, resolved)
   for _, t in ipairs(self.transitions) do
-    if t.set ~= nil and t.set[byte] then
-      if resolved ~= nil and (resolved.timestamp == nil or resolved.timestamp > t.timestamp) then
+    if t.set and t.set[byte] then
+      if resolved and (not resolved.timestamp or resolved.timestamp > t.timestamp) then
         resolved.timestamp = t.timestamp
         resolved.action = t.action
       end
@@ -45,7 +35,7 @@ function class:simulate(byte, resolved)
 end
 
 function class:update(timestamp, accept_action)
-  if timestamp ~= nil and accept_action ~= nil and (self.timestamp == nil or self.timestamp > timestamp) then
+  if timestamp and accept_action and (not self.timestamp or self.timestamp > timestamp) then
     self.timestamp = timestamp
     self.accept_action = accept_action
   end
@@ -65,7 +55,7 @@ function class:update(timestamp, byte)
   if self.timestamp > timestamp then
     self.timestamp = timestamp
   end
-  self.set[byte] = byte
+  self.set[byte] = true
   return self
 end
 
@@ -91,7 +81,6 @@ local function node_to_nfa(node)
     if code == "/" then
       assert(#au.transitions == 1)
       au.transitions[1].action = node[2]
-      -- au.transitions:get(1).action = node[2]
       return au, av
     elseif code == "%" then
       av:update(node.timestamp, node[2])
@@ -142,7 +131,7 @@ end
 
 local function tree_to_nfa(node)
   local u, v = node_to_nfa(node)
-  if v.accept_action == nil then
+  if not v.accept_action then
     v:update(node.timestamp, "")
   end
   return u, v
@@ -152,10 +141,9 @@ end
 
 local function update_state_indices_impl(u, states, color)
   color[u] = 1
-  -- u.index = states:append(u):size()
   u.index = append(states, u)
   for _, t in ipairs(u.transitions) do
-    if color[t.v] == nil then
+    if not color[t.v] then
       update_state_indices_impl(t.v, states, color)
     end
   end
@@ -170,99 +158,126 @@ end
 
 ---------------------------------------------------------------------------
 
+local function epsilon_closure_key(closure)
+  local result = {}
+  for k in pairs(closure.map) do
+    append(result, k)
+  end
+  if result[1] then
+    table.sort(result)
+    local key = table.concat(result, ",")
+    closure.key = key
+    return key
+  end
+end
+
 local function epsilon_closure_impl(u, closure)
   for _, t in ipairs(u.transitions) do
-    if t.set == nil then
-      closure:insert(t.v.index, t.v)
-      epsilon_closure_impl(t.v, closure)
+    if not t.set then
+      local v = t.v
+      closure.map[v.index] = v
+      epsilon_closure_impl(v, closure)
     end
   end
 end
 
 local function epsilon_closure(u, epsilon_closures)
   local closure = epsilon_closures[u]
-  if closure == nil then
-    closure = tree_map():insert(u.index, u)
+  if not closure then
+    closure = { map = { [u.index] = u } }
     epsilon_closure_impl(u, closure)
     epsilon_closures[u] = closure
+    epsilon_closure_key(closure)
   end
   return closure
 end
 
-local function closure_to_state(closure, states)
-  return select(2, states:insert_or_update(closure, function ()
-    local u = state()
-    for _, v in closure:pairs() do
+local function epsilon_closure_to_state(closure, states)
+  local u = states[closure.key]
+  if not u then
+    u = state()
+    for _, v in pairs(closure.map) do
       u:update(v.timestamp, v.accept_action)
     end
-    return u
-  end))
+    states[closure.key] = u
+  end
+  return u
 end
 
 local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
-  color:assign(u_closure, 1)
+  local ukey = u_closure.key
+  color[ukey] = 1
 
-  local state_map = tree_map()
-  local transition_map = tree_map()
+  local vmap = {}
+  local tmap = {}
 
   for byte = 0x00, 0xFF do
     local resolved = {}
-    local v_closure = tree_map()
-    for _, u in u_closure:pairs() do
+    local v_closure = { map = {} }
+    for _, u in pairs(u_closure.map) do
       local to = u:simulate(byte, resolved)
-      if to ~= nil then
-        for k, v in epsilon_closure(to, epsilon_closures):pairs() do
-          v_closure:assign(k, v)
+      if to then
+        for _, v in pairs(epsilon_closure(to, epsilon_closures).map) do
+          v_closure.map[v.index] = v
         end
       end
     end
-
-    if not v_closure:empty() then
-      local v = closure_to_state(v_closure, states)
-      state_map:assign(v_closure, v)
-      transition_map:insert_or_update({ closure = v_closure, action = resolved.action }, function ()
-        return transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
-      end, function (t)
-        return t:update(resolved.timestamp, byte)
-      end)
+    local vkey = epsilon_closure_key(v_closure)
+    if vkey then
+      local v = epsilon_closure_to_state(v_closure, states)
+      if not vmap[vkey] then
+        vmap[vkey] = true
+        if not color[vkey] then
+          nfa_to_dfa_impl(v_closure, v, epsilon_closures, states, color)
+        end
+      end
+      local tkey = vkey
+      if resolved.action then
+        tkey = tkey .. ";" .. resolved.action
+      end
+      local t = tmap[tkey]
+      if t then
+        t:update(resolved.timestamp, byte)
+      else
+        tmap[tkey] = transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
+      end
     end
   end
 
-  for v_closure, v in state_map:pairs() do
-    if color:find(v_closure) == nil then
-      nfa_to_dfa_impl(v_closure, v, epsilon_closures, states, color)
-    end
-  end
-
-  color:assign(u_closure, 2)
+  color[ukey] = 2
 end
 
 local function nfa_to_dfa(u)
   update_state_indices(u)
   local epsilon_closures = {}
-  local states = tree_map()
+  local states = {}
   local u_closure = epsilon_closure(u, epsilon_closures)
-  local u = closure_to_state(u_closure, states)
-  nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, tree_map())
+  local u = epsilon_closure_to_state(u_closure, states)
+  nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, {})
   return u
 end
 
 ---------------------------------------------------------------------------
 
-local function create_initial_partitions(u, accept_partition_map, nonaccept_partition, partition_map, color)
+local function create_initial_partitions(u, accept_partitions, nonaccept_partition, partition_map, color)
   color[u] = 1
 
   local partition = nonaccept_partition
-  if u.accept_action ~= nil then
-    partition = select(2, accept_partition_map:insert_or_update(u.accept_action, function () return {} end))
+  if u.accept_action then
+    local n = accept_partitions.map[u.accept_action]
+    if n then
+      partition = accept_partitions[n]
+    else
+      partition = {}
+      accept_partitions.map[u.accept_action] = append(accept_partitions, partition)
+    end
   end
-  -- partition:append(u)
   append(partition, u)
   partition_map[u] = partition
 
   for _, t in ipairs(u.transitions) do
-    if color[t.v] == nil then
-      create_initial_partitions(t.v, accept_partition_map, nonaccept_partition, partition_map, color)
+    if not color[t.v] then
+      create_initial_partitions(t.v, accept_partitions, nonaccept_partition, partition_map, color)
     end
   end
 
@@ -270,16 +285,16 @@ local function create_initial_partitions(u, accept_partition_map, nonaccept_part
 end
 
 local function minimize(u)
-  local accept_partition_map = tree_map()
+  local accept_partitions = { map = {} }
   local partition = {}
   local partition_map = {}
-  create_initial_partitions(u, accept_partition_map, partition, partition_map, {})
+  create_initial_partitions(u, accept_partitions, partition, partition_map, {})
 
   local partitions = {}
-  for _, partition in accept_partition_map:pairs() do
+  for _, partition in ipairs(accept_partitions) do
     append(partitions, partition)
   end
-  if next(partition) ~= nil then
+  if next(partition) then
     append(partitions, partition)
   end
 
@@ -301,7 +316,7 @@ local function minimize(u)
           for byte = 0x00, 0xFF do
             local x_to, _, x_action = x:simulate(byte)
             local y_to, _, y_action = y:simulate(byte)
-            if partition_map[x_to] ~= partition_map[y_to] or compare(x_action, y_action) ~= 0 then
+            if partition_map[x_to] ~= partition_map[y_to] or x_action ~= y_action then
               same_transition = false
               break
             end
@@ -309,7 +324,7 @@ local function minimize(u)
 
           if same_transition then
             local new_partition = new_partition_map[x]
-            if new_partition == nil then
+            if not new_partition then
               local new_partition = new_partition_map[y]
               append(new_partition, x)
               new_partition_map[x] = new_partition
@@ -323,7 +338,7 @@ local function minimize(u)
           end
         end
 
-        if new_partition_map[x] == nil then
+        if not new_partition_map[x] then
           local new_partition = { x }
           new_partition_map[x] = new_partition
           append(new_partitions, new_partition)
@@ -349,33 +364,29 @@ local function minimize(u)
       u:update(x.timestamp, x.accept_action)
     end
     states[partition] = u
-    if u.accept_action ~= nil then
+    if u.accept_action then
       append(accept_states, u)
     end
   end
 
   for i, partition in ipairs(partitions) do
     local u = states[partition]
-    local transition_map = tree_map()
-
+    local tmap = {}
     for byte = 0x00, 0xFF do
       local resolved = {}
       local x_to, _, x_action = partition[1]:simulate(byte, resolved)
-      if x_to ~= nil then
-        local p = partition_map[x_to]
-
-        for j = 2, #partition do
-          local y_to, _, y_action = partition[j]:simulate(byte, resolved)
-          assert(p == partition_map[y_to])
-          assert(compare(x_action, y_action) == 0)
+      if x_to then
+        local v = states[partition_map[x_to]]
+        local tkey = v.index
+        if resolved.action then
+          tkey = tkey .. ";" .. resolved.action
         end
-
-        local v = states[p]
-        transition_map:insert_or_update({ index = v.index, action = resolved.action }, function ()
-          return transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
-        end, function (t)
-          return t:update(resolved.timestamp, byte)
-        end)
+        local t = tmap[tkey]
+        if t then
+          t:update(resolved.timestamp, byte)
+        else
+          tmap[tkey] = transition(u, v, { [byte] = true }, resolved.timestamp, resolved.action)
+        end
       end
     end
   end
@@ -388,7 +399,7 @@ end
 local function collect_living_states(u, living_states, color)
   color[u] = 1
 
-  if u.accept_action ~= nil then
+  if u.accept_action then
     living_states[u] = true
   end
 
@@ -423,9 +434,9 @@ end
 
 local function simulate(u, byte, resolved_timestamp, null)
   local v, timestamp, action = u:simulate(byte)
-  if v == nil then
+  if not v then
     return null, resolved_timestamp
-  elseif resolved_timestamp == nil then
+  elseif not resolved_timestamp then
     resolved_timestamp = timestamp
   end
   return v, resolved_timestamp, action
@@ -448,7 +459,7 @@ local function difference_impl(x, y)
     for j = i == 0 and 1 or 0, y_n do
       local y = j == 0 and null or y_states[j]
       local z = state()
-      if y.accept_action == nil then
+      if not y.accept_action then
         z:update(x.timestamp, x.accept_action)
       end
       z_states[i * n + j] = z
@@ -462,18 +473,22 @@ local function difference_impl(x, y)
       local y_u = j == 0 and null or y_states[j]
       local z_u = z_states[i * n + j]
 
-      local transition_map = tree_map()
+      local tmap = {}
       for byte = 0x00, 0xFF do
         local x_v, timestamp, action = simulate(x_u, byte, nil, null)
         local y_v, timestamp = simulate(y_u, byte, timestamp, null)
         local index = x_v.index * n + y_v.index
         if index ~= 0 then
-          local z_v = z_states[index]
-          transition_map:insert_or_update({ index = index, action = action }, function ()
-            return transition(z_u, z_v, {}, timestamp, action)
-          end, function (t)
-            return t:update(timestamp, byte)
-          end)
+          local tkey = index
+          if action then
+            tkey = tkey .. ";" .. action
+          end
+          local t = tmap[tkey]
+          if t then
+            t:update(timestamp, byte)
+          else
+            tmap[tkey] = transition(z_u, z_states[index], {}, timestamp, action)
+          end
         end
       end
     end
@@ -516,7 +531,7 @@ function module.lexer(token_names, that)
       name = node.literal
     end
     local timestamp = node.timestamp
-    assert(timestamp ~= nil)
+    assert(timestamp)
     append(data, { timestamp = timestamp, node = node, name = name })
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
@@ -532,9 +547,9 @@ function module.lexer(token_names, that)
     transition(s, u)
 
     local symbol = "nil"
-    if item.name ~= nil then
+    if item.name then
       symbol = token_table[item.name]
-      if symbol == nil then
+      if not symbol then
         symbol = append(token_names, item.name)
         token_table[item.name] = symbol
       end

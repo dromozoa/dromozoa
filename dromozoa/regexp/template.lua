@@ -90,7 +90,7 @@ local main = function ()
     current_state = _[current_index].start_state
     current_cont = nil
 
-    if current_thread ~= nil then
+    if current_thread then
       current_thread = nil
       coroutine.yield()
     end
@@ -111,11 +111,11 @@ local main = function ()
     current_cont = item.current_cont
 
     current_thread = item.current_thread
-    if current_thread ~= nil then
+    if current_thread then
       assert(coroutine.resume(current_thread))
     end
 
-    if current_cont ~= nil then
+    if current_cont then
       current_cont()
     end
   end
@@ -139,7 +139,7 @@ local main = function ()
   end
 
   function ferror(message)
-    local near = current_byte == nil and "eof" or string.char(current_byte)
+    local near = current_byte and string.char(current_byte) or "eof"
     error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (" .. message .. " near " .. near .. ")")
   end
 
@@ -165,7 +165,7 @@ local main = function ()
     append(string.byte(source, i, j))
   end
 
-  if utf8 ~= nil and utf8.char ~= nil then
+  if utf8 and utf8.char then
     function append_unicode(a)
       append(string.byte(utf8.char(a), 1, -1))
     end
@@ -267,7 +267,7 @@ local main = function ()
       return
     end
 
-    if current_byte == nil then
+    if not current_byte then
       if current_index == main then
         ts = eof_symbol
         push()
@@ -281,7 +281,7 @@ local main = function ()
 
   local function transition()
     current_byte = string.byte(source, current_position)
-    if current_byte == nil then
+    if not current_byte then
       return accept()
     end
     local s = _[current_index].transitions[current_byte][current_state]
@@ -303,7 +303,7 @@ local main = function ()
   end
 
   local function guard()
-    if _[current_index].guard_action == nil then
+    if not _[current_index].guard_action then
       return transition()
     end
     if current_state ~= _[current_index].start_state then
