@@ -269,7 +269,6 @@ local function create_initial_partitions(u, accept_partition_map, nonaccept_part
   if u.accept_action then
     partition = select(2, accept_partition_map:insert_or_update(u.accept_action, function () return {} end))
   end
-  -- partition:append(u)
   append(partition, u)
   partition_map[u] = partition
 
