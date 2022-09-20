@@ -16,7 +16,6 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local append = require "dromozoa.append"
-local compare = require "dromozoa.compare"
 
 ---------------------------------------------------------------------------
 
@@ -317,7 +316,7 @@ local function minimize(u)
           for byte = 0x00, 0xFF do
             local x_to, _, x_action = x:simulate(byte)
             local y_to, _, y_action = y:simulate(byte)
-            if partition_map[x_to] ~= partition_map[y_to] or compare(x_action, y_action) ~= 0 then
+            if partition_map[x_to] ~= partition_map[y_to] or x_action ~= y_action then
               same_transition = false
               break
             end
