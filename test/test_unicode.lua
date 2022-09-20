@@ -17,7 +17,7 @@
 
 local verbose = os.getenv "VERBOSE" == "1"
 
-local array = require "dromozoa.array"
+local append = require "dromozoa.append"
 
 local data = {
   -- RFC 3629
@@ -98,23 +98,20 @@ local function append_utf8(a, buffer)
   end
 end
 
-local buffer = array()
+local buffer = {}
 for _, c in ipairs(data) do
   local b = {}
   append_utf8(c, b)
   for i, v in ipairs(b) do
     if i ~= 1 then
-      buffer:append "\t"
+      append(buffer, "\t")
     end
-    buffer:append(math.floor(v))
+    append(buffer, math.floor(v))
   end
-  buffer:append "\n"
+  append(buffer, "\n")
 end
 
-if verbose then
-  print(buffer:concat())
-end
-assert(buffer:concat() == [[
+assert(table.concat(buffer) == [[
 65
 226	137	162
 206	145
