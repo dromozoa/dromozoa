@@ -48,7 +48,7 @@ local function generate_proto_code(out, protos, u, n)
 
   elseif u_name == "if" then
     out:write "a=S.pop();"
-    out:write "if (a!==undefined&&a!==false) {\n"
+    out:write "if(a!==undefined&&a!==false){\n"
     for _, v in ipairs(u[1]) do
       generate_proto_code(out, protos, v, n)
     end
@@ -59,35 +59,37 @@ local function generate_proto_code(out, protos, u, n)
     out:write(("  "):rep(n), "}")
 
   elseif u_name == "loop" then
-    out:write "do {\n"
+    out:write "do{\n"
     for _, v in ipairs(u) do
       generate_proto_code(out, protos, v, n)
     end
-    out:write(("  "):rep(n), "} while (true);")
+    out:write(("  "):rep(n), "}while(true);")
 
-  elseif u_name == "add" then out:write "b=S.pop();a=S.pop();S.push(a+b);"
-  elseif u_name == "sub" then out:write "b=S.pop();a=S.pop();S.push(a-b);"
-  elseif u_name == "mul" then out:write "b=S.pop();a=S.pop();S.push(a*b);"
-  elseif u_name == "div" then out:write "b=S.pop();a=S.pop();S.push(a/b);"
-  elseif u_name == "idiv" then out:write "b=S.pop();a=S.pop();S.push(Math.floor(a/b));"
-  elseif u_name == "mod" then out:write "b=S.pop();a=S.pop();S.push((a%b+b)%b);"
-  elseif u_name == "pow" then out:write "b=S.pop();a=S.pop();S.push(Math.pow(a,b));"
-  elseif u_name == "band" then out:write "b=S.pop();a=S.pop();S.push(a&b);"
-  elseif u_name == "bxor" then out:write "b=S.pop();a=S.pop();S.push(a^b);"
-  elseif u_name == "bor" then out:write "b=S.pop();a=S.pop();S.push(a|b);"
-  elseif u_name == "shr" then out:write "b=S.pop();a=S.pop();S.push(a>>b);"
-  elseif u_name == "shl" then out:write "b=S.pop();a=S.pop();S.push(a<<b);"
+  -- binop
+  elseif u_name == "add"    then out:write "b=S.pop();a=S.pop();S.push(a+b);"
+  elseif u_name == "sub"    then out:write "b=S.pop();a=S.pop();S.push(a-b);"
+  elseif u_name == "mul"    then out:write "b=S.pop();a=S.pop();S.push(a*b);"
+  elseif u_name == "div"    then out:write "b=S.pop();a=S.pop();S.push(a/b);"
+  elseif u_name == "idiv"   then out:write "b=S.pop();a=S.pop();S.push(Math.floor(a/b));"
+  elseif u_name == "mod"    then out:write "b=S.pop();a=S.pop();S.push((a%b+b)%b);"
+  elseif u_name == "pow"    then out:write "b=S.pop();a=S.pop();S.push(Math.pow(a,b));"
+  elseif u_name == "band"   then out:write "b=S.pop();a=S.pop();S.push(a&b);"
+  elseif u_name == "bxor"   then out:write "b=S.pop();a=S.pop();S.push(a^b);"
+  elseif u_name == "bor"    then out:write "b=S.pop();a=S.pop();S.push(a|b);"
+  elseif u_name == "shr"    then out:write "b=S.pop();a=S.pop();S.push(a>>b);"
+  elseif u_name == "shl"    then out:write "b=S.pop();a=S.pop();S.push(a<<b);"
   elseif u_name == "concat" then out:write "b=S.pop();a=S.pop();S.push(a.toString()+b.toString());"
-  elseif u_name == "lt" then out:write "b=S.pop();a=S.pop();S.push(a<b);"
-  elseif u_name == "le" then out:write "b=S.pop();a=S.pop();S.push(a<=b);"
-  elseif u_name == "gt" then out:write "b=S.pop();a=S.pop();S.push(a>b);"
-  elseif u_name == "ge" then out:write "b=S.pop();a=S.pop();S.push(a>=b);"
-  elseif u_name == "eq" then out:write "b=S.pop();a=S.pop();S.push(a===b);"
-  elseif u_name == "ne" then out:write "b=S.pop();a=S.pop();S.push(a!==b);"
+  elseif u_name == "lt"     then out:write "b=S.pop();a=S.pop();S.push(a<b);"
+  elseif u_name == "le"     then out:write "b=S.pop();a=S.pop();S.push(a<=b);"
+  elseif u_name == "gt"     then out:write "b=S.pop();a=S.pop();S.push(a>b);"
+  elseif u_name == "ge"     then out:write "b=S.pop();a=S.pop();S.push(a>=b);"
+  elseif u_name == "eq"     then out:write "b=S.pop();a=S.pop();S.push(a===b);"
+  elseif u_name == "ne"     then out:write "b=S.pop();a=S.pop();S.push(a!==b);"
 
-  elseif u_name == "unm" then out:write "a=S.pop();S.push(-a);"
-  elseif u_name == "not" then out:write "a=S.pop();S.push(a===undefined||a===false);"
-  elseif u_name == "len" then out:write "b=1;a=S.pop();for(;a.get(b)!==undefined;++b);S.push(b-1);"
+  -- unop
+  elseif u_name == "unm"  then out:write "a=S.pop();S.push(-a);"
+  elseif u_name == "not"  then out:write "a=S.pop();S.push(a===undefined||a===false);"
+  elseif u_name == "len"  then out:write "b=1;a=S.pop();for(;a.get(b)!==undefined;++b);S.push(b-1);"
   elseif u_name == "bnot" then out:write "a=S.pop();S.push(~a);"
 
   elseif u_name == "new_local" then
