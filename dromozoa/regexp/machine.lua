@@ -294,8 +294,8 @@ local function minimize(u)
   end
 
   while true do
-    local new_partition_map = {}
     local new_partitions = {}
+    local new_partition_map = {}
 
     for _, partition in ipairs(partitions) do
       -- パーティション内の状態の組(x,y)について同じ遷移をするか調べる。同じ遷
@@ -319,16 +319,17 @@ local function minimize(u)
 
           if same_transition then
             local new_partition = new_partition_map[x]
-            if not new_partition then
+            if new_partition then
+              -- xがすでに新パーティションに登録されている。つまり、yよりも先に
+              -- 処理された状態zについて、状態の組(x,z)がひとつのパーティション
+              -- にまとめられた。このとき、yも同じパーティションにまとめられて
+              -- いるはずである。
+              assert(new_partition == new_partition_map[y])
+            else
+              -- yのパーティションに状態xを追加する。
               local new_partition = new_partition_map[y]
               append(new_partition, x)
               new_partition_map[x] = new_partition
-            else
-              -- xがすでに新パーティションに登録されている。つまり、yよりも先に
-              -- 処理された状態zについて、状態の組(x,z)がひとつのパーティション
-              -- にまとめられた。このとき、状態yも同じパーティションにまとめら
-              -- れているはずである。
-              assert(new_partition == new_partition_map[y])
             end
           end
         end
@@ -345,8 +346,8 @@ local function minimize(u)
       break
     end
 
-    partition_map = new_partition_map
     partitions = new_partitions
+    partition_map = new_partition_map
   end
 
   local states = {}
