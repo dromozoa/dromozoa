@@ -527,9 +527,7 @@ function module.lexer(token_names, that)
     if type(name) ~= "string" then
       name = node.literal
     end
-    local timestamp = node.timestamp
-    assert(timestamp)
-    append(data, { timestamp = timestamp, node = node, name = name })
+    append(data, { timestamp = node.timestamp, node = node, name = name })
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 
