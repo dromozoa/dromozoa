@@ -186,6 +186,7 @@ function metatable:__div(that)
   if self[0] ~= "[" then
     error "not supported"
   else
+    assert(type(that) == "string")
     return construct("/", self, that)
   end
 end
@@ -195,6 +196,7 @@ function metatable:__mod(that)
   if self[0] == "%" then
     error "not supported"
   else
+    assert(type(that) == "string")
     local result = construct("%", self, that)
     result.literal = self.literal
     return result
