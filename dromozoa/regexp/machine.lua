@@ -326,7 +326,6 @@ local function minimize(u)
               -- いるはずである。
               assert(new_partition == new_partition_map[y])
             else
-              -- yのパーティションに状態xを追加する。
               local new_partition = new_partition_map[y]
               append(new_partition, x)
               new_partition_map[x] = new_partition
@@ -350,29 +349,29 @@ local function minimize(u)
     partition_map = new_partition_map
   end
 
-  local states = {}
   local accept_states = {}
 
   for i, partition in ipairs(partitions) do
     local u = state()
     u.index = i
-    for _, x in ipairs(partition) do
-      u:update(x.timestamp, x.accept_action)
-    end
-    states[partition] = u
-    if u.accept_action then
+    partition.state = u
+
+    if partition[1].accept_action then
+      for _, x in ipairs(partition) do
+        u:update(x.timestamp, x.accept_action)
+      end
       append(accept_states, u)
     end
   end
 
   for i, partition in ipairs(partitions) do
-    local u = states[partition]
+    local u = partition.state
     local tmap = {}
     for byte = 0x00, 0xFF do
       local resolved = {}
       local x_to, _, x_action = partition[1]:simulate(byte, resolved)
       if x_to then
-        local v = states[partition_map[x_to]]
+        local v = partition_map[x_to].state
         local tkey = v.index
         if resolved.action then
           tkey = tkey .. ";" .. resolved.action
@@ -387,7 +386,7 @@ local function minimize(u)
     end
   end
 
-  return states[partition_map[u]], accept_states
+  return partition_map[u].state, accept_states
 end
 
 ---------------------------------------------------------------------------
