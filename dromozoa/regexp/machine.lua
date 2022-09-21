@@ -285,15 +285,10 @@ local function create_initial_partitions(u, accept_partitions, nonaccept_partiti
 end
 
 local function minimize(u)
-  local accept_partitions = { map = {} }
+  local partitions = { map = {} }
   local partition = {}
   local partition_map = {}
-  create_initial_partitions(u, accept_partitions, partition, partition_map, {})
-
-  local partitions = {}
-  for _, partition in ipairs(accept_partitions) do
-    append(partitions, partition)
-  end
+  create_initial_partitions(u, partitions, partition, partition_map, {})
   if next(partition) then
     append(partitions, partition)
   end
