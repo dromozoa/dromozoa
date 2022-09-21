@@ -441,18 +441,20 @@ local function difference_impl(x, y)
   local x_states = update_state_indices(x)
   local y_states = update_state_indices(y)
 
-  local null = state()
-  null.index = 0
-
   local x_n = #x_states
   local y_n = #y_states
   local n = y_n + 1
 
+  local null = state()
+  null.index = 0
+  x_states[0] = null
+  y_states[0] = null
+
   local z_states = {}
   for i = 0, x_n do
-    local x = i == 0 and null or x_states[i]
-    for j = i == 0 and 1 or 0, y_n do
-      local y = j == 0 and null or y_states[j]
+    local x = x_states[i]
+    for j = 0, y_n do
+      local y = y_states[j]
       local z = state()
       if not y.accept_action then
         z:update(x.timestamp, x.accept_action)
@@ -462,10 +464,10 @@ local function difference_impl(x, y)
   end
 
   for i = 0, x_n do
-    local x_u = i == 0 and null or x_states[i]
+    local x_u = x_states[i]
 
-    for j = i == 0 and 1 or 0, y_n do
-      local y_u = j == 0 and null or y_states[j]
+    for j = 0, y_n do
+      local y_u = y_states[j]
       local z_u = z_states[i * n + j]
 
       local tmap = {}
