@@ -131,19 +131,7 @@ function metatable:__mul(that)
       end
     end
 
-    if not n then
-      if m == 0 then
-        return construct("*", self)
-      elseif m == 1 then
-        return construct("+", self)
-      else
-        local result = self
-        for i = 3, m do
-          result = result + self
-        end
-        return result + construct("+", self)
-      end
-    else
+    if n then
       if m == 0 then
         local result = construct("?", self)
         for i = 2, n do
@@ -160,6 +148,16 @@ function metatable:__mul(that)
         end
         return result
       end
+    elseif m == 0 then
+      return construct("*", self)
+    elseif m == 1 then
+      return construct("+", self)
+    else
+      local result = self
+      for i = 3, m do
+        result = result + self
+      end
+      return result + construct("+", self)
     end
   end
 end
