@@ -84,7 +84,9 @@ out:write(regexp.compile {
 
     (_"\\" + _["09"]/"ra=fc-${<0>}" + _["09"]/"ra=ra*10+fc-${<0>}"*{0,2}) %"fassert(ra<=255,'decimal escape too large') append(ra)";
 
-    -_{"\\\"\'"}*"+" %"append_range(fs,fp)"
+    -_{"\\\"\'"}*"+" %"append_range(fs,fp)";
+
+    -_{"\\"} %"append(fc)";
   });
 
   regexp.machine.lexer(token_names, {

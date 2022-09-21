@@ -25,6 +25,8 @@ quotes["\n"] = [[\n]]
 quotes["\v"] = [[\v]]
 quotes["\f"] = [[\f]]
 quotes["\r"] = [[\r]]
+quotes["\""] = [[\"]]
+quotes["\\"] = [[\\]]
 
 local LS = string.char(0xE2, 0x80, 0xA8)
 local PS = string.char(0xE2, 0x80, 0xA9)
