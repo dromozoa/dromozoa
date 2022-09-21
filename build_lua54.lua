@@ -15,7 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local array = require "dromozoa.array"
 local regexp = {
   pattern = require "dromozoa.regexp.pattern";
   machine = require "dromozoa.regexp.machine";

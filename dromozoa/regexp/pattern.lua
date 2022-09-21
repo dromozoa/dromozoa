@@ -225,7 +225,8 @@ return setmetatable({}, {
   end;
 
   __call = function (_, that)
-    if type(that) == "table" and getmetatable(that) ~= metatable then
+    if type(that) == "table" then
+      assert(getmetatable(that) ~= metatable)
       local result = set(that[1])
       for i = 2, #that do
         result = union(result, set(that[i]))
