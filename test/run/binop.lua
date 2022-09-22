@@ -16,17 +16,7 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local a = 10 % -4
-if a < 0 then
-  io.write "OK\n"
-else
-  io.write "NG\n"
-end
+io.write(a .. "\n")
 
 local a = 10 // -4
-if a == -3 then
-  io.write "OK\n"
-else
-  io.write "NG\n"
-end
-
-io.write("OK " .. a .. "\n")
+io.write(a .. "\n")
