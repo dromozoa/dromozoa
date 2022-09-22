@@ -17,7 +17,7 @@
 
 local verbose = os.getenv "VERBOSE" == "1"
 
-local array = require "dromozoa.array"
+local append = require "dromozoa.append"
 local pattern = require "dromozoa.regexp.pattern"
 local machine = require "dromozoa.regexp.machine"
 local compile = require "dromozoa.regexp.compile"
@@ -76,7 +76,7 @@ local out = assert(io.open(filename, "w"))
 out:write(code)
 out:close()
 
-local buffer = array()
+local buffer = {}
 
 local execute = assert(assert(loadfile(filename))())
 execute([[
@@ -89,19 +89,16 @@ execute([[
 ]], "@test", 0, function (token)
   if token[0] ~= nil then
     if token[0] == 0 then
-      buffer:append "push\t$\n"
+      append(buffer, "push\t$\n")
     else
-      buffer:append(table.concat({ "push", token[0], token.i, token.j, token.n, token.c, ("%q"):format(token.v) }, "\t") .. "\n")
+      append(buffer, table.concat({ "push", token[0], token.i, token.j, token.n, token.c, ("%q"):format(token.v) }, "\t"), "\n")
     end
   else
-    buffer:append(table.concat({ "skip", "", token.i, token.j, token.n, token.c, ("%q"):format(token.s) }, "\t") .. "\n")
+    append(buffer, table.concat({ "skip", "", token.i, token.j, token.n, token.c, ("%q"):format(token.s) }, "\t"), "\n")
   end
 end)
 
-if verbose then
-  print(buffer:concat())
-end
-assert(buffer:concat() == [[
+assert(table.concat(buffer) == [[
 skip		1	19	1	1	"--[=[\
 123] ]==]\
 ]=]"

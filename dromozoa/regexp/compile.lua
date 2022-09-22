@@ -161,13 +161,13 @@ return function (that)
       append(data, { timestamp = v.timestamp, machine = v, name = k })
     end
   end
-  local j = 0
+  local main = true
   for i, v in ipairs(that) do
     if type(v) == "string" then
       append(context.custom.out, v, "\n")
     else
-      j = j + 1
-      append(data, { timestamp = v.timestamp, machine = v, main = j == 1 })
+      append(data, { timestamp = v.timestamp, machine = v, main = main })
+      main = nil
     end
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)

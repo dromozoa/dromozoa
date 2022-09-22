@@ -285,22 +285,17 @@ local function create_initial_partitions(u, accept_partitions, nonaccept_partiti
 end
 
 local function minimize(u)
-  local accept_partitions = { map = {} }
+  local partitions = { map = {} }
   local partition = {}
   local partition_map = {}
-  create_initial_partitions(u, accept_partitions, partition, partition_map, {})
-
-  local partitions = {}
-  for _, partition in ipairs(accept_partitions) do
-    append(partitions, partition)
-  end
+  create_initial_partitions(u, partitions, partition, partition_map, {})
   if next(partition) then
     append(partitions, partition)
   end
 
   while true do
-    local new_partition_map = {}
     local new_partitions = {}
+    local new_partition_map = {}
 
     for _, partition in ipairs(partitions) do
       -- パーティション内の状態の組(x,y)について同じ遷移をするか調べる。同じ遷
@@ -324,16 +319,16 @@ local function minimize(u)
 
           if same_transition then
             local new_partition = new_partition_map[x]
-            if not new_partition then
+            if new_partition then
+              -- xがすでに新パーティションに登録されている。つまり、yよりも先に
+              -- 処理された状態zについて、状態の組(x,z)がひとつのパーティション
+              -- にまとめられた。このとき、yも同じパーティションにまとめられて
+              -- いるはずである。
+              assert(new_partition == new_partition_map[y])
+            else
               local new_partition = new_partition_map[y]
               append(new_partition, x)
               new_partition_map[x] = new_partition
-            else
-              -- xがすでに新パーティションに登録されている。つまり、yよりも先に
-              -- 処理された状態zについて、状態の組(x,z)がひとつのパーティション
-              -- にまとめられた。このとき、状態yも同じパーティションにまとめら
-              -- れているはずである。
-              assert(new_partition == new_partition_map[y])
             end
           end
         end
@@ -350,33 +345,33 @@ local function minimize(u)
       break
     end
 
-    partition_map = new_partition_map
     partitions = new_partitions
+    partition_map = new_partition_map
   end
 
-  local states = {}
   local accept_states = {}
 
   for i, partition in ipairs(partitions) do
     local u = state()
     u.index = i
-    for _, x in ipairs(partition) do
-      u:update(x.timestamp, x.accept_action)
-    end
-    states[partition] = u
-    if u.accept_action then
+    partition.state = u
+
+    if partition[1].accept_action then
+      for _, x in ipairs(partition) do
+        u:update(x.timestamp, x.accept_action)
+      end
       append(accept_states, u)
     end
   end
 
   for i, partition in ipairs(partitions) do
-    local u = states[partition]
+    local u = partition.state
     local tmap = {}
     for byte = 0x00, 0xFF do
       local resolved = {}
       local x_to, _, x_action = partition[1]:simulate(byte, resolved)
       if x_to then
-        local v = states[partition_map[x_to]]
+        local v = partition_map[x_to].state
         local tkey = v.index
         if resolved.action then
           tkey = tkey .. ";" .. resolved.action
@@ -391,7 +386,7 @@ local function minimize(u)
     end
   end
 
-  return states[partition_map[u]], accept_states
+  return partition_map[u].state, accept_states
 end
 
 ---------------------------------------------------------------------------
@@ -446,18 +441,20 @@ local function difference_impl(x, y)
   local x_states = update_state_indices(x)
   local y_states = update_state_indices(y)
 
-  local null = state()
-  null.index = 0
-
   local x_n = #x_states
   local y_n = #y_states
   local n = y_n + 1
 
+  local null = state()
+  null.index = 0
+  x_states[0] = null
+  y_states[0] = null
+
   local z_states = {}
   for i = 0, x_n do
-    local x = i == 0 and null or x_states[i]
-    for j = i == 0 and 1 or 0, y_n do
-      local y = j == 0 and null or y_states[j]
+    local x = x_states[i]
+    for j = 0, y_n do
+      local y = y_states[j]
       local z = state()
       if not y.accept_action then
         z:update(x.timestamp, x.accept_action)
@@ -467,10 +464,10 @@ local function difference_impl(x, y)
   end
 
   for i = 0, x_n do
-    local x_u = i == 0 and null or x_states[i]
+    local x_u = x_states[i]
 
-    for j = i == 0 and 1 or 0, y_n do
-      local y_u = j == 0 and null or y_states[j]
+    for j = 0, y_n do
+      local y_u = y_states[j]
       local z_u = z_states[i * n + j]
 
       local tmap = {}
@@ -530,9 +527,7 @@ function module.lexer(token_names, that)
     if type(name) ~= "string" then
       name = node.literal
     end
-    local timestamp = node.timestamp
-    assert(timestamp)
-    append(data, { timestamp = timestamp, node = node, name = name })
+    append(data, { timestamp = node.timestamp, node = node, name = name })
   end
   table.sort(data, function (a, b) return a.timestamp < b.timestamp end)
 

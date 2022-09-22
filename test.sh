@@ -20,6 +20,11 @@
 LUA_PATH="?.lua;ext/?.lua;;"
 export LUA_PATH
 
+case X$# in
+  X0) LUA_VERSION=`lua -e 'io.write(_VERSION)'`;;
+  *) LUA_VERSION=`"$@" -e 'io.write(_VERSION)'`;;
+esac
+
 for i in test/test*.lua
 do
   case X$# in
@@ -36,9 +41,13 @@ do
     *) "$@" test/run_js.lua "$i" "test-$j.js";;
   esac
 
-  lua "$i" >"test-$j.lua-out"
-  node "test-$j.js" >"test-$j.js-out"
-  diff -u "test-$j.lua-out" "test-$j.js-out"
+  case X$LUA_VERSION in
+    X*5.4)
+      lua "$i" >"test-$j.lua-out"
+      node "test-$j.js" >"test-$j.js-out"
+      diff -u "test-$j.lua-out" "test-$j.js-out"
+      ;;
+  esac
 done
 
 case X$DROMOZOA_TEST_DEBUG in

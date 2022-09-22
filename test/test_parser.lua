@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local array = require "dromozoa.array"
+local append = require "dromozoa.append"
 local compile = require "dromozoa.parser.compile"
 local grammar = require "dromozoa.parser.grammar"
 local lalr = require "dromozoa.parser.lalr"
@@ -33,9 +33,9 @@ local g, actions, conflictions = lalr(grammar({ "id", "+", "*", "(", ")" }, {
     + _"id";
 }))
 
-local buffer = array()
+local buffer = {}
 for _, message in ipairs(conflictions) do
-  buffer:append(message, "\n")
+  append(buffer, message, "\n")
 end
 
 local code = compile(g, actions)
@@ -66,15 +66,14 @@ local tree = p { [0] = max_terminal_symbol }
 
 local function dump(u, depth)
   depth = depth == nil and 0 or depth + 1
-  buffer:append(("  "):rep(depth), symbol_names[u[0]], "\n")
+  append(buffer, ("  "):rep(depth), symbol_names[u[0]], "\n")
   for _, v in ipairs(u) do
     dump(v, depth)
   end
 end
 dump(tree)
 
--- print(buffer:concat())
-assert(buffer:concat() == [[
+assert(table.concat(buffer) == [[
 [info] conflict between production 2 and symbol + resolved as reduce (left +)
 [info] conflict between production 2 and symbol * resolved as shift (+ < *)
 [info] conflict between production 3 and symbol + resolved as reduce (+ < *)

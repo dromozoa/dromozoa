@@ -17,7 +17,7 @@
 
 local verbose = os.getenv "VERBOSE" == "1"
 
-local array = require "dromozoa.array"
+local append = require "dromozoa.append"
 local pattern = require "dromozoa.regexp.pattern"
 local machine = require "dromozoa.regexp.machine"
 local compile = require "dromozoa.regexp.compile"
@@ -48,9 +48,9 @@ local code = compile {
   });
 }
 
-local buffer = array()
+local buffer = {}
 for _, name in ipairs(token_names) do
-  buffer:append(name, "\n")
+  append(buffer, name, "\n")
 end
 
 local filename = "test-gen3.lua"
@@ -65,17 +65,14 @@ f [ g \1 h [ i \[ j \] k ] l
 ]], "@test", 0, function (token)
   if token[0] ~= nil then
     if token[0] ~= 0 then
-      buffer:append("push ", token[0], " ", token_names[token[0]], " ${<", token.v, ">}\n")
+      append(buffer, "push ", token[0], " ", token_names[token[0]], " ${<", token.v, ">}\n")
     else
-      buffer:append "push eof\n"
+      append(buffer, "push eof\n")
     end
   end
 end)
 
-if verbose then
-  print(buffer:concat())
-end
-assert(buffer:concat() == [[
+assert(table.concat(buffer) == [[
 ]
 escaped
 char

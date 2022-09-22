@@ -15,7 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local array = require "dromozoa.array"
 local regexp = {
   pattern = require "dromozoa.regexp.pattern";
   machine = require "dromozoa.regexp.machine";
@@ -85,7 +84,9 @@ out:write(regexp.compile {
 
     (_"\\" + _["09"]/"ra=fc-${<0>}" + _["09"]/"ra=ra*10+fc-${<0>}"*{0,2}) %"fassert(ra<=255,'decimal escape too large') append(ra)";
 
-    _()/"append(fc)";
+    -_{"\\\"\'"}*"+" %"append_range(fs,fp)";
+
+    -_{"\\"} %"append(fc)";
   });
 
   regexp.machine.lexer(token_names, {

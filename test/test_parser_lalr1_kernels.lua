@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local array = require "dromozoa.array"
+local append = require "dromozoa.append"
 local grammar = require "dromozoa.parser.grammar"
 local lalr = require "dromozoa.parser.lalr"
 
@@ -30,37 +30,36 @@ local g, actions, conflictions, data = lalr(grammar({ "=", "*", "id" }, {
   R = _"L";
 }))
 
-local buffer = array()
+local buffer = {}
 for _, message in ipairs(conflictions) do
-  buffer:append(message, "\n")
+  append(buffer, message, "\n")
 end
 
 local set_of_items = data.lalr1_set_of_items
 
 for i, items in ipairs(set_of_items) do
-  buffer:append(("="):rep(75), "\nI_", i, "\n")
+  append(buffer, ("="):rep(75), "\nI_", i, "\n")
   for _, item in ipairs(items) do
     -- カーネル項だけを出力する
     if item.index == 1 or item.dot > 1 then
       local production = g.productions[item.index]
-      buffer:append("  ", g.symbol_names[production.head], " ->")
+      append(buffer, "  ", g.symbol_names[production.head], " ->")
       for j, symbol in ipairs(production.body) do
         if j == item.dot then
-          buffer:append " ."
+          append(buffer, " .")
         end
-        buffer:append(" ", g.symbol_names[symbol])
+        append(buffer, " ", g.symbol_names[symbol])
       end
       if production.body[item.dot] == nil then
-        buffer:append " ."
+        append(buffer, " .")
       end
-      buffer:append(", ", g.symbol_names[item.la], "\n")
+      append(buffer, ", ", g.symbol_names[item.la], "\n")
     end
   end
 end
-buffer:append(("="):rep(75), "\n")
+append(buffer, ("="):rep(75), "\n")
 
--- print(buffer:concat())
-assert(buffer:concat() == [[
+assert(table.concat(buffer) == [[
 ===========================================================================
 I_1
   S' -> . S, $

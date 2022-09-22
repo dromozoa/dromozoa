@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local array = require "dromozoa.array"
+local append = require "dromozoa.append"
 local grammar = require "dromozoa.parser.grammar"
 local lalr = require "dromozoa.parser.lalr"
 
@@ -31,32 +31,32 @@ local g, actions, conflictions, data = lalr(grammar({ "+", "*", "(", ")", "id" }
     + _"id";
 }))
 
-local buffer = array()
+local buffer = {}
 for _, message in ipairs(conflictions) do
-  buffer:append(message, "\n")
+  append(buffer, message, "\n")
 end
 
 local set_of_items = data.lr0_set_of_items
 local transitions = data.transitions
 
 for i, items in ipairs(set_of_items) do
-  buffer:append(("="):rep(75), "\nI_", i, "\n")
+  append(buffer, ("="):rep(75), "\nI_", i, "\n")
   for _, item in ipairs(items) do
     local production = g.productions[item.index]
-    buffer:append("  ", g.symbol_names[production.head], " ->")
+    append(buffer, "  ", g.symbol_names[production.head], " ->")
     for j, symbol in ipairs(production.body) do
       if j == item.dot then
-        buffer:append " ."
+        append(buffer, " .")
       end
-      buffer:append(" ", g.symbol_names[symbol])
+      append(buffer, " ", g.symbol_names[symbol])
     end
     if production.body[item.dot] == nil then
-      buffer:append " ."
+      append(buffer, " .")
     end
-    buffer:append "\n"
+    append(buffer, "\n")
   end
   if next(transitions[i]) then
-    buffer:append "\n"
+    append(buffer, "\n")
   end
 
   local transition = {}
@@ -65,13 +65,12 @@ for i, items in ipairs(set_of_items) do
   end
   table.sort(transition, function (a, b) return a.j < b.j end)
   for _, t in ipairs(transition) do
-    buffer:append("  I_", i, " -> I_", t.j, " ", g.symbol_names[t.symbol], "\n")
+    append(buffer, "  I_", i, " -> I_", t.j, " ", g.symbol_names[t.symbol], "\n")
   end
 end
-buffer:append(("="):rep(75), "\n")
+append(buffer, ("="):rep(75), "\n")
 
--- print(buffer:concat())
-assert(buffer:concat() == [[
+assert(table.concat(buffer) == [[
 ===========================================================================
 I_1
   E' -> . E

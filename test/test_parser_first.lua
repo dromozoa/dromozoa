@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local array = require "dromozoa.array"
+local append = require "dromozoa.append"
 local grammar = require "dromozoa.parser.grammar"
 local lalr = require "dromozoa.parser.lalr"
 
@@ -35,9 +35,9 @@ local g, actions, conflictions, data = lalr(grammar({ "+", "*", "(", ")", "id" }
     + _"id";
 }))
 
-local buffer = array()
+local buffer = {}
 for _, message in ipairs(conflictions) do
-  buffer:append(message, "\n")
+  append(buffer, message, "\n")
 end
 
 local max_terminal_symbol = g.max_terminal_symbol
@@ -49,25 +49,24 @@ end
 local first_table = g.first_table
 
 for _, name in ipairs { "F", "T", "E", "E'", "T'" } do
-  buffer:append("FIRST(", name, ") = { ")
+  append(buffer, "FIRST(", name, ") = { ")
   local first = first_table[symbol_table[name]]
   local i = 0
   for _, k in ipairs(first) do
     i = i + 1
     if i > 1 then
-      buffer:append ", "
+      append(buffer, ", ")
     end
     if k == 0 then
-      buffer:append "e"
+      append(buffer, "e")
     else
-      buffer:append(g.symbol_names[k])
+      append(buffer, g.symbol_names[k])
     end
   end
-  buffer:append " }\n"
+  append(buffer, " }\n")
 end
 
--- print(buffer:concat())
-assert(buffer:concat() == [[
+assert(table.concat(buffer) == [[
 FIRST(F) = { (, id }
 FIRST(T) = { (, id }
 FIRST(E) = { (, id }
