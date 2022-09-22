@@ -133,7 +133,7 @@ function metatable:__call(token_names, that)
   local symbol_table = {}
   for _, name in ipairs(token_names) do
     if symbol_table[name] then
-      error("symbol " .. name .. " redefined as a terminal")
+      error("symbol '" .. name .. "' redefined as a terminal")
     end
     symbol_table[name] = append(symbol_names, name)
   end
@@ -179,7 +179,7 @@ function metatable:__call(token_names, that)
     local k = u.k
     local v = u.v
     if symbol_table[k] then
-      error("symbol " .. k .. " redefined as a nonterminal")
+      error("symbol '" .. k .. "' redefined as a nonterminal")
     end
     local symbol = append(symbol_names, k)
     symbol_table[k] = symbol
@@ -206,7 +206,7 @@ function metatable:__call(token_names, that)
       for _, name in ipairs(v) do
         local symbol = symbol_table[name]
         if not symbol then
-          error("symbol " .. name .. " not defined")
+          error("symbol '" .. name .. "' not defined")
         end
         append(body, symbol)
         used_symbols[symbol] = true
@@ -215,7 +215,7 @@ function metatable:__call(token_names, that)
       if v.precedence then
         local precedence = precedence_table[v.precedence]
         if not precedence then
-          error("precedence " .. v.precedence .. " not defined")
+          error("precedence '" .. v.precedence .. "' not defined")
         end
         production.precedence = precedence
         used_precedences[v.precedence] = true
@@ -226,12 +226,12 @@ function metatable:__call(token_names, that)
 
   for i, v in ipairs(symbol_names) do
     if not used_symbols[i] then
-      error("symbol " .. v .. " not used")
+      error("symbol '" .. v .. "' not used")
     end
   end
   for k in pairs(precedence_table) do
     if not used_precedences[k] then
-      error("precedence " .. k .. " not used")
+      error("precedence '" .. k .. "' not used")
     end
   end
 
