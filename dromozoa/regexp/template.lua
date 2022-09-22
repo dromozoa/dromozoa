@@ -139,8 +139,11 @@ local main = function ()
   end
 
   function ferror(message)
-    local near = current_byte and string.char(current_byte) or "eof"
-    error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (" .. message .. " near " .. near .. ")")
+    if current_byte then
+      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (" .. message .. " near '" .. string.char(current_byte) .. "')")
+    else
+      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (" .. message .. ")")
+    end
   end
 
   function fassert(v, message, ...)
