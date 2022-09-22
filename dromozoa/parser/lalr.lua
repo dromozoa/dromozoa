@@ -426,22 +426,22 @@ local function resolve_sr(grammar, item, saction, raction, buffer)
   local sp, sname = symbol_precedence(grammar, item.la)
 
   if sp < rp then
-    append(buffer, "reduce (", sname, " < ", rname, ")")
+    append(buffer, "reduce ('", sname, "' < '", rname, "')")
     return raction, buffer
   elseif rp < sp then
-    append(buffer, "shift (", rname, " < ", sname, ")")
+    append(buffer, "shift ('", rname, "' < '", sname, "')")
     return saction, buffer
   end
 
   if associativity == "left" then
-    append(buffer, "reduce (left ", rname, ")")
+    append(buffer, "reduce (left '", rname, "')")
     return raction, buffer
   elseif associativity == "right" then
-    append(buffer, "shift (right ", rname, ")")
+    append(buffer, "shift (right '", rname, "')")
     return saction, buffer
   else
     assert(associativity == "nonassoc")
-    append(buffer, "an error (nonassoc ", rname, ")")
+    append(buffer, "an error (nonassoc '", rname, "')")
     return 0, buffer
   end
 end
@@ -482,7 +482,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
           local buffer = {}
           data[item.la] = resolve_sr(grammar, item, action, item.index + max_state, buffer)
           if next(buffer) then
-            append(conflictions, "[info] conflict between production " .. item.index .. " and symbol " .. symbol_names[item.la] .. " resolved as " .. table.concat(buffer))
+            append(conflictions, "[info] conflict between production " .. item.index .. " and symbol '" .. symbol_names[item.la] .. "' resolved as " .. table.concat(buffer))
           else
             sr = sr + 1
           end

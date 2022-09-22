@@ -154,10 +154,10 @@ assert(table.concat(buffer) == [[
 |  6 |     |     |  r2 |     |     |     |
 |  7 |  r3 |  r3 |  r3 |     |     |     |
 ---------------------------------------------------------------------------
-[info] conflict between production 2 and symbol + resolved as reduce (left +)
-[info] conflict between production 2 and symbol * resolved as shift (+ < *)
-[info] conflict between production 3 and symbol + resolved as reduce (+ < *)
-[info] conflict between production 3 and symbol * resolved as reduce (left *)
+[info] conflict between production 2 and symbol '+' resolved as reduce (left '+')
+[info] conflict between production 2 and symbol '*' resolved as shift ('+' < '*')
+[info] conflict between production 3 and symbol '+' resolved as reduce ('+' < '*')
+[info] conflict between production 3 and symbol '*' resolved as reduce (left '*')
 |    |  id |  +  |  *  |  (  |  )  |  $  |  E' |  E  |
 |  1 |  s4 |     |     |  s3 |     |     |     |  s2 |
 |  2 |     |  s5 |  s6 |     |     | acc |     |     |
@@ -181,7 +181,7 @@ assert(table.concat(buffer) == [[
 |  6 |  s3 |     |  s4 |     |     |  s7 |
 |  7 |     |  r2 |     |  r2 |     |     |
 ---------------------------------------------------------------------------
-[info] conflict between production 2 and symbol .. resolved as shift (right ..)
+[info] conflict between production 2 and symbol '..' resolved as shift (right '..')
 |    |  id |  .. |  $  |  E' |  E  |
 |  1 |  s3 |     |     |     |  s2 |
 |  2 |     |  s4 | acc |     |     |
@@ -189,7 +189,7 @@ assert(table.concat(buffer) == [[
 |  4 |  s3 |     |     |     |  s5 |
 |  5 |     |  s4 |  r2 |     |     |
 ---------------------------------------------------------------------------
-[info] conflict between production 2 and symbol == resolved as an error (nonassoc ==)
+[info] conflict between production 2 and symbol '==' resolved as an error (nonassoc '==')
 |    |  id |  == |  $  |  E' |  E  |
 |  1 |  s3 |     |     |     |  s2 |
 |  2 |     |  s4 | acc |     |     |
@@ -212,8 +212,8 @@ assert(table.concat(buffer) == [[
 |  2 |  s3 | acc |     |     |
 |  3 |  r3 |  r3 |     |     |
 ---------------------------------------------------------------------------
-[info] conflict between production 3 and symbol - resolved as reduce (- < UNM)
-[info] conflict between production 2 and symbol - resolved as reduce (left -)
+[info] conflict between production 3 and symbol '-' resolved as reduce ('-' < 'UNM')
+[info] conflict between production 2 and symbol '-' resolved as reduce (left '-')
 |    |  id |  -  |  $  |  E' |  E  |
 |  1 |  s4 |  s3 |     |     |  s2 |
 |  2 |     |  s5 | acc |     |     |
@@ -223,7 +223,7 @@ assert(table.concat(buffer) == [[
 |  6 |     |  r3 |  r3 |     |     |
 |  7 |     |  r2 |  r2 |     |     |
 ---------------------------------------------------------------------------
-[info] conflict between production 3 and symbol - resolved as reduce (- < UNM)
+[info] conflict between production 3 and symbol '-' resolved as reduce ('-' < 'UNM')
 [warn] state 7 conflicts: 1 shift/reduce
 [warn] shift/reduce conflicts: 1 found
 |    |  id |  -  |  $  |  E' |  E  |

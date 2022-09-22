@@ -74,10 +74,10 @@ end
 dump(tree)
 
 assert(table.concat(buffer) == [[
-[info] conflict between production 2 and symbol + resolved as reduce (left +)
-[info] conflict between production 2 and symbol * resolved as shift (+ < *)
-[info] conflict between production 3 and symbol + resolved as reduce (+ < *)
-[info] conflict between production 3 and symbol * resolved as reduce (left *)
+[info] conflict between production 2 and symbol '+' resolved as reduce (left '+')
+[info] conflict between production 2 and symbol '*' resolved as shift ('+' < '*')
+[info] conflict between production 3 and symbol '+' resolved as reduce ('+' < '*')
+[info] conflict between production 3 and symbol '*' resolved as reduce (left '*')
 E
   E
     id
