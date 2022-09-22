@@ -31,17 +31,9 @@ local function insert(t, v)
 end
 
 local function insert_action(context, action)
-  local function substitute(variable)
-    local result = context.action.variables[variable]
-    if not result then
-      error("variable " .. variable .. " not defined")
-    end
-    return result
-  end
-
   local action = action
-    :gsub("$([%a_][%w_]*)", substitute)
-    :gsub([[${'(..-)'}]], substitute)
+    :gsub("$([%a_][%w_]*)", context.action.variables)
+    :gsub([[${'(..-)'}]], context.action.variables)
     :gsub([[${<(..-)>}]], function (s)
       local result = {}
       for i = 1, #s do
