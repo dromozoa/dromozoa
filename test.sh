@@ -28,6 +28,15 @@ do
   esac
 done
 
+case X$# in
+  X0) LUA_VERSION=`lua -e 'io.write(_VERSION)'`;;
+  *) LUA_VERSION=`"$@" -e 'io.write(_VERSION)'`;;
+esac
+if test "X$LUA_VERSION" = "XLua 5.4"
+then
+  ./test_exp.sh "$@"
+fi
+
 for i in test/run/*.lua
 do
   j=`expr "X$i" : 'Xtest/run/\([^/]*\)\.lua$'`
