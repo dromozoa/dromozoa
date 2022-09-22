@@ -41,22 +41,14 @@ return function (grammar, actions)
   end
   append(static_data, "};\nsemantic_actions={")
 
-  local function substitute(variable)
-    local result = grammar.symbol_table[variable]
-    if not result then
-      error("variable " .. variable .. " not defined")
-    end
-    return result
-  end
-
   for i, production in ipairs(grammar.productions) do
     local semantic_action = production.semantic_action
     if not semantic_action then
       semantic_action = ""
     end
     local semantic_action = semantic_action
-      :gsub("$([%a_][%w_]*)", substitute)
-      :gsub("${'(..-)'}", substitute)
+      :gsub("$([%a_][%w_]*)", grammar.symbol_table)
+      :gsub("${'(..-)'}", grammar.symbol_table)
       :gsub("$([1-9]%d*)", "S[%1]")
       :gsub("$0", "S[0]")
       :gsub("$%$", "SS")
