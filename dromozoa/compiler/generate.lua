@@ -15,21 +15,15 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local append = require "dromozoa.append"
 local lua54_parser = require "dromozoa.compiler.lua54_parser"
 
 local function compiler_error(message, u)
-  if u ~= nil and u.f ~= nil and u.n ~= nil and u.c ~= nil then
+  if u.f and u.n and u.c then
     error(u.f .. ":" .. u.n .. ":" .. u.c .. ": compiler error (" .. message .. ")")
   else
     error("compiler error (" .. message .. ")")
   end
-end
-
-local function append(t, v)
-  assert(v ~= nil)
-  local n = #t + 1
-  t[n] = v
-  return n
 end
 
 ---------------------------------------------------------------------------

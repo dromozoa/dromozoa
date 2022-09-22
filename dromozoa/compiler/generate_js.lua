@@ -212,6 +212,7 @@ local function generate_proto_code(out, protos, u, n)
     out:write("S.splice(-", a, ");")
 
   else
+    -- TODO エラー出力する
     out:write("/* ", u_name , " */")
   end
   out:write "\n"
@@ -272,6 +273,7 @@ chunk(...process.argv.slice(2));
 ]]
 end
 
+-- TODO sourcemapに対応する
 return function (out, protos)
   for i = #protos, 1, -1 do
     generate_proto(out, protos, protos[i])
