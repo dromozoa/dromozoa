@@ -188,7 +188,7 @@ local opcodes = {
 
 local function append_code(proto, code, u, op, a, b)
   local v = { [0] = op, a = a, b = b, node = u }
-  code[#code + 1] = v
+  append(code, v)
   local c = opcodes[op]
   if c then
     proto.top = proto.top + c
