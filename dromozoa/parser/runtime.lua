@@ -48,9 +48,9 @@ context["action_data"];
         local action = actions[state][symbol]
         if action == 0 then
           if token.f and token.n and token.c and token.s then
-            error(token.f .. ":" .. token.n .. ":" .. token.c .. ": parser error (cannot transition near " .. token.s .. ")")
+            error(token.f .. ":" .. token.n .. ":" .. token.c .. ": parser error (cannot transition near '" .. token.s .. "')")
           else
-            error("parser error (cannot transition near " .. symbol_names[symbol] .. ")")
+            error("parser error (cannot transition near '" .. symbol_names[symbol] .. "')")
           end
         end
         if action <= max_state then

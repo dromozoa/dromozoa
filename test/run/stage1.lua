@@ -33,3 +33,9 @@ local t = {
 
 -- t.f(f(1,2,3), 4)
 -- globalThis.console.log(t)
+
+local no_such_fn="foo"
+no_such_fn()
+
+t = 12 t[1] = 42
+
