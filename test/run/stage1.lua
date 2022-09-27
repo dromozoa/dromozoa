@@ -31,7 +31,29 @@ local t = {
   end;
 }
 
--- t.f(f(1,2,3), 4)
+if a == 2 then
+  globalThis.console:log "then"
+else
+  globalThis.console:log "else"
+end
+
+for i = 1, 3 do
+  globalThis.console:log(i)
+end
+
+local x = { 11, 12, nil, nil, 13, 14 }
+-- local x = {}
+-- x[1] = 11
+-- x[2] = 12
+-- x[3] = "foo"
+-- x[4] = true
+-- x[5] = 13
+-- x[6] = 14
+for i = 1, 6 do
+  globalThis.console.log(i, x[i])
+end
+
+-- t.f(f(1,2,3),4)
 -- globalThis.console.log(t)
 
 -- local no_such_fn="foo"

@@ -41,10 +41,16 @@ local function quote(s)
   return '"' .. s:gsub("[%z\1-\31\"\\]", quotes):gsub(LS, [[\u2028]]):gsub(PS, [[\u2029]]) .. '"'
 end
 
-local function append_mapping(source_map, file, line, column)
-  append(source_map, { file = file, line = line, column = column })
-  if file and not source_map.files[file] then
-    source_map.files[file] = append(source_map.files, file)
+local function append_mapping(source_map, u)
+  if u then
+    local file = source_map.files[u.f]
+    if not file then
+      file = append(source_map.files, u.f) - 1
+      source_map.files[u.f] = file
+    end
+    append(source_map, { file = file, line = u.n - 1, column = u.c - 1 })
+  else
+    append(source_map, { file = 0, line = 0, column = 0 })
   end
 end
 
@@ -54,6 +60,59 @@ local function generate_code(result, source_map, protos, u)
   local b = u.b
 
   if false then
+
+  elseif u_name == "break" then
+    append(result, "break;")
+
+  elseif u_name == "if" then
+    append(result, "a=S.pop();if(a!==undefined&&a!==false){\n")
+    append_mapping(source_map, u[1].node)
+    for _, v in ipairs(u[1]) do
+      generate_code(result, source_map, protos, v)
+    end
+    append(result, "}else{\n")
+    append_mapping(source_map, u[2].node)
+    for _, v in ipairs(u[2]) do
+      generate_code(result, source_map, protos, v)
+    end
+    append(result, "}\n")
+    append_mapping(source_map)
+    return
+
+  elseif u_name == "loop" then
+    append(result, "while(true){\n")
+    append_mapping(source_map, u.node)
+    for _, v in ipairs(u) do
+      generate_code(result, source_map, protos, v)
+    end
+    append(result, "}\n")
+    append_mapping(source_map)
+    return
+
+  elseif u_name == "add"    then append(result, "b=S.pop();a=S.pop();S.push(+a+ +b);")
+  elseif u_name == "sub"    then append(result, "b=S.pop();a=S.pop();S.push(a-b);")
+  elseif u_name == "mul"    then append(result, "b=S.pop();a=S.pop();S.push(a*b);")
+  elseif u_name == "div"    then append(result, "b=S.pop();a=S.pop();S.push(a/b);")
+  elseif u_name == "idiv"   then append(result, "b=S.pop();a=S.pop();S.push(Math.floor(a/b));")
+  elseif u_name == "mod"    then append(result, "b=S.pop();a=S.pop();S.push((a%b+b)%b);")
+  elseif u_name == "pow"    then append(result, "b=S.pop();a=S.pop();S.push(Math.pow(a,b));")
+  elseif u_name == "band"   then append(result, "b=S.pop();a=S.pop();S.push(a&b);")
+  elseif u_name == "bxor"   then append(result, "b=S.pop();a=S.pop();S.push(a^b);")
+  elseif u_name == "bor"    then append(result, "b=S.pop();a=S.pop();S.push(a|b);")
+  elseif u_name == "shr"    then append(result, "b=S.pop();a=S.pop();S.push(a>>b);")
+  elseif u_name == "shl"    then append(result, "b=S.pop();a=S.pop();S.push(a<<b);")
+  elseif u_name == "concat" then append(result, "b=S.pop();a=S.pop();S.push(a.toString()+b);")
+  elseif u_name == "lt"     then append(result, "b=S.pop();a=S.pop();S.push(a<b);")
+  elseif u_name == "le"     then append(result, "b=S.pop();a=S.pop();S.push(a<=b);")
+  elseif u_name == "gt"     then append(result, "b=S.pop();a=S.pop();S.push(a>b);")
+  elseif u_name == "ge"     then append(result, "b=S.pop();a=S.pop();S.push(a>=b);")
+  elseif u_name == "eq"     then append(result, "b=S.pop();a=S.pop();S.push(a===b);")
+  elseif u_name == "ne"     then append(result, "b=S.pop();a=S.pop();S.push(a!==b);")
+
+  elseif u_name == "unm"  then append(result, "a=S.pop();S.push(-a);")
+  elseif u_name == "not"  then append(result, "a=S.pop();S.push(a===undefined||a===false);")
+  elseif u_name == "len"  then append(result, "a=S.pop();for(b=1;a.map.get(b)!==undefined;++b);S.push(b-1);")
+  elseif u_name == "bnot" then append(result, "a=S.pop();S.push(~a);")
 
   elseif u_name == "new_local" then
     append(result, "V", a, "=[S.pop()];")
@@ -93,6 +152,12 @@ local function generate_code(result, source_map, protos, u)
     end
     append(result, "));")
 
+  elseif u_name == "push_false" then
+    append(result, "S.push(false);")
+
+  elseif u_name == "push_true" then
+    append(result, "S.push(true);")
+
   elseif u_name == "push_literal" then
     append(result, "S.push(", quote(a), ");")
 
@@ -121,6 +186,12 @@ local function generate_code(result, source_map, protos, u)
       append(result, "S.push(...c);")
     end
 
+  elseif u_name == "set_list" then
+    append(result, "b=S.splice(", a, ");a=S[", a - 1, "];for(c=0;c<b.length;++c)a.map.set(c+1,b[c]);")
+
+  elseif u_name == "push_nil" then
+    append(result, "S[S.length+", a - 1, "]=undefined;")
+
   elseif u_name == "pop" then
     append(result, "S.splice(-", a, ");")
 
@@ -129,7 +200,7 @@ local function generate_code(result, source_map, protos, u)
   end
 
   append(result, "\n")
-  append_mapping(source_map, u.node.f, u.node.n, u.node.c)
+  append_mapping(source_map, u.node)
 end
 
 local function generate_proto(result, source_map, protos, proto)
@@ -269,14 +340,9 @@ local prev_file = 0
 local prev_line = 0
 local prev_column = 0
 for _, mapping in ipairs(source_map) do
-  local file = prev_file
-  local line = prev_line
-  local column = prev_column
-  if mapping.file then
-    file = source_map.files[mapping.file] - 1
-    line = mapping.line - 1
-    column = mapping.column - 1
-  end
+  local file = mapping.file
+  local line = mapping.line
+  local column = mapping.column
   local f = file - prev_file
   local n = line - prev_line
   local c = column - prev_column
