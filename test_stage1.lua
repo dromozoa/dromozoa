@@ -48,22 +48,22 @@ local function generate_code(result, protos, u)
   if false then
 
   elseif u_name == "new_local" then
-    append(result, "V", a, "=[S.pop()];\n")
+    append(result, "V", a, "=[S.pop()];")
 
   elseif u_name == "set_table" then
-    append(result, "c=S.pop();b=S.pop();a=S[", a - 1, "];if(a instanceof Table)a.map.set(b,c);else a[b]=c;\n")
+    append(result, "c=S.pop();b=S.pop();a=S[", a - 1, "];if(a instanceof LuaTable)a.map.set(b,c);else a[b]=c;")
 
   elseif u_name == "get_local" then
-    append(result, "S.push(V", a, "[0]);\n")
+    append(result, "S.push(V", a, "[0]);")
 
   elseif u_name == "get_upvalue" then
-    append(result, "S.push(U", a, "[0]);\n")
+    append(result, "S.push(U", a, "[0]);")
 
   elseif u_name == "get_table" then
-    append(result, "b=S.pop();a=S.pop();S.push(a instanceof Table?a.map.get(b):a[b]);\n")
+    append(result, "b=S.pop();a=S.pop();S.push(a instanceof LuaTable?a.map.get(b):a[b]);")
 
   elseif u_name == "new_table" then
-    append(result, "S.push(new Table());")
+    append(result, "S.push(new LuaTable());")
 
   elseif u_name == "closure" then
     append(result, "S.push(P", a, "(")
@@ -77,49 +77,41 @@ local function generate_code(result, protos, u)
         append(result, "V", v.var)
       end
     end
-    append(result, "));\n")
+    append(result, "));")
 
   elseif u_name == "push_literal" then
-    append(result, "S.push(", quote(a), ");\n")
+    append(result, "S.push(", quote(a), ");")
 
   elseif u_name == "push_numeral" then
     -- TODO hexadecimal floatをどうにかする
-    append(result, "S.push(", a, ");\n")
+    append(result, "S.push(", a, ");")
 
   elseif u_name == "return" then
-    append(result, "return S;\n")
+    append(result, "return S;")
 
   elseif u_name == "call" then
-    append(result, "b=S.splice(", a, ");a=S.pop();")
-    if b ~= 0 then
-      append(result,"c=")
+    append(result, "b=S.splice(", a, ");a=S.pop();if(a instanceof LuaFunction)b=a.fn(...b);else b=[a.apply(undefined,b)];")
+    if b > 0 then
+      append(result, "if(b.length<", b, ")b[", b - 1, "]=undefined;else b=b.splice(0,", b, ");")
     end
-    append(result, "a(...b);")
+    if b ~= 0 then
+      append(result, "S.push(...b);")
+    end
+
+  elseif u_name == "self" then
+    append(result, "c=S.splice(", a + 1, ");b=S.pop();a=S.pop();b=a instanceof LuaTable?a.map.get(b):a[b];if(b instanceof LuaFunction)c=b.fn(a,...c);else c=[b.apply(a,c)];")
     if b > 0 then
       append(result, "if(c.length<", b, ")c[", b - 1, "]=undefined;else c=c.splice(0,", b, ");")
     end
     if b ~= 0 then
       append(result, "S.push(...c);")
     end
-    append(result, "\n")
-
-  elseif u_name == "self" then
-    append(result, "c=S.splice(", a + 1, ");b=S.pop();a=S.pop();")
-    if b ~= 0 then
-      append(result,"d=")
-    end
-    append(result, "(a instanceof Table?a.map.get(b):a[b]).apply(a,c);")
-    if b > 0 then
-      append(result, "if(d.length<", b, ")d[", b - 1, "]=undefined;else d=d.splice(0,", b, ");")
-    end
-    if b ~= 0 then
-      append(result, "S.push(...d);")
-    end
-    append(result, "\n")
 
   else
-    append(result, "//", u_name, "\n")
+    append(result, "// NOT_IMPL ", u_name)
   end
+
+  append(result, "\n")
 end
 
 local function generate_proto(result, protos, proto)
@@ -130,7 +122,7 @@ local function generate_proto(result, protos, proto)
     end
     append(result, "U", i)
   end
-  append(result, ")=>{\nreturn(")
+  append(result, ")=>{\nreturn new LuaFunction((")
   for i = 1, proto.nparams do
     if i > 1 then
       append(result, ",")
@@ -143,7 +135,7 @@ local function generate_proto(result, protos, proto)
     end
     append(result, "...VA")
   end
-  append(result, ")=>{\nlet S=[],a,b,c,d;\n")
+  append(result, ")=>{\nlet S=[],a,b,c;\n")
   for i = 1, #proto.locals do
     append(result, "let V", i)
     if i <= proto.nparams then
@@ -156,18 +148,23 @@ local function generate_proto(result, protos, proto)
     generate_code(result, protos, v)
   end
 
-  append(result, "};\n};\n")
+  append(result, "return [];\n});\n};\n")
 end
 
 local function generate_stage1(protos)
   local result = {}
 
   append(result, [[
-class Table{
+class LuaTable{
 constructor(){
 this.map=new Map();
 }
 };
+class LuaFunction{
+constructor(fn){
+this.fn=fn;
+}
+}
 ]])
 
   for i = #protos, 1, -1 do
@@ -175,9 +172,9 @@ this.map=new Map();
   end
 
   append(result, [=[
-const env=new Table();
+const env=new LuaTable();
 env.map.set("globalThis",globalThis);
-P1([env])();
+P1([env]).fn();
 ]=])
 
   return result

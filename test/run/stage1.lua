@@ -21,7 +21,7 @@ local f = function (a, b, c)
   return c, b, a
 end
 
-local a, b, c, d  = f(1, 2, 3)
+local a, b = f(1, 2, 3)
 
 globalThis.console:log(a, b, c, d)
 
@@ -31,5 +31,5 @@ local t = {
   end;
 }
 
-t:f(1, 2, 3, 4)
+-- t.f(f(1,2,3), 4)
 -- globalThis.console.log(t)
