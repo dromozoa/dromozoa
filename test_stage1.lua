@@ -48,7 +48,7 @@ local function append_mapping(source_map, file, line, column)
   end
 end
 
-local function generate_code(result, protos, u)
+local function generate_code(result, source_map, protos, u)
   local u_name = u[0]
   local a = u.a
   local b = u.b
@@ -129,6 +129,7 @@ local function generate_code(result, protos, u)
   end
 
   append(result, "\n")
+  append_mapping(source_map, u.node.f, u.node.n, u.node.c)
 end
 
 local function generate_proto(result, source_map, protos, proto)
@@ -167,8 +168,7 @@ local function generate_proto(result, source_map, protos, proto)
   end
 
   for _, v in ipairs(proto.code) do
-    generate_code(result, protos, v)
-    append_mapping(source_map, v.node.f, v.node.n, v.node.c)
+    generate_code(result, source_map, protos, v)
   end
 
   append(result, "return S;\n});\n};\n")
