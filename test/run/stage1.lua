@@ -41,6 +41,8 @@ for i = 1, 3 do
   globalThis.console:log(i)
 end
 
+local x = { 11, 12, 13, 14, 15, 16 }
+globalThis.console:log(#x)
 local x = { 11, 12, nil, nil, 13, 14 }
 -- local x = {}
 -- x[1] = 11
@@ -80,7 +82,7 @@ end
 -- local no_such_fn="foo"
 -- no_such_fn()
 
-t = 12 t[1] = 42
+-- t = 12 t[1] = 42
 
 local function g(...)
   globalThis.console:log(..., ...)

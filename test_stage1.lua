@@ -59,9 +59,7 @@ local function generate_code(result, source_map, protos, u)
   local a = u.a
   local b = u.b
 
-  if false then
-
-  elseif u_name == "break" then
+  if u_name == "break" then
     append(result, "break;")
 
   elseif u_name == "if" then
@@ -90,7 +88,7 @@ local function generate_code(result, source_map, protos, u)
     return
 
   elseif u_name == "check_for" then
-    append(result, "D.check_for();")
+    append(result, "D.check_for(V", a, "[0],V", a + 1, "[0],V", a + 2, "[0]);")
 
   elseif u_name == "add"    then append(result, "b=S.pop();a=S.pop();S.push(+a+ +b);")
   elseif u_name == "sub"    then append(result, "b=S.pop();a=S.pop();S.push(a-b);")
@@ -114,7 +112,7 @@ local function generate_code(result, source_map, protos, u)
 
   elseif u_name == "unm"  then append(result, "a=S.pop();S.push(-a);")
   elseif u_name == "not"  then append(result, "a=S.pop();S.push(a===undefined||a===false);")
-  elseif u_name == "len"  then append(result, "a=S.pop();for(b=1;a.map.get(b)!==undefined;++b);S.push(b-1);")
+  elseif u_name == "len"  then append(result, "a=S.pop();S.push(D.len(a));")
   elseif u_name == "bnot" then append(result, "a=S.pop();S.push(~a);")
 
   elseif u_name == "new_local" then
@@ -171,14 +169,17 @@ local function generate_code(result, source_map, protos, u)
     append(result, "S.push(", quote(a), ");")
 
   elseif u_name == "push_numeral" then
-    -- TODO hexadecimal floatをどうにかする
-    append(result, "S.push(", a, ");")
+    if b == "HexadecimalFloatingNumeral" then
+      compiler_error("not supported: HexadecimalFloatingNumeral", u.node)
+    else
+      append(result, "S.push(", a, ");")
+    end
 
   elseif u_name == "dup" then
     append(result, "S.push(S[S.length-1]);")
 
   elseif u_name == "close" then
-    append(result, "a=V", a, "[0];D.close(a);V", a, "[0]=undefined;")
+    append(result, "if(V", a, "!==undefined)D.close(V", a, "[0]);V", a, "=undefined;")
 
   elseif u_name == "return" then
     append(result, "return S;")
@@ -218,7 +219,7 @@ local function generate_code(result, source_map, protos, u)
     append(result, "S.splice(-", a, ");")
 
   else
-    append(result, "// NOT_IMPL ", u_name)
+    compiler_error("not supported: " .. u_name, u.node)
   end
 
   append(result, "\n")
@@ -278,10 +279,12 @@ class LuaFunction{constructor(fn){this.fn=fn;}}
 const D={
 check_for:()=>{},
 close:()=>{},
+len:t=>{let n=1;for(;t.map.get(n)!==undefined;++n);return n-1;},
 getmetatable:t=>t.metatable,
-setmetatable:(t,m)=>t.metatable=m,
+setmetatable:(t,metatable)=>t.metatable=metatable,
 };
 ]])
+  append_mapping(source_map)
   append_mapping(source_map)
   append_mapping(source_map)
   append_mapping(source_map)
