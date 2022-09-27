@@ -1,3 +1,4 @@
 export default () => {
-  console.log("chunk");
+  globalThis.console.log(42);
+  // console.log("chunk");
 };
