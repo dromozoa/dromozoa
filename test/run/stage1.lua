@@ -50,8 +50,29 @@ local x = { 11, 12, nil, nil, 13, 14 }
 -- x[5] = 13
 -- x[6] = 14
 for i = 1, 6 do
-  globalThis.console.log(i, x[i])
+  globalThis.console:log(i, x[i])
 end
+
+local function impl_ipairs(t, i)
+  i = i + 1
+  local v = t[i]
+  if v == nil then
+    return
+  else
+    return i, v
+  end
+end
+
+for i, v in impl_ipairs, x, 0 do
+  globalThis.console:log(i, v)
+end
+
+if a and b then
+  globalThis.console:log "and"
+end
+
+-- globalThis.console:log("?", f(f(1,...,2,3)))
+-- globalThis.console:log("?", f(f(1,2,3,...)))
 
 -- t.f(f(1,2,3),4)
 -- globalThis.console.log(t)
@@ -60,4 +81,13 @@ end
 -- no_such_fn()
 
 -- t = 12 t[1] = 42
+
+local function g(...)
+  globalThis.console:log(..., ...)
+end
+
+g()
+g(1)
+g(1,2)
+g(1,2,3)
 

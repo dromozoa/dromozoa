@@ -89,6 +89,9 @@ local function generate_code(result, source_map, protos, u)
     append_mapping(source_map)
     return
 
+  elseif u_name == "check_for" then
+    append(result, "D.op_check_for();")
+
   elseif u_name == "add"    then append(result, "b=S.pop();a=S.pop();S.push(+a+ +b);")
   elseif u_name == "sub"    then append(result, "b=S.pop();a=S.pop();S.push(a-b);")
   elseif u_name == "mul"    then append(result, "b=S.pop();a=S.pop();S.push(a*b);")
@@ -117,8 +120,14 @@ local function generate_code(result, source_map, protos, u)
   elseif u_name == "new_local" then
     append(result, "V", a, "=[S.pop()];")
 
+  elseif u_name == "tbc_local" then
+    append(result, "V", a, "=[S.pop()];")
+
   elseif u_name == "set_local" then
     append(result, "V", a, "[0]=S.pop();")
+
+  elseif u_name == "set_upvalue" then
+    append(result, "U", a, "[0]=S.pop();")
 
   elseif u_name == "set_field" then
     append(result, "c=S.pop();b=S[", b - 1, "];a=S[", a - 1, "];if(a instanceof LuaTable)a.map.set(b,c);else a[b]=c;")
@@ -165,6 +174,12 @@ local function generate_code(result, source_map, protos, u)
     -- TODO hexadecimal floatをどうにかする
     append(result, "S.push(", a, ");")
 
+  elseif u_name == "dup" then
+    append(result, "S.push(S[S.length-1]);")
+
+  elseif u_name == "close" then
+    append(result, "a=V", a, "[0];D.op_close(a);V", a, "[0]=undefined;")
+
   elseif u_name == "return" then
     append(result, "return S;")
 
@@ -184,6 +199,13 @@ local function generate_code(result, source_map, protos, u)
     end
     if b ~= 0 then
       append(result, "S.push(...c);")
+    end
+
+  elseif u_name == "vararg" then
+    if a > 0 then
+      append(result, "a=[...VA];if(a.length<", a, ")a[", a - 1, "]=undefined;else a=a.splice(0,", a, ");S.push(...a)")
+    else
+      append(result, "S.push(...VA);")
     end
 
   elseif u_name == "set_list" then
@@ -211,7 +233,7 @@ local function generate_proto(result, source_map, protos, proto)
     end
     append(result, "U", i)
   end
-  append(result, ")=>{\nreturn new LuaFunction((")
+  append(result, ")=>new LuaFunction((")
   for i = 1, proto.nparams do
     if i > 1 then
       append(result, ",")
@@ -225,7 +247,6 @@ local function generate_proto(result, source_map, protos, proto)
     append(result, "...VA")
   end
   append(result, ")=>{\nlet S=[],a,b,c;\n")
-  append_mapping(source_map)
   append_mapping(source_map)
   append_mapping(source_map)
 
@@ -242,8 +263,7 @@ local function generate_proto(result, source_map, protos, proto)
     generate_code(result, source_map, protos, v)
   end
 
-  append(result, "return S;\n});\n};\n")
-  append_mapping(source_map)
+  append(result, "return S;\n});\n")
   append_mapping(source_map)
   append_mapping(source_map)
 end
@@ -255,7 +275,9 @@ local function generate_stage1(protos)
   append(result, [[
 class LuaTable{constructor(){this.map=new Map();}}
 class LuaFunction{constructor(fn){this.fn=fn;}}
+const D={op_getmetatable:t=>t.metatable,op_setmetatable:(t,m)=>t.metatable=m,op_check_for:()=>{},op_close:()=>{}};
 ]])
+  append_mapping(source_map)
   append_mapping(source_map)
   append_mapping(source_map)
 
@@ -265,7 +287,7 @@ class LuaFunction{constructor(fn){this.fn=fn;}}
 
   append(result, [=[
 const env=new LuaTable();
-env.map.set("globalThis",globalThis);
+env.map.set("dromozoa",D).set("globalThis",globalThis);
 P1([env]).fn();
 ]=])
   append_mapping(source_map)
