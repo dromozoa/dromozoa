@@ -90,7 +90,7 @@ local function generate_code(result, source_map, protos, u)
     return
 
   elseif u_name == "check_for" then
-    append(result, "D.op_check_for();")
+    append(result, "D.check_for();")
 
   elseif u_name == "add"    then append(result, "b=S.pop();a=S.pop();S.push(+a+ +b);")
   elseif u_name == "sub"    then append(result, "b=S.pop();a=S.pop();S.push(a-b);")
@@ -178,7 +178,7 @@ local function generate_code(result, source_map, protos, u)
     append(result, "S.push(S[S.length-1]);")
 
   elseif u_name == "close" then
-    append(result, "a=V", a, "[0];D.op_close(a);V", a, "[0]=undefined;")
+    append(result, "a=V", a, "[0];D.close(a);V", a, "[0]=undefined;")
 
   elseif u_name == "return" then
     append(result, "return S;")
@@ -275,8 +275,18 @@ local function generate_stage1(protos)
   append(result, [[
 class LuaTable{constructor(){this.map=new Map();}}
 class LuaFunction{constructor(fn){this.fn=fn;}}
-const D={op_getmetatable:t=>t.metatable,op_setmetatable:(t,m)=>t.metatable=m,op_check_for:()=>{},op_close:()=>{}};
+const D={
+check_for:()=>{},
+close:()=>{},
+getmetatable:t=>t.metatable,
+setmetatable:(t,m)=>t.metatable=m,
+};
 ]])
+  append_mapping(source_map)
+  append_mapping(source_map)
+  append_mapping(source_map)
+  append_mapping(source_map)
+  append_mapping(source_map)
   append_mapping(source_map)
   append_mapping(source_map)
   append_mapping(source_map)
