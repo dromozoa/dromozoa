@@ -5,6 +5,8 @@
 /lab/code3
 /lab/code4
 /lab/mmap
-/test*.dot
-/test-gen*.lua
 /out
+/test*.dot
+/test*.mjs
+/test*.mjs.map
+/test-gen*.lua

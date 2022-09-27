@@ -298,11 +298,11 @@ setmetatable:(t,metatable)=>t.metatable=metatable,
     generate_proto(result, source_map, protos, protos[i])
   end
 
-  append(result, [=[
+  append(result, [[
 const env=new LuaTable();
 env.map.set("dromozoa",D).set("globalThis",globalThis);
 P1([env]).fn();
-]=])
+]])
   append_mapping(source_map)
   append_mapping(source_map)
   append_mapping(source_map)
