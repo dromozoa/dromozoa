@@ -42,14 +42,16 @@ local function quote(s)
 end
 
 local function append_mapping(source_map, u)
-  if u then
-    local file = source_map.files[u.f]
-    if not file then
-      file = append(source_map.files, u.f) - 1
-      source_map.files[u.f] = file
-    end
-    append(source_map, { file = file, line = u.n - 1, column = u.c - 1 })
-  else
+  local file = source_map.files[u.f]
+  if not file then
+    file = append(source_map.files, u.f) - 1
+    source_map.files[u.f] = file
+  end
+  append(source_map, { file = file, line = u.n - 1, column = u.c - 1 })
+end
+
+local function append_empty_mappings(source_map, n)
+  for i = 1, n do
     append(source_map, { file = 0, line = 0, column = 0 })
   end
 end
@@ -74,7 +76,7 @@ local function generate_code(result, source_map, protos, u)
       generate_code(result, source_map, protos, v)
     end
     append(result, "}\n")
-    append_mapping(source_map)
+    append_empty_mappings(source_map, 1)
     return
 
   elseif u_name == "loop" then
@@ -84,7 +86,7 @@ local function generate_code(result, source_map, protos, u)
       generate_code(result, source_map, protos, v)
     end
     append(result, "}\n")
-    append_mapping(source_map)
+    append_empty_mappings(source_map, 1)
     return
 
   elseif u_name == "check_for" then
@@ -248,8 +250,7 @@ local function generate_proto(result, source_map, protos, proto)
     append(result, "...VA")
   end
   append(result, ")=>{\nlet S=[],a,b,c;\n")
-  append_mapping(source_map)
-  append_mapping(source_map)
+  append_empty_mappings(source_map, 2)
 
   for i = 1, #proto.locals do
     append(result, "let V", i)
@@ -257,7 +258,7 @@ local function generate_proto(result, source_map, protos, proto)
       append(result, "=[A", i, "]")
     end
     append(result, ";\n")
-    append_mapping(source_map)
+    append_empty_mappings(source_map, 1)
   end
 
   for _, v in ipairs(proto.code) do
@@ -265,8 +266,7 @@ local function generate_proto(result, source_map, protos, proto)
   end
 
   append(result, "return S;\n});\n")
-  append_mapping(source_map)
-  append_mapping(source_map)
+  append_empty_mappings(source_map, 2)
 end
 
 local function generate_stage1(protos)
@@ -279,20 +279,13 @@ class LuaFunction{constructor(fn){this.fn=fn;}}
 const D={
 check_for:()=>{},
 close:()=>{},
-len:t=>{let n=1;for(;t.map.get(n)!==undefined;++n);return n-1;},
-getmetatable:t=>t.metatable,
-setmetatable:(t,metatable)=>t.metatable=metatable,
+len:table=>{let n=1;for(;table.map.get(n)!==undefined;++n);return n-1;},
+getmetatable:table=>table.metatable,
+setmetatable:(table,metatable)=>table.metatable=metatable,
+newuserdata:(constructor,...args)=>new constructor(...args),
 };
 ]])
-  append_mapping(source_map)
-  append_mapping(source_map)
-  append_mapping(source_map)
-  append_mapping(source_map)
-  append_mapping(source_map)
-  append_mapping(source_map)
-  append_mapping(source_map)
-  append_mapping(source_map)
-  append_mapping(source_map)
+  append_empty_mappings(source_map, 10)
 
   for i = #protos, 1, -1 do
     generate_proto(result, source_map, protos, protos[i])
@@ -303,9 +296,7 @@ const env=new LuaTable();
 env.map.set("dromozoa",D).set("globalThis",globalThis);
 P1([env]).fn();
 ]])
-  append_mapping(source_map)
-  append_mapping(source_map)
-  append_mapping(source_map)
+  append_empty_mappings(source_map, 3)
 
   return result, source_map
 end
