@@ -114,7 +114,7 @@ local function generate_code(result, source_map, protos, u)
 
   elseif u_name == "unm"  then append(result, "a=S.pop();S.push(-a);")
   elseif u_name == "not"  then append(result, "a=S.pop();S.push(a===undefined||a===false);")
-  elseif u_name == "len"  then append(result, "b=1;a=S.pop();if(a instanceof LuaTable)for(;a.map.get(b)!==undefined;++b);else for(;a[b]!==undefined;++b);S.push(b-1);")
+  elseif u_name == "len"  then append(result, "a=S.pop();for(b=1;OP_GETTABLE(a,b)!==undefined;++b);S.push(b-1)")
   elseif u_name == "bnot" then append(result, "a=S.pop();S.push(~a);")
 
   elseif u_name == "new_local" then
@@ -212,7 +212,7 @@ local function generate_code(result, source_map, protos, u)
     end
 
   elseif u_name == "set_list" then
-    append(result, "b=S.splice(", a, ");a=S[", a - 1, "];for(c=0;c<b.length;++c)a.map.set(c+1,b[c]);")
+    append(result, "b=S.splice(", a, ");a=S[", a - 1, "];for(c=0;c<b.length;++c)OP_SETTABLE(a,c+1,b[c]);")
 
   elseif u_name == "push_nil" then
     append(result, "S[S.length+", a - 1, "]=undefined;")
