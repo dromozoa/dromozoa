@@ -130,10 +130,10 @@ local function generate_code(result, source_map, protos, u)
     append(result, "U", a, "[0]=S.pop();")
 
   elseif u_name == "set_field" then
-    append(result, "c=S.pop();b=S[", b - 1, "];a=S[", a - 1, "];if(a instanceof LuaTable)a.map.set(b,c);else a[b]=c;")
+    append(result, "c=S.pop();b=S[", b - 1, "];a=S[", a - 1, "];OP_SETTABLE(a,b,c);")
 
   elseif u_name == "set_table" then
-    append(result, "c=S.pop();b=S.pop();a=S[", a - 1, "];if(a instanceof LuaTable)a.map.set(b,c);else a[b]=c;")
+    append(result, "c=S.pop();b=S.pop();a=S[", a - 1, "];OP_SETTABLE(a,b,c);")
 
   elseif u_name == "get_local" then
     append(result, "S.push(V", a, "[0]);")
@@ -142,7 +142,7 @@ local function generate_code(result, source_map, protos, u)
     append(result, "S.push(U", a, "[0]);")
 
   elseif u_name == "get_table" then
-    append(result, "b=S.pop();a=S.pop();S.push(a instanceof LuaTable?a.map.get(b):a[b]);")
+    append(result, "b=S.pop();a=S.pop();S.push(OP_GETTABLE(a,b));")
 
   elseif u_name == "new_table" then
     append(result, "S.push(new LuaTable());")
@@ -181,32 +181,32 @@ local function generate_code(result, source_map, protos, u)
     append(result, "S.push(S[S.length-1]);")
 
   elseif u_name == "close" then
-    append(result, "a=V", a, "[0];if(a!==undefined)a.metatable.__close.fn(a);V", a, "=undefined")
+    append(result, "a=V", a, '[0];if(a!==undefined)OP_CALL(OP_GETTABLE(a.metatable,"__close"),a);V', a, "=undefined")
 
   elseif u_name == "return" then
     append(result, "return S;")
 
   elseif u_name == "call" then
-    append(result, "b=S.splice(", a, ");a=S.pop();if(a instanceof LuaFunction)b=a.fn(...b);else b=[a.apply(undefined,b)];")
-    if b > 0 then
-      append(result, "if(b.length<", b, ")b[", b - 1, "]=undefined;else b=b.splice(0,", b, ");")
-    end
+    append(result, "b=S.splice(", a, ");a=S.pop();b=OP_CALL(a,b);")
     if b ~= 0 then
+      if b > 0 then
+        append(result, "OP_ADJUST(b,", b, ");")
+      end
       append(result, "S.push(...b);")
     end
 
   elseif u_name == "self" then
-    append(result, "c=S.splice(", a + 1, ");b=S.pop();a=S.pop();b=a instanceof LuaTable?a.map.get(b):a[b];if(b instanceof LuaFunction)c=b.fn(a,...c);else c=[b.apply(a,c)];")
-    if b > 0 then
-      append(result, "if(c.length<", b, ")c[", b - 1, "]=undefined;else c=c.splice(0,", b, ");")
-    end
+    append(result, "c=S.splice(", a + 1, ");b=S.pop();a=S.pop();c=OP_SELF(OP_GETTABLE(a,b),a,c);")
     if b ~= 0 then
+      if b > 0 then
+        append(result, "OP_ADJUST(c,", b, ");")
+      end
       append(result, "S.push(...c);")
     end
 
   elseif u_name == "vararg" then
     if a > 0 then
-      append(result, "a=[...VA];if(a.length<", a, ")a[", a - 1, "]=undefined;else a=a.splice(0,", a, ");S.push(...a)")
+      append(result, "a=[...VA];OP_ADJUST(a,", a, ");S.push(...a)")
     else
       append(result, "S.push(...VA);")
     end
@@ -274,17 +274,22 @@ local function generate_stage1(protos)
   local source_map = { files = {} }
 
   append(result, [[
-class LuaTable{constructor(){this.map=new Map();}}
 class LuaFunction{constructor(fn){this.fn=fn;}}
-class LuaError{constructor(message){this.message=message;}}
+class LuaTable{constructor(){this.map=new Map();}}
+class LuaError extends Error{constructor(msg){super(msg);this.name="LuaError";this.msg=msg}}
 const D={
-error:message=>throw new LuaError(message),
-getmetatable:table=>table.metatable,
-setmetatable:(table,metatable)=>table.metatable=metatable,
+error:msg=>{throw new LuaError(msg);},
+getmetatable:t=>t.metatable,
+setmetatable:(t,metatable)=>t.metatable=metatable,
 newuserdata:(constructor,...args)=>new constructor(...args),
 };
+const OP_SETTABLE=(a,b,c)=>{if(a instanceof LuaTable)a.map.set(b,c);else a[b]=c;};
+const OP_GETTABLE=(a,b)=>a instanceof LuaTable?a.map.get(b):a[b];
+const OP_CALL=(a,b)=>a instanceof LuaFunction?a.fn(...b):a instanceof LuaTable?OP_CALL(OP_GETTABLE(a.metatable,"__call"),[a,...b]):[a.apply(undefined,b)];
+const OP_SELF=(a,b,c)=>a instanceof LuaFunction||a instanceof LuaTable?OP_CALL(a,[b,...c]):[a.apply(b,c)];
+const OP_ADJUST=(a,b)=>{if(a.length<b)a[b-1]=undefined;else a.splice(b);};
 ]])
-  append_empty_mappings(source_map, 9)
+  append_empty_mappings(source_map, 14)
 
   for i = #protos, 1, -1 do
     generate_proto(result, source_map, protos, protos[i])
@@ -292,10 +297,11 @@ newuserdata:(constructor,...args)=>new constructor(...args),
 
   append(result, [[
 const env=new LuaTable();
-env.map.set("dromozoa",D).set("globalThis",globalThis);
-P1([env]).fn();
+OP_SETTABLE(env,"dromozoa",D);
+OP_SETTABLE(env,"globalThis",globalThis);
+OP_CALL(P1([env]),[]);
 ]])
-  append_empty_mappings(source_map, 3)
+  append_empty_mappings(source_map, 4)
 
   return result, source_map
 end
