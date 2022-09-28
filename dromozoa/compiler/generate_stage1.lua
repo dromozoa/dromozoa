@@ -319,9 +319,6 @@ local function generate_proto(result, source_map, protos, proto)
 end
 
 local function generate_stage1(protos, result, source_map)
-  -- local result = {}
-  -- local source_map = { files = {} }
-
   append(result, [[
 class LuaFunction{constructor(fn){this.fn=fn;}}
 class LuaTable{constructor(){this.map=new Map();}}
@@ -352,8 +349,6 @@ OP_SETTABLE(env,"globalThis",globalThis);
 OP_CALL(P1([env]),[]);
 ]])
   append_empty_mappings(source_map, 4)
-
-  -- return result, source_map
 end
 
 return generate_stage1
