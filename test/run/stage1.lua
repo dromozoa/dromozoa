@@ -15,6 +15,26 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local function log(a, b, c, d)
+  if a == nil then
+    a = ""
+  end
+  if b ~= nil then
+    a = a .. "," .. b
+    if c ~= nil then
+      a = a .. "," .. c
+      if d ~= nil then
+        a = a .. "," .. d
+      end
+    end
+  end
+  if io then
+    io.write(a .. "\n")
+  else
+    globalThis.console:log(a)
+  end
+end
+
 local v = 69
 
 local f = function (a, b, c)
@@ -22,27 +42,26 @@ local f = function (a, b, c)
 end
 
 local a, b = f(1, 2, 3)
-
-globalThis.console:log(a, b, c, d)
+log(a, b, c, d)
 
 local t = {
   f = function (self, x, y, z)
-    globalThis.console:log(self, x, y, z)
+    log(self, x, y, z)
   end;
 }
 
 if a == 2 then
-  globalThis.console:log "then"
+  log "then"
 else
-  globalThis.console:log "else"
+  log "else"
 end
 
 for i = 1, 3 do
-  globalThis.console:log(i)
+  log(i)
 end
 
 local x = { 11, 12, 13, 14, 15, 16 }
-globalThis.console:log(#x)
+log(#x)
 local x = { 11, 12, nil, nil, 13, 14 }
 -- local x = {}
 -- x[1] = 11
@@ -52,7 +71,7 @@ local x = { 11, 12, nil, nil, 13, 14 }
 -- x[5] = 13
 -- x[6] = 14
 for i = 1, 6 do
-  globalThis.console:log(i, x[i])
+  log(i, x[i])
 end
 
 local function impl_ipairs(t, i)
@@ -66,15 +85,15 @@ local function impl_ipairs(t, i)
 end
 
 for i, v in impl_ipairs, x, 0 do
-  globalThis.console:log(i, v)
+  log(i, v)
 end
 
 if a and b then
-  globalThis.console:log "and"
+  log "and"
 end
 
--- globalThis.console:log("?", f(f(1,...,2,3)))
--- globalThis.console:log("?", f(f(1,2,3,...)))
+-- log("?", f(f(1,...,2,3)))
+-- log("?", f(f(1,2,3,...)))
 
 -- t.f(f(1,2,3),4)
 -- globalThis.console.log(t)
@@ -85,11 +104,11 @@ end
 -- t = 12 t[1] = 42
 
 local function g(...)
-  globalThis.console:log(..., ...)
+  log(..., ...)
 end
 
-g()
-g(1)
-g(1,2)
-g(1,2,3)
+-- g()
+-- g(1)
+-- g(1,2)
+-- g(1,2,3)
 
