@@ -170,6 +170,8 @@ local function generate_code(result, source_map, protos, u)
   elseif u_name == "push_numeral" then
     if b == "HexadecimalFloatingNumeral" then
       compiler_error("not supported: HexadecimalFloatingNumeral", u.node)
+      -- TODO バイト列に変換してDataView(ArrayBuffer)にいれる
+      -- a=new DataView(new Uint8Array([0,0,0,0,0,0,0,0,0]).buffer).getFloat64(0))
     else
       append(result, "S.push(", a, ");")
     end
@@ -317,7 +319,7 @@ const OP_SELF=(a,b,c)=>a instanceof LuaFunction||a instanceof LuaTable?OP_CALL(a
 const OP_CLOSE=a=>OP_CALL(OP_GETTABLE(a.metatable,"__close"));
 const OP_ADJUST=(a,b)=>{if(a.length<b)a[b-1]=undefined;else a.splice(b);};
 ]])
-  append_empty_mappings(source_map, 14)
+  append_empty_mappings(source_map, 15)
 
   for i = #protos, 1, -1 do
     generate_proto(result, source_map, protos, protos[i])
