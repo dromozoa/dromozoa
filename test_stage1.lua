@@ -90,7 +90,7 @@ local function generate_code(result, source_map, protos, u)
     return
 
   elseif u_name == "check_for" then
-    append(result, "// check_for ", a)
+    append(result, "// OP_CHECK_FOR ", a)
 
   elseif u_name == "add"    then append(result, "b=S.pop();a=S.pop();S.push(+a+ +b);")
   elseif u_name == "sub"    then append(result, "b=S.pop();a=S.pop();S.push(a-b);")
@@ -114,13 +114,10 @@ local function generate_code(result, source_map, protos, u)
 
   elseif u_name == "unm"  then append(result, "a=S.pop();S.push(-a);")
   elseif u_name == "not"  then append(result, "a=S.pop();S.push(a===undefined||a===false);")
-  elseif u_name == "len"  then append(result, "a=S.pop();for(b=1;OP_GETTABLE(a,b)!==undefined;++b);S.push(b-1)")
+  elseif u_name == "len"  then append(result, "a=S.pop();for(b=1;OP_GETTABLE(a,b)!==undefined;++b);S.push(b-1);")
   elseif u_name == "bnot" then append(result, "a=S.pop();S.push(~a);")
 
-  elseif u_name == "new_local" then
-    append(result, "V", a, "=[S.pop()];")
-
-  elseif u_name == "tbc_local" then
+  elseif u_name == "new_local" or u_name == "tbc_local" then
     append(result, "V", a, "=[S.pop()];")
 
   elseif u_name == "set_local" then
@@ -206,7 +203,7 @@ local function generate_code(result, source_map, protos, u)
 
   elseif u_name == "vararg" then
     if a > 0 then
-      append(result, "a=[...VA];OP_ADJUST(a,", a, ");S.push(...a)")
+      append(result, "a=[...VA];OP_ADJUST(a,", a, ");S.push(...a);")
     else
       append(result, "S.push(...VA);")
     end
@@ -215,10 +212,18 @@ local function generate_code(result, source_map, protos, u)
     append(result, "b=S.splice(", a, ");a=S[", a - 1, "];for(c=0;c<b.length;++c)OP_SETTABLE(a,c+1,b[c]);")
 
   elseif u_name == "push_nil" then
-    append(result, "S[S.length+", a - 1, "]=undefined;")
+    if a == 1 then
+      append(result, "S.push(undefined);")
+    else
+      append(result, "S[S.length+", a - 1, "]=undefined;")
+    end
 
   elseif u_name == "pop" then
-    append(result, "S.splice(-", a, ");")
+    if a == 1 then
+      append(result, "S.pop();")
+    else
+      append(result, "S.splice(-", a, ");")
+    end
 
   else
     compiler_error("not supported: " .. u_name, u.node)
