@@ -303,7 +303,23 @@ local function generate_proto(result, source_map, protos, proto)
   source_map:append_empty_mappings(1)
 end
 
-local function generate_stage1(protos, result, source_map)
+local function generate_protos(result, source_map, protos, ...)
+  append(result, "{\n")
+  source_map:append_empty_mappings(1)
+
+  for i = #protos, 1, -1 do
+    generate_proto(result, source_map, protos, protos[i])
+  end
+
+  append(result, "OP_CALL(P1([env]),[]);}\n")
+  source_map:append_empty_mappings(1)
+
+  if ... then
+    generate_protos(result, source_map, ...)
+  end
+end
+
+return function (result, source_map, ...)
   append(result, [[
 class LuaFunction{constructor(fn){this.fn=fn;}}
 class LuaTable{constructor(){this.map=new Map();}}
@@ -320,20 +336,10 @@ const OP_CALL=(a,b)=>a instanceof LuaFunction?a.fn(...b):a instanceof LuaTable?O
 const OP_SELF=(a,b,c)=>a instanceof LuaFunction||a instanceof LuaTable?OP_CALL(a,[b,...c]):[a.apply(b,c)];
 const OP_CLOSE=a=>OP_CALL(OP_GETTABLE(a.metatable,"__close"));
 const OP_ADJUST=(a,b)=>{if(a.length<b)a[b-1]=undefined;else a.splice(b);};
-]])
-  source_map:append_empty_mappings(15)
-
-  for i = #protos, 1, -1 do
-    generate_proto(result, source_map, protos, protos[i])
-  end
-
-  append(result, [[
 const env=new LuaTable();
 OP_SETTABLE(env,"dromozoa",D);
 OP_SETTABLE(env,"globalThis",globalThis);
-OP_CALL(P1([env]),[]);
 ]])
-  source_map:append_empty_mappings(4)
+  source_map:append_empty_mappings(18)
+  generate_protos(result, source_map, ...)
 end
-
-return generate_stage1

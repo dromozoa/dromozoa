@@ -16,12 +16,10 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local append = require "dromozoa.append"
-local compiler_error = require "dromozoa.compiler.compiler_error"
 local lua54_regexp = require "dromozoa.compiler.lua54_regexp"
 local lua54_parser = require "dromozoa.compiler.lua54_parser"
 local generate = require "dromozoa.compiler.generate"
 local generate_stage1 = require "dromozoa.compiler.generate_stage1"
-local quote = require "dromozoa.compiler.quote"
 local source_map = require "dromozoa.compiler.source_map"
 
 ---------------------------------------------------------------------------
@@ -37,13 +35,13 @@ local root = lua54_regexp(source, source_filename, lua54_parser.max_terminal_sym
 local protos = generate(root)
 local result = {}
 local source_map = source_map(result_filename)
-generate_stage1(protos, result, source_map)
+generate_stage1(result, source_map, protos)
+
+---------------------------------------------------------------------------
 
 local out = assert(io.open(result_filename, "w"))
 out:write(table.concat(result), "//# sourceMappingURL=", source_map_filename, "\n")
 out:close()
-
----------------------------------------------------------------------------
 
 local out = assert(io.open(source_map_filename, "w"))
 out:write(table.concat(source_map:generate()))
