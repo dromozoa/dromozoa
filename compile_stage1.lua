@@ -21,23 +21,26 @@ local lua54_parser = require "dromozoa.compiler.lua54_parser"
 local generate = require "dromozoa.compiler.generate"
 local generate_stage1 = require "dromozoa.compiler.generate_stage1"
 local source_map = require "dromozoa.compiler.source_map"
+local table_unpack = table.unpack or unpack
 
----------------------------------------------------------------------------
+local result_filename, source_map_filename = ...
 
-local source_filename, result_filename, source_map_filename = ...
+local set_of_protos = {}
 
-local handle = assert(io.open(source_filename))
-local source = handle:read "*a"
-handle:close()
+for i = 3, #arg do
+  local filename = arg[i]
+  local handle = assert(io.open(filename))
+  local source = handle:read "*a"
+  handle:close()
 
-local parse = lua54_parser()
-local root = lua54_regexp(source, source_filename, lua54_parser.max_terminal_symbol, parse)
-local protos = generate(root)
+  local root = lua54_regexp(source, filename, lua54_parser.max_terminal_symbol, lua54_parser())
+  local protos = generate(root)
+  append(set_of_protos, protos)
+end
+
 local result = {}
 local source_map = source_map(result_filename)
-generate_stage1(result, source_map, protos)
-
----------------------------------------------------------------------------
+generate_stage1(result, source_map, table_unpack(set_of_protos))
 
 local out = assert(io.open(result_filename, "w"))
 out:write(table.concat(result), "//# sourceMappingURL=", source_map_filename, "\n")
