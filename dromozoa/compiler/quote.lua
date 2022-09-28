@@ -15,22 +15,22 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local quotes = {}
+local quote = {}
 for byte = 0x00, 0x1F do
-  quotes[string.char(byte)] = ([[\x%02X]]):format(byte)
+  quote[string.char(byte)] = ([[\x%02X]]):format(byte)
 end
-quotes["\b"] = [[\b]]
-quotes["\t"] = [[\t]]
-quotes["\n"] = [[\n]]
-quotes["\v"] = [[\v]]
-quotes["\f"] = [[\f]]
-quotes["\r"] = [[\r]]
-quotes["\""] = [[\"]]
-quotes["\\"] = [[\\]]
+quote["\b"] = [[\b]]
+quote["\t"] = [[\t]]
+quote["\n"] = [[\n]]
+quote["\v"] = [[\v]]
+quote["\f"] = [[\f]]
+quote["\r"] = [[\r]]
+quote["\""] = [[\"]]
+quote["\\"] = [[\\]]
 
-local LS = string.char(0xE2, 0x80, 0xA8)
-local PS = string.char(0xE2, 0x80, 0xA9)
+local LS = string.char(0xE2, 0x80, 0xA8) -- U+2028 LINE SEPARATOR
+local PS = string.char(0xE2, 0x80, 0xA9) -- U+2029 PARAGRAPH SEPARATOR
 
 return function (s)
-  return '"' .. s:gsub("[%z\1-\31\"\\]", quotes):gsub(LS, [[\u2028]]):gsub(PS, [[\u2029]]) .. '"'
+  return '"' .. s:gsub("[%z\1-\31\"\\]", quote):gsub(LS, [[\u2028]]):gsub(PS, [[\u2029]]) .. '"'
 end

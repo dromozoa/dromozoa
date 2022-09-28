@@ -21,38 +21,34 @@ local quote = require "dromozoa.compiler.quote"
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.compiler.source_map" }
 
-local base64_encoder = { [62] = "+", [63] = "/" }
+local base64 = { [62] = "+", [63] = "/" }
 for i = 0, 25 do
-  base64_encoder[i] = string.char(string.byte "A" + i)
+  base64[i] = string.char(("A"):byte() + i)
 end
 for i = 26, 51 do
-  base64_encoder[i] = string.char(string.byte "a" + i - 26)
+  base64[i] = string.char(("a"):byte() + i - 26)
 end
 for i = 52, 61 do
-  base64_encoder[i] = string.char(string.byte "0" + i - 52)
+  base64[i] = string.char(("0"):byte() + i - 52)
 end
 
-local function vlq(u)
-  local result = {}
-
-  if u < 0 then
-    u = 1 - u * 2
+local function append_vlq(result, a)
+  if a < 0 then
+    a = 1 - a * 2
   else
-    u = u * 2
+    a = a * 2
   end
 
   while true do
-    local v = u % 0x20
-    u = (u - v) / 0x20
-    if u > 0 then
-      append(result, base64_encoder[v + 0x20])
+    local b = a % 0x20
+    a = (a - b) / 0x20
+    if a > 0 then
+      append(result, base64[b + 0x20])
     else
-      append(result, base64_encoder[v])
+      append(result, base64[b])
       break
     end
   end
-
-  return table.concat(result)
 end
 
 function class:append_mapping(u)
@@ -72,7 +68,6 @@ end
 
 function class:generate()
   local result = {}
-
   append(result, '{"version":3,"file":', quote(self.file), ',"sources":[')
 
   for i, file in ipairs(self.files) do
@@ -93,7 +88,11 @@ function class:generate()
     if f == 0 and n == 0 and c == 0 then
       append(result, ";")
     else
-      append(result, "A", vlq(f), vlq(n), vlq(c), ";")
+      append(result, "A")
+      append_vlq(result, f)
+      append_vlq(result, n)
+      append_vlq(result, c)
+      append(result, ";")
       pref_file = mapping.file
       prev_line = mapping.line
       prev_column = mapping.column
@@ -101,7 +100,6 @@ function class:generate()
   end
 
   append(result, '"}\n')
-
   return result
 end
 
