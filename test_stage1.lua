@@ -181,7 +181,7 @@ local function generate_code(result, source_map, protos, u)
     append(result, "S.push(S[S.length-1]);")
 
   elseif u_name == "close" then
-    append(result, "a=V", a, '[0];if(a!==undefined)OP_CALL(OP_GETTABLE(a.metatable,"__close"),a);V', a, "=undefined")
+    append(result, "a=V", a, "[0];if(a!==undefined)OP_CLOSE(a);V", a, "=undefined;")
 
   elseif u_name == "return" then
     append(result, "return S;")
@@ -229,6 +229,8 @@ local function generate_code(result, source_map, protos, u)
 end
 
 local function generate_proto(result, source_map, protos, proto)
+  local try_catch
+
   append(result, "const P", proto.index, "=(")
   for i = 1, #proto.upvalues do
     if i > 1 then
@@ -249,20 +251,40 @@ local function generate_proto(result, source_map, protos, proto)
     end
     append(result, "...VA")
   end
-  append(result, ")=>{\nlet S=[],a,b,c;\n")
-  append_empty_mappings(source_map, 2)
-
-  for i = 1, #proto.locals do
-    append(result, "let V", i)
+  append(result, ")=>{\nlet S=[],a,b,c")
+  for i, v in ipairs(proto.locals) do
+    append(result, ",V", i)
     if i <= proto.nparams then
       append(result, "=[A", i, "]")
     end
-    append(result, ";\n")
+    if v.attribute == "close" then
+      try_catch = true
+    end
+  end
+  append(result, ";\n")
+  append_empty_mappings(source_map, 2)
+
+  if try_catch then
+    append(result, "try{\n")
     append_empty_mappings(source_map, 1)
   end
 
   for _, v in ipairs(proto.code) do
     generate_code(result, source_map, protos, v)
+  end
+
+  if try_catch then
+    append(result, "}catch(e){\n")
+    append_empty_mappings(source_map, 1)
+    for i = #proto.locals, 1, -1 do
+      local v = proto.locals[i]
+      if v.attribute == "close" then
+        append(result, "a=V", i, ";if(a!==undefined&&a[0]!==undefined)OP_CLOSE(a[0]);V", i, "=undefined;\n")
+        append_empty_mappings(source_map, 1)
+      end
+    end
+    append(result, "throw e;}\n")
+    append_empty_mappings(source_map, 1)
   end
 
   append(result, "return S;\n});\n")
@@ -287,6 +309,7 @@ const OP_SETTABLE=(a,b,c)=>{if(a instanceof LuaTable)a.map.set(b,c);else a[b]=c;
 const OP_GETTABLE=(a,b)=>a instanceof LuaTable?a.map.get(b):a[b];
 const OP_CALL=(a,b)=>a instanceof LuaFunction?a.fn(...b):a instanceof LuaTable?OP_CALL(OP_GETTABLE(a.metatable,"__call"),[a,...b]):[a.apply(undefined,b)];
 const OP_SELF=(a,b,c)=>a instanceof LuaFunction||a instanceof LuaTable?OP_CALL(a,[b,...c]):[a.apply(b,c)];
+const OP_CLOSE=a=>OP_CALL(OP_GETTABLE(a.metatable,"__close"));
 const OP_ADJUST=(a,b)=>{if(a.length<b)a[b-1]=undefined;else a.splice(b);};
 ]])
   append_empty_mappings(source_map, 14)

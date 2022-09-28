@@ -82,7 +82,7 @@ end
 -- local no_such_fn="foo"
 -- no_such_fn()
 
--- t = 12 t[1] = 42
+t = 12 t[1] = 42
 
 local function g(...)
   globalThis.console:log(..., ...)
