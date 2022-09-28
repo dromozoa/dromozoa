@@ -16,15 +16,8 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local append = require "dromozoa.append"
+local compiler_error = require "dromozoa.compiler.compiler_error"
 local lua54_parser = require "dromozoa.compiler.lua54_parser"
-
-local function compiler_error(message, u)
-  if u.f and u.n and u.c then
-    error(u.f .. ":" .. u.n .. ":" .. u.c .. ": compiler error (" .. message .. ")")
-  else
-    error("compiler error (" .. message .. ")")
-  end
-end
 
 ---------------------------------------------------------------------------
 
@@ -195,7 +188,7 @@ local opcodes = {
 
 local function append_code(proto, code, u, op, a, b)
   local v = { [0] = op, a = a, b = b, node = u }
-  code[#code + 1] = v
+  append(code, v)
   local c = opcodes[op]
   if c then
     proto.top = proto.top + c

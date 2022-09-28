@@ -15,8 +15,10 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local a = 10 % -4
-io.write(a .. "\n")
-
-local a = 10 // -4
-io.write(a .. "\n")
+return function (message, u)
+  if u and u.f and u.n and u.c then
+    error(u.f .. ":" .. u.n .. ":" .. u.c .. ": compiler error (" .. message .. ")")
+  else
+    error("compiler error (" .. message .. ")")
+  end
+end

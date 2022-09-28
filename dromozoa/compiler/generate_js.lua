@@ -15,6 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local compiler_error = require "dromozoa.compiler.compiler_error"
+
 local quotes = {}
 for byte = 0x00, 0x1F do
   quotes[string.char(byte)] = ([[\x%02X]]):format(byte)
@@ -212,9 +214,10 @@ local function generate_proto_code(out, protos, u, n)
     out:write("S.splice(-", a, ");")
 
   else
-    -- TODO エラー出力する
-    out:write("/* ", u_name , " */")
+    out:write("/* ", u_name, " */")
+    -- compiler_error("not supported: " .. u_name, u.node)
   end
+
   out:write "\n"
 end
 
