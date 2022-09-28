@@ -90,7 +90,7 @@ local function generate_code(result, source_map, protos, u)
     return
 
   elseif u_name == "check_for" then
-    append(result, "D.check_for(V", a, "[0],V", a + 1, "[0],V", a + 2, "[0]);")
+    append(result, "// check_for ", a)
 
   elseif u_name == "add"    then append(result, "b=S.pop();a=S.pop();S.push(+a+ +b);")
   elseif u_name == "sub"    then append(result, "b=S.pop();a=S.pop();S.push(a-b);")
@@ -114,7 +114,7 @@ local function generate_code(result, source_map, protos, u)
 
   elseif u_name == "unm"  then append(result, "a=S.pop();S.push(-a);")
   elseif u_name == "not"  then append(result, "a=S.pop();S.push(a===undefined||a===false);")
-  elseif u_name == "len"  then append(result, "a=S.pop();S.push(D.len(a));")
+  elseif u_name == "len"  then append(result, "b=1;a=S.pop();if(a instanceof LuaTable)for(;a.map.get(b)!==undefined;++b);else for(;a[b]!==undefined;++b);S.push(b-1);")
   elseif u_name == "bnot" then append(result, "a=S.pop();S.push(~a);")
 
   elseif u_name == "new_local" then
@@ -181,7 +181,7 @@ local function generate_code(result, source_map, protos, u)
     append(result, "S.push(S[S.length-1]);")
 
   elseif u_name == "close" then
-    append(result, "if(V", a, "!==undefined)D.close(V", a, "[0]);V", a, "=undefined;")
+    append(result, "a=V", a, "[0];if(a!==undefined)a.metatable.__close.fn(a);V", a, "=undefined")
 
   elseif u_name == "return" then
     append(result, "return S;")
@@ -276,16 +276,15 @@ local function generate_stage1(protos)
   append(result, [[
 class LuaTable{constructor(){this.map=new Map();}}
 class LuaFunction{constructor(fn){this.fn=fn;}}
+class LuaError{constructor(message){this.message=message;}}
 const D={
-check_for:()=>{},
-close:()=>{},
-len:table=>{let n=1;for(;table.map.get(n)!==undefined;++n);return n-1;},
+error:message=>throw new LuaError(message),
 getmetatable:table=>table.metatable,
 setmetatable:(table,metatable)=>table.metatable=metatable,
 newuserdata:(constructor,...args)=>new constructor(...args),
 };
 ]])
-  append_empty_mappings(source_map, 10)
+  append_empty_mappings(source_map, 9)
 
   for i = #protos, 1, -1 do
     generate_proto(result, source_map, protos, protos[i])
