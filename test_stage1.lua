@@ -337,8 +337,8 @@ local function generate_proto(result, source_map, protos, proto)
     append_empty_mappings(source_map, 1)
   end
 
-  append(result, "return S;\n});\n")
-  append_empty_mappings(source_map, 2)
+  append(result, "return S;});\n")
+  append_empty_mappings(source_map, 1)
 end
 
 local function generate_stage1(protos)
