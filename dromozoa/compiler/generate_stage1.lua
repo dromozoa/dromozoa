@@ -63,21 +63,6 @@ else
   end
 end
 
-local function append_mapping(source_map, u)
-  local file = source_map.files[u.f]
-  if not file then
-    file = append(source_map.files, u.f) - 1
-    source_map.files[u.f] = file
-  end
-  append(source_map, { file = file, line = u.n - 1, column = u.c - 1 })
-end
-
-local function append_empty_mappings(source_map, n)
-  for i = 1, n do
-    append(source_map, { file = 0, line = 0, column = 0 })
-  end
-end
-
 local function generate_code(result, source_map, protos, u)
   local u_name = u[0]
   local a = u.a
@@ -88,27 +73,27 @@ local function generate_code(result, source_map, protos, u)
 
   elseif u_name == "if" then
     append(result, "a=S.pop();if(a!==undefined&&a!==false){\n")
-    append_mapping(source_map, u[1].node)
+    source_map:append_mapping(u[1].node)
     for _, v in ipairs(u[1]) do
       generate_code(result, source_map, protos, v)
     end
     append(result, "}else{\n")
-    append_mapping(source_map, u[2].node)
+    source_map:append_mapping(u[2].node)
     for _, v in ipairs(u[2]) do
       generate_code(result, source_map, protos, v)
     end
     append(result, "}\n")
-    append_empty_mappings(source_map, 1)
+    source_map:append_empty_mappings(1)
     return
 
   elseif u_name == "loop" then
     append(result, "while(true){\n")
-    append_mapping(source_map, u.node)
+    source_map:append_mapping(u.node)
     for _, v in ipairs(u) do
       generate_code(result, source_map, protos, v)
     end
     append(result, "}\n")
-    append_empty_mappings(source_map, 1)
+    source_map:append_empty_mappings(1)
     return
 
   elseif u_name == "check_for" then
@@ -252,7 +237,7 @@ local function generate_code(result, source_map, protos, u)
   end
 
   append(result, "\n")
-  append_mapping(source_map, u.node)
+  source_map:append_mapping(u.node)
 end
 
 local function generate_proto(result, source_map, protos, proto)
@@ -289,11 +274,11 @@ local function generate_proto(result, source_map, protos, proto)
     end
   end
   append(result, ";\n")
-  append_empty_mappings(source_map, 2)
+  source_map:append_empty_mappings(2)
 
   if try_catch then
     append(result, "try{\n")
-    append_empty_mappings(source_map, 1)
+    source_map:append_empty_mappings(1)
   end
 
   for _, v in ipairs(proto.code) do
@@ -302,20 +287,20 @@ local function generate_proto(result, source_map, protos, proto)
 
   if try_catch then
     append(result, "}catch(e){\n")
-    append_empty_mappings(source_map, 1)
+    source_map:append_empty_mappings(1)
     for i = #proto.locals, 1, -1 do
       local v = proto.locals[i]
       if v.attribute == "close" then
         append(result, "a=V", i, ";if(a!==undefined&&a[0]!==undefined)OP_CLOSE(a[0]);V", i, "=undefined;\n")
-        append_empty_mappings(source_map, 1)
+        source_map:append_empty_mappings(1)
       end
     end
     append(result, "throw e;}\n")
-    append_empty_mappings(source_map, 1)
+    source_map:append_empty_mappings(1)
   end
 
   append(result, "return S;});\n")
-  append_empty_mappings(source_map, 1)
+  source_map:append_empty_mappings(1)
 end
 
 local function generate_stage1(protos, result, source_map)
@@ -336,7 +321,7 @@ const OP_SELF=(a,b,c)=>a instanceof LuaFunction||a instanceof LuaTable?OP_CALL(a
 const OP_CLOSE=a=>OP_CALL(OP_GETTABLE(a.metatable,"__close"));
 const OP_ADJUST=(a,b)=>{if(a.length<b)a[b-1]=undefined;else a.splice(b);};
 ]])
-  append_empty_mappings(source_map, 15)
+  source_map:append_empty_mappings(15)
 
   for i = #protos, 1, -1 do
     generate_proto(result, source_map, protos, protos[i])
@@ -348,7 +333,7 @@ OP_SETTABLE(env,"dromozoa",D);
 OP_SETTABLE(env,"globalThis",globalThis);
 OP_CALL(P1([env]),[]);
 ]])
-  append_empty_mappings(source_map, 4)
+  source_map:append_empty_mappings(4)
 end
 
 return generate_stage1

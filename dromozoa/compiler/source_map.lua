@@ -18,6 +18,9 @@
 local append = require "dromozoa.append"
 local quote = require "dromozoa.compiler.quote"
 
+local class = {}
+local metatable = { __index = class, __name = "dromozoa.compiler.source_map" }
+
 local base64_encoder = { [62] = "+", [63] = "/" }
 for i = 0, 25 do
   base64_encoder[i] = string.char(string.byte "A" + i)
@@ -52,36 +55,58 @@ local function vlq(u)
   return table.concat(result)
 end
 
-return function (source_map, result, filename)
-  append(result, [[{"version":3,"file":]], quote(filename), [[,"sources":[]])
+function class:append_mapping(u)
+  local file = self.files[u.f]
+  if not file then
+    file = append(self.files, u.f) - 1
+    self.files[u.f] = file
+  end
+  append(self, { file = file, line = u.n - 1, column = u.c - 1 })
+end
 
-  for i, file in ipairs(source_map.files) do
+function class:append_empty_mappings(n)
+  for i = 1, n do
+    append(self, { file = 0, line = 0, column = 0 })
+  end
+end
+
+function class:generate()
+  local result = {}
+
+  append(result, '{"version":3,"file":', quote(self.file), ',"sources":[')
+
+  for i, file in ipairs(self.files) do
     if i > 1 then
       append(result, ",")
     end
     append(result, quote(file))
   end
-  append(result, [[],"names":[],"mappings":"]])
+  append(result, '],"names":[],"mappings":"')
 
   local prev_file = 0
   local prev_line = 0
   local prev_column = 0
-  for _, mapping in ipairs(source_map) do
-    local file = mapping.file
-    local line = mapping.line
-    local column = mapping.column
-    local f = file - prev_file
-    local n = line - prev_line
-    local c = column - prev_column
+  for _, mapping in ipairs(self) do
+    local f = mapping.file - prev_file
+    local n = mapping.line - prev_line
+    local c = mapping.column - prev_column
     if f == 0 and n == 0 and c == 0 then
       append(result, ";")
     else
       append(result, "A", vlq(f), vlq(n), vlq(c), ";")
-      pref_file = file
-      prev_line = line
-      prev_column = column
+      pref_file = mapping.file
+      prev_line = mapping.line
+      prev_column = mapping.column
     end
   end
 
   append(result, '"}\n')
+
+  return result
 end
+
+return setmetatable(class, {
+  __call = function (_, file)
+    return setmetatable({ file = file, files = {} }, metatable)
+  end;
+})

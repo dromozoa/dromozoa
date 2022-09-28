@@ -36,8 +36,8 @@ local parse = lua54_parser()
 local root = lua54_regexp(source, source_filename, lua54_parser.max_terminal_symbol, parse)
 local protos = generate(root)
 local result = {}
-local smap = { files = {} }
-generate_stage1(protos, result, smap)
+local source_map = source_map(result_filename)
+generate_stage1(protos, result, source_map)
 
 local out = assert(io.open(result_filename, "w"))
 out:write(table.concat(result), "//# sourceMappingURL=", source_map_filename, "\n")
@@ -45,9 +45,6 @@ out:close()
 
 ---------------------------------------------------------------------------
 
-local result = {}
-source_map(smap, result, result_filename)
 local out = assert(io.open(source_map_filename, "w"))
-out:write(table.concat(result))
+out:write(table.concat(source_map:generate()))
 out:close()
-
