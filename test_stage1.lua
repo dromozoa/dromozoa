@@ -86,7 +86,6 @@ else
   end
 end
 
-
 local function append_mapping(source_map, u)
   local file = source_map.files[u.f]
   if not file then
@@ -215,9 +214,7 @@ local function generate_code(result, source_map, protos, u)
 
   elseif u_name == "push_numeral" then
     if b == "HexadecimalFloatingNumeral" then
-      compiler_error("not supported: HexadecimalFloatingNumeral", u.node)
-      -- TODO バイト列に変換してDataView(ArrayBuffer)にいれる
-      -- a=new DataView(new Uint8Array([0,0,0,0,0,0,0,0,0]).buffer).getFloat64(0))
+      append(result, ("S.push(new DataView(new Uint32Array([0x%X,0x%X]).buffer).getFloat64(0,true));"):format(double_to_word(tonumber(a))))
     else
       append(result, "S.push(", a, ");")
     end
