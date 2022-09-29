@@ -1,6 +1,6 @@
 return function (context) return {
 [[
-local main = function ()
+local main = function (static_data)
   local create
   local append
   local append_unpack
@@ -16,7 +16,6 @@ context["action_data"];
 [=[
  }
   end)()
-  local static_data = coroutine.yield()
   local table_unpack = table.unpack or unpack
   local symbol_names = static_data.symbol_names
   local actions = static_data.actions
@@ -39,8 +38,7 @@ context["action_data"];
       append(table_unpack((select(i, ...))))
     end
   end
-  while true do
-    local token = coroutine.yield()
+  return function (token)
     local symbol = token[0]
     if symbol then
       while true do
@@ -106,18 +104,10 @@ local static_data = { ]=];
 context["static_data"];
 [[
  }
-local metatable = {
-  __call = function (self, token)
-    return select(2, assert(coroutine.resume(self.thread, token)))
-  end;
-}
 return setmetatable({}, {
   __index = static_data;
   __call = function ()
-    local thread = coroutine.create(main)
-    assert(coroutine.resume(thread))
-    assert(coroutine.resume(thread, static_data))
-    return setmetatable({ thread = thread }, metatable)
+    return main(static_data)
   end;
 })
 ]];

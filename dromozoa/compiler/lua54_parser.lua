@@ -1,4 +1,4 @@
-local main = function ()
+local main = function (static_data)
   local create
   local append
   local append_unpack
@@ -160,7 +160,6 @@ function()SS=S[0] SS.v=S[1].v SS.hint='HexadecimalFloatingNumeral'
 end;
  }
   end)()
-  local static_data = coroutine.yield()
   local table_unpack = table.unpack or unpack
   local symbol_names = static_data.symbol_names
   local actions = static_data.actions
@@ -183,8 +182,7 @@ end;
       append(table_unpack((select(i, ...))))
     end
   end
-  while true do
-    local token = coroutine.yield()
+  return function (token)
     local symbol = token[0]
     if symbol then
       while true do
@@ -485,17 +483,9 @@ heads={64,65,66,66,67,67,67,68,68,68,68,68,68,68,68,68,68,68,68,68,68,68,69,69,6
 sizes={1,1,1,2,0,2,2,3,1,1,1,2,3,5,4,6,7,1,3,1,2,4,0,2,5,3,5,7,4,2,4,0,3,1,2,2,3,3,1,3,1,3,1,3,1,4,3,4,3,1,3,1,3,1,1,1,1,1,1,1,1,1,1,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,2,1,3,2,4,2,4,2,3,1,1,2,4,5,1,3,1,2,3,1,2,1,3,5,3,1,1,1,1,1,1,1,1,1,};
 semantic_actions={1,2,3,4,5,3,4,6,7,4,3,8,9,10,11,12,13,3,14,3,4,15,16,9,12,17,18,19,20,21,22,1,23,24,24,4,4,25,3,26,27,28,29,30,27,31,28,31,28,32,33,34,35,3,3,3,3,3,3,3,3,3,3,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,28,28,55,56,57,58,3,59,1,60,1,60,61,62,63,63,64,65,66,3,67,68,69,62,3,3,70,35,71,17,1,1,1,72,72,73,74,75,76,};
  }
-local metatable = {
-  __call = function (self, token)
-    return select(2, assert(coroutine.resume(self.thread, token)))
-  end;
-}
 return setmetatable({}, {
   __index = static_data;
   __call = function ()
-    local thread = coroutine.create(main)
-    assert(coroutine.resume(thread))
-    assert(coroutine.resume(thread, static_data))
-    return setmetatable({ thread = thread }, metatable)
+    return main(static_data)
   end;
 })
