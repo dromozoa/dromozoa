@@ -56,14 +56,12 @@ local main = function (_, source, source_name, eof_symbol, fn)
   local current_index = main
   local current_state = _[current_index].start_state
   local current_cont
-  local current_restart
+  local current_reset
   local current_byte
   local jumped = false
   local pushed
   local buffer = {}
   local guard_buffer = {}
-
-  local execute
 
   function fcall(index)
     stack[#stack + 1] = {
@@ -74,7 +72,7 @@ local main = function (_, source, source_name, eof_symbol, fn)
       current_index = current_index;
       current_state = current_state;
       current_cont = current_cont;
-      current_restart = current_restart;
+      current_reset = current_reset;
     }
 
     if #stack > 2000 then
@@ -90,7 +88,7 @@ local main = function (_, source, source_name, eof_symbol, fn)
     current_index = index
     current_state = _[current_index].start_state
     current_cont = nil
-    current_restart = nil
+    current_reset = nil
   end
 
   function freturn()
@@ -106,18 +104,21 @@ local main = function (_, source, source_name, eof_symbol, fn)
     current_index = item.current_index
     current_state = item.current_state
     current_cont = item.current_cont
-    current_restart = item.current_restart
+    current_reset = item.current_reset
 
-    if current_cont then
-      local action = action_data[current_cont]
-      if action then
-        action()
-      end
+    if current_cont ~= 0 then
+      action_data[current_cont]()
     end
+    current_cont = nil
 
-    if current_restart then
-      current_restart()
+    if current_reset then
+      ts = nil
+      fs = current_position
+      start_line = ln
+      start_column = fs - lp
+      current_state = _[current_index].start_state
     end
+    current_reset = nil
   end
 
   function push(value_from_buffer)
@@ -235,28 +236,12 @@ local main = function (_, source, source_name, eof_symbol, fn)
     guard_append(string.byte(source, i, j))
   end
 
-  function execute(index, restart)
-    local action = action_data[index]
+  local function execute(index, reset)
     current_cont = action_continuations[index]
-    current_restart = restart
-    if current_cont == 0 then
-      current_cont = nil
-    end
+    current_reset = reset
     jumped = false
-    action()
+    action_data[index]()
     return jumped
-  end
-
-  local function restart()
-    if current_state == _[current_index].start_state then
-      ferror "loop detected"
-    end
-
-    ts = nil
-    fs = current_position
-    start_line = ln
-    start_column = fs - lp
-    current_state = _[current_index].start_state
   end
 
   local function accept()
@@ -264,7 +249,7 @@ local main = function (_, source, source_name, eof_symbol, fn)
       ferror "cannot transition"
     end
 
-    if execute(_[current_index].accept_actions[current_state], restart) then
+    if execute(_[current_index].accept_actions[current_state], true) then
       return
     end
 
@@ -277,7 +262,11 @@ local main = function (_, source, source_name, eof_symbol, fn)
       ferror "unexpected eof"
     end
 
-    restart()
+    ts = nil
+    fs = current_position
+    start_line = ln
+    start_column = fs - lp
+    current_state = _[current_index].start_state
   end
 
   local function transition()
