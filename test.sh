@@ -21,9 +21,6 @@ case X$1 in
   X) exec sh -e "$0" lua;;
 esac
 
-LUA_PATH="?.lua;ext/?.lua;;"
-export LUA_PATH
-
 mkdir -p out/stage1
 
 for i in test/test*.lua
