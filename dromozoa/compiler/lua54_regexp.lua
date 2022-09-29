@@ -75,7 +75,9 @@ function()ra=fc-0x61+10
 end;
 function()ts=nil push()
 end;
-function()ts=2;clear() fcall(3) push(true)
+function()ts=2;clear() fcall(3)
+end;
+function()push(true)
 end;
 function()ts=35 push()
 end;
@@ -95,7 +97,9 @@ function()ts=58 push()
 end;
 function()ts=30 push()
 end;
-function()ts=nil;fcall(1) push()
+function()ts=nil;fcall(1)
+end;
+function()push()
 end;
 function()ts=59 push()
 end;
@@ -141,7 +145,7 @@ function()ts=62 push()
 end;
 function()ts=53 push()
 end;
-function()ts=1;clear() fcall(2) push(true)
+function()ts=1;clear() fcall(2)
 end;
 function()ts=54 push()
 end;
@@ -213,7 +217,7 @@ end;
   end)()
   local table_unpack = table.unpack or unpack
   local main = _.main
-  local action_threads = _.action_threads
+  local action_continuations = _.action_continuations
   local stack = {}
   local start_line = 1
   local start_column = 1
@@ -221,12 +225,13 @@ end;
   local current_index = main
   local current_state = _[current_index].start_state
   local current_restart
-  local current_thread
+  local current_continuation
   local current_byte
   local jumped = false
   local pushed
   local buffer = {}
   local guard_buffer = {}
+  local execute
   function fcall(index)
     stack[#stack + 1] = {
       token_symbol = ts;
@@ -236,7 +241,7 @@ end;
       current_index = current_index;
       current_state = current_state;
       current_restart = current_restart;
-      current_thread = current_thread;
+      current_continuation = current_continuation;
     }
     if #stack > 2000 then
       ferror "too much recursion; possible loop detected"
@@ -249,10 +254,7 @@ end;
     current_index = index
     current_state = _[current_index].start_state
     current_restart = nil
-    if current_thread then
-      current_thread = nil
-      coroutine.yield()
-    end
+    current_continuation = nil
   end
   function freturn()
     local item = stack[#stack]
@@ -265,9 +267,12 @@ end;
     current_index = item.current_index
     current_state = item.current_state
     current_restart = item.current_restart
-    current_thread = item.current_thread
-    if current_thread then
-      assert(coroutine.resume(current_thread))
+    current_continuation = item.current_continuation
+    if current_continuation then
+      local action = action_data[current_continuation]
+      if action then
+        action()
+      end
     end
     if current_restart then
       current_restart()
@@ -378,17 +383,15 @@ end;
   function guard_append_range(i, j)
     guard_append(string.byte(source, i, j))
   end
-  local function execute(index, restart)
+  function execute(index, restart)
     local action = action_data[index]
     current_restart = restart
-    jumped = false
-    if action_threads[index] == 0 then
-      current_thread = nil
-      action()
-    else
-      current_thread = coroutine.create(action)
-      assert(coroutine.resume(current_thread))
+    current_continuation = action_continuations[index]
+    if current_continuation == 0 then
+      current_continuation = nil
     end
+    jumped = false
+    action()
     return jumped
   end
   local function restart()
@@ -547,10 +550,10 @@ local _ = { {0,0,0,1};
 {0,0,4,4,4,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,0,0,0,0,0};
 {0,0,4,4,4,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,0,0,0,0,0};
 {0,0,4,4,4,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,130,0,0,0,0,0};
-{2,2,3,2,2,2,91,92,93,94,92,93,93,94,2,3,2,3,94};
+{2,2,3,2,2,2,93,94,95,96,94,95,95,96,2,3,2,3,96};
 {2,2,1,1,2,1,6,5,5,16,98,137,137,99,100,101,102,101,99};
-{27,27,27,27,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,42,43,44,45,45,46,46,46,47,48,49,50,51,52,53,54,55,56,57,58,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,60,61,61,61,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90};
-{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+{27,27,27,27,27,28,30,31,32,33,34,35,36,37,38,39,41,42,43,44,44,45,46,47,47,48,48,48,49,50,51,52,53,54,55,56,57,58,59,60,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,62,63,63,63,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92};
+{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,29,0,0,0,0,0,0,0,0,0,0,40,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,29,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
  }
 local static_data = { main=4;
 {
@@ -592,12 +595,11 @@ transition_actions=_[90];
 transition_states=_[91];
 accept_actions=_[92];
 };
-action_threads=_[93];
+action_continuations=_[93];
  }
 return setmetatable({}, {
   __index = static_data;
   __call = function (_, source, source_name, eof_symbol, fn)
-    local thread = coroutine.create(main)
-    return select(2, assert(coroutine.resume(thread, static_data, source, source_name, eof_symbol, fn)))
+    return main(static_data, source, source_name, eof_symbol, fn)
   end;
 })

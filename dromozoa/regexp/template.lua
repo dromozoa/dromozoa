@@ -44,11 +44,10 @@ local main = function (_, source, source_name, eof_symbol, fn)
     return { $action_data }
   end)()
 
-  -- local _, source, source_name, eof_symbol, fn = coroutine.yield()
   local table_unpack = table.unpack or unpack
 
   local main = _.main
-  local action_threads = _.action_threads
+  local action_continuations = _.action_continuations
 
   local stack = {}
   local start_line = 1
@@ -57,12 +56,14 @@ local main = function (_, source, source_name, eof_symbol, fn)
   local current_index = main
   local current_state = _[current_index].start_state
   local current_restart
-  local current_thread
+  local current_continuation
   local current_byte
   local jumped = false
   local pushed
   local buffer = {}
   local guard_buffer = {}
+
+  local execute
 
   function fcall(index)
     stack[#stack + 1] = {
@@ -73,7 +74,7 @@ local main = function (_, source, source_name, eof_symbol, fn)
       current_index = current_index;
       current_state = current_state;
       current_restart = current_restart;
-      current_thread = current_thread;
+      current_continuation = current_continuation;
     }
 
     if #stack > 2000 then
@@ -89,11 +90,7 @@ local main = function (_, source, source_name, eof_symbol, fn)
     current_index = index
     current_state = _[current_index].start_state
     current_restart = nil
-
-    if current_thread then
-      current_thread = nil
-      coroutine.yield()
-    end
+    current_continuation = nil
   end
 
   function freturn()
@@ -109,10 +106,13 @@ local main = function (_, source, source_name, eof_symbol, fn)
     current_index = item.current_index
     current_state = item.current_state
     current_restart = item.current_restart
+    current_continuation = item.current_continuation
 
-    current_thread = item.current_thread
-    if current_thread then
-      assert(coroutine.resume(current_thread))
+    if current_continuation then
+      local action = action_data[current_continuation]
+      if action then
+        action()
+      end
     end
 
     if current_restart then
@@ -235,17 +235,15 @@ local main = function (_, source, source_name, eof_symbol, fn)
     guard_append(string.byte(source, i, j))
   end
 
-  local function execute(index, restart)
+  function execute(index, restart)
     local action = action_data[index]
     current_restart = restart
-    jumped = false
-    if action_threads[index] == 0 then
-      current_thread = nil
-      action()
-    else
-      current_thread = coroutine.create(action)
-      assert(coroutine.resume(current_thread))
+    current_continuation = action_continuations[index]
+    if current_continuation == 0 then
+      current_continuation = nil
     end
+    jumped = false
+    action()
     return jumped
   end
 
@@ -336,8 +334,6 @@ local static_data = { $static_data }
 return setmetatable({}, {
   __index = static_data;
   __call = function (_, source, source_name, eof_symbol, fn)
-    local thread = coroutine.create(main)
-    -- assert(coroutine.resume(thread))
-    return select(2, assert(coroutine.resume(thread, static_data, source, source_name, eof_symbol, fn)))
+    return main(static_data, source, source_name, eof_symbol, fn)
   end;
 })

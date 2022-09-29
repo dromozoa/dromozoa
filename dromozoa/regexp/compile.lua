@@ -42,36 +42,24 @@ local function insert_action(context, action)
       return table.concat(result, ",")
     end)
 
-  -- fcallの後に命令がある場合、継続として扱うのはどうか
-  --[[
-    fcallの後に命令があるならば継続命令である
-    fcallの後の空でない文を継続（別関数にする）
-
-    [^%w_](fcall)[^%w_] => 最初にfcallが出現する場所
-    fcallの関数呼び出しの後をつかまえる
-    fcallの関数呼び出しはつねに括弧がついているとする
-
-    fcallk(i,cont)
-  ]]
-
-  local i, inserted = insert(context.action, "function()" .. action .. "\nend;\n")
-
-  if inserted then
-    -- コルーチンの必要性をおおまかに検査する。
-    -- 1. 単語境界を調べやすくするために番兵を置く。
-    local s = " " .. action .. " "
-    -- 2. fcallという単語が最初に出現する位置を調べる。
-    local p = s:find "[^%w_](fcall)[^%w_]"
-    -- 3. fcallという単語が最後に出現する位置を調べる。
-    local q = s:find "[^%w_](fcall)%s*%b()%s*$"
-    if p == q then
-      append(context.action.threads, 0)
+  local s = " " .. action .. " "
+  local action_indices = {}
+  while #s > 0 do
+    local _, p = s:find "[^%w_]fcall%s*%b()%s*"
+    local i = insert(context.action, "function()" .. s:sub(1, p):gsub("^%s+", ""):gsub("%s+$", "") .. "\nend;\n")
+    append(action_indices, i)
+    if p then
+      s = s:sub(p + 1)
     else
-      append(context.action.threads, 1)
+      break
     end
   end
 
-  return i
+  for i, action_index in ipairs(action_indices) do
+    context.action.continuations[action_index] = action_indices[i + 1] or 0
+  end
+
+  return action_indices[1]
 end
 
 local function insert_shared(context, shared)
@@ -154,7 +142,7 @@ end
 return function (that)
   local context = {
     custom = { out = {} };
-    action = { map = {}, set = {}, variables = {}, threads = {} };
+    action = { map = {}, set = {}, variables = {}, continuations = {} };
     shared = { map = {}, set = {}, out = {} };
     static = { out = {} };
   }
@@ -188,7 +176,7 @@ return function (that)
   for i, v in ipairs(data) do
     generate(context, i, v.machine)
   end
-  append(context.static.out, "action_threads=", insert_shared(context, context.action.threads), ";\n")
+  append(context.static.out, "action_continuations=", insert_shared(context, context.action.continuations), ";\n")
 
   for _, v in ipairs(context.shared.set) do
     append(context.shared.out, "{", v, "};\n")
