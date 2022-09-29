@@ -57,6 +57,18 @@ local function insert_action(context, action)
     else
       append(context.action.threads, 1)
     end
+
+    --[[
+      fcallの後に命令があるならば継続命令である
+      fcallの後の空でない文を継続（別関数にする）
+
+      [^%w_](fcall)[^%w_] => 最初にfcallが出現する場所
+      fcallの関数呼び出しの後をつかまえる
+      fcallの関数呼び出しはつねに括弧がついているとする
+
+      fcallk(i,cont)
+
+    ]]
   end
 
   return i
