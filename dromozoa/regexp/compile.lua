@@ -21,13 +21,11 @@ local runtime = require "dromozoa.regexp.runtime"
 local function insert(t, v)
   assert(type(v) == "string")
   local n = t.map[v]
-  if n then
-    return n
-  else
-    local n = append(t.set, v)
+  if not n then
+    n = append(t.set, v)
     t.map[v] = n
-    return n, true
   end
+  return n
 end
 
 local function insert_action(context, action)
@@ -42,24 +40,25 @@ local function insert_action(context, action)
       return table.concat(result, ",")
     end)
 
-  local i, inserted = insert(context.action, "function()" .. action .. "\nend;\n")
-
-  if inserted then
-    -- コルーチンの必要性をおおまかに検査する。
-    -- 1. 単語境界を調べやすくするために番兵を置く。
-    local s = " " .. action .. " "
-    -- 2. fcallという単語が最初に出現する位置を調べる。
-    local p = s:find "[^%w_](fcall)[^%w_]"
-    -- 3. fcallという単語が最後に出現する位置を調べる。
-    local q = s:find "[^%w_](fcall)%s*%b()%s*$"
-    if p == q then
-      append(context.action.threads, 0)
+  -- 単語境界を調べやすくするために番兵を置く。
+  local s = " " .. action .. " "
+  local actions = {}
+  -- fcall()の後に処理がある場合、継続として分割する。
+  while #s > 0 do
+    local _, p = s:find "[^%w_]fcall%s*%b()%s*"
+    append(actions, insert(context.action, "function()" .. s:sub(1, p):gsub("^%s+", ""):gsub("%s+$", "") .. "\nend;\n"))
+    if p then
+      s = s:sub(p + 1)
     else
-      append(context.action.threads, 1)
+      break
     end
   end
 
-  return i
+  for i, action in ipairs(actions) do
+    context.action.continuations[action] = actions[i + 1] or 0
+  end
+
+  return actions[1]
 end
 
 local function insert_shared(context, shared)
@@ -142,7 +141,7 @@ end
 return function (that)
   local context = {
     custom = { out = {} };
-    action = { map = {}, set = {}, variables = {}, threads = {} };
+    action = { map = {}, set = {}, variables = {}, continuations = {} };
     shared = { map = {}, set = {}, out = {} };
     static = { out = {} };
   }
@@ -176,7 +175,7 @@ return function (that)
   for i, v in ipairs(data) do
     generate(context, i, v.machine)
   end
-  append(context.static.out, "action_threads=", insert_shared(context, context.action.threads), ";\n")
+  append(context.static.out, "action_continuations=", insert_shared(context, context.action.continuations), ";\n")
 
   for _, v in ipairs(context.shared.set) do
     append(context.shared.out, "{", v, "};\n")

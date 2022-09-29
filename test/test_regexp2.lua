@@ -71,7 +71,7 @@ local code = compile {
   });
 }
 
-local filename = "test-gen2.lua"
+local filename = "out/test_regexp2.lua"
 local out = assert(io.open(filename, "w"))
 out:write(code)
 out:close()
@@ -98,6 +98,7 @@ execute([[
   end
 end)
 
+-- print(table.concat(buffer))
 assert(table.concat(buffer) == [[
 skip		1	19	1	1	"--[=[\
 123] ]==]\

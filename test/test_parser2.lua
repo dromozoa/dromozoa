@@ -32,7 +32,7 @@ local _ = regexp.pattern
 
 local token_names = {}
 
-local regexp_filename = "test-gen-parser2-regexp.lua"
+local regexp_filename = "out/test_parser2_regexp.lua"
 local out = assert(io.open(regexp_filename, "w"))
 out:write(regexp.compile {
   regexp.machine.lexer(token_names, {
@@ -77,7 +77,7 @@ for _, message in ipairs(c) do
   end
 end
 
-local parser_filename = "test-gen-parser2-parser.lua"
+local parser_filename = "out/test_parser2_parser.lua"
 local out = assert(io.open(parser_filename, "w"))
 out:write(parser.compile(g, a))
 out:close()

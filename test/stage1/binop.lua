@@ -15,21 +15,5 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local lua54_regexp = require "dromozoa.compiler.lua54_regexp"
-local lua54_parser = require "dromozoa.compiler.lua54_parser"
-local generate = require "dromozoa.compiler.generate"
-local generate_js = require "dromozoa.compiler.generate_js"
-
-local source_filename, result_filename = ...
-
-local handle = assert(io.open(source_filename))
-local source = handle:read "*a"
-handle:close()
-
-local parse = lua54_parser()
-local root = lua54_regexp(source, source_filename, lua54_parser.max_terminal_symbol, parse)
-local protos = generate(root)
-
-local out = assert(io.open(result_filename, "w"))
-generate_js(out, protos)
-out:close()
+print(10 % -4)
+print(10 // -4)

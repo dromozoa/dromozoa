@@ -1,6 +1,6 @@
 return function (context) return {
 [[
-local main = function ()
+local main = function (_, source, source_name, eof_symbol, fn)
   local fcall
   local freturn
   local ferror
@@ -29,10 +29,9 @@ context["action_data"];
 [[
  }
   end)()
-  local _, source, source_name, eof_symbol, fn = coroutine.yield()
   local table_unpack = table.unpack or unpack
   local main = _.main
-  local action_threads = _.action_threads
+  local action_continuations = _.action_continuations
   local stack = {}
   local start_line = 1
   local start_column = 1
@@ -40,7 +39,7 @@ context["action_data"];
   local current_index = main
   local current_state = _[current_index].start_state
   local current_cont
-  local current_thread
+  local current_reset
   local current_byte
   local jumped = false
   local pushed
@@ -55,7 +54,7 @@ context["action_data"];
       current_index = current_index;
       current_state = current_state;
       current_cont = current_cont;
-      current_thread = current_thread;
+      current_reset = current_reset;
     }
     if #stack > 2000 then
       ferror "too much recursion; possible loop detected"
@@ -68,10 +67,7 @@ context["action_data"];
     current_index = index
     current_state = _[current_index].start_state
     current_cont = nil
-    if current_thread then
-      current_thread = nil
-      coroutine.yield()
-    end
+    current_reset = nil
   end
   function freturn()
     local item = stack[#stack]
@@ -84,13 +80,19 @@ context["action_data"];
     current_index = item.current_index
     current_state = item.current_state
     current_cont = item.current_cont
-    current_thread = item.current_thread
-    if current_thread then
-      assert(coroutine.resume(current_thread))
+    if current_cont ~= 0 then
+      action_data[current_cont]()
     end
-    if current_cont then
-      current_cont()
+    current_cont = nil
+    current_reset = item.current_reset
+    if current_reset then
+      ts = nil
+      fs = current_position
+      start_line = ln
+      start_column = fs - lp
+      current_state = _[current_index].start_state
     end
+    current_reset = nil
   end
   function push(value_from_buffer)
     local s = string.sub(source, fs, fp)
@@ -197,34 +199,18 @@ context["action_data"];
   function guard_append_range(i, j)
     guard_append(string.byte(source, i, j))
   end
-  local function execute(index, cont)
-    local action = action_data[index]
-    current_cont = cont
+  local function execute(index, reset)
+    current_cont = action_continuations[index]
+    current_reset = reset
     jumped = false
-    if action_threads[index] == 0 then
-      current_thread = nil
-      action()
-    else
-      current_thread = coroutine.create(action)
-      assert(coroutine.resume(current_thread))
-    end
+    action_data[index]()
     return jumped
-  end
-  local function restart()
-    if current_state == _[current_index].start_state then
-      ferror "loop detected"
-    end
-    ts = nil
-    fs = current_position
-    start_line = ln
-    start_column = fs - lp
-    current_state = _[current_index].start_state
   end
   local function accept()
     if current_state > _[current_index].max_accept_state then
       ferror "cannot transition"
     end
-    if execute(_[current_index].accept_actions[current_state], restart) then
+    if execute(_[current_index].accept_actions[current_state], true) then
       return
     end
     if not current_byte then
@@ -235,7 +221,11 @@ context["action_data"];
       end
       ferror "unexpected eof"
     end
-    restart()
+    ts = nil
+    fs = current_position
+    start_line = ln
+    start_column = fs - lp
+    current_state = _[current_index].start_state
   end
   local function transition()
     current_byte = string.byte(source, current_position)
@@ -288,9 +278,7 @@ context["static_data"];
 return setmetatable({}, {
   __index = static_data;
   __call = function (_, source, source_name, eof_symbol, fn)
-    local thread = coroutine.create(main)
-    assert(coroutine.resume(thread))
-    return select(2, assert(coroutine.resume(thread, static_data, source, source_name, eof_symbol, fn)))
+    return main(static_data, source, source_name, eof_symbol, fn)
   end;
 })
 ]];

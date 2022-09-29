@@ -15,22 +15,52 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local function f1()
-  io.write "f1\n"
+local D = dromozoa
+
+local function log(a, b, c, d)
+  print(a,b,c,d)
 end
 
-local function f2(a, b)
-  io.write "f2\n"
-  io.write(a)
-  io.write(b)
+local v = 69
+
+local f = function (a, b, c)
+  return c, b, a
 end
 
-f1()
-f2("foo\n", "bar\n")
-f1()
+local a, b = f(1, 2, 3)
+print(a, b, c, d)
 
-local t = { "a", "b", "c", "d" }
-local function f(t, i)
+local t = {
+  f = function (self, x, y, z)
+    print(self, x, y, z)
+  end;
+}
+
+if a == 2 then
+  print "then"
+else
+  print "else"
+end
+
+for i = 1, 3 do
+  print(i)
+end
+
+local x = { 11, 12, 13, 14, 15, 16 }
+print(#x)
+local x = { 11, 12, nil, nil, 13, 14 }
+-- local x = {}
+-- x[1] = 11
+-- x[2] = 12
+-- x[3] = "foo"
+-- x[4] = true
+-- x[5] = 13
+-- x[6] = 14
+for i = 1, 6 do
+  print(i, x[i])
+end
+
+local function impl_ipairs(t, i)
   i = i + 1
   local v = t[i]
   if v == nil then
@@ -40,30 +70,28 @@ local function f(t, i)
   end
 end
 
-for i, v in f, t, 0 do
-  io.write(v)
-  io.write "\n"
+for i, v in impl_ipairs, x, 0 do
+  print(i, v)
 end
 
-for i, v in f, t, 0 do
-  if i == 3 then
-    break
-  end
-  io.write(v)
-  io.write "\n"
+if a and b then
+  print "and"
 end
 
-for i = 1, 4 do
-  io.write(t[i])
-  io.write "\n"
+-- local no_such_fn="foo"
+-- no_such_fn()
+
+-- t = 12 t[1] = 42
+
+local function g(...)
+  print(..., ...)
 end
 
-t.f = function (a)
-  if a then
-    io.write "t.f(a)\n"
-  else
-    io.write "t.f()\n"
-  end
+g()
+g(1)
+g(1,2)
+g(1,2,3)
+
+if 0x1p+3 == 8 then
+  print "ok"
 end
-t.f()
-t:f()

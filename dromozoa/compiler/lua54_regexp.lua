@@ -1,4 +1,4 @@
-local main = function ()
+local main = function (_, source, source_name, eof_symbol, fn)
   local fcall
   local freturn
   local ferror
@@ -75,7 +75,9 @@ function()ra=fc-0x61+10
 end;
 function()ts=nil push()
 end;
-function()ts=2;clear() fcall(3) push(true)
+function()ts=2;clear() fcall(3)
+end;
+function()push(true)
 end;
 function()ts=35 push()
 end;
@@ -95,7 +97,9 @@ function()ts=58 push()
 end;
 function()ts=30 push()
 end;
-function()ts=nil;fcall(1) push()
+function()ts=nil;fcall(1)
+end;
+function()push()
 end;
 function()ts=59 push()
 end;
@@ -141,7 +145,7 @@ function()ts=62 push()
 end;
 function()ts=53 push()
 end;
-function()ts=1;clear() fcall(2) push(true)
+function()ts=1;clear() fcall(2)
 end;
 function()ts=54 push()
 end;
@@ -211,10 +215,9 @@ function()guard_append(0x5D)
 end;
  }
   end)()
-  local _, source, source_name, eof_symbol, fn = coroutine.yield()
   local table_unpack = table.unpack or unpack
   local main = _.main
-  local action_threads = _.action_threads
+  local action_continuations = _.action_continuations
   local stack = {}
   local start_line = 1
   local start_column = 1
@@ -222,7 +225,7 @@ end;
   local current_index = main
   local current_state = _[current_index].start_state
   local current_cont
-  local current_thread
+  local current_reset
   local current_byte
   local jumped = false
   local pushed
@@ -237,7 +240,7 @@ end;
       current_index = current_index;
       current_state = current_state;
       current_cont = current_cont;
-      current_thread = current_thread;
+      current_reset = current_reset;
     }
     if #stack > 2000 then
       ferror "too much recursion; possible loop detected"
@@ -250,10 +253,7 @@ end;
     current_index = index
     current_state = _[current_index].start_state
     current_cont = nil
-    if current_thread then
-      current_thread = nil
-      coroutine.yield()
-    end
+    current_reset = nil
   end
   function freturn()
     local item = stack[#stack]
@@ -266,13 +266,19 @@ end;
     current_index = item.current_index
     current_state = item.current_state
     current_cont = item.current_cont
-    current_thread = item.current_thread
-    if current_thread then
-      assert(coroutine.resume(current_thread))
+    if current_cont ~= 0 then
+      action_data[current_cont]()
     end
-    if current_cont then
-      current_cont()
+    current_cont = nil
+    current_reset = item.current_reset
+    if current_reset then
+      ts = nil
+      fs = current_position
+      start_line = ln
+      start_column = fs - lp
+      current_state = _[current_index].start_state
     end
+    current_reset = nil
   end
   function push(value_from_buffer)
     local s = string.sub(source, fs, fp)
@@ -379,34 +385,18 @@ end;
   function guard_append_range(i, j)
     guard_append(string.byte(source, i, j))
   end
-  local function execute(index, cont)
-    local action = action_data[index]
-    current_cont = cont
+  local function execute(index, reset)
+    current_cont = action_continuations[index]
+    current_reset = reset
     jumped = false
-    if action_threads[index] == 0 then
-      current_thread = nil
-      action()
-    else
-      current_thread = coroutine.create(action)
-      assert(coroutine.resume(current_thread))
-    end
+    action_data[index]()
     return jumped
-  end
-  local function restart()
-    if current_state == _[current_index].start_state then
-      ferror "loop detected"
-    end
-    ts = nil
-    fs = current_position
-    start_line = ln
-    start_column = fs - lp
-    current_state = _[current_index].start_state
   end
   local function accept()
     if current_state > _[current_index].max_accept_state then
       ferror "cannot transition"
     end
-    if execute(_[current_index].accept_actions[current_state], restart) then
+    if execute(_[current_index].accept_actions[current_state], true) then
       return
     end
     if not current_byte then
@@ -417,7 +407,11 @@ end;
       end
       ferror "unexpected eof"
     end
-    restart()
+    ts = nil
+    fs = current_position
+    start_line = ln
+    start_column = fs - lp
+    current_state = _[current_index].start_state
   end
   local function transition()
     current_byte = string.byte(source, current_position)
@@ -548,10 +542,10 @@ local _ = { {0,0,0,1};
 {0,0,4,4,4,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,0,0,0,0,0};
 {0,0,4,4,4,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,129,0,0,0,0,0};
 {0,0,4,4,4,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,130,0,0,0,0,0};
-{2,2,3,2,2,2,91,92,93,94,92,93,93,94,2,3,2,3,94};
+{2,2,3,2,2,2,93,94,95,96,94,95,95,96,2,3,2,3,96};
 {2,2,1,1,2,1,6,5,5,16,98,137,137,99,100,101,102,101,99};
-{27,27,27,27,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,42,43,44,45,45,46,46,46,47,48,49,50,51,52,53,54,55,56,57,58,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,59,60,61,61,61,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90};
-{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+{27,27,27,27,27,28,30,31,32,33,34,35,36,37,38,39,41,42,43,44,44,45,46,47,47,48,48,48,49,50,51,52,53,54,55,56,57,58,59,60,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,61,62,63,63,63,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92};
+{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,29,0,0,0,0,0,0,0,0,0,0,40,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,29,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
  }
 local static_data = { main=4;
 {
@@ -593,13 +587,11 @@ transition_actions=_[90];
 transition_states=_[91];
 accept_actions=_[92];
 };
-action_threads=_[93];
+action_continuations=_[93];
  }
 return setmetatable({}, {
   __index = static_data;
   __call = function (_, source, source_name, eof_symbol, fn)
-    local thread = coroutine.create(main)
-    assert(coroutine.resume(thread))
-    return select(2, assert(coroutine.resume(thread, static_data, source, source_name, eof_symbol, fn)))
+    return main(static_data, source, source_name, eof_symbol, fn)
   end;
 })

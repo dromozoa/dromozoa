@@ -15,6 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local a = { [0] = "foo", 1, 2, 3, 4 }
-local n = #a
-io.write(n .. "\n")
+print "foo'bar"
+print 'foo"bar'
+print "foo\"bar"
+print 'foo\'bar'

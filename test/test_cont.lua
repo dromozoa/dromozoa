@@ -15,7 +15,20 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local D = dromozoa
+local action = "fcall() fret()"
 
-local io = {}
+local s = " " .. action .. " "
+local actions = {}
+while #s > 0 do
+  local _, p = s:find "[^%w_]fcall%s*%b()%s*"
+  actions[#actions + 1] = s:sub(1, p)
+  if p then
+    s = s:sub(p + 1)
+  else
+    break
+  end
+end
 
+-- for i = 1, #actions do
+--   io.write("[[", actions[i], "]]\n")
+-- end

@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local main = function ()
+local main = function (static_data)
   local create
   local append
   local append_unpack
@@ -28,7 +28,6 @@ local main = function ()
     return { $action_data }
   end)()
 
-  local static_data = coroutine.yield()
   local table_unpack = table.unpack or unpack
 
   local symbol_names = static_data.symbol_names
@@ -57,8 +56,7 @@ local main = function ()
     end
   end
 
-  while true do
-    local token = coroutine.yield()
+  return function (token)
     local symbol = token[0]
     if symbol then
       while true do
@@ -136,18 +134,9 @@ end
 
 local static_data = { $static_data }
 
-local metatable = {
-  __call = function (self, token)
-    return select(2, assert(coroutine.resume(self.thread, token)))
-  end;
-}
-
 return setmetatable({}, {
   __index = static_data;
-  __call = function ()
-    local thread = coroutine.create(main)
-    assert(coroutine.resume(thread))
-    assert(coroutine.resume(thread, static_data))
-    return setmetatable({ thread = thread }, metatable)
+  __call = function (static_data)
+    return main(static_data)
   end;
 })

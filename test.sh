@@ -17,37 +17,35 @@
 # You should have received a copy of the GNU General Public License
 # along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-LUA_PATH="?.lua;ext/?.lua;;"
-export LUA_PATH
+case X$1 in
+  X) exec sh -e "$0" lua;;
+esac
+
+mkdir -p out/stage1
 
 for i in test/test*.lua
 do
-  case X$# in
-    X0) lua "$i";;
-    *) "$@" "$i";;
-  esac
+  "$@" "$i"
 done
 
-case X$# in
-  X0) LUA_VERSION=`lua -e 'io.write(_VERSION)'`;;
-  *) LUA_VERSION=`"$@" -e 'io.write(_VERSION)'`;;
-esac
+LUA_VERSION=`"$@" -e 'io.write(_VERSION)'`
 if test "X$LUA_VERSION" = "XLua 5.4"
 then
-  ./test_exp.sh "$@"
+  for i in test/stage1/*.lua
+  do
+    j=`expr "X$i" : 'X\(.*\)\.lua$'`
+    "$@" "$i" >"$j.exp"
+  done
 fi
 
-for i in test/run/*.lua
+for i in test/stage1/*.lua
 do
-  j=`expr "X$i" : 'Xtest/run/\([^/]*\)\.lua$'`
-  case X$# in
-    X0) lua test/run_js.lua "$i" "test-$j.js";;
-    *) "$@" test/run_js.lua "$i" "test-$j.js";;
-  esac
-  node "test-$j.js" >"test-$j.out"
-  diff -u "test/run/$j.exp" "test-$j.out"
+  j=`expr "X$i" : 'Xtest/stage1/\([^/]*\)\.lua$'`
+  "$@" compile_stage1.lua "out/stage1/$j.mjs" "out/stage1/$j.mjs.map" dromozoa/compiler/runtime_stage1.lua "$i"
+  node --enable-source-maps "out/stage1/$j.mjs" >"out/stage1/$j.out"
+  diff -u "test/stage1/$j.exp" "out/stage1/$j.out"
 done
 
 case X$DROMOZOA_TEST_DEBUG in
-  X|X0) rm -f test*.dot test-gen*.lua test*.js test*.out;;
+  X|X0) rm -fr out;;
 esac

@@ -53,7 +53,7 @@ for _, name in ipairs(token_names) do
   append(buffer, name, "\n")
 end
 
-local filename = "test-gen3.lua"
+local filename = "out/test_regexp3.lua"
 local out = assert(io.open(filename, "w"))
 out:write(code)
 out:close()

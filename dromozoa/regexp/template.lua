@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local main = function ()
+local main = function (_, source, source_name, eof_symbol, fn)
   local fcall
   local freturn
   local ferror
@@ -29,26 +29,25 @@ local main = function ()
   local guard_append
   local guard_append_range
 
-                -- save/restore
-                --  | read only
-                --  |  |
-  local ts      --  x  x  token symbol
-  local fs = 1  --  x  x  start position
-  local fp      --     x  current position
-  local fc      --     x  current character
-  local ln = 1  --        line number
-  local lp = 0  --        line position
+               -- save/restore
+               --  | read only
+               --  |  |
+  local ts     --  x  x  token symbol
+  local fs = 1 --  x  x  start position
+  local fp     --     x  current position
+  local fc     --     x  current character
+  local ln = 1 --        line number
+  local lp = 0 --        line position
 
   local action_data = (function ()
     $custom_data
     return { $action_data }
   end)()
 
-  local _, source, source_name, eof_symbol, fn = coroutine.yield()
   local table_unpack = table.unpack or unpack
 
   local main = _.main
-  local action_threads = _.action_threads
+  local action_continuations = _.action_continuations
 
   local stack = {}
   local start_line = 1
@@ -57,7 +56,7 @@ local main = function ()
   local current_index = main
   local current_state = _[current_index].start_state
   local current_cont
-  local current_thread
+  local current_reset
   local current_byte
   local jumped = false
   local pushed
@@ -73,7 +72,7 @@ local main = function ()
       current_index = current_index;
       current_state = current_state;
       current_cont = current_cont;
-      current_thread = current_thread;
+      current_reset = current_reset;
     }
 
     if #stack > 2000 then
@@ -89,11 +88,7 @@ local main = function ()
     current_index = index
     current_state = _[current_index].start_state
     current_cont = nil
-
-    if current_thread then
-      current_thread = nil
-      coroutine.yield()
-    end
+    current_reset = nil
   end
 
   function freturn()
@@ -108,16 +103,22 @@ local main = function ()
     start_column = item.start_column
     current_index = item.current_index
     current_state = item.current_state
+
     current_cont = item.current_cont
-
-    current_thread = item.current_thread
-    if current_thread then
-      assert(coroutine.resume(current_thread))
+    if current_cont ~= 0 then
+      action_data[current_cont]()
     end
+    current_cont = nil
 
-    if current_cont then
-      current_cont()
+    current_reset = item.current_reset
+    if current_reset then
+      ts = nil
+      fs = current_position
+      start_line = ln
+      start_column = fs - lp
+      current_state = _[current_index].start_state
     end
+    current_reset = nil
   end
 
   function push(value_from_buffer)
@@ -235,30 +236,12 @@ local main = function ()
     guard_append(string.byte(source, i, j))
   end
 
-  local function execute(index, cont)
-    local action = action_data[index]
-    current_cont = cont
+  local function execute(index, reset)
+    current_cont = action_continuations[index]
+    current_reset = reset
     jumped = false
-    if action_threads[index] == 0 then
-      current_thread = nil
-      action()
-    else
-      current_thread = coroutine.create(action)
-      assert(coroutine.resume(current_thread))
-    end
+    action_data[index]()
     return jumped
-  end
-
-  local function restart()
-    if current_state == _[current_index].start_state then
-      ferror "loop detected"
-    end
-
-    ts = nil
-    fs = current_position
-    start_line = ln
-    start_column = fs - lp
-    current_state = _[current_index].start_state
   end
 
   local function accept()
@@ -266,7 +249,7 @@ local main = function ()
       ferror "cannot transition"
     end
 
-    if execute(_[current_index].accept_actions[current_state], restart) then
+    if execute(_[current_index].accept_actions[current_state], true) then
       return
     end
 
@@ -279,7 +262,11 @@ local main = function ()
       ferror "unexpected eof"
     end
 
-    restart()
+    ts = nil
+    fs = current_position
+    start_line = ln
+    start_column = fs - lp
+    current_state = _[current_index].start_state
   end
 
   local function transition()
@@ -336,8 +323,6 @@ local static_data = { $static_data }
 return setmetatable({}, {
   __index = static_data;
   __call = function (_, source, source_name, eof_symbol, fn)
-    local thread = coroutine.create(main)
-    assert(coroutine.resume(thread))
-    return select(2, assert(coroutine.resume(thread, static_data, source, source_name, eof_symbol, fn)))
+    return main(static_data, source, source_name, eof_symbol, fn)
   end;
 })
