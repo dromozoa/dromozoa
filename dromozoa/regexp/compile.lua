@@ -40,8 +40,10 @@ local function insert_action(context, action)
       return table.concat(result, ",")
     end)
 
+  -- 単語境界を調べやすくするために番兵を置く。
   local s = " " .. action .. " "
   local actions = {}
+  -- fcall()の後に処理がある場合、継続として分割する。
   while #s > 0 do
     local _, p = s:find "[^%w_]fcall%s*%b()%s*"
     append(actions, insert(context.action, "function()" .. s:sub(1, p):gsub("^%s+", ""):gsub("%s+$", "") .. "\nend;\n"))
