@@ -58,7 +58,7 @@ local main = function (_, source, source_name, eof_symbol, fn)
   local current_cont
   local current_reset
   local current_byte
-  local jumped = false
+  local jumped
   local pushed
   local buffer = {}
   local guard_buffer = {}
@@ -79,8 +79,6 @@ local main = function (_, source, source_name, eof_symbol, fn)
       ferror "too much recursion; possible loop detected"
     end
 
-    jumped = true
-
     ts = nil
     fs = current_position
     start_line = ln
@@ -88,14 +86,12 @@ local main = function (_, source, source_name, eof_symbol, fn)
     current_index = index
     current_state = _[current_index].start_state
     current_cont = nil
-    current_reset = nil
+    jumped = true
   end
 
   function freturn()
     local item = stack[#stack]
     stack[#stack] = nil
-
-    jumped = true
 
     ts = item.token_symbol
     fs = item.start_position
@@ -103,14 +99,20 @@ local main = function (_, source, source_name, eof_symbol, fn)
     start_column = item.start_column
     current_index = item.current_index
     current_state = item.current_state
-
     current_cont = item.current_cont
-    if current_cont ~= 0 then
-      action_data[current_cont]()
-    end
-    current_cont = nil
-
     current_reset = item.current_reset
+    jumped = true
+
+    if current_cont > 0 then
+      local action = current_cont
+      local cont = action_continuations[action]
+      current_cont = cont
+      action_data[action]()
+      if cont > 0 then
+        return
+      end
+    end
+
     if current_reset then
       ts = nil
       fs = current_position
@@ -118,7 +120,6 @@ local main = function (_, source, source_name, eof_symbol, fn)
       start_column = fs - lp
       current_state = _[current_index].start_state
     end
-    current_reset = nil
   end
 
   function push(value_from_buffer)
@@ -236,11 +237,11 @@ local main = function (_, source, source_name, eof_symbol, fn)
     guard_append(string.byte(source, i, j))
   end
 
-  local function execute(index, reset)
-    current_cont = action_continuations[index]
+  local function execute(action, reset)
+    current_cont = action_continuations[action]
     current_reset = reset
-    jumped = false
-    action_data[index]()
+    jumped = nil
+    action_data[action]()
     return jumped
   end
 
