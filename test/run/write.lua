@@ -15,30 +15,30 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-io.write "A\n"
+print "A"
 
 if true then
-  io.write "B\n"
+  print "B"
 else
-  io.write "C\n"
+  print "C"
 end
 
 if false then
-  io.write "D\n"
+  print "D"
 else
-  io.write "E\n"
+  print "E"
 end
 
 while true do
-  io.write "F\n"
+  print "F"
   break
-  io.write "G\n"
+  print "G"
 end
-io.write "H\n"
+print "H"
 
 repeat
-  io.write "I\n"
+  print "I"
   break
-  io.write "J\n"
+  print "J"
 until false
-io.write "K\n"
+print "K"

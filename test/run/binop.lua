@@ -15,8 +15,5 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local a = 10 % -4
-io.write(a .. "\n")
-
-local a = 10 // -4
-io.write(a .. "\n")
+print(10 % -4)
+print(10 // -4)

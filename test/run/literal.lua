@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-io.write "foo'bar\n"
-io.write 'foo"bar\n'
-io.write "foo\"bar\n"
-io.write 'foo\'bar\n'
+print "foo'bar"
+print 'foo"bar'
+print "foo\"bar"
+print 'foo\'bar'

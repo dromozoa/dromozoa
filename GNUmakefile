@@ -24,7 +24,7 @@ target = \
 all:: $(target)
 
 check:: all
-	./test.sh
+	./test.sh lua
 
 dromozoa/regexp/runtime.lua: dromozoa/regexp/template.lua
 	lua build_runtime.lua $< $@

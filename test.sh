@@ -22,32 +22,27 @@ export LUA_PATH
 
 for i in test/test*.lua
 do
-  case X$# in
-    X0) lua "$i";;
-    *) "$@" "$i";;
-  esac
+  "$@" "$i"
 done
 
-case X$# in
-  X0) LUA_VERSION=`lua -e 'io.write(_VERSION)'`;;
-  *) LUA_VERSION=`"$@" -e 'io.write(_VERSION)'`;;
-esac
+LUA_VERSION=`"$@" -e 'io.write(_VERSION)'`
 if test "X$LUA_VERSION" = "XLua 5.4"
 then
-  ./test_exp.sh "$@"
+  for i in test/run/*.lua
+  do
+    j=`expr "X$i" : 'X\(.*\)\.lua$'`
+    "$@" "$i" >"$j.exp"
+  done
 fi
 
 for i in test/run/*.lua
 do
   j=`expr "X$i" : 'Xtest/run/\([^/]*\)\.lua$'`
-  case X$# in
-    X0) lua test/run_js.lua "$i" "test-$j.js";;
-    *) "$@" test/run_js.lua "$i" "test-$j.js";;
-  esac
-  node "test-$j.js" >"test-$j.out"
+  "$@" compile_stage1.lua "test-$j.mjs" "test-$j.mjs.map" dromozoa/compiler/runtime_stage1.lua "$i"
+  node --enable-source-maps "test-$j.mjs" >"test-$j.out"
   diff -u "test/run/$j.exp" "test-$j.out"
 done
 
 case X$DROMOZOA_TEST_DEBUG in
-  X|X0) rm -f test*.dot test-gen*.lua test*.js test*.out;;
+  X|X0) rm -f test*.dot test-gen*.lua test*.mjs test*.mjs.map test*.out;;
 esac

@@ -17,4 +17,4 @@
 
 local a = { [0] = "foo", 1, 2, 3, 4 }
 local n = #a
-io.write(n .. "\n")
+print(n)

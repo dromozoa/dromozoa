@@ -19,24 +19,6 @@ local D = dromozoa
 
 local function log(a, b, c, d)
   print(a,b,c,d)
-
-  -- if a == nil then
-  --   a = ""
-  -- end
-  -- if b ~= nil then
-  --   a = a .. "," .. b
-  --   if c ~= nil then
-  --     a = a .. "," .. c
-  --     if d ~= nil then
-  --       a = a .. "," .. d
-  --     end
-  --   end
-  -- end
-  -- if io then
-  --   io.write(a .. "\n")
-  -- else
-  --   globalThis.console:log(a)
-  -- end
 end
 
 local v = 69
@@ -110,4 +92,6 @@ g(1)
 g(1,2)
 g(1,2,3)
 
-print(0x1p+720)
+if 0x1p+3 == 8 then
+  print "ok"
+end
