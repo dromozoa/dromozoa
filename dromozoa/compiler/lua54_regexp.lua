@@ -220,7 +220,7 @@ end;
   local current_position = 1
   local current_index = main
   local current_state = _[current_index].start_state
-  local current_cont
+  local current_restart
   local current_thread
   local current_byte
   local jumped = false
@@ -235,7 +235,7 @@ end;
       start_column = start_column;
       current_index = current_index;
       current_state = current_state;
-      current_cont = current_cont;
+      current_restart = current_restart;
       current_thread = current_thread;
     }
     if #stack > 2000 then
@@ -248,7 +248,7 @@ end;
     start_column = fs - lp
     current_index = index
     current_state = _[current_index].start_state
-    current_cont = nil
+    current_restart = nil
     if current_thread then
       current_thread = nil
       coroutine.yield()
@@ -264,13 +264,13 @@ end;
     start_column = item.start_column
     current_index = item.current_index
     current_state = item.current_state
-    current_cont = item.current_cont
+    current_restart = item.current_restart
     current_thread = item.current_thread
     if current_thread then
       assert(coroutine.resume(current_thread))
     end
-    if current_cont then
-      current_cont()
+    if current_restart then
+      current_restart()
     end
   end
   function push(value_from_buffer)
@@ -378,9 +378,9 @@ end;
   function guard_append_range(i, j)
     guard_append(string.byte(source, i, j))
   end
-  local function execute(index, cont)
+  local function execute(index, restart)
     local action = action_data[index]
-    current_cont = cont
+    current_restart = restart
     jumped = false
     if action_threads[index] == 0 then
       current_thread = nil
