@@ -1,6 +1,10 @@
 return function (context) return {
 [[
-local main = function (static_data)
+local static_data = { ]];
+context["static_data"];
+[[
+ }
+local main = function ()
   local create
   local append
   local append_unpack
@@ -100,15 +104,11 @@ context["action_data"];
     end
   end
 end
-local static_data = { ]=];
-context["static_data"];
-[[
- }
 return setmetatable({}, {
   __index = static_data;
   __call = function ()
-    return main(static_data)
+    return main()
   end;
 })
-]];
+]=];
 } end
