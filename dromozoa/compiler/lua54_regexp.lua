@@ -266,11 +266,11 @@ end;
     current_index = item.current_index
     current_state = item.current_state
     current_cont = item.current_cont
-    current_reset = item.current_reset
-    if current_cont ~= 0 then
+    if current_cont > 0 then
       action_data[current_cont]()
     end
     current_cont = nil
+    current_reset = item.current_reset
     if current_reset then
       ts = nil
       fs = current_position

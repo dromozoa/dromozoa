@@ -54,7 +54,7 @@ out:close()
 local buffer = {}
 
 local execute = assert(assert(loadfile(filename))())
-execute("A AA AAA AAAA ABA ", "@test", 0, function (token)
+execute("A AA AAA AAAA AB ABB ABBB ABBBAAAAB ", "@test", 0, function (token)
   local symbol = token[0]
   if symbol then
     if symbol == 0 then
