@@ -71,7 +71,7 @@ local code = compile {
   });
 }
 
-local filename = "test-gen2.lua"
+local filename = "out/test_regexp2.lua"
 local out = assert(io.open(filename, "w"))
 out:write(code)
 out:close()

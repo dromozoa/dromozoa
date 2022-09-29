@@ -39,7 +39,7 @@ for _, message in ipairs(conflictions) do
 end
 
 local code = compile(g, actions)
-local filename = "test-gen-parser.lua"
+local filename = "out/test_parser.lua"
 local out = assert(io.open(filename, "w"))
 out:write(code)
 out:close()

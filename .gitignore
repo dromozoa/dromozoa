@@ -7,6 +7,3 @@
 /lab/mmap
 /out
 /test*.dot
-/test*.mjs
-/test*.mjs.map
-/test-gen*.lua

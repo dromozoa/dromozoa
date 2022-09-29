@@ -72,6 +72,6 @@ local r = compile {
   m2 = m2;
   m3;
 }
-local out = assert(io.open("test-gen.lua", "w"))
+local out = assert(io.open("out/test_regexp.lua", "w"))
 out:write(r)
 out:close()
