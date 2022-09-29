@@ -111,7 +111,7 @@ local function generate_code(result, source_map, protos, u)
   elseif u_name == "bor"    then append(result, "b=S.pop();a=S.pop();S.push(a|b);")
   elseif u_name == "shr"    then append(result, "b=S.pop();a=S.pop();S.push(a>>>b);")
   elseif u_name == "shl"    then append(result, "b=S.pop();a=S.pop();S.push(a<<b);")
-  elseif u_name == "concat" then append(result, "b=S.pop();a=S.pop();S.push(a.toString()+b);")
+  elseif u_name == "concat" then append(result, "b=S.pop();a=S.pop();S.push(a.toString()+b.toString());")
   elseif u_name == "lt"     then append(result, "b=S.pop();a=S.pop();S.push(a<b);")
   elseif u_name == "le"     then append(result, "b=S.pop();a=S.pop();S.push(a<=b);")
   elseif u_name == "gt"     then append(result, "b=S.pop();a=S.pop();S.push(a>b);")
@@ -137,7 +137,7 @@ local function generate_code(result, source_map, protos, u)
     append(result, "c=S.pop();b=S[", b - 1, "];a=S[", a - 1, "];OP_SETTABLE(a,b,c);")
 
   elseif u_name == "set_table" then
-    append(result, "c=S.pop();b=S.pop();a=S[", a - 1, "];OP_SETTABLE(a,b,c);")
+    append(result, "c=S.pop();b=S.pop();a=S[", a - 1, "];OP_SETTABLE(a,b,c);//",a)
 
   elseif u_name == "get_local" then
     append(result, "S.push(V", a, "[0]);")
@@ -319,12 +319,15 @@ local function generate_protos(result, source_map, protos, ...)
   end
 end
 
-return function (result, source_map, ...)
-  append(result, [[
-class LuaFunction{constructor(fn){this.fn=fn;}}
+local code, n = ([[
 class LuaTable{constructor(){this.map=new Map();}}
+class LuaFunction{constructor(fn){this.fn=fn;}}
 class LuaError extends Error{constructor(msg){super(msg);this.name="LuaError";this.msg=msg}}
 const D={
+typeof:v=>typeof v,
+is_table:v=>v instanceof LuaTable,
+is_function:v=>v instanceof LuaFunction||v instanceof Function,
+select_n:(...a)=>a.length,
 error:msg=>{throw new LuaError(msg);},
 getmetatable:t=>t.metatable,
 setmetatable:(t,metatable)=>t.metatable=metatable,
@@ -339,7 +342,10 @@ const OP_ADJUST=(a,b)=>{if(a.length<b)a[b-1]=undefined;else a.splice(b);};
 const env=new LuaTable();
 OP_SETTABLE(env,"dromozoa",D);
 OP_SETTABLE(env,"globalThis",globalThis);
-]])
-  source_map:append_empty_mappings(18)
+]]):gsub("\n", {})
+
+return function (result, source_map, ...)
+  append(result, code)
+  source_map:append_empty_mappings(n)
   generate_protos(result, source_map, ...)
 end
