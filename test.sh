@@ -28,19 +28,19 @@ done
 LUA_VERSION=`"$@" -e 'io.write(_VERSION)'`
 if test "X$LUA_VERSION" = "XLua 5.4"
 then
-  for i in test/run/*.lua
+  for i in test/stage1/*.lua
   do
     j=`expr "X$i" : 'X\(.*\)\.lua$'`
     "$@" "$i" >"$j.exp"
   done
 fi
 
-for i in test/run/*.lua
+for i in test/stage1/*.lua
 do
-  j=`expr "X$i" : 'Xtest/run/\([^/]*\)\.lua$'`
+  j=`expr "X$i" : 'Xtest/stage1/\([^/]*\)\.lua$'`
   "$@" compile_stage1.lua "test-$j.mjs" "test-$j.mjs.map" dromozoa/compiler/runtime_stage1.lua "$i"
   node --enable-source-maps "test-$j.mjs" >"test-$j.out"
-  diff -u "test/run/$j.exp" "test-$j.out"
+  diff -u "test/stage1/$j.exp" "test-$j.out"
 done
 
 case X$DROMOZOA_TEST_DEBUG in
