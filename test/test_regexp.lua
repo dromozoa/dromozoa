@@ -30,7 +30,7 @@ local m1 = union {
   _{ _"a"*"*" + _"b"*"+" + _"c"/"print'T'"*"?" - "abc" ; _["xyz"]*{3} } %"print'A'"
 }
 
-local out = assert(io.open("test-m1.dot", "w"))
+local out = assert(io.open("out/test_regexp1_m1.dot", "w"))
 write_graphviz(out, m1.start_state)
 out:close()
 
@@ -43,7 +43,7 @@ local m2 = machine.union {
   _{"ab"}*{3} %"print'b'";
 }
 
-local out = assert(io.open("test-m2.dot", "w"))
+local out = assert(io.open("out/test_regexp1_m2.dot", "w"))
 write_graphviz(out, m2.start_state)
 out:close()
 
@@ -63,7 +63,7 @@ local m3 = machine.lexer(token_names, {
   -- any = _();
 })
 
-local out = assert(io.open("test-m3.dot", "w"))
+local out = assert(io.open("out/test_regexp1_m3.dot", "w"))
 write_graphviz(out, m3.start_state)
 out:close()
 

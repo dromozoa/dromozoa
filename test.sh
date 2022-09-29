@@ -46,5 +46,5 @@ do
 done
 
 case X$DROMOZOA_TEST_DEBUG in
-  X|X0) rm -f test*.dot test-gen*.lua test*.mjs test*.mjs.map test*.out;;
+  X|X0) rm -fr out;;
 esac
