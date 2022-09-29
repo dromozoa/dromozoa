@@ -85,7 +85,6 @@ local main = function (_, source, source_name, eof_symbol, fn)
     start_column = fs - lp
     current_index = index
     current_state = _[current_index].start_state
-    current_cont = nil
     jumped = true
   end
 

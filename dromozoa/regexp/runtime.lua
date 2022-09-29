@@ -65,7 +65,6 @@ context["action_data"];
     start_column = fs - lp
     current_index = index
     current_state = _[current_index].start_state
-    current_cont = nil
     jumped = true
   end
   function freturn()
