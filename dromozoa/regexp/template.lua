@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local main = function ()
+local main = function (_, source, source_name, eof_symbol, fn)
   local fcall
   local freturn
   local ferror
@@ -44,7 +44,7 @@ local main = function ()
     return { $action_data }
   end)()
 
-  local _, source, source_name, eof_symbol, fn = coroutine.yield()
+  -- local _, source, source_name, eof_symbol, fn = coroutine.yield()
   local table_unpack = table.unpack or unpack
 
   local main = _.main
@@ -337,7 +337,7 @@ return setmetatable({}, {
   __index = static_data;
   __call = function (_, source, source_name, eof_symbol, fn)
     local thread = coroutine.create(main)
-    assert(coroutine.resume(thread))
+    -- assert(coroutine.resume(thread))
     return select(2, assert(coroutine.resume(thread, static_data, source, source_name, eof_symbol, fn)))
   end;
 })
