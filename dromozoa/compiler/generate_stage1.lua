@@ -16,30 +16,7 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local append = require "dromozoa.append"
-local compiler_error = require "dromozoa.compiler.compiler_error"
-local lua54_regexp = require "dromozoa.compiler.lua54_regexp"
-local lua54_parser = require "dromozoa.compiler.lua54_parser"
-local generate = require "dromozoa.compiler.generate"
-
-local quotes = {}
-for byte = 0x00, 0x1F do
-  quotes[string.char(byte)] = ([[\x%02X]]):format(byte)
-end
-quotes["\b"] = [[\b]]
-quotes["\t"] = [[\t]]
-quotes["\n"] = [[\n]]
-quotes["\v"] = [[\v]]
-quotes["\f"] = [[\f]]
-quotes["\r"] = [[\r]]
-quotes["\""] = [[\"]]
-quotes["\\"] = [[\\]]
-
-local LS = string.char(0xE2, 0x80, 0xA8)
-local PS = string.char(0xE2, 0x80, 0xA9)
-
-local function quote(s)
-  return '"' .. s:gsub("[%z\1-\31\"\\]", quotes):gsub(LS, [[\u2028]]):gsub(PS, [[\u2029]]) .. '"'
-end
+local quote = require "dromozoa.compiler.quote"
 
 local double_to_word
 if string.pack then
@@ -86,21 +63,6 @@ else
   end
 end
 
-local function append_mapping(source_map, u)
-  local file = source_map.files[u.f]
-  if not file then
-    file = append(source_map.files, u.f) - 1
-    source_map.files[u.f] = file
-  end
-  append(source_map, { file = file, line = u.n - 1, column = u.c - 1 })
-end
-
-local function append_empty_mappings(source_map, n)
-  for i = 1, n do
-    append(source_map, { file = 0, line = 0, column = 0 })
-  end
-end
-
 local function generate_code(result, source_map, protos, u)
   local u_name = u[0]
   local a = u.a
@@ -111,27 +73,27 @@ local function generate_code(result, source_map, protos, u)
 
   elseif u_name == "if" then
     append(result, "a=S.pop();if(a!==undefined&&a!==false){\n")
-    append_mapping(source_map, u[1].node)
+    source_map:append_mapping(u[1].node)
     for _, v in ipairs(u[1]) do
       generate_code(result, source_map, protos, v)
     end
     append(result, "}else{\n")
-    append_mapping(source_map, u[2].node)
+    source_map:append_mapping(u[2].node)
     for _, v in ipairs(u[2]) do
       generate_code(result, source_map, protos, v)
     end
     append(result, "}\n")
-    append_empty_mappings(source_map, 1)
+    source_map:append_empty_mappings(1)
     return
 
   elseif u_name == "loop" then
     append(result, "while(true){\n")
-    append_mapping(source_map, u.node)
+    source_map:append_mapping(u.node)
     for _, v in ipairs(u) do
       generate_code(result, source_map, protos, v)
     end
     append(result, "}\n")
-    append_empty_mappings(source_map, 1)
+    source_map:append_empty_mappings(1)
     return
 
   elseif u_name == "check_for" then
@@ -147,9 +109,9 @@ local function generate_code(result, source_map, protos, u)
   elseif u_name == "band"   then append(result, "b=S.pop();a=S.pop();S.push(a&b);")
   elseif u_name == "bxor"   then append(result, "b=S.pop();a=S.pop();S.push(a^b);")
   elseif u_name == "bor"    then append(result, "b=S.pop();a=S.pop();S.push(a|b);")
-  elseif u_name == "shr"    then append(result, "b=S.pop();a=S.pop();S.push(a>>b);")
+  elseif u_name == "shr"    then append(result, "b=S.pop();a=S.pop();S.push(a>>>b);")
   elseif u_name == "shl"    then append(result, "b=S.pop();a=S.pop();S.push(a<<b);")
-  elseif u_name == "concat" then append(result, "b=S.pop();a=S.pop();S.push(a.toString()+b);")
+  elseif u_name == "concat" then append(result, "b=S.pop();a=S.pop();S.push(a.toString()+b.toString());")
   elseif u_name == "lt"     then append(result, "b=S.pop();a=S.pop();S.push(a<b);")
   elseif u_name == "le"     then append(result, "b=S.pop();a=S.pop();S.push(a<=b);")
   elseif u_name == "gt"     then append(result, "b=S.pop();a=S.pop();S.push(a>b);")
@@ -175,7 +137,7 @@ local function generate_code(result, source_map, protos, u)
     append(result, "c=S.pop();b=S[", b - 1, "];a=S[", a - 1, "];OP_SETTABLE(a,b,c);")
 
   elseif u_name == "set_table" then
-    append(result, "c=S.pop();b=S.pop();a=S[", a - 1, "];OP_SETTABLE(a,b,c);")
+    append(result, "c=S.pop();b=S.pop();a=S[", a - 1, "];OP_SETTABLE(a,b,c);//",a)
 
   elseif u_name == "get_local" then
     append(result, "S.push(V", a, "[0]);")
@@ -275,7 +237,7 @@ local function generate_code(result, source_map, protos, u)
   end
 
   append(result, "\n")
-  append_mapping(source_map, u.node)
+  source_map:append_mapping(u.node)
 end
 
 local function generate_proto(result, source_map, protos, proto)
@@ -312,11 +274,11 @@ local function generate_proto(result, source_map, protos, proto)
     end
   end
   append(result, ";\n")
-  append_empty_mappings(source_map, 2)
+  source_map:append_empty_mappings(2)
 
   if try_catch then
     append(result, "try{\n")
-    append_empty_mappings(source_map, 1)
+    source_map:append_empty_mappings(1)
   end
 
   for _, v in ipairs(proto.code) do
@@ -325,31 +287,47 @@ local function generate_proto(result, source_map, protos, proto)
 
   if try_catch then
     append(result, "}catch(e){\n")
-    append_empty_mappings(source_map, 1)
+    source_map:append_empty_mappings(1)
     for i = #proto.locals, 1, -1 do
       local v = proto.locals[i]
       if v.attribute == "close" then
         append(result, "a=V", i, ";if(a!==undefined&&a[0]!==undefined)OP_CLOSE(a[0]);V", i, "=undefined;\n")
-        append_empty_mappings(source_map, 1)
+        source_map:append_empty_mappings(1)
       end
     end
     append(result, "throw e;}\n")
-    append_empty_mappings(source_map, 1)
+    source_map:append_empty_mappings(1)
   end
 
   append(result, "return S;});\n")
-  append_empty_mappings(source_map, 1)
+  source_map:append_empty_mappings(1)
 end
 
-local function generate_stage1(protos)
-  local result = {}
-  local source_map = { files = {} }
+local function generate_protos(result, source_map, protos, ...)
+  append(result, "{\n")
+  source_map:append_empty_mappings(1)
 
-  append(result, [[
-class LuaFunction{constructor(fn){this.fn=fn;}}
+  for i = #protos, 1, -1 do
+    generate_proto(result, source_map, protos, protos[i])
+  end
+
+  append(result, "OP_CALL(P1([env]),[]);}\n")
+  source_map:append_empty_mappings(1)
+
+  if ... then
+    generate_protos(result, source_map, ...)
+  end
+end
+
+local code, n = ([[
 class LuaTable{constructor(){this.map=new Map();}}
+class LuaFunction{constructor(fn){this.fn=fn;}}
 class LuaError extends Error{constructor(msg){super(msg);this.name="LuaError";this.msg=msg}}
 const D={
+typeof:v=>typeof v,
+is_table:v=>v instanceof LuaTable,
+is_function:v=>v instanceof LuaFunction||v instanceof Function,
+select_n:(...a)=>a.length,
 error:msg=>{throw new LuaError(msg);},
 getmetatable:t=>t.metatable,
 setmetatable:(t,metatable)=>t.metatable=metatable,
@@ -361,104 +339,13 @@ const OP_CALL=(a,b)=>a instanceof LuaFunction?a.fn(...b):a instanceof LuaTable?O
 const OP_SELF=(a,b,c)=>a instanceof LuaFunction||a instanceof LuaTable?OP_CALL(a,[b,...c]):[a.apply(b,c)];
 const OP_CLOSE=a=>OP_CALL(OP_GETTABLE(a.metatable,"__close"));
 const OP_ADJUST=(a,b)=>{if(a.length<b)a[b-1]=undefined;else a.splice(b);};
-]])
-  append_empty_mappings(source_map, 15)
-
-  for i = #protos, 1, -1 do
-    generate_proto(result, source_map, protos, protos[i])
-  end
-
-  append(result, [[
 const env=new LuaTable();
 OP_SETTABLE(env,"dromozoa",D);
 OP_SETTABLE(env,"globalThis",globalThis);
-OP_CALL(P1([env]),[]);
-]])
-  append_empty_mappings(source_map, 4)
+]]):gsub("\n", {})
 
-  return result, source_map
+return function (result, source_map, ...)
+  append(result, code)
+  source_map:append_empty_mappings(n)
+  generate_protos(result, source_map, ...)
 end
-
-local source_filename, result_filename, source_map_filename = ...
-
-local handle = assert(io.open(source_filename))
-local source = handle:read "*a"
-handle:close()
-
-local parse = lua54_parser()
-local root = lua54_regexp(source, source_filename, lua54_parser.max_terminal_symbol, parse)
-local protos = generate(root)
-local result, source_map = generate_stage1(protos)
-
-local out = assert(io.open(result_filename, "w"))
-out:write(table.concat(result), "//# sourceMappingURL=", source_map_filename, "\n")
-out:close()
-
----------------------------------------------------------------------------
-
-local base64_encoder = { [62] = "+", [63] = "/" }
-for i = 0, 25 do
-  base64_encoder[i] = string.char(string.byte "A" + i)
-end
-for i = 26, 51 do
-  base64_encoder[i] = string.char(string.byte "a" + i - 26)
-end
-for i = 52, 61 do
-  base64_encoder[i] = string.char(string.byte "0" + i - 52)
-end
-
-local function vlq(u)
-  local result = {}
-
-  if u < 0 then
-    u = 1 - u * 2
-  else
-    u = u * 2
-  end
-
-  while true do
-    local v = u % 0x20
-    u = (u - v) / 0x20
-    if u > 0 then
-      append(result, base64_encoder[v + 0x20])
-    else
-      append(result, base64_encoder[v])
-      break
-    end
-  end
-
-  return table.concat(result)
-end
-
-local out = assert(io.open(source_map_filename, "w"))
-out:write([[{"version":3,"file":]], quote(result_filename), [[,"sources":[]])
-for i, file in ipairs(source_map.files) do
-  if i > 1 then
-    out:write ","
-  end
-  out:write(quote(file))
-end
-out:write [[],"names":[],"mappings":"]]
-
-local prev_file = 0
-local prev_line = 0
-local prev_column = 0
-for _, mapping in ipairs(source_map) do
-  local file = mapping.file
-  local line = mapping.line
-  local column = mapping.column
-  local f = file - prev_file
-  local n = line - prev_line
-  local c = column - prev_column
-  if f == 0 and n == 0 and c == 0 then
-    out:write(";")
-  else
-    out:write("A", vlq(f), vlq(n), vlq(c), ";")
-    pref_file = file
-    prev_line = line
-    prev_column = column
-  end
-end
-
-out:write '"}\n'
-out:close()

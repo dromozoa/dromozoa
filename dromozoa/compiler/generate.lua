@@ -646,14 +646,16 @@ local function process2(proto, scope, u, code)
         append_code(proto, code, u, "set_local", x.var)
       end
     else
-      append_code(proto, code, u, "set_table", 3)
+      append_code(proto, code, u, "set_table", proto.top - 2)
       append_code(proto, code, u, "pop", 1)
     end
     process2(proto, scope, y, code)
 
   elseif u_name == "local_function" then
-    append_code(proto, code, u, "closure", y.proto.index)
+    append_code(proto, code, u, "push_nil", 1)
     append_code(proto, code, u, "new_local", x.var)
+    append_code(proto, code, u, "closure", y.proto.index)
+    append_code(proto, code, u, "set_local", x.var)
     process2(proto, scope, y, code)
 
   elseif u_name == "local" then
