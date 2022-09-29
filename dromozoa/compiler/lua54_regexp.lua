@@ -266,7 +266,7 @@ end;
     current_index = item.current_index
     current_state = item.current_state
     current_cont = item.current_cont
-    if current_cont > 0 then
+    if current_cont ~= 0 then
       action_data[current_cont]()
     end
     current_cont = nil

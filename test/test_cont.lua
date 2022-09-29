@@ -29,6 +29,6 @@ while #s > 0 do
   end
 end
 
-for i = 1, #actions do
-  io.write("[[", actions[i], "]]\n")
-end
+-- for i = 1, #actions do
+--   io.write("[[", actions[i], "]]\n")
+-- end

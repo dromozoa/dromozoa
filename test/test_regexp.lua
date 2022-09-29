@@ -67,4 +67,26 @@ execute("A AA AAA AAAA AB ABB ABBB ABBBAAAAB ", "@test", 0, function (token)
   end
 end)
 
-print(table.concat(buffer))
+-- print(table.concat(buffer))
+assert(table.concat(buffer) == [[
+push	1	"A"
+skip	" "
+push	1	"AA"
+skip	" "
+push	1	"AAA"
+skip	" "
+push	1	"AAA"
+push	1	"A"
+skip	" "
+push	1	"AB"
+skip	" "
+push	1	"ABB"
+skip	" "
+push	1	"ABBB"
+skip	" "
+push	1	"ABBB"
+push	1	"AAA"
+push	1	"AB"
+skip	" "
+push	$
+]])
