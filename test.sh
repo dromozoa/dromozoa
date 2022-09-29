@@ -17,6 +17,10 @@
 # You should have received a copy of the GNU General Public License
 # along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+case X$1 in
+  X) exec sh -e "$0" lua;;
+esac
+
 LUA_PATH="?.lua;ext/?.lua;;"
 export LUA_PATH
 
