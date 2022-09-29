@@ -21,13 +21,11 @@ local runtime = require "dromozoa.regexp.runtime"
 local function insert(t, v)
   assert(type(v) == "string")
   local n = t.map[v]
-  if n then
-    return n
-  else
-    local n = append(t.set, v)
+  if not n then
+    n = append(t.set, v)
     t.map[v] = n
-    return n, true
   end
+  return n
 end
 
 local function insert_action(context, action)
@@ -43,11 +41,10 @@ local function insert_action(context, action)
     end)
 
   local s = " " .. action .. " "
-  local action_indices = {}
+  local actions = {}
   while #s > 0 do
     local _, p = s:find "[^%w_]fcall%s*%b()%s*"
-    local i = insert(context.action, "function()" .. s:sub(1, p):gsub("^%s+", ""):gsub("%s+$", "") .. "\nend;\n")
-    append(action_indices, i)
+    append(actions, insert(context.action, "function()" .. s:sub(1, p):gsub("^%s+", ""):gsub("%s+$", "") .. "\nend;\n"))
     if p then
       s = s:sub(p + 1)
     else
@@ -55,11 +52,11 @@ local function insert_action(context, action)
     end
   end
 
-  for i, action_index in ipairs(action_indices) do
-    context.action.continuations[action_index] = action_indices[i + 1] or 0
+  for i, action in ipairs(actions) do
+    context.action.continuations[action] = actions[i + 1] or 0
   end
 
-  return action_indices[1]
+  return actions[1]
 end
 
 local function insert_shared(context, shared)

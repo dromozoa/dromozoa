@@ -38,7 +38,7 @@ context["action_data"];
   local current_position = 1
   local current_index = main
   local current_state = _[current_index].start_state
-  local current_continuation
+  local current_cont
   local current_restart
   local current_byte
   local jumped = false
@@ -54,7 +54,7 @@ context["action_data"];
       start_column = start_column;
       current_index = current_index;
       current_state = current_state;
-      current_continuation = current_continuation;
+      current_cont = current_cont;
       current_restart = current_restart;
     }
     if #stack > 2000 then
@@ -67,7 +67,7 @@ context["action_data"];
     start_column = fs - lp
     current_index = index
     current_state = _[current_index].start_state
-    current_continuation = nil
+    current_cont = nil
     current_restart = nil
   end
   function freturn()
@@ -80,10 +80,10 @@ context["action_data"];
     start_column = item.start_column
     current_index = item.current_index
     current_state = item.current_state
-    current_continuation = item.current_continuation
+    current_cont = item.current_cont
     current_restart = item.current_restart
-    if current_continuation then
-      local action = action_data[current_continuation]
+    if current_cont then
+      local action = action_data[current_cont]
       if action then
         action()
       end
@@ -199,10 +199,10 @@ context["action_data"];
   end
   function execute(index, restart)
     local action = action_data[index]
-    current_continuation = action_continuations[index]
+    current_cont = action_continuations[index]
     current_restart = restart
-    if current_continuation == 0 then
-      current_continuation = nil
+    if current_cont == 0 then
+      current_cont = nil
     end
     jumped = false
     action()

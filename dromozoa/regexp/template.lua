@@ -29,15 +29,15 @@ local main = function (_, source, source_name, eof_symbol, fn)
   local guard_append
   local guard_append_range
 
-                -- save/restore
-                --  | read only
-                --  |  |
-  local ts      --  x  x  token symbol
-  local fs = 1  --  x  x  start position
-  local fp      --     x  current position
-  local fc      --     x  current character
-  local ln = 1  --        line number
-  local lp = 0  --        line position
+               -- save/restore
+               --  | read only
+               --  |  |
+  local ts     --  x  x  token symbol
+  local fs = 1 --  x  x  start position
+  local fp     --     x  current position
+  local fc     --     x  current character
+  local ln = 1 --        line number
+  local lp = 0 --        line position
 
   local action_data = (function ()
     $custom_data
@@ -55,7 +55,7 @@ local main = function (_, source, source_name, eof_symbol, fn)
   local current_position = 1
   local current_index = main
   local current_state = _[current_index].start_state
-  local current_continuation
+  local current_cont
   local current_restart
   local current_byte
   local jumped = false
@@ -73,7 +73,7 @@ local main = function (_, source, source_name, eof_symbol, fn)
       start_column = start_column;
       current_index = current_index;
       current_state = current_state;
-      current_continuation = current_continuation;
+      current_cont = current_cont;
       current_restart = current_restart;
     }
 
@@ -89,7 +89,7 @@ local main = function (_, source, source_name, eof_symbol, fn)
     start_column = fs - lp
     current_index = index
     current_state = _[current_index].start_state
-    current_continuation = nil
+    current_cont = nil
     current_restart = nil
   end
 
@@ -105,11 +105,11 @@ local main = function (_, source, source_name, eof_symbol, fn)
     start_column = item.start_column
     current_index = item.current_index
     current_state = item.current_state
-    current_continuation = item.current_continuation
+    current_cont = item.current_cont
     current_restart = item.current_restart
 
-    if current_continuation then
-      local action = action_data[current_continuation]
+    if current_cont then
+      local action = action_data[current_cont]
       if action then
         action()
       end
@@ -237,10 +237,10 @@ local main = function (_, source, source_name, eof_symbol, fn)
 
   function execute(index, restart)
     local action = action_data[index]
-    current_continuation = action_continuations[index]
+    current_cont = action_continuations[index]
     current_restart = restart
-    if current_continuation == 0 then
-      current_continuation = nil
+    if current_cont == 0 then
+      current_cont = nil
     end
     jumped = false
     action()
