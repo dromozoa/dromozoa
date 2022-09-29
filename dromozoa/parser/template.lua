@@ -15,9 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local static_data = { $static_data }
-
-local main = function ()
+local main = function (static_data)
   local create
   local append
   local append_unpack
@@ -134,9 +132,11 @@ local main = function ()
   end
 end
 
+local static_data = { $static_data }
+
 return setmetatable({}, {
   __index = static_data;
-  __call = function ()
-    return main()
+  __call = function (static_data)
+    return main(static_data)
   end;
 })
