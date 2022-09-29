@@ -20,6 +20,8 @@
 LUA_PATH="?.lua;ext/?.lua;;"
 export LUA_PATH
 
+mkdir -p out/stage1
+
 for i in test/test*.lua
 do
   "$@" "$i"
@@ -38,9 +40,9 @@ fi
 for i in test/stage1/*.lua
 do
   j=`expr "X$i" : 'Xtest/stage1/\([^/]*\)\.lua$'`
-  "$@" compile_stage1.lua "test-$j.mjs" "test-$j.mjs.map" dromozoa/compiler/runtime_stage1.lua "$i"
-  node --enable-source-maps "test-$j.mjs" >"test-$j.out"
-  diff -u "test/stage1/$j.exp" "test-$j.out"
+  "$@" compile_stage1.lua "out/stage1/$j.mjs" "out/stage1/$j.mjs.map" dromozoa/compiler/runtime_stage1.lua "$i"
+  node --enable-source-maps "out/stage1/$j.mjs" >"out/stage1/$j.out"
+  diff -u "test/stage1/$j.exp" "out/stage1/$j.out"
 done
 
 case X$DROMOZOA_TEST_DEBUG in
