@@ -63,7 +63,7 @@ else
   end
 end
 
-local function generate_code(result, source_map, protos, u)
+local function generate_code(result, source_map, chunk, u)
   local u_name = u[0]
   local a = u.a
   local b = u.b
@@ -75,12 +75,12 @@ local function generate_code(result, source_map, protos, u)
     append(result, "a=S.pop();if(a!==undefined&&a!==false){\n")
     source_map:append_mapping(u[1].node)
     for _, v in ipairs(u[1]) do
-      generate_code(result, source_map, protos, v)
+      generate_code(result, source_map, chunk, v)
     end
     append(result, "}else{\n")
     source_map:append_mapping(u[2].node)
     for _, v in ipairs(u[2]) do
-      generate_code(result, source_map, protos, v)
+      generate_code(result, source_map, chunk, v)
     end
     append(result, "}\n")
     source_map:append_empty_mappings(1)
@@ -90,7 +90,7 @@ local function generate_code(result, source_map, protos, u)
     append(result, "while(true){\n")
     source_map:append_mapping(u.node)
     for _, v in ipairs(u) do
-      generate_code(result, source_map, protos, v)
+      generate_code(result, source_map, chunk, v)
     end
     append(result, "}\n")
     source_map:append_empty_mappings(1)
@@ -153,7 +153,7 @@ local function generate_code(result, source_map, protos, u)
 
   elseif u_name == "closure" then
     append(result, "S.push(P", a, "(")
-    for i, v in ipairs(protos[a].upvalues) do
+    for i, v in ipairs(chunk[a].upvalues) do
       if i > 1 then
         append(result, ",")
       end
@@ -240,7 +240,7 @@ local function generate_code(result, source_map, protos, u)
   source_map:append_mapping(u.node)
 end
 
-local function generate_proto(result, source_map, protos, proto)
+local function generate_proto(result, source_map, chunk, proto)
   local try_catch
 
   append(result, "const P", proto.index, "=(")
@@ -282,7 +282,7 @@ local function generate_proto(result, source_map, protos, proto)
   end
 
   for _, v in ipairs(proto.code) do
-    generate_code(result, source_map, protos, v)
+    generate_code(result, source_map, chunk, v)
   end
 
   if try_catch then
@@ -303,12 +303,12 @@ local function generate_proto(result, source_map, protos, proto)
   source_map:append_empty_mappings(1)
 end
 
-local function generate_protos(result, source_map, protos, ...)
+local function generate_protos(result, source_map, chunk, ...)
   append(result, "{\n")
   source_map:append_empty_mappings(1)
 
-  for i = #protos, 1, -1 do
-    generate_proto(result, source_map, protos, protos[i])
+  for i = #chunk, 1, -1 do
+    generate_proto(result, source_map, chunk, chunk[i])
   end
 
   append(result, "OP_CALL(P1([env]),[]);}\n")
