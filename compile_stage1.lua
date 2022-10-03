@@ -39,9 +39,9 @@ local function preload(modules, chunk)
   end
 end
 
-local result_dirname, result_name, runtime_filename, main_filename = ...
-local result_filename = result_dirname .. "/" .. result_name
+local result_filename, source_root, runtime_filename, main_filename = ...
 local source_map_filename = result_filename .. ".map"
+local source_map_basename = assert(source_map_filename:match "([^/]+)/*$")
 
 local runtime_chunk = parse(runtime_filename)
 local main_chunk = parse(main_filename)
@@ -49,14 +49,14 @@ local modules = {}
 preload(modules, main_chunk)
 
 local result = {}
-local source_map = source_map("../../")
+local source_map = source_map(source_root)
 stage1.generate_prologue(result, source_map)
 stage1.generate_chunk(result, source_map, runtime_chunk)
 for _, module in ipairs(modules) do
   stage1.generate_module(result, source_map, module.name, module.chunk)
 end
 stage1.generate_chunk(result, source_map, main_chunk)
-stage1.generate_epilogue(result, source_map, result_name .. ".map")
+stage1.generate_epilogue(result, source_map, source_map_basename)
 
 local out = assert(io.open(result_filename, "w"))
 out:write(table.concat(result))
