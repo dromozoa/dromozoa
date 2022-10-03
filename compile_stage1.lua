@@ -19,7 +19,7 @@ local append = require "dromozoa.append"
 local lua54_regexp = require "dromozoa.compiler.lua54_regexp"
 local lua54_parser = require "dromozoa.compiler.lua54_parser"
 local generate = require "dromozoa.compiler.generate"
-local generate_stage1 = require "dromozoa.compiler.generate_stage1"
+local stage1 = require "dromozoa.compiler.stage1"
 local source_map = require "dromozoa.compiler.source_map"
 
 local result_filename, source_map_filename = ...
@@ -46,7 +46,13 @@ end
 
 local result = {}
 local source_map = source_map(result_filename)
-generate_stage1(result, source_map, chunks)
+stage1.generate_prologue(result, source_map)
+for _, chunk in ipairs(chunks) do
+  stage1.generate_chunk(result, source_map, chunk)
+end
+stage1.generate_epilogue(result, source_map)
+
+-- generate_stage1(result, source_map, chunks)
 
 local out = assert(io.open(result_filename, "w"))
 out:write(table.concat(result), "//# sourceMappingURL=", source_map_filename, "\n")

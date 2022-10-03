@@ -315,6 +315,8 @@ local function generate_chunk(result, source_map, chunk)
   source_map:append_empty_mappings(1)
 end
 
+local module = {}
+
 local code, n = ([[
 class LuaTable{constructor(){this.map=new Map();}}
 class LuaFunction{constructor(fn){this.fn=fn;}}
@@ -340,10 +342,16 @@ OP_SETTABLE(env,"dromozoa",D);
 OP_SETTABLE(env,"globalThis",globalThis);
 ]]):gsub("\n", {})
 
-return function (result, source_map, chunks)
+function module.generate_prologue(result, source_map)
   append(result, code)
   source_map:append_empty_mappings(n)
-  for _, chunk in ipairs(chunks) do
-    generate_chunk(result, source_map, chunk)
-  end
 end
+
+function module.generate_chunk(result, source_map, chunk)
+  generate_chunk(result, source_map, chunk)
+end
+
+function module.generate_epilogue(result, source_map)
+end
+
+return module
