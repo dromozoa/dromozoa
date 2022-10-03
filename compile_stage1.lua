@@ -22,8 +22,6 @@ local generate = require "dromozoa.compiler.generate"
 local stage1 = require "dromozoa.compiler.stage1"
 local source_map = require "dromozoa.compiler.source_map"
 
-local result_filename, source_map_filename, runtime_filename, main_filename = ...
-
 local function parse(filename)
   local handle = assert(io.open(filename))
   local source = handle:read "*a"
@@ -31,32 +29,31 @@ local function parse(filename)
   return generate(lua54_regexp(source, filename, lua54_parser.max_terminal_symbol, lua54_parser()))
 end
 
-local chunks = { parse(runtime_filename) }
-local chunk_filenames = { main_filename }
-
-for i, filename in ipairs(chunk_filenames) do
-  local handle = assert(io.open(filename))
-  local source = handle:read "*a"
-  handle:close()
-
-  local root = lua54_regexp(source, filename, lua54_parser.max_terminal_symbol, lua54_parser())
-  local chunk = generate(root)
-  append(chunks, chunk)
-
-  for _, module_name in ipairs(chunk.static_require) do
-    local chunk_filename = module_name:gsub("%.", "/") .. ".lua"
-    if not chunk_filenames[chunk_filename] then
-      chunk_filenames[chunk_filename] = append(chunk_filenames, chunk_filename)
+local function preload(modules, chunk)
+  for _, name in ipairs(chunk.static_require) do
+    if not modules[name] then
+      local chunk = parse(name:gsub("%.", "/") .. ".lua")
+      modules[name] = append(modules, { name = name, chunk = chunk })
+      preload(modules, chunk)
     end
   end
 end
 
+local result_filename, source_map_filename, runtime_filename, main_filename = ...
+
+local runtime_chunk = parse(runtime_filename)
+local main_chunk = parse(main_filename)
+local modules = {}
+preload(modules, main_chunk)
+
 local result = {}
 local source_map = source_map(result_filename)
 stage1.generate_prologue(result, source_map)
-for _, chunk in ipairs(chunks) do
-  stage1.generate_chunk(result, source_map, chunk)
+stage1.generate_chunk(result, source_map, runtime_chunk)
+for _, module in ipairs(modules) do
+  stage1.generate_module(result, source_map, module.name, module.chunk)
 end
+stage1.generate_chunk(result, source_map, main_chunk)
 stage1.generate_epilogue(result, source_map, source_map_filename)
 
 local out = assert(io.open(result_filename, "w"))

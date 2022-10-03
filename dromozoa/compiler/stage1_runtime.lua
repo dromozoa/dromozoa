@@ -67,7 +67,38 @@ function print(...)
   end
 end
 
+function require(name)
+  if package.loaded == nil then
+    package.loaded = {}
+  end
 
+  local module = package.loaded[name]
+  if module == nil then
+    module = package.preload[name]()
+    package.loaded[name] = module
+  end
 
+  return module
+end
 
+function select(index, v, ...)
+  if index == "#" then
+    return D.select_n(v, ...)
+  elseif index == 1 then
+    return v, ...
+  else
+    return select(index - 1, ...)
+  end
+end
 
+function assert(v, msg, ...)
+  if not v then
+    if msg ~= nil then
+      D.error(msg)
+    else
+      D.error "assertion failed!"
+    end
+  else
+    return v, msg, ...
+  end
+end
