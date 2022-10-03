@@ -23,25 +23,6 @@
 local D = dromozoa
 local G = globalThis
 
-function type(v)
-  local t = D.typeof(v)
-  if t == "undefined" then
-    return "nil"
-  elseif t == "number" then
-    return "number"
-  elseif t == "string" then
-    return "string"
-  elseif t == "boolean" then
-    return "boolean"
-  elseif D.is_table(v) then
-    return "table"
-  elseif D.is_function(v) then
-    return "function"
-  else
-    return "userdata"
-  end
-end
-
 local function concat(i, v, ...)
   if v == nil then
     v = "nil"
@@ -59,7 +40,7 @@ local function concat(i, v, ...)
 end
 
 function print(...)
-  local n = D.select_n(...)
+  local n = D.select(...)
   if n == 0 then
     G.console:log()
   else
@@ -83,7 +64,7 @@ end
 
 function select(index, v, ...)
   if index == "#" then
-    return D.select_n(v, ...)
+    return D.select(v, ...)
   elseif index == 1 then
     return v, ...
   else
