@@ -303,7 +303,7 @@ local function generate_proto(result, source_map, chunk, proto)
   source_map:append_empty_mappings(1)
 end
 
-local function generate_protos(result, source_map, chunk, ...)
+local function generate_chunk(result, source_map, chunk, ...)
   append(result, "{\n")
   source_map:append_empty_mappings(1)
 
@@ -315,7 +315,7 @@ local function generate_protos(result, source_map, chunk, ...)
   source_map:append_empty_mappings(1)
 
   if ... then
-    generate_protos(result, source_map, ...)
+    generate_chunk(result, source_map, ...)
   end
 end
 
@@ -347,5 +347,5 @@ OP_SETTABLE(env,"globalThis",globalThis);
 return function (result, source_map, ...)
   append(result, code)
   source_map:append_empty_mappings(n)
-  generate_protos(result, source_map, ...)
+  generate_chunk(result, source_map, ...)
 end
