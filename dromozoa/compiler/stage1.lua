@@ -295,12 +295,12 @@ local function generate_proto(result, source_map, chunk, proto)
         source_map:append_empty_mappings(1)
       end
     end
-    append(result, "throw e;}\n")
-    source_map:append_empty_mappings(1)
+    append(result, "throw e;\n}\n")
+    source_map:append_empty_mappings(2)
   end
 
-  append(result, "return S;});\n")
-  source_map:append_empty_mappings(1)
+  append(result, "return S;\n});\n")
+  source_map:append_empty_mappings(2)
 end
 
 local code, n = ([[
@@ -349,12 +349,12 @@ OP_CLOSE:()=>{},
 OP_ADJUST:(a,b)=>{if(a.length<b)a[b-1]=undefined;else a.splice(b);},
 OP_SETLIST:(a,b)=>{for(let i=0;i<b.length;++i)D.OP_SETTABLE(a,i+1,b[i]);},
 };
-const pkg=new D.LuaTable();
-D.OP_SETTABLE(pkg,"preload",new D.LuaTable());
-const env=new D.LuaTable();
-D.OP_SETTABLE(env,"dromozoa",D);
-D.OP_SETTABLE(env,"globalThis",globalThis);
-D.OP_SETTABLE(env,"package",pkg);
+const P=new D.LuaTable();
+D.OP_SETTABLE(P,"preload",new D.LuaTable());
+const E=new D.LuaTable();
+D.OP_SETTABLE(E,"dromozoa",D);
+D.OP_SETTABLE(E,"globalThis",globalThis);
+D.OP_SETTABLE(E,"package",P);
 ]]):gsub("\n", {})
 
 local module = {}
@@ -372,7 +372,7 @@ function module.generate_chunk(result, source_map, chunk)
     generate_proto(result, source_map, chunk, chunk[i])
   end
 
-  append(result, "D.OP_CALL(P1([env]),[]);}\n")
+  append(result, "D.OP_CALL(P1([E]),[]);}\n")
   source_map:append_empty_mappings(1)
 end
 
@@ -384,7 +384,7 @@ function module.generate_module(result, source_map, name, chunk)
     generate_proto(result, source_map, chunk, chunk[i])
   end
 
-  append(result, 'D.OP_SETTABLE(D.OP_GETTABLE(D.OP_GETTABLE(env,"package"),"preload"),', quote(name), ",P1([env]));}\n")
+  append(result, 'D.OP_SETTABLE(D.OP_GETTABLE(D.OP_GETTABLE(E,"package"),"preload"),', quote(name), ",P1([E]));}\n")
   source_map:append_empty_mappings(1)
 end
 
