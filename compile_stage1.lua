@@ -25,7 +25,7 @@ local table_unpack = table.unpack or unpack
 
 local result_filename, source_map_filename = ...
 
-local set_of_protos = {}
+local chunks = {}
 
 for i = 3, #arg do
   local filename = arg[i]
@@ -34,13 +34,13 @@ for i = 3, #arg do
   handle:close()
 
   local root = lua54_regexp(source, filename, lua54_parser.max_terminal_symbol, lua54_parser())
-  local protos = generate(root)
-  append(set_of_protos, protos)
+  local chunk = generate(root)
+  append(chunks, chunk)
 end
 
 local result = {}
 local source_map = source_map(result_filename)
-generate_stage1(result, source_map, table_unpack(set_of_protos))
+generate_stage1(result, source_map, table_unpack(chunks))
 
 local out = assert(io.open(result_filename, "w"))
 out:write(table.concat(result), "//# sourceMappingURL=", source_map_filename, "\n")
