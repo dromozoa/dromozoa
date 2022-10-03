@@ -43,6 +43,7 @@ local code = compile {
     _" "*"+";
 
     A = _"A"%"clear() append(fc) fcall($A) push(true)";
+    C = _"C"%"clear() append(fc) fcall($A) append(${<1>}) fcall($B) append(${<2>}) push(true)";
   });
 }
 
@@ -54,7 +55,7 @@ out:close()
 local buffer = {}
 
 local execute = assert(assert(loadfile(filename))())
-execute("A AA AAA AAAA AB ABB ABBB ABBBAAAAB ", "@test", 0, function (token)
+execute("A AA AAA AAAA AB ABB ABBB ABBBAAAAB C CA CAABB CAAABBB ", "@test", 0, function (token)
   local symbol = token[0]
   if symbol then
     if symbol == 0 then
@@ -87,6 +88,15 @@ skip	" "
 push	1	"ABBB"
 push	1	"AAA"
 push	1	"AB"
+skip	" "
+push	2	"C12"
+skip	" "
+push	2	"CA12"
+skip	" "
+push	2	"CAA1BB2"
+skip	" "
+push	2	"CAA12"
+push	1	"ABBB"
 skip	" "
 push	$
 ]])

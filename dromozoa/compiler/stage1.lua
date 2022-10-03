@@ -63,7 +63,7 @@ else
   end
 end
 
-local function generate_code(result, source_map, protos, u)
+local function generate_code(result, source_map, chunk, u)
   local u_name = u[0]
   local a = u.a
   local b = u.b
@@ -75,12 +75,12 @@ local function generate_code(result, source_map, protos, u)
     append(result, "a=S.pop();if(a!==undefined&&a!==false){\n")
     source_map:append_mapping(u[1].node)
     for _, v in ipairs(u[1]) do
-      generate_code(result, source_map, protos, v)
+      generate_code(result, source_map, chunk, v)
     end
     append(result, "}else{\n")
     source_map:append_mapping(u[2].node)
     for _, v in ipairs(u[2]) do
-      generate_code(result, source_map, protos, v)
+      generate_code(result, source_map, chunk, v)
     end
     append(result, "}\n")
     source_map:append_empty_mappings(1)
@@ -90,7 +90,7 @@ local function generate_code(result, source_map, protos, u)
     append(result, "while(true){\n")
     source_map:append_mapping(u.node)
     for _, v in ipairs(u) do
-      generate_code(result, source_map, protos, v)
+      generate_code(result, source_map, chunk, v)
     end
     append(result, "}\n")
     source_map:append_empty_mappings(1)
@@ -137,7 +137,7 @@ local function generate_code(result, source_map, protos, u)
     append(result, "c=S.pop();b=S[", b - 1, "];a=S[", a - 1, "];OP_SETTABLE(a,b,c);")
 
   elseif u_name == "set_table" then
-    append(result, "c=S.pop();b=S.pop();a=S[", a - 1, "];OP_SETTABLE(a,b,c);//",a)
+    append(result, "c=S.pop();b=S.pop();a=S[", a - 1, "];OP_SETTABLE(a,b,c);")
 
   elseif u_name == "get_local" then
     append(result, "S.push(V", a, "[0]);")
@@ -153,7 +153,7 @@ local function generate_code(result, source_map, protos, u)
 
   elseif u_name == "closure" then
     append(result, "S.push(P", a, "(")
-    for i, v in ipairs(protos[a].upvalues) do
+    for i, v in ipairs(chunk[a].upvalues) do
       if i > 1 then
         append(result, ",")
       end
@@ -240,7 +240,7 @@ local function generate_code(result, source_map, protos, u)
   source_map:append_mapping(u.node)
 end
 
-local function generate_proto(result, source_map, protos, proto)
+local function generate_proto(result, source_map, chunk, proto)
   local try_catch
 
   append(result, "const P", proto.index, "=(")
@@ -282,7 +282,7 @@ local function generate_proto(result, source_map, protos, proto)
   end
 
   for _, v in ipairs(proto.code) do
-    generate_code(result, source_map, protos, v)
+    generate_code(result, source_map, chunk, v)
   end
 
   if try_catch then
@@ -301,22 +301,6 @@ local function generate_proto(result, source_map, protos, proto)
 
   append(result, "return S;});\n")
   source_map:append_empty_mappings(1)
-end
-
-local function generate_protos(result, source_map, protos, ...)
-  append(result, "{\n")
-  source_map:append_empty_mappings(1)
-
-  for i = #protos, 1, -1 do
-    generate_proto(result, source_map, protos, protos[i])
-  end
-
-  append(result, "OP_CALL(P1([env]),[]);}\n")
-  source_map:append_empty_mappings(1)
-
-  if ... then
-    generate_protos(result, source_map, ...)
-  end
 end
 
 local code, n = ([[
@@ -342,10 +326,46 @@ const OP_ADJUST=(a,b)=>{if(a.length<b)a[b-1]=undefined;else a.splice(b);};
 const env=new LuaTable();
 OP_SETTABLE(env,"dromozoa",D);
 OP_SETTABLE(env,"globalThis",globalThis);
+const pkg=new LuaTable();
+const preload=new LuaTable();
+OP_SETTABLE(pkg,"preload",preload);
+OP_SETTABLE(env,"package",pkg);
 ]]):gsub("\n", {})
 
-return function (result, source_map, ...)
+local module = {}
+
+function module.generate_prologue(result, source_map)
   append(result, code)
   source_map:append_empty_mappings(n)
-  generate_protos(result, source_map, ...)
 end
+
+function module.generate_chunk(result, source_map, chunk)
+  append(result, "{\n")
+  source_map:append_empty_mappings(1)
+
+  for i = #chunk, 1, -1 do
+    generate_proto(result, source_map, chunk, chunk[i])
+  end
+
+  append(result, "OP_CALL(P1([env]),[]);}\n")
+  source_map:append_empty_mappings(1)
+end
+
+function module.generate_module(result, source_map, name, chunk)
+  append(result, "{\n")
+  source_map:append_empty_mappings(1)
+
+  for i = #chunk, 1, -1 do
+    generate_proto(result, source_map, chunk, chunk[i])
+  end
+
+  append(result, "OP_SETTABLE(preload,", quote(name), ",P1([env]));}\n")
+  source_map:append_empty_mappings(1)
+end
+
+function module.generate_epilogue(result, source_map, source_map_filename)
+  append(result, "//# sourceMappingURL=", source_map_filename, "\n")
+  source_map:append_empty_mappings(1)
+end
+
+return module

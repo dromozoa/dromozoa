@@ -41,7 +41,7 @@ context["action_data"];
   local current_cont
   local current_reset
   local current_byte
-  local jumped = false
+  local jumped
   local pushed
   local buffer = {}
   local guard_buffer = {}
@@ -59,20 +59,17 @@ context["action_data"];
     if #stack > 2000 then
       ferror "too much recursion; possible loop detected"
     end
-    jumped = true
     ts = nil
     fs = current_position
     start_line = ln
     start_column = fs - lp
     current_index = index
     current_state = _[current_index].start_state
-    current_cont = nil
-    current_reset = nil
+    jumped = true
   end
   function freturn()
     local item = stack[#stack]
     stack[#stack] = nil
-    jumped = true
     ts = item.token_symbol
     fs = item.start_position
     start_line = item.start_line
@@ -80,11 +77,17 @@ context["action_data"];
     current_index = item.current_index
     current_state = item.current_state
     current_cont = item.current_cont
-    if current_cont ~= 0 then
-      action_data[current_cont]()
-    end
-    current_cont = nil
     current_reset = item.current_reset
+    jumped = true
+    if current_cont > 0 then
+      local action = current_cont
+      local cont = action_continuations[action]
+      current_cont = cont
+      action_data[action]()
+      if cont > 0 then
+        return
+      end
+    end
     if current_reset then
       ts = nil
       fs = current_position
@@ -92,7 +95,6 @@ context["action_data"];
       start_column = fs - lp
       current_state = _[current_index].start_state
     end
-    current_reset = nil
   end
   function push(value_from_buffer)
     local s = string.sub(source, fs, fp)
@@ -199,11 +201,11 @@ context["action_data"];
   function guard_append_range(i, j)
     guard_append(string.byte(source, i, j))
   end
-  local function execute(index, reset)
-    current_cont = action_continuations[index]
+  local function execute(action, reset)
+    current_cont = action_continuations[action]
     current_reset = reset
-    jumped = false
-    action_data[index]()
+    jumped = nil
+    action_data[action]()
     return jumped
   end
   local function accept()

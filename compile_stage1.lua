@@ -19,31 +19,47 @@ local append = require "dromozoa.append"
 local lua54_regexp = require "dromozoa.compiler.lua54_regexp"
 local lua54_parser = require "dromozoa.compiler.lua54_parser"
 local generate = require "dromozoa.compiler.generate"
-local generate_stage1 = require "dromozoa.compiler.generate_stage1"
+local stage1 = require "dromozoa.compiler.stage1"
 local source_map = require "dromozoa.compiler.source_map"
-local table_unpack = table.unpack or unpack
 
-local result_filename, source_map_filename = ...
-
-local set_of_protos = {}
-
-for i = 3, #arg do
-  local filename = arg[i]
+local function parse(filename)
   local handle = assert(io.open(filename))
   local source = handle:read "*a"
   handle:close()
-
-  local root = lua54_regexp(source, filename, lua54_parser.max_terminal_symbol, lua54_parser())
-  local protos = generate(root)
-  append(set_of_protos, protos)
+  return generate(lua54_regexp(source, filename, lua54_parser.max_terminal_symbol, lua54_parser()))
 end
 
+local function preload(modules, chunk)
+  for _, name in ipairs(chunk.static_require) do
+    if not modules[name] then
+      local chunk = parse(name:gsub("%.", "/") .. ".lua")
+      modules[name] = append(modules, { name = name, chunk = chunk })
+      preload(modules, chunk)
+    end
+  end
+end
+
+local result_filename, source_root, runtime_filename, main_filename = ...
+local source_map_filename = result_filename .. ".map"
+local source_map_basename = assert(source_map_filename:match "([^/]+)/*$")
+
+local runtime_chunk = parse(runtime_filename)
+local main_chunk = parse(main_filename)
+local modules = {}
+preload(modules, main_chunk)
+
 local result = {}
-local source_map = source_map(result_filename)
-generate_stage1(result, source_map, table_unpack(set_of_protos))
+local source_map = source_map(source_root)
+stage1.generate_prologue(result, source_map)
+stage1.generate_chunk(result, source_map, runtime_chunk)
+for _, module in ipairs(modules) do
+  stage1.generate_module(result, source_map, module.name, module.chunk)
+end
+stage1.generate_chunk(result, source_map, main_chunk)
+stage1.generate_epilogue(result, source_map, source_map_basename)
 
 local out = assert(io.open(result_filename, "w"))
-out:write(table.concat(result), "//# sourceMappingURL=", source_map_filename, "\n")
+out:write(table.concat(result))
 out:close()
 
 local out = assert(io.open(source_map_filename, "w"))

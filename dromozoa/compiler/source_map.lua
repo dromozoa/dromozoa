@@ -68,8 +68,11 @@ end
 
 function class:generate()
   local result = {}
-  append(result, '{"version":3,"file":', quote(self.file), ',"sources":[')
-
+  append(result, '{"version":3,')
+  if self.root then
+    append(result, '"sourceRoot":', quote(self.root), ",")
+  end
+  append(result, '"sources":[')
   for i, file in ipairs(self.files) do
     if i > 1 then
       append(result, ",")
@@ -79,12 +82,27 @@ function class:generate()
   append(result, '],"names":[],"mappings":"')
 
   local prev_file = 0
-  local prev_line = 0
-  local prev_column = 0
+  local prev = {}
+
   for _, mapping in ipairs(self) do
-    local f = mapping.file - prev_file
-    local n = mapping.line - prev_line
-    local c = mapping.column - prev_column
+    local file = mapping.file
+    local line = mapping.line
+    local column = mapping.column
+
+    local prev_line = 0
+    local prev_column = 0
+    local p = prev[file]
+    if p then
+      prev_line = p.line
+      prev_column = p.column
+    else
+      p = { line = 0, column = 0 }
+      prev[file] = p
+    end
+
+    local f = file - prev_file
+    local n = line - prev_line
+    local c = column - prev_column
     if f == 0 and n == 0 and c == 0 then
       append(result, ";")
     else
@@ -93,9 +111,9 @@ function class:generate()
       append_vlq(result, n)
       append_vlq(result, c)
       append(result, ";")
-      pref_file = mapping.file
-      prev_line = mapping.line
-      prev_column = mapping.column
+      prev_file = file
+      p.line = line
+      p.column = column
     end
   end
 
@@ -104,7 +122,7 @@ function class:generate()
 end
 
 return setmetatable(class, {
-  __call = function (_, file)
-    return setmetatable({ file = file, files = {} }, metatable)
+  __call = function (_, root)
+    return setmetatable({ root = root, files = {} }, metatable)
   end;
 })
