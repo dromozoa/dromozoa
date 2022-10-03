@@ -247,7 +247,7 @@ end
 
 ---------------------------------------------------------------------------
 
-local function process1(protos, proto, scope, u, loop)
+local function process1(chunk, proto, scope, u, loop)
   local u_name = lua54_parser.symbol_names[u[0]]
   local x = u[1]
   local y = u[2]
@@ -267,7 +267,7 @@ local function process1(protos, proto, scope, u, loop)
       parent = proto;
     }
     proto = u.proto
-    proto.index = append(protos, proto)
+    proto.index = append(chunk, proto)
     loop = nil
   end
 
@@ -309,25 +309,25 @@ local function process1(protos, proto, scope, u, loop)
 
   elseif u_name == "for" then
     -- 制御式の名前解決を先に行う。
-    process1(protos, proto, scope, y, loop)
+    process1(chunk, proto, scope, y, loop)
     -- 内部的に使用する3個の変数を宣言する。
     u.var = declare(scope, "(for state)", u)
     declare(scope, "(for state)", u)
     declare(scope, "(for state)", u)
-    process1(protos, proto, scope, x, loop)
-    return process1(protos, proto, scope, z, loop)
+    process1(chunk, proto, scope, x, loop)
+    return process1(chunk, proto, scope, z, loop)
 
   elseif u_name == "for_in" then
     -- 制御式の名前解決を先に行う。
-    process1(protos, proto, scope, y, loop)
+    process1(chunk, proto, scope, y, loop)
     -- 内部的に使用する4個の変数を宣言する。Lua 5.3以前は3個だったが、Lua 5.4で
     -- to-be-closed変数が追加された。
     u.var = declare(scope, "(for state)", u)
     declare(scope, "(for state)", u)
     declare(scope, "(for state)", u)
     declare(scope, "(for state)", u, "close")
-    process1(protos, proto, scope, x, loop)
-    return process1(protos, proto, scope, z, loop)
+    process1(chunk, proto, scope, x, loop)
+    return process1(chunk, proto, scope, z, loop)
 
   elseif u_name == "local" then
     local n = 0
@@ -342,9 +342,9 @@ local function process1(protos, proto, scope, u, loop)
 
     -- 左辺に式があれば、式の名前解決を先に行う。
     if y then
-      process1(protos, proto, scope, y, loop)
+      process1(chunk, proto, scope, y, loop)
     end
-    return process1(protos, proto, scope, x, loop)
+    return process1(chunk, proto, scope, x, loop)
 
   elseif u_name == "funcbody" then
     -- colon syntaxで関数が定義されたら、暗黙の仮引数selfを宣言する。
@@ -400,7 +400,7 @@ local function process1(protos, proto, scope, u, loop)
   end
 
   for _, v in ipairs(u) do
-    process1(protos, proto, scope, v, loop)
+    process1(chunk, proto, scope, v, loop)
   end
 end
 
@@ -870,12 +870,12 @@ end
 
 ---------------------------------------------------------------------------
 
-return function (chunk)
-  local protos = {}
+return function (root)
+  local chunk = {}
   local proto = { locals = {} }
   local scope = { locals = {}, proto = proto }
   declare(scope, "_ENV")
-  process1(protos, proto, scope, chunk)
-  process2(proto, scope, chunk)
-  return protos
+  process1(chunk, proto, scope, root)
+  process2(proto, scope, root)
+  return chunk
 end
