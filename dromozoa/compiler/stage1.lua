@@ -351,7 +351,9 @@ function module.generate_chunk(result, source_map, chunk)
   generate_chunk(result, source_map, chunk)
 end
 
-function module.generate_epilogue(result, source_map)
+function module.generate_epilogue(result, source_map, source_map_filename)
+  append(result, "//# sourceMappingURL=", source_map_filename, "\n")
+  source_map:append_empty_mappings(1)
 end
 
 return module

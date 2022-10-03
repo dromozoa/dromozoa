@@ -22,10 +22,17 @@ local generate = require "dromozoa.compiler.generate"
 local stage1 = require "dromozoa.compiler.stage1"
 local source_map = require "dromozoa.compiler.source_map"
 
-local result_filename, source_map_filename = ...
+local result_filename, source_map_filename, runtime_filename, main_filename = ...
 
-local chunks = {}
-local chunk_filenames = { select(3, ...) }
+local function parse(filename)
+  local handle = assert(io.open(filename))
+  local source = handle:read "*a"
+  handle:close()
+  return generate(lua54_regexp(source, filename, lua54_parser.max_terminal_symbol, lua54_parser()))
+end
+
+local chunks = { parse(runtime_filename) }
+local chunk_filenames = { main_filename }
 
 for i, filename in ipairs(chunk_filenames) do
   local handle = assert(io.open(filename))
@@ -50,12 +57,10 @@ stage1.generate_prologue(result, source_map)
 for _, chunk in ipairs(chunks) do
   stage1.generate_chunk(result, source_map, chunk)
 end
-stage1.generate_epilogue(result, source_map)
-
--- generate_stage1(result, source_map, chunks)
+stage1.generate_epilogue(result, source_map, source_map_filename)
 
 local out = assert(io.open(result_filename, "w"))
-out:write(table.concat(result), "//# sourceMappingURL=", source_map_filename, "\n")
+out:write(table.concat(result))
 out:close()
 
 local out = assert(io.open(source_map_filename, "w"))
