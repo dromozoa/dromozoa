@@ -303,7 +303,7 @@ local function generate_proto(result, source_map, chunk, proto)
   source_map:append_empty_mappings(1)
 end
 
-local function generate_chunk(result, source_map, chunk, ...)
+local function generate_chunk(result, source_map, chunk)
   append(result, "{\n")
   source_map:append_empty_mappings(1)
 
@@ -313,10 +313,6 @@ local function generate_chunk(result, source_map, chunk, ...)
 
   append(result, "OP_CALL(P1([env]),[]);}\n")
   source_map:append_empty_mappings(1)
-
-  if ... then
-    generate_chunk(result, source_map, ...)
-  end
 end
 
 local code, n = ([[
@@ -344,8 +340,10 @@ OP_SETTABLE(env,"dromozoa",D);
 OP_SETTABLE(env,"globalThis",globalThis);
 ]]):gsub("\n", {})
 
-return function (result, source_map, ...)
+return function (result, source_map, chunks)
   append(result, code)
   source_map:append_empty_mappings(n)
-  generate_chunk(result, source_map, ...)
+  for _, chunk in ipairs(chunks) do
+    generate_chunk(result, source_map, chunk)
+  end
 end
