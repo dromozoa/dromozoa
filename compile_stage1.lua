@@ -25,9 +25,9 @@ local source_map = require "dromozoa.compiler.source_map"
 local result_filename, source_map_filename = ...
 
 local chunks = {}
+local chunk_filenames = { select(3, ...) }
 
-for i = 3, #arg do
-  local filename = arg[i]
+for i, filename in ipairs(chunk_filenames) do
   local handle = assert(io.open(filename))
   local source = handle:read "*a"
   handle:close()
@@ -35,6 +35,13 @@ for i = 3, #arg do
   local root = lua54_regexp(source, filename, lua54_parser.max_terminal_symbol, lua54_parser())
   local chunk = generate(root)
   append(chunks, chunk)
+
+  for _, module_name in ipairs(chunk.static_require) do
+    local chunk_filename = module_name:gsub("%.", "/") .. ".lua"
+    if not chunk_filenames[chunk_filename] then
+      chunk_filenames[chunk_filename] = append(chunk_filenames, chunk_filename)
+    end
+  end
 end
 
 local result = {}

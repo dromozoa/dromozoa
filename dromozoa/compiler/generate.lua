@@ -406,7 +406,7 @@ end
 
 ---------------------------------------------------------------------------
 
-local function process2(proto, scope, u, code)
+local function process2(chunk, proto, scope, u, code)
   local u_name = lua54_parser.symbol_names[u[0]]
   local x = u[1]
   local y = u[2]
@@ -427,7 +427,7 @@ local function process2(proto, scope, u, code)
       if end_of_scope == i then
         append_close_scope(proto, code, u, scope)
       end
-      process2(proto, scope, v, code)
+      process2(chunk, proto, scope, v, code)
     end
 
     if not scope.repeat_until and not end_of_scope then
@@ -435,9 +435,9 @@ local function process2(proto, scope, u, code)
     end
 
   elseif u_name == "=" then
-    process2(proto, scope, x, code)
+    process2(chunk, proto, scope, x, code)
     local target = proto.top
-    process2(proto, scope, y, code)
+    process2(chunk, proto, scope, y, code)
 
     for i = #x, 1, -1 do
       local v = x[i]
@@ -493,24 +493,24 @@ local function process2(proto, scope, u, code)
 
   elseif u_name == "while" then
     local loop_block = append_code(proto, code, u, "loop")
-    process2(proto, scope, x, loop_block)
+    process2(chunk, proto, scope, x, loop_block)
     local then_block, else_block = append_if(proto, loop_block, u)
-    process2(proto, scope, y, then_block)
+    process2(chunk, proto, scope, y, then_block)
     append_code(proto, else_block, u, "break")
 
   elseif u_name == "repeat" then
     local loop_block = append_code(proto, code, u, "loop")
-    process2(proto, scope, x, loop_block)
-    process2(proto, scope, y, loop_block)
+    process2(chunk, proto, scope, x, loop_block)
+    process2(chunk, proto, scope, y, loop_block)
     append_close_scope(proto, loop_block, u, scope)
     local then_block = append_if(proto, loop_block, u)
     append_code(proto, then_block, u, "break")
 
   elseif u_name == "if" or u_name == "elseif" then
-    process2(proto, scope, x, code)
+    process2(chunk, proto, scope, x, code)
     local then_block, else_block = append_if(proto, code, u)
-    process2(proto, scope, y, then_block)
-    process2(proto, scope, z, else_block)
+    process2(chunk, proto, scope, y, then_block)
+    process2(chunk, proto, scope, z, else_block)
 
   elseif u_name == "for" then
     -- Lua 5.2のマニュアルを元に実装する。
@@ -543,7 +543,7 @@ local function process2(proto, scope, u, code)
     --   end
     -- end
 
-    process2(proto, scope, y, code)
+    process2(chunk, proto, scope, y, code)
     append_code(proto, code, u, "new_local", u.var + 2)
     append_code(proto, code, u, "new_local", u.var + 1)
     append_code(proto, code, u, "new_local", u.var)
@@ -572,7 +572,7 @@ local function process2(proto, scope, u, code)
     append_code(proto, loop_block, u, "get_local", u.var)
     append_code(proto, loop_block, u, "new_local", u.var + 3)
 
-    process2(proto, scope, z, loop_block)
+    process2(chunk, proto, scope, z, loop_block)
 
     append_code(proto, loop_block, u, "get_local", u.var)
     append_code(proto, loop_block, u, "get_local", u.var + 2)
@@ -580,10 +580,10 @@ local function process2(proto, scope, u, code)
     append_code(proto, loop_block, u, "set_local", u.var)
 
   elseif u_name == "exp_2or3" then
-    process2(proto, scope, x, code)
-    process2(proto, scope, y, code)
+    process2(chunk, proto, scope, x, code)
+    process2(chunk, proto, scope, y, code)
     if z then
-      process2(proto, scope, z, code)
+      process2(chunk, proto, scope, z, code)
     else
       append_code(proto, code, u, "push_numeral", "1", "DecimalIntegerNumeral")
     end
@@ -606,7 +606,7 @@ local function process2(proto, scope, u, code)
     --   end
     -- end
 
-    process2(proto, scope, y, code)
+    process2(chunk, proto, scope, y, code)
     append_code(proto, code, u, "tbc_local", u.var + 3)
     append_code(proto, code, u, "new_local", u.var + 2)
     append_code(proto, code, u, "new_local", u.var + 1)
@@ -634,10 +634,10 @@ local function process2(proto, scope, u, code)
     append_code(proto, else_block, u, "get_local", u.var + 4)
     append_code(proto, else_block, u, "set_local", u.var + 2)
 
-    process2(proto, scope, z, else_block)
+    process2(chunk, proto, scope, z, else_block)
 
   elseif u_name == "function" then
-    process2(proto, scope, x, code)
+    process2(chunk, proto, scope, x, code)
     append_code(proto, code, u, "closure", y.proto.index)
     if x.var then
       if x.var < 0 then
@@ -649,19 +649,19 @@ local function process2(proto, scope, u, code)
       append_code(proto, code, u, "set_table", proto.top - 2)
       append_code(proto, code, u, "pop", 1)
     end
-    process2(proto, scope, y, code)
+    process2(chunk, proto, scope, y, code)
 
   elseif u_name == "local_function" then
     append_code(proto, code, u, "push_nil", 1)
     append_code(proto, code, u, "new_local", x.var)
     append_code(proto, code, u, "closure", y.proto.index)
     append_code(proto, code, u, "set_local", x.var)
-    process2(proto, scope, y, code)
+    process2(chunk, proto, scope, y, code)
 
   elseif u_name == "local" then
-    process2(proto, scope, x, code)
+    process2(chunk, proto, scope, x, code)
     if y then
-      process2(proto, scope, y, code)
+      process2(chunk, proto, scope, y, code)
     else
       append_code(proto, code, u, "push_nil", #x)
     end
@@ -676,7 +676,7 @@ local function process2(proto, scope, u, code)
     end
 
   elseif u_name == "return" then
-    process2(proto, scope, x, code)
+    process2(chunk, proto, scope, x, code)
     append_close_stack(proto, code, u, u.stack)
     append_code(proto, code, u, "return")
 
@@ -725,7 +725,7 @@ local function process2(proto, scope, u, code)
     end
 
     for _, v in ipairs(u) do
-      process2(proto, scope, v, code)
+      process2(chunk, proto, scope, v, code)
     end
     if push then
       append_code(proto, code, u, "push_nil", push)
@@ -738,50 +738,54 @@ local function process2(proto, scope, u, code)
 
   elseif u_name == "functiondef" then
     append_code(proto, code, u, "closure", x.proto.index)
-    process2(proto, scope, x, code)
+    process2(chunk, proto, scope, x, code)
 
   elseif u.binop then
-    process2(proto, scope, x, code)
-    process2(proto, scope, y, code)
+    process2(chunk, proto, scope, x, code)
+    process2(chunk, proto, scope, y, code)
     append_code(proto, code, u, u.binop)
 
   elseif u.unop then
-    process2(proto, scope, x, code)
+    process2(chunk, proto, scope, x, code)
     append_code(proto, code, u, u.unop)
 
   elseif u_name == "and" then
-    process2(proto, scope, x, code)
+    process2(chunk, proto, scope, x, code)
     append_code(proto, code, u, "dup")
     local then_block = append_if(proto, code, u)
     append_code(proto, then_block, u, "pop", 1)
-    process2(proto, scope, y, then_block)
+    process2(chunk, proto, scope, y, then_block)
 
   elseif u_name == "or" then
-    process2(proto, scope, x, code)
+    process2(chunk, proto, scope, x, code)
     append_code(proto, code, u, "dup")
     local _, else_block = append_if(proto, code, u)
     append_code(proto, else_block, u, "pop", 1)
-    process2(proto, scope, y, else_block)
+    process2(chunk, proto, scope, y, else_block)
 
   elseif u_name == "." then
-    process2(proto, scope, x, code)
-    process2(proto, scope, y, code)
+    process2(chunk, proto, scope, x, code)
+    process2(chunk, proto, scope, y, code)
     if not u.define then
       append_code(proto, code, u, "get_table")
     end
 
   elseif u_name == ":" then
-    process2(proto, scope, x, code)
-    process2(proto, scope, y, code)
+    process2(chunk, proto, scope, x, code)
+    process2(chunk, proto, scope, y, code)
 
   elseif u_name == "functioncall" then
     local target = proto.top + 1
-    process2(proto, scope, x, code)
-    process2(proto, scope, y, code)
+    process2(chunk, proto, scope, x, code)
+    process2(chunk, proto, scope, y, code)
     if lua54_parser.symbol_names[x[0]] == ":" then
       append_code(proto, code, u, "self", target, u.nr or 1)
     else
       append_code(proto, code, u, "call", target, u.nr or 1)
+    end
+
+    if proto.index == 1 and x.env == -1 and x.v == "require" and #y == 1 and lua54_parser.symbol_names[y[1][0]] == "LiteralString" then
+      append(chunk.static_require, y[1].v)
     end
 
   elseif u_name == "fieldlist" then
@@ -802,16 +806,16 @@ local function process2(proto, scope, u, code)
     local target = proto.top
     for i, v in ipairs(u) do
       v.target = target
-      process2(proto, scope, v, code)
+      process2(chunk, proto, scope, v, code)
     end
     if proto.top > target then
       append_code(proto, code, u, "set_list", target)
     end
 
   elseif u_name == "field" then
-    process2(proto, scope, x, code)
+    process2(chunk, proto, scope, x, code)
     if y then
-      process2(proto, scope, y, code)
+      process2(chunk, proto, scope, y, code)
       append_code(proto, code, u, "set_table", u.target)
     end
 
@@ -863,7 +867,7 @@ local function process2(proto, scope, u, code)
 
   else
     for _, v in ipairs(u) do
-      process2(proto, scope, v, code)
+      process2(chunk, proto, scope, v, code)
     end
   end
 end
@@ -871,11 +875,11 @@ end
 ---------------------------------------------------------------------------
 
 return function (root)
-  local chunk = {}
+  local chunk = { static_require = {} }
   local proto = { locals = {} }
   local scope = { locals = {}, proto = proto }
   declare(scope, "_ENV")
   process1(chunk, proto, scope, root)
-  process2(proto, scope, root)
+  process2(chunk, proto, scope, root)
   return chunk
 end
