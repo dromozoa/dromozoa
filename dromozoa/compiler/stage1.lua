@@ -137,7 +137,7 @@ local function generate_code(result, source_map, chunk, u)
     append(result, "c=S.pop();b=S[", b - 1, "];a=S[", a - 1, "];OP_SETTABLE(a,b,c);")
 
   elseif u_name == "set_table" then
-    append(result, "c=S.pop();b=S.pop();a=S[", a - 1, "];OP_SETTABLE(a,b,c);//",a)
+    append(result, "c=S.pop();b=S.pop();a=S[", a - 1, "];OP_SETTABLE(a,b,c);")
 
   elseif u_name == "get_local" then
     append(result, "S.push(V", a, "[0]);")
