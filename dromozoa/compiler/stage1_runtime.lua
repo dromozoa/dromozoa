@@ -64,9 +64,13 @@ end
 
 ---------------------------------------------------------------------------
 
+local string_metatable
+
 D.getmetafield = D.export(function (object, event)
   local t = type(object)
-  if t == "table" then
+  if t == "string" then
+    return string_metatable[event]
+  elseif t == "table" then
     local metatable = D.getmetatable(object)
     if metatable ~= nil then
       return metatable[event]
@@ -76,7 +80,9 @@ end)
 
 function getmetatable(object)
   local t = type(object)
-  if t == "table" then
+  if t == "string" then
+    return string_metatable
+  elseif t == "table" then
     local metatable = D.getmetatable(object)
     if metatable == nil or metatable.__metatable == nil then
       return metatable
@@ -138,6 +144,23 @@ end)
 
 ---------------------------------------------------------------------------
 
+local rawlen = D.rawlen
+
+D.rawlen = D.export(function (v)
+  local t = type(v)
+  if t == "string" then
+    return string.len(v)
+  elseif t == "table" then
+    return rawlen(v)
+  elseif t == "userdata" then
+    return v.length
+  else
+    return 0
+  end
+end)
+
+---------------------------------------------------------------------------
+
 function print(...)
   local result = table.pack(...)
   for i = 1, result.n do
@@ -158,13 +181,21 @@ function require(modname)
   return module
 end
 
-function select(index, v, ...)
-  if index == "#" then
-    return D.select(v, ...)
-  elseif index == 1 then
-    return v, ...
+local function select_impl(index, v, ...)
+  if index == 2 then
+    return ...
   else
-    return select(index - 1, ...)
+    return select_impl(index - 1, ...)
+  end
+end
+
+function select(index, ...)
+  if index == "#" then
+    return D.select(...)
+  elseif index == 1 then
+    return ...
+  else
+    return select_impl(index, ...)
   end
 end
 
@@ -299,3 +330,96 @@ table = {
     D.OP_SETLIST(list, array)
   end;
 }
+
+---------------------------------------------------------------------------
+
+local string_decoder = D.newuserdata(G.TextDecoder)
+local string_encoder = D.newuserdata(G.TextEncoder)
+
+local function string_prepare(n, i, j)
+  if i < 0 then
+    i = i + n + 1
+  end
+  if i < 1 then
+    i = 1
+  end
+
+  if j < 0 then
+    j = j + n + 1
+  end
+  if j > n then
+    j = n
+  end
+
+  return i, j
+end
+
+string = {
+  len = function (s)
+    local buffer = string_encoder:encode(s)
+    return buffer.length
+  end;
+
+  byte = function (s, i, j)
+    if i == nil then
+      i = 1
+    end
+    if j == nil then
+      j = i
+    end
+    local buffer = string_encoder:encode(s)
+    local m, n = string_prepare(buffer.length, i, j)
+    if m <= n then
+      local n = n - m + 1
+      local m = m - 2
+      local result = {}
+      for i = 1, n do
+        result[i] = buffer[i + m]
+      end
+      return table.unpack(result, 1, n)
+    end
+  end;
+
+  char = function (...)
+    local source = table.pack(...)
+    local buffer = D.newuserdata(G.Uint8Array, source.n)
+    for i = 1, source.n do
+      buffer[i - 1] = source[i]
+    end
+    return string_decoder:decode(buffer)
+  end;
+
+  sub = function (s, i, j)
+    if j == nil then
+      j = -1
+    end
+    local buffer = string_encoder:encode(s)
+    local m, n = string_prepare(buffer.length, i, j)
+    if m <= n then
+      local n = n - m + 1
+      local m = m - 2
+      return string_decoder:decode(D.newuserdata(G.Uint8Array, buffer.buffer, m, n))
+    else
+      return ""
+    end
+  end;
+}
+
+string_metatable = {
+  __index = string;
+}
+
+-- string
+-- .sub
+-- .char
+-- .byte
+
+--  :find
+--  :format
+--  :gmatch
+--  :gsub
+--  :len
+
+-- .pack
+-- .unpack
+
