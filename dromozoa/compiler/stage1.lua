@@ -16,6 +16,7 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local append = require "dromozoa.append"
+local compiler_error = require "dromozoa.compiler.compiler_error"
 local quote = require "dromozoa.compiler.quote"
 
 local double_to_word
@@ -185,7 +186,7 @@ local function generate_code(result, source_map, chunk, u)
     append(result, "S.push(S[S.length-1]);")
 
   elseif u_name == "close" then
-    append(result, "a=V", a, "[0];if(a!==undefined)D.OP_CLOSE(a);V", a, "=undefined;")
+    append(result, "a=V", a, ";D.OP_CLOSE(a[0]);V", a, "=undefined;")
 
   elseif u_name == "return" then
     append(result, "return S;")
@@ -292,7 +293,7 @@ local function generate_proto(result, source_map, chunk, proto)
     for i = #proto.locals, 1, -1 do
       local v = proto.locals[i]
       if v.attribute == "close" then
-        append(result, "a=V", i, ";if(a!==undefined&&a[0]!==undefined)D.OP_CLOSE(a[0]);V", i, "=undefined;\n")
+        append(result, "a=V", i, ";if(a!==undefined)D.OP_CLOSE(a[0]);V", i, "=undefined;\n")
         source_map:append_empty_mappings(1)
       end
     end

@@ -74,6 +74,14 @@ end
 
 ---------------------------------------------------------------------------
 
+D.OP_CLOSE = D.export(function (object)
+  if object ~= nil then
+    D.getmetafield(object, "__close")(object)
+  end
+end)
+
+---------------------------------------------------------------------------
+
 function select(index, v, ...)
   if index == "#" then
     return D.select(v, ...)
