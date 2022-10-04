@@ -167,7 +167,8 @@ end
 local function pairs_impl(iterator)
   local result = iterator:next()
   if not result.done then
-    return result.value[0], result.value[1]
+    local value = result.value
+    return value[0], value[1]
   end
 end
 
