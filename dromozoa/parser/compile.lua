@@ -16,6 +16,7 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local append = require "dromozoa.append"
+local quote_lua = require "dromozoa.quote_lua"
 local runtime = require "dromozoa.parser.runtime"
 
 return function (grammar, actions)
@@ -25,7 +26,7 @@ return function (grammar, actions)
 
   append(static_data, "symbol_names={")
   for i, v in ipairs(grammar.symbol_names) do
-    append(static_data, ("%q,"):format(v))
+    append(static_data, quote_lua(v), ",")
   end
   append(static_data, "};\nmax_terminal_symbol=", grammar.max_terminal_symbol, ";\nactions={\n")
   for _, action in ipairs(actions) do
