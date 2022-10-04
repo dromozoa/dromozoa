@@ -41,15 +41,10 @@ local function build(source, result)
   while true do
     local text
     text, buffer = assert(buffer:match "(.-)($.*)")
-
-    if text ~= "" then
-      out:write(quote_lua(text), ";\n")
-    end
-
+    out:write(quote_lua(text), ";\n")
     if buffer == "$" then
       break
     end
-
     assert(match(buffer, "^$([%a_][%w_]*)(.*)") or match(buffer, "^${'(..-)'}(.*)"))
     out:write("context[", quote_lua(_1), "];\n")
     buffer = _2
