@@ -43,11 +43,7 @@ local function build(source, result)
     text, buffer = assert(buffer:match "(.-)($.*)")
 
     if text ~= "" then
-      local s = ""
-      while text:find("%]" .. s .. "%]") do
-        s = s .. "="
-      end
-      out:write("[", s, "[\n", text, "]", s, "];\n")
+      out:write(quote_lua(text), ";\n")
     end
 
     if buffer == "$" then
