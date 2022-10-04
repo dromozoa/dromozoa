@@ -808,6 +808,8 @@ local function process2(chunk, proto, scope, u, code)
       v.target = target
       process2(chunk, proto, scope, v, code)
     end
+    -- TODO proto.topがマイナスの場合をよく検討する
+    -- TODO target=proto.topを検討する
     if proto.top > target or proto.top < 0 then
       append_code(proto, code, u, "set_list", target)
     end

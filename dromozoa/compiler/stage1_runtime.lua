@@ -132,44 +132,36 @@ function tostring(v)
   return t .. ": " .. v
 end
 
-local function concat(i, v, ...)
-  if v == nil then
-    v = "nil"
-  elseif v == false then
-    v = "false"
-  elseif v == true then
-    v = "true"
-  end
-
-  if i == 1 then
-    return v
-  else
-    return v .. "\t" .. concat(i - 1, ...)
-  end
-end
-
 function print(...)
-  -- local result = table.pack(...)
-  local result = { ... }
-  result.n = select("#", ...)
+  local result = table.pack(...)
   for i = 1, result.n do
     result[i] = tostring(result[i])
   end
   G.console:log(table.concat(result, "\t", 1, result.n))
 end
 
-function require(name)
+function require(modname)
   if package.loaded == nil then
     package.loaded = {}
   end
-
-  local module = package.loaded[name]
+  local module = package.loaded[modname]
   if module == nil then
-    module = package.preload[name]()
-    package.loaded[name] = module
+    module = package.preload[modname]()
+    package.loaded[modname] = module
   end
-
   return module
+end
+
+local function ipairs_impl(t, i)
+  local i = i + 1
+  local v = t[i]
+  if v ~= nil then
+    return i, v
+  end
+end
+
+function ipairs(t)
+  return ipairs_impl, t, 0
 end
 
 ---------------------------------------------------------------------------
