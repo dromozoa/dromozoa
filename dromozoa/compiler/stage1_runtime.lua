@@ -210,5 +210,3 @@ table = {
     return table_unpack(list, i, j)
   end;
 }
-
-
