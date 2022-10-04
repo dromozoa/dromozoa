@@ -191,6 +191,7 @@ local function generate_code(result, source_map, chunk, u)
     append(result, "return S;")
 
   elseif u_name == "call" then
+    assert(a > 0)
     append(result, "b=S.splice(", a, ");a=S.pop();b=D.OP_CALL(a,b);")
     if b ~= 0 then
       if b > 0 then
@@ -305,9 +306,9 @@ end
 
 local code, n = ([[
 const D={
-LuaTable:class LuaTable{constructor(){this.map=new Map();}},
-LuaFunction:class LuaFunction{constructor(fn){this.fn=fn;}},
 LuaError:class LuaError extends Error{constructor(msg){super(msg);this.name="LuaError";this.msg=msg;}},
+LuaFunction:class LuaFunction{constructor(fn){this.fn=fn;}},
+LuaTable:class LuaTable{constructor(){this.map=new Map();}},
 typeof:a=>typeof a,
 instanceof:(a,b)=>a instanceof b,
 select:(...a)=>a.length,
