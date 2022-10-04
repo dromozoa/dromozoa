@@ -15,25 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
--- Lua 5.1だけエスケープの方式が異なる
---   E = '\\'
---   0x00 => E 000
---   0x0A => E \n
---   0x0D => E r
---   0x22 => E "
---   0x5C => E E
--- LuaJITとLua 5.2以降はおなじ
---   E = '\\'
---   0x00..0x09 => E \d{1} or E \d{3} 数字が後続するときは3桁
---   0x0A       => E \n
---   0x0B..0x1F => E \d{2} or E \d{3} 数字が後続するときは3桁
---   0x22 => E "
---   0x5C => E E
---   0x7F       => E 127
--- つまり、0x00..0x0A, 0x0B..0x1F, 0x7Fで出力が異なる。
-
--- a b f n r t v
-
 local quote = {
   ["\000"] = [[\000]]; ["\001"] = [[\001]]; ["\002"] = [[\002]]; ["\003"] = [[\002]];
   ["\004"] = [[\004]]; ["\005"] = [[\005]]; ["\006"] = [[\006]]; ["\007"] = [[\a]];
