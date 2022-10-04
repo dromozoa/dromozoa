@@ -39,6 +39,41 @@ function assert(v, message, ...)
   end
 end
 
+---------------------------------------------------------------------------
+
+D.getmetafield = D.export(function (object, event)
+  local t = type(object)
+  if t == "table" then
+    local metatable = D.getmetatable(object)
+    if metatable ~= nil then
+      return metatable[event]
+    end
+  end
+end)
+
+function getmetatable(object)
+  local t = type(object)
+  if t == "table" then
+    local metatable = D.getmetatable(object)
+    if metatable == nil or metatable.__metatable == nil then
+      return metatable
+    else
+      return metatable.__metatable
+    end
+  end
+end
+
+function setmetatable(table, metatable)
+  assert(type(table) == "table")
+  local t = type(metatable)
+  assert(t == "nil" or t == "table")
+  assert(D.getmetafield(table, "__metatable") == nil, "cannot change a protected metatable")
+  D.setmetatable(table, metatable)
+  return table
+end
+
+---------------------------------------------------------------------------
+
 function select(index, v, ...)
   if index == "#" then
     return D.select(v, ...)
@@ -72,37 +107,6 @@ function type(v)
   end
 end
 
-local function getmetafield(object, event)
-  local t = type(object)
-  if t == "table" then
-    local metatable = D.getmetatable(object)
-    if metatable ~= nil then
-      return metatable[event]
-    end
-  end
-end
-
-function getmetatable(object)
-  local t = type(object)
-  if t == "table" then
-    local metatable = D.getmetatable(object)
-    if metatable == nil or metatable.__metatable == nil then
-      return metatable
-    else
-      return metatable.__metatable
-    end
-  end
-end
-
-function setmetatable(table, metatable)
-  assert(type(table) == "table")
-  local t = type(metatable)
-  assert(t == "nil" or t == "table")
-  assert(getmetafield(table, "__metatable") == nil, "cannot change a protected metatable")
-  D.setmetatable(table, metatable)
-  return table
-end
-
 function tostring(v)
   local t = type(v)
   if t == "nil" then
@@ -114,7 +118,7 @@ function tostring(v)
   elseif t == "boolean" then
     return v and "true" or "false"
   elseif t == "table" then
-    local metamethod = getmetafield(v, "__tostring")
+    local metamethod = D.getmetafield(v, "__tostring")
     if metamethod ~= nil then
       local v = metamethod(v)
       local t = type(v)
@@ -125,7 +129,7 @@ function tostring(v)
       return v
     end
   end
-  local metafield = getmetafield(v, "__name")
+  local metafield = D.getmetafield(v, "__name")
   if type(metafield) == "string" then
     t = metafield
   end
@@ -173,7 +177,7 @@ local function pairs_impl(iterator)
 end
 
 function pairs(t)
-  local metamethod = getmetafield(t, "__pairs")
+  local metamethod = D.getmetafield(t, "__pairs")
   if metamethod ~= nil then
     return metamethod, t
   else
