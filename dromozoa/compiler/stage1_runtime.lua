@@ -123,17 +123,17 @@ end)
 
 D.OP_GETTABLE = D.export(function (t, k)
   local v = rawget(t, k)
-  if v == nil then
-    local metafield = D.getmetafield(t, "__index")
-    if metafield ~= nil then
-      if type(metafield) == "table" then
-        v = metafield[k]
-      else
-        v = metafield(t, k)
-      end
+  if v ~= nil then
+    return v
+  end
+  local metafield = D.getmetafield(t, "__index")
+  if metafield ~= nil then
+    if type(metafield) == "table" then
+      return metafield[k]
+    else
+      return metafield(t, k)
     end
   end
-  return v
 end)
 
 D.OP_CLOSE = D.export(function (object)
