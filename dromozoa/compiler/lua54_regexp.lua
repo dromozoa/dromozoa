@@ -35,9 +35,9 @@ function()append(0x0A) ln=ln+1 lp=fp
 end;
 function()fassert(ra<=255,'decimal escape too large') append(ra)
 end;
-function()ra=fc-0x30
+function()ra=fc-48
 end;
-function()ra=ra*10+fc-0x30
+function()ra=ra*10+fc-48
 end;
 function()append(0x07)
 end;
@@ -53,25 +53,25 @@ function()ra=fp rb=0
 end;
 function()ra=fp
 end;
-function()rb=rb*16+fc-0x30
+function()rb=rb*16+fc-48
 end;
-function()rb=rb*16+fc-0x41+10
+function()rb=rb*16+fc-65+10
 end;
-function()rb=rb*16+fc-0x61+10
+function()rb=rb*16+fc-97+10
 end;
 function()fassert(fp-ra<=9 and rb<=0x7FFFFFFF,'UTF-8 value too large') append_unicode(rb)
 end;
 function()append(0x0B)
 end;
-function()append(ra*16+fc-0x30)
+function()append(ra*16+fc-48)
 end;
-function()append(ra*16+fc-0x41+10)
+function()append(ra*16+fc-65+10)
 end;
-function()append(ra*16+fc-0x61+10)
+function()append(ra*16+fc-97+10)
 end;
-function()ra=fc-0x41+10
+function()ra=fc-65+10
 end;
-function()ra=fc-0x61+10
+function()ra=fc-97+10
 end;
 function()ts=nil push()
 end;
@@ -207,11 +207,11 @@ function()ts=43 push()
 end;
 function()guard_clear(fc)
 end;
-function()guard_clear(0x5D)
+function()guard_clear(93)
 end;
 function()guard_append(fc)
 end;
-function()guard_append(0x5D)
+function()guard_append(93)
 end;
  }
   end)()

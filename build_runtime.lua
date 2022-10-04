@@ -15,6 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local quote_lua = require "dromozoa.quote_lua"
+
 local function build(source, result)
   local handle = assert(io.open(source))
   local buffer = handle:read "*a"
@@ -53,7 +55,7 @@ local function build(source, result)
     end
 
     assert(match(buffer, "^$([%a_][%w_]*)(.*)") or match(buffer, "^${'(..-)'}(.*)"))
-    out:write(("context[%q];\n"):format(_1))
+    out:write("context[", quote_lua(_1), "];\n")
     buffer = _2
   end
 
