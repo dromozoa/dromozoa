@@ -30,3 +30,8 @@ end
 
 print(table.unpack(a))
 print(table.unpack(b))
+
+local t = setmetatable({}, { __pairs = function (t) return 1, 2 end })
+local u = setmetatable({}, { __pairs = function (t) return 1, 2, 3, 4 end })
+print(pairs(t))
+print(pairs(u))

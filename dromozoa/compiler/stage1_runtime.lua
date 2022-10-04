@@ -187,7 +187,8 @@ end
 function pairs(t)
   local metamethod = D.getmetafield(t, "__pairs")
   if metamethod ~= nil then
-    return metamethod, t
+    local f, s, var = metamethod(t)
+    return f, s, var
   else
     return pairs_impl, D.entries(t)
   end
