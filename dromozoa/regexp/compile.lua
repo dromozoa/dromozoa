@@ -35,7 +35,7 @@ local function insert_action(context, action)
     :gsub([[${<(..-)>}]], function (s)
       local result = {}
       for i = 1, #s do
-        result[i] = ("0x%02X"):format(s:byte(i))
+        result[i] = s:byte(i) -- ("0x%02X"):format(s:byte(i))
       end
       return table.concat(result, ",")
     end)
