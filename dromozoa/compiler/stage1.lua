@@ -16,8 +16,8 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local append = require "dromozoa.append"
+local quote_js = require "dromozoa.quote_js"
 local compiler_error = require "dromozoa.compiler.compiler_error"
-local quote = require "dromozoa.compiler.quote"
 
 local double_to_word
 if string.pack then
@@ -173,7 +173,7 @@ local function generate_code(result, source_map, chunk, u)
     append(result, "S.push(true);")
 
   elseif u_name == "push_literal" then
-    append(result, "S.push(", quote(a), ");")
+    append(result, "S.push(", quote_js(a), ");")
 
   elseif u_name == "push_numeral" then
     if b == "HexadecimalFloatingNumeral" then
@@ -390,7 +390,7 @@ function module.generate_module(result, source_map, name, chunk)
     generate_proto(result, source_map, chunk, chunk[i])
   end
 
-  append(result, 'D.OP_SETTABLE(D.OP_GETTABLE(D.OP_GETTABLE(E,"package"),"preload"),', quote(name), ",P1([E]));\n}\n")
+  append(result, 'D.OP_SETTABLE(D.OP_GETTABLE(D.OP_GETTABLE(E,"package"),"preload"),', quote_js(name), ",P1([E]));\n}\n")
   source_map:append_empty_mappings(2)
 end
 
