@@ -358,6 +358,7 @@ const E=new D.LuaTable();
 D.OP_SETTABLE(E,"dromozoa",D);
 D.OP_SETTABLE(E,"globalThis",globalThis);
 D.OP_SETTABLE(E,"package",D.OP_SETTABLE(D.OP_NEWTABLE(),"preload",D.OP_NEWTABLE()));
+D.OP_SETTABLE(E,"pcall",new D.LuaFunction((a,...b)=>{try{return[true,...D.OP_CALL(a,b)];}catch(e){return[false,e instanceof D.LuaError?e.msg:e.toString()];}}));
 ]]):gsub("\n", {})
 
 local module = {}
