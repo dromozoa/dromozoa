@@ -177,7 +177,8 @@ local function generate_code(result, source_map, chunk, u)
 
   elseif u_name == "push_numeral" then
     if b == "HexadecimalFloatingNumeral" then
-      append(result, ("S.push(new DataView(new Uint32Array([0x%X,0x%X]).buffer).getFloat64(0,true));"):format(double_to_word(tonumber(a))))
+      local x, y = double_to_word(tonumber(a))
+      append(result, "S.push(new DataView(new Uint32Array([", x, ",", y, "]).buffer).getFloat64(0,true));")
     else
       append(result, "S.push(", a, ");")
     end
