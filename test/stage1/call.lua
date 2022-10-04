@@ -15,6 +15,36 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-print(10 + -4)
-print(10 % -4)
-print(10 // -4)
+local a = function ()
+  print("a")
+end
+
+local b = {}
+b.f = function (x)
+  assert(x == nil or x == b)
+  print("b.f", x and "x")
+end
+
+local c = {}
+setmetatable(c, {
+  __call = function (x)
+    assert(x == nil or x == c)
+    print("c.__call", x and "x")
+  end;
+})
+
+local d = {}
+d.f = setmetatable({}, {
+  __call = function (x, y)
+    assert(x == d.f)
+    assert(y == nil or y == d)
+    print("d.f.__call", x and "x", y and "y")
+  end;
+})
+
+a()
+b.f()
+b:f()
+c()
+d.f()
+d:f()

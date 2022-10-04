@@ -15,6 +15,16 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-print(10 + -4)
-print(10 % -4)
-print(10 // -4)
+local x = setmetatable({ 42 }, {
+  __tostring = function (self)
+    return self[1]
+  end;
+})
+
+local y = {}
+local z = setmetatable({ 42 }, { __name = "test" })
+
+print(tostring(x))
+
+tostring(y)
+tostring(z)

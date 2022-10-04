@@ -16,6 +16,7 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local append = require "dromozoa.append"
+local compiler_error = require "dromozoa.compiler.compiler_error"
 local quote = require "dromozoa.compiler.quote"
 
 local double_to_word
@@ -97,32 +98,32 @@ local function generate_code(result, source_map, chunk, u)
     return
 
   elseif u_name == "check_for" then
-    append(result, "// OP_CHECK_FOR ", a)
+    append(result, "D.OP_CHECK_FOR(V", a, "[0],V", a + 1, "[0],V", a + 2, "[0]);")
 
-  elseif u_name == "add"    then append(result, "b=S.pop();a=S.pop();S.push(+a+ +b);")
-  elseif u_name == "sub"    then append(result, "b=S.pop();a=S.pop();S.push(a-b);")
-  elseif u_name == "mul"    then append(result, "b=S.pop();a=S.pop();S.push(a*b);")
-  elseif u_name == "div"    then append(result, "b=S.pop();a=S.pop();S.push(a/b);")
-  elseif u_name == "idiv"   then append(result, "b=S.pop();a=S.pop();S.push(Math.floor(a/b));")
-  elseif u_name == "mod"    then append(result, "b=S.pop();a=S.pop();S.push((a%b+b)%b);")
-  elseif u_name == "pow"    then append(result, "b=S.pop();a=S.pop();S.push(Math.pow(a,b));")
-  elseif u_name == "band"   then append(result, "b=S.pop();a=S.pop();S.push(a&b);")
-  elseif u_name == "bxor"   then append(result, "b=S.pop();a=S.pop();S.push(a^b);")
-  elseif u_name == "bor"    then append(result, "b=S.pop();a=S.pop();S.push(a|b);")
-  elseif u_name == "shr"    then append(result, "b=S.pop();a=S.pop();S.push(a>>>b);")
-  elseif u_name == "shl"    then append(result, "b=S.pop();a=S.pop();S.push(a<<b);")
-  elseif u_name == "concat" then append(result, "b=S.pop();a=S.pop();S.push(a.toString()+b.toString());")
-  elseif u_name == "lt"     then append(result, "b=S.pop();a=S.pop();S.push(a<b);")
-  elseif u_name == "le"     then append(result, "b=S.pop();a=S.pop();S.push(a<=b);")
-  elseif u_name == "gt"     then append(result, "b=S.pop();a=S.pop();S.push(a>b);")
-  elseif u_name == "ge"     then append(result, "b=S.pop();a=S.pop();S.push(a>=b);")
-  elseif u_name == "eq"     then append(result, "b=S.pop();a=S.pop();S.push(a===b);")
-  elseif u_name == "ne"     then append(result, "b=S.pop();a=S.pop();S.push(a!==b);")
+  elseif u_name == "add"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_ADD(a,b));")
+  elseif u_name == "sub"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_SUB(a,b));")
+  elseif u_name == "mul"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_MUL(a,b));")
+  elseif u_name == "div"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_DIV(a,b));")
+  elseif u_name == "idiv"   then append(result, "b=S.pop();a=S.pop();S.push(D.OP_IDIV(a,b));")
+  elseif u_name == "mod"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_MOD(a,b));")
+  elseif u_name == "pow"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_POW(a,b));")
+  elseif u_name == "band"   then append(result, "b=S.pop();a=S.pop();S.push(D.OP_BAND(a,b));")
+  elseif u_name == "bxor"   then append(result, "b=S.pop();a=S.pop();S.push(D.OP_BXOR(a,b));")
+  elseif u_name == "bor"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_BOR(a,b));")
+  elseif u_name == "shr"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_SHR(a,b));")
+  elseif u_name == "shl"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_SHL(a,b));")
+  elseif u_name == "concat" then append(result, "b=S.pop();a=S.pop();S.push(D.OP_CONCAT(a,b));")
+  elseif u_name == "lt"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_LT(a,b));")
+  elseif u_name == "le"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_LE(a,b));")
+  elseif u_name == "gt"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_GT(a,b));")
+  elseif u_name == "ge"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_GE(a,b));")
+  elseif u_name == "eq"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_EQ(a,b));")
+  elseif u_name == "ne"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_NE(a,b));")
 
-  elseif u_name == "unm"  then append(result, "a=S.pop();S.push(-a);")
-  elseif u_name == "not"  then append(result, "a=S.pop();S.push(a===undefined||a===false);")
-  elseif u_name == "len"  then append(result, "a=S.pop();for(b=1;OP_GETTABLE(a,b)!==undefined;++b);S.push(b-1);")
-  elseif u_name == "bnot" then append(result, "a=S.pop();S.push(~a);")
+  elseif u_name == "unm"  then append(result, "a=S.pop();S.push(D.OP_UNM(a));")
+  elseif u_name == "not"  then append(result, "a=S.pop();S.push(D.OP_NOT(a));")
+  elseif u_name == "len"  then append(result, "a=S.pop();S.push(D.OP_LEN(a));")
+  elseif u_name == "bnot" then append(result, "a=S.pop();S.push(D.OP_BNOT(a));")
 
   elseif u_name == "new_local" or u_name == "tbc_local" then
     append(result, "V", a, "=[S.pop()];")
@@ -134,10 +135,10 @@ local function generate_code(result, source_map, chunk, u)
     append(result, "U", a, "[0]=S.pop();")
 
   elseif u_name == "set_field" then
-    append(result, "c=S.pop();b=S[", b - 1, "];a=S[", a - 1, "];OP_SETTABLE(a,b,c);")
+    append(result, "c=S.pop();b=S[", b - 1, "];a=S[", a - 1, "];D.OP_SETTABLE(a,b,c);")
 
   elseif u_name == "set_table" then
-    append(result, "c=S.pop();b=S.pop();a=S[", a - 1, "];OP_SETTABLE(a,b,c);")
+    append(result, "c=S.pop();b=S.pop();a=S[", a - 1, "];D.OP_SETTABLE(a,b,c);")
 
   elseif u_name == "get_local" then
     append(result, "S.push(V", a, "[0]);")
@@ -146,10 +147,10 @@ local function generate_code(result, source_map, chunk, u)
     append(result, "S.push(U", a, "[0]);")
 
   elseif u_name == "get_table" then
-    append(result, "b=S.pop();a=S.pop();S.push(OP_GETTABLE(a,b));")
+    append(result, "b=S.pop();a=S.pop();S.push(D.OP_GETTABLE(a,b));")
 
   elseif u_name == "new_table" then
-    append(result, "S.push(new LuaTable());")
+    append(result, "S.push(D.OP_NEWTABLE());")
 
   elseif u_name == "closure" then
     append(result, "S.push(P", a, "(")
@@ -185,38 +186,39 @@ local function generate_code(result, source_map, chunk, u)
     append(result, "S.push(S[S.length-1]);")
 
   elseif u_name == "close" then
-    append(result, "a=V", a, "[0];if(a!==undefined)OP_CLOSE(a);V", a, "=undefined;")
+    append(result, "a=V", a, ";D.OP_CLOSE(a[0]);V", a, "=undefined;")
 
   elseif u_name == "return" then
     append(result, "return S;")
 
   elseif u_name == "call" then
-    append(result, "b=S.splice(", a, ");a=S.pop();b=OP_CALL(a,b);")
+    assert(a > 0)
+    append(result, "b=S.splice(", a, ");a=S.pop();b=D.OP_CALL(a,b);")
     if b ~= 0 then
       if b > 0 then
-        append(result, "OP_ADJUST(b,", b, ");")
+        append(result, "D.OP_ADJUST(b,", b, ");")
       end
       append(result, "S.push(...b);")
     end
 
   elseif u_name == "self" then
-    append(result, "c=S.splice(", a + 1, ");b=S.pop();a=S.pop();c=OP_SELF(OP_GETTABLE(a,b),a,c);")
+    append(result, "c=S.splice(", a + 1, ");b=S.pop();a=S.pop();c=D.OP_SELF(D.OP_GETTABLE(a,b),a,c);")
     if b ~= 0 then
       if b > 0 then
-        append(result, "OP_ADJUST(c,", b, ");")
+        append(result, "D.OP_ADJUST(c,", b, ");")
       end
       append(result, "S.push(...c);")
     end
 
   elseif u_name == "vararg" then
     if a > 0 then
-      append(result, "a=[...VA];OP_ADJUST(a,", a, ");S.push(...a);")
+      append(result, "a=[...VA];D.OP_ADJUST(a,", a, ");S.push(...a);")
     else
       append(result, "S.push(...VA);")
     end
 
   elseif u_name == "set_list" then
-    append(result, "b=S.splice(", a, ");a=S[", a - 1, "];for(c=0;c<b.length;++c)OP_SETTABLE(a,c+1,b[c]);")
+    append(result, "b=S.splice(", a, ");a=S[", a - 1, "];D.OP_SETLIST(a,b);")
 
   elseif u_name == "push_nil" then
     if a == 1 then
@@ -250,7 +252,7 @@ local function generate_proto(result, source_map, chunk, proto)
     end
     append(result, "U", i)
   end
-  append(result, ")=>new LuaFunction((")
+  append(result, ")=>new D.LuaFunction((")
   for i = 1, proto.nparams do
     if i > 1 then
       append(result, ",")
@@ -291,45 +293,73 @@ local function generate_proto(result, source_map, chunk, proto)
     for i = #proto.locals, 1, -1 do
       local v = proto.locals[i]
       if v.attribute == "close" then
-        append(result, "a=V", i, ";if(a!==undefined&&a[0]!==undefined)OP_CLOSE(a[0]);V", i, "=undefined;\n")
+        append(result, "a=V", i, ";if(a!==undefined)D.OP_CLOSE(a[0]);V", i, "=undefined;\n")
         source_map:append_empty_mappings(1)
       end
     end
-    append(result, "throw e;}\n")
-    source_map:append_empty_mappings(1)
+    append(result, "throw e;\n}\n")
+    source_map:append_empty_mappings(2)
   end
 
-  append(result, "return S;});\n")
-  source_map:append_empty_mappings(1)
+  append(result, "return S;\n});\n")
+  source_map:append_empty_mappings(2)
 end
 
 local code, n = ([[
-class LuaTable{constructor(){this.map=new Map();}}
-class LuaFunction{constructor(fn){this.fn=fn;}}
-class LuaError extends Error{constructor(msg){super(msg);this.name="LuaError";this.msg=msg}}
 const D={
-typeof:v=>typeof v,
-is_table:v=>v instanceof LuaTable,
-is_function:v=>v instanceof LuaFunction||v instanceof Function,
-select_n:(...a)=>a.length,
-error:msg=>{throw new LuaError(msg);},
-getmetatable:t=>t.metatable,
-setmetatable:(t,metatable)=>t.metatable=metatable,
-newuserdata:(constructor,...args)=>new constructor(...args),
+LuaError:class LuaError extends Error{constructor(msg){super(msg);this.name="LuaError";this.msg=msg;}},
+LuaFunction:class LuaFunction{constructor(fn){this.fn=fn;}},
+LuaTable:class LuaTable{constructor(){this.map=new Map();}},
+error:a=>{throw new D.LuaError(a);},
+typeof:a=>typeof a,
+instanceof:(a,b)=>a instanceof b,
+export:(a)=>(...b)=>a.fn(...b)[0],
+getmetatable:a=>a.metatable,
+setmetatable:(a,b)=>a.metatable=b,
+rawset:(a,b,c)=>{if(a instanceof D.LuaTable)if(c===undefined)a.map.delete(b);else a.map.set(b,c);else if(c===undefined)delete a[b];else a[b]=c;return a;},
+rawget:(a,b)=>typeof a==="object"?a instanceof D.LuaTable?a.map.get(b):a[b]:undefined,
+rawlen:a=>{let n=1;for(;D.rawget(a,n)!==undefined;++n);return n-1;},
+select:(...a)=>a.length,
+entries:(a)=>a.map.entries(),
+newuserdata:(a,...b)=>new a(...b),
+OP_CHECK_FOR:()=>{},
+OP_ADD:(a,b)=>+a+ +b,
+OP_SUB:(a,b)=>a-b,
+OP_MUL:(a,b)=>a*b,
+OP_DIV:(a,b)=>a/b,
+OP_IDIV:(a,b)=>Math.floor(a/b),
+OP_MOD:(a,b)=>(a%b+b)%b,
+OP_POW:(a,b)=>Math.pow(a,b),
+OP_BAND:(a,b)=>a&b,
+OP_BXOR:(a,b)=>a^b,
+OP_BOR:(a,b)=>a|b,
+OP_SHR:(a,b)=>a>>>b,
+OP_SHL:(a,b)=>a<<b,
+OP_CONCAT:(a,b)=>a.toString()+b.toString(),
+OP_LT:(a,b)=>a<b,
+OP_LE:(a,b)=>a<=b,
+OP_GT:(a,b)=>a>b,
+OP_GE:(a,b)=>a>=b,
+OP_EQ:(a,b)=>a===b,
+OP_NE:(a,b)=>a!==b,
+OP_UNM:a=>-a,
+OP_NOT:a=>a===undefined||a===false,
+OP_LEN:a=>D.rawlen(a),
+OP_BNOT:a=>~a,
+OP_SETTABLE:(a,b,c)=>D.rawset(a,b,c),
+OP_GETTABLE:(a,b)=>D.rawget(a,b),
+OP_NEWTABLE:()=>new D.LuaTable(),
+OP_CALL:(a,b)=>a instanceof D.LuaFunction?a.fn(...b):a instanceof D.LuaTable?D.OP_CALL(D.getmetafield(a,"__call"),[a,...b]):[a.apply(undefined,b)],
+OP_SELF:(a,b,c)=>a instanceof D.LuaFunction?a.fn(b,...c):a instanceof D.LuaTable?D.OP_CALL(D.getmetafield(a,"__call"),[a,b,...c]):[a.apply(b,c)],
+OP_CLOSE:()=>{},
+OP_ADJUST:(a,b)=>{if(a.length<b)a[b-1]=undefined;else a.splice(b);},
+OP_SETLIST:(a,b)=>{for(let i=0;i<b.length;++i)D.OP_SETTABLE(a,i+1,b[i]);},
 };
-const OP_SETTABLE=(a,b,c)=>{if(a instanceof LuaTable)a.map.set(b,c);else a[b]=c;};
-const OP_GETTABLE=(a,b)=>a instanceof LuaTable?a.map.get(b):a[b];
-const OP_CALL=(a,b)=>a instanceof LuaFunction?a.fn(...b):a instanceof LuaTable?OP_CALL(OP_GETTABLE(a.metatable,"__call"),[a,...b]):[a.apply(undefined,b)];
-const OP_SELF=(a,b,c)=>a instanceof LuaFunction||a instanceof LuaTable?OP_CALL(a,[b,...c]):[a.apply(b,c)];
-const OP_CLOSE=a=>OP_CALL(OP_GETTABLE(a.metatable,"__close"));
-const OP_ADJUST=(a,b)=>{if(a.length<b)a[b-1]=undefined;else a.splice(b);};
-const env=new LuaTable();
-OP_SETTABLE(env,"dromozoa",D);
-OP_SETTABLE(env,"globalThis",globalThis);
-const pkg=new LuaTable();
-const preload=new LuaTable();
-OP_SETTABLE(pkg,"preload",preload);
-OP_SETTABLE(env,"package",pkg);
+const E=new D.LuaTable();
+D.OP_SETTABLE(E,"dromozoa",D);
+D.OP_SETTABLE(E,"globalThis",globalThis);
+D.OP_SETTABLE(E,"package",D.OP_SETTABLE(D.OP_NEWTABLE(),"preload",D.OP_NEWTABLE()));
+D.OP_SETTABLE(E,"pcall",new D.LuaFunction((a,...b)=>{try{return[true,...D.OP_CALL(a,b)];}catch(e){return[false,e instanceof D.LuaError?e.msg:e.toString()];}}));
 ]]):gsub("\n", {})
 
 local module = {}
@@ -347,7 +377,7 @@ function module.generate_chunk(result, source_map, chunk)
     generate_proto(result, source_map, chunk, chunk[i])
   end
 
-  append(result, "OP_CALL(P1([env]),[]);}\n")
+  append(result, "D.OP_CALL(P1([E]),[]);\n}\n")
   source_map:append_empty_mappings(1)
 end
 
@@ -359,8 +389,8 @@ function module.generate_module(result, source_map, name, chunk)
     generate_proto(result, source_map, chunk, chunk[i])
   end
 
-  append(result, "OP_SETTABLE(preload,", quote(name), ",P1([env]));}\n")
-  source_map:append_empty_mappings(1)
+  append(result, 'D.OP_SETTABLE(D.OP_GETTABLE(D.OP_GETTABLE(E,"package"),"preload"),', quote(name), ",P1([E]));\n}\n")
+  source_map:append_empty_mappings(2)
 end
 
 function module.generate_epilogue(result, source_map, source_map_filename)

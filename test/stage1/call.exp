@@ -1,0 +1,6 @@
+a
+b.f	nil
+b.f	x
+c.__call	x
+d.f.__call	x	nil
+d.f.__call	x	y

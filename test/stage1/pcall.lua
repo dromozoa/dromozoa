@@ -15,6 +15,24 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-print(10 + -4)
-print(10 % -4)
-print(10 // -4)
+local r, a, b, c = pcall(function (x)
+  assert(type(x) == "number")
+end, "foo")
+assert(r == false)
+
+local e = { "error object" }
+local r, a, b, c = pcall(function (x)
+  error(e)
+end, "foo")
+assert(r == false)
+assert(a == e)
+assert(b == nil)
+assert(c == nil)
+
+local r, a, b, c = pcall(function (x)
+  return x, 42
+end, "foo")
+assert(r == true)
+assert(a == "foo")
+assert(b == 42)
+assert(c == nil)

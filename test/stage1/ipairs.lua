@@ -15,6 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-print(10 + -4)
-print(10 % -4)
-print(10 // -4)
+local t = { "foo", 42, "bar", false, "baz", nil, "qux" }
+for i, v in ipairs(t) do
+  print(i, v)
+end

@@ -15,6 +15,25 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-print(10 + -4)
-print(10 % -4)
-print(10 // -4)
+local metatable = {
+  __close = function (self)
+    print("__close", self[1])
+  end;
+}
+
+if true then
+  local a <close> = setmetatable({ "a" }, metatable)
+  while true do
+    local b <close> = setmetatable({ "b" }, metatable)
+    do
+      local c <close> = setmetatable({ "c" }, metatable)
+    end
+    local d <close> = setmetatable({ "d" }, metatable)
+    do
+      local e <close> = setmetatable({ "e" }, metatable)
+      break
+    end
+    local f <close> = setmetatable({ "f" }, metatable)
+  end
+  local g <close> = setmetatable({ "g" }, metatable)
+end
