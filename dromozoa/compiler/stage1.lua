@@ -224,14 +224,14 @@ local function generate_code(result, source_map, chunk, u)
     if a == 1 then
       append(result, "S.push(undefined);")
     else
-      append(result, "S[S.length+", a - 1, "]=undefined;")
+      append(result, "S.length+=", a, ";")
     end
 
   elseif u_name == "pop" then
     if a == 1 then
       append(result, "S.pop();")
     else
-      append(result, "S.splice(-", a, ");")
+      append(result, "S.length-=", a, ";")
     end
 
   else

@@ -29,13 +29,16 @@ function error(message)
   D.error(message)
 end
 
-function assert(v, message, ...)
+function assert(v, ...)
   if v then
-    return v, message, ...
-  elseif message == nil then
-    return error "assertion failed!"
+    return v, ...
   else
-    return error(message)
+    local message = ...
+    if message == nil then
+      return error "assertion failed!"
+    else
+      return error(message)
+    end
   end
 end
 
@@ -406,18 +409,3 @@ string = {
 string_metatable = {
   __index = string;
 }
-
--- string
--- .sub
--- .char
--- .byte
-
---  :find
---  :format
---  :gmatch
---  :gsub
---  :len
-
--- .pack
--- .unpack
-
