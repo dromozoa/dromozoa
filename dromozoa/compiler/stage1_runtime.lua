@@ -39,6 +39,29 @@ function assert(v, message, ...)
   end
 end
 
+function type(v)
+  local t = D.typeof(v)
+  if t == "undefined" then
+    return "nil"
+  elseif t == "number" then
+    return "number"
+  elseif t == "string" then
+    return "string"
+  elseif t == "boolean" then
+    return "boolean"
+  elseif t == "function" then
+    return "function"
+  end
+  assert(t == "object")
+  if D.instanceof(v, D.LuaFunction) then
+    return "function"
+  elseif D.instanceof(v, D.LuaTable) then
+    return "table"
+  else
+    return "userdata"
+  end
+end
+
 ---------------------------------------------------------------------------
 
 D.getmetafield = D.export(function (object, event)
@@ -74,6 +97,39 @@ end
 
 ---------------------------------------------------------------------------
 
+local rawget = D.rawget
+local rawset = D.rawset
+
+D.OP_SETTABLE = D.export(function (t, k, v)
+  if rawget(t, k) == nil then
+    local metafield = D.getmetafield(t, "__newindex")
+    if metafield ~= nil then
+      if type(metafield) == "table" then
+        metafield[k] = v
+      else
+        metafield(t, k, v)
+      end
+      return
+    end
+  end
+  rawset(t, k, v)
+end)
+
+D.OP_GETTABLE = D.export(function (t, k)
+  local v = rawget(t, k)
+  if v == nil then
+    local metafield = D.getmetafield(t, "__index")
+    if metafield ~= nil then
+      if type(metafield) == "table" then
+        v = metafield[k]
+      else
+        v = metafield(t, k)
+      end
+    end
+  end
+  return v
+end)
+
 D.OP_CLOSE = D.export(function (object)
   if object ~= nil then
     D.getmetafield(object, "__close")(object)
@@ -89,29 +145,6 @@ function select(index, v, ...)
     return v, ...
   else
     return select(index - 1, ...)
-  end
-end
-
-function type(v)
-  local t = D.typeof(v)
-  if t == "undefined" then
-    return "nil"
-  elseif t == "number" then
-    return "number"
-  elseif t == "string" then
-    return "string"
-  elseif t == "boolean" then
-    return "boolean"
-  elseif t == "function" then
-    return "function"
-  end
-  assert(t == "object")
-  if D.instanceof(v, D.LuaFunction) then
-    return "function"
-  elseif D.instanceof(v, D.LuaTable) then
-    return "table"
-  else
-    return "userdata"
   end
 end
 
