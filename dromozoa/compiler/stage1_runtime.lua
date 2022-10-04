@@ -32,10 +32,10 @@ end
 function assert(v, message, ...)
   if v then
     return v, message, ...
-  elseif message ~= nil then
-    return error(message)
-  else
+  elseif message == nil then
     return error "assertion failed!"
+  else
+    return error(message)
   end
 end
 
@@ -109,10 +109,10 @@ D.OP_SETTABLE = D.export(function (t, k, v)
       else
         metafield(t, k, v)
       end
-      return
+      return t
     end
   end
-  rawset(t, k, v)
+  return rawset(t, k, v)
 end)
 
 D.OP_GETTABLE = D.export(function (t, k)
@@ -137,6 +137,26 @@ D.OP_CLOSE = D.export(function (object)
 end)
 
 ---------------------------------------------------------------------------
+
+function print(...)
+  local result = table.pack(...)
+  for i = 1, result.n do
+    result[i] = tostring(result[i])
+  end
+  G.console:log(table.concat(result, "\t", 1, result.n))
+end
+
+function require(modname)
+  if package.loaded == nil then
+    package.loaded = {}
+  end
+  local module = package.loaded[modname]
+  if module == nil then
+    module = package.preload[modname]()
+    package.loaded[modname] = module
+  end
+  return module
+end
 
 function select(index, v, ...)
   if index == "#" then
@@ -177,25 +197,7 @@ function tostring(v)
   return t .. ": " .. v
 end
 
-function print(...)
-  local result = table.pack(...)
-  for i = 1, result.n do
-    result[i] = tostring(result[i])
-  end
-  G.console:log(table.concat(result, "\t", 1, result.n))
-end
-
-function require(modname)
-  if package.loaded == nil then
-    package.loaded = {}
-  end
-  local module = package.loaded[modname]
-  if module == nil then
-    module = package.preload[modname]()
-    package.loaded[modname] = module
-  end
-  return module
-end
+---------------------------------------------------------------------------
 
 local function ipairs_impl(t, i)
   local i = i + 1

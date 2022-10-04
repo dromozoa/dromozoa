@@ -311,6 +311,8 @@ LuaError:class LuaError extends Error{constructor(msg){super(msg);this.name="Lua
 LuaFunction:class LuaFunction{constructor(fn){this.fn=fn;}},
 LuaTable:class LuaTable{constructor(){this.map=new Map();}},
 error:a=>{throw new D.LuaError(a);},
+typeof:a=>typeof a,
+instanceof:(a,b)=>a instanceof b,
 export:(a)=>(...b)=>a.fn(...b)[0],
 getmetatable:a=>a.metatable,
 setmetatable:(a,b)=>a.metatable=b,
@@ -318,10 +320,7 @@ rawset:(a,b,c)=>{if(a instanceof D.LuaTable)a.map.set(b,c);else a[b]=c;return a;
 rawget:(a,b)=>a instanceof D.LuaTable?a.map.get(b):a[b],
 rawlen:a=>{let n=1;for(;D.rawget(a,n)!==undefined;++n);return n-1;},
 select:(...a)=>a.length,
-typeof:a=>typeof a,
-instanceof:(a,b)=>a instanceof b,
 entries:(a)=>a.map.entries(),
-newuserdata:(a,...b)=>new a(...b),
 OP_CHECK_FOR:()=>{},
 OP_ADD:(a,b)=>+a+ +b,
 OP_SUB:(a,b)=>a-b,
@@ -355,12 +354,10 @@ OP_CLOSE:()=>{},
 OP_ADJUST:(a,b)=>{if(a.length<b)a[b-1]=undefined;else a.splice(b);},
 OP_SETLIST:(a,b)=>{for(let i=0;i<b.length;++i)D.OP_SETTABLE(a,i+1,b[i]);},
 };
-const P=new D.LuaTable();
-D.OP_SETTABLE(P,"preload",new D.LuaTable());
 const E=new D.LuaTable();
 D.OP_SETTABLE(E,"dromozoa",D);
 D.OP_SETTABLE(E,"globalThis",globalThis);
-D.OP_SETTABLE(E,"package",P);
+D.OP_SETTABLE(E,"package",D.OP_SETTABLE(D.OP_NEWTABLE(),"preload",D.OP_NEWTABLE()));
 ]]):gsub("\n", {})
 
 local module = {}
@@ -378,7 +375,7 @@ function module.generate_chunk(result, source_map, chunk)
     generate_proto(result, source_map, chunk, chunk[i])
   end
 
-  append(result, "D.OP_CALL(P1([E]),[]);}\n")
+  append(result, "D.OP_CALL(P1([E]),[]);\n}\n")
   source_map:append_empty_mappings(1)
 end
 
@@ -390,8 +387,8 @@ function module.generate_module(result, source_map, name, chunk)
     generate_proto(result, source_map, chunk, chunk[i])
   end
 
-  append(result, 'D.OP_SETTABLE(D.OP_GETTABLE(D.OP_GETTABLE(E,"package"),"preload"),', quote(name), ",P1([E]));}\n")
-  source_map:append_empty_mappings(1)
+  append(result, 'D.OP_SETTABLE(D.OP_GETTABLE(D.OP_GETTABLE(E,"package"),"preload"),', quote(name), ",P1([E]));\n}\n")
+  source_map:append_empty_mappings(2)
 end
 
 function module.generate_epilogue(result, source_map, source_map_filename)
