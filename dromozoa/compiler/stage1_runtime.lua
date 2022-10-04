@@ -239,6 +239,16 @@ local function table_unpack(list, i, j)
   end
 end
 
+local table_sort_compare = D.export(function (a, b)
+  if a < b then
+    return -1
+  elseif a > b then
+    return 1
+  else
+    return 0
+  end
+end)
+
 table = {
   concat = function (list, sep, i, j)
     if sep == nil then
@@ -273,5 +283,19 @@ table = {
       j = #list
     end
     return table_unpack(list, i, j)
+  end;
+
+  sort = function (list, comp)
+    local array = D.newuserdata(G.Array, table.unpack(list));
+    array:sort(comp == nil and table_sort_compare or D.export(function (a, b)
+      if comp(a, b) then
+        return -1
+      elseif comp(b, a) then
+        return 1
+      else
+        return 0
+      end
+    end))
+    D.OP_SETLIST(list, array)
   end;
 }
