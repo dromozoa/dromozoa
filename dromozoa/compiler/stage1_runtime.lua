@@ -204,7 +204,7 @@ function tostring(v)
   if t == "nil" then
     return "nil"
   elseif t == "number" then
-    return v:toString()
+    return G:String(v)
   elseif t == "string" then
     return v
   elseif t == "boolean" then
@@ -215,7 +215,7 @@ function tostring(v)
       local v = metamethod(v)
       local t = type(v)
       if t == "number" then
-        return v:toString()
+        return G:String(v)
       end
       assert(t == "string")
       return v
@@ -396,9 +396,7 @@ string = {
     local buffer = string_encoder:encode(s)
     local m, n = string_prepare(buffer.length, i, j)
     if m <= n then
-      local n = n - m + 1
-      local m = m - 2
-      return string_decoder:decode(D.newuserdata(G.Uint8Array, buffer.buffer, m, n))
+      return string_decoder:decode(D.newuserdata(G.Uint8Array, buffer.buffer, m - 1, n - m + 1))
     else
       return ""
     end
