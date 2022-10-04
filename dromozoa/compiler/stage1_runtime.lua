@@ -164,6 +164,22 @@ function ipairs(t)
   return ipairs_impl, t, 0
 end
 
+local function pairs_impl(iterator)
+  local result = iterator:next()
+  if not result.done then
+    return result.value[0], result.value[1]
+  end
+end
+
+function pairs(t)
+  local metamethod = getmetafield(t, "__pairs")
+  if metamethod ~= nil then
+    return metamethod, t
+  else
+    return pairs_impl, D.entries(t)
+  end
+end
+
 ---------------------------------------------------------------------------
 
 local function table_unpack(list, i, j)
