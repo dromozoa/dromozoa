@@ -23,27 +23,25 @@
 local D = dromozoa
 local G = globalThis
 
+local D_LuaFunction = D.LuaFunction
+local D_LuaTable = D.LuaTable
+local D_typeof = D.typeof
+local D_instanceof = D.instanceof
+local D_error = D.error
+local D_getmetatable = D.getmetatable
+local D_setmetatable = D.setmetatable
+local D_rawset = D.rawset
+local D_rawget = D.rawget
+local D_rawlen = D.rawlen
+local D_export = D.export
+
+local string_metatable
+local string_len
+
 ---------------------------------------------------------------------------
 
-function error(message)
-  D.error(message)
-end
-
-function assert(v, ...)
-  if v then
-    return v, ...
-  else
-    local message = ...
-    if message == nil then
-      return error "assertion failed!"
-    else
-      return error(message)
-    end
-  end
-end
-
-function type(v)
-  local t = D.typeof(v)
+local function type(v)
+  local t = D_typeof(v)
   if t == "undefined" then
     return "nil"
   elseif t == "number" then
@@ -55,38 +53,50 @@ function type(v)
   elseif t == "function" then
     return "function"
   end
-  assert(t == "object")
-  if D.instanceof(v, D.LuaFunction) then
+  if D_instanceof(v, D_LuaFunction) then
     return "function"
-  elseif D.instanceof(v, D.LuaTable) then
+  elseif D_instanceof(v, D_LuaTable) then
     return "table"
   else
     return "userdata"
   end
 end
 
----------------------------------------------------------------------------
+local function error(message)
+  D_error(message)
+end
 
-local string_metatable
-
-D.getmetafield = D.export(function (object, event)
-  local t = type(object)
-  if t == "string" then
-    return string_metatable[event]
-  elseif t == "table" then
-    local metatable = D.getmetatable(object)
-    if metatable ~= nil then
-      return metatable[event]
+local function assert(...)
+  if ... then
+    return ...
+  else
+    local _, message = ...
+    if message == nil then
+      return D_error "assertion failed!"
+    else
+      return D_error(message)
     end
   end
-end)
+end
 
-function getmetatable(object)
+local function getmetafield(object, event)
+  local t = type(object)
+  if t == "string" then
+    return D_rawget(string_metatable, event)
+  elseif t == "table" then
+    local metatable = D_getmetatable(object)
+    if metatable ~= nil then
+      return D_rawget(metatable, event)
+    end
+  end
+end
+
+local function getmetatable(object)
   local t = type(object)
   if t == "string" then
     return string_metatable
   elseif t == "table" then
-    local metatable = D.getmetatable(object)
+    local metatable = D_getmetatable(object)
     if metatable == nil or metatable.__metatable == nil then
       return metatable
     else
@@ -95,72 +105,96 @@ function getmetatable(object)
   end
 end
 
-function setmetatable(table, metatable)
+local function setmetatable(table, metatable)
   assert(type(table) == "table")
   local t = type(metatable)
   assert(t == "nil" or t == "table")
-  assert(D.getmetafield(table, "__metatable") == nil, "cannot change a protected metatable")
-  D.setmetatable(table, metatable)
+  assert(getmetafield(table, "__metatable") == nil, "cannot change a protected metatable")
+  D_setmetatable(table, metatable)
   return table
 end
 
----------------------------------------------------------------------------
-
-local rawget = D.rawget
-local rawset = D.rawset
-
-D.OP_SETTABLE = D.export(function (t, k, v)
-  if rawget(t, k) == nil then
-    local metafield = D.getmetafield(t, "__newindex")
-    if metafield ~= nil then
-      if type(metafield) == "table" then
-        metafield[k] = v
-      else
-        metafield(t, k, v)
-      end
-      return t
-    end
-  end
-  return rawset(t, k, v)
-end)
-
-D.OP_GETTABLE = D.export(function (t, k)
-  local v = rawget(t, k)
-  if v ~= nil then
-    return v
-  end
-  local metafield = D.getmetafield(t, "__index")
-  if metafield ~= nil then
-    if type(metafield) == "table" then
-      return metafield[k]
-    else
-      return metafield(t, k)
-    end
-  end
-end)
-
-D.OP_CLOSE = D.export(function (object)
-  if object ~= nil then
-    D.getmetafield(object, "__close")(object)
-  end
-end)
-
----------------------------------------------------------------------------
-
-local rawlen = D.rawlen
-
-D.rawlen = D.export(function (v)
+local function rawlen(v)
   local t = type(v)
   if t == "string" then
-    return string.len(v)
+    return string_len(v)
   elseif t == "table" then
-    return rawlen(v)
+    return D_rawlen(v)
   elseif t == "userdata" then
     return v.length
   else
     return 0
   end
-end)
+end
+
+local function OP_SETTABLE(object, k, v)
+  local t = type(object)
+  assert(t == "table" or t == "userdata")
+  if D_rawget(object, k) == nil then
+    local metafield = getmetafield(object, "__newindex")
+    if metafield ~= nil then
+      if type(metafield) == "table" then
+        metafield[k] = v
+      else
+        metafield(object, k, v)
+      end
+      return object
+    end
+  end
+  return D_rawset(object, k, v)
+end
+
+local function OP_GETTABLE(object, k)
+  local t = type(object)
+  if t == "table" or t == "userdata" then
+    local v = D_rawget(object, k)
+    if v ~= nil then
+      return v
+    end
+  end
+  local metafield = getmetafield(object, "__index")
+  if metafield ~= nil then
+    if type(metafield) == "table" then
+      return metafield[k]
+    else
+      return metafield(object, k)
+    end
+  end
+end
+
+local function OP_CLOSE(object)
+  if object ~= nil then
+    getmetafield(object, "__close")(object)
+  end
+end
+
+---------------------------------------------------------------------------
+
+_ENV.type = type
+_ENV.error = error
+_ENV.assert = assert
+_ENV.getmetatable = getmetatable
+_ENV.setmetatable = setmetatable
+D.getmetafield = D_export(getmetafield)
+D.rawlen = D_export(rawlen)
+D.OP_SETTABLE = D_export(OP_SETTABLE)
+D.OP_GETTABLE = D_export(OP_GETTABLE)
+D.OP_CLOSE = D_export(OP_CLOSE)
+
+---------------------------------------------------------------------------
+
+local function table_unpack(list, i, j)
+  if i < j then
+    return list[i], table_unpack(list, i + 1, j)
+  else
+    return list[i]
+  end
+end
+
+
+
+
+
 
 ---------------------------------------------------------------------------
 
@@ -265,13 +299,13 @@ end
 
 ---------------------------------------------------------------------------
 
-local function table_unpack(list, i, j)
-  if i < j then
-    return list[i], table_unpack(list, i + 1, j)
-  else
-    return list[i]
-  end
-end
+-- local function table_unpack(list, i, j)
+--   if i < j then
+--     return list[i], table_unpack(list, i + 1, j)
+--   else
+--     return list[i]
+--   end
+-- end
 
 local table_sort_compare = D.export(function (a, b)
   if a < b then
@@ -467,6 +501,8 @@ string = {
     end))
   end;
 }
+
+string_len = string.len
 
 string_metatable = {
   __index = string;
