@@ -132,7 +132,7 @@ local function generate_code(result, source_map, chunk, u)
 
   elseif u_name == "push_numeral" then
     if b == "HexadecimalFloatingNumeral" then
-      compiler_error("not supported: HexadecimalFloatingNumeral", u.node)
+      compiler_error("not supported: push_numeral " .. a .. " HexadecimalFloatingNumeral", u.node)
     else
       append(result, "S.push(", a, ");")
     end
