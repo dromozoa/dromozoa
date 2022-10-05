@@ -320,10 +320,9 @@ rawset:(a,b,c)=>{if(a instanceof D.LuaTable)if(c===undefined)a.map.delete(b);els
 rawget:(a,b)=>a instanceof D.LuaTable?a.map.get(b):a[b],
 rawlen:a=>{let n=1;for(;D.rawget(a,n)!==undefined;++n);return n-1;},
 export:(a)=>(...b)=>a.fn(...b)[0],
-
 select:(...a)=>a.length,
-entries:(a)=>a.map.entries(),
 newuserdata:(a,...b)=>new a(...b),
+entries:(a)=>a.map.entries(),
 replace:(a,...b)=>a.replace(...b),
 
 OP_CHECK_FOR:()=>{},
@@ -362,7 +361,7 @@ OP_SETLIST:(a,b)=>{for(let i=0;i<b.length;++i)D.OP_SETTABLE(a,i+1,b[i]);},
 const E=new D.LuaTable();
 D.OP_SETTABLE(E,"dromozoa",D);
 D.OP_SETTABLE(E,"globalThis",globalThis);
-D.OP_SETTABLE(E,"package",D.OP_SETTABLE(D.OP_NEWTABLE(),"preload",D.OP_NEWTABLE()));
+D.OP_SETTABLE(E,"package",D.OP_SETTABLE(D.OP_SETTABLE(D.OP_NEWTABLE(),"preload",D.OP_NEWTABLE()),"loaded",D.OP_NEWTABLE()));
 D.OP_SETTABLE(E,"pcall",new D.LuaFunction((a,...b)=>{try{return[true,...D.OP_CALL(a,b)];}catch(e){return[false,e instanceof D.LuaError?e.msg:e.toString()];}}));
 ]]):gsub("\n", {})
 

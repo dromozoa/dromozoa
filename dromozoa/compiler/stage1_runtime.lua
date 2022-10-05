@@ -34,6 +34,10 @@ local D_rawset = D.rawset
 local D_rawget = D.rawget
 local D_rawlen = D.rawlen
 local D_export = D.export
+local D_select = D.select
+local D_newuserdata = D.newuserdata
+local D_entries = D.entries
+local D_replace = D.replace
 
 local string_metatable
 local string_len
@@ -183,41 +187,6 @@ D.OP_CLOSE = D_export(OP_CLOSE)
 
 ---------------------------------------------------------------------------
 
-local function table_unpack(list, i, j)
-  if i < j then
-    return list[i], table_unpack(list, i + 1, j)
-  else
-    return list[i]
-  end
-end
-
-
-
-
-
-
----------------------------------------------------------------------------
-
-function print(...)
-  local result = table.pack(...)
-  for i = 1, result.n do
-    result[i] = tostring(result[i])
-  end
-  G.console:log(table.concat(result, "\t", 1, result.n))
-end
-
-function require(modname)
-  if package.loaded == nil then
-    package.loaded = {}
-  end
-  local module = package.loaded[modname]
-  if module == nil then
-    module = package.preload[modname]()
-    package.loaded[modname] = module
-  end
-  return module
-end
-
 local function select_impl(index, v, ...)
   if index == 2 then
     return ...
@@ -226,9 +195,9 @@ local function select_impl(index, v, ...)
   end
 end
 
-function select(index, ...)
+local function select(index, ...)
   if index == "#" then
-    return D.select(...)
+    return D_select(...)
   elseif index == 1 then
     return ...
   else
@@ -236,7 +205,87 @@ function select(index, ...)
   end
 end
 
-function tostring(v)
+local function table_pack(...)
+  return { n = D_select(...), ... }
+end
+
+local function table_unpack_impl(list, i, j)
+  if i == j then
+    return list[i]
+  else
+    return list[i], table_unpack_impl(list, i + 1, j)
+  end
+end
+
+local function table_unpack(list, i, j)
+  if i == nil then
+    i = 1
+  end
+  if j == nil then
+    j = #list
+  end
+  if i > j then
+    return
+  end
+
+  return table_unpack_impl(list, i, j)
+end
+
+local function table_concat(list, sep, i, j)
+  if sep == nil then
+    sep = ""
+  end
+  if i == nil then
+    i = 1
+  end
+  if j == nil then
+    j = #list
+  end
+  if i > j then
+    return ""
+  end
+
+  local result = list[i]
+  for i = i + 1, j do
+    result = result .. sep .. list[i]
+  end
+  return result
+end
+
+local function table_sort(list, comp)
+  if comp == nil then
+    comp = function (a, b) return a < b end
+  end
+
+  local n = #list
+  local array = D_newuserdata(G.Array, table_unpack(list, 1, n));
+  array:sort(D_export(function (a, b)
+    if comp(a, b) then
+      return -1
+    elseif comp(b, a) then
+      return 1
+    else
+      return 0
+    end
+  end))
+  for i = 1, n do
+    list[i] = array[i - 1]
+  end
+end
+
+local table = {
+  concat = table_concat;
+  pack = table_pack;
+  unpack = table_unpack;
+  sort = table_sort;
+}
+
+_ENV.select = select
+_ENV.table = table
+
+---------------------------------------------------------------------------
+
+local function tostring(v)
   local t = type(v)
   if t == "nil" then
     return "nil"
@@ -247,9 +296,9 @@ function tostring(v)
   elseif t == "boolean" then
     return v and "true" or "false"
   elseif t == "table" then
-    local metamethod = D.getmetafield(v, "__tostring")
-    if metamethod ~= nil then
-      local v = metamethod(v)
+    local metafield = getmetafield(v, "__tostring")
+    if metafield ~= nil then
+      local v = metafield(v)
       local t = type(v)
       if t == "number" then
         return G:String(v)
@@ -258,14 +307,29 @@ function tostring(v)
       return v
     end
   end
-  local metafield = D.getmetafield(v, "__name")
+  local metafield = getmetafield(v, "__name")
   if type(metafield) == "string" then
     t = metafield
   end
   return t .. ": " .. v
 end
 
----------------------------------------------------------------------------
+local function print(...)
+  local result = table_pack(...)
+  for i = 1, result.n do
+    result[i] = tostring(result[i])
+  end
+  G.console:log(table_concat(result, "\t", 1, result.n))
+end
+
+local function require(modname)
+  local module = package.loaded[modname]
+  if module == nil then
+    module = package.preload[modname]()
+    package.loaded[modname] = module
+  end
+  return module
+end
 
 local function ipairs_impl(t, i)
   local i = i + 1
@@ -275,7 +339,7 @@ local function ipairs_impl(t, i)
   end
 end
 
-function ipairs(t)
+local function ipairs(t)
   return ipairs_impl, t, 0
 end
 
@@ -287,91 +351,26 @@ local function pairs_impl(iterator)
   end
 end
 
-function pairs(t)
-  local metamethod = D.getmetafield(t, "__pairs")
+local function pairs(t)
+  local metamethod = getmetafield(t, "__pairs")
   if metamethod ~= nil then
     local f, s, var = metamethod(t)
     return f, s, var
   else
-    return pairs_impl, D.entries(t)
+    return pairs_impl, D_entries(t)
   end
 end
 
----------------------------------------------------------------------------
-
--- local function table_unpack(list, i, j)
---   if i < j then
---     return list[i], table_unpack(list, i + 1, j)
---   else
---     return list[i]
---   end
--- end
-
-local table_sort_compare = D.export(function (a, b)
-  if a < b then
-    return -1
-  elseif a > b then
-    return 1
-  else
-    return 0
-  end
-end)
-
-table = {
-  concat = function (list, sep, i, j)
-    if sep == nil then
-      sep = ""
-    end
-    if i == nil then
-      i = 1
-    end
-    if j == nil then
-      j = #list
-    end
-    if i > j then
-      return ""
-    end
-
-    local result = list[i]
-    for i = i + 1, j do
-      result = result .. sep .. list[i]
-    end
-    return result
-  end;
-
-  pack = function (...)
-    return { n = select("#", ...), ... }
-  end;
-
-  unpack = function (list, i, j)
-    if i == nil then
-      i = 1
-    end
-    if j == nil then
-      j = #list
-    end
-    return table_unpack(list, i, j)
-  end;
-
-  sort = function (list, comp)
-    local array = D.newuserdata(G.Array, table.unpack(list));
-    array:sort(comp == nil and table_sort_compare or D.export(function (a, b)
-      if comp(a, b) then
-        return -1
-      elseif comp(b, a) then
-        return 1
-      else
-        return 0
-      end
-    end))
-    D.OP_SETLIST(list, array)
-  end;
-}
+_ENV.tostring = tostring
+_ENV.print = print
+_ENV.require = require
+_ENV.ipairs = ipairs
+_ENV.pairs = pairs
 
 ---------------------------------------------------------------------------
 
-local string_decoder = D.newuserdata(G.TextDecoder)
-local string_encoder = D.newuserdata(G.TextEncoder)
+local string_decoder = D_newuserdata(G.TextDecoder)
+local string_encoder = D_newuserdata(G.TextEncoder)
 
 local function string_prepare(n, i, j)
   if i < 0 then
@@ -391,29 +390,29 @@ local function string_prepare(n, i, j)
   return i, j
 end
 
-local RE1 = D.newuserdata(G.RegExp, [[\\]], "gs")
-local RE2 = D.newuserdata(G.RegExp, [[\%z]], "gs")
-local RE3 = D.newuserdata(G.RegExp, [[\%(.)]], "gs")
-local RE4 = D.newuserdata(G.RegExp, [[\.\-]], "gs")
+local RE1 = D_newuserdata(G.RegExp, [[\\]], "gs")
+local RE2 = D_newuserdata(G.RegExp, [[\%z]], "gs")
+local RE3 = D_newuserdata(G.RegExp, [[\%(.)]], "gs")
+local RE4 = D_newuserdata(G.RegExp, [[\.\-]], "gs")
 
 local function string_pattern(s)
-  s = D.replace(s, RE1, [[\\]])
-  s = D.replace(s, RE2, [[\u0000]])
-  s = D.replace(s, RE3, [[\$1]])
-  s = D.replace(s, RE4, [[.*?]])
+  s = D_replace(s, RE1, [[\\]])
+  s = D_replace(s, RE2, [[\u0000]])
+  s = D_replace(s, RE3, [[\$1]])
+  s = D_replace(s, RE4, [[.*?]])
   return s
 end
 
-local RE1 = D.newuserdata(G.RegExp, [[\$]], "gs")
-local RE2 = D.newuserdata(G.RegExp, [[\%0]], "gs")
-local RE3 = D.newuserdata(G.RegExp, [[\%([1-9])]], "gs")
-local RE4 = D.newuserdata(G.RegExp, [[\%\%]], "gs")
+local RE1 = D_newuserdata(G.RegExp, [[\$]], "gs")
+local RE2 = D_newuserdata(G.RegExp, [[\%0]], "gs")
+local RE3 = D_newuserdata(G.RegExp, [[\%([1-9])]], "gs")
+local RE4 = D_newuserdata(G.RegExp, [[\%\%]], "gs")
 
 local function string_replace(s)
-  s = D.replace(s, RE1, [[$$$$]])
-  s = D.replace(s, RE2, [[$$&]])
-  s = D.replace(s, RE3, [[$$$1]])
-  s = D.replace(s, RE4, [[%]])
+  s = D_replace(s, RE1, [[$$$$]])
+  s = D_replace(s, RE2, [[$$&]])
+  s = D_replace(s, RE3, [[$$$1]])
+  s = D_replace(s, RE4, [[%]])
   return s
 end
 
@@ -439,13 +438,13 @@ string = {
       for i = 1, n do
         result[i] = buffer[i + m]
       end
-      return table.unpack(result, 1, n)
+      return table_unpack(result, 1, n)
     end
   end;
 
   char = function (...)
-    local source = table.pack(...)
-    local buffer = D.newuserdata(G.Uint8Array, source.n)
+    local source = table_pack(...)
+    local buffer = D_newuserdata(G.Uint8Array, source.n)
     for i = 1, source.n do
       buffer[i - 1] = source[i]
     end
@@ -459,19 +458,19 @@ string = {
     local buffer = string_encoder:encode(s)
     local m, n = string_prepare(buffer.length, i, j)
     if m <= n then
-      return string_decoder:decode(D.newuserdata(G.Uint8Array, buffer.buffer, m - 1, n - m + 1))
+      return string_decoder:decode(D_newuserdata(G.Uint8Array, buffer.buffer, m - 1, n - m + 1))
     else
       return ""
     end
   end;
 
   gsub = function (s, pattern, repl)
-    local re = D.newuserdata(G.RegExp, string_pattern(pattern), "gs")
+    local re = D_newuserdata(G.RegExp, string_pattern(pattern), "gs")
     local t = type(repl)
     if t == "string" then
-      return D.replace(s, re, string_replace(repl))
+      return D_replace(s, re, string_replace(repl))
     elseif t == "table" then
-      return D.replace(s, re, D.export(function (a, b)
+      return D_replace(s, re, D_export(function (a, b)
         local v
         if type(b) == "number" then
           v = repl[a]
@@ -486,7 +485,7 @@ string = {
       end))
     end
     assert(t == "function")
-    return D.replace(s, re, D.export(function (a, b, ...)
+    return D_replace(s, re, D_export(function (a, b, ...)
       local v
       if type(b) == "number" then
         v = repl(a)
