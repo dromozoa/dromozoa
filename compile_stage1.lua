@@ -41,7 +41,7 @@ end
 
 local result_filename, source_root, runtime_filename, main_filename = ...
 local source_map_filename = result_filename .. ".map"
-local source_map_basename = source_map_filename:gsub(".*/", "")
+local source_map_basename = source_map_filename:gsub(".*%/", "")
 
 local runtime_chunk = parse(runtime_filename)
 local main_chunk = parse(main_filename)

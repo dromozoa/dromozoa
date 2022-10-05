@@ -34,8 +34,8 @@ local function insert_action(context, action)
   -- 単語境界を調べるために番兵を置く。
   local s = (" " .. action)
     :gsub("%$([%a_][%w_]*)", context.action.variables)
-    :gsub([[%${'(..-)'}]], context.action.variables)
-    :gsub([[%${<(..-)>}]], function (a)
+    :gsub("%$%{%'(..-)%'%}", context.action.variables)
+    :gsub("%$%{%<(..-)%>%}", function (a)
       return table.concat({ a:byte(1, #a) }, ",")
     end)
     -- fcall()の後の処理が存在する場合、継続として分割する。

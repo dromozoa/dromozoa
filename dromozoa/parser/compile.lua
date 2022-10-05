@@ -48,11 +48,11 @@ return function (grammar, actions)
       semantic_action = ""
     end
     local semantic_action = semantic_action
-      :gsub("$([%a_][%w_]*)", grammar.symbol_table)
-      :gsub("${'(..-)'}", grammar.symbol_table)
-      :gsub("$([1-9]%d*)", "S[%1]")
-      :gsub("$0", "S[0]")
-      :gsub("$%$", "SS")
+      :gsub("%$([%a_][%w_]*)", grammar.symbol_table)
+      :gsub("%$%{%'(..-)%'%}", grammar.symbol_table)
+      :gsub("%$([1-9]%d*)", "S[%1]")
+      :gsub("%$0", "S[0]")
+      :gsub("%$%$", "SS")
 
     local v = "function()" .. semantic_action .. "\nend;\n"
     local n = action_map[v]
