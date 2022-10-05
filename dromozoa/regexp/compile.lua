@@ -33,17 +33,17 @@ local function insert_action(context, action)
 
   -- 単語境界を調べるために番兵を置く。
   local s = (" " .. action)
-    :gsub("%$([%a_][%w_]*)", context.action.variables)
+    :gsub("%$([A-Za-z_][0-9A-Za-z_]*)", context.action.variables)
     :gsub("%$%{%'(..-)%'%}", context.action.variables)
     :gsub("%$%{%<(..-)%>%}", function (a)
       return table.concat({ a:byte(1, #a) }, ",")
     end)
     -- fcall()の後の処理が存在する場合、継続として分割する。
-    :gsub("(.-[^%w_]fcall%s*%(.-%)%s*)", function (a)
-      append(actions, insert(context.action, "function()" .. a:gsub("^%s+", ""):gsub("%s+$", "") .. "\nend;\n"))
+    :gsub("(.-[^0-9A-Za-z_]fcall[\t-\r ]*%(.-%))[\t-\r ]*", function (a)
+      append(actions, insert(context.action, "function()" .. a:gsub("^[\t-\r ]+", "") .. "\nend;\n"))
       return ""
     end)
-  append(actions, insert(context.action, "function()" .. s:gsub("^%s+", ""):gsub("%s+$", "") .. "\nend;\n"))
+  append(actions, insert(context.action, "function()" .. s:gsub("^[\t-\r ]+", "") .. "\nend;\n"))
 
   for i, action in ipairs(actions) do
     context.action.continuations[action] = actions[i + 1] or 0

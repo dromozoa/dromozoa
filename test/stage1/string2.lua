@@ -15,28 +15,24 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local append = require "dromozoa.append"
-local quote_lua = require "dromozoa.quote_lua"
+local quote_js = require "dromozoa.quote_js"
 
-local source_filename, result_filename = ...
+local s = [====[
+fcall(1)
+-- foo
+-- bar
+-- baz
+--[[ ]=] ]]
+--[==[ ]=] ]==]
+_fcall(0)fcall(2)fcall_(0)fcall(3)
+]====]
 
-local handle = assert(io.open(source_filename))
-local buffer = handle:read "*a"
-handle:close()
-
-local result = { "return function (context) return {\n" }
-local s = buffer
+s = s
   :gsub("%-%-%[(%=*)%[.-%]%1%]", "")
   :gsub("%-%-[^\n]*", "")
   :gsub("[ \t]+\n", "\n")
   :gsub("\n\n+", "\n")
   :gsub("^\n+", "")
-  :gsub("(.-)%$([A-Za-z_][0-9A-Za-z_]*)", function (a, b)
-    append(result, quote_lua(a), ";\ncontext[", quote_lua(b), "];\n")
-    return ""
-  end)
-append(result, quote_lua(s), ";\n} end\n")
 
-local out = assert(io.open(result_filename, "w"))
-out:write(table.concat(result))
-out:close()
+print(s)
+print(quote_js("\0\a\b\t\n\v\f\r\"\\\127\u{2028}\u{2029}"))

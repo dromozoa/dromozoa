@@ -357,6 +357,32 @@ local function string_prepare(n, i, j)
   return i, j
 end
 
+local RE1 = D.newuserdata(G.RegExp, [[\\]], "gs")
+local RE2 = D.newuserdata(G.RegExp, [[\%z]], "gs")
+local RE3 = D.newuserdata(G.RegExp, [[\%(.)]], "gs")
+local RE4 = D.newuserdata(G.RegExp, [[\.\-]], "gs")
+
+local function string_pattern(s)
+  s = D.replace(s, RE1, [[\\]])
+  s = D.replace(s, RE2, [[\u0000]])
+  s = D.replace(s, RE3, [[\$1]])
+  s = D.replace(s, RE4, [[.*?]])
+  return s
+end
+
+local RE1 = D.newuserdata(G.RegExp, [[\$]], "gs")
+local RE2 = D.newuserdata(G.RegExp, [[\%0]], "gs")
+local RE3 = D.newuserdata(G.RegExp, [[\%([1-9])]], "gs")
+local RE4 = D.newuserdata(G.RegExp, [[\%\%]], "gs")
+
+local function string_replace(s)
+  s = D.replace(s, RE1, [[$$$$]])
+  s = D.replace(s, RE2, [[$$&]])
+  s = D.replace(s, RE3, [[$$$1]])
+  s = D.replace(s, RE4, [[%]])
+  return s
+end
+
 string = {
   len = function (s)
     local buffer = string_encoder:encode(s)
@@ -403,6 +429,42 @@ string = {
     else
       return ""
     end
+  end;
+
+  gsub = function (s, pattern, repl)
+    local re = D.newuserdata(G.RegExp, string_pattern(pattern), "gs")
+    local t = type(repl)
+    if t == "string" then
+      return D.replace(s, re, string_replace(repl))
+    elseif t == "table" then
+      return D.replace(s, re, D.export(function (a, b)
+        local v
+        if type(b) == "number" then
+          v = repl[a]
+        else
+          v = repl[b]
+        end
+        if v then
+          return v
+        else
+          return a
+        end
+      end))
+    end
+    assert(t == "function")
+    return D.replace(s, re, D.export(function (a, b, ...)
+      local v
+      if type(b) == "number" then
+        v = repl(a)
+      else
+        v = repl(b, ...)
+      end
+      if v then
+        return v
+      else
+        return a
+      end
+    end))
   end;
 }
 
