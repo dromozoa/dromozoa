@@ -278,7 +278,7 @@ select:(...a)=>a.length,
 newuserdata:(a,...b)=>new a(...b),
 entries:(a)=>a.map.entries(),
 replace:(a,...b)=>a.replace(...b),
-
+arg:[],
 OP_CHECK_FOR:()=>{},
 OP_ADD:(a,b)=>+a+ +b,
 OP_SUB:(a,b)=>a-b,
@@ -326,7 +326,7 @@ function module.generate_prologue(result, source_map)
   source_map:append_empty_mappings(n)
 end
 
-function module.generate_chunk(result, source_map, chunk)
+function module.generate_chunk(result, source_map, chunk, main)
   append(result, "{\n")
   source_map:append_empty_mappings(1)
 
@@ -334,7 +334,7 @@ function module.generate_chunk(result, source_map, chunk)
     generate_proto(result, source_map, chunk, chunk[i])
   end
 
-  append(result, "D.OP_CALL(P1([E]),[]);\n}\n")
+  append(result, "D.OP_CALL(P1([E]),D.arg);\n}\n")
   source_map:append_empty_mappings(1)
 end
 

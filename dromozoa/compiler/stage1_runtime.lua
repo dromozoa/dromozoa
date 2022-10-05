@@ -38,6 +38,7 @@ local D_select = D.select
 local D_newuserdata = D.newuserdata
 local D_entries = D.entries
 local D_replace = D.replace
+local D_arg = D.arg
 
 local string_metatable
 local string_len
@@ -531,8 +532,22 @@ _ENV.string = string
 
 ---------------------------------------------------------------------------
 
+local arg = {}
 
+if G.process then
+  local argv = G.process.argv
+  if argv then
+    local n = argv.length - 1
+    for i = 0, n do
+      arg[i - 1] = argv[i]
+    end
+    for i = 2, n do
+      D_arg[i - 2] = argv[i]
+    end
+  end
+end
 
+_ENV.arg = arg
 
-
+---------------------------------------------------------------------------
 
