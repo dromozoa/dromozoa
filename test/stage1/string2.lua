@@ -36,3 +36,9 @@ s = s
 
 print(s)
 print(quote_js("\0\a\b\t\n\v\f\r\"\\\127\u{2028}\u{2029}"))
+
+local s = "abcdeabcde"
+print(s:gsub("[a-d]", "%1"))
+print(s:gsub("a(bc)d", "%1"))
+print(s:gsub("[a-d]", { a = "A", b = 42, c = false }))
+print(s:gsub("[a-d]([a-d])", { a = "A", b = 42, c = false }))

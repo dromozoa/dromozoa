@@ -55,7 +55,7 @@ local function type(v)
   elseif t == "boolean" then
     return "boolean"
   elseif t == "function" then
-    return "function"
+    return "userdata"
   end
   if D_instanceof(v, D_LuaFunction) then
     return "function"
@@ -369,8 +369,20 @@ _ENV.pairs = pairs
 
 ---------------------------------------------------------------------------
 
-local string_decoder = D_newuserdata(G.TextDecoder)
 local string_encoder = D_newuserdata(G.TextEncoder)
+local string_decoder = D_newuserdata(G.TextDecoder)
+
+local function string_encode_utf8(s)
+  return string_encoder:encode(s)
+end
+
+local function string_decode_utf8(b)
+  return string_decoder:decode(b)
+end
+
+function string_len(s)
+  return string_encode_utf8(s).length
+end
 
 local function string_prepare(n, i, j)
   if i < 0 then
@@ -390,12 +402,55 @@ local function string_prepare(n, i, j)
   return i, j
 end
 
-local RE1 = D_newuserdata(G.RegExp, [[\\]], "gs")
-local RE2 = D_newuserdata(G.RegExp, [[\%z]], "gs")
-local RE3 = D_newuserdata(G.RegExp, [[\%(.)]], "gs")
-local RE4 = D_newuserdata(G.RegExp, [[\.\-]], "gs")
+local function string_byte(s, i, j)
+  local buffer = string_encode_utf8(s)
+  if i == nil then
+    i = 1
+  end
+  if j == nil then
+    j = i
+  end
+  local m, n = string_prepare(buffer.length, i, j)
+  if m > n then
+    return
+  end
 
-local function string_pattern(s)
+  local n = n - m + 1
+  local m = m - 2
+  local result = {}
+  for i = 1, n do
+    result[i] = buffer[i + m]
+  end
+  return table_unpack(result, 1, n)
+end
+
+local function string_char(...)
+  return string_decode_utf8(G.Uint8Array:from(D_newuserdata(G.Array, ...)))
+end
+
+local function string_sub(s, i, j)
+  local buffer = string_encode_utf8(s)
+  if j == nil then
+    j = -1
+  end
+  local m, n = string_prepare(buffer.length, i, j)
+  if m > n then
+    return ""
+  end
+
+  return string_decode_utf8(D_newuserdata(G.Uint8Array, buffer.buffer, m - 1, n - m + 1))
+end
+
+local function string_gsub_regexp(pattern)
+  return D_newuserdata(G.RegExp, pattern, "gs")
+end
+
+local RE1 = string_gsub_regexp [[\\]]
+local RE2 = string_gsub_regexp [[\%z]]
+local RE3 = string_gsub_regexp [[\%(.)]]
+local RE4 = string_gsub_regexp [[\.\-]]
+
+local function string_gsub_pattern(s)
   s = D_replace(s, RE1, [[\\]])
   s = D_replace(s, RE2, [[\u0000]])
   s = D_replace(s, RE3, [[\$1]])
@@ -403,106 +458,73 @@ local function string_pattern(s)
   return s
 end
 
-local RE1 = D_newuserdata(G.RegExp, [[\$]], "gs")
-local RE2 = D_newuserdata(G.RegExp, [[\%0]], "gs")
-local RE3 = D_newuserdata(G.RegExp, [[\%([1-9])]], "gs")
-local RE4 = D_newuserdata(G.RegExp, [[\%\%]], "gs")
+local RE = string_gsub_regexp [[\%([\%0-9])]]
 
-local function string_replace(s)
-  s = D_replace(s, RE1, [[$$$$]])
-  s = D_replace(s, RE2, [[$$&]])
-  s = D_replace(s, RE3, [[$$$1]])
-  s = D_replace(s, RE4, [[%]])
-  return s
+local function string_gsub_string(repl, match, p)
+  return D_replace(repl, RE, D_export(function (a, b)
+    if b == "%" then
+      return "%"
+    elseif b == "0" then
+      return match
+    else
+      local v = p[G.Number(b)]
+      if v == nil then
+        return a
+      else
+        return v
+      end
+    end
+  end))
 end
 
-string = {
-  len = function (s)
-    local buffer = string_encoder:encode(s)
-    return buffer.length
-  end;
+local function string_gsub(s, pattern, repl)
+  local replacer
+  local t = type(repl)
+  if t == "string" then
+    replacer = function (match, p)
+      return string_gsub_string(repl, match, p)
+    end
+  elseif t == "table" then
+    replacer = function (match, p)
+      return repl[p[1]]
+    end
+  else
+    replacer = function (match, p)
+      return repl(table_unpack(p, 1, p.n))
+    end
+  end
 
-  byte = function (s, i, j)
-    if i == nil then
-      i = 1
-    end
-    if j == nil then
-      j = i
-    end
-    local buffer = string_encoder:encode(s)
-    local m, n = string_prepare(buffer.length, i, j)
-    if m <= n then
-      local n = n - m + 1
-      local m = m - 2
-      local result = {}
-      for i = 1, n do
-        result[i] = buffer[i + m]
+  local re = string_gsub_regexp(string_gsub_pattern(pattern))
+  local n = 0
+  local result = D_replace(s, re, D_export(function (match, ...)
+    local p = table_pack(...)
+    for i = 1, p.n do
+      if type(p[i]) == "number" then
+        p.n = i - 1
+        break
       end
-      return table_unpack(result, 1, n)
     end
-  end;
+    if p.n == 0 then
+      p[1] = match
+      p.n = 1
+    end
+    n = n + 1
+    local v = replacer(match, p)
+    return v and v or match
+  end))
+  return result, n
+end
 
-  char = function (...)
-    local source = table_pack(...)
-    local buffer = D_newuserdata(G.Uint8Array, source.n)
-    for i = 1, source.n do
-      buffer[i - 1] = source[i]
-    end
-    return string_decoder:decode(buffer)
-  end;
-
-  sub = function (s, i, j)
-    if j == nil then
-      j = -1
-    end
-    local buffer = string_encoder:encode(s)
-    local m, n = string_prepare(buffer.length, i, j)
-    if m <= n then
-      return string_decoder:decode(D_newuserdata(G.Uint8Array, buffer.buffer, m - 1, n - m + 1))
-    else
-      return ""
-    end
-  end;
-
-  gsub = function (s, pattern, repl)
-    local re = D_newuserdata(G.RegExp, string_pattern(pattern), "gs")
-    local t = type(repl)
-    if t == "string" then
-      return D_replace(s, re, string_replace(repl))
-    elseif t == "table" then
-      return D_replace(s, re, D_export(function (a, b)
-        local v
-        if type(b) == "number" then
-          v = repl[a]
-        else
-          v = repl[b]
-        end
-        if v then
-          return v
-        else
-          return a
-        end
-      end))
-    end
-    assert(t == "function")
-    return D_replace(s, re, D_export(function (a, b, ...)
-      local v
-      if type(b) == "number" then
-        v = repl(a)
-      else
-        v = repl(b, ...)
-      end
-      if v then
-        return v
-      else
-        return a
-      end
-    end))
-  end;
+local string = {
+  len = string_len;
+  byte = string_byte;
+  char = string_char;
+  sub = string_sub;
+  gsub = string_gsub;
 }
-
-string_len = string.len
 
 string_metatable = {
   __index = string;
 }
+
+_ENV.string = string
