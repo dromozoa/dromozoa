@@ -48,9 +48,9 @@ return function (grammar, actions)
       semantic_action = ""
     end
     local semantic_action = semantic_action
-      :gsub("%$([%a_][%w_]*)", grammar.symbol_table)
+      :gsub("%$([A-Za-z_][0-9A-Za-z_]*)", grammar.symbol_table)
       :gsub("%$%{%'(..-)%'%}", grammar.symbol_table)
-      :gsub("%$([1-9]%d*)", "S[%1]")
+      :gsub("%$([1-9][0-9]*)", "S[%1]")
       :gsub("%$0", "S[0]")
       :gsub("%$%$", "SS")
 
