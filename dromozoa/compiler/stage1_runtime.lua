@@ -352,12 +352,12 @@ local function pairs_impl(iterator)
 end
 
 local function pairs(t)
-  local metamethod = getmetafield(t, "__pairs")
-  if metamethod ~= nil then
-    local f, s, var = metamethod(t)
-    return f, s, var
-  else
+  local metafield = getmetafield(t, "__pairs")
+  if metafield == nil then
     return pairs_impl, D_entries(t)
+  else
+    local f, s, var = metafield(t)
+    return f, s, var
   end
 end
 
