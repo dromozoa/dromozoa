@@ -17,29 +17,26 @@
 
 local quote_lua = require "dromozoa.quote_lua"
 
-local function build(source, result)
-  local handle = assert(io.open(source))
-  local buffer = handle:read "*a"
-  handle:close()
+local source_filename, result_filename = ...
 
-  local buffer = (buffer .. "$")
-    :gsub("%-%-%[(%=*)%[.-%]%1%]", "")
-    :gsub("%-%-[^\n]*", "")
-    :gsub("[ \t]+\n", "\n")
-    :gsub("\n\n+", "\n")
-    :gsub("^\n+", "")
-    :gsub("(.-)%$([%w_]*)", function (a, b)
-      if b == "" then
-        return quote_lua(a) .. ";\n"
-      else
-        return quote_lua(a) .. ";\n" .. "context[" .. quote_lua(b) .. "];\n"
-      end
-    end)
+local handle = assert(io.open(source_filename))
+local buffer = handle:read "*a"
+handle:close()
 
-  local out = assert(io.open(result, "w"))
-  out:write("return function (context) return {\n", buffer, "} end\n")
-  -- out:write "} end\n"
-  out:close()
-end
+local buffer = (buffer .. "$")
+  :gsub("%-%-%[(%=*)%[.-%]%1%]", "")
+  :gsub("%-%-[^\n]*", "")
+  :gsub("[ \t]+\n", "\n")
+  :gsub("\n\n+", "\n")
+  :gsub("^\n+", "")
+  :gsub("(.-)%$([%w_]*)", function (a, b)
+    if b == "" then
+      return quote_lua(a) .. ";\n"
+    else
+      return quote_lua(a) .. ";\n" .. "context[" .. quote_lua(b) .. "];\n"
+    end
+  end)
 
-build(...)
+local out = assert(io.open(result_filename, "w"))
+out:write("return function (context) return {\n", buffer, "} end\n")
+out:close()
