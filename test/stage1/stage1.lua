@@ -92,6 +92,6 @@ g(1)
 g(1,2)
 g(1,2,3)
 
-if 0x1p+3 == 8 then
-  print "ok"
-end
+-- if 0x1p+3 == 8 then
+--   print "ok"
+-- end
