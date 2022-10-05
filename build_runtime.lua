@@ -28,29 +28,17 @@ local function build(source, result)
     :gsub("[ \t]+\n", "\n")
     :gsub("\n\n+", "\n")
     :gsub("^\n+", "")
-
-  local _1, _2
-  function match(s, pattern)
-    _1, _2 = s:match(pattern)
-    return _1 ~= nil
-  end
+    :gsub("(.-)%$([%w_]*)", function (a, b)
+      if b == "" then
+        return quote_lua(a) .. ";\n"
+      else
+        return quote_lua(a) .. ";\n" .. "context[" .. quote_lua(b) .. "];\n"
+      end
+    end)
 
   local out = assert(io.open(result, "w"))
-  out:write "return function (context) return {\n"
-
-  while true do
-    local text
-    text, buffer = assert(buffer:match "(.-)($.*)")
-    out:write(quote_lua(text), ";\n")
-    if buffer == "$" then
-      break
-    end
-    assert(match(buffer, "^$([%a_][%w_]*)(.*)") or match(buffer, "^${'(..-)'}(.*)"))
-    out:write("context[", quote_lua(_1), "];\n")
-    buffer = _2
-  end
-
-  out:write "} end\n"
+  out:write("return function (context) return {\n", buffer, "} end\n")
+  -- out:write "} end\n"
   out:close()
 end
 
