@@ -15,6 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local append = require "dromozoa.append"
 local quote_lua = require "dromozoa.quote_lua"
 
 local source_filename, result_filename = ...
@@ -23,20 +24,19 @@ local handle = assert(io.open(source_filename))
 local buffer = handle:read "*a"
 handle:close()
 
-local buffer = (buffer .. "$")
+local result = { "return function (context) return {\n" }
+local s = buffer
   :gsub("%-%-%[(%=*)%[.-%]%1%]", "")
   :gsub("%-%-[^\n]*", "")
   :gsub("[ \t]+\n", "\n")
   :gsub("\n\n+", "\n")
   :gsub("^\n+", "")
-  :gsub("(.-)%$([%w_]*)", function (a, b)
-    if b == "" then
-      return quote_lua(a) .. ";\n"
-    else
-      return quote_lua(a) .. ";\n" .. "context[" .. quote_lua(b) .. "];\n"
-    end
+  :gsub("(.-)%$([%a_][%w_]*)", function (a, b)
+    append(result, quote_lua(a), ";\ncontext[", quote_lua(b), "];\n")
+    return ""
   end)
+append(result, quote_lua(s), ";\n} end\n")
 
 local out = assert(io.open(result_filename, "w"))
-out:write("return function (context) return {\n", buffer, "} end\n")
+out:write(table.concat(result))
 out:close()

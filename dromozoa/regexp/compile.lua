@@ -28,19 +28,19 @@ local function insert(t, v)
   return n
 end
 
-local function insert_action(context, s)
+local function insert_action(context, action)
   local actions = {}
 
   -- 単語境界を調べるために番兵を置く。
-  local s = (" " .. s)
-    :gsub("$([%a_][%w_]*)", context.action.variables)
-    :gsub([[${'(..-)'}]], context.action.variables)
-    :gsub([[${<(..-)>}]], function (s)
-      return table.concat({ s:byte(1, #s) }, ",")
+  local s = (" " .. action)
+    :gsub("%$([%a_][%w_]*)", context.action.variables)
+    :gsub([[%${'(..-)'}]], context.action.variables)
+    :gsub([[%${<(..-)>}]], function (a)
+      return table.concat({ a:byte(1, #a) }, ",")
     end)
     -- fcall()の後の処理が存在する場合、継続として分割する。
-    :gsub("(.-[^%w_]fcall%s*%(.-%)%s*)", function (s)
-      append(actions, insert(context.action, "function()" .. s:gsub("^%s+", ""):gsub("%s+$", "") .. "\nend;\n"))
+    :gsub("(.-[^%w_]fcall%s*%(.-%)%s*)", function (a)
+      append(actions, insert(context.action, "function()" .. a:gsub("^%s+", ""):gsub("%s+$", "") .. "\nend;\n"))
       return ""
     end)
   append(actions, insert(context.action, "function()" .. s:gsub("^%s+", ""):gsub("%s+$", "") .. "\nend;\n"))
