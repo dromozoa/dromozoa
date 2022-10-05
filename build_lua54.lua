@@ -351,7 +351,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 }))
 
 for _, message in ipairs(conflictions) do
-  if message:find "^%[warn%]" then
+  if message:match "^%[warn%]" then
     print(message)
   end
 end
