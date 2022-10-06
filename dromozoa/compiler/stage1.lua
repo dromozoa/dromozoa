@@ -261,6 +261,8 @@ local function generate_proto(result, source_map, chunk, proto)
 end
 
 local code, n = ([[
+import * as fs from "fs";
+globalThis.fs=fs;
 const D={
 LuaError:class LuaError extends Error{constructor(msg){super(msg);this.name="LuaError";this.msg=msg;}},
 LuaFunction:class LuaFunction{constructor(fn){this.fn=fn;}},
@@ -326,7 +328,7 @@ function module.generate_prologue(result, source_map)
   source_map:append_empty_mappings(n)
 end
 
-function module.generate_chunk(result, source_map, chunk, main)
+function module.generate_chunk(result, source_map, chunk)
   append(result, "{\n")
   source_map:append_empty_mappings(1)
 

@@ -551,3 +551,43 @@ _ENV.arg = arg
 
 ---------------------------------------------------------------------------
 
+if G.fs then
+  local fs = G.fs
+
+  local class = {}
+  local metatable = { __index = class }
+
+  function class:write(s)
+    local fd = assert(self.fd)
+    fs:writeSync(fd, s)
+  end
+
+  function class:read(p)
+    assert(p == "*a")
+    local fd = assert(self.fd)
+    local s = fs:fstatSync(fd)
+    local b = D_newuserdata(G.Uint8Array, s.size)
+    fs:readSync(fd, b)
+    return string_decode_utf8(b)
+  end
+
+  function class:close()
+    local fd = self.fd
+    self.fd = nil
+    fs:closeSync(fd)
+  end
+
+  local function io_open(filename, mode)
+    if mode == nil then
+      mode = "r"
+    end
+    local fd = fs:openSync(filename, mode)
+    return setmetatable({ fd = fd }, metatable)
+  end
+
+  local io = {
+    open = io_open;
+  }
+
+  _ENV.io = io
+end
