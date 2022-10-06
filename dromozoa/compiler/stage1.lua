@@ -273,41 +273,12 @@ error:a=>{throw new D.LuaError(a);},
 getmetatable:a=>a.metatable,
 setmetatable:(a,b)=>a.metatable=b,
 rawset:(a,b,c)=>{
-  if (a instanceof D.LuaTable) {
-    if (c === undefined) {
-      if (a.n !== undefined && a.n-- !== b) {
-        a.n = undefined;
-      }
-      a.map.delete(b);
-    } else {
-      if (a.n !== undefined && ++a.n !== b) {
-        a.n = undefined;
-      }
-      a.map.set(b, c);
-    }
-  } else {
-    if (c === undefined) {
-      delete a[b];
-    } else {
-      a[b] = c;
-    }
-  }
-  return a;
+if(a instanceof D.LuaTable)if(c===undefined){if(a.n!==undefined&&a.n--!==b)a.n=undefined;a.map.delete(b);}else{if(a.n!==undefined&&++a.n!==b)a.n=undefined;a.map.set(b,c);}
+else if(c===undefined)delete a[b];else a[b]=c;
+return a;
 },
 rawget:(a,b)=>a instanceof D.LuaTable?a.map.get(b):a[b],
-rawlen:a=>{
-  let n = a.n;
-  if (n !== undefined) {
-    return n;
-  }
-
-  n = 1;
-  for (; a.map.get(n) !== undefined; ++n) {}
-  --n;
-  a.n = n;
-
-  return n;
-},
+rawlen:a=>{let n=a.n;if(n!==undefined)return n;for (n=1;a.map.get(n)!==undefined;++n);return a.n=--n;},
 export:(a)=>(...b)=>a.fn(...b)[0],
 select:(...a)=>a,
 newuserdata:(a,...b)=>new a(...b),

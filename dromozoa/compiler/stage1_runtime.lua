@@ -44,9 +44,6 @@ local string_len
 
 ---------------------------------------------------------------------------
 
-local type = D_type
-local error = D_error
-
 local function assert(...)
   if ... then
     return ...
@@ -61,7 +58,7 @@ local function assert(...)
 end
 
 local function getmetafield(object, event)
-  local t = type(object)
+  local t = D_type(object)
   if t == "string" then
     return D_rawget(string_metatable, event)
   elseif t == "table" then
@@ -73,7 +70,7 @@ local function getmetafield(object, event)
 end
 
 local function getmetatable(object)
-  local t = type(object)
+  local t = D_type(object)
   if t == "string" then
     return string_metatable
   elseif t == "table" then
@@ -87,8 +84,8 @@ local function getmetatable(object)
 end
 
 local function setmetatable(table, metatable)
-  assert(type(table) == "table")
-  local t = type(metatable)
+  assert(D_type(table) == "table")
+  local t = D_type(metatable)
   assert(t == "nil" or t == "table")
   assert(getmetafield(table, "__metatable") == nil, "cannot change a protected metatable")
   D_setmetatable(table, metatable)
@@ -96,7 +93,7 @@ local function setmetatable(table, metatable)
 end
 
 local function rawlen(v)
-  local t = type(v)
+  local t = D_type(v)
   if t == "string" then
     return string_len(v)
   elseif t == "table" then
@@ -109,12 +106,12 @@ local function rawlen(v)
 end
 
 local function OP_SETTABLE(object, k, v)
-  local t = type(object)
+  local t = D_type(object)
   assert(t == "table" or t == "userdata")
   if D_rawget(object, k) == nil then
     local metafield = getmetafield(object, "__newindex")
     if metafield ~= nil then
-      if type(metafield) == "table" then
+      if D_type(metafield) == "table" then
         metafield[k] = v
       else
         metafield(object, k, v)
@@ -126,7 +123,7 @@ local function OP_SETTABLE(object, k, v)
 end
 
 local function OP_GETTABLE(object, k)
-  local t = type(object)
+  local t = D_type(object)
   if t == "table" or t == "userdata" then
     local v = D_rawget(object, k)
     if v ~= nil then
@@ -135,7 +132,7 @@ local function OP_GETTABLE(object, k)
   end
   local metafield = getmetafield(object, "__index")
   if metafield ~= nil then
-    if type(metafield) == "table" then
+    if D_type(metafield) == "table" then
       return metafield[k]
     else
       return metafield(object, k)
@@ -151,8 +148,8 @@ end
 
 ---------------------------------------------------------------------------
 
-_ENV.type = type
-_ENV.error = error
+_ENV.type = D_type
+_ENV.error = D_error
 _ENV.assert = assert
 _ENV.getmetatable = getmetatable
 _ENV.setmetatable = setmetatable
@@ -266,7 +263,7 @@ _ENV.table = table
 ---------------------------------------------------------------------------
 
 local function tostring(v)
-  local t = type(v)
+  local t = D_type(v)
   if t == "nil" then
     return "nil"
   elseif t == "number" then
@@ -279,7 +276,7 @@ local function tostring(v)
     local metafield = getmetafield(v, "__tostring")
     if metafield ~= nil then
       local v = metafield(v)
-      local t = type(v)
+      local t = D_type(v)
       if t == "number" then
         return G:String(v)
       end
@@ -288,7 +285,7 @@ local function tostring(v)
     end
   end
   local metafield = getmetafield(v, "__name")
-  if type(metafield) == "string" then
+  if D_type(metafield) == "string" then
     t = metafield
   end
   return t .. ": " .. v
@@ -469,7 +466,7 @@ end
 
 local function string_gsub(s, pattern, repl)
   local replacer
-  local t = type(repl)
+  local t = D_type(repl)
   if t == "string" then
     replacer = function (match, p)
       return string_gsub_string(repl, match, p)
@@ -489,7 +486,7 @@ local function string_gsub(s, pattern, repl)
   local result = D_replace(s, re, D_export(function (match, ...)
     local p = table_pack(...)
     for i = 1, p.n do
-      if type(p[i]) == "number" then
+      if D_type(p[i]) == "number" then
         p.n = i - 1
         break
       end
