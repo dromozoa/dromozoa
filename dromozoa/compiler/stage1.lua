@@ -220,18 +220,20 @@ local function generate_proto(result, source_map, chunk, proto)
     end
     append(result, "...VA")
   end
-  append(result, ")=>{// ", proto.node.f, ":", proto.node.n, ":", proto.node.c, "\nlet S=[],a,b,c")
+  append(result, ")=>{// ", proto.node.f, ":", proto.node.n, ":", proto.node.c, "\nlet S=[],a,b,c;\n")
+  source_map:append_empty_mappings(2)
+
   for i, v in ipairs(proto.locals) do
-    append(result, ",V", i)
+    append(result, "let V", i)
     if i <= proto.nparams then
       append(result, "=[A", i, "]")
     end
+    append(result, ";\n")
+    source_map:append_empty_mappings(1)
     if v.attribute == "close" then
       try_catch = true
     end
   end
-  append(result, ";\n")
-  source_map:append_empty_mappings(2)
 
   if try_catch then
     append(result, "try{\n")
@@ -359,7 +361,7 @@ function module.generate_chunk(result, source_map, chunk)
   end
 
   append(result, "D.OP_CALL(P1([E]),D.arg);\n}\n")
-  source_map:append_empty_mappings(1)
+  source_map:append_empty_mappings(2)
 end
 
 function module.generate_module(result, source_map, name, chunk)
