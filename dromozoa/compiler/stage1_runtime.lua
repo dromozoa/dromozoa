@@ -25,8 +25,7 @@ local G = globalThis
 
 local D_LuaFunction = D.LuaFunction
 local D_LuaTable = D.LuaTable
-local D_typeof = D.typeof
-local D_instanceof = D.instanceof
+local D_type = D.type
 local D_error = D.error
 local D_getmetatable = D.getmetatable
 local D_setmetatable = D.setmetatable
@@ -45,33 +44,8 @@ local string_len
 
 ---------------------------------------------------------------------------
 
-local type = D.type
-
--- local function type(v)
---   local t = D_typeof(v)
---   if t == "undefined" then
---     return "nil"
---   elseif t == "number" then
---     return "number"
---   elseif t == "string" then
---     return "string"
---   elseif t == "boolean" then
---     return "boolean"
---   elseif t == "function" then
---     return "userdata"
---   end
---   if D_instanceof(v, D_LuaFunction) then
---     return "function"
---   elseif D_instanceof(v, D_LuaTable) then
---     return "table"
---   else
---     return "userdata"
---   end
--- end
-
-local function error(message)
-  D_error(message)
-end
+local type = D_type
+local error = D_error
 
 local function assert(...)
   if ... then

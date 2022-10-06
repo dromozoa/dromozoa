@@ -267,53 +267,21 @@ const D={
 LuaError:class LuaError extends Error{constructor(msg){super(msg);this.name="LuaError";this.msg=msg;}},
 LuaFunction:class LuaFunction{constructor(fn){this.fn=fn;}},
 LuaTable:class LuaTable{constructor(){this.map=new Map();this.n=0}},
-type:a=>{
-  const t = typeof a;
-  if (t === "undefined") {
-    return "nil";
-  } else if (t === "number") {
-    return "number";
-  } else if (t === "string") {
-    return "string";
-  } else if (t === "boolean") {
-    return "boolean";
-  } else if (t === "function") {
-    return "userdata";
-  }
-  if (a instanceof D.LuaFunction) {
-    return "function";
-  } else if (a instanceof D.LuaTable) {
-    return "table";
-  } else {
-    return "userdata";
-  }
-},
-typeof:a=>typeof a,
-instanceof:(a,b)=>a instanceof b,
+type_impl:{undefined:"nil",number:"number",string:"string",boolean:"boolean"},
+type:a=>{const t=D.type_impl[typeof a];return t!==undefined?t:a instanceof D.LuaFunction?"function":a instanceof D.LuaTable?"table":"userdata";},
 error:a=>{throw new D.LuaError(a);},
 getmetatable:a=>a.metatable,
 setmetatable:(a,b)=>a.metatable=b,
 rawset:(a,b,c)=>{
   if (a instanceof D.LuaTable) {
     if (c === undefined) {
-      let n = a.n;
-      if (n !== undefined) {
-        if (n === b) {
-          a.n = n - 1;
-        } else {
-          a.n = undefined;
-        }
+      if (a.n !== undefined && a.n-- !== b) {
+        a.n = undefined;
       }
       a.map.delete(b);
     } else {
-      let n = a.n;
-      if (n !== undefined) {
-        ++n;
-        if (n === b) {
-          a.n = n;
-        } else {
-          a.n = undefined;
-        }
+      if (a.n !== undefined && ++a.n !== b) {
+        a.n = undefined;
       }
       a.map.set(b, c);
     }
