@@ -32,8 +32,12 @@ local D_getmetatable = D.getmetatable
 local D_getmetafield = D.getmetafield
 local D_setmetatable = D.setmetatable
 
-local D_export = D.export
 local D_select = D.select
+local D_array_pack = D.array_pack
+local D_array_unpack = D.array_unpack
+local D_array_from = D.array_from
+
+local D_export = D.export
 local D_newuserdata = D.newuserdata
 local D_entries = D.entries
 local D_replace = D.replace
@@ -57,37 +61,12 @@ _ENV.error = D_error
 _ENV.assert = assert
 _ENV.getmetatable = D_getmetatable
 _ENV.setmetatable = D_setmetatable
+_ENV.select = D_select
 
 ---------------------------------------------------------------------------
 
-local function select_impl(index, v, ...)
-  if index == 2 then
-    return ...
-  else
-    return select_impl(index - 1, ...)
-  end
-end
-
-local function select(index, ...)
-  if index == "#" then
-    return D_select(...).length
-  elseif index == 1 then
-    return ...
-  else
-    return select_impl(index, ...)
-  end
-end
-
 local function table_pack(...)
-  return { n = D_select(...).length, ... }
-end
-
-local function table_unpack_impl(list, i, j)
-  if i == j then
-    return list[i]
-  else
-    return list[i], table_unpack_impl(list, i + 1, j)
-  end
+  return { n = D_select("#", ...), ... }
 end
 
 local function table_unpack(list, i, j)
@@ -97,11 +76,7 @@ local function table_unpack(list, i, j)
   if j == nil then
     j = #list
   end
-  if i > j then
-    return
-  end
-
-  return table_unpack_impl(list, i, j)
+  return D_array_unpack(D_array_from(list, i, j))
 end
 
 local function table_concat(list, sep, i, j)
@@ -114,18 +89,7 @@ local function table_concat(list, sep, i, j)
   if j == nil then
     j = #list
   end
-  if i > j then
-    return ""
-  end
-
-  -- TODO 単純にtable_unpackするとスタックが足りなくなる
-  -- return D_select(table_unpack(list, i, j)):join(sep)
-
-  local result = list[i]
-  for i = i + 1, j do
-    result = result .. sep .. list[i]
-  end
-  return result
+  return D_array_from(list, i, j):join(sep)
 end
 
 local function table_sort(list, comp)
@@ -134,7 +98,7 @@ local function table_sort(list, comp)
   end
 
   local n = #list
-  local array = D_select(table_unpack(list, 1, n))
+  local array = D_array_from(list, 1, n)
   array:sort(D_export(function (a, b)
     if comp(a, b) then
       return -1
@@ -156,7 +120,6 @@ local table = {
   sort = table_sort;
 }
 
-_ENV.select = select
 _ENV.table = table
 
 ---------------------------------------------------------------------------
@@ -246,11 +209,9 @@ _ENV.pairs = pairs
 ---------------------------------------------------------------------------
 
 local string_encoder = D_newuserdata(G.TextEncoder)
-
 local string_encoder_cache = {}
 
 local function string_encode_utf8(s)
-  -- return string_encoder:encode(s)
   local b = string_encoder_cache[s]
   if b ~= nil then
     return b
@@ -277,14 +238,12 @@ local function string_prepare(n, i, j)
   if i < 1 then
     i = 1
   end
-
   if j < 0 then
     j = j + n + 1
   end
   if j > n then
     j = n
   end
-
   return i, j
 end
 
@@ -296,22 +255,12 @@ local function string_byte(s, i, j)
   if j == nil then
     j = i
   end
-  local m, n = string_prepare(buffer.length, i, j)
-  if m > n then
-    return
-  end
-
-  local n = n - m + 1
-  local m = m - 2
-  local result = {}
-  for i = 1, n do
-    result[i] = buffer[i + m]
-  end
-  return table_unpack(result, 1, n)
+  local i, j = string_prepare(buffer.length, i, j)
+  return D_array_unpack(G.Array:from(buffer:subarray(i - 1, j)))
 end
 
 local function string_char(...)
-  return string_decode_utf8(G.Uint8Array:from(D_select(...)))
+  return string_decode_utf8(G.Uint8Array:from(D_array_pack(...)))
 end
 
 local function string_sub(s, i, j)
@@ -319,12 +268,8 @@ local function string_sub(s, i, j)
   if j == nil then
     j = -1
   end
-  local m, n = string_prepare(buffer.length, i, j)
-  if m > n then
-    return ""
-  end
-
-  return string_decode_utf8(D_newuserdata(G.Uint8Array, buffer.buffer, m - 1, n - m + 1))
+  local i, j = string_prepare(buffer.length, i, j)
+  return string_decode_utf8(buffer:subarray(i - 1, j))
 end
 
 local function string_gsub_regexp(pattern)
