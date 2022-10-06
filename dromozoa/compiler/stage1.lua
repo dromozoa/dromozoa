@@ -266,15 +266,60 @@ globalThis.fs=fs;
 const D={
 LuaError:class LuaError extends Error{constructor(msg){super(msg);this.name="LuaError";this.msg=msg;}},
 LuaFunction:class LuaFunction{constructor(fn){this.fn=fn;}},
-LuaTable:class LuaTable{constructor(){this.map=new Map();}},
+LuaTable:class LuaTable{constructor(){this.map=new Map();this.n=0}},
 typeof:a=>typeof a,
 instanceof:(a,b)=>a instanceof b,
 error:a=>{throw new D.LuaError(a);},
 getmetatable:a=>a.metatable,
 setmetatable:(a,b)=>a.metatable=b,
-rawset:(a,b,c)=>{if(a instanceof D.LuaTable)if(c===undefined)a.map.delete(b);else a.map.set(b,c);else if(c===undefined)delete a[b];else a[b]=c;return a;},
+rawset:(a,b,c)=>{
+  if (a instanceof D.LuaTable) {
+    if (c === undefined) {
+      let n = a.n;
+      if (n !== undefined) {
+        if (n === b) {
+          a.n = n - 1;
+        } else {
+          a.n = undefined;
+        }
+      }
+
+      a.map.delete(b);
+    } else {
+      let n = a.n;
+      if (n !== undefined) {
+        ++n;
+        if (n === b) {
+          a.n = n;
+        } else {
+          a.n = undefined;
+        }
+      }
+      a.map.set(b, c);
+    }
+  } else {
+    if (c===undefined) {
+      delete a[b];
+    } else {
+      a[b] = c;
+    }
+  }
+  return a;
+},
 rawget:(a,b)=>a instanceof D.LuaTable?a.map.get(b):a[b],
-rawlen:a=>{let n=1;for(;D.rawget(a,n)!==undefined;++n);return n-1;},
+rawlen:a=>{
+  let n = a.n;
+  if (n !== undefined) {
+    return n;
+  }
+
+  n = 1;
+  for (; a.map.get(n) !== undefined; ++n) {}
+  --n;
+  a.n = n;
+
+  return n;
+},
 export:(a)=>(...b)=>a.fn(...b)[0],
 select:(...a)=>a,
 newuserdata:(a,...b)=>new a(...b),
