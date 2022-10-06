@@ -16,7 +16,7 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local append = require "dromozoa.append"
-local quote = require "dromozoa.compiler.quote"
+local quote_js = require "dromozoa.quote_js"
 
 local class = {}
 local metatable = { __index = class, __name = "dromozoa.compiler.source_map" }
@@ -70,14 +70,14 @@ function class:generate()
   local result = {}
   append(result, '{"version":3,')
   if self.root then
-    append(result, '"sourceRoot":', quote(self.root), ",")
+    append(result, '"sourceRoot":', quote_js(self.root), ",")
   end
   append(result, '"sources":[')
   for i, file in ipairs(self.files) do
     if i > 1 then
       append(result, ",")
     end
-    append(result, quote(file))
+    append(result, quote_js(file))
   end
   append(result, '],"names":[],"mappings":"')
 

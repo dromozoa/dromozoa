@@ -39,18 +39,19 @@ out:write(regexp.compile {
   long_comment = regexp.machine.guard("freturn()", {
     _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
     _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
-    _();
+    -_{"\n\r"};
   });
 
   long_literal_string = regexp.machine.guard("freturn()", {
     _"\n"/"append(0x0A) ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
     _"\r"/"append(0x0A) ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
-    _()/"append(fc)";
+    -_{"\n\r"}/"append(fc)";
   });
 
   short_literal_string = regexp.machine.guard("freturn()", {
     _"\\" + _{
       _"a"/"append(0x07)";
+      _"b"/"append(0x08)";
       _"f"/"append(0x0C)";
       _"n"/"append(0x0A)";
       _"r"/"append(0x0D)";
@@ -84,7 +85,7 @@ out:write(regexp.compile {
 
     (_"\\" + _["09"]/"ra=fc-${<0>}" + _["09"]/"ra=ra*10+fc-${<0>}"*{0,2}) %"fassert(ra<=255,'decimal escape too large') append(ra)";
 
-    _()/"append(fc)";
+    -_{"\\"}/"append(fc)";
   });
 
   regexp.machine.lexer(token_names, {
@@ -351,7 +352,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
 }))
 
 for _, message in ipairs(conflictions) do
-  if message:find "^%[warn%]" then
+  if message:sub(1, 6) == "[warn]" then
     print(message)
   end
 end

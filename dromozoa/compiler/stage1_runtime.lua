@@ -23,67 +23,87 @@
 local D = dromozoa
 local G = globalThis
 
----------------------------------------------------------------------------
-
-function error(message)
-  D.error(message)
-end
-
-function assert(v, message, ...)
-  if v then
-    return v, message, ...
-  elseif message == nil then
-    return error "assertion failed!"
-  else
-    return error(message)
-  end
-end
-
-function type(v)
-  local t = D.typeof(v)
-  if t == "undefined" then
-    return "nil"
-  elseif t == "number" then
-    return "number"
-  elseif t == "string" then
-    return "string"
-  elseif t == "boolean" then
-    return "boolean"
-  elseif t == "function" then
-    return "function"
-  end
-  assert(t == "object")
-  if D.instanceof(v, D.LuaFunction) then
-    return "function"
-  elseif D.instanceof(v, D.LuaTable) then
-    return "table"
-  else
-    return "userdata"
-  end
-end
-
----------------------------------------------------------------------------
+local D_LuaFunction = D.LuaFunction
+local D_LuaTable = D.LuaTable
+local D_typeof = D.typeof
+local D_instanceof = D.instanceof
+local D_error = D.error
+local D_getmetatable = D.getmetatable
+local D_setmetatable = D.setmetatable
+local D_rawset = D.rawset
+local D_rawget = D.rawget
+local D_rawlen = D.rawlen
+local D_export = D.export
+local D_select = D.select
+local D_newuserdata = D.newuserdata
+local D_entries = D.entries
+local D_replace = D.replace
+local D_arg = D.arg
 
 local string_metatable
+local string_len
 
-D.getmetafield = D.export(function (object, event)
-  local t = type(object)
-  if t == "string" then
-    return string_metatable[event]
-  elseif t == "table" then
-    local metatable = D.getmetatable(object)
-    if metatable ~= nil then
-      return metatable[event]
+---------------------------------------------------------------------------
+
+local type = D.type
+
+-- local function type(v)
+--   local t = D_typeof(v)
+--   if t == "undefined" then
+--     return "nil"
+--   elseif t == "number" then
+--     return "number"
+--   elseif t == "string" then
+--     return "string"
+--   elseif t == "boolean" then
+--     return "boolean"
+--   elseif t == "function" then
+--     return "userdata"
+--   end
+--   if D_instanceof(v, D_LuaFunction) then
+--     return "function"
+--   elseif D_instanceof(v, D_LuaTable) then
+--     return "table"
+--   else
+--     return "userdata"
+--   end
+-- end
+
+local function error(message)
+  D_error(message)
+end
+
+local function assert(...)
+  if ... then
+    return ...
+  else
+    local _, message = ...
+    if message == nil then
+      return D_error "assertion failed!"
+    else
+      return D_error(message)
     end
   end
-end)
+end
 
-function getmetatable(object)
+local function getmetafield(object, event)
+  local t = type(object)
+  if t == "string" then
+    return D_rawget(string_metatable, event)
+  elseif t == "table" then
+    local metatable = D_getmetatable(object)
+    if metatable ~= nil then
+      return D_rawget(metatable, event)
+    end
+  end
+end
+
+local function getmetatable(object)
   local t = type(object)
   if t == "string" then
     return string_metatable
   elseif t == "table" then
-    local metatable = D.getmetatable(object)
+    local metatable = D_getmetatable(object)
     if metatable == nil or metatable.__metatable == nil then
       return metatable
     else
@@ -92,94 +112,83 @@ function getmetatable(object)
   end
 end
 
-function setmetatable(table, metatable)
+local function setmetatable(table, metatable)
   assert(type(table) == "table")
   local t = type(metatable)
   assert(t == "nil" or t == "table")
-  assert(D.getmetafield(table, "__metatable") == nil, "cannot change a protected metatable")
-  D.setmetatable(table, metatable)
+  assert(getmetafield(table, "__metatable") == nil, "cannot change a protected metatable")
+  D_setmetatable(table, metatable)
   return table
 end
 
----------------------------------------------------------------------------
-
-local rawget = D.rawget
-local rawset = D.rawset
-
-D.OP_SETTABLE = D.export(function (t, k, v)
-  if rawget(t, k) == nil then
-    local metafield = D.getmetafield(t, "__newindex")
-    if metafield ~= nil then
-      if type(metafield) == "table" then
-        metafield[k] = v
-      else
-        metafield(t, k, v)
-      end
-      return t
-    end
-  end
-  return rawset(t, k, v)
-end)
-
-D.OP_GETTABLE = D.export(function (t, k)
-  local v = rawget(t, k)
-  if v ~= nil then
-    return v
-  end
-  local metafield = D.getmetafield(t, "__index")
-  if metafield ~= nil then
-    if type(metafield) == "table" then
-      return metafield[k]
-    else
-      return metafield(t, k)
-    end
-  end
-end)
-
-D.OP_CLOSE = D.export(function (object)
-  if object ~= nil then
-    D.getmetafield(object, "__close")(object)
-  end
-end)
-
----------------------------------------------------------------------------
-
-local rawlen = D.rawlen
-
-D.rawlen = D.export(function (v)
+local function rawlen(v)
   local t = type(v)
   if t == "string" then
-    return string.len(v)
+    return string_len(v)
   elseif t == "table" then
-    return rawlen(v)
+    return D_rawlen(v)
   elseif t == "userdata" then
     return v.length
   else
     return 0
   end
-end)
+end
+
+local function OP_SETTABLE(object, k, v)
+  local t = type(object)
+  assert(t == "table" or t == "userdata")
+  if D_rawget(object, k) == nil then
+    local metafield = getmetafield(object, "__newindex")
+    if metafield ~= nil then
+      if type(metafield) == "table" then
+        metafield[k] = v
+      else
+        metafield(object, k, v)
+      end
+      return object
+    end
+  end
+  return D_rawset(object, k, v)
+end
+
+local function OP_GETTABLE(object, k)
+  local t = type(object)
+  if t == "table" or t == "userdata" then
+    local v = D_rawget(object, k)
+    if v ~= nil then
+      return v
+    end
+  end
+  local metafield = getmetafield(object, "__index")
+  if metafield ~= nil then
+    if type(metafield) == "table" then
+      return metafield[k]
+    else
+      return metafield(object, k)
+    end
+  end
+end
+
+local function OP_CLOSE(object)
+  if object ~= nil then
+    getmetafield(object, "__close")(object)
+  end
+end
 
 ---------------------------------------------------------------------------
 
-function print(...)
-  local result = table.pack(...)
-  for i = 1, result.n do
-    result[i] = tostring(result[i])
-  end
-  G.console:log(table.concat(result, "\t", 1, result.n))
-end
+_ENV.type = type
+_ENV.error = error
+_ENV.assert = assert
+_ENV.getmetatable = getmetatable
+_ENV.setmetatable = setmetatable
+D.getmetafield = D_export(getmetafield)
+D.rawlen = D_export(rawlen)
+D.OP_SETTABLE = D_export(OP_SETTABLE)
+D.OP_GETTABLE = D_export(OP_GETTABLE)
+D.OP_CLOSE = D_export(OP_CLOSE)
 
-function require(modname)
-  if package.loaded == nil then
-    package.loaded = {}
-  end
-  local module = package.loaded[modname]
-  if module == nil then
-    module = package.preload[modname]()
-    package.loaded[modname] = module
-  end
-  return module
-end
+---------------------------------------------------------------------------
 
 local function select_impl(index, v, ...)
   if index == 2 then
@@ -189,9 +198,9 @@ local function select_impl(index, v, ...)
   end
 end
 
-function select(index, ...)
+local function select(index, ...)
   if index == "#" then
-    return D.select(...)
+    return D_select(...).length
   elseif index == 1 then
     return ...
   else
@@ -199,7 +208,90 @@ function select(index, ...)
   end
 end
 
-function tostring(v)
+local function table_pack(...)
+  return { n = D_select(...).length, ... }
+end
+
+local function table_unpack_impl(list, i, j)
+  if i == j then
+    return list[i]
+  else
+    return list[i], table_unpack_impl(list, i + 1, j)
+  end
+end
+
+local function table_unpack(list, i, j)
+  if i == nil then
+    i = 1
+  end
+  if j == nil then
+    j = #list
+  end
+  if i > j then
+    return
+  end
+
+  return table_unpack_impl(list, i, j)
+end
+
+local function table_concat(list, sep, i, j)
+  if sep == nil then
+    sep = ""
+  end
+  if i == nil then
+    i = 1
+  end
+  if j == nil then
+    j = #list
+  end
+  if i > j then
+    return ""
+  end
+
+  -- TODO 単純にtable_unpackするとスタックが足りなくなる
+  -- return D_select(table_unpack(list, i, j)):join(sep)
+
+  local result = list[i]
+  for i = i + 1, j do
+    result = result .. sep .. list[i]
+  end
+  return result
+end
+
+local function table_sort(list, comp)
+  if comp == nil then
+    comp = function (a, b) return a < b end
+  end
+
+  local n = #list
+  local array = D_select(table_unpack(list, 1, n))
+  array:sort(D_export(function (a, b)
+    if comp(a, b) then
+      return -1
+    elseif comp(b, a) then
+      return 1
+    else
+      return 0
+    end
+  end))
+  for i = 1, n do
+    list[i] = array[i - 1]
+  end
+end
+
+local table = {
+  concat = table_concat;
+  pack = table_pack;
+  unpack = table_unpack;
+  sort = table_sort;
+}
+
+_ENV.select = select
+_ENV.table = table
+
+---------------------------------------------------------------------------
+
+local function tostring(v)
   local t = type(v)
   if t == "nil" then
     return "nil"
@@ -210,9 +302,9 @@ function tostring(v)
   elseif t == "boolean" then
     return v and "true" or "false"
   elseif t == "table" then
-    local metamethod = D.getmetafield(v, "__tostring")
-    if metamethod ~= nil then
-      local v = metamethod(v)
+    local metafield = getmetafield(v, "__tostring")
+    if metafield ~= nil then
+      local v = metafield(v)
       local t = type(v)
       if t == "number" then
         return G:String(v)
@@ -221,14 +313,29 @@ function tostring(v)
       return v
     end
   end
-  local metafield = D.getmetafield(v, "__name")
+  local metafield = getmetafield(v, "__name")
   if type(metafield) == "string" then
     t = metafield
   end
   return t .. ": " .. v
 end
 
----------------------------------------------------------------------------
+local function print(...)
+  local result = table_pack(...)
+  for i = 1, result.n do
+    result[i] = tostring(result[i])
+  end
+  G.console:log(table_concat(result, "\t", 1, result.n))
+end
+
+local function require(modname)
+  local module = package.loaded[modname]
+  if module == nil then
+    module = package.preload[modname]()
+    package.loaded[modname] = module
+  end
+  return module
+end
 
 local function ipairs_impl(t, i)
   local i = i + 1
@@ -238,7 +345,7 @@ local function ipairs_impl(t, i)
   end
 end
 
-function ipairs(t)
+local function ipairs(t)
   return ipairs_impl, t, 0
 end
 
@@ -250,91 +357,48 @@ local function pairs_impl(iterator)
   end
 end
 
-function pairs(t)
-  local metamethod = D.getmetafield(t, "__pairs")
-  if metamethod ~= nil then
-    local f, s, var = metamethod(t)
+local function pairs(t)
+  local metafield = getmetafield(t, "__pairs")
+  if metafield == nil then
+    return pairs_impl, D_entries(t)
+  else
+    local f, s, var = metafield(t)
     return f, s, var
-  else
-    return pairs_impl, D.entries(t)
   end
 end
 
+_ENV.tostring = tostring
+_ENV.print = print
+_ENV.require = require
+_ENV.ipairs = ipairs
+_ENV.pairs = pairs
+
 ---------------------------------------------------------------------------
 
-local function table_unpack(list, i, j)
-  if i < j then
-    return list[i], table_unpack(list, i + 1, j)
-  else
-    return list[i]
+local string_encoder = D_newuserdata(G.TextEncoder)
+
+local string_encoder_cache = {}
+
+local function string_encode_utf8(s)
+  -- return string_encoder:encode(s)
+  local b = string_encoder_cache[s]
+  if b ~= nil then
+    return b
   end
+  local b = string_encoder:encode(s)
+  string_encoder_cache[s] = b
+  return b
 end
 
-local table_sort_compare = D.export(function (a, b)
-  if a < b then
-    return -1
-  elseif a > b then
-    return 1
-  else
-    return 0
-  end
-end)
+local string_decoder = D_newuserdata(G.TextDecoder)
 
-table = {
-  concat = function (list, sep, i, j)
-    if sep == nil then
-      sep = ""
-    end
-    if i == nil then
-      i = 1
-    end
-    if j == nil then
-      j = #list
-    end
-    if i > j then
-      return ""
-    end
+local function string_decode_utf8(b)
+  return string_decoder:decode(b)
+end
 
-    local result = list[i]
-    for i = i + 1, j do
-      result = result .. sep .. list[i]
-    end
-    return result
-  end;
-
-  pack = function (...)
-    return { n = select("#", ...), ... }
-  end;
-
-  unpack = function (list, i, j)
-    if i == nil then
-      i = 1
-    end
-    if j == nil then
-      j = #list
-    end
-    return table_unpack(list, i, j)
-  end;
-
-  sort = function (list, comp)
-    local array = D.newuserdata(G.Array, table.unpack(list));
-    array:sort(comp == nil and table_sort_compare or D.export(function (a, b)
-      if comp(a, b) then
-        return -1
-      elseif comp(b, a) then
-        return 1
-      else
-        return 0
-      end
-    end))
-    D.OP_SETLIST(list, array)
-  end;
-}
-
----------------------------------------------------------------------------
-
-local string_decoder = D.newuserdata(G.TextDecoder)
-local string_encoder = D.newuserdata(G.TextEncoder)
+function string_len(s)
+  return string_encode_utf8(s).length
+end
 
 local function string_prepare(n, i, j)
   if i < 0 then
@@ -354,70 +418,191 @@ local function string_prepare(n, i, j)
   return i, j
 end
 
-string = {
-  len = function (s)
-    local buffer = string_encoder:encode(s)
-    return buffer.length
-  end;
+local function string_byte(s, i, j)
+  local buffer = string_encode_utf8(s)
+  if i == nil then
+    i = 1
+  end
+  if j == nil then
+    j = i
+  end
+  local m, n = string_prepare(buffer.length, i, j)
+  if m > n then
+    return
+  end
 
-  byte = function (s, i, j)
-    if i == nil then
-      i = 1
-    end
-    if j == nil then
-      j = i
-    end
-    local buffer = string_encoder:encode(s)
-    local m, n = string_prepare(buffer.length, i, j)
-    if m <= n then
-      local n = n - m + 1
-      local m = m - 2
-      local result = {}
-      for i = 1, n do
-        result[i] = buffer[i + m]
-      end
-      return table.unpack(result, 1, n)
-    end
-  end;
+  local n = n - m + 1
+  local m = m - 2
+  local result = {}
+  for i = 1, n do
+    result[i] = buffer[i + m]
+  end
+  return table_unpack(result, 1, n)
+end
 
-  char = function (...)
-    local source = table.pack(...)
-    local buffer = D.newuserdata(G.Uint8Array, source.n)
-    for i = 1, source.n do
-      buffer[i - 1] = source[i]
-    end
-    return string_decoder:decode(buffer)
-  end;
+local function string_char(...)
+  return string_decode_utf8(G.Uint8Array:from(D_select(...)))
+end
 
-  sub = function (s, i, j)
-    if j == nil then
-      j = -1
-    end
-    local buffer = string_encoder:encode(s)
-    local m, n = string_prepare(buffer.length, i, j)
-    if m <= n then
-      return string_decoder:decode(D.newuserdata(G.Uint8Array, buffer.buffer, m - 1, n - m + 1))
+local function string_sub(s, i, j)
+  local buffer = string_encode_utf8(s)
+  if j == nil then
+    j = -1
+  end
+  local m, n = string_prepare(buffer.length, i, j)
+  if m > n then
+    return ""
+  end
+
+  return string_decode_utf8(D_newuserdata(G.Uint8Array, buffer.buffer, m - 1, n - m + 1))
+end
+
+local function string_gsub_regexp(pattern)
+  return D_newuserdata(G.RegExp, pattern, "gs")
+end
+
+local RE1 = string_gsub_regexp [[\\]]
+local RE2 = string_gsub_regexp [[\%z]]
+local RE3 = string_gsub_regexp [[\%(.)]]
+local RE4 = string_gsub_regexp [[\.\-]]
+
+local function string_gsub_pattern(s)
+  s = D_replace(s, RE1, [[\\]])
+  s = D_replace(s, RE2, [[\u0000]])
+  s = D_replace(s, RE3, [[\$1]])
+  s = D_replace(s, RE4, [[.*?]])
+  return s
+end
+
+local RE = string_gsub_regexp [[\%([\%0-9])]]
+
+local function string_gsub_string(repl, match, p)
+  return D_replace(repl, RE, D_export(function (a, b)
+    if b == "%" then
+      return "%"
+    elseif b == "0" then
+      return match
     else
-      return ""
+      local v = p[G.Number(b)]
+      if v == nil then
+        return a
+      else
+        return v
+      end
     end
-  end;
+  end))
+end
+
+local function string_gsub(s, pattern, repl)
+  local replacer
+  local t = type(repl)
+  if t == "string" then
+    replacer = function (match, p)
+      return string_gsub_string(repl, match, p)
+    end
+  elseif t == "table" then
+    replacer = function (match, p)
+      return repl[p[1]]
+    end
+  else
+    replacer = function (match, p)
+      return repl(table_unpack(p, 1, p.n))
+    end
+  end
+
+  local re = string_gsub_regexp(string_gsub_pattern(pattern))
+  local n = 0
+  local result = D_replace(s, re, D_export(function (match, ...)
+    local p = table_pack(...)
+    for i = 1, p.n do
+      if type(p[i]) == "number" then
+        p.n = i - 1
+        break
+      end
+    end
+    if p.n == 0 then
+      p[1] = match
+      p.n = 1
+    end
+    n = n + 1
+    local v = replacer(match, p)
+    return v and v or match
+  end))
+  return result, n
+end
+
+local string = {
+  len = string_len;
+  byte = string_byte;
+  char = string_char;
+  sub = string_sub;
+  gsub = string_gsub;
 }
 
 string_metatable = {
   __index = string;
 }
 
--- string
--- .sub
--- .char
--- .byte
+_ENV.string = string
 
---  :find
---  :format
---  :gmatch
---  :gsub
---  :len
+---------------------------------------------------------------------------
 
--- .pack
--- .unpack
+local arg = {}
 
+if G.process then
+  local argv = G.process.argv
+  if argv then
+    local n = argv.length - 1
+    for i = 0, n do
+      arg[i - 1] = argv[i]
+    end
+    for i = 2, n do
+      D_arg[i - 2] = argv[i]
+    end
+  end
+end
+
+_ENV.arg = arg
+
+---------------------------------------------------------------------------
+
+if G.fs then
+  local fs = G.fs
+
+  local class = {}
+  local metatable = { __index = class }
+
+  function class:write(s)
+    local fd = assert(self.fd)
+    fs:writeSync(fd, s)
+  end
+
+  function class:read(p)
+    assert(p == "*a")
+    local fd = assert(self.fd)
+    local s = fs:fstatSync(fd)
+    local b = D_newuserdata(G.Uint8Array, s.size)
+    fs:readSync(fd, b)
+    return string_decode_utf8(b)
+  end
+
+  function class:close()
+    local fd = self.fd
+    self.fd = nil
+    fs:closeSync(fd)
+  end
+
+  local function io_open(filename, mode)
+    if mode == nil then
+      mode = "r"
+    end
+    local fd = fs:openSync(filename, mode)
+    return setmetatable({ fd = fd }, metatable)
+  end
+
+  local io = {
+    open = io_open;
+  }
+
+  _ENV.io = io
+end

@@ -16,6 +16,7 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local append = require "dromozoa.append"
+local quote_lua = require "dromozoa.quote_lua"
 local runtime = require "dromozoa.parser.runtime"
 
 return function (grammar, actions)
@@ -25,7 +26,7 @@ return function (grammar, actions)
 
   append(static_data, "symbol_names={")
   for i, v in ipairs(grammar.symbol_names) do
-    append(static_data, ("%q,"):format(v))
+    append(static_data, quote_lua(v), ",")
   end
   append(static_data, "};\nmax_terminal_symbol=", grammar.max_terminal_symbol, ";\nactions={\n")
   for _, action in ipairs(actions) do
@@ -47,11 +48,11 @@ return function (grammar, actions)
       semantic_action = ""
     end
     local semantic_action = semantic_action
-      :gsub("$([%a_][%w_]*)", grammar.symbol_table)
-      :gsub("${'(..-)'}", grammar.symbol_table)
-      :gsub("$([1-9]%d*)", "S[%1]")
-      :gsub("$0", "S[0]")
-      :gsub("$%$", "SS")
+      :gsub("%$([A-Za-z_][0-9A-Za-z_]*)", grammar.symbol_table)
+      :gsub("%$%{%'(..-)%'%}", grammar.symbol_table)
+      :gsub("%$([1-9][0-9]*)", "S[%1]")
+      :gsub("%$0", "S[0]")
+      :gsub("%$%$", "SS")
 
     local v = "function()" .. semantic_action .. "\nend;\n"
     local n = action_map[v]

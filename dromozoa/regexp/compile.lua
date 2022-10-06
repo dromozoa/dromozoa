@@ -29,35 +29,25 @@ local function insert(t, v)
 end
 
 local function insert_action(context, action)
-  local action = action
-    :gsub("$([%a_][%w_]*)", context.action.variables)
-    :gsub([[${'(..-)'}]], context.action.variables)
-    :gsub([[${<(..-)>}]], function (s)
-      local result = {}
-      for i = 1, #s do
-        result[i] = ("0x%02X"):format(s:byte(i))
-      end
-      return table.concat(result, ",")
-    end)
-
-  -- 単語境界を調べやすくするために番兵を置く。
-  local s = " " .. action .. " "
   local actions = {}
-  -- fcall()の後に処理がある場合、継続として分割する。
-  while #s > 0 do
-    local _, p = s:find "[^%w_]fcall%s*%b()%s*"
-    append(actions, insert(context.action, "function()" .. s:sub(1, p):gsub("^%s+", ""):gsub("%s+$", "") .. "\nend;\n"))
-    if p then
-      s = s:sub(p + 1)
-    else
-      break
-    end
-  end
+
+  -- 単語境界を調べるために番兵を置く。
+  local s = (" " .. action)
+    :gsub("%$([A-Za-z_][0-9A-Za-z_]*)", context.action.variables)
+    :gsub("%$%{%'(..-)%'%}", context.action.variables)
+    :gsub("%$%{%<(..-)%>%}", function (a)
+      return table.concat({ a:byte(1, #a) }, ",")
+    end)
+    -- fcall()の後の処理が存在する場合、継続として分割する。
+    :gsub("(.-[^0-9A-Za-z_]fcall[\t-\r ]*%(.-%))[\t-\r ]*", function (a)
+      append(actions, insert(context.action, "function()" .. a:gsub("^[\t-\r ]+", "") .. "\nend;\n"))
+      return ""
+    end)
+  append(actions, insert(context.action, "function()" .. s:gsub("^[\t-\r ]+", "") .. "\nend;\n"))
 
   for i, action in ipairs(actions) do
     context.action.continuations[action] = actions[i + 1] or 0
   end
-
   return actions[1]
 end
 

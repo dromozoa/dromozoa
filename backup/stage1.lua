@@ -19,6 +19,51 @@ local append = require "dromozoa.append"
 local quote_js = require "dromozoa.quote_js"
 local compiler_error = require "dromozoa.compiler.compiler_error"
 
+local double_to_word
+if string.pack then
+  function double_to_word(v)
+    return string.unpack("<I4I4", string.pack("<d", v))
+  end
+else
+  function double_to_word(v)
+    assert(v == v)
+    if v == 0 then
+      if 1 / v > 0 then
+        return 0, 0
+      else
+        return 0, 0x80000000
+      end
+    elseif v == math.huge then
+      return 0, 0x7FF00000
+    elseif v == -math.huge then
+      return 0, 0xFFF00000
+    end
+
+    local a -- 符号部  1bit
+    local b -- 指数部 11bit
+    local c -- 仮数部 20bit+32bit
+
+    if v > 0 then
+      a = 0
+    else
+      a = 0x80000000
+      v = -v
+    end
+
+    local m, e = math.frexp(v)
+    if e <= -1022 then
+      b = 0
+      c = math.ldexp(m, e + 1022)
+    else
+      b = e + 1022
+      c = (m * 2 - 1)
+    end
+    local c, d = math.modf(c * 0x100000)
+
+    return d * 0x100000000, a + b * 0x100000 + c
+  end
+end
+
 local function generate_code(result, source_map, chunk, u)
   local u_name = u[0]
   local a = u.a
@@ -132,7 +177,8 @@ local function generate_code(result, source_map, chunk, u)
 
   elseif u_name == "push_numeral" then
     if b == "HexadecimalFloatingNumeral" then
-      compiler_error("not supported: push_numeral " .. a .. " HexadecimalFloatingNumeral", u.node)
+      local x, y = double_to_word(tonumber(a))
+      append(result, "S.push(new DataView(new Uint32Array([", x, ",", y, "]).buffer).getFloat64(0,true));")
     else
       append(result, "S.push(", a, ");")
     end
@@ -261,91 +307,24 @@ local function generate_proto(result, source_map, chunk, proto)
 end
 
 local code, n = ([[
-import * as fs from "fs";
-globalThis.fs=fs;
 const D={
 LuaError:class LuaError extends Error{constructor(msg){super(msg);this.name="LuaError";this.msg=msg;}},
 LuaFunction:class LuaFunction{constructor(fn){this.fn=fn;}},
-LuaTable:class LuaTable{constructor(){this.map=new Map();this.n=0}},
-type:a=>{
-  const t = typeof a;
-  if (t === "undefined") {
-    return "nil";
-  } else if (t === "number") {
-    return "number";
-  } else if (t === "string") {
-    return "string";
-  } else if (t === "boolean") {
-    return "boolean";
-  } else if (t === "function") {
-    return "userdata";
-  }
-  if (a instanceof D.LuaFunction) {
-    return "function";
-  } else if (a instanceof D.LuaTable) {
-    return "table";
-  } else {
-    return "userdata";
-  }
-},
+LuaTable:class LuaTable{constructor(){this.map=new Map();}},
 typeof:a=>typeof a,
 instanceof:(a,b)=>a instanceof b,
 error:a=>{throw new D.LuaError(a);},
 getmetatable:a=>a.metatable,
 setmetatable:(a,b)=>a.metatable=b,
-rawset:(a,b,c)=>{
-  if (a instanceof D.LuaTable) {
-    if (c === undefined) {
-      let n = a.n;
-      if (n !== undefined) {
-        if (n === b) {
-          a.n = n - 1;
-        } else {
-          a.n = undefined;
-        }
-      }
-      a.map.delete(b);
-    } else {
-      let n = a.n;
-      if (n !== undefined) {
-        ++n;
-        if (n === b) {
-          a.n = n;
-        } else {
-          a.n = undefined;
-        }
-      }
-      a.map.set(b, c);
-    }
-  } else {
-    if (c === undefined) {
-      delete a[b];
-    } else {
-      a[b] = c;
-    }
-  }
-  return a;
-},
+rawset:(a,b,c)=>{if(a instanceof D.LuaTable)if(c===undefined)a.map.delete(b);else a.map.set(b,c);else if(c===undefined)delete a[b];else a[b]=c;return a;},
 rawget:(a,b)=>a instanceof D.LuaTable?a.map.get(b):a[b],
-rawlen:a=>{
-  let n = a.n;
-  if (n !== undefined) {
-    return n;
-  }
-
-  n = 1;
-  for (; a.map.get(n) !== undefined; ++n) {}
-  --n;
-  a.n = n;
-
-  return n;
-},
+rawlen:a=>{let n=1;for(;D.rawget(a,n)!==undefined;++n);return n-1;},
 export:(a)=>(...b)=>a.fn(...b)[0],
-select:(...a)=>a,
+select:(...a)=>a.length,
 newuserdata:(a,...b)=>new a(...b),
 entries:(a)=>a.map.entries(),
 replace:(a,...b)=>a.replace(...b),
-arg:[],
+
 OP_CHECK_FOR:()=>{},
 OP_ADD:(a,b)=>+a+ +b,
 OP_SUB:(a,b)=>a-b,
@@ -401,7 +380,7 @@ function module.generate_chunk(result, source_map, chunk)
     generate_proto(result, source_map, chunk, chunk[i])
   end
 
-  append(result, "D.OP_CALL(P1([E]),D.arg);\n}\n")
+  append(result, "D.OP_CALL(P1([E]),[]);\n}\n")
   source_map:append_empty_mappings(1)
 end
 

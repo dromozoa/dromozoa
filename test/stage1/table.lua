@@ -15,22 +15,24 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local quote = {}
-for byte = 0x00, 0x1F do
-  quote[string.char(byte)] = ([[\x%02X]]):format(byte)
-end
-quote["\b"] = [[\b]]
-quote["\t"] = [[\t]]
-quote["\n"] = [[\n]]
-quote["\v"] = [[\v]]
-quote["\f"] = [[\f]]
-quote["\r"] = [[\r]]
-quote["\""] = [[\"]]
-quote["\\"] = [[\\]]
+print(table.unpack {})
+print(table.unpack {1})
+print(table.unpack {1,2})
+print(table.unpack {1,2,3})
 
-local LS = string.char(0xE2, 0x80, 0xA8) -- U+2028 LINE SEPARATOR
-local PS = string.char(0xE2, 0x80, 0xA9) -- U+2029 PARAGRAPH SEPARATOR
+print(table.concat {})
+print(table.concat {1})
+print(table.concat {1,2})
+print(table.concat {1,2,3})
 
-return function (s)
-  return '"' .. s:gsub("[%z\1-\31\"\\]", quote):gsub(LS, [[\u2028]]):gsub(PS, [[\u2029]]) .. '"'
-end
+print(table.concat({}, ","))
+print(table.concat({1}, ","))
+print(table.concat({1,2}, ","))
+print(table.concat({1,2,3}, ","))
+
+print(table.concat({"foo", "bar", "baz", "qux"}, ",", 1, 4))
+print(table.concat({"foo", "bar", "baz", "qux"}, ",", 1, 3))
+print(table.concat({"foo", "bar", "baz", "qux"}, ",", 2, 4))
+print(table.concat({"foo", "bar", "baz", "qux"}, ",", 2, 3))
+
+

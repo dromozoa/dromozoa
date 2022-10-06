@@ -1,0 +1,8 @@
+fcall(1)
+_fcall(0)fcall(2)fcall_(0)fcall(3)
+
+"\u0000\u0007\b\t\n\u000B\f\r\"\\\u007F\u2028\u2029"
+abcdeabcde	8
+bcebce	2
+A42cdeA42cde	8
+42cde42cde	4
