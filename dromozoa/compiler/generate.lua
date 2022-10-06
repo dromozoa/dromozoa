@@ -264,6 +264,7 @@ local function process1(chunk, proto, scope, u, loop)
       scopes = {};
       code = {};
       top = 0;
+      node = u;
       parent = proto;
     }
     proto = u.proto
@@ -542,6 +543,8 @@ local function process2(chunk, proto, scope, u, code)
     --     var = var + step
     --   end
     -- end
+
+    -- TODO OP_CHECK_FORの意味論を決める
 
     process2(chunk, proto, scope, y, code)
     append_code(proto, code, u, "new_local", u.var + 2)

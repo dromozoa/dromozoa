@@ -220,7 +220,7 @@ local function generate_proto(result, source_map, chunk, proto)
     end
     append(result, "...VA")
   end
-  append(result, ")=>{\nlet S=[],a,b,c")
+  append(result, ")=>{// ", proto.node.f, ":", proto.node.n, ":", proto.node.c, "\nlet S=[],a,b,c")
   for i, v in ipairs(proto.locals) do
     append(result, ",V", i)
     if i <= proto.nparams then
