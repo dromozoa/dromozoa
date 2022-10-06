@@ -267,6 +267,27 @@ const D={
 LuaError:class LuaError extends Error{constructor(msg){super(msg);this.name="LuaError";this.msg=msg;}},
 LuaFunction:class LuaFunction{constructor(fn){this.fn=fn;}},
 LuaTable:class LuaTable{constructor(){this.map=new Map();this.n=0}},
+type:a=>{
+  const t = typeof a;
+  if (t === "undefined") {
+    return "nil";
+  } else if (t === "number") {
+    return "number";
+  } else if (t === "string") {
+    return "string";
+  } else if (t === "boolean") {
+    return "boolean";
+  } else if (t === "function") {
+    return "userdata";
+  }
+  if (a instanceof D.LuaFunction) {
+    return "function";
+  } else if (a instanceof D.LuaTable) {
+    return "table";
+  } else {
+    return "userdata";
+  }
+},
 typeof:a=>typeof a,
 instanceof:(a,b)=>a instanceof b,
 error:a=>{throw new D.LuaError(a);},
@@ -283,7 +304,6 @@ rawset:(a,b,c)=>{
           a.n = undefined;
         }
       }
-
       a.map.delete(b);
     } else {
       let n = a.n;
@@ -298,7 +318,7 @@ rawset:(a,b,c)=>{
       a.map.set(b, c);
     }
   } else {
-    if (c===undefined) {
+    if (c === undefined) {
       delete a[b];
     } else {
       a[b] = c;

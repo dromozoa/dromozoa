@@ -45,27 +45,29 @@ local string_len
 
 ---------------------------------------------------------------------------
 
-local function type(v)
-  local t = D_typeof(v)
-  if t == "undefined" then
-    return "nil"
-  elseif t == "number" then
-    return "number"
-  elseif t == "string" then
-    return "string"
-  elseif t == "boolean" then
-    return "boolean"
-  elseif t == "function" then
-    return "userdata"
-  end
-  if D_instanceof(v, D_LuaFunction) then
-    return "function"
-  elseif D_instanceof(v, D_LuaTable) then
-    return "table"
-  else
-    return "userdata"
-  end
-end
+local type = D.type
+
+-- local function type(v)
+--   local t = D_typeof(v)
+--   if t == "undefined" then
+--     return "nil"
+--   elseif t == "number" then
+--     return "number"
+--   elseif t == "string" then
+--     return "string"
+--   elseif t == "boolean" then
+--     return "boolean"
+--   elseif t == "function" then
+--     return "userdata"
+--   end
+--   if D_instanceof(v, D_LuaFunction) then
+--     return "function"
+--   elseif D_instanceof(v, D_LuaTable) then
+--     return "table"
+--   else
+--     return "userdata"
+--   end
+-- end
 
 local function error(message)
   D_error(message)
@@ -375,17 +377,17 @@ _ENV.pairs = pairs
 
 local string_encoder = D_newuserdata(G.TextEncoder)
 
--- local string_encoder_cache = {}
+local string_encoder_cache = {}
 
 local function string_encode_utf8(s)
-  return string_encoder:encode(s)
-  -- local b = string_encoder_cache[s]
-  -- if b ~= nil then
-  --   return b
-  -- end
-  -- local b = string_encoder:encode(s)
-  -- string_encoder_cache[s] = b
-  -- return b
+  -- return string_encoder:encode(s)
+  local b = string_encoder_cache[s]
+  if b ~= nil then
+    return b
+  end
+  local b = string_encoder:encode(s)
+  string_encoder_cache[s] = b
+  return b
 end
 
 local string_decoder = D_newuserdata(G.TextDecoder)
