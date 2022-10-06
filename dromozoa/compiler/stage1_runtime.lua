@@ -246,11 +246,8 @@ local function table_concat(list, sep, i, j)
     return ""
   end
 
-  local result = list[i]
-  for i = i + 1, j do
-    result = result .. sep .. list[i]
-  end
-  return result
+  local array = D_newuserdata(G.Array, table_unpack(list, 1, n))
+  return array:join(sep)
 end
 
 local function table_sort(list, comp)
@@ -371,11 +368,20 @@ _ENV.pairs = pairs
 ---------------------------------------------------------------------------
 
 local string_encoder = D_newuserdata(G.TextEncoder)
-local string_decoder = D_newuserdata(G.TextDecoder)
+
+local string_encoder_cache = {}
 
 local function string_encode_utf8(s)
-  return string_encoder:encode(s)
+  local b = string_encoder_cache[s]
+  if b ~= nil then
+    return b
+  end
+  local b = string_encoder:encode(s)
+  string_encoder_cache[s] = b
+  return b
 end
+
+local string_decoder = D_newuserdata(G.TextDecoder)
 
 local function string_decode_utf8(b)
   return string_decoder:decode(b)
