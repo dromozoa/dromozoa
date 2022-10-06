@@ -19,3 +19,20 @@ print(table.unpack {})
 print(table.unpack {1})
 print(table.unpack {1,2})
 print(table.unpack {1,2,3})
+
+print(table.concat {})
+print(table.concat {1})
+print(table.concat {1,2})
+print(table.concat {1,2,3})
+
+print(table.concat({}, ","))
+print(table.concat({1}, ","))
+print(table.concat({1,2}, ","))
+print(table.concat({1,2,3}, ","))
+
+print(table.concat({"foo", "bar", "baz", "qux"}, ",", 1, 4))
+print(table.concat({"foo", "bar", "baz", "qux"}, ",", 1, 3))
+print(table.concat({"foo", "bar", "baz", "qux"}, ",", 2, 4))
+print(table.concat({"foo", "bar", "baz", "qux"}, ",", 2, 3))
+
+

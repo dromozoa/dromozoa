@@ -198,7 +198,7 @@ end
 
 local function select(index, ...)
   if index == "#" then
-    return D_select(...)
+    return D_select(...).length
   elseif index == 1 then
     return ...
   else
@@ -207,7 +207,7 @@ local function select(index, ...)
 end
 
 local function table_pack(...)
-  return { n = D_select(...), ... }
+  return { n = D_select(...).length, ... }
 end
 
 local function table_unpack_impl(list, i, j)
@@ -246,8 +246,14 @@ local function table_concat(list, sep, i, j)
     return ""
   end
 
-  local array = D_newuserdata(G.Array, table_unpack(list, 1, n))
-  return array:join(sep)
+  -- TODO 単純にtable_unpackするとスタックが足りなくなる
+  -- return D_select(table_unpack(list, i, j)):join(sep)
+
+  local result = list[i]
+  for i = i + 1, j do
+    result = result .. sep .. list[i]
+  end
+  return result
 end
 
 local function table_sort(list, comp)
@@ -256,7 +262,7 @@ local function table_sort(list, comp)
   end
 
   local n = #list
-  local array = D_newuserdata(G.Array, table_unpack(list, 1, n));
+  local array = D_select(table_unpack(list, 1, n))
   array:sort(D_export(function (a, b)
     if comp(a, b) then
       return -1
@@ -369,16 +375,17 @@ _ENV.pairs = pairs
 
 local string_encoder = D_newuserdata(G.TextEncoder)
 
-local string_encoder_cache = {}
+-- local string_encoder_cache = {}
 
 local function string_encode_utf8(s)
-  local b = string_encoder_cache[s]
-  if b ~= nil then
-    return b
-  end
-  local b = string_encoder:encode(s)
-  string_encoder_cache[s] = b
-  return b
+  return string_encoder:encode(s)
+  -- local b = string_encoder_cache[s]
+  -- if b ~= nil then
+  --   return b
+  -- end
+  -- local b = string_encoder:encode(s)
+  -- string_encoder_cache[s] = b
+  -- return b
 end
 
 local string_decoder = D_newuserdata(G.TextDecoder)
@@ -432,7 +439,7 @@ local function string_byte(s, i, j)
 end
 
 local function string_char(...)
-  return string_decode_utf8(G.Uint8Array:from(D_newuserdata(G.Array, ...)))
+  return string_decode_utf8(G.Uint8Array:from(D_select(...)))
 end
 
 local function string_sub(s, i, j)

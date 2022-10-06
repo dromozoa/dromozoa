@@ -276,7 +276,7 @@ rawset:(a,b,c)=>{if(a instanceof D.LuaTable)if(c===undefined)a.map.delete(b);els
 rawget:(a,b)=>a instanceof D.LuaTable?a.map.get(b):a[b],
 rawlen:a=>{let n=1;for(;D.rawget(a,n)!==undefined;++n);return n-1;},
 export:(a)=>(...b)=>a.fn(...b)[0],
-select:(...a)=>a.length,
+select:(...a)=>a,
 newuserdata:(a,...b)=>new a(...b),
 entries:(a)=>a.map.entries(),
 replace:(a,...b)=>a.replace(...b),
