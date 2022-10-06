@@ -284,17 +284,14 @@ getmetatable:a=>{const m=typeof a==="string"?D.string_metatable:a.metatable;if(m
 getmetafield:(a,b)=>{const m=typeof a==="string"?D.string_metatable:a.metatable;if(m!==undefined)return D.rawget(m,b);},
 setmetatable:(a,b)=>{if(D.getmetafield(a,"__metatable")!==undefined)D.error("cannot change a protected metatable");a.metatable=b;return a;},
 select:new LuaFunction((a,...b)=>a==="#"?[b.length]:b.slice(a-1)),
-
+native:(a)=>(...b)=>D.OP_CALL(a,b)[0],
 array_pack:(...a)=>a,
 array_unpack:new LuaFunction(a=>a),
 array_from:(a,b,c)=>{let v=[];for(let i=b;i<=c;++i)v[i-b]=D.OP_GETTABLE(a,i);return v;},
-
-export:(a)=>(...b)=>a.fn(...b)[0],
 newuserdata:(a,...b)=>new a(...b),
-entries:(a)=>a.map.entries(),
+entries:a=>a.map.entries(),
 replace:(a,...b)=>a.replace(...b),
 arg:[],
-
 OP_CHECK_FOR:()=>{},
 OP_ADD:(a,b)=>+a+ +b,
 OP_SUB:(a,b)=>a-b,
@@ -332,12 +329,17 @@ OP_CALL:(a,b)=>a instanceof LuaFunction?a.fn(...b):a instanceof LuaTable?D.OP_CA
 OP_SELF:(a,b,c)=>a instanceof LuaFunction?a.fn(b,...c):a instanceof LuaTable?D.OP_CALL(D.getmetafield(a,"__call"),[a,b,...c]):[a.apply(b,c)],
 OP_CLOSE:(a)=>{if(a!==undefined)D.OP_CALL(D.getmetafield(a,"__close"),[a]);},
 OP_ADJUST:(a,b)=>{if(a.length<b)a[b-1]=undefined;else a.splice(b);},
-OP_SETLIST:(a,b)=>{for(let i=0;i<b.length;++i)a.map.set(i+1,b[i]);a.n=b.length;},
+OP_SETLIST:(a,b)=>{for(let i=0;i<b.length;++i)D.rawset(a,i+1,b[i]);},
 };
 const E=new LuaTable();
 D.OP_SETTABLE(E,"dromozoa",D);
 D.OP_SETTABLE(E,"globalThis",globalThis);
 D.OP_SETTABLE(E,"package",D.OP_SETTABLE(D.OP_SETTABLE(D.OP_NEWTABLE(),"preload",D.OP_NEWTABLE()),"loaded",D.OP_NEWTABLE()));
+D.OP_SETTABLE(E,"type",D.type);
+D.OP_SETTABLE(E,"error",D.error);
+D.OP_SETTABLE(E,"getmetatable",D.getmetatable);
+D.OP_SETTABLE(E,"setmetatable",D.setmetatable);
+D.OP_SETTABLE(E,"select",D.select);
 D.OP_SETTABLE(E,"pcall",new LuaFunction((a,...b)=>{try{return[true,...D.OP_CALL(a,b)];}catch(e){return[false,e instanceof LuaError?e.msg:e.toString()];}}));
 ]]):gsub("\n", {})
 

@@ -23,25 +23,7 @@
 local D = dromozoa
 local G = globalThis
 
-local D_type = D.type
-local D_error = D.error
-local D_rawget = D.rawget
-local D_rawset = D.rawset
-local D_rawlen = D.rawlen
-local D_getmetatable = D.getmetatable
-local D_getmetafield = D.getmetafield
-local D_setmetatable = D.setmetatable
-
-local D_select = D.select
-local D_array_pack = D.array_pack
-local D_array_unpack = D.array_unpack
-local D_array_from = D.array_from
-
-local D_export = D.export
-local D_newuserdata = D.newuserdata
-local D_entries = D.entries
-local D_replace = D.replace
-local D_arg = D.arg
+---------------------------------------------------------------------------
 
 local function assert(...)
   if ... then
@@ -49,83 +31,15 @@ local function assert(...)
   else
     local _, message = ...
     if message == nil then
-      return D_error "assertion failed!"
+      return D.error "assertion failed!"
     else
-      return D_error(message)
+      return D.error(message)
     end
   end
 end
-
-_ENV.type = D_type
-_ENV.error = D_error
-_ENV.assert = assert
-_ENV.getmetatable = D_getmetatable
-_ENV.setmetatable = D_setmetatable
-_ENV.select = D_select
-
----------------------------------------------------------------------------
-
-local function table_pack(...)
-  return { n = D_select("#", ...), ... }
-end
-
-local function table_unpack(list, i, j)
-  if i == nil then
-    i = 1
-  end
-  if j == nil then
-    j = #list
-  end
-  return D_array_unpack(D_array_from(list, i, j))
-end
-
-local function table_concat(list, sep, i, j)
-  if sep == nil then
-    sep = ""
-  end
-  if i == nil then
-    i = 1
-  end
-  if j == nil then
-    j = #list
-  end
-  return D_array_from(list, i, j):join(sep)
-end
-
-local function table_sort(list, comp)
-  if comp == nil then
-    comp = function (a, b) return a < b end
-  end
-
-  local n = #list
-  local array = D_array_from(list, 1, n)
-  array:sort(D_export(function (a, b)
-    if comp(a, b) then
-      return -1
-    elseif comp(b, a) then
-      return 1
-    else
-      return 0
-    end
-  end))
-  for i = 1, n do
-    list[i] = array[i - 1]
-  end
-end
-
-local table = {
-  concat = table_concat;
-  pack = table_pack;
-  unpack = table_unpack;
-  sort = table_sort;
-}
-
-_ENV.table = table
-
----------------------------------------------------------------------------
 
 local function tostring(v)
-  local t = D_type(v)
+  local t = D.type(v)
   if t == "nil" then
     return "nil"
   elseif t == "number" then
@@ -135,10 +49,10 @@ local function tostring(v)
   elseif t == "boolean" then
     return v and "true" or "false"
   elseif t == "table" then
-    local metafield = D_getmetafield(v, "__tostring")
+    local metafield = D.getmetafield(v, "__tostring")
     if metafield ~= nil then
       local v = metafield(v)
-      local t = D_type(v)
+      local t = D.type(v)
       if t == "number" then
         return G:String(v)
       end
@@ -146,19 +60,19 @@ local function tostring(v)
       return v
     end
   end
-  local metafield = D_getmetafield(v, "__name")
-  if D_type(metafield) == "string" then
+  local metafield = D.getmetafield(v, "__name")
+  if D.type(metafield) == "string" then
     t = metafield
   end
   return t .. ": " .. v
 end
 
 local function print(...)
-  local result = table_pack(...)
-  for i = 1, result.n do
-    result[i] = tostring(result[i])
+  local array = D.array_pack(...)
+  for i = 0, array.length - 1 do
+    array[i] = tostring(array[i])
   end
-  G.console:log(table_concat(result, "\t", 1, result.n))
+  G.console:log(array:join "\t")
 end
 
 local function require(modname)
@@ -191,15 +105,16 @@ local function pairs_impl(iterator)
 end
 
 local function pairs(t)
-  local metafield = D_getmetafield(t, "__pairs")
+  local metafield = D.getmetafield(t, "__pairs")
   if metafield == nil then
-    return pairs_impl, D_entries(t)
+    return pairs_impl, D.entries(t)
   else
     local f, s, var = metafield(t)
     return f, s, var
   end
 end
 
+_ENV.assert = assert
 _ENV.tostring = tostring
 _ENV.print = print
 _ENV.require = require
@@ -208,7 +123,62 @@ _ENV.pairs = pairs
 
 ---------------------------------------------------------------------------
 
-local string_encoder = D_newuserdata(G.TextEncoder)
+local function table_pack(...)
+  return { n = D.select("#", ...), ... }
+end
+
+local function table_unpack(list, i, j)
+  if i == nil then
+    i = 1
+  end
+  if j == nil then
+    j = #list
+  end
+  return D.array_unpack(D.array_from(list, i, j))
+end
+
+local function table_concat(list, sep, i, j)
+  if sep == nil then
+    sep = ""
+  end
+  if i == nil then
+    i = 1
+  end
+  if j == nil then
+    j = #list
+  end
+  return D.array_from(list, i, j):join(sep)
+end
+
+local function table_sort(list, comp)
+  if comp == nil then
+    comp = function (a, b) return a < b end
+  end
+  local array = D.array_from(list, 1, #list)
+  array:sort(D.native(function (a, b)
+    if comp(a, b) then
+      return -1
+    elseif comp(b, a) then
+      return 1
+    else
+      return 0
+    end
+  end))
+  D.OP_SETLIST(list, array)
+end
+
+local table = {
+  concat = table_concat;
+  pack = table_pack;
+  unpack = table_unpack;
+  sort = table_sort;
+}
+
+_ENV.table = table
+
+---------------------------------------------------------------------------
+
+local string_encoder = D.newuserdata(G.TextEncoder)
 local string_encoder_cache = {}
 
 local function string_encode_utf8(s)
@@ -221,7 +191,7 @@ local function string_encode_utf8(s)
   return b
 end
 
-local string_decoder = D_newuserdata(G.TextDecoder)
+local string_decoder = D.newuserdata(G.TextDecoder)
 
 local function string_decode_utf8(b)
   return string_decoder:decode(b)
@@ -256,11 +226,11 @@ local function string_byte(s, i, j)
     j = i
   end
   local i, j = string_prepare(buffer.length, i, j)
-  return D_array_unpack(G.Array:from(buffer:subarray(i - 1, j)))
+  return D.array_unpack(G.Array:from(buffer:subarray(i - 1, j)))
 end
 
 local function string_char(...)
-  return string_decode_utf8(G.Uint8Array:from(D_array_pack(...)))
+  return string_decode_utf8(G.Uint8Array:from(D.array_pack(...)))
 end
 
 local function string_sub(s, i, j)
@@ -273,7 +243,7 @@ local function string_sub(s, i, j)
 end
 
 local function string_gsub_regexp(pattern)
-  return D_newuserdata(G.RegExp, pattern, "gs")
+  return D.newuserdata(G.RegExp, pattern, "gs")
 end
 
 local RE1 = string_gsub_regexp [[\\]]
@@ -282,23 +252,23 @@ local RE3 = string_gsub_regexp [[\%(.)]]
 local RE4 = string_gsub_regexp [[\.\-]]
 
 local function string_gsub_pattern(s)
-  s = D_replace(s, RE1, [[\\]])
-  s = D_replace(s, RE2, [[\u0000]])
-  s = D_replace(s, RE3, [[\$1]])
-  s = D_replace(s, RE4, [[.*?]])
+  s = D.replace(s, RE1, [[\\]])
+  s = D.replace(s, RE2, [[\u0000]])
+  s = D.replace(s, RE3, [[\$1]])
+  s = D.replace(s, RE4, [[.*?]])
   return s
 end
 
 local RE = string_gsub_regexp [[\%([\%0-9])]]
 
 local function string_gsub_string(repl, match, p)
-  return D_replace(repl, RE, D_export(function (a, b)
+  return D.replace(repl, RE, D.native(function (a, b)
     if b == "%" then
       return "%"
     elseif b == "0" then
       return match
     else
-      local v = p[G.Number(b)]
+      local v = p[G:Number(b)]
       if v == nil then
         return a
       else
@@ -310,7 +280,7 @@ end
 
 local function string_gsub(s, pattern, repl)
   local replacer
-  local t = D_type(repl)
+  local t = D.type(repl)
   if t == "string" then
     replacer = function (match, p)
       return string_gsub_string(repl, match, p)
@@ -327,10 +297,10 @@ local function string_gsub(s, pattern, repl)
 
   local re = string_gsub_regexp(string_gsub_pattern(pattern))
   local n = 0
-  local result = D_replace(s, re, D_export(function (match, ...)
+  local result = D.replace(s, re, D.native(function (match, ...)
     local p = table_pack(...)
     for i = 1, p.n do
-      if D_type(p[i]) == "number" then
+      if D.type(p[i]) == "number" then
         p.n = i - 1
         break
       end
@@ -354,7 +324,7 @@ local string = {
   gsub = string_gsub;
 }
 
-D.string_len = D_export(string_len)
+D.string_len = D.native(string_len)
 D.string_metatable = {
   __index = string;
 }
@@ -363,22 +333,11 @@ _ENV.string = string
 
 ---------------------------------------------------------------------------
 
-local arg = {}
-
-if G.process then
+if G.process and G.process.argv then
   local argv = G.process.argv
-  if argv then
-    local n = argv.length - 1
-    for i = 0, n do
-      arg[i - 1] = argv[i]
-    end
-    for i = 2, n do
-      D_arg[i - 2] = argv[i]
-    end
-  end
+  D.arg = argv:slice(2)
+  _ENV.arg = { [-1] = argv[0], [0] = argv[1], D.array_unpack(D.arg) }
 end
-
-_ENV.arg = arg
 
 ---------------------------------------------------------------------------
 
@@ -397,7 +356,7 @@ if G.fs then
     assert(p == "*a")
     local fd = assert(self.fd)
     local s = fs:fstatSync(fd)
-    local b = D_newuserdata(G.Uint8Array, s.size)
+    local b = D.newuserdata(G.Uint8Array, s.size)
     fs:readSync(fd, b)
     return string_decode_utf8(b)
   end
@@ -413,7 +372,7 @@ if G.fs then
       mode = "r"
     end
     local fd = fs:openSync(filename, mode)
-    return D_setmetatable({ fd = fd }, metatable)
+    return D.setmetatable({ fd = fd }, metatable)
   end
 
   local io = {
