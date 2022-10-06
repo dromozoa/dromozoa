@@ -23,55 +23,21 @@
 local D = dromozoa
 local G = globalThis
 
-local D_LuaFunction = D.LuaFunction
-local D_LuaTable = D.LuaTable
-local D_typeof = D.typeof
-local D_instanceof = D.instanceof
+local D_type = D.type
 local D_error = D.error
-local D_getmetatable = D.getmetatable
-local D_setmetatable = D.setmetatable
-local D_rawset = D.rawset
 local D_rawget = D.rawget
+local D_rawset = D.rawset
 local D_rawlen = D.rawlen
+local D_getmetatable = D.getmetatable
+local D_getmetafield = D.getmetafield
+local D_setmetatable = D.setmetatable
+
 local D_export = D.export
 local D_select = D.select
 local D_newuserdata = D.newuserdata
 local D_entries = D.entries
 local D_replace = D.replace
 local D_arg = D.arg
-
-local string_metatable
-local string_len
-
----------------------------------------------------------------------------
-
-local type = D.type
-
--- local function type(v)
---   local t = D_typeof(v)
---   if t == "undefined" then
---     return "nil"
---   elseif t == "number" then
---     return "number"
---   elseif t == "string" then
---     return "string"
---   elseif t == "boolean" then
---     return "boolean"
---   elseif t == "function" then
---     return "userdata"
---   end
---   if D_instanceof(v, D_LuaFunction) then
---     return "function"
---   elseif D_instanceof(v, D_LuaTable) then
---     return "table"
---   else
---     return "userdata"
---   end
--- end
-
-local function error(message)
-  D_error(message)
-end
 
 local function assert(...)
   if ... then
@@ -86,107 +52,11 @@ local function assert(...)
   end
 end
 
-local function getmetafield(object, event)
-  local t = type(object)
-  if t == "string" then
-    return D_rawget(string_metatable, event)
-  elseif t == "table" then
-    local metatable = D_getmetatable(object)
-    if metatable ~= nil then
-      return D_rawget(metatable, event)
-    end
-  end
-end
-
-local function getmetatable(object)
-  local t = type(object)
-  if t == "string" then
-    return string_metatable
-  elseif t == "table" then
-    local metatable = D_getmetatable(object)
-    if metatable == nil or metatable.__metatable == nil then
-      return metatable
-    else
-      return metatable.__metatable
-    end
-  end
-end
-
-local function setmetatable(table, metatable)
-  assert(type(table) == "table")
-  local t = type(metatable)
-  assert(t == "nil" or t == "table")
-  assert(getmetafield(table, "__metatable") == nil, "cannot change a protected metatable")
-  D_setmetatable(table, metatable)
-  return table
-end
-
-local function rawlen(v)
-  local t = type(v)
-  if t == "string" then
-    return string_len(v)
-  elseif t == "table" then
-    return D_rawlen(v)
-  elseif t == "userdata" then
-    return v.length
-  else
-    return 0
-  end
-end
-
-local function OP_SETTABLE(object, k, v)
-  local t = type(object)
-  assert(t == "table" or t == "userdata")
-  if D_rawget(object, k) == nil then
-    local metafield = getmetafield(object, "__newindex")
-    if metafield ~= nil then
-      if type(metafield) == "table" then
-        metafield[k] = v
-      else
-        metafield(object, k, v)
-      end
-      return object
-    end
-  end
-  return D_rawset(object, k, v)
-end
-
-local function OP_GETTABLE(object, k)
-  local t = type(object)
-  if t == "table" or t == "userdata" then
-    local v = D_rawget(object, k)
-    if v ~= nil then
-      return v
-    end
-  end
-  local metafield = getmetafield(object, "__index")
-  if metafield ~= nil then
-    if type(metafield) == "table" then
-      return metafield[k]
-    else
-      return metafield(object, k)
-    end
-  end
-end
-
-local function OP_CLOSE(object)
-  if object ~= nil then
-    getmetafield(object, "__close")(object)
-  end
-end
-
----------------------------------------------------------------------------
-
-_ENV.type = type
-_ENV.error = error
+_ENV.type = D_type
+_ENV.error = D_error
 _ENV.assert = assert
-_ENV.getmetatable = getmetatable
-_ENV.setmetatable = setmetatable
-D.getmetafield = D_export(getmetafield)
-D.rawlen = D_export(rawlen)
-D.OP_SETTABLE = D_export(OP_SETTABLE)
-D.OP_GETTABLE = D_export(OP_GETTABLE)
-D.OP_CLOSE = D_export(OP_CLOSE)
+_ENV.getmetatable = D_getmetatable
+_ENV.setmetatable = D_setmetatable
 
 ---------------------------------------------------------------------------
 
@@ -292,7 +162,7 @@ _ENV.table = table
 ---------------------------------------------------------------------------
 
 local function tostring(v)
-  local t = type(v)
+  local t = D_type(v)
   if t == "nil" then
     return "nil"
   elseif t == "number" then
@@ -302,10 +172,10 @@ local function tostring(v)
   elseif t == "boolean" then
     return v and "true" or "false"
   elseif t == "table" then
-    local metafield = getmetafield(v, "__tostring")
+    local metafield = D_getmetafield(v, "__tostring")
     if metafield ~= nil then
       local v = metafield(v)
-      local t = type(v)
+      local t = D_type(v)
       if t == "number" then
         return G:String(v)
       end
@@ -313,8 +183,8 @@ local function tostring(v)
       return v
     end
   end
-  local metafield = getmetafield(v, "__name")
-  if type(metafield) == "string" then
+  local metafield = D_getmetafield(v, "__name")
+  if D_type(metafield) == "string" then
     t = metafield
   end
   return t .. ": " .. v
@@ -358,7 +228,7 @@ local function pairs_impl(iterator)
 end
 
 local function pairs(t)
-  local metafield = getmetafield(t, "__pairs")
+  local metafield = D_getmetafield(t, "__pairs")
   if metafield == nil then
     return pairs_impl, D_entries(t)
   else
@@ -396,7 +266,7 @@ local function string_decode_utf8(b)
   return string_decoder:decode(b)
 end
 
-function string_len(s)
+local function string_len(s)
   return string_encode_utf8(s).length
 end
 
@@ -495,7 +365,7 @@ end
 
 local function string_gsub(s, pattern, repl)
   local replacer
-  local t = type(repl)
+  local t = D_type(repl)
   if t == "string" then
     replacer = function (match, p)
       return string_gsub_string(repl, match, p)
@@ -515,7 +385,7 @@ local function string_gsub(s, pattern, repl)
   local result = D_replace(s, re, D_export(function (match, ...)
     local p = table_pack(...)
     for i = 1, p.n do
-      if type(p[i]) == "number" then
+      if D_type(p[i]) == "number" then
         p.n = i - 1
         break
       end
@@ -539,7 +409,8 @@ local string = {
   gsub = string_gsub;
 }
 
-string_metatable = {
+D.string_len = D_export(string_len)
+D.string_metatable = {
   __index = string;
 }
 
@@ -597,7 +468,7 @@ if G.fs then
       mode = "r"
     end
     local fd = fs:openSync(filename, mode)
-    return setmetatable({ fd = fd }, metatable)
+    return D_setmetatable({ fd = fd }, metatable)
   end
 
   local io = {
