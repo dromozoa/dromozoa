@@ -537,7 +537,7 @@ local function process2(chunk, proto, scope, u, code)
     --
     -- do
     --   local var, limit, step = e1, e2, e3
-    --   OP_CHECK_FOR(var, limit, step)
+    --   var, limit, step = OP_CHECK_FOR(var, limit, step)
     --   while true do
     --     if step >= 0 then
     --       if var > limit then
@@ -553,8 +553,6 @@ local function process2(chunk, proto, scope, u, code)
     --     var = var + step
     --   end
     -- end
-
-    -- TODO OP_CHECK_FORの意味論を決める
 
     process2(chunk, proto, scope, y, code)
     append_code(proto, code, u, "new_local", u.var + 2)

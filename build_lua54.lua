@@ -93,7 +93,7 @@ out:write(regexp.compile {
       _"\n"/"ln=ln+1 lp=fp" + _"\r"/"lp=fp"*"?";
       _"\r"/"ln=ln+1 lp=fp" + _"\n"/"lp=fp"*"?";
       _{" \f\t\v"}*"+";
-    }*"+";
+    }*"*";
 
     (_"--" + _"["/"guard_clear(${<]>})" + (_"="/"guard_append(fc)")*"*" + _"["/"guard_append(${<]>})") %"fcall($long_comment) push()";
 

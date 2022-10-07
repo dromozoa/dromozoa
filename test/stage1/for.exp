@@ -1,1 +1,5 @@
-false
+false	bad 'for' initial value (number expected, got nil)
+false	bad 'for' limit (number expected, got string)
+false	bad 'for' step (number expected, got boolean)
+false	bad 'for' step (number expected, got table)
+false	'for' step is zero
