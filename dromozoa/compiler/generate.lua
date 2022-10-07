@@ -84,9 +84,8 @@ local function resolve(scope, name, u, define)
   if define then
     v.updef = true
   else
-    v.upref = true
+    v.upuse = true
   end
-
   for i, u in ipairs(proto.upvalues) do
     if u.var == var then
       assert(u.name == name)

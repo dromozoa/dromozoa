@@ -228,7 +228,13 @@ local function generate_proto(result, source_map, chunk, proto)
     if i <= proto.nparams then
       append(result, "=[A", i, "]")
     end
-    append(result, ";\n")
+    -- append(result, ";\n")
+    append(result, ";// name=", v.name)
+    if v.def then append(result, " def") end
+    if v.use then append(result, " use") end
+    if v.updef then append(result, " updef") end
+    if v.upuse then append(result, " upuse") end
+    append(result, "\n")
     source_map:append_empty_mappings(1)
     if v.attribute == "close" then
       try_catch = true
