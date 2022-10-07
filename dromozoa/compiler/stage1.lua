@@ -19,7 +19,43 @@ local append = require "dromozoa.append"
 local quote_js = require "dromozoa.quote_js"
 local compiler_error = require "dromozoa.compiler.compiler_error"
 
-local function generate_code(result, source_map, chunk, u)
+local function boxed(v)
+  return v.updef or v.def and v.upuse
+end
+
+local function box_env(chunk, value)
+  if boxed(chunk.env) then
+    return "[" .. value .. "]"
+  else
+    return value
+  end
+end
+
+local function box_local(proto, var, value)
+  if boxed(proto.locals[var]) then
+    return "[" .. value .. "]"
+  else
+    return value
+  end
+end
+
+local function unbox_local(proto, var)
+  if boxed(proto.locals[var]) then
+    return "V" .. var .. "[0]"
+  else
+    return "V" .. var
+  end
+end
+
+local function unbox_upvalue(proto, var)
+  if boxed(proto.upvalues[var].v) then
+    return "U" .. var .. "[0]"
+  else
+    return "U" .. var
+  end
+end
+
+local function generate_code(result, source_map, chunk, proto, u)
   local u_name = u[0]
   local a = u.a
   local b = u.b
@@ -31,12 +67,12 @@ local function generate_code(result, source_map, chunk, u)
     append(result, "a=S.pop();if(a!==undefined&&a!==false){\n")
     source_map:append_mapping(u[1].node)
     for _, v in ipairs(u[1]) do
-      generate_code(result, source_map, chunk, v)
+      generate_code(result, source_map, chunk, proto, v)
     end
     append(result, "}else{\n")
     source_map:append_mapping(u[2].node)
     for _, v in ipairs(u[2]) do
-      generate_code(result, source_map, chunk, v)
+      generate_code(result, source_map, chunk, proto, v)
     end
     append(result, "}\n")
     source_map:append_empty_mappings(1)
@@ -46,14 +82,14 @@ local function generate_code(result, source_map, chunk, u)
     append(result, "while(true){\n")
     source_map:append_mapping(u.node)
     for _, v in ipairs(u) do
-      generate_code(result, source_map, chunk, v)
+      generate_code(result, source_map, chunk, proto, v)
     end
     append(result, "}\n")
     source_map:append_empty_mappings(1)
     return
 
   elseif u_name == "check_for" then
-    append(result, "D.OP_CHECK_FOR(V", a, "[0],V", a + 1, "[0],V", a + 2, "[0]);")
+    append(result, "D.OP_CHECK_FOR(", unbox_local(proto, a), ",", unbox_local(proto, a + 1), ",", unbox_local(proto, a + 2), ");")
 
   elseif u_name == "add"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_ADD(a,b));")
   elseif u_name == "sub"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_SUB(a,b));")
@@ -81,13 +117,13 @@ local function generate_code(result, source_map, chunk, u)
   elseif u_name == "bnot" then append(result, "a=S.pop();S.push(D.OP_BNOT(a));")
 
   elseif u_name == "new_local" or u_name == "tbc_local" then
-    append(result, "V", a, "=[S.pop()];")
+    append(result, "V", a, "=", box_local(proto, a, "S.pop()"))
 
   elseif u_name == "set_local" then
-    append(result, "V", a, "[0]=S.pop();")
+    append(result, unbox_local(proto, a), "=S.pop();")
 
   elseif u_name == "set_upvalue" then
-    append(result, "U", a, "[0]=S.pop();")
+    append(result, unbox_upvalue(proto, a), "=S.pop();")
 
   elseif u_name == "set_field" then
     append(result, "c=S.pop();b=S[", b - 1, "];a=S[", a - 1, "];D.OP_SETTABLE(a,b,c);")
@@ -96,10 +132,10 @@ local function generate_code(result, source_map, chunk, u)
     append(result, "c=S.pop();b=S.pop();a=S[", a - 1, "];D.OP_SETTABLE(a,b,c);")
 
   elseif u_name == "get_local" then
-    append(result, "S.push(V", a, "[0]);")
+    append(result, "S.push(", unbox_local(proto, a), ");")
 
   elseif u_name == "get_upvalue" then
-    append(result, "S.push(U", a, "[0]);")
+    append(result, "S.push(", unbox_upvalue(proto, a), ");")
 
   elseif u_name == "get_table" then
     append(result, "b=S.pop();a=S.pop();S.push(D.OP_GETTABLE(a,b));")
@@ -141,7 +177,7 @@ local function generate_code(result, source_map, chunk, u)
     append(result, "S.push(S[S.length-1]);")
 
   elseif u_name == "close" then
-    append(result, "a=V", a, ";D.OP_CLOSE(a[0]);V", a, "=undefined;")
+    append(result, "D.OP_CLOSE(", unbox_local(proto, a), ");V", a, "=undefined;")
 
   elseif u_name == "return" then
     append(result, "return S;")
@@ -220,18 +256,21 @@ local function generate_proto(result, source_map, chunk, proto)
     end
     append(result, "...VA")
   end
-  append(result, ")=>{\nlet S=[],a,b,c")
+  append(result, ")=>{// ", proto.node.f, ":", proto.node.n, ":", proto.node.c, "\n")
+  source_map:append_empty_mappings(1)
+
+  append(result, "let S=[],a,b,c")
   for i, v in ipairs(proto.locals) do
     append(result, ",V", i)
     if i <= proto.nparams then
-      append(result, "=[A", i, "]")
+      append(result, "=", box_local(proto, i, "A" .. i))
     end
     if v.attribute == "close" then
       try_catch = true
     end
   end
   append(result, ";\n")
-  source_map:append_empty_mappings(2)
+  source_map:append_empty_mappings(1)
 
   if try_catch then
     append(result, "try{\n")
@@ -239,7 +278,7 @@ local function generate_proto(result, source_map, chunk, proto)
   end
 
   for _, v in ipairs(proto.code) do
-    generate_code(result, source_map, chunk, v)
+    generate_code(result, source_map, chunk, proto, v)
   end
 
   if try_catch then
@@ -248,7 +287,7 @@ local function generate_proto(result, source_map, chunk, proto)
     for i = #proto.locals, 1, -1 do
       local v = proto.locals[i]
       if v.attribute == "close" then
-        append(result, "a=V", i, ";if(a!==undefined)D.OP_CLOSE(a[0]);V", i, "=undefined;\n")
+        append(result, "if(V", i, "!==undefined)D.OP_CLOSE(", unbox_local(proto, i), ");V", i, "=undefined;\n")
         source_map:append_empty_mappings(1)
       end
     end
@@ -358,8 +397,8 @@ function module.generate_chunk(result, source_map, chunk)
     generate_proto(result, source_map, chunk, chunk[i])
   end
 
-  append(result, "D.OP_CALL(P1([E]),D.arg);\n}\n")
-  source_map:append_empty_mappings(1)
+  append(result, "D.OP_CALL(P1(", box_env(chunk, "E"), "),D.arg);\n}\n")
+  source_map:append_empty_mappings(2)
 end
 
 function module.generate_module(result, source_map, name, chunk)
@@ -370,7 +409,7 @@ function module.generate_module(result, source_map, name, chunk)
     generate_proto(result, source_map, chunk, chunk[i])
   end
 
-  append(result, 'D.OP_SETTABLE(D.OP_GETTABLE(D.OP_GETTABLE(E,"package"),"preload"),', quote_js(name), ",P1([E]));\n}\n")
+  append(result, 'D.OP_SETTABLE(D.OP_GETTABLE(D.OP_GETTABLE(E,"package"),"preload"),', quote_js(name), ",P1(", box_env(chunk, "E"), "));\n}\n")
   source_map:append_empty_mappings(2)
 end
 

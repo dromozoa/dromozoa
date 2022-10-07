@@ -59,10 +59,15 @@ local function resolve(scope, name, u, define)
       local var = scope.locals[i]
       local v = proto.locals[var]
       if v.name == name then
-        if define and (v.attribute == "const" or v.attribute == "close") then
-          compiler_error("attempt to assign to const variable " .. name, u)
+        if define then
+          if v.attribute == "const" or v.attribute == "close" then
+            compiler_error("attempt to assign to const variable " .. name, u)
+          end
+          v.def = true
+        else
+          v.use = true
         end
-        return var
+        return var, v
       end
     end
     scope = scope.parent
@@ -71,18 +76,23 @@ local function resolve(scope, name, u, define)
     end
   until proto ~= scope.proto
 
-  local var = resolve(scope, name, u, define)
+  local var, v = resolve(scope, name, u, define)
   if not var then
     return
   end
 
-  for i, v in ipairs(proto.upvalues) do
-    if v.var == var then
-      assert(v.name == name)
-      return -i
+  if define then
+    v.updef = true
+  else
+    v.upuse = true
+  end
+  for i, u in ipairs(proto.upvalues) do
+    if u.var == var then
+      assert(u.name == name)
+      return -i, v
     end
   end
-  return -append(proto.upvalues, { name = name, var = var })
+  return -append(proto.upvalues, { name = name, var = var, v = v }), v
 end
 
 local function collect(scope)
@@ -264,6 +274,7 @@ local function process1(chunk, proto, scope, u, loop)
       scopes = {};
       code = {};
       top = 0;
+      node = u;
       parent = proto;
     }
     proto = u.proto
@@ -340,7 +351,7 @@ local function process1(chunk, proto, scope, u, loop)
       end
     end
 
-    -- 左辺に式があれば、式の名前解決を先に行う。
+    -- 右辺に式があれば、式の名前解決を先に行う。
     if y then
       process1(chunk, proto, scope, y, loop)
     end
@@ -543,6 +554,8 @@ local function process2(chunk, proto, scope, u, code)
     --   end
     -- end
 
+    -- TODO OP_CHECK_FORの意味論を決める
+
     process2(chunk, proto, scope, y, code)
     append_code(proto, code, u, "new_local", u.var + 2)
     append_code(proto, code, u, "new_local", u.var + 1)
@@ -652,10 +665,12 @@ local function process2(chunk, proto, scope, u, code)
     process2(chunk, proto, scope, y, code)
 
   elseif u_name == "local_function" then
+    -- local f; f = function () body end
     append_code(proto, code, u, "push_nil", 1)
     append_code(proto, code, u, "new_local", x.var)
     append_code(proto, code, u, "closure", y.proto.index)
     append_code(proto, code, u, "set_local", x.var)
+    proto.locals[x.var].def = true
     process2(chunk, proto, scope, y, code)
 
   elseif u_name == "local" then
@@ -881,6 +896,8 @@ return function (root)
   local proto = { locals = {} }
   local scope = { locals = {}, proto = proto }
   declare(scope, "_ENV")
+  chunk.env = proto.locals[1]
+
   process1(chunk, proto, scope, root)
   process2(chunk, proto, scope, root)
   return chunk
