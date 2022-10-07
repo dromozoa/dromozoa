@@ -331,7 +331,9 @@ newuserdata:(a,...b)=>new a(...b),
 entries:a=>a.map.entries(),
 replace:(a,...b)=>a.replace(...b),
 arg:[],
-OP_CHECK_FOR:()=>{},
+OP_CHECK_FOR:(a,b,c)=>{
+  if(c===0)D.error("'for' step is zero");
+},
 OP_ADD:(a,b)=>+a+ +b,
 OP_SUB:(a,b)=>a-b,
 OP_MUL:(a,b)=>a*b,
