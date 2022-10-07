@@ -89,7 +89,10 @@ local function generate_code(result, source_map, chunk, proto, u)
     return
 
   elseif u_name == "check_for" then
-    append(result, "D.OP_CHECK_FOR(", unbox_local(proto, a), ",", unbox_local(proto, a + 1), ",", unbox_local(proto, a + 2), ");")
+    append(result, "V", a, "=D.checknumber(V", a, [[,"bad 'for' initial value");]])
+    append(result, "V", a + 1, "=D.checknumber(V", a + 1, [[,"bad 'for' limit");]])
+    append(result, "V", a + 2, "=D.checknumber(V", a + 2, [[,"bad 'for' step");]])
+    append(result, "if(V", a + 2, [[===0)D.error("'for' step is zero");]])
 
   elseif u_name == "add"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_ADD(a,b));")
   elseif u_name == "sub"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_SUB(a,b));")
@@ -117,7 +120,7 @@ local function generate_code(result, source_map, chunk, proto, u)
   elseif u_name == "bnot" then append(result, "a=S.pop();S.push(D.OP_BNOT(a));")
 
   elseif u_name == "new_local" or u_name == "tbc_local" then
-    append(result, "V", a, "=", box_local(proto, a, "S.pop()"))
+    append(result, "V", a, "=", box_local(proto, a, "S.pop()"), ";")
 
   elseif u_name == "set_local" then
     append(result, unbox_local(proto, a), "=S.pop();")
@@ -256,7 +259,11 @@ local function generate_proto(result, source_map, chunk, proto)
     end
     append(result, "...VA")
   end
-  append(result, ")=>{// ", proto.node.f, ":", proto.node.n, ":", proto.node.c, "\n")
+  append(result, ")=>{")
+  if proto.node.f then
+    append(result, "// ", proto.node.f, ":", proto.node.n, ":", proto.node.c)
+  end
+  append(result, "\n")
   source_map:append_empty_mappings(1)
 
   append(result, "let S=[],a,b,c")
@@ -309,6 +316,7 @@ const D={
 type_impl:{undefined:"nil",number:"number",string:"string",boolean:"boolean"},
 type:a=>{const t=D.type_impl[typeof a];return t!==undefined?t:a instanceof LuaFunction?"function":a instanceof LuaTable?"table":"userdata";},
 error:a=>{throw new LuaError(a);},
+checknumber:(a,b)=>{const t=D.type(a),v=t==="number"||t==="string"?Number(a):NaN;if (Number.isNaN(v))D.error(b+" (number expected, got "+t+")");return v;},
 rawget:(a,b)=>a instanceof LuaTable?a.map.get(b):a[b],
 rawset:(a,b,c)=>{
   if(a instanceof LuaTable)if(c===undefined){if(a.n!==undefined&&a.n--!==b)a.n=undefined;a.map.delete(b);}else{if(a.n!==undefined&&++a.n!==b)a.n=undefined;a.map.set(b,c);}
@@ -331,8 +339,7 @@ newuserdata:(a,...b)=>new a(...b),
 entries:a=>a.map.entries(),
 replace:(a,...b)=>a.replace(...b),
 arg:[],
-OP_CHECK_FOR:()=>{},
-OP_ADD:(a,b)=>+a+ +b,
+OP_ADD:(a,b)=>Number(a)+Number(b),
 OP_SUB:(a,b)=>a-b,
 OP_MUL:(a,b)=>a*b,
 OP_DIV:(a,b)=>a/b,

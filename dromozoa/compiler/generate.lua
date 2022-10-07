@@ -45,7 +45,7 @@ local lua54_parser = require "dromozoa.compiler.lua54_parser"
 
 local function declare(scope, name, u, attribute)
   if attribute and attribute ~= "const" and attribute ~= "close" then
-    compiler_error("unknown attribute " .. attribute, u)
+    compiler_error("unknown attribute '" .. attribute .. "'", u)
   end
   local var = append(scope.proto.locals, { name = name, attribute = attribute, node = u })
   append(scope.locals, var)
@@ -61,7 +61,7 @@ local function resolve(scope, name, u, define)
       if v.name == name then
         if define then
           if v.attribute == "const" or v.attribute == "close" then
-            compiler_error("attempt to assign to const variable " .. name, u)
+            compiler_error("attempt to assign to const variable '" .. name .. "'", u)
           end
           v.def = true
         else
@@ -123,7 +123,7 @@ end
 local function define_label(scope, name, u)
   local label, v = find_label(scope, name)
   if label then
-    compiler_error("label " .. name .. " already defined on line " .. v.node.n, u)
+    compiler_error("label '" .. name .. "' already defined on line " .. v.node.n, u)
   end
   local label = append(scope.proto.labels, { name = name, node = u })
   append(scope.labels, label)
@@ -133,7 +133,7 @@ end
 local function resolve_label(scope, name, u)
   local label = find_label(scope, name)
   if not label then
-    compiler_error("no visible label " .. name, u)
+    compiler_error("no visible label '" .. name .. "' for <goto> at line " .. u.n, u)
   end
   return label
 end
@@ -382,7 +382,7 @@ local function process1(chunk, proto, scope, u, loop)
 
   elseif u_name == "break" then
     if not loop then
-      compiler_error("break outside loop", u)
+      compiler_error("break outside loop at line " .. u.n, u)
     end
     u.target = loop
     -- ジャンプ前の変数リストを記録する。
@@ -394,7 +394,7 @@ local function process1(chunk, proto, scope, u, loop)
 
   elseif u_name == "..." then
     if not proto.vararg then
-      compiler_error("cannot use ... outside a vararg function", u)
+      compiler_error("cannot use '...' outside a vararg function near '...'", u)
     end
 
   elseif u_name == "Name" then
@@ -494,7 +494,7 @@ local function process2(chunk, proto, scope, u, code)
       for i = 0, n - 1 do
         local var = v.stack[n - i]
         if u.stack[m - i] ~= var then
-          compiler_error("<goto " .. x.v .. "> jumps into the scope of local " .. proto.locals[var].name, u)
+          compiler_error("<goto " .. x.v .. "> at line " .. u.n .. " jumps into the scope of local '" .. proto.locals[var].name .. "'", u)
         end
       end
     end
@@ -537,7 +537,7 @@ local function process2(chunk, proto, scope, u, code)
     --
     -- do
     --   local var, limit, step = e1, e2, e3
-    --   OP_CHECK_FOR(var, limit, step)
+    --   var, limit, step = OP_CHECK_FOR(var, limit, step)
     --   while true do
     --     if step >= 0 then
     --       if var > limit then
@@ -553,8 +553,6 @@ local function process2(chunk, proto, scope, u, code)
     --     var = var + step
     --   end
     -- end
-
-    -- TODO OP_CHECK_FORの意味論を決める
 
     process2(chunk, proto, scope, y, code)
     append_code(proto, code, u, "new_local", u.var + 2)
@@ -823,9 +821,7 @@ local function process2(chunk, proto, scope, u, code)
       v.target = target
       process2(chunk, proto, scope, v, code)
     end
-    -- TODO proto.topがマイナスの場合をよく検討する
-    -- TODO target=proto.topを検討する
-    if proto.top > target or proto.top < 0 then
+    if proto.top ~= target then
       append_code(proto, code, u, "set_list", target)
     end
 
