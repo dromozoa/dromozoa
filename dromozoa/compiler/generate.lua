@@ -92,7 +92,7 @@ local function resolve(scope, name, u, define)
       return -i, v
     end
   end
-  return -append(proto.upvalues, { name = name, var = var }), v
+  return -append(proto.upvalues, { name = name, var = var, v = v }), v
 end
 
 local function collect(scope)
@@ -351,7 +351,7 @@ local function process1(chunk, proto, scope, u, loop)
       end
     end
 
-    -- 左辺に式があれば、式の名前解決を先に行う。
+    -- 右辺に式があれば、式の名前解決を先に行う。
     if y then
       process1(chunk, proto, scope, y, loop)
     end
@@ -665,10 +665,12 @@ local function process2(chunk, proto, scope, u, code)
     process2(chunk, proto, scope, y, code)
 
   elseif u_name == "local_function" then
+    -- local f; f = function () body end
     append_code(proto, code, u, "push_nil", 1)
     append_code(proto, code, u, "new_local", x.var)
     append_code(proto, code, u, "closure", y.proto.index)
     append_code(proto, code, u, "set_local", x.var)
+    proto.locals[x.var].def = true
     process2(chunk, proto, scope, y, code)
 
   elseif u_name == "local" then
@@ -894,6 +896,8 @@ return function (root)
   local proto = { locals = {} }
   local scope = { locals = {}, proto = proto }
   declare(scope, "_ENV")
+  chunk.env = proto.locals[1]
+
   process1(chunk, proto, scope, root)
   process2(chunk, proto, scope, root)
   return chunk
