@@ -59,10 +59,15 @@ local function resolve(scope, name, u, define)
       local var = scope.locals[i]
       local v = proto.locals[var]
       if v.name == name then
-        if define and (v.attribute == "const" or v.attribute == "close") then
-          compiler_error("attempt to assign to const variable " .. name, u)
+        if define then
+          if v.attribute == "const" or v.attribute == "close" then
+            compiler_error("attempt to assign to const variable " .. name, u)
+          end
+          v.def = true
+        else
+          v.use = true
         end
-        return var
+        return var, v
       end
     end
     scope = scope.parent
@@ -71,18 +76,24 @@ local function resolve(scope, name, u, define)
     end
   until proto ~= scope.proto
 
-  local var = resolve(scope, name, u, define)
+  local var, v = resolve(scope, name, u, define)
   if not var then
     return
   end
 
-  for i, v in ipairs(proto.upvalues) do
-    if v.var == var then
-      assert(v.name == name)
-      return -i
+  if define then
+    v.updef = true
+  else
+    v.upref = true
+  end
+
+  for i, u in ipairs(proto.upvalues) do
+    if u.var == var then
+      assert(u.name == name)
+      return -i, v
     end
   end
-  return -append(proto.upvalues, { name = name, var = var })
+  return -append(proto.upvalues, { name = name, var = var }), v
 end
 
 local function collect(scope)
