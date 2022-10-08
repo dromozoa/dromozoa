@@ -421,13 +421,7 @@ local function generate_proto(result, source_map, chunk, proto)
       try_catch = true
     end
   end
-  for i = 1, proto.max do
-    append(result, ",R", i)
-  end
-  append(result, ";\n")
-  -- append(result, ";")
-  -- local place_holder = append(result, "")
-  -- append(result, "\n")
+  local place_holder = append(result, ";\n")
   source_map:append_empty_mappings(1)
 
   if try_catch then
@@ -439,18 +433,14 @@ local function generate_proto(result, source_map, chunk, proto)
     generate_code(result, source_map, chunk, proto, map, v)
   end
 
-  -- if proto.max > 0 then
-  --   local buffer = {}
-  --   append(buffer, "let ")
-  --   for i = 1, proto.max do
-  --     if i > 1 then
-  --       append(buffer, ",")
-  --     end
-  --     append(buffer, "R", i)
-  --   end
-  --   append(buffer, ";")
-  --   result[place_holder] = table.concat(buffer)
-  -- end
+  if proto.max > 0 then
+    local buffer = {}
+    for i = 1, proto.max do
+      append(buffer, ",R", i)
+    end
+    append(buffer, ";\n")
+    result[place_holder] = table.concat(buffer)
+  end
 
   if try_catch then
     append(result, "}catch(e){\n")
@@ -483,8 +473,12 @@ error:a=>{throw new LuaError(a);},
 checknumber:(a,b)=>{const t=D.type(a),v=t==="number"||t==="string"?Number(a):NaN;if (Number.isNaN(v))D.error(b+" (number expected, got "+t+")");return v;},
 rawget:(a,b)=>a instanceof LuaTable?a.map.get(b):a[b],
 rawset:(a,b,c)=>{
-  if(a instanceof LuaTable)if(c===undefined){if(a.n!==undefined&&a.n--!==b)a.n=undefined;a.map.delete(b);}else{if(a.n!==undefined&&++a.n!==b)a.n=undefined;a.map.set(b,c);}
-  else if(c===undefined)delete a[b];else a[b]=c;
+  if(a instanceof LuaTable)
+    if(c===undefined){if(a.n!==undefined&&Number.isInteger(b)&&b!==a.n--)a.n=undefined;a.map.delete(b);}
+    else{if(a.n!==undefined&&Number.isInteger(b)&&b>a.n&&b!==++a.n)a.n=undefined;a.map.set(b,c);}
+  else
+    if(c===undefined)delete a[b];
+    else a[b]=c;
   return a;
 },
 rawlen:a=>{
