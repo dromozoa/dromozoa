@@ -66,8 +66,7 @@ local function generate_code(result, source_map, chunk, proto, u)
 
   elseif u_name == "if" then
     assert(t >= 1)
-    append(result, "a=S[", t - 1, "];if(a!==undefined&&a!==false){// top=", u.top, "\n")
-    -- append(result, "a=S.pop();if(a!==undefined&&a!==false){// top=", u.top, "\n")
+    append(result, "a=S[", t - 1, "];if(a!==undefined&&a!==false){\n")
     source_map:append_mapping(u[1].node)
     for _, v in ipairs(u[1]) do
       generate_code(result, source_map, chunk, proto, v)
@@ -97,26 +96,6 @@ local function generate_code(result, source_map, chunk, proto, u)
     append(result, "V", a + 2, "=D.checknumber(V", a + 2, [[,"bad 'for' step");]])
     append(result, "if(V", a + 2, [[===0)D.error("'for' step is zero");]])
 
-  -- elseif u_name == "add"    then assert(t >= 1) append(result, "b=S.pop();a=S.pop();S.push(D.OP_ADD(a,b));")
-  -- elseif u_name == "sub"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_SUB(a,b));")
-  -- elseif u_name == "mul"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_MUL(a,b));")
-  -- elseif u_name == "div"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_DIV(a,b));")
-  -- elseif u_name == "idiv"   then append(result, "b=S.pop();a=S.pop();S.push(D.OP_IDIV(a,b));")
-  -- elseif u_name == "mod"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_MOD(a,b));")
-  -- elseif u_name == "pow"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_POW(a,b));")
-  -- elseif u_name == "band"   then append(result, "b=S.pop();a=S.pop();S.push(D.OP_BAND(a,b));")
-  -- elseif u_name == "bxor"   then append(result, "b=S.pop();a=S.pop();S.push(D.OP_BXOR(a,b));")
-  -- elseif u_name == "bor"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_BOR(a,b));")
-  -- elseif u_name == "shr"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_SHR(a,b));")
-  -- elseif u_name == "shl"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_SHL(a,b));")
-  -- elseif u_name == "concat" then append(result, "b=S.pop();a=S.pop();S.push(D.OP_CONCAT(a,b));")
-  -- elseif u_name == "lt"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_LT(a,b));")
-  -- elseif u_name == "le"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_LE(a,b));")
-  -- elseif u_name == "gt"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_GT(a,b));")
-  -- elseif u_name == "ge"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_GE(a,b));")
-  -- elseif u_name == "eq"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_EQ(a,b));")
-  -- elseif u_name == "ne"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_NE(a,b));")
-
   elseif u_name == "add"    then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_ADD(S[", t - 2, "],S[", t - 1, "]);")
   elseif u_name == "sub"    then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_SUB(S[", t - 2, "],S[", t - 1, "]);")
   elseif u_name == "mul"    then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_MUL(S[", t - 2, "],S[", t - 1, "]);")
@@ -143,47 +122,38 @@ local function generate_code(result, source_map, chunk, proto, u)
   elseif u_name == "bnot" then assert(t >= 1) append(result, "S[", t - 1, "]=D.OP_BNOT(S[", t - 1, "]);")
 
   elseif u_name == "new_local" or u_name == "tbc_local" then
-    -- append(result, "V", a, "=", box_local(proto, a, "S.pop()"), ";")
     assert(t >= 1)
     append(result, "V", a, "=", box_local(proto, a, "S[" .. t - 1 .. "]"), ";")
 
   elseif u_name == "set_local" then
-    -- append(result, unbox_local(proto, a), "=S.pop();")
     assert(t >= 1)
     append(result, unbox_local(proto, a), "=S[", t - 1, "];")
 
   elseif u_name == "set_upvalue" then
-    -- append(result, unbox_upvalue(proto, a), "=S.pop();")
     assert(t >= 1)
     append(result, unbox_upvalue(proto, a), "=S[", t - 1, "];")
 
   elseif u_name == "set_field" then
-    -- append(result, "c=S.pop();b=S[", b - 1, "];a=S[", a - 1, "];D.OP_SETTABLE(a,b,c);")
     assert(t >= 1)
     append(result, "D.OP_SETTABLE(S[", a - 1, "],S[", b - 1, "],S[", t - 1, "]);")
 
   elseif u_name == "set_table" then
-    -- append(result, "c=S.pop();b=S.pop();a=S[", a - 1, "];D.OP_SETTABLE(a,b,c);")
     assert(t >= 1)
     append(result, "D.OP_SETTABLE(S[", a - 1, "],S[", t - 2, "],S[", t - 1, "]);")
 
   elseif u_name == "get_local" then
-    -- append(result, "S.push(", unbox_local(proto, a), ");")
     assert(t >= 0)
     append(result, "S[", t, "]=", unbox_local(proto, a), ";")
 
   elseif u_name == "get_upvalue" then
-    -- append(result, "S.push(", unbox_upvalue(proto, a), ");")
     assert(t >= 0)
     append(result, "S[", t, "]=", unbox_upvalue(proto, a), ";")
 
   elseif u_name == "get_table" then
-    -- append(result, "b=S.pop();a=S.pop();S.push(D.OP_GETTABLE(a,b));")
     assert(t >= 2)
     append(result, "S[", t - 2, "]=D.OP_GETTABLE(S[", t - 2, "],S[", t - 1, "]);")
 
   elseif u_name == "new_table" then
-    -- append(result, "S.push(D.OP_NEWTABLE());")
     assert(t >= 0)
     append(result, "S[", t, "]=D.OP_NEWTABLE();")
 
@@ -203,27 +173,22 @@ local function generate_code(result, source_map, chunk, proto, u)
     append(result, ");")
 
   elseif u_name == "push_false" then
-    -- append(result, "S.push(false);")
     append(result, "S[", t, "]=false;")
 
   elseif u_name == "push_true" then
-    -- append(result, "S.push(true);")
     append(result, "S[", t, "]=true;")
 
   elseif u_name == "push_literal" then
-    -- append(result, "S.push(", quote_js(a), ");")
     append(result, "S[", t, "]=", quote_js(a), ";")
 
   elseif u_name == "push_numeral" then
     if b == "HexadecimalFloatingNumeral" then
       compiler_error("not supported: push_numeral " .. a .. " HexadecimalFloatingNumeral", u.node)
     else
-      -- append(result, "S.push(", a, ");")
       append(result, "S[", t, "]=", a, ";")
     end
 
   elseif u_name == "dup" then
-    -- append(result, "S.push(S[S.length-1]);")
     assert(t >= 1)
     append(result, "S[", t, "]=S[", t - 1, "];")
 
@@ -231,7 +196,6 @@ local function generate_code(result, source_map, chunk, proto, u)
     append(result, "D.OP_CLOSE(", unbox_local(proto, a), ");V", a, "=undefined;")
 
   elseif u_name == "return" then
-    -- append(result, "return S;")
     if t >= 0 then
       if t == 0 then
         append(result, "return []")
@@ -243,7 +207,6 @@ local function generate_code(result, source_map, chunk, proto, u)
           append(result, ",S[", i - 1, "]")
         end
         append(result, "];")
-        -- append(result, "console.assert(S.length===", t, ");return S;")
       end
     else
       local u = (-t) - 1
@@ -256,13 +219,10 @@ local function generate_code(result, source_map, chunk, proto, u)
         end
         append(result, "...R];")
       end
-      -- append(result, "return S;")
     end
 
   elseif u_name == "call" then
     assert(a > 0)
-    -- tは負かもしれない
-    -- append(result, "b=S.splice(", a, ");a=S.pop();b=D.OP_CALL(a,b);")
     if t >= 0 then
       assert(t >= 1 and a >= 1 and t >= a)
       if t == a then
@@ -273,37 +233,20 @@ local function generate_code(result, source_map, chunk, proto, u)
           append(result, ",S[", i - 1, "]")
         end
         append(result, "];");
-
-        -- append(result, "b=S.splice(", a, ");")
       end
     else
       assert(t <= -2)
-      -- a=f
-      -- b=[a+1,a+2,...]
-      -- tが負のとき、-1-t個が存在したあと、可変長引数になる
-      -- つまり、
-      -- S=[x_1,x_2,...x_{1-t},...R]
       if a == -t - 1 then
-        -- assert(a == 1)
         append(result, "b=R;")
-        -- append(result, "b=S.splice(", a, ");")
       else
         append(result, "b=[S[", a, "]")
         for i = a + 2, -t - 1 do
           append(result, ",S[", i - 1, "]")
         end
         append(result, ",...R];")
-        -- append(result, "b=S.splice(", a, ");")
       end
     end
     append(result, "b=D.OP_CALL(S[", a - 1, "],b);")
-
-    -- if b ~= 0 then
-    --   if b > 0 then
-    --     append(result, "D.OP_ADJUST(b,", b, ");")
-    --   end
-    --   append(result, "S.push(...b);R=b;")
-    -- end
 
     if b ~= 0 then
       if b > 0 then
@@ -330,7 +273,6 @@ local function generate_code(result, source_map, chunk, proto, u)
           append(result, ",S[", i - 1, "]")
         end
         append(result, "];")
-        -- append(result, "c=S.splice(", a + 1, ");")
       end
     else
       if a + 1 == -t - 1 then
@@ -341,20 +283,13 @@ local function generate_code(result, source_map, chunk, proto, u)
           append(result, ",S[", i - 1, "]")
         end
         append(result, ",...R];")
-
-        -- append(result, "c=S.splice(", a + 1, ");")
       end
-
-      -- append(result, "c=S.splice(", a + 1, ");")
     end
 
-    -- append(result, "c=S.splice(", a + 1, ");b=S.pop();a=S.pop();c=D.OP_SELF(D.OP_GETTABLE(a,b),a,c);")
     append(result, "c=D.OP_SELF(D.OP_GETTABLE(S[", a - 1, "],S[", a, "]),S[", a - 1, "],c);")
 
     if b ~= 0 then
       if b > 0 then
-        -- append(result, "D.OP_ADJUST(c,", b, ");")
-        -- append(result, "S.push(...c);R=c;")
         for i = 1, b do
           append(result, "S[", a + i - 2, "]=c[", i - 1, "];")
         end
@@ -368,21 +303,17 @@ local function generate_code(result, source_map, chunk, proto, u)
   elseif u_name == "vararg" then
     assert(t >= 0)
     if a > 0 then
-      -- append(result, "a=[...VA];R=a;D.OP_ADJUST(a,", a, ");S.push(...a);")
-      -- S[t] = VA[0]
       for i = 1, a do
         append(result, "S[", t + i - 1, "]=VA[", i - 1, "];")
       end
 
     else
-      -- append(result, "R=VA;S.push(...VA);")
       append(result, "R=VA;")
     end
 
   elseif u_name == "set_list" then
     if t >= 0 then
       assert(t >= 1 and a >= 1 and t >= a)
-      -- append(result, "b=S.splice(", a, ");a=S[", a - 1, "];D.OP_SETLIST(a,b);")
       append(result, "b=[S[", a, "]")
       for i = a + 2, t do
         append(result, ",S[", i - 1, "]")
@@ -393,41 +324,23 @@ local function generate_code(result, source_map, chunk, proto, u)
       if t == -2 then
         assert(a == 1)
         append(result, "b=R;D.OP_SETLIST(S[", a - 1, "],b);")
-        -- 1, ...R
-        -- append(result, "b=S.splice(", a, ");D.OP_SETLIST(S[", a - 1, "],b);")
       else
-        -- 1,...,a, ...R
-        -- append(result, "b=S.splice(", a, ");a=S[", a - 1, "];D.OP_SETLIST(a,b);")
-
-        -- TODO ここのコードがあやしい
         append(result, "b=[S[", a, "]")
         for i = a + 2, -t - 1 do
           append(result, ",S[", i - 1, "]")
         end
         append(result, ",...R];D.OP_SETLIST(S[", a - 1, "],b);")
-        -- append(result, "b=S.splice(", a, ");a=S[", a - 1, "];D.OP_SETLIST(a,b);")
       end
 
     end
 
   elseif u_name == "push_nil" then
-    -- if a == 1 then
-    --   append(result, "S.push(undefined);")
-    -- else
-    --   append(result, "S.length+=", a, ";")
-    -- end
     assert(t >= 0)
-    -- append(result, "S.length=", t + a, ";")
     for i = 1, a do
       append(result, "S[", t + i - 1, "]=undefined;")
     end
 
   elseif u_name == "pop" then
-    -- if a == 1 then
-    --   append(result, "S.pop();")
-    -- else
-    --   append(result, "S.length-=", a, ";")
-    -- end
     assert(t >= 1 and a >= 1 and t >= a)
     append(result, "// S.length=", t - a, ";")
 
@@ -435,7 +348,7 @@ local function generate_code(result, source_map, chunk, proto, u)
     compiler_error("not supported: " .. u_name, u.node)
   end
 
-  append(result, "// top=", u.top, "\n")
+  append(result, "\n")
   source_map:append_mapping(u.node)
 end
 
