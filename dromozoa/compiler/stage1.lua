@@ -56,11 +56,11 @@ local function unbox_upvalue(proto, var)
 end
 
 local function def_stack(stack_map, i)
-  return "S" .. i
+  return "R" .. i
 end
 
 local function use_stack(stack_map, i)
-  return "S" .. i
+  return "R" .. i
 end
 
 local function pack_stack(stack_map, m, n)
@@ -223,7 +223,7 @@ local function generate_code(result, source_map, chunk, proto, stack_map, u)
     end
 
   elseif u_name == "dup" then
-    append(result, def_stack(stack_map, t + 1), "=", def_stack(stack_map, t), ";")
+    append(result, def_stack(stack_map, t + 1), "=", use_stack(stack_map, t), ";")
 
   elseif u_name == "close" then
     append(result, "D.OP_CLOSE(", unbox_local(proto, a), ");V", a, "=undefined;")
@@ -319,7 +319,7 @@ local function generate_proto(result, source_map, chunk, proto)
     end
   end
   for i = 1, proto.max do
-    append(result, ",S", i)
+    append(result, ",R", i)
   end
   append(result, ";\n")
   source_map:append_empty_mappings(1)
