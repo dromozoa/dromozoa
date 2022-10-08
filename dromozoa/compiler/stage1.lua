@@ -69,13 +69,13 @@ local function pack_stack(m, n)
   else
     local n = -n - 1
     if m > n then
-      append(result, "R")
+      append(result, "S")
     else
       append(result, "[")
       for i = m, n do
         append(result, "S", i, ",")
       end
-      append(result, "...R]")
+      append(result, "...S]")
     end
   end
   return table.concat(result)
@@ -222,20 +222,20 @@ local function generate_code(result, source_map, chunk, proto, u)
 
   elseif u_name == "call" then
     if b ~= 0 then
-      append(result, "R=")
+      append(result, "S=")
     end
     append(result, "D.OP_CALL(S", a, ",", pack_stack(a + 1, t), ");")
     if b > 0 then
-      append(result, unpack_stack(a, a + b - 1, "R"))
+      append(result, unpack_stack(a, a + b - 1, "S"))
     end
 
   elseif u_name == "self" then
     if b ~= 0 then
-      append(result, "R=")
+      append(result, "S=")
     end
     append(result, "D.OP_SELF(D.OP_GETTABLE(S", a, ",S", a + 1, "),S", a, ",", pack_stack(a + 2, t), ");")
     if b > 0 then
-      append(result, unpack_stack(a, a + b - 1, "R"))
+      append(result, unpack_stack(a, a + b - 1, "S"))
     end
 
   elseif u_name == "vararg" then
@@ -243,7 +243,7 @@ local function generate_code(result, source_map, chunk, proto, u)
       append(result, unpack_stack(t + 1, t + a, "VA"))
     else
       assert(a == -1)
-      append(result, "R=VA;")
+      append(result, "S=VA;")
     end
 
   elseif u_name == "set_list" then
@@ -295,7 +295,7 @@ local function generate_proto(result, source_map, chunk, proto)
   append(result, "\n")
   source_map:append_empty_mappings(1)
 
-  append(result, "let R,a,b,c")
+  append(result, "let S")
   for i, v in ipairs(proto.locals) do
     append(result, ",V", i)
     if i <= proto.nparams then
