@@ -197,7 +197,8 @@ local opcodes = {
 }
 
 local function append_code(proto, code, u, op, a, b)
-  local v = { [0] = op, a = a, b = b, node = u }
+  local v = { [0] = op, a = a, b = b, node = u, top = proto.top }
+
   append(code, v)
   local c = opcodes[op]
   if c then
@@ -227,6 +228,11 @@ local function append_code(proto, code, u, op, a, b)
   else
     error("unknown op " .. op)
   end
+
+  if proto.max < proto.top then
+    proto.max = proto.top
+  end
+
   return v
 end
 
@@ -274,6 +280,7 @@ local function process1(chunk, proto, scope, u, loop)
       scopes = {};
       code = {};
       top = 0;
+      max = 0;
       node = u;
       parent = proto;
     }

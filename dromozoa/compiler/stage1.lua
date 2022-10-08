@@ -59,12 +59,15 @@ local function generate_code(result, source_map, chunk, proto, u)
   local u_name = u[0]
   local a = u.a
   local b = u.b
+  local t = u.top
 
   if u_name == "break" then
     append(result, "break;")
 
   elseif u_name == "if" then
-    append(result, "a=S.pop();if(a!==undefined&&a!==false){\n")
+    assert(t >= 1)
+    append(result, "a=S[", t - 1, "];S.length=", t - 1, ";if(a!==undefined&&a!==false){// top=", u.top, "\n")
+    -- append(result, "a=S.pop();if(a!==undefined&&a!==false){// top=", u.top, "\n")
     source_map:append_mapping(u[1].node)
     for _, v in ipairs(u[1]) do
       generate_code(result, source_map, chunk, proto, v)
@@ -94,60 +97,99 @@ local function generate_code(result, source_map, chunk, proto, u)
     append(result, "V", a + 2, "=D.checknumber(V", a + 2, [[,"bad 'for' step");]])
     append(result, "if(V", a + 2, [[===0)D.error("'for' step is zero");]])
 
-  elseif u_name == "add"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_ADD(a,b));")
-  elseif u_name == "sub"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_SUB(a,b));")
-  elseif u_name == "mul"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_MUL(a,b));")
-  elseif u_name == "div"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_DIV(a,b));")
-  elseif u_name == "idiv"   then append(result, "b=S.pop();a=S.pop();S.push(D.OP_IDIV(a,b));")
-  elseif u_name == "mod"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_MOD(a,b));")
-  elseif u_name == "pow"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_POW(a,b));")
-  elseif u_name == "band"   then append(result, "b=S.pop();a=S.pop();S.push(D.OP_BAND(a,b));")
-  elseif u_name == "bxor"   then append(result, "b=S.pop();a=S.pop();S.push(D.OP_BXOR(a,b));")
-  elseif u_name == "bor"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_BOR(a,b));")
-  elseif u_name == "shr"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_SHR(a,b));")
-  elseif u_name == "shl"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_SHL(a,b));")
-  elseif u_name == "concat" then append(result, "b=S.pop();a=S.pop();S.push(D.OP_CONCAT(a,b));")
-  elseif u_name == "lt"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_LT(a,b));")
-  elseif u_name == "le"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_LE(a,b));")
-  elseif u_name == "gt"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_GT(a,b));")
-  elseif u_name == "ge"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_GE(a,b));")
-  elseif u_name == "eq"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_EQ(a,b));")
-  elseif u_name == "ne"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_NE(a,b));")
+  -- elseif u_name == "add"    then assert(t >= 1) append(result, "b=S.pop();a=S.pop();S.push(D.OP_ADD(a,b));")
+  -- elseif u_name == "sub"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_SUB(a,b));")
+  -- elseif u_name == "mul"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_MUL(a,b));")
+  -- elseif u_name == "div"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_DIV(a,b));")
+  -- elseif u_name == "idiv"   then append(result, "b=S.pop();a=S.pop();S.push(D.OP_IDIV(a,b));")
+  -- elseif u_name == "mod"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_MOD(a,b));")
+  -- elseif u_name == "pow"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_POW(a,b));")
+  -- elseif u_name == "band"   then append(result, "b=S.pop();a=S.pop();S.push(D.OP_BAND(a,b));")
+  -- elseif u_name == "bxor"   then append(result, "b=S.pop();a=S.pop();S.push(D.OP_BXOR(a,b));")
+  -- elseif u_name == "bor"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_BOR(a,b));")
+  -- elseif u_name == "shr"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_SHR(a,b));")
+  -- elseif u_name == "shl"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_SHL(a,b));")
+  -- elseif u_name == "concat" then append(result, "b=S.pop();a=S.pop();S.push(D.OP_CONCAT(a,b));")
+  -- elseif u_name == "lt"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_LT(a,b));")
+  -- elseif u_name == "le"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_LE(a,b));")
+  -- elseif u_name == "gt"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_GT(a,b));")
+  -- elseif u_name == "ge"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_GE(a,b));")
+  -- elseif u_name == "eq"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_EQ(a,b));")
+  -- elseif u_name == "ne"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_NE(a,b));")
 
-  elseif u_name == "unm"  then append(result, "a=S.pop();S.push(D.OP_UNM(a));")
-  elseif u_name == "not"  then append(result, "a=S.pop();S.push(D.OP_NOT(a));")
-  elseif u_name == "len"  then append(result, "a=S.pop();S.push(D.OP_LEN(a));")
-  elseif u_name == "bnot" then append(result, "a=S.pop();S.push(D.OP_BNOT(a));")
+  elseif u_name == "add"    then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_ADD(S[", t - 2, "],S[", t - 1, "]);S.length=", t - 1, ";")
+  elseif u_name == "sub"    then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_SUB(S[", t - 2, "],S[", t - 1, "]);S.length=", t - 1, ";")
+  elseif u_name == "mul"    then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_MUL(S[", t - 2, "],S[", t - 1, "]);S.length=", t - 1, ";")
+  elseif u_name == "div"    then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_DIV(S[", t - 2, "],S[", t - 1, "]);S.length=", t - 1, ";")
+  elseif u_name == "idiv"   then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_IDIV(S[", t - 2, "],S[", t - 1, "]);S.length=", t - 1, ";")
+  elseif u_name == "mod"    then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_MOD(S[", t - 2, "],S[", t - 1, "]);S.length=", t - 1, ";")
+  elseif u_name == "pow"    then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_POW(S[", t - 2, "],S[", t - 1, "]);S.length=", t - 1, ";")
+  elseif u_name == "band"   then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_BAND(S[", t - 2, "],S[", t - 1, "]);S.length=", t - 1, ";")
+  elseif u_name == "bxor"   then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_BXOR(S[", t - 2, "],S[", t - 1, "]);S.length=", t - 1, ";")
+  elseif u_name == "bor"    then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_BOR(S[", t - 2, "],S[", t - 1, "]);S.length=", t - 1, ";")
+  elseif u_name == "shr"    then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_SHR(S[", t - 2, "],S[", t - 1, "]);S.length=", t - 1, ";")
+  elseif u_name == "shl"    then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_SHL(S[", t - 2, "],S[", t - 1, "]);S.length=", t - 1, ";")
+  elseif u_name == "concat" then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_CONCAT(S[", t - 2, "],S[", t - 1, "]);S.length=", t - 1, ";")
+  elseif u_name == "lt"     then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_LT(S[", t - 2, "],S[", t - 1, "]);S.length=", t - 1, ";")
+  elseif u_name == "le"     then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_LE(S[", t - 2, "],S[", t - 1, "]);S.length=", t - 1, ";")
+  elseif u_name == "gt"     then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_GT(S[", t - 2, "],S[", t - 1, "]);S.length=", t - 1, ";")
+  elseif u_name == "ge"     then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_GE(S[", t - 2, "],S[", t - 1, "]);S.length=", t - 1, ";")
+  elseif u_name == "eq"     then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_EQ(S[", t - 2, "],S[", t - 1, "]);S.length=", t - 1, ";")
+  elseif u_name == "ne"     then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_NE(S[", t - 2, "],S[", t - 1, "]);S.length=", t - 1, ";")
+
+  elseif u_name == "unm"  then assert(t >= 1) append(result, "S[", t - 1, "]=D.OP_UNM(S[", t - 1, "]);")
+  elseif u_name == "not"  then assert(t >= 1) append(result, "S[", t - 1, "]=D.OP_NOT(S[", t - 1, "]);")
+  elseif u_name == "len"  then assert(t >= 1) append(result, "S[", t - 1, "]=D.OP_LEN(S[", t - 1, "]);")
+  elseif u_name == "bnot" then assert(t >= 1) append(result, "S[", t - 1, "]=D.OP_BNOT(S[", t - 1, "]);")
 
   elseif u_name == "new_local" or u_name == "tbc_local" then
-    append(result, "V", a, "=", box_local(proto, a, "S.pop()"), ";")
+    -- append(result, "V", a, "=", box_local(proto, a, "S.pop()"), ";")
+    assert(t >= 1)
+    append(result, "V", a, "=", box_local(proto, a, "S[" .. t - 1 .. "]"), ";S.length=", t - 1, ";")
 
   elseif u_name == "set_local" then
-    append(result, unbox_local(proto, a), "=S.pop();")
+    -- append(result, unbox_local(proto, a), "=S.pop();")
+    assert(t >= 1)
+    append(result, unbox_local(proto, a), "=S[", t - 1, "];S.length=", t - 1)
 
   elseif u_name == "set_upvalue" then
-    append(result, unbox_upvalue(proto, a), "=S.pop();")
+    -- append(result, unbox_upvalue(proto, a), "=S.pop();")
+    assert(t >= 1)
+    append(result, unbox_upvalue(proto, a), "=S[", t - 1, "];S.length=", t - 1)
 
   elseif u_name == "set_field" then
-    append(result, "c=S.pop();b=S[", b - 1, "];a=S[", a - 1, "];D.OP_SETTABLE(a,b,c);")
+    -- append(result, "c=S.pop();b=S[", b - 1, "];a=S[", a - 1, "];D.OP_SETTABLE(a,b,c);")
+    assert(t >= 1)
+    append(result, "D.OP_SETTABLE(S[", a - 1, "],S[", b - 1, "],S[", t - 1, "]);S.length=", t - 1, ";")
 
   elseif u_name == "set_table" then
-    append(result, "c=S.pop();b=S.pop();a=S[", a - 1, "];D.OP_SETTABLE(a,b,c);")
+    -- append(result, "c=S.pop();b=S.pop();a=S[", a - 1, "];D.OP_SETTABLE(a,b,c);")
+    assert(t >= 1)
+    append(result, "D.OP_SETTABLE(S[", a - 1, "],S[", t - 2, "],S[", t - 1, "]);S.length=", t - 2, ";")
 
   elseif u_name == "get_local" then
-    append(result, "S.push(", unbox_local(proto, a), ");")
+    -- append(result, "S.push(", unbox_local(proto, a), ");")
+    assert(t >= 0)
+    append(result, "S[", t, "]=", unbox_local(proto, a), ";")
 
   elseif u_name == "get_upvalue" then
-    append(result, "S.push(", unbox_upvalue(proto, a), ");")
+    -- append(result, "S.push(", unbox_upvalue(proto, a), ");")
+    assert(t >= 0)
+    append(result, "S[", t, "]=", unbox_upvalue(proto, a), ";")
 
   elseif u_name == "get_table" then
-    append(result, "b=S.pop();a=S.pop();S.push(D.OP_GETTABLE(a,b));")
+    -- append(result, "b=S.pop();a=S.pop();S.push(D.OP_GETTABLE(a,b));")
+    assert(t >= 2)
+    append(result, "S[", t - 2, "]=D.OP_GETTABLE(S[", t - 2, "],S[", t - 1, "]);S.length=", t - 1, ";")
 
   elseif u_name == "new_table" then
-    append(result, "S.push(D.OP_NEWTABLE());")
+    -- append(result, "S.push(D.OP_NEWTABLE());")
+    assert(t >= 0)
+    append(result, "S[", t, "]=D.OP_NEWTABLE();")
 
   elseif u_name == "closure" then
-    append(result, "S.push(P", a, "(")
+    assert(t >= 0)
+    append(result, "S[", t, "]=P", a, "(")
     for i, v in ipairs(chunk[a].upvalues) do
       if i > 1 then
         append(result, ",")
@@ -158,81 +200,214 @@ local function generate_code(result, source_map, chunk, proto, u)
         append(result, "V", v.var)
       end
     end
-    append(result, "));")
+    append(result, ");")
 
   elseif u_name == "push_false" then
-    append(result, "S.push(false);")
+    -- append(result, "S.push(false);")
+    append(result, "S[", t, "]=false;")
 
   elseif u_name == "push_true" then
-    append(result, "S.push(true);")
+    -- append(result, "S.push(true);")
+    append(result, "S[", t, "]=true;")
 
   elseif u_name == "push_literal" then
-    append(result, "S.push(", quote_js(a), ");")
+    -- append(result, "S.push(", quote_js(a), ");")
+    append(result, "S[", t, "]=", quote_js(a), ";")
 
   elseif u_name == "push_numeral" then
     if b == "HexadecimalFloatingNumeral" then
       compiler_error("not supported: push_numeral " .. a .. " HexadecimalFloatingNumeral", u.node)
     else
-      append(result, "S.push(", a, ");")
+      -- append(result, "S.push(", a, ");")
+      append(result, "S[", t, "]=", a, ";")
     end
 
   elseif u_name == "dup" then
-    append(result, "S.push(S[S.length-1]);")
+    -- append(result, "S.push(S[S.length-1]);")
+    assert(t >= 1)
+    append(result, "S[", t, "]=S[", t - 1, "];")
 
   elseif u_name == "close" then
     append(result, "D.OP_CLOSE(", unbox_local(proto, a), ");V", a, "=undefined;")
 
   elseif u_name == "return" then
-    append(result, "return S;")
+    -- append(result, "return S;")
+    if t >= 0 then
+      if t == 0 then
+        append(result, "return []")
+      elseif t == 1 then
+        append(result, "return [S[0]]")
+      else
+        append(result, "return [S[0]")
+        for i = 2, t do
+          append(result, ",S[", i - 1, "]")
+        end
+        append(result, "];")
+        -- append(result, "console.assert(S.length===", t, ");return S;")
+      end
+    else
+      local u = (-t) - 1
+      if u == 0 then
+        append(result, "return R;")
+      else
+        append(result, "return [")
+        for i = 1, u do
+          append(result, "S[", i - 1, "],")
+        end
+        append(result, "...R];")
+      end
+      -- append(result, "return S;")
+    end
 
   elseif u_name == "call" then
     assert(a > 0)
-    append(result, "b=S.splice(", a, ");a=S.pop();b=D.OP_CALL(a,b);")
+    -- tは負かもしれない
+    -- append(result, "b=S.splice(", a, ");a=S.pop();b=D.OP_CALL(a,b);")
+    if t >= 0 then
+      assert(t >= 1 and a >= 1 and t >= a)
+      if t == a then
+        append(result, "b=[];")
+      else
+        append(result, "b=[S[", a, "]")
+        for i = a + 2, t do
+          append(result, ",S[", i - 1, "]")
+        end
+        append(result, "];");
+
+        -- append(result, "b=S.splice(", a, ");")
+      end
+    else
+      assert(t <= -2)
+      -- a=f
+      -- b=[a+1,a+2,...]
+      -- tが負のとき、-1-t個が存在したあと、可変長引数になる
+      -- つまり、
+      -- S=[x_1,x_2,...x_{1-t},...R]
+      if a == -t - 1 then
+        -- assert(a == 1)
+        append(result, "b=R;")
+        -- append(result, "b=S.splice(", a, ");")
+      else
+        append(result, "b=[S[", a, "]")
+        for i = a + 2, -t - 1 do
+          append(result, ",S[", i - 1, "]")
+        end
+        append(result, ",...R];")
+        -- append(result, "b=S.splice(", a, ");")
+      end
+    end
+    append(result, "b=D.OP_CALL(S[", a - 1, "],b);S.length=", a - 1, ";")
     if b ~= 0 then
       if b > 0 then
         append(result, "D.OP_ADJUST(b,", b, ");")
       end
-      append(result, "S.push(...b);")
+      append(result, "S.push(...b);R=b;")
     end
 
   elseif u_name == "self" then
-    append(result, "c=S.splice(", a + 1, ");b=S.pop();a=S.pop();c=D.OP_SELF(D.OP_GETTABLE(a,b),a,c);")
+    assert(a > 0)
+    if t >= 0 then
+      assert(t >= 2 and a >= 1 and t >= a + 1)
+      if a + 1 == t then
+        append(result, "c=[];")
+      else
+        append(result, "c=[S[", a + 1, "]")
+        for i = a + 3, t do
+          append(result, ",S[", i - 1, "]")
+        end
+        append(result, "];")
+        -- append(result, "c=S.splice(", a + 1, ");")
+      end
+    else
+      if a + 1 == -t - 1 then
+        append(result, "c=R;")
+      else
+        append(result, "c=[S[", a + 1, "]")
+        for i = a + 3, -t - 1 do
+          append(result, ",S[", i - 1, "]")
+        end
+        append(result, ",...R];")
+
+        -- append(result, "c=S.splice(", a + 1, ");")
+      end
+
+      -- append(result, "c=S.splice(", a + 1, ");")
+    end
+
+    -- append(result, "c=S.splice(", a + 1, ");b=S.pop();a=S.pop();c=D.OP_SELF(D.OP_GETTABLE(a,b),a,c);")
+    append(result, "c=D.OP_SELF(D.OP_GETTABLE(S[", a - 1, "],S[", a, "]),S[", a - 1, "],c);S.length=", a - 1, ";")
+
     if b ~= 0 then
       if b > 0 then
         append(result, "D.OP_ADJUST(c,", b, ");")
       end
-      append(result, "S.push(...c);")
+      append(result, "S.push(...c);R=c;")
     end
 
   elseif u_name == "vararg" then
     if a > 0 then
-      append(result, "a=[...VA];D.OP_ADJUST(a,", a, ");S.push(...a);")
+      append(result, "a=[...VA];R=a;D.OP_ADJUST(a,", a, ");S.push(...a);")
     else
-      append(result, "S.push(...VA);")
+      append(result, "R=VA;S.push(...VA);")
     end
 
   elseif u_name == "set_list" then
-    append(result, "b=S.splice(", a, ");a=S[", a - 1, "];D.OP_SETLIST(a,b);")
+    if t >= 0 then
+      assert(t >= 1 and a >= 1 and t >= a)
+      -- append(result, "b=S.splice(", a, ");a=S[", a - 1, "];D.OP_SETLIST(a,b);")
+      append(result, "b=[S[", a, "]")
+      for i = a + 2, t do
+        append(result, ",S[", i - 1, "]")
+      end
+      append(result, "];D.OP_SETLIST(S[", a - 1, "],b);S.length=", a, ";")
+    else
+      assert(t <= -2)
+      if t == -2 then
+        assert(a == 1)
+        append(result, "b=R;D.OP_SETLIST(S[", a - 1, "],b);S.length=", a, ";")
+        -- 1, ...R
+        -- append(result, "b=S.splice(", a, ");D.OP_SETLIST(S[", a - 1, "],b);")
+      else
+        -- 1,...,a, ...R
+        -- append(result, "b=S.splice(", a, ");a=S[", a - 1, "];D.OP_SETLIST(a,b);")
+
+        -- TODO ここのコードがあやしい
+        append(result, "b=[S[", a, "]")
+        for i = a + 2, -t - 1 do
+          append(result, ",S[", i - 1, "]")
+        end
+        append(result, ",...R];D.OP_SETLIST(S[", a - 1, "],b);S.length=", a, ";")
+        -- append(result, "b=S.splice(", a, ");a=S[", a - 1, "];D.OP_SETLIST(a,b);")
+      end
+
+    end
 
   elseif u_name == "push_nil" then
-    if a == 1 then
-      append(result, "S.push(undefined);")
-    else
-      append(result, "S.length+=", a, ";")
+    -- if a == 1 then
+    --   append(result, "S.push(undefined);")
+    -- else
+    --   append(result, "S.length+=", a, ";")
+    -- end
+    assert(t >= 0)
+    -- append(result, "S.length=", t + a, ";")
+    for i = 1, a do
+      append(result, "S[", t + i - 1, "]=undefined;")
     end
 
   elseif u_name == "pop" then
-    if a == 1 then
-      append(result, "S.pop();")
-    else
-      append(result, "S.length-=", a, ";")
-    end
+    -- if a == 1 then
+    --   append(result, "S.pop();")
+    -- else
+    --   append(result, "S.length-=", a, ";")
+    -- end
+    assert(t >= 1 and a >= 1 and t >= a)
+    append(result, "S.length=", t - a, ";")
 
   else
     compiler_error("not supported: " .. u_name, u.node)
   end
 
-  append(result, "\n")
+  append(result, "// top=", u.top, "\n")
   source_map:append_mapping(u.node)
 end
 
@@ -266,7 +441,7 @@ local function generate_proto(result, source_map, chunk, proto)
   append(result, "\n")
   source_map:append_empty_mappings(1)
 
-  append(result, "let S=[],a,b,c")
+  append(result, "let S=[],R,a,b,c")
   for i, v in ipairs(proto.locals) do
     append(result, ",V", i)
     if i <= proto.nparams then
@@ -276,6 +451,9 @@ local function generate_proto(result, source_map, chunk, proto)
       try_catch = true
     end
   end
+  -- for i = 1, proto.max do
+  --   append(result, ",T", i)
+  -- end
   append(result, ";\n")
   source_map:append_empty_mappings(1)
 
@@ -302,7 +480,7 @@ local function generate_proto(result, source_map, chunk, proto)
     source_map:append_empty_mappings(2)
   end
 
-  append(result, "return S;\n});\n")
+  append(result, "return [];\n});\n")
   source_map:append_empty_mappings(2)
 end
 
