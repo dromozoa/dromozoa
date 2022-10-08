@@ -55,7 +55,8 @@ local function unbox_upvalue(proto, var)
   end
 end
 
-local function append_range(result, m, n)
+local function pack_stack(m, n)
+  local result = {}
   if n >= 0 then
     append(result, "[")
     for i = m, n do
@@ -77,6 +78,15 @@ local function append_range(result, m, n)
       append(result, "...R]")
     end
   end
+  return table.concat(result)
+end
+
+local function unpack_stack(m, n, name)
+  local result = {}
+  for i = m, n do
+    append(result, "S", i, "=", name, "[", i - m, "];")
+  end
+  return table.concat(result)
 end
 
 local function generate_code(result, source_map, chunk, proto, u)
@@ -89,8 +99,7 @@ local function generate_code(result, source_map, chunk, proto, u)
     append(result, "break;")
 
   elseif u_name == "if" then
-    assert(t >= 1)
-    append(result, "a=S", t, ";if(a!==undefined&&a!==false){\n")
+    append(result, "if(S", t, "!==undefined&&S", t, "!==false){\n")
     source_map:append_mapping(u[1].node)
     for _, v in ipairs(u[1]) do
       generate_code(result, source_map, chunk, proto, v)
@@ -209,49 +218,34 @@ local function generate_code(result, source_map, chunk, proto, u)
     append(result, "D.OP_CLOSE(", unbox_local(proto, a), ");V", a, "=undefined;")
 
   elseif u_name == "return" then
-    append(result, "return ")
-    append_range(result, 1, t)
-    append(result, ";")
+    append(result, "return ", pack_stack(1, t), ";")
 
   elseif u_name == "call" then
-    append(result, "b=")
-    append_range(result, a + 1, t)
-    append(result, ";")
-    append(result, "b=D.OP_CALL(S", a, ",b);")
+    append(result, "R=", pack_stack(a + 1, t), ";")
+    append(result, "R=D.OP_CALL(S", a, ",R);")
 
     if b > 0 then
-      append_range(result, a, a + b - 1)
-      append(result, "=b;")
-    elseif b == -1 then
-      append(result, "R=b;")
+      append(result, unpack_stack(a, a + b - 1, "R"))
     end
 
   elseif u_name == "self" then
-    append(result, "c=")
-    append_range(result, a + 2, t)
-    append(result, ";")
-    append(result, "c=D.OP_SELF(D.OP_GETTABLE(S", a, ",S", a + 1, "),S", a, ",c);")
+    append(result, "R=", pack_stack(a + 2, t), ";")
+    append(result, "R=D.OP_SELF(D.OP_GETTABLE(S", a, ",S", a + 1, "),S", a, ",R);")
 
     if b > 0 then
-      append_range(result, a, a + b - 1)
-      append(result, "=c;")
-    elseif b == -1 then
-      append(result, "R=c;")
+      append(result, unpack_stack(a, a + b - 1, "R"))
     end
 
   elseif u_name == "vararg" then
     if a > 0 then
-      append_range(result, t + 1, t + a)
-      append(result, "=VA;")
+      append(result, unpack_stack(t + 1, t + a, "VA"))
     else
       assert(a == -1)
       append(result, "R=VA;")
     end
 
   elseif u_name == "set_list" then
-    append(result, "b=")
-    append_range(result, a + 1, t)
-    append(result, ";")
+    append(result, "b=", pack_stack(a + 1, t), ";")
     append(result, "D.OP_SETLIST(S", a, ",b);")
 
   elseif u_name == "push_nil" then
