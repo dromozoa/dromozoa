@@ -219,15 +219,11 @@ local function generate_code(result, source_map, chunk, proto, u)
     append(result, ";")
     append(result, "b=D.OP_CALL(S", a, ",b);")
 
-    if b ~= 0 then
-      if b > 0 then
-        for i = 1, b do
-          append(result, "S", a + i - 1, "=b[", i - 1, "];")
-        end
-      else
-        assert(b == -1)
-        append(result, "R=b;")
-      end
+    if b > 0 then
+      append_range(result, a, a + b - 1)
+      append(result, "=b;")
+    elseif b == -1 then
+      append(result, "R=b;")
     end
 
   elseif u_name == "self" then
@@ -236,26 +232,19 @@ local function generate_code(result, source_map, chunk, proto, u)
     append(result, ";")
     append(result, "c=D.OP_SELF(D.OP_GETTABLE(S", a, ",S", a + 1, "),S", a, ",c);")
 
-    if b ~= 0 then
-      if b > 0 then
-        for i = 1, b do
-          append(result, "S", a + i - 1, "=c[", i - 1, "];")
-        end
-
-      else
-        assert(b == -1)
-        append(result, "R=c;")
-      end
+    if b > 0 then
+      append_range(result, a, a + b - 1)
+      append(result, "=c;")
+    elseif b == -1 then
+      append(result, "R=c;")
     end
 
   elseif u_name == "vararg" then
-    assert(t >= 0)
     if a > 0 then
-      for i = 1, a do
-        append(result, "S", t + i, "=VA[", i - 1, "];")
-      end
-
+      append_range(result, t + 1, t + a)
+      append(result, "=VA;")
     else
+      assert(a == -1)
       append(result, "R=VA;")
     end
 
