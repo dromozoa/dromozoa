@@ -55,15 +55,25 @@ local function unbox_upvalue(proto, var)
   end
 end
 
-local function def_stack(stack_map, i)
-  return "R" .. i
+local function push_stack(map, i, value)
+  if value == nil then
+    value = "R" .. i
+  end
+  map[i] = value
+  return value
 end
 
-local function use_stack(stack_map, i)
-  return "R" .. i
+local function get_stack(map, i)
+  return assert(map[i])
 end
 
-local function pack_stack(stack_map, m, n)
+local function pop_stack(map, i)
+  local value = assert(map[i])
+  map[i] = nil
+  return value
+end
+
+local function pack_stack(map, m, n)
   local result = {}
   if n >= 0 then
     append(result, "[")
@@ -71,7 +81,7 @@ local function pack_stack(stack_map, m, n)
       if i > m then
         append(result, ",")
       end
-      append(result, use_stack(stack_map, i))
+      append(result, pop_stack(map, i))
     end
     append(result, "]")
   else
@@ -81,7 +91,7 @@ local function pack_stack(stack_map, m, n)
     else
       append(result, "[")
       for i = m, n do
-        append(result, use_stack(stack_map, i), ",")
+        append(result, pop_stack(map, i), ",")
       end
       append(result, "...S]")
     end
@@ -89,15 +99,15 @@ local function pack_stack(stack_map, m, n)
   return table.concat(result)
 end
 
-local function unpack_stack(stack_map, m, n, name)
+local function unpack_stack(map, m, n, name)
   local result = {}
   for i = m, n do
-    append(result, def_stack(stack_map, i), "=", name, "[", i - m, "];")
+    append(result, push_stack(map, i), "=", name, "[", i - m, "];")
   end
   return table.concat(result)
 end
 
-local function generate_code(result, source_map, chunk, proto, stack_map, u)
+local function generate_code(result, source_map, chunk, proto, map, u)
   local u_name = u[0]
   local a = u.a
   local b = u.b
@@ -107,16 +117,15 @@ local function generate_code(result, source_map, chunk, proto, stack_map, u)
     append(result, "break;")
 
   elseif u_name == "if" then
-    local x = use_stack(stack_map, t)
-    append(result, "if(", x, "!==undefined&&", x, "!==false){\n")
+    append(result, "a=", pop_stack(map, t), ";if(a!==undefined&&a!==false){\n")
     source_map:append_mapping(u[1].node)
     for _, v in ipairs(u[1]) do
-      generate_code(result, source_map, chunk, proto, stack_map, v)
+      generate_code(result, source_map, chunk, proto, map, v)
     end
     append(result, "}else{\n")
     source_map:append_mapping(u[2].node)
     for _, v in ipairs(u[2]) do
-      generate_code(result, source_map, chunk, proto, stack_map, v)
+      generate_code(result, source_map, chunk, proto, map, v)
     end
     append(result, "}\n")
     source_map:append_empty_mappings(1)
@@ -126,7 +135,7 @@ local function generate_code(result, source_map, chunk, proto, stack_map, u)
     append(result, "while(true){\n")
     source_map:append_mapping(u.node)
     for _, v in ipairs(u) do
-      generate_code(result, source_map, chunk, proto, stack_map, v)
+      generate_code(result, source_map, chunk, proto, map, v)
     end
     append(result, "}\n")
     source_map:append_empty_mappings(1)
@@ -138,62 +147,152 @@ local function generate_code(result, source_map, chunk, proto, stack_map, u)
     append(result, "V", a + 2, "=D.checknumber(V", a + 2, [[,"bad 'for' step");]])
     append(result, "if(V", a + 2, [[===0)D.error("'for' step is zero");]])
 
-  elseif u_name == "add"    then local x, y = use_stack(stack_map, t - 1), use_stack(stack_map, t) append(result, def_stack(stack_map, t - 1), "=D.OP_ADD",    "(", x, ",", y, ");")
-  elseif u_name == "sub"    then local x, y = use_stack(stack_map, t - 1), use_stack(stack_map, t) append(result, def_stack(stack_map, t - 1), "=D.OP_SUB",    "(", x, ",", y, ");")
-  elseif u_name == "mul"    then local x, y = use_stack(stack_map, t - 1), use_stack(stack_map, t) append(result, def_stack(stack_map, t - 1), "=D.OP_MUL",    "(", x, ",", y, ");")
-  elseif u_name == "div"    then local x, y = use_stack(stack_map, t - 1), use_stack(stack_map, t) append(result, def_stack(stack_map, t - 1), "=D.OP_DIV",    "(", x, ",", y, ");")
-  elseif u_name == "idiv"   then local x, y = use_stack(stack_map, t - 1), use_stack(stack_map, t) append(result, def_stack(stack_map, t - 1), "=D.OP_IDIV",   "(", x, ",", y, ");")
-  elseif u_name == "mod"    then local x, y = use_stack(stack_map, t - 1), use_stack(stack_map, t) append(result, def_stack(stack_map, t - 1), "=D.OP_MOD",    "(", x, ",", y, ");")
-  elseif u_name == "pow"    then local x, y = use_stack(stack_map, t - 1), use_stack(stack_map, t) append(result, def_stack(stack_map, t - 1), "=D.OP_POW",    "(", x, ",", y, ");")
-  elseif u_name == "band"   then local x, y = use_stack(stack_map, t - 1), use_stack(stack_map, t) append(result, def_stack(stack_map, t - 1), "=D.OP_BAND",   "(", x, ",", y, ");")
-  elseif u_name == "bxor"   then local x, y = use_stack(stack_map, t - 1), use_stack(stack_map, t) append(result, def_stack(stack_map, t - 1), "=D.OP_BXOR",   "(", x, ",", y, ");")
-  elseif u_name == "bor"    then local x, y = use_stack(stack_map, t - 1), use_stack(stack_map, t) append(result, def_stack(stack_map, t - 1), "=D.OP_BOR",    "(", x, ",", y, ");")
-  elseif u_name == "shr"    then local x, y = use_stack(stack_map, t - 1), use_stack(stack_map, t) append(result, def_stack(stack_map, t - 1), "=D.OP_SHR",    "(", x, ",", y, ");")
-  elseif u_name == "shl"    then local x, y = use_stack(stack_map, t - 1), use_stack(stack_map, t) append(result, def_stack(stack_map, t - 1), "=D.OP_SHL",    "(", x, ",", y, ");")
-  elseif u_name == "concat" then local x, y = use_stack(stack_map, t - 1), use_stack(stack_map, t) append(result, def_stack(stack_map, t - 1), "=D.OP_CONCAT", "(", x, ",", y, ");")
-  elseif u_name == "lt"     then local x, y = use_stack(stack_map, t - 1), use_stack(stack_map, t) append(result, def_stack(stack_map, t - 1), "=D.OP_LT",     "(", x, ",", y, ");")
-  elseif u_name == "le"     then local x, y = use_stack(stack_map, t - 1), use_stack(stack_map, t) append(result, def_stack(stack_map, t - 1), "=D.OP_LE",     "(", x, ",", y, ");")
-  elseif u_name == "gt"     then local x, y = use_stack(stack_map, t - 1), use_stack(stack_map, t) append(result, def_stack(stack_map, t - 1), "=D.OP_GT",     "(", x, ",", y, ");")
-  elseif u_name == "ge"     then local x, y = use_stack(stack_map, t - 1), use_stack(stack_map, t) append(result, def_stack(stack_map, t - 1), "=D.OP_GE",     "(", x, ",", y, ");")
-  elseif u_name == "eq"     then local x, y = use_stack(stack_map, t - 1), use_stack(stack_map, t) append(result, def_stack(stack_map, t - 1), "=D.OP_EQ",     "(", x, ",", y, ");")
-  elseif u_name == "ne"     then local x, y = use_stack(stack_map, t - 1), use_stack(stack_map, t) append(result, def_stack(stack_map, t - 1), "=D.OP_NE",     "(", x, ",", y, ");")
+  elseif u_name == "add" then
+    local x = pop_stack(map, t - 1)
+    local y = pop_stack(map, t)
+    append(result, push_stack(map, t - 1), "=D.OP_ADD(", x, ",", y, ");")
 
-  elseif u_name == "unm"  then local x = use_stack(stack_map, t) append(result, def_stack(stack_map, t), "=D.OP_UNM",  "(", x, ");")
-  elseif u_name == "not"  then local x = use_stack(stack_map, t) append(result, def_stack(stack_map, t), "=D.OP_NOT",  "(", x, ");")
-  elseif u_name == "len"  then local x = use_stack(stack_map, t) append(result, def_stack(stack_map, t), "=D.OP_LEN",  "(", x, ");")
-  elseif u_name == "bnot" then local x = use_stack(stack_map, t) append(result, def_stack(stack_map, t), "=D.OP_BNOT", "(", x, ");")
+  elseif u_name == "sub" then
+    local x = pop_stack(map, t - 1)
+    local y = pop_stack(map, t)
+    append(result, push_stack(map, t - 1), "=D.OP_SUB(", x, ",", y, ");")
+
+  elseif u_name == "mul" then
+    local x = pop_stack(map, t - 1)
+    local y = pop_stack(map, t)
+    append(result, push_stack(map, t - 1), "=D.OP_MUL(", x, ",", y, ");")
+
+  elseif u_name == "div" then
+    local x = pop_stack(map, t - 1)
+    local y = pop_stack(map, t)
+    append(result, push_stack(map, t - 1), "=D.OP_DIV(", x, ",", y, ");")
+
+  elseif u_name == "idiv" then
+    local x = pop_stack(map, t - 1)
+    local y = pop_stack(map, t)
+    append(result, push_stack(map, t - 1), "=D.OP_IDIV(", x, ",", y, ");")
+
+  elseif u_name == "mod" then
+    local x = pop_stack(map, t - 1)
+    local y = pop_stack(map, t)
+    append(result, push_stack(map, t - 1), "=D.OP_MOD(", x, ",", y, ");")
+
+  elseif u_name == "pow" then
+    local x = pop_stack(map, t - 1)
+    local y = pop_stack(map, t)
+    append(result, push_stack(map, t - 1), "=D.OP_POW(", x, ",", y, ");")
+
+  elseif u_name == "band" then
+    local x = pop_stack(map, t - 1)
+    local y = pop_stack(map, t)
+    append(result, push_stack(map, t - 1), "=D.OP_BAND(", x, ",", y, ");")
+
+  elseif u_name == "bxor" then
+    local x = pop_stack(map, t - 1)
+    local y = pop_stack(map, t)
+    append(result, push_stack(map, t - 1), "=D.OP_BXOR(", x, ",", y, ");")
+
+  elseif u_name == "bor" then
+    local x = pop_stack(map, t - 1)
+    local y = pop_stack(map, t)
+    append(result, push_stack(map, t - 1), "=D.OP_BOR", "(", x, ",", y, ");")
+
+  elseif u_name == "shr" then
+    local x = pop_stack(map, t - 1)
+    local y = pop_stack(map, t)
+    append(result, push_stack(map, t - 1), "=D.OP_SHR(", x, ",", y, ");")
+
+  elseif u_name == "shl" then
+    local x = pop_stack(map, t - 1)
+    local y = pop_stack(map, t)
+    append(result, push_stack(map, t - 1), "=D.OP_SHL(", x, ",", y, ");")
+
+  elseif u_name == "concat" then
+    local x = pop_stack(map, t - 1)
+    local y = pop_stack(map, t)
+    append(result, push_stack(map, t - 1), "=D.OP_CONCAT(", x, ",", y, ");")
+
+  elseif u_name == "lt" then
+    local x = pop_stack(map, t - 1)
+    local y = pop_stack(map, t)
+    append(result, push_stack(map, t - 1), "=D.OP_LT(", x, ",", y, ");")
+
+  elseif u_name == "le" then
+    local x = pop_stack(map, t - 1)
+    local y = pop_stack(map, t)
+    append(result, push_stack(map, t - 1), "=D.OP_LE(", x, ",", y, ");")
+
+  elseif u_name == "gt" then
+    local x = pop_stack(map, t - 1)
+    local y = pop_stack(map, t)
+    append(result, push_stack(map, t - 1), "=D.OP_GT(", x, ",", y, ");")
+
+  elseif u_name == "ge" then
+    local x = pop_stack(map, t - 1)
+    local y = pop_stack(map, t)
+    append(result, push_stack(map, t - 1), "=D.OP_GE(", x, ",", y, ");")
+
+  elseif u_name == "eq" then
+    local x = pop_stack(map, t - 1)
+    local y = pop_stack(map, t)
+    append(result, push_stack(map, t - 1), "=D.OP_EQ(", x, ",", y, ");")
+
+  elseif u_name == "ne" then
+    local x = pop_stack(map, t - 1)
+    local y = pop_stack(map, t)
+    append(result, push_stack(map, t - 1), "=D.OP_NE(", x, ",", y, ");")
+
+  elseif u_name == "unm" then
+    local x = pop_stack(map, t)
+    push_stack(map, t, "D.OP_UNM(" .. x .. ")")
+    return
+
+  elseif u_name == "not" then
+    local x = pop_stack(map, t)
+    push_stack(map, t, "D.OP_NOT(" .. x .. ")")
+    return
+
+  elseif u_name == "len" then
+    local x = pop_stack(map, t)
+    push_stack(map, t, "D.OP_LEN(" .. x .. ")")
+    return
+
+  elseif u_name == "bnot" then
+    local x = pop_stack(map, t)
+    push_stack(map, t, "D.OP_BNOT(" .. x .. ")")
+    return
 
   elseif u_name == "new_local" or u_name == "tbc_local" then
-    append(result, "V", a, "=", box_local(proto, a, use_stack(stack_map, t)), ";")
+    append(result, "V", a, "=", box_local(proto, a, pop_stack(map, t)), ";")
 
   elseif u_name == "set_local" then
-    append(result, unbox_local(proto, a), "=", use_stack(stack_map, t), ";")
+    append(result, unbox_local(proto, a), "=", pop_stack(map, t), ";")
 
   elseif u_name == "set_upvalue" then
-    append(result, unbox_upvalue(proto, a), "=", use_stack(stack_map, t), ";")
+    append(result, unbox_upvalue(proto, a), "=", pop_stack(map, t), ";")
 
   elseif u_name == "set_field" then
-    append(result, "D.OP_SETTABLE(", use_stack(stack_map, a), ",", use_stack(stack_map, b), ",", use_stack(stack_map, t), ");")
+    append(result, "D.OP_SETTABLE(", get_stack(map, a), ",", get_stack(map, b), ",", pop_stack(map, t), ");")
 
   elseif u_name == "set_table" then
-    append(result, "D.OP_SETTABLE(", use_stack(stack_map, a), ",", use_stack(stack_map, t - 1), ",", use_stack(stack_map, t), ");")
+    append(result, "D.OP_SETTABLE(", get_stack(map, a), ",", pop_stack(map, t - 1), ",", pop_stack(map, t), ");")
 
   elseif u_name == "get_local" then
-    append(result, def_stack(stack_map, t + 1), "=", unbox_local(proto, a), ";")
+    append(result, push_stack(map, t + 1), "=", unbox_local(proto, a), ";")
 
   elseif u_name == "get_upvalue" then
-    append(result, def_stack(stack_map, t + 1), "=", unbox_upvalue(proto, a), ";")
+    append(result, push_stack(map, t + 1), "=", unbox_upvalue(proto, a), ";")
 
   elseif u_name == "get_table" then
-    local x = use_stack(stack_map, t - 1)
-    local y = use_stack(stack_map, t)
-    append(result, def_stack(stack_map, t - 1), "=D.OP_GETTABLE(", x, ",", y, ");")
+    local x = pop_stack(map, t - 1)
+    local y = pop_stack(map, t)
+    append(result, push_stack(map, t - 1), "=D.OP_GETTABLE(", x, ",", y, ");")
 
   elseif u_name == "new_table" then
-    append(result, def_stack(stack_map, t + 1), "=D.OP_NEWTABLE();")
+    append(result, push_stack(map, t + 1), "=D.OP_NEWTABLE();")
 
   elseif u_name == "closure" then
-    append(result, def_stack(stack_map, t + 1), "=P", a, "(")
+    append(result, push_stack(map, t + 1), "=P", a, "(")
     for i, v in ipairs(chunk[a].upvalues) do
       if i > 1 then
         append(result, ",")
@@ -207,66 +306,70 @@ local function generate_code(result, source_map, chunk, proto, stack_map, u)
     append(result, ");")
 
   elseif u_name == "push_false" then
-    append(result, def_stack(stack_map, t + 1), "=false;")
+    push_stack(map, t + 1, "false")
+    return
 
   elseif u_name == "push_true" then
-    append(result, def_stack(stack_map, t + 1), "=true;")
+    push_stack(map, t + 1, "true")
+    return
 
   elseif u_name == "push_literal" then
-    append(result, def_stack(stack_map, t + 1), "=", quote_js(a), ";")
+    push_stack(map, t + 1, quote_js(a))
+    return
 
   elseif u_name == "push_numeral" then
     if b == "HexadecimalFloatingNumeral" then
       compiler_error("not supported: push_numeral " .. a .. " HexadecimalFloatingNumeral", u.node)
     else
-      append(result, def_stack(stack_map, t + 1), "=", a, ";")
+      push_stack(map, t + 1, a)
+      return
     end
-
-  elseif u_name == "dup" then
-    append(result, def_stack(stack_map, t + 1), "=", use_stack(stack_map, t), ";")
 
   elseif u_name == "close" then
     append(result, "D.OP_CLOSE(", unbox_local(proto, a), ");V", a, "=undefined;")
 
   elseif u_name == "return" then
-    append(result, "return ", pack_stack(stack_map, 1, t), ";")
+    append(result, "return ", pack_stack(map, 1, t), ";")
 
   elseif u_name == "call" then
     if b ~= 0 then
       append(result, "S=")
     end
-    append(result, "D.OP_CALL(", use_stack(stack_map, a), ",", pack_stack(stack_map, a + 1, t), ");")
+    append(result, "D.OP_CALL(", pop_stack(map, a), ",", pack_stack(map, a + 1, t), ");")
     if b > 0 then
-      append(result, unpack_stack(stack_map, a, a + b - 1, "S"))
+      append(result, unpack_stack(map, a, a + b - 1, "S"))
     end
 
   elseif u_name == "self" then
     if b ~= 0 then
       append(result, "S=")
     end
-    local x = use_stack(stack_map, a)
-    append(result, "D.OP_SELF(D.OP_GETTABLE(", x, ",", use_stack(stack_map, a + 1), "),", x, ",", pack_stack(stack_map, a + 2, t), ");")
+    append(result, "D.OP_SELF(", pop_stack(map, a), ",", pop_stack(map, a + 1), ",", pack_stack(map, a + 2, t), ");")
     if b > 0 then
-      append(result, unpack_stack(stack_map, a, a + b - 1, "S"))
+      append(result, unpack_stack(map, a, a + b - 1, "S"))
     end
 
   elseif u_name == "vararg" then
     if a > 0 then
-      append(result, unpack_stack(stack_map, t + 1, t + a, "VA"))
+      append(result, unpack_stack(map, t + 1, t + a, "VA"))
     else
       assert(a == -1)
       append(result, "S=VA;")
     end
 
   elseif u_name == "set_list" then
-    append(result, "D.OP_SETLIST(", use_stack(stack_map, a), ",", pack_stack(stack_map, a + 1, t), ");")
+    append(result, "D.OP_SETLIST(", get_stack(map, a), ",", pack_stack(map, a + 1, t), ");")
 
   elseif u_name == "push_nil" then
     for i = 1, a do
-      append(result, def_stack(stack_map, t + i), "=undefined;")
+      push_stack(map, t + i, "undefined")
     end
+    return
 
   elseif u_name == "pop" then
+    for i = t - a + 1, t do
+      pop_stack(map, i)
+    end
     return
 
   else
@@ -279,7 +382,7 @@ end
 
 local function generate_proto(result, source_map, chunk, proto)
   local try_catch
-  local stack_map = { n = 0 }
+  local map = {}
 
   append(result, "const P", proto.index, "=(")
   for i = 1, #proto.upvalues do
@@ -308,7 +411,7 @@ local function generate_proto(result, source_map, chunk, proto)
   append(result, "\n")
   source_map:append_empty_mappings(1)
 
-  append(result, "let S")
+  append(result, "let a,S")
   for i, v in ipairs(proto.locals) do
     append(result, ",V", i)
     if i <= proto.nparams then
@@ -322,6 +425,9 @@ local function generate_proto(result, source_map, chunk, proto)
     append(result, ",R", i)
   end
   append(result, ";\n")
+  -- append(result, ";")
+  -- local place_holder = append(result, "")
+  -- append(result, "\n")
   source_map:append_empty_mappings(1)
 
   if try_catch then
@@ -330,8 +436,21 @@ local function generate_proto(result, source_map, chunk, proto)
   end
 
   for _, v in ipairs(proto.code) do
-    generate_code(result, source_map, chunk, proto, stack_map, v)
+    generate_code(result, source_map, chunk, proto, map, v)
   end
+
+  -- if proto.max > 0 then
+  --   local buffer = {}
+  --   append(buffer, "let ")
+  --   for i = 1, proto.max do
+  --     if i > 1 then
+  --       append(buffer, ",")
+  --     end
+  --     append(buffer, "R", i)
+  --   end
+  --   append(buffer, ";")
+  --   result[place_holder] = table.concat(buffer)
+  -- end
 
   if try_catch then
     append(result, "}catch(e){\n")
@@ -417,7 +536,7 @@ OP_GETTABLE:(a,b)=>{
 },
 OP_NEWTABLE:()=>new LuaTable(),
 OP_CALL:(a,b)=>a instanceof LuaFunction?a.fn(...b):a instanceof LuaTable?D.OP_CALL(D.getmetafield(a,"__call"),[a,...b]):[a.apply(undefined,b)],
-OP_SELF:(a,b,c)=>a instanceof LuaFunction?a.fn(b,...c):a instanceof LuaTable?D.OP_CALL(D.getmetafield(a,"__call"),[a,b,...c]):[a.apply(b,c)],
+OP_SELF:(a,b,c)=>{const f=D.OP_GETTABLE(a,b);return f instanceof LuaFunction?f.fn(a,...c):f instanceof LuaTable?D.OP_CALL(D.getmetafield(f,"__call"),[f,a,...c]):[f.apply(a,c)];},
 OP_CLOSE:(a)=>{if(a!==undefined)D.OP_CALL(D.getmetafield(a,"__close"),[a]);},
 OP_ADJUST:(a,b)=>{if(a.length<b)a[b-1]=undefined;else a.splice(b);},
 OP_SETLIST:(a,b)=>{for(let i=0;i<b.length;++i)D.rawset(a,i+1,b[i]);},
