@@ -66,7 +66,7 @@ local function generate_code(result, source_map, chunk, proto, u)
 
   elseif u_name == "if" then
     assert(t >= 1)
-    append(result, "a=S[", t - 1, "];if(a!==undefined&&a!==false){\n")
+    append(result, "a=S", t, ";if(a!==undefined&&a!==false){\n")
     source_map:append_mapping(u[1].node)
     for _, v in ipairs(u[1]) do
       generate_code(result, source_map, chunk, proto, v)
@@ -96,70 +96,70 @@ local function generate_code(result, source_map, chunk, proto, u)
     append(result, "V", a + 2, "=D.checknumber(V", a + 2, [[,"bad 'for' step");]])
     append(result, "if(V", a + 2, [[===0)D.error("'for' step is zero");]])
 
-  elseif u_name == "add"    then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_ADD(S[", t - 2, "],S[", t - 1, "]);")
-  elseif u_name == "sub"    then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_SUB(S[", t - 2, "],S[", t - 1, "]);")
-  elseif u_name == "mul"    then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_MUL(S[", t - 2, "],S[", t - 1, "]);")
-  elseif u_name == "div"    then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_DIV(S[", t - 2, "],S[", t - 1, "]);")
-  elseif u_name == "idiv"   then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_IDIV(S[", t - 2, "],S[", t - 1, "]);")
-  elseif u_name == "mod"    then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_MOD(S[", t - 2, "],S[", t - 1, "]);")
-  elseif u_name == "pow"    then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_POW(S[", t - 2, "],S[", t - 1, "]);")
-  elseif u_name == "band"   then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_BAND(S[", t - 2, "],S[", t - 1, "]);")
-  elseif u_name == "bxor"   then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_BXOR(S[", t - 2, "],S[", t - 1, "]);")
-  elseif u_name == "bor"    then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_BOR(S[", t - 2, "],S[", t - 1, "]);")
-  elseif u_name == "shr"    then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_SHR(S[", t - 2, "],S[", t - 1, "]);")
-  elseif u_name == "shl"    then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_SHL(S[", t - 2, "],S[", t - 1, "]);")
-  elseif u_name == "concat" then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_CONCAT(S[", t - 2, "],S[", t - 1, "]);")
-  elseif u_name == "lt"     then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_LT(S[", t - 2, "],S[", t - 1, "]);")
-  elseif u_name == "le"     then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_LE(S[", t - 2, "],S[", t - 1, "]);")
-  elseif u_name == "gt"     then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_GT(S[", t - 2, "],S[", t - 1, "]);")
-  elseif u_name == "ge"     then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_GE(S[", t - 2, "],S[", t - 1, "]);")
-  elseif u_name == "eq"     then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_EQ(S[", t - 2, "],S[", t - 1, "]);")
-  elseif u_name == "ne"     then assert(t >= 1) append(result, "S[", t - 2, "]=D.OP_NE(S[", t - 2, "],S[", t - 1, "]);")
+  elseif u_name == "add"    then assert(t >= 1) append(result, "S", t - 1, "=D.OP_ADD(S", t - 1, ",S", t, ");")
+  elseif u_name == "sub"    then assert(t >= 1) append(result, "S", t - 1, "=D.OP_SUB(S", t - 1, ",S", t, ");")
+  elseif u_name == "mul"    then assert(t >= 1) append(result, "S", t - 1, "=D.OP_MUL(S", t - 1, ",S", t, ");")
+  elseif u_name == "div"    then assert(t >= 1) append(result, "S", t - 1, "=D.OP_DIV(S", t - 1, ",S", t, ");")
+  elseif u_name == "idiv"   then assert(t >= 1) append(result, "S", t - 1, "=D.OP_IDIV(S", t - 1, ",S", t, ");")
+  elseif u_name == "mod"    then assert(t >= 1) append(result, "S", t - 1, "=D.OP_MOD(S", t - 1, ",S", t, ");")
+  elseif u_name == "pow"    then assert(t >= 1) append(result, "S", t - 1, "=D.OP_POW(S", t - 1, ",S", t, ");")
+  elseif u_name == "band"   then assert(t >= 1) append(result, "S", t - 1, "=D.OP_BAND(S", t - 1, ",S", t, ");")
+  elseif u_name == "bxor"   then assert(t >= 1) append(result, "S", t - 1, "=D.OP_BXOR(S", t - 1, ",S", t, ");")
+  elseif u_name == "bor"    then assert(t >= 1) append(result, "S", t - 1, "=D.OP_BOR(S", t - 1, ",S", t, ");")
+  elseif u_name == "shr"    then assert(t >= 1) append(result, "S", t - 1, "=D.OP_SHR(S", t - 1, ",S", t, ");")
+  elseif u_name == "shl"    then assert(t >= 1) append(result, "S", t - 1, "=D.OP_SHL(S", t - 1, ",S", t, ");")
+  elseif u_name == "concat" then assert(t >= 1) append(result, "S", t - 1, "=D.OP_CONCAT(S", t - 1, ",S", t, ");")
+  elseif u_name == "lt"     then assert(t >= 1) append(result, "S", t - 1, "=D.OP_LT(S", t - 1, ",S", t, ");")
+  elseif u_name == "le"     then assert(t >= 1) append(result, "S", t - 1, "=D.OP_LE(S", t - 1, ",S", t, ");")
+  elseif u_name == "gt"     then assert(t >= 1) append(result, "S", t - 1, "=D.OP_GT(S", t - 1, ",S", t, ");")
+  elseif u_name == "ge"     then assert(t >= 1) append(result, "S", t - 1, "=D.OP_GE(S", t - 1, ",S", t, ");")
+  elseif u_name == "eq"     then assert(t >= 1) append(result, "S", t - 1, "=D.OP_EQ(S", t - 1, ",S", t, ");")
+  elseif u_name == "ne"     then assert(t >= 1) append(result, "S", t - 1, "=D.OP_NE(S", t - 1, ",S", t, ");")
 
-  elseif u_name == "unm"  then assert(t >= 1) append(result, "S[", t - 1, "]=D.OP_UNM(S[", t - 1, "]);")
-  elseif u_name == "not"  then assert(t >= 1) append(result, "S[", t - 1, "]=D.OP_NOT(S[", t - 1, "]);")
-  elseif u_name == "len"  then assert(t >= 1) append(result, "S[", t - 1, "]=D.OP_LEN(S[", t - 1, "]);")
-  elseif u_name == "bnot" then assert(t >= 1) append(result, "S[", t - 1, "]=D.OP_BNOT(S[", t - 1, "]);")
+  elseif u_name == "unm"  then assert(t >= 1) append(result, "S", t, "=D.OP_UNM(S", t, ");")
+  elseif u_name == "not"  then assert(t >= 1) append(result, "S", t, "=D.OP_NOT(S", t, ");")
+  elseif u_name == "len"  then assert(t >= 1) append(result, "S", t, "=D.OP_LEN(S", t, ");")
+  elseif u_name == "bnot" then assert(t >= 1) append(result, "S", t, "=D.OP_BNOT(S", t, ");")
 
   elseif u_name == "new_local" or u_name == "tbc_local" then
     assert(t >= 1)
-    append(result, "V", a, "=", box_local(proto, a, "S[" .. t - 1 .. "]"), ";")
+    append(result, "V", a, "=", box_local(proto, a, "S" .. t .. ""), ";")
 
   elseif u_name == "set_local" then
     assert(t >= 1)
-    append(result, unbox_local(proto, a), "=S[", t - 1, "];")
+    append(result, unbox_local(proto, a), "=S", t, ";")
 
   elseif u_name == "set_upvalue" then
     assert(t >= 1)
-    append(result, unbox_upvalue(proto, a), "=S[", t - 1, "];")
+    append(result, unbox_upvalue(proto, a), "=S", t, ";")
 
   elseif u_name == "set_field" then
     assert(t >= 1)
-    append(result, "D.OP_SETTABLE(S[", a - 1, "],S[", b - 1, "],S[", t - 1, "]);")
+    append(result, "D.OP_SETTABLE(S", a, ",S", b, ",S", t, ");")
 
   elseif u_name == "set_table" then
     assert(t >= 1)
-    append(result, "D.OP_SETTABLE(S[", a - 1, "],S[", t - 2, "],S[", t - 1, "]);")
+    append(result, "D.OP_SETTABLE(S", a, ",S", t - 1, ",S", t, ");")
 
   elseif u_name == "get_local" then
     assert(t >= 0)
-    append(result, "S[", t, "]=", unbox_local(proto, a), ";")
+    append(result, "S", t + 1, "=", unbox_local(proto, a), ";")
 
   elseif u_name == "get_upvalue" then
     assert(t >= 0)
-    append(result, "S[", t, "]=", unbox_upvalue(proto, a), ";")
+    append(result, "S", t + 1, "=", unbox_upvalue(proto, a), ";")
 
   elseif u_name == "get_table" then
     assert(t >= 2)
-    append(result, "S[", t - 2, "]=D.OP_GETTABLE(S[", t - 2, "],S[", t - 1, "]);")
+    append(result, "S", t - 1, "=D.OP_GETTABLE(S", t - 1, ",S", t, ");")
 
   elseif u_name == "new_table" then
     assert(t >= 0)
-    append(result, "S[", t, "]=D.OP_NEWTABLE();")
+    append(result, "S", t + 1, "=D.OP_NEWTABLE();")
 
   elseif u_name == "closure" then
     assert(t >= 0)
-    append(result, "S[", t, "]=P", a, "(")
+    append(result, "S", t + 1, "=P", a, "(")
     for i, v in ipairs(chunk[a].upvalues) do
       if i > 1 then
         append(result, ",")
@@ -173,24 +173,24 @@ local function generate_code(result, source_map, chunk, proto, u)
     append(result, ");")
 
   elseif u_name == "push_false" then
-    append(result, "S[", t, "]=false;")
+    append(result, "S", t + 1, "=false;")
 
   elseif u_name == "push_true" then
-    append(result, "S[", t, "]=true;")
+    append(result, "S", t + 1, "=true;")
 
   elseif u_name == "push_literal" then
-    append(result, "S[", t, "]=", quote_js(a), ";")
+    append(result, "S", t + 1, "=", quote_js(a), ";")
 
   elseif u_name == "push_numeral" then
     if b == "HexadecimalFloatingNumeral" then
       compiler_error("not supported: push_numeral " .. a .. " HexadecimalFloatingNumeral", u.node)
     else
-      append(result, "S[", t, "]=", a, ";")
+      append(result, "S", t + 1, "=", a, ";")
     end
 
   elseif u_name == "dup" then
     assert(t >= 1)
-    append(result, "S[", t, "]=S[", t - 1, "];")
+    append(result, "S", t + 1, "=S", t, ";")
 
   elseif u_name == "close" then
     append(result, "D.OP_CLOSE(", unbox_local(proto, a), ");V", a, "=undefined;")
@@ -200,11 +200,11 @@ local function generate_code(result, source_map, chunk, proto, u)
       if t == 0 then
         append(result, "return []")
       elseif t == 1 then
-        append(result, "return [S[0]]")
+        append(result, "return [S1]")
       else
-        append(result, "return [S[0]")
+        append(result, "return [S1")
         for i = 2, t do
-          append(result, ",S[", i - 1, "]")
+          append(result, ",S", i, "")
         end
         append(result, "];")
       end
@@ -215,7 +215,7 @@ local function generate_code(result, source_map, chunk, proto, u)
       else
         append(result, "return [")
         for i = 1, u do
-          append(result, "S[", i - 1, "],")
+          append(result, "S", i, ",")
         end
         append(result, "...R];")
       end
@@ -228,30 +228,31 @@ local function generate_code(result, source_map, chunk, proto, u)
       if t == a then
         append(result, "b=[];")
       else
-        append(result, "b=[S[", a, "]")
+        append(result, "b=[S", a + 1)
         for i = a + 2, t do
-          append(result, ",S[", i - 1, "]")
+          append(result, ",S", i)
         end
         append(result, "];");
       end
     else
       assert(t <= -2)
-      if a == -t - 1 then
+      local n = (-t) - 1
+      if a == n then
         append(result, "b=R;")
       else
-        append(result, "b=[S[", a, "]")
-        for i = a + 2, -t - 1 do
-          append(result, ",S[", i - 1, "]")
+        append(result, "b=[")
+        for i = a + 1, n do
+          append(result, "S", i, ",")
         end
-        append(result, ",...R];")
+        append(result, "...R];")
       end
     end
-    append(result, "b=D.OP_CALL(S[", a - 1, "],b);")
+    append(result, "b=D.OP_CALL(S", a, ",b);")
 
     if b ~= 0 then
       if b > 0 then
         for i = 1, b do
-          append(result, "S[", a + i - 2, "]=b[", i - 1, "];")
+          append(result, "S", a + i - 1, "=b[", i - 1, "];")
         end
 
       else
@@ -268,30 +269,31 @@ local function generate_code(result, source_map, chunk, proto, u)
       if a + 1 == t then
         append(result, "c=[];")
       else
-        append(result, "c=[S[", a + 1, "]")
+        append(result, "c=[S", a + 2)
         for i = a + 3, t do
-          append(result, ",S[", i - 1, "]")
+          append(result, ",S", i)
         end
         append(result, "];")
       end
     else
-      if a + 1 == -t - 1 then
+      local n = (-t) - 1
+      if a + 1 == n then
         append(result, "c=R;")
       else
-        append(result, "c=[S[", a + 1, "]")
-        for i = a + 3, -t - 1 do
-          append(result, ",S[", i - 1, "]")
+        append(result, "c=[")
+        for i = a + 2, n do
+          append(result, "S", i, ",")
         end
-        append(result, ",...R];")
+        append(result, "...R];")
       end
     end
 
-    append(result, "c=D.OP_SELF(D.OP_GETTABLE(S[", a - 1, "],S[", a, "]),S[", a - 1, "],c);")
+    append(result, "c=D.OP_SELF(D.OP_GETTABLE(S", a, ",S", a + 1, "),S", a, ",c);")
 
     if b ~= 0 then
       if b > 0 then
         for i = 1, b do
-          append(result, "S[", a + i - 2, "]=c[", i - 1, "];")
+          append(result, "S", a + i - 1, "=c[", i - 1, "];")
         end
 
       else
@@ -304,7 +306,7 @@ local function generate_code(result, source_map, chunk, proto, u)
     assert(t >= 0)
     if a > 0 then
       for i = 1, a do
-        append(result, "S[", t + i - 1, "]=VA[", i - 1, "];")
+        append(result, "S", t + i, "=VA[", i - 1, "];")
       end
 
     else
@@ -314,22 +316,22 @@ local function generate_code(result, source_map, chunk, proto, u)
   elseif u_name == "set_list" then
     if t >= 0 then
       assert(t >= 1 and a >= 1 and t >= a)
-      append(result, "b=[S[", a, "]")
+      append(result, "b=[S", a + 1, "")
       for i = a + 2, t do
-        append(result, ",S[", i - 1, "]")
+        append(result, ",S", i)
       end
-      append(result, "];D.OP_SETLIST(S[", a - 1, "],b);")
+      append(result, "];D.OP_SETLIST(S", a, ",b);")
     else
       assert(t <= -2)
       if t == -2 then
         assert(a == 1)
-        append(result, "b=R;D.OP_SETLIST(S[", a - 1, "],b);")
+        append(result, "b=R;D.OP_SETLIST(S", a, ",b);")
       else
-        append(result, "b=[S[", a, "]")
-        for i = a + 2, -t - 1 do
-          append(result, ",S[", i - 1, "]")
+        append(result, "b=[")
+        for i = a + 1, -t - 1 do
+          append(result, ",S", i, ",")
         end
-        append(result, ",...R];D.OP_SETLIST(S[", a - 1, "],b);")
+        append(result, "...R];D.OP_SETLIST(S", a, ",b);")
       end
 
     end
@@ -337,7 +339,7 @@ local function generate_code(result, source_map, chunk, proto, u)
   elseif u_name == "push_nil" then
     assert(t >= 0)
     for i = 1, a do
-      append(result, "S[", t + i - 1, "]=undefined;")
+      append(result, "S", t + i, "=undefined;")
     end
 
   elseif u_name == "pop" then
@@ -382,7 +384,7 @@ local function generate_proto(result, source_map, chunk, proto)
   append(result, "\n")
   source_map:append_empty_mappings(1)
 
-  append(result, "let S=[],R,a,b,c")
+  append(result, "let R,a,b,c")
   for i, v in ipairs(proto.locals) do
     append(result, ",V", i)
     if i <= proto.nparams then
@@ -392,9 +394,9 @@ local function generate_proto(result, source_map, chunk, proto)
       try_catch = true
     end
   end
-  -- for i = 1, proto.max do
-  --   append(result, ",T", i)
-  -- end
+  for i = 1, proto.max do
+    append(result, ",S", i)
+  end
   append(result, ";\n")
   source_map:append_empty_mappings(1)
 
