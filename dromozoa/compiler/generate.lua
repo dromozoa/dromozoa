@@ -407,6 +407,18 @@ local function process1(chunk, proto, scope, u, loop)
       compiler_error("cannot use '...' outside a vararg function near '...'", u)
     end
 
+  elseif u_name == "and" then
+    -- short-circuitの解決時に、スタックが単一代入を満たすように、内部変数でphi
+    -- 関数を実現する。
+    u.var = declare(scope, "(and phi)", u)
+
+  elseif u_name == "or" then
+    -- short-circuitの解決時に、スタックが単一代入を満たすように、内部変数でphi
+    -- 関数を実現する。
+    u.var = declare(scope, "(or phi)", u)
+
+  elseif u_name == "or" then
+
   elseif u_name == "Name" then
     if u.declare then
       u.var = declare(scope, u.v, u, u.attribute)
@@ -774,17 +786,21 @@ local function process2(chunk, proto, scope, u, code)
 
   elseif u_name == "and" then
     process2(chunk, proto, scope, x, code)
-    append_code(proto, code, u, "dup")
+    append_code(proto, code, u, "new_local", u.var)
+    append_code(proto, code, u, "get_local", u.var)
     local then_block = append_if(proto, code, u)
-    append_code(proto, then_block, u, "pop", 1)
     process2(chunk, proto, scope, y, then_block)
+    append_code(proto, then_block, u, "set_local", u.var)
+    append_code(proto, code, u, "get_local", u.var)
 
   elseif u_name == "or" then
     process2(chunk, proto, scope, x, code)
-    append_code(proto, code, u, "dup")
+    append_code(proto, code, u, "new_local", u.var)
+    append_code(proto, code, u, "get_local", u.var)
     local _, else_block = append_if(proto, code, u)
-    append_code(proto, else_block, u, "pop", 1)
     process2(chunk, proto, scope, y, else_block)
+    append_code(proto, else_block, u, "set_local", u.var)
+    append_code(proto, code, u, "get_local", u.var)
 
   elseif u_name == "." then
     process2(chunk, proto, scope, x, code)
