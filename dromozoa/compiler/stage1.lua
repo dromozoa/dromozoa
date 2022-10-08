@@ -221,17 +221,19 @@ local function generate_code(result, source_map, chunk, proto, u)
     append(result, "return ", pack_stack(1, t), ";")
 
   elseif u_name == "call" then
-    append(result, "R=", pack_stack(a + 1, t), ";")
-    append(result, "R=D.OP_CALL(S", a, ",R);")
-
+    if b ~= 0 then
+      append(result, "R=")
+    end
+    append(result, "D.OP_CALL(S", a, ",", pack_stack(a + 1, t), ");")
     if b > 0 then
       append(result, unpack_stack(a, a + b - 1, "R"))
     end
 
   elseif u_name == "self" then
-    append(result, "R=", pack_stack(a + 2, t), ";")
-    append(result, "R=D.OP_SELF(D.OP_GETTABLE(S", a, ",S", a + 1, "),S", a, ",R);")
-
+    if b ~= 0 then
+      append(result, "R=")
+    end
+    append(result, "D.OP_SELF(D.OP_GETTABLE(S", a, ",S", a + 1, "),S", a, ",", pack_stack(a + 2, t), ");")
     if b > 0 then
       append(result, unpack_stack(a, a + b - 1, "R"))
     end
@@ -245,8 +247,7 @@ local function generate_code(result, source_map, chunk, proto, u)
     end
 
   elseif u_name == "set_list" then
-    append(result, "b=", pack_stack(a + 1, t), ";")
-    append(result, "D.OP_SETLIST(S", a, ",b);")
+    append(result, "D.OP_SETLIST(S", a, ",", pack_stack(a + 1, t), ");")
 
   elseif u_name == "push_nil" then
     for i = 1, a do
