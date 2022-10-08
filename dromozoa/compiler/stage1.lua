@@ -297,12 +297,26 @@ local function generate_code(result, source_map, chunk, proto, u)
       end
     end
     append(result, "b=D.OP_CALL(S[", a - 1, "],b);S.length=", a - 1, ";")
+
+    -- if b ~= 0 then
+    --   if b > 0 then
+    --     append(result, "D.OP_ADJUST(b,", b, ");")
+    --   end
+    --   append(result, "S.push(...b);R=b;")
+    -- end
+
     if b ~= 0 then
       if b > 0 then
-        append(result, "D.OP_ADJUST(b,", b, ");")
+        for i = 1, b do
+          append(result, "S[", a + i - 2, "]=b[", i - 1, "];")
+        end
+
+      else
+        assert(b == -1)
+        append(result, "R=b;")
       end
-      append(result, "S.push(...b);R=b;")
     end
+
 
   elseif u_name == "self" then
     assert(a > 0)
@@ -339,16 +353,30 @@ local function generate_code(result, source_map, chunk, proto, u)
 
     if b ~= 0 then
       if b > 0 then
-        append(result, "D.OP_ADJUST(c,", b, ");")
+        -- append(result, "D.OP_ADJUST(c,", b, ");")
+        -- append(result, "S.push(...c);R=c;")
+        for i = 1, b do
+          append(result, "S[", a + i - 2, "]=c[", i - 1, "];")
+        end
+
+      else
+        assert(b == -1)
+        append(result, "R=c;")
       end
-      append(result, "S.push(...c);R=c;")
     end
 
   elseif u_name == "vararg" then
+    assert(t >= 0)
     if a > 0 then
-      append(result, "a=[...VA];R=a;D.OP_ADJUST(a,", a, ");S.push(...a);")
+      -- append(result, "a=[...VA];R=a;D.OP_ADJUST(a,", a, ");S.push(...a);")
+      -- S[t] = VA[0]
+      for i = 1, a do
+        append(result, "S[", t + i - 1, "]=VA[", i - 1, "];")
+      end
+
     else
-      append(result, "R=VA;S.push(...VA);")
+      -- append(result, "R=VA;S.push(...VA);")
+      append(result, "R=VA;")
     end
 
   elseif u_name == "set_list" then
@@ -401,7 +429,7 @@ local function generate_code(result, source_map, chunk, proto, u)
     --   append(result, "S.length-=", a, ";")
     -- end
     assert(t >= 1 and a >= 1 and t >= a)
-    append(result, "S.length=", t - a, ";")
+    append(result, "// S.length=", t - a, ";")
 
   else
     compiler_error("not supported: " .. u_name, u.node)
