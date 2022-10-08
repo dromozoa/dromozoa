@@ -197,40 +197,43 @@ local opcodes = {
 }
 
 local function append_code(proto, code, u, op, a, b)
-  local v = { [0] = op, a = a, b = b, node = u, top = proto.top }
+  local top = proto.top
+  local v = { [0] = op, a = a, b = b, node = u, top = top }
 
   append(code, v)
   local c = opcodes[op]
   if c then
-    proto.top = proto.top + c
+    top = top + c
   elseif op == "return" then
-    proto.top = 0
+    top = 0
   elseif op == "call" or op == "self" then
     if b < 0 then
       assert(b == -1)
-      proto.top = -a
+      top = -a
     else
-      proto.top = a + b - 1
+      top = a + b - 1
     end
   elseif op == "vararg" then
     if a < 0 then
       assert(a == -1)
-      proto.top = a - proto.top
+      top = a - top
     else
-      proto.top = proto.top + a
+      top = top + a
     end
   elseif op == "set_list" then
-    proto.top = a
+    top = a
   elseif op == "push_nil" then
-    proto.top = proto.top + a
+    top = top + a
   elseif op == "pop" then
-    proto.top = proto.top - a
+    top = top - a
   else
     error("unknown op " .. op)
   end
 
-  if proto.max < proto.top then
-    proto.max = proto.top
+  proto.top = top
+  local s = top >= 0 and top or -top - 1
+  if proto.max < s then
+    proto.max = s
   end
 
   return v
