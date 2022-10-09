@@ -72,7 +72,6 @@ local function get_stack(map, i)
     map[i] = u
     return u .. "=" .. v
   end
-  -- return assert(map[i])
 end
 
 local function pop_stack(map, i)
