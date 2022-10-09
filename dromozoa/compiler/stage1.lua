@@ -19,6 +19,183 @@ local append = require "dromozoa.append"
 local quote_js = require "dromozoa.quote_js"
 local compiler_error = require "dromozoa.compiler.compiler_error"
 
+---------------------------------------------------------------------------
+
+local function push_stack(map, index, i)
+  local S = map.S
+  local T = map.T
+
+  assert(not S[i])
+  local n = T.n + 1
+  T.n = n
+  T[n] = { use = 0 }
+
+  S[i] = n
+  return n
+end
+
+local function get_stack(map, index, i)
+  local S = map.S
+  local T = map.T
+
+  local n = assert(S[i])
+  local t = assert(T[n])
+  t.use = t.use + 1
+
+  return n
+end
+
+local function pop_stack(map, index, i)
+  local S = map.S
+  local T = map.T
+
+  local n = assert(S[i])
+  local t = assert(T[n])
+  t.use = t.use + 1
+
+  S[i] = nil
+  return n
+end
+
+local function push_stack_range(map, index, m, n)
+  local result = {}
+  for i = m, n do
+    append(result, push_stack(map, index, i))
+  end
+  return result
+end
+
+local function pop_stack_range(map, index, m, n)
+  if n < 0 then
+    n = -n - 1
+  end
+
+  local result = {}
+  for i = m, n do
+    append(result, pop_stack(map, index, i))
+  end
+  return result
+end
+
+local opcodes = {
+  add    = "binop";
+  sub    = "binop";
+  mul    = "binop";
+  div    = "binop";
+  idiv   = "binop";
+  mod    = "binop";
+  pow    = "binop";
+  band   = "binop";
+  bxor   = "binop";
+  bor    = "binop";
+  shr    = "binop";
+  shl    = "binop";
+  concat = "binop";
+  lt     = "binop";
+  le     = "binop";
+  gt     = "binop";
+  ge     = "binop";
+  eq     = "binop";
+  ne     = "binop";
+
+  unm     = "unop";
+  ["not"] = "unop";
+  len     = "unop";
+  bnot    = "unop";
+
+  new_local   = "pop";
+  tbc_local   = "pop";
+  set_local   = "pop";
+  set_upvalue = "pop";
+
+  get_local    = "push";
+  get_upvalue  = "push";
+  new_table    = "push";
+  closure      = "push";
+  push_false   = "push";
+  push_true    = "push";
+  push_literal = "push";
+  push_numeral = "push";
+}
+
+local function process_code(map, u)
+  local index = map.n + 1
+  map.n = index
+  u.index = index
+
+  local u_name = u[0]
+  local a = u.a
+  local b = u.b
+  local t = u.top
+
+  local c = opcodes[u_name]
+  if c == "binop" then
+    u.x = pop_stack(map, index, t - 1)
+    u.y = pop_stack(map, index, t)
+    u.z = push_stack(map, index, t - 1)
+  elseif c == "unop" then
+    u.x = pop_stack(map, index, t)
+    u.y = push_stack(map, index, t)
+  elseif c == "pop" then
+    u.x = pop_stack(map, index, t)
+  elseif c == "push" then
+    u.x = push_stack(map, index, t + 1)
+
+  elseif u_name == "if" then
+    u.x = pop_stack(map, u, t)
+    for _, v in ipairs(u[1]) do
+      process_code(map, v)
+    end
+    for _, v in ipairs(u[2]) do
+      process_code(map, v)
+    end
+  elseif u_name == "loop" then
+    for _, v in ipairs(u) do
+      process_code(map, v)
+    end
+  elseif u_name == "set_field" then
+    u.x = get_stack(map, index, a)
+    u.y = get_stack(map, index, b)
+    u.z = pop_stack(map, index, t)
+  elseif u_name == "set_table" then
+    u.x = get_stack(map, index, a)
+    u.y = pop_stack(map, index, t - 1)
+    u.z = pop_stack(map, index, t)
+  elseif u_name == "get_table" then
+    u.x = pop_stack(map, index, t - 1)
+    u.y = pop_stack(map, index, t)
+    u.z = push_stack(map, index, t - 1)
+  elseif u_name == "return" then
+    u.x = pop_stack_range(map, index, 1, t)
+  elseif u_name == "call" then
+    u.x = pop_stack(map, index, a)
+    u.y = pop_stack_range(map, index, a + 1, t)
+    if b > 0 then
+      u.z = push_stack_range(map, index, a, a + b - 1)
+    end
+  elseif u_name == "self" then
+    u.x = pop_stack(map, index, a)
+    u.y = pop_stack(map, index, a + 1)
+    u.z = pop_stack_range(map, index, a + 2, t)
+    if b > 0 then
+      u.w = push_stack_range(map, index, a, a + b - 1)
+    end
+  elseif u_name == "vararg" then
+    if a > 0 then
+      u.x = push_stack_range(map, index, t + 1, t + a)
+    end
+  elseif u_name == "set_list" then
+    u.x = get_stack(map, index, a)
+    u.y = pop_stack_range(map, index, a + 1, t)
+  elseif u_name == "push_nil" then
+    u.x = push_stack_range(map, index, t + 1, t + a)
+  elseif u_name == "pop" then
+    u.x = pop_stack_range(map, index, t - a + 1, t)
+  end
+end
+
+---------------------------------------------------------------------------
+
 local function boxed(v)
   return v.updef or v.def and v.upuse
 end
@@ -55,10 +232,8 @@ local function unbox_upvalue(proto, var)
   end
 end
 
-local function push_stack(map, i, v)
-  if v == nil then
-    v = "R" .. i
-  end
+local function push_stack(map, i)
+  local v = "R" .. i
   map[i] = v
   return v
 end
@@ -374,13 +549,17 @@ local function generate_code(result, source_map, chunk, proto, map, u)
     compiler_error("not supported: " .. u_name, u.node)
   end
 
-  append(result, "\n")
+  append(result, "//", u.index, "\n")
   source_map:append_mapping(u.node)
 end
 
 local function generate_proto(result, source_map, chunk, proto)
   local try_catch
-  local map = {}
+  local map = { n = 0, S = {}, T = { n = 0 } }
+
+  for _, v in ipairs(proto.code) do
+    process_code(map, v)
+  end
 
   append(result, "const P", proto.index, "=(")
   for i = 1, #proto.upvalues do
