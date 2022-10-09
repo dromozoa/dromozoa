@@ -256,7 +256,7 @@ local function def(result, map, n, v)
   assert(not t.v)
   if t.use == 1 then
     t.v = v
-    append(result, ";")
+    -- append(result, ";")
   else
     local m = map.m + 1
     map.m = m
@@ -283,6 +283,8 @@ local function generate_code(result, source_map, chunk, proto, map, u)
   local a = u.a
   local b = u.b
   local t = u.top
+
+  local n = #result
 
   if u_name == "break" then
     append(result, "break;")
@@ -492,8 +494,10 @@ local function generate_code(result, source_map, chunk, proto, map, u)
     compiler_error("not supported: " .. u_name, u.node)
   end
 
-  append(result, "\n")
-  source_map:append_mapping(u.node)
+  if #result > n then
+    append(result, "\n")
+    source_map:append_mapping(u.node)
+  end
 end
 
 local function generate_proto(result, source_map, chunk, proto)
