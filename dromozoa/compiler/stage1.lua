@@ -19,8 +19,6 @@ local append = require "dromozoa.append"
 local quote_js = require "dromozoa.quote_js"
 local compiler_error = require "dromozoa.compiler.compiler_error"
 
----------------------------------------------------------------------------
-
 local function push_stack(map, i)
   local S = map.S
   local T = map.T
@@ -190,8 +188,6 @@ local function process_code(map, u)
   end
 end
 
----------------------------------------------------------------------------
-
 local function boxed(v)
   return v.updef or v.def and v.upuse
 end
@@ -228,63 +224,6 @@ local function unbox_upvalue(proto, var)
   end
 end
 
-local function push_stack(map, i)
-  local v = "R" .. i
-  map[i] = v
-  return v
-end
-
-local function get_stack(map, i)
-  local v = assert(map[i])
-  local u = "R" .. i
-  if u == v then
-    return u
-  else
-    map[i] = u
-    return u .. "=" .. v
-  end
-end
-
-local function pop_stack(map, i)
-  local v = assert(map[i])
-  map[i] = nil
-  return v
-end
-
-local function pack_stack(map, m, n)
-  local result = {}
-  if n >= 0 then
-    append(result, "[")
-    for i = m, n do
-      if i > m then
-        append(result, ",")
-      end
-      append(result, pop_stack(map, i))
-    end
-    append(result, "]")
-  else
-    local n = -n - 1
-    if m > n then
-      append(result, "S")
-    else
-      append(result, "[")
-      for i = m, n do
-        append(result, pop_stack(map, i), ",")
-      end
-      append(result, "...S]")
-    end
-  end
-  return table.concat(result)
-end
-
-local function unpack_stack(map, m, n, name)
-  local result = {}
-  for i = m, n do
-    append(result, push_stack(map, i), "=", name, "[", i - m, "];")
-  end
-  return table.concat(result)
-end
-
 local function use(map, n)
   return assert(map.T[n].v)
 end
@@ -319,8 +258,10 @@ local function def(result, map, n, v)
     t.v = v
     append(result, ";")
   else
-    t.v = "C" .. n
-    append(result, "const C", n, "=", v, ";")
+    local m = map.m + 1
+    map.m = m
+    t.v = "R" .. m
+    append(result, "R", m, "=", v, ";")
   end
 end
 
@@ -330,8 +271,10 @@ local function def_range(result, map, range, name)
   for i, n in ipairs(range) do
     local t = T[n]
     assert(not t.v)
-    t.v = "C" .. n
-    append(result, "const C", n, "=", name, "[", i - 1, "];")
+    local m = map.m + 1
+    map.m = m
+    t.v = "R" .. m
+    append(result, "R", m, "=", name, "[", i - 1, "];")
   end
 end
 
@@ -345,7 +288,6 @@ local function generate_code(result, source_map, chunk, proto, map, u)
     append(result, "break;")
 
   elseif u_name == "if" then
-    -- append(result, "a=", pop_stack(map, t), ";if(a!==undefined&&a!==false){\n")
     append(result, "a=", use(map, u.x), ";if(a!==undefined&&a!==false){\n")
     source_map:append_mapping(u[1].node)
     for _, v in ipairs(u[1]) do
@@ -377,9 +319,6 @@ local function generate_code(result, source_map, chunk, proto, map, u)
     append(result, "if(V", a + 2, [[===0)D.error("'for' step is zero");]])
 
   elseif u_name == "add" then
-    -- local x = pop_stack(map, t - 1)
-    -- local y = pop_stack(map, t)
-    -- append(result, push_stack(map, t - 1), "=D.OP_ADD(", x, ",", y, ");")
     def(result, map, u.z, "D.OP_ADD(" .. use(map, u.x) .. "," .. use(map, u.y) .. ")")
 
   elseif u_name == "sub" then
@@ -437,8 +376,6 @@ local function generate_code(result, source_map, chunk, proto, map, u)
     def(result, map, u.z, "D.OP_NE(" .. use(map, u.x) .. "," .. use(map, u.y) .. ")")
 
   elseif u_name == "unm" then
-    -- local x = pop_stack(map, t)
-    -- append(result, push_stack(map, t), "=D.OP_UNM(", x, ");")
     def(result, map, u.y, "D.OP_UNM(" .. use(map, u.x) .. ")")
 
   elseif u_name == "not" then
@@ -451,56 +388,33 @@ local function generate_code(result, source_map, chunk, proto, map, u)
     def(result, map, u.y, "D.OP_BNOT(" .. use(map, u.x) .. ")")
 
   elseif u_name == "new_local" or u_name == "tbc_local" then
-    -- append(result, "V", a, "=", box_local(proto, a, pop_stack(map, t)), ";")
     append(result, "V", a, "=", box_local(proto, a, use(map, u.x)), ";")
 
   elseif u_name == "set_local" then
-    -- append(result, unbox_local(proto, a), "=", pop_stack(map, t), ";")
     append(result, unbox_local(proto, a), "=", use(map, u.x), ";")
 
   elseif u_name == "set_upvalue" then
-    -- append(result, unbox_upvalue(proto, a), "=", pop_stack(map, t), ";")
     append(result, unbox_upvalue(proto, a), "=", use(map, u.x), ";")
 
   elseif u_name == "set_field" then
-    -- append(result, "D.OP_SETTABLE(", get_stack(map, a), ",", get_stack(map, b), ",", pop_stack(map, t), ");")
     append(result, "D.OP_SETTABLE(", use(map, u.x), ",", use(map, u.y), ",", use(map, u.z), ");")
 
   elseif u_name == "set_table" then
-    -- append(result, "D.OP_SETTABLE(", get_stack(map, a), ",", pop_stack(map, t - 1), ",", pop_stack(map, t), ");")
     append(result, "D.OP_SETTABLE(", use(map, u.x), ",", use(map, u.y), ",", use(map, u.z), ");")
 
   elseif u_name == "get_local" then
-    -- append(result, push_stack(map, t + 1), "=", unbox_local(proto, a), ";")
     def(result, map, u.x, unbox_local(proto, a))
 
   elseif u_name == "get_upvalue" then
-    -- append(result, push_stack(map, t + 1), "=", unbox_upvalue(proto, a), ";")
     def(result, map, u.x, unbox_upvalue(proto, a))
 
   elseif u_name == "get_table" then
-    -- local x = pop_stack(map, t - 1)
-    -- local y = pop_stack(map, t)
-    -- append(result, push_stack(map, t - 1), "=D.OP_GETTABLE(", x, ",", y, ");")
     def(result, map, u.z, "D.OP_GETTABLE(" .. use(map, u.x) .. "," .. use(map, u.y) .. ")")
 
   elseif u_name == "new_table" then
-    -- append(result, push_stack(map, t + 1), "=D.OP_NEWTABLE();")
     def(result, map, u.x, "D.OP_NEWTABLE()")
 
   elseif u_name == "closure" then
-    -- append(result, push_stack(map, t + 1), "=P", a, "(")
-    -- for i, v in ipairs(chunk[a].upvalues) do
-    --   if i > 1 then
-    --     append(result, ",")
-    --   end
-    --   if v.var < 0 then
-    --     append(result, "U", -v.var)
-    --   else
-    --     append(result, "V", v.var)
-    --   end
-    -- end
-    -- append(result, ");")
     local buffer = { "P", a, "(" }
     for i, v in ipairs(chunk[a].upvalues) do
       if i > 1 then
@@ -516,22 +430,18 @@ local function generate_code(result, source_map, chunk, proto, map, u)
     def(result, map, u.x, table.concat(buffer))
 
   elseif u_name == "push_false" then
-    -- append(result, push_stack(map, t + 1), "=false;")
     def(result, map, u.x, "false")
 
   elseif u_name == "push_true" then
-    -- append(result, push_stack(map, t + 1), "=true;")
     def(result, map, u.x, "true")
 
   elseif u_name == "push_literal" then
-    -- append(result, push_stack(map, t + 1), "=", quote_js(a), ";")
     def(result, map, u.x, quote_js(a))
 
   elseif u_name == "push_numeral" then
     if b == "HexadecimalFloatingNumeral" then
       compiler_error("not supported: push_numeral " .. a .. " HexadecimalFloatingNumeral", u.node)
     else
-      -- append(result, push_stack(map, t + 1), "=", a, ";")
       def(result, map, u.x, a)
     end
 
@@ -539,17 +449,14 @@ local function generate_code(result, source_map, chunk, proto, map, u)
     append(result, "D.OP_CLOSE(", unbox_local(proto, a), ");V", a, "=undefined;")
 
   elseif u_name == "return" then
-    -- append(result, "return ", pack_stack(map, 1, t), ";")
     append(result, "return ", use_range(map, u.x, t), ";")
 
   elseif u_name == "call" then
     if b ~= 0 then
       append(result, "S=")
     end
-    -- append(result, "D.OP_CALL(", pop_stack(map, a), ",", pack_stack(map, a + 1, t), ");")
     append(result, "D.OP_CALL(", use(map, u.x), ",", use_range(map, u.y, t), ");")
     if b > 0 then
-      -- append(result, unpack_stack(map, a, a + b - 1, "S"))
       def_range(result, map, u.z, "S")
     end
 
@@ -557,16 +464,13 @@ local function generate_code(result, source_map, chunk, proto, map, u)
     if b ~= 0 then
       append(result, "S=")
     end
-    -- append(result, "D.OP_SELF(", pop_stack(map, a), ",", pop_stack(map, a + 1), ",", pack_stack(map, a + 2, t), ");")
     append(result, "D.OP_SELF(", use(map, u.x), ",", use(map, u.y), ",", use_range(map, u.z, t), ");")
     if b > 0 then
-      -- append(result, unpack_stack(map, a, a + b - 1, "S"))
       def_range(result, map, u.w, "S")
     end
 
   elseif u_name == "vararg" then
     if a > 0 then
-      -- append(result, unpack_stack(map, t + 1, t + a, "VA"))
       def_range(result, map, u.x, "VA")
     else
       assert(a == -1)
@@ -574,13 +478,9 @@ local function generate_code(result, source_map, chunk, proto, map, u)
     end
 
   elseif u_name == "set_list" then
-    -- append(result, "D.OP_SETLIST(", get_stack(map, a), ",", pack_stack(map, a + 1, t), ");")
     append(result, "D.OP_SETLIST(", use(map, u.x), ",", use_range(map, u.y, t), ");")
 
   elseif u_name == "push_nil" then
-    -- for i = 1, a do
-    --   append(result, push_stack(map, t + i), "=undefined;")
-    -- end
     for _, n in ipairs(u.x) do
       def(result, map, n, "undefined")
     end
@@ -598,7 +498,7 @@ end
 
 local function generate_proto(result, source_map, chunk, proto)
   local try_catch
-  local map = { n = 0, S = {}, T = { n = 0 } }
+  local map = { m = 0, S = {}, T = { n = 0 } }
 
   for _, v in ipairs(proto.code) do
     process_code(map, v)
@@ -653,9 +553,9 @@ local function generate_proto(result, source_map, chunk, proto)
     generate_code(result, source_map, chunk, proto, map, v)
   end
 
-  if proto.max > 0 then
+  if map.m > 0 then
     local buffer = {}
-    for i = 1, proto.max do
+    for i = 1, map.m do
       append(buffer, ",R", i)
     end
     append(buffer, ";\n")
