@@ -55,22 +55,30 @@ local function unbox_upvalue(proto, var)
   end
 end
 
-local function push_stack(map, i, value)
-  if value == nil then
-    value = "R" .. i
+local function push_stack(map, i, v)
+  if v == nil then
+    v = "R" .. i
   end
-  map[i] = value
-  return value
+  map[i] = v
+  return v
 end
 
 local function get_stack(map, i)
-  return assert(map[i])
+  local v = assert(map[i])
+  local u = "R" .. i
+  if u == v then
+    return u
+  else
+    map[i] = u
+    return u .. "=" .. v
+  end
+  -- return assert(map[i])
 end
 
 local function pop_stack(map, i)
-  local value = assert(map[i])
+  local v = assert(map[i])
   map[i] = nil
-  return value
+  return v
 end
 
 local function pack_stack(map, m, n)
@@ -244,23 +252,19 @@ local function generate_code(result, source_map, chunk, proto, map, u)
 
   elseif u_name == "unm" then
     local x = pop_stack(map, t)
-    push_stack(map, t, "D.OP_UNM(" .. x .. ")")
-    return
+    append(result, push_stack(map, t), "=D.OP_UNM(", x, ");")
 
   elseif u_name == "not" then
     local x = pop_stack(map, t)
-    push_stack(map, t, "D.OP_NOT(" .. x .. ")")
-    return
+    append(result, push_stack(map, t), "=D.OP_NOT(", x, ");")
 
   elseif u_name == "len" then
     local x = pop_stack(map, t)
-    push_stack(map, t, "D.OP_LEN(" .. x .. ")")
-    return
+    append(result, push_stack(map, t), "=D.OP_LEN(", x, ");")
 
   elseif u_name == "bnot" then
     local x = pop_stack(map, t)
-    push_stack(map, t, "D.OP_BNOT(" .. x .. ")")
-    return
+    append(result, push_stack(map, t), "=D.OP_BNOT(", x, ");")
 
   elseif u_name == "new_local" or u_name == "tbc_local" then
     append(result, "V", a, "=", box_local(proto, a, pop_stack(map, t)), ";")
@@ -306,23 +310,19 @@ local function generate_code(result, source_map, chunk, proto, map, u)
     append(result, ");")
 
   elseif u_name == "push_false" then
-    push_stack(map, t + 1, "false")
-    return
+    append(result, push_stack(map, t + 1), "=false;")
 
   elseif u_name == "push_true" then
-    push_stack(map, t + 1, "true")
-    return
+    append(result, push_stack(map, t + 1), "=true;")
 
   elseif u_name == "push_literal" then
-    push_stack(map, t + 1, quote_js(a))
-    return
+    append(result, push_stack(map, t + 1), "=", quote_js(a), ";")
 
   elseif u_name == "push_numeral" then
     if b == "HexadecimalFloatingNumeral" then
       compiler_error("not supported: push_numeral " .. a .. " HexadecimalFloatingNumeral", u.node)
     else
-      push_stack(map, t + 1, a)
-      return
+      append(result, push_stack(map, t + 1), "=", a, ";")
     end
 
   elseif u_name == "close" then
@@ -362,9 +362,8 @@ local function generate_code(result, source_map, chunk, proto, map, u)
 
   elseif u_name == "push_nil" then
     for i = 1, a do
-      push_stack(map, t + i, "undefined")
+      append(result, push_stack(map, t + i), "=undefined;")
     end
-    return
 
   elseif u_name == "pop" then
     for i = t - a + 1, t do
