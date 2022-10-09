@@ -20,38 +20,35 @@ local quote_js = require "dromozoa.quote_js"
 local compiler_error = require "dromozoa.compiler.compiler_error"
 
 local function push_stack(map, i)
-  local S = map.S
-  local T = map.T
+  local stack = map.stack
 
-  assert(not S[i])
-  local n = T.n + 1
-  T.n = n
-  T[n] = { use = 0 }
+  assert(not stack[i])
+  local n = map.n + 1
+  map.n = n
+  map[n] = { use = 0 }
 
-  S[i] = n
+  stack[i] = n
   return n
 end
 
 local function get_stack(map, i)
-  local S = map.S
-  local T = map.T
+  local stack = map.stack
 
-  local n = assert(S[i])
-  local t = assert(T[n])
+  local n = assert(stack[i])
+  local t = assert(map[n])
   t.use = t.use + 1
 
   return n
 end
 
 local function pop_stack(map, i)
-  local S = map.S
-  local T = map.T
+  local stack = map.stack
 
-  local n = assert(S[i])
-  local t = assert(T[n])
+  local n = assert(stack[i])
+  local t = assert(map[n])
   t.use = t.use + 1
 
-  S[i] = nil
+  stack[i] = nil
   return n
 end
 
@@ -225,7 +222,7 @@ local function unbox_upvalue(proto, var)
 end
 
 local function use(map, n)
-  return assert(map.T[n].v)
+  return assert(map[n].v)
 end
 
 local function use_range(map, range, top)
@@ -252,11 +249,10 @@ local function use_range(map, range, top)
 end
 
 local function def(result, map, n, v)
-  local t = map.T[n]
+  local t = map[n]
   assert(not t.v)
   if t.use == 1 then
     t.v = v
-    -- append(result, ";")
   else
     local m = map.m + 1
     map.m = m
@@ -266,10 +262,8 @@ local function def(result, map, n, v)
 end
 
 local function def_range(result, map, range, name)
-  local T = map.T
-
   for i, n in ipairs(range) do
-    local t = T[n]
+    local t = map[n]
     assert(not t.v)
     local m = map.m + 1
     map.m = m
@@ -283,7 +277,6 @@ local function generate_code(result, chunk, proto, map, u)
   local a = u.a
   local b = u.b
   local t = u.top
-
   local n = #result
 
   if u_name == "break" then
@@ -298,16 +291,14 @@ local function generate_code(result, chunk, proto, map, u)
     for _, v in ipairs(u[2]) do
       generate_code(result, chunk, proto, map, v)
     end
-    append(result, "}\n")
-    return
+    append(result, "}")
 
   elseif u_name == "loop" then
     append(result, "while(true){\n")
     for _, v in ipairs(u) do
       generate_code(result, chunk, proto, map, v)
     end
-    append(result, "}\n")
-    return
+    append(result, "}")
 
   elseif u_name == "check_for" then
     append(result, "V", a, "=D.checknumber(V", a, [[,"bad 'for' initial value");]])
@@ -483,7 +474,7 @@ local function generate_code(result, chunk, proto, map, u)
     end
 
   elseif u_name == "pop" then
-    return
+    -- noop
 
   else
     compiler_error("not supported: " .. u_name, u.node)
@@ -496,7 +487,7 @@ end
 
 local function generate_proto(result, chunk, proto)
   local try_catch
-  local map = { m = 0, S = {}, T = { n = 0 } }
+  local map = { m = 0, n = 0, stack = {} }
 
   for _, v in ipairs(proto.code) do
     process_code(map, v)
@@ -571,7 +562,7 @@ local function generate_proto(result, chunk, proto)
   append(result, "return [];\n});\n")
 end
 
-local code, n = ([[
+local code = [[
 import * as fs from "fs";
 globalThis.fs=fs;
 class LuaError extends Error{constructor(msg){super(msg);this.name="LuaError";this.msg=msg;}}
@@ -656,7 +647,7 @@ D.OP_SETTABLE(E,"getmetatable",D.getmetatable);
 D.OP_SETTABLE(E,"setmetatable",D.setmetatable);
 D.OP_SETTABLE(E,"select",D.select);
 D.OP_SETTABLE(E,"pcall",new LuaFunction((a,...b)=>{try{return[true,...D.OP_CALL(a,b)];}catch(e){return[false,e instanceof LuaError?e.msg:e.toString()];}}));
-]]):gsub("\n", {})
+]]
 
 local module = {}
 
