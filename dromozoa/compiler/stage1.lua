@@ -21,7 +21,7 @@ local compiler_error = require "dromozoa.compiler.compiler_error"
 
 ---------------------------------------------------------------------------
 
-local function push_stack(map, index, i)
+local function push_stack(map, i)
   local S = map.S
   local T = map.T
 
@@ -34,7 +34,7 @@ local function push_stack(map, index, i)
   return n
 end
 
-local function get_stack(map, index, i)
+local function get_stack(map, i)
   local S = map.S
   local T = map.T
 
@@ -45,7 +45,7 @@ local function get_stack(map, index, i)
   return n
 end
 
-local function pop_stack(map, index, i)
+local function pop_stack(map, i)
   local S = map.S
   local T = map.T
 
@@ -57,22 +57,22 @@ local function pop_stack(map, index, i)
   return n
 end
 
-local function push_stack_range(map, index, m, n)
+local function push_stack_range(map, m, n)
   local result = {}
   for i = m, n do
-    append(result, push_stack(map, index, i))
+    append(result, push_stack(map, i))
   end
   return result
 end
 
-local function pop_stack_range(map, index, m, n)
+local function pop_stack_range(map, m, n)
   if n < 0 then
     n = -n - 1
   end
 
   local result = {}
   for i = m, n do
-    append(result, pop_stack(map, index, i))
+    append(result, pop_stack(map, i))
   end
   return result
 end
@@ -119,9 +119,10 @@ local opcodes = {
 }
 
 local function process_code(map, u)
-  local index = map.n + 1
-  map.n = index
-  u.index = index
+  -- local index = map.n + 1
+  -- map.n = index
+  -- u.index = index
+  local index = false
 
   local u_name = u[0]
   local a = u.a
@@ -130,19 +131,19 @@ local function process_code(map, u)
 
   local c = opcodes[u_name]
   if c == "binop" then
-    u.x = pop_stack(map, index, t - 1)
-    u.y = pop_stack(map, index, t)
-    u.z = push_stack(map, index, t - 1)
+    u.x = pop_stack(map, t - 1)
+    u.y = pop_stack(map, t)
+    u.z = push_stack(map, t - 1)
   elseif c == "unop" then
-    u.x = pop_stack(map, index, t)
-    u.y = push_stack(map, index, t)
+    u.x = pop_stack(map, t)
+    u.y = push_stack(map, t)
   elseif c == "pop" then
-    u.x = pop_stack(map, index, t)
+    u.x = pop_stack(map, t)
   elseif c == "push" then
-    u.x = push_stack(map, index, t + 1)
+    u.x = push_stack(map, t + 1)
 
   elseif u_name == "if" then
-    u.x = pop_stack(map, u, t)
+    u.x = pop_stack(map, t)
     for _, v in ipairs(u[1]) do
       process_code(map, v)
     end
@@ -154,43 +155,43 @@ local function process_code(map, u)
       process_code(map, v)
     end
   elseif u_name == "set_field" then
-    u.x = get_stack(map, index, a)
-    u.y = get_stack(map, index, b)
-    u.z = pop_stack(map, index, t)
+    u.x = get_stack(map, a)
+    u.y = get_stack(map, b)
+    u.z = pop_stack(map, t)
   elseif u_name == "set_table" then
-    u.x = get_stack(map, index, a)
-    u.y = pop_stack(map, index, t - 1)
-    u.z = pop_stack(map, index, t)
+    u.x = get_stack(map, a)
+    u.y = pop_stack(map, t - 1)
+    u.z = pop_stack(map, t)
   elseif u_name == "get_table" then
-    u.x = pop_stack(map, index, t - 1)
-    u.y = pop_stack(map, index, t)
-    u.z = push_stack(map, index, t - 1)
+    u.x = pop_stack(map, t - 1)
+    u.y = pop_stack(map, t)
+    u.z = push_stack(map, t - 1)
   elseif u_name == "return" then
-    u.x = pop_stack_range(map, index, 1, t)
+    u.x = pop_stack_range(map, 1, t)
   elseif u_name == "call" then
-    u.x = pop_stack(map, index, a)
-    u.y = pop_stack_range(map, index, a + 1, t)
+    u.x = pop_stack(map, a)
+    u.y = pop_stack_range(map, a + 1, t)
     if b > 0 then
-      u.z = push_stack_range(map, index, a, a + b - 1)
+      u.z = push_stack_range(map, a, a + b - 1)
     end
   elseif u_name == "self" then
-    u.x = pop_stack(map, index, a)
-    u.y = pop_stack(map, index, a + 1)
-    u.z = pop_stack_range(map, index, a + 2, t)
+    u.x = pop_stack(map, a)
+    u.y = pop_stack(map, a + 1)
+    u.z = pop_stack_range(map, a + 2, t)
     if b > 0 then
-      u.w = push_stack_range(map, index, a, a + b - 1)
+      u.w = push_stack_range(map, a, a + b - 1)
     end
   elseif u_name == "vararg" then
     if a > 0 then
-      u.x = push_stack_range(map, index, t + 1, t + a)
+      u.x = push_stack_range(map, t + 1, t + a)
     end
   elseif u_name == "set_list" then
-    u.x = get_stack(map, index, a)
-    u.y = pop_stack_range(map, index, a + 1, t)
+    u.x = get_stack(map, a)
+    u.y = pop_stack_range(map, a + 1, t)
   elseif u_name == "push_nil" then
-    u.x = push_stack_range(map, index, t + 1, t + a)
+    u.x = push_stack_range(map, t + 1, t + a)
   elseif u_name == "pop" then
-    u.x = pop_stack_range(map, index, t - a + 1, t)
+    u.x = pop_stack_range(map, t - a + 1, t)
   end
 end
 
@@ -549,7 +550,7 @@ local function generate_code(result, source_map, chunk, proto, map, u)
     compiler_error("not supported: " .. u_name, u.node)
   end
 
-  append(result, "//", u.index, "\n")
+  append(result, "\n")
   source_map:append_mapping(u.node)
 end
 
