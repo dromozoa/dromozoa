@@ -278,7 +278,7 @@ local function def_range(result, map, range, name)
   end
 end
 
-local function generate_code(result, source_map, chunk, proto, map, u)
+local function generate_code(result, chunk, proto, map, u)
   local u_name = u[0]
   local a = u.a
   local b = u.b
@@ -291,27 +291,22 @@ local function generate_code(result, source_map, chunk, proto, map, u)
 
   elseif u_name == "if" then
     append(result, "a=", use(map, u.x), ";if(a!==undefined&&a!==false){\n")
-    source_map:append_mapping(u[1].node)
     for _, v in ipairs(u[1]) do
-      generate_code(result, source_map, chunk, proto, map, v)
+      generate_code(result, chunk, proto, map, v)
     end
     append(result, "}else{\n")
-    source_map:append_mapping(u[2].node)
     for _, v in ipairs(u[2]) do
-      generate_code(result, source_map, chunk, proto, map, v)
+      generate_code(result, chunk, proto, map, v)
     end
     append(result, "}\n")
-    source_map:append_empty_mappings(1)
     return
 
   elseif u_name == "loop" then
     append(result, "while(true){\n")
-    source_map:append_mapping(u.node)
     for _, v in ipairs(u) do
-      generate_code(result, source_map, chunk, proto, map, v)
+      generate_code(result, chunk, proto, map, v)
     end
     append(result, "}\n")
-    source_map:append_empty_mappings(1)
     return
 
   elseif u_name == "check_for" then
@@ -496,11 +491,10 @@ local function generate_code(result, source_map, chunk, proto, map, u)
 
   if #result > n then
     append(result, "\n")
-    source_map:append_mapping(u.node)
   end
 end
 
-local function generate_proto(result, source_map, chunk, proto)
+local function generate_proto(result, chunk, proto)
   local try_catch
   local map = { m = 0, S = {}, T = { n = 0 } }
 
@@ -533,7 +527,6 @@ local function generate_proto(result, source_map, chunk, proto)
     append(result, "// ", proto.node.f, ":", proto.node.n, ":", proto.node.c)
   end
   append(result, "\n")
-  source_map:append_empty_mappings(1)
 
   append(result, "let a,S")
   for i, v in ipairs(proto.locals) do
@@ -546,15 +539,13 @@ local function generate_proto(result, source_map, chunk, proto)
     end
   end
   local place_holder = append(result, ";\n")
-  source_map:append_empty_mappings(1)
 
   if try_catch then
     append(result, "try{\n")
-    source_map:append_empty_mappings(1)
   end
 
   for _, v in ipairs(proto.code) do
-    generate_code(result, source_map, chunk, proto, map, v)
+    generate_code(result, chunk, proto, map, v)
   end
 
   if map.m > 0 then
@@ -568,20 +559,16 @@ local function generate_proto(result, source_map, chunk, proto)
 
   if try_catch then
     append(result, "}catch(e){\n")
-    source_map:append_empty_mappings(1)
     for i = #proto.locals, 1, -1 do
       local v = proto.locals[i]
       if v.attribute == "close" then
         append(result, "if(V", i, "!==undefined)D.OP_CLOSE(", unbox_local(proto, i), ");V", i, "=undefined;\n")
-        source_map:append_empty_mappings(1)
       end
     end
     append(result, "throw e;\n}\n")
-    source_map:append_empty_mappings(2)
   end
 
   append(result, "return [];\n});\n")
-  source_map:append_empty_mappings(2)
 end
 
 local code, n = ([[
@@ -673,38 +660,24 @@ D.OP_SETTABLE(E,"pcall",new LuaFunction((a,...b)=>{try{return[true,...D.OP_CALL(
 
 local module = {}
 
-function module.generate_prologue(result, source_map)
+function module.generate_prologue(result)
   append(result, code)
-  source_map:append_empty_mappings(n)
 end
 
-function module.generate_chunk(result, source_map, chunk)
+function module.generate_chunk(result, chunk)
   append(result, "{\n")
-  source_map:append_empty_mappings(1)
-
   for i = #chunk, 1, -1 do
-    generate_proto(result, source_map, chunk, chunk[i])
+    generate_proto(result, chunk, chunk[i])
   end
-
   append(result, "D.OP_CALL(P1(", box_env(chunk, "E"), "),D.arg);\n}\n")
-  source_map:append_empty_mappings(2)
 end
 
-function module.generate_module(result, source_map, name, chunk)
+function module.generate_module(result, name, chunk)
   append(result, "{\n")
-  source_map:append_empty_mappings(1)
-
   for i = #chunk, 1, -1 do
-    generate_proto(result, source_map, chunk, chunk[i])
+    generate_proto(result, chunk, chunk[i])
   end
-
   append(result, 'D.OP_SETTABLE(D.OP_GETTABLE(D.OP_GETTABLE(E,"package"),"preload"),', quote_js(name), ",P1(", box_env(chunk, "E"), "));\n}\n")
-  source_map:append_empty_mappings(2)
-end
-
-function module.generate_epilogue(result, source_map, source_map_filename)
-  append(result, "//# sourceMappingURL=", source_map_filename, "\n")
-  source_map:append_empty_mappings(1)
 end
 
 return module
