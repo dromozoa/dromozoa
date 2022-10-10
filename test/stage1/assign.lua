@@ -15,23 +15,23 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local append = require "dromozoa.append"
-local quote_lua = require "dromozoa.quote_lua"
+local x, y, z = 1, 2, 3
 
-local source_filename, result_filename = ...
+local function f()
+  local a, b, c = 1, 2, 3
 
-local handle = assert(io.open(source_filename))
-local buffer = handle:read "*a"
-handle:close()
+  print(a, b, c)
+  a, b, c = b * 4, c * 3, a * 2
+  print(a, b, c)
 
-local s = buffer
-  :gsub("/%*.-%*/", "")
-  :gsub("//[^\n]*", "")
-  :gsub("[ \t]+\n", "\n")
-  -- :gsub("\n[ \t]+", "\n")
-  :gsub("\n\n+", "\n")
-  :gsub("^\n+", "")
+  print(x, y, z)
+  x, y, z = z * 4, y * 3, x * 2
+  print(x, y, z)
 
-local out = assert(io.open(result_filename, "w"))
-out:write("return ", quote_lua(s), "\n")
-out:close()
+  local t = { x = 1, y = 2, z = 3 }
+  print(t.x, t.y, t.z)
+  t.x, t.y, t.z = t.z * 4, t.y * 3, t.x * 2
+  print(t.x, t.y, t.z)
+end
+
+f()

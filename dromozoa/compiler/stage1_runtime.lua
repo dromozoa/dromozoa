@@ -31,15 +31,15 @@ local function assert(...)
   else
     local _, message = ...
     if message == nil then
-      return D.error "assertion failed!"
+      return error "assertion failed!"
     else
-      return D.error(message)
+      return error(message)
     end
   end
 end
 
 local function tostring(v)
-  local t = D.type(v)
+  local t = type(v)
   if t == "nil" then
     return "nil"
   elseif t == "number" then
@@ -52,7 +52,7 @@ local function tostring(v)
     local metafield = D.getmetafield(v, "__tostring")
     if metafield ~= nil then
       local v = metafield(v)
-      local t = D.type(v)
+      local t = type(v)
       if t == "number" then
         return G:String(v)
       end
@@ -61,7 +61,7 @@ local function tostring(v)
     end
   end
   local metafield = D.getmetafield(v, "__name")
-  if D.type(metafield) == "string" then
+  if type(metafield) == "string" then
     t = metafield
   end
   return t .. ": " .. v
@@ -107,7 +107,7 @@ end
 local function pairs(t)
   local metafield = D.getmetafield(t, "__pairs")
   if metafield == nil then
-    return pairs_impl, D.entries(t)
+    return pairs_impl, D.table_entries(t)
   else
     local f, s, var = metafield(t)
     return f, s, var
@@ -124,7 +124,7 @@ _ENV.pairs = pairs
 ---------------------------------------------------------------------------
 
 local function table_pack(...)
-  return { n = D.select("#", ...), ... }
+  return { n = select("#", ...), ... }
 end
 
 local function table_unpack(list, i, j)
@@ -154,8 +154,9 @@ local function table_sort(list, comp)
   if comp == nil then
     comp = function (a, b) return a < b end
   end
-  local array = D.array_from(list, 1, #list)
-  array:sort(D.native(function (a, b)
+  local n = #list
+  local array = D.array_from(list, 1, n)
+  array:sort(D.native_function(function (a, b)
     if comp(a, b) then
       return -1
     elseif comp(b, a) then
@@ -164,7 +165,9 @@ local function table_sort(list, comp)
       return 0
     end
   end))
-  D.OP_SETLIST(list, array)
+  for i = 1, n do
+    list[i] = array[i - 1]
+  end
 end
 
 local table = {
@@ -178,7 +181,7 @@ _ENV.table = table
 
 ---------------------------------------------------------------------------
 
-local string_encoder = D.newuserdata(G.TextEncoder)
+local string_encoder = D.native_new(G.TextEncoder)
 local string_encoder_cache = {}
 
 local function string_encode_utf8(s)
@@ -191,7 +194,7 @@ local function string_encode_utf8(s)
   return b
 end
 
-local string_decoder = D.newuserdata(G.TextDecoder)
+local string_decoder = D.native_new(G.TextDecoder)
 
 local function string_decode_utf8(b)
   return string_decoder:decode(b)
@@ -243,7 +246,7 @@ local function string_sub(s, i, j)
 end
 
 local function string_gsub_regexp(pattern)
-  return D.newuserdata(G.RegExp, pattern, "gs")
+  return D.native_new(G.RegExp, pattern, "gs")
 end
 
 local RE1 = string_gsub_regexp [[\\]]
@@ -252,17 +255,17 @@ local RE3 = string_gsub_regexp [[\%(.)]]
 local RE4 = string_gsub_regexp [[\.\-]]
 
 local function string_gsub_pattern(s)
-  s = D.replace(s, RE1, [[\\]])
-  s = D.replace(s, RE2, [[\u0000]])
-  s = D.replace(s, RE3, [[\$1]])
-  s = D.replace(s, RE4, [[.*?]])
+  s = D.string_replace(s, RE1, [[\\]])
+  s = D.string_replace(s, RE2, [[\u0000]])
+  s = D.string_replace(s, RE3, [[\$1]])
+  s = D.string_replace(s, RE4, [[.*?]])
   return s
 end
 
 local RE = string_gsub_regexp [[\%([\%0-9])]]
 
 local function string_gsub_string(repl, match, p)
-  return D.replace(repl, RE, D.native(function (a, b)
+  return D.string_replace(repl, RE, D.native_function(function (a, b)
     if b == "%" then
       return "%"
     elseif b == "0" then
@@ -280,7 +283,7 @@ end
 
 local function string_gsub(s, pattern, repl)
   local replacer
-  local t = D.type(repl)
+  local t = type(repl)
   if t == "string" then
     replacer = function (match, p)
       return string_gsub_string(repl, match, p)
@@ -297,10 +300,10 @@ local function string_gsub(s, pattern, repl)
 
   local re = string_gsub_regexp(string_gsub_pattern(pattern))
   local n = 0
-  local result = D.replace(s, re, D.native(function (match, ...)
+  local result = D.string_replace(s, re, D.native_function(function (match, ...)
     local p = table_pack(...)
     for i = 1, p.n do
-      if D.type(p[i]) == "number" then
+      if type(p[i]) == "number" then
         p.n = i - 1
         break
       end
@@ -324,7 +327,7 @@ local string = {
   gsub = string_gsub;
 }
 
-D.string_len = D.native(string_len)
+D.string_len = D.native_function(string_len)
 D.string_metatable = {
   __index = string;
 }
@@ -356,7 +359,7 @@ if G.fs then
     assert(p == "*a")
     local fd = assert(self.fd)
     local s = fs:fstatSync(fd)
-    local b = D.newuserdata(G.Uint8Array, s.size)
+    local b = D.native_new(G.Uint8Array, s.size)
     fs:readSync(fd, b)
     return string_decode_utf8(b)
   end
@@ -372,7 +375,7 @@ if G.fs then
       mode = "r"
     end
     local fd = fs:openSync(filename, mode)
-    return D.setmetatable({ fd = fd }, metatable)
+    return setmetatable({ fd = fd }, metatable)
   end
 
   local io = {

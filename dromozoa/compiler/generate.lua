@@ -196,14 +196,14 @@ local opcodes = {
   close = 0;
 }
 
-local function append_code(proto, code, u, op, a, b)
+local function append_code(proto, code, u, op, a, b, c)
   local top = proto.top
-  local v = { [0] = op, a = a, b = b, node = u, top = top }
+  local v = { [0] = op, a = a, b = b, c = c, node = u, top = top }
 
   append(code, v)
-  local c = opcodes[op]
-  if c then
-    top = top + c
+  local opcode = opcodes[op]
+  if opcode then
+    top = top + opcode
   elseif op == "return" then
     top = 0
   elseif op == "call" or op == "self" then
@@ -472,16 +472,17 @@ local function process2(chunk, proto, scope, u, code)
     local target = proto.top
     process2(chunk, proto, scope, y, code)
 
-    for i = #x, 1, -1 do
+    local n = #x
+    for i = n, 1, -1 do
       local v = x[i]
       if v.var then
         if v.var < 0 then
-          append_code(proto, code, u, "set_upvalue", -v.var)
+          append_code(proto, code, u, "set_upvalue", -v.var, i < n)
         else
-          append_code(proto, code, u, "set_local", v.var)
+          append_code(proto, code, u, "set_local", v.var, i < n)
         end
       else
-        append_code(proto, code, u, "set_field", target - 1, target)
+        append_code(proto, code, u, "set_field", target - 1, target, i < n)
         target = target - 2
       end
     end
