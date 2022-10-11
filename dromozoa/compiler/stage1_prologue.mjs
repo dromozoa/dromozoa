@@ -116,75 +116,12 @@ const OP_GETTABLE = (t, k) => {
     if (metafield.LuaTable) {
       return OP_GETTABLE(metafield, k);
     } else {
-      return OP_CALL1(metafield, [t, k]);
+      return metafield(t, k)[0];
     }
   } else if (typeof t === "string") {
     return D.string_metatable.get("__index").get(k);
   } else {
     return t[k];
-  }
-};
-
-const OP_CALL = (f, args) => {
-  if (f.LuaFunction) {
-    return f(...args);
-  } else if (f.LuaTable) {
-    return OP_CALL(f.metatable.get("__call"), [f, ...args]);
-  } else {
-    return [ f(...args) ];
-  }
-};
-
-const OP_CALL0 = (f, args) => {
-  if (f.LuaFunction) {
-    f(...args);
-  } else if (f.LuaTable) {
-    OP_CALL0(f.metatable.get("__call"), [f, ...args]);
-  } else {
-    f(...args);
-  }
-}
-
-const OP_CALL1 = (f, args) => {
-  if (f.LuaFunction) {
-    return f(...args)[0];
-  } else if (f.LuaTable) {
-    return OP_CALL1(f.metatable.get("__call"), [f, ...args]);
-  } else {
-    return f(...args);
-  }
-}
-
-const OP_SELF = (t, k, args) => {
-  const f = OP_GETTABLE(t, k);
-  if (f.LuaFunction) {
-    return f(t, ...args);
-  } else if (f.LuaTable) {
-    return OP_CALL(f.metatable.get("__call"), [f, t, ...args]);
-  } else {
-    return [ f.apply(t, args) ];
-  }
-};
-
-const OP_SELF0 = (t, k, args) => {
-  const f = OP_GETTABLE(t, k);
-  if (f.LuaFunction) {
-    f(t, ...args);
-  } else if (f.LuaTable) {
-    OP_CALL0(f.metatable.get("__call"), [f, t, ...args]);
-  } else {
-    f.apply(t, args);
-  }
-};
-
-const OP_SELF1 = (t, k, args) => {
-  const f = OP_GETTABLE(t, k);
-  if (f.LuaFunction) {
-    return f(t, ...args)[0];
-  } else if (f.LuaTable) {
-    return OP_CALL1(f.metatable.get("__call"), [f, t, ...args]);
-  } else {
-    return f.apply(t, args);
   }
 };
 
@@ -211,7 +148,7 @@ const OP_LEN = t => {
 
 const OP_CLOSE = t => {
   if (t !== undefined) {
-    OP_CALL0(t.metatable.get("__close"), [t]);
+    t.metatable.get("__close")(t);
   }
 };
 
@@ -327,7 +264,7 @@ OP_SETTABLE(E, "select", OP_NEWFUNCTION((k, ...args) => {
 
 OP_SETTABLE(E, "pcall", OP_NEWFUNCTION((f, ...args) => {
   try {
-    return [ true, ...OP_CALL(f, args) ];
+    return [ true, ...f(...args) ];
   } catch (e) {
     if (e.LuaError) {
       return [ false, e.msg ];

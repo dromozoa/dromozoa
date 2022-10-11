@@ -167,14 +167,14 @@ local function process_code(map, u)
   elseif u_name == "return" then
     u.x = pop_stack_range(map, 1, t)
   elseif u_name == "call" then
-    u.x = pop_stack(map, a)
+    u.x = pop_stack(map, a, true)
     u.y = pop_stack_range(map, a + 1, t)
     if b > 0 then
       u.z = push_stack_range(map, a, a + b - 1)
     end
   elseif u_name == "self" then
-    u.x = pop_stack(map, a)
-    u.y = pop_stack(map, a + 1)
+    u.x = pop_stack(map, a, true)
+    u.y = pop_stack(map, a + 1, true)
     u.z = pop_stack_range(map, a + 2, t)
     if b > 0 then
       u.w = push_stack_range(map, a, a + b - 1)
@@ -252,6 +252,26 @@ local function use_range(map, range, top)
       append(result, use(map, n), ",")
     end
     append(result, "...S]")
+  end
+  return table.concat(result)
+end
+
+local function use_range_r(map, range, top)
+  local result = {}
+  if top >= 0 then
+    for i, n in ipairs(range) do
+      if i > 1 then
+        append(result, ",")
+      end
+      append(result, use(map, n))
+    end
+  elseif #range == 0 then
+    append(result, "...S")
+  else
+    for i, n in ipairs(range) do
+      append(result, use(map, n), ",")
+    end
+    append(result, "...S")
   end
   return table.concat(result)
 end
@@ -465,29 +485,48 @@ local function generate_code(result, chunk, proto, map, u)
     append(result, "return ", use_range(map, u.x, t), ";")
 
   elseif u_name == "call" then
+    local x = use(map, u.x)
+    local y = use_range_r(map, u.y, t)
     if b == 0 then
-      append(result, "OP_CALL0")
+      append(result, "!", x, ".LuaTable?", x, "(", y, "):", x, '.metatable.get("__call")(', x)
+      if y ~= "" then
+        append(result, ",", y)
+      end
+      append(result, ");")
     elseif b == 1 then
-      append(result, def_r(map, u.z[1]), "=OP_CALL1")
+      append(result, def_r(map, u.z[1]), "=", x, ".LuaFunction?", x, "(", y, ")[0]:!", x, ".LuaTable?", x, "(", y, "):", x, '.metatable.get("__call")(', x)
+      if y ~= "" then
+        append(result, ",", y)
+      end
+      append(result, ")[0];")
     else
-      append(result, "S=OP_CALL")
-    end
-    append(result, "(", use(map, u.x), ",", use_range(map, u.y, t), ");")
-    if b > 1 then
-      def_range(result, map, u.z, "S")
+      append(result, "S=", x, ".LuaFunction?", x, "(", y, "):!", x, ".LuaTable?[", x, "(", y, ")]:", x, '.metatable.get("__call")(', x)
+      if y ~= "" then
+        append(result, ",", y)
+      end
+      append(result, ");")
+      if b > 1 then
+        def_range(result, map, u.z, "S")
+      end
     end
 
   elseif u_name == "self" then
-    if b == 0 then
-      append(result, "OP_SELF0")
-    elseif b == 1 then
-      append(result, def_r(map, u.w[1]), "=OP_SELF1")
-    else
-      append(result, "S=OP_SELF")
+    local x = use(map, u.x)
+    local y = use(map, u.y)
+    local z = use_range_r(map, u.z, t)
+    append(result, y, "=OP_GETTABLE(", x, ",", y, ");")
+    if z ~= "" then
+      x = x .. "," .. z
     end
-    append(result, "(", use(map, u.x), ",", use(map, u.y), ",", use_range(map, u.z, t), ");")
-    if b > 1 then
-      def_range(result, map, u.w, "S")
+    if b == 0 then
+      append(result, y, ".LuaFunction?", y, "(", x, "):!", y, ".LuaTable?", y, ".call(", x, "):", y, '.metatable.get("__call")(', y, ",", x, ");")
+    elseif b == 1 then
+      append(result, def_r(map, u.w[1]), "=", y, ".LuaFunction?", y, "(", x, ")[0]:!", y, ".LuaTable?", y, ".call(", x, "):", y, '.metatable.get("__call")(', y, ",", x, ")[0];")
+    else
+      append(result, "S=", y, ".LuaFunction?", y, "(", x, "):!", y, ".LuaTable?[", y, ".call(", x, ")]:", y, '.metatable.get("__call")(', y, ",", x, ");")
+      if b > 1 then
+        def_range(result, map, u.w, "S")
+      end
     end
 
   elseif u_name == "vararg" then
@@ -613,7 +652,7 @@ function module.generate_chunk(result, chunk)
   for i = #chunk, 1, -1 do
     generate_proto(result, chunk, chunk[i])
   end
-  append(result, "OP_CALL0(P1(", box_env(chunk, "E"), "),D.arg);\n}\n")
+  append(result, "P1(", box_env(chunk, "E"), ")(...D.arg);\n}\n")
 end
 
 function module.generate_module(result, name, chunk)
