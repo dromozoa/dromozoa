@@ -521,7 +521,11 @@ local function generate_proto(result, chunk, proto)
     if i > 1 then
       append(result, ",")
     end
-    append(result, "A", i)
+    if boxed(proto.locals[i]) then
+      append(result, "A", i)
+    else
+      append(result, "V", i)
+    end
   end
   if proto.vararg then
     if proto.nparams > 0 then
@@ -537,9 +541,12 @@ local function generate_proto(result, chunk, proto)
 
   append(result, "let S")
   for i, v in ipairs(proto.locals) do
-    append(result, ",V", i)
     if i <= proto.nparams then
-      append(result, "=", box_local(proto, i, "A" .. i))
+      if boxed(proto.locals[i]) then
+        append(result, ",V", i, "=", box_local(proto, i, "A" .. i))
+      end
+    else
+      append(result, ",V", i)
     end
     if v.attribute == "close" then
       try_catch = true
