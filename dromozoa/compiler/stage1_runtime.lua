@@ -107,7 +107,7 @@ end
 local function pairs(t)
   local metafield = D.getmetafield(t, "__pairs")
   if metafield == nil then
-    return pairs_impl, D.table_entries(t)
+    return pairs_impl, D.native_call(t, "entries")
   else
     local f, s, var = metafield(t)
     return f, s, var
@@ -255,17 +255,17 @@ local RE3 = string_gsub_regexp [[\%(.)]]
 local RE4 = string_gsub_regexp [[\.\-]]
 
 local function string_gsub_pattern(s)
-  s = D.string_replace(s, RE1, [[\\]])
-  s = D.string_replace(s, RE2, [[\u0000]])
-  s = D.string_replace(s, RE3, [[\$1]])
-  s = D.string_replace(s, RE4, [[.*?]])
+  s = D.native_call(s, "replace", RE1, [[\\]])
+  s = D.native_call(s, "replace", RE2, [[\u0000]])
+  s = D.native_call(s, "replace", RE3, [[\$1]])
+  s = D.native_call(s, "replace", RE4, [[.*?]])
   return s
 end
 
 local RE = string_gsub_regexp [[\%([\%0-9])]]
 
 local function string_gsub_string(repl, match, p)
-  return D.string_replace(repl, RE, D.native_function(function (a, b)
+  return D.native_call(repl, "replace", RE, D.native_function(function (a, b)
     if b == "%" then
       return "%"
     elseif b == "0" then
@@ -300,7 +300,7 @@ local function string_gsub(s, pattern, repl)
 
   local re = string_gsub_regexp(string_gsub_pattern(pattern))
   local n = 0
-  local result = D.string_replace(s, re, D.native_function(function (match, ...)
+  local result = D.native_call(s, "replace", re, D.native_function(function (match, ...)
     local p = table_pack(...)
     for i = 1, p.n do
       if type(p[i]) == "number" then

@@ -311,9 +311,9 @@ local function generate_code(result, chunk, proto, map, u)
     append(result, "}")
 
   elseif u_name == "check_for" then
-    append(result, "V", a, "=checknumber(V", a, [[,"bad 'for' initial value");]])
-    append(result, "V", a + 1, "=checknumber(V", a + 1, [[,"bad 'for' limit");]])
-    append(result, "V", a + 2, "=checknumber(V", a + 2, [[,"bad 'for' step");]])
+    append(result, "V", a, "=OP_CHECKNUMBER(V", a, [[,"bad 'for' initial value");]])
+    append(result, "V", a + 1, "=OP_CHECKNUMBER(V", a + 1, [[,"bad 'for' limit");]])
+    append(result, "V", a + 2, "=OP_CHECKNUMBER(V", a + 2, [[,"bad 'for' step");]])
     append(result, "if(V", a + 2, [[===0)throw new LuaError("'for' step is zero");]])
 
   elseif u_name == "add" then
@@ -416,7 +416,7 @@ local function generate_code(result, chunk, proto, map, u)
     def(result, map, u.z, "OP_GETTABLE(" .. use(map, u.x) .. "," .. use(map, u.y) .. ")")
 
   elseif u_name == "new_table" then
-    def(result, map, u.x, "new LuaTable()")
+    def(result, map, u.x, "OP_NEWTABLE()")
 
   elseif u_name == "closure" then
     local buffer = { "P", a, "(" }
@@ -450,7 +450,7 @@ local function generate_code(result, chunk, proto, map, u)
     end
 
   elseif u_name == "close" then
-    append(result, "if(V", a, "!==undefined)OP_CALL(getmetafield(V", a, ',"__close"),[V', a, "]);V", a, "=undefined;")
+    append(result, "OP_CLOSE(V", a, ");V", a, "=undefined;")
 
   elseif u_name == "return" then
     append(result, "return ", use_range(map, u.x, t), ";")
@@ -516,7 +516,7 @@ local function generate_proto(result, chunk, proto)
     end
     append(result, "U", i)
   end
-  append(result, ")=>new LuaFunction((")
+  append(result, ")=>OP_NEWFUNCTION((")
   for i = 1, proto.nparams do
     if i > 1 then
       append(result, ",")
@@ -576,7 +576,7 @@ local function generate_proto(result, chunk, proto)
     for i = #proto.locals, 1, -1 do
       local v = proto.locals[i]
       if v.attribute == "close" then
-        append(result, "if(V", i, "!==undefined)OP_CALL(getmetafield(V", i, ',"__close"),[V', i, "]);V", i, "=undefined;\n")
+        append(result, "OP_CLOSE(V", i, ");V", i, "=undefined;\n")
       end
     end
     append(result, "throw e;\n}\n")
