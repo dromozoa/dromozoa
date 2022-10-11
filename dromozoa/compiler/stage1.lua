@@ -269,6 +269,15 @@ local function def(result, map, n, v)
   end
 end
 
+local function def_r(map, n)
+  local t = map[n]
+  assert(not t.v)
+  local m = map.m + 1
+  map.m = m
+  t.v = "R" .. m
+  return t.v
+end
+
 local function def_range(result, map, range, name)
   for i, n in ipairs(range) do
     local t = map[n]
@@ -456,20 +465,28 @@ local function generate_code(result, chunk, proto, map, u)
     append(result, "return ", use_range(map, u.x, t), ";")
 
   elseif u_name == "call" then
-    if b ~= 0 then
-      append(result, "S=")
+    if b == 0 then
+      append(result, "OP_CALL0")
+    elseif b == 1 then
+      append(result, def_r(map, u.z[1]), "=OP_CALL1")
+    else
+      append(result, "S=OP_CALL")
     end
-    append(result, "OP_CALL(", use(map, u.x), ",", use_range(map, u.y, t), ");")
-    if b > 0 then
+    append(result, "(", use(map, u.x), ",", use_range(map, u.y, t), ");")
+    if b > 1 then
       def_range(result, map, u.z, "S")
     end
 
   elseif u_name == "self" then
-    if b ~= 0 then
-      append(result, "S=")
+    if b == 0 then
+      append(result, "OP_SELF0")
+    elseif b == 1 then
+      append(result, def_r(map, u.w[1]), "=OP_SELF1")
+    else
+      append(result, "S=OP_SELF")
     end
-    append(result, "OP_SELF(", use(map, u.x), ",", use(map, u.y), ",", use_range(map, u.z, t), ");")
-    if b > 0 then
+    append(result, "(", use(map, u.x), ",", use(map, u.y), ",", use_range(map, u.z, t), ");")
+    if b > 1 then
       def_range(result, map, u.w, "S")
     end
 
@@ -582,7 +599,7 @@ local function generate_proto(result, chunk, proto)
     append(result, "throw e;\n}\n")
   end
 
-  append(result, "return [];\n});\n")
+  append(result, "return S0;\n});\n")
 end
 
 local module = {}
@@ -596,7 +613,7 @@ function module.generate_chunk(result, chunk)
   for i = #chunk, 1, -1 do
     generate_proto(result, chunk, chunk[i])
   end
-  append(result, "OP_CALL(P1(", box_env(chunk, "E"), "),D.arg);\n}\n")
+  append(result, "OP_CALL0(P1(", box_env(chunk, "E"), "),D.arg);\n}\n")
 end
 
 function module.generate_module(result, name, chunk)
