@@ -354,7 +354,6 @@ local function generate_code(result, chunk, proto, map, u)
     def(result, map, u.z, "(" .. use(map, u.x) .. "<<" .. use(map, u.y) .. ")")
 
   elseif u_name == "concat" then
-    -- TODO 細かい最適化
     def(result, map, u.z, '(""+' .. use(map, u.x) .. "+" .. use(map, u.y) .. ")")
 
   elseif u_name == "lt" then
