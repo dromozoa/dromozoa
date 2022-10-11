@@ -81,28 +81,6 @@ const OP_NEWFUNCTION = f => {
   return f;
 };
 
-const OP_SETTABLE = (t, k, v) => {
-  if (t.LuaTable) {
-    if (v !== undefined) {
-      if (t.n !== undefined && Number.isInteger(k) && k > t.n && k !== ++t.n) {
-        t.n = undefined;
-      }
-      t.set(k, v);
-    } else {
-      if (t.n !== undefined && Number.isInteger(k) && k !== t.n--) {
-        t.n = undefined;
-      }
-      t.delete(k);
-    }
-  } else {
-    if (v !== undefined) {
-      t[k] = v;
-    } else {
-      delete t[k];
-    }
-  }
-};
-
 const OP_GETTABLE = (t, k) => {
   if (t.LuaTable) {
     const v = t.get(k);
@@ -126,8 +104,17 @@ const OP_GETTABLE = (t, k) => {
 };
 
 const OP_SETLIST = (t, r) => {
-  for (let i = 0; i < r.length; ++i) {
-    OP_SETTABLE(t, i + 1, r[i]);
+  const n = r.length;
+  for (let i = 1; i <= n; ++i) {
+    const v = r[i - 1];
+    if (v !== undefined) {
+      t.set(i, v);
+    } else {
+      t.delete(i);
+    }
+  }
+  if (t.n !== undefined && t.n < n) {
+    t.n = n;
   }
 };
 
@@ -140,7 +127,7 @@ const OP_LEN = t => {
     }
     return t.n;
   } else if (typeof t === "string") {
-    return D.string_len(t);
+    return E.get("string").get("len")(t)[0];
   } else {
     return t.length;
   }
@@ -171,7 +158,6 @@ const OP_CHECKNUMBER = (v, msg) => {
 
 const D = {
   string_metatable: OP_NEWTABLE(),
-  arg: [],
 
   getmetafield: (t, ev) => {
     if (t.LuaTable) {
@@ -215,23 +201,37 @@ const D = {
   },
 };
 
-const E = OP_NEWTABLE();
-OP_SETTABLE(E, "globalThis", globalThis);
-OP_SETTABLE(E, "type", type);
-OP_SETTABLE(E, "dromozoa", D);
+//-------------------------------------------------------------------------
 
-const P = OP_NEWTABLE();
-OP_SETTABLE(P, "preload", OP_NEWTABLE());
-OP_SETTABLE(P, "loaded", OP_NEWTABLE());
-OP_SETTABLE(E, "package", P);
+const E = OP_NEWTABLE();
+E.set("globalThis", globalThis);
+E.set("type", type);
+E.set("dromozoa", D);
+
+{
+  const P = OP_NEWTABLE();
+  P.set("preload", OP_NEWTABLE());
+  P.set("loaded", OP_NEWTABLE());
+  E.set("package", P);
+}
+
+{
+  const A = OP_NEWTABLE();
+  for (let i = 0; i < process.argv.length; ++i) {
+    A.set(i - 1, process.argv[i]);
+  }
+  A.n = process.argv.length - 2;
+  E.set("arg", A);
+}
+const A = process.argv.slice(2);
 
 //-------------------------------------------------------------------------
 
-OP_SETTABLE(E, "error", msg => {
+E.set("error", msg => {
   throw new LuaError(msg);
 });
 
-OP_SETTABLE(E, "getmetatable", t => {
+E.set("getmetatable", t => {
   if (t.LuaTable) {
     if (!t.metatable) {
       return undefined;
@@ -246,7 +246,7 @@ OP_SETTABLE(E, "getmetatable", t => {
   }
 });
 
-OP_SETTABLE(E, "setmetatable", (t, metatable) => {
+E.set("setmetatable", (t, metatable) => {
   if (t.metatable && t.metatable.get("__metatable") !== undefined) {
     throw new LuaError("cannot change a protected metatable");
   }
@@ -254,7 +254,7 @@ OP_SETTABLE(E, "setmetatable", (t, metatable) => {
   return t;
 });
 
-OP_SETTABLE(E, "select", OP_NEWFUNCTION((k, ...args) => {
+E.set("select", OP_NEWFUNCTION((k, ...args) => {
   if (k === "#") {
     return [ args.length ];
   } else {
@@ -262,7 +262,7 @@ OP_SETTABLE(E, "select", OP_NEWFUNCTION((k, ...args) => {
   }
 }));
 
-OP_SETTABLE(E, "pcall", OP_NEWFUNCTION((f, ...args) => {
+E.set("pcall", OP_NEWFUNCTION((f, ...args) => {
   try {
     return [ true, ...f(...args) ];
   } catch (e) {

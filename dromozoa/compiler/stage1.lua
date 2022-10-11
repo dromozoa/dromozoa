@@ -115,7 +115,6 @@ local function process_code(map, u)
   local u_name = u[0]
   local a = u.a
   local b = u.b
-  local c = u.c
   local t = u.top
 
   local opcode = opcodes[u_name]
@@ -151,15 +150,15 @@ local function process_code(map, u)
     u.x = pop_stack(map, t, true)
     u.y = push_stack(map, t)
   elseif u_name == "set_local" or u_name == "set_upvalue" then
-    u.x = pop_stack(map, t, b)
+    u.x = pop_stack(map, t, u.store)
   elseif u_name == "set_field" then
-    u.x = get_stack(map, a)
-    u.y = get_stack(map, b)
-    u.z = pop_stack(map, t, c)
+    u.x = get_stack(map, a, not u.string_key)
+    u.y = get_stack(map, b, not u.string_key)
+    u.z = pop_stack(map, t, true)
   elseif u_name == "set_table" then
-    u.x = get_stack(map, a)
-    u.y = pop_stack(map, t - 1)
-    u.z = pop_stack(map, t)
+    u.x = get_stack(map, a, not u.string_key)
+    u.y = pop_stack(map, t - 1, not u.string_key)
+    u.z = pop_stack(map, t, true)
   elseif u_name == "get_table" then
     u.x = pop_stack(map, t - 1)
     u.y = pop_stack(map, t)
@@ -313,7 +312,6 @@ local function generate_code(result, chunk, proto, map, u)
   local u_name = u[0]
   local a = u.a
   local b = u.b
-  local c = u.c
   local t = u.top
   local n = #result
 
@@ -429,11 +427,22 @@ local function generate_code(result, chunk, proto, map, u)
   elseif u_name == "set_upvalue" then
     append(result, unbox_upvalue(proto, a), "=", use(map, u.x), ";")
 
-  elseif u_name == "set_field" then
-    append(result, "OP_SETTABLE(", use(map, u.x), ",", use(map, u.y), ",", use(map, u.z), ");")
-
-  elseif u_name == "set_table" then
-    append(result, "OP_SETTABLE(", use(map, u.x), ",", use(map, u.y), ",", use(map, u.z), ");")
+  elseif u_name == "set_field" or u_name == "set_table" then
+    local x = use(map, u.x)
+    local y = use(map, u.y)
+    local z = use(map, u.z)
+    if u.string_key then
+      append(result, z, "!==undefined?", x, ".set(", y, ",", z, "):", x, ".delete(", y, ");")
+    else
+      append(result,
+        "if(", z, "!==undefined){",
+          "if(", x, ".n!==undefined&&Number.isInteger(", y, ")&&", y , ">", x, ".n&&", y, "!==++", x, ".n)", x, ".n=undefined;",
+          x, ".set(", y, ",", z, ");",
+        "}else{",
+          "if(", x, ".n!==undefined&&Number.isInteger(", y, ")&&", y, "!==", x, ".n--)", x, ".n=undefined;",
+          x, ".delete(", y, ");",
+        "}")
+    end
 
   elseif u_name == "get_local" then
     def(result, map, u.x, unbox_local(proto, a))
@@ -652,7 +661,7 @@ function module.generate_chunk(result, chunk)
   for i = #chunk, 1, -1 do
     generate_proto(result, chunk, chunk[i])
   end
-  append(result, "P1(", box_env(chunk, "E"), ")(...D.arg);\n}\n")
+  append(result, "P1(", box_env(chunk, "E"), ")(...A);\n}\n")
 end
 
 function module.generate_module(result, name, chunk)
@@ -660,7 +669,7 @@ function module.generate_module(result, name, chunk)
   for i = #chunk, 1, -1 do
     generate_proto(result, chunk, chunk[i])
   end
-  append(result, 'OP_SETTABLE(OP_GETTABLE(OP_GETTABLE(E,"package"),"preload"),', quote_js(name), ",P1(", box_env(chunk, "E"), "));\n}\n")
+  append(result, 'E.get("package").get("preload").set(', quote_js(name), ",P1(", box_env(chunk, "E"), "));\n}\n")
 end
 
 return module

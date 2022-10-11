@@ -22,6 +22,7 @@
 
 local D = dromozoa
 local G = globalThis
+local F = G.fs
 
 ---------------------------------------------------------------------------
 
@@ -68,11 +69,14 @@ local function tostring(v)
 end
 
 local function print(...)
-  local array = D.array_pack(...)
-  for i = 0, array.length - 1 do
-    array[i] = tostring(array[i])
+  local list = { ... }
+  for i = 1, select("#", ...) do
+    if i > 1 then
+      F:writeSync(1, "\t")
+    end
+    F:writeSync(1, tostring(list[i]))
   end
-  G.console:log(array:join "\t")
+  F:writeSync(1, "\n")
 end
 
 local function require(modname)
@@ -327,60 +331,44 @@ local string = {
   gsub = string_gsub;
 }
 
-D.string_len = D.native_function(string_len)
-D.string_metatable = {
-  __index = string;
-}
-
+D.string_metatable.__index = string
 _ENV.string = string
 
 ---------------------------------------------------------------------------
 
-if G.process and G.process.argv then
-  local argv = G.process.argv
-  D.arg = argv:slice(2)
-  _ENV.arg = { [-1] = argv[0], [0] = argv[1], D.array_unpack(D.arg) }
+local class = {}
+local metatable = { __index = class }
+
+function class:write(s)
+  local fd = assert(self.fd)
+  F:writeSync(fd, s)
 end
 
----------------------------------------------------------------------------
-
-if G.fs then
-  local fs = G.fs
-
-  local class = {}
-  local metatable = { __index = class }
-
-  function class:write(s)
-    local fd = assert(self.fd)
-    fs:writeSync(fd, s)
-  end
-
-  function class:read(p)
-    assert(p == "*a")
-    local fd = assert(self.fd)
-    local s = fs:fstatSync(fd)
-    local b = D.native_new(G.Uint8Array, s.size)
-    fs:readSync(fd, b)
-    return string_decode_utf8(b)
-  end
-
-  function class:close()
-    local fd = self.fd
-    self.fd = nil
-    fs:closeSync(fd)
-  end
-
-  local function io_open(filename, mode)
-    if mode == nil then
-      mode = "r"
-    end
-    local fd = fs:openSync(filename, mode)
-    return setmetatable({ fd = fd }, metatable)
-  end
-
-  local io = {
-    open = io_open;
-  }
-
-  _ENV.io = io
+function class:read(p)
+  assert(p == "*a")
+  local fd = assert(self.fd)
+  local s = F:fstatSync(fd)
+  local b = D.native_new(G.Uint8Array, s.size)
+  F:readSync(fd, b)
+  return string_decode_utf8(b)
 end
+
+function class:close()
+  local fd = self.fd
+  self.fd = nil
+  F:closeSync(fd)
+end
+
+local function io_open(filename, mode)
+  if mode == nil then
+    mode = "r"
+  end
+  local fd = F:openSync(filename, mode)
+  return setmetatable({ fd = fd }, metatable)
+end
+
+local io = {
+  open = io_open;
+}
+
+_ENV.io = io

@@ -196,9 +196,9 @@ local opcodes = {
   close = 0;
 }
 
-local function append_code(proto, code, u, op, a, b, c)
+local function append_code(proto, code, u, op, a, b)
   local top = proto.top
-  local v = { [0] = op, a = a, b = b, c = c, node = u, top = top }
+  local v = { [0] = op, a = a, b = b, node = u, top = top }
 
   append(code, v)
   local opcode = opcodes[op]
@@ -475,16 +475,19 @@ local function process2(chunk, proto, scope, u, code)
     local n = #x
     for i = n, 1, -1 do
       local v = x[i]
+      local c
       if v.var then
         if v.var < 0 then
-          append_code(proto, code, u, "set_upvalue", -v.var, i < n)
+          c = append_code(proto, code, u, "set_upvalue", -v.var)
         else
-          append_code(proto, code, u, "set_local", v.var, i < n)
+          c = append_code(proto, code, u, "set_local", v.var)
         end
       else
-        append_code(proto, code, u, "set_field", target - 1, target, i < n)
+        c = append_code(proto, code, u, "set_field", target - 1, target)
+        c.string_key = v.string_key
         target = target - 2
       end
+      c.store = i < n
     end
 
     if proto.top > 0 then
@@ -680,7 +683,8 @@ local function process2(chunk, proto, scope, u, code)
         append_code(proto, code, u, "set_local", x.var)
       end
     else
-      append_code(proto, code, u, "set_table", proto.top - 2)
+      local c = append_code(proto, code, u, "set_table", proto.top - 2)
+      c.string_key = assert(x.string_key)
       append_code(proto, code, u, "pop", 1)
     end
     process2(chunk, proto, scope, y, code)
@@ -806,6 +810,7 @@ local function process2(chunk, proto, scope, u, code)
   elseif u_name == "." then
     process2(chunk, proto, scope, x, code)
     process2(chunk, proto, scope, y, code)
+    u.string_key = y.string_key
     if not u.define then
       append_code(proto, code, u, "get_table")
     end
@@ -856,7 +861,8 @@ local function process2(chunk, proto, scope, u, code)
     process2(chunk, proto, scope, x, code)
     if y then
       process2(chunk, proto, scope, y, code)
-      append_code(proto, code, u, "set_table", u.target)
+      local c = append_code(proto, code, u, "set_table", u.target)
+      c.string_key = x.string_key
     end
 
   elseif u_name == "nil" then
@@ -870,6 +876,7 @@ local function process2(chunk, proto, scope, u, code)
 
   elseif u_name == "LiteralString" then
     append_code(proto, code, u, "push_literal", u.v)
+    u.string_key = true
 
   elseif u_name == "Numeral" then
     append_code(proto, code, u, "push_numeral", u.v, u.hint)
@@ -881,6 +888,7 @@ local function process2(chunk, proto, scope, u, code)
 
     if not u.resolve then
       append_code(proto, code, u, "push_literal", u.v)
+      u.string_key = true
       return
     end
 
@@ -891,6 +899,7 @@ local function process2(chunk, proto, scope, u, code)
         append_code(proto, code, u, "get_local", u.env)
       end
       append_code(proto, code, u, "push_literal", u.v)
+      u.string_key = true
       if not u.define then
         append_code(proto, code, u, "get_table")
       end
