@@ -236,19 +236,19 @@ const D = {
 const E = new LuaTable();
 
 const P = new LuaTable();
-P.map.set("preload", new LuaTable()).set("loaded", new LuaTable());
-E.map.set("package", P);
+OP_SETTABLE(P, "preload", new LuaTable());
+OP_SETTABLE(P, "loaded", new LuaTable());
+OP_SETTABLE(E, "package", P);
 
-E.map.set("dromozoa", D);
-E.map.set("globalThis", globalThis);
+OP_SETTABLE(E, "dromozoa", D);
+OP_SETTABLE(E, "globalThis", globalThis);
+OP_SETTABLE(E, "type", type);
 
-E.map.set("type", type);
-
-E.map.set("error", msg => {
+OP_SETTABLE(E, "error", msg => {
   throw new LuaError(msg);
 });
 
-E.map.set("getmetatable", t => {
+OP_SETTABLE(E, "getmetatable", t => {
   if (t instanceof LuaTable) {
     const metatable = t.metatable;
     if (metatable !== undefined) {
@@ -263,7 +263,7 @@ E.map.set("getmetatable", t => {
   }
 });
 
-E.map.set("setmetatable", (t, metatable) => {
+OP_SETTABLE(E, "setmetatable", (t, metatable) => {
   if (getmetafield(t, "__metatable") !== undefined) {
     throw new LuaError("cannot change a protected metatable");
   }
@@ -271,7 +271,7 @@ E.map.set("setmetatable", (t, metatable) => {
   return t;
 });
 
-E.map.set("select", new LuaFunction((k, ...args) => {
+OP_SETTABLE(E, "select", new LuaFunction((k, ...args) => {
   if (k === "#") {
     return [ args.length ];
   } else {
@@ -279,7 +279,7 @@ E.map.set("select", new LuaFunction((k, ...args) => {
   }
 }));
 
-E.map.set("pcall", new LuaFunction((f, ...args) => {
+OP_SETTABLE(E, "pcall", new LuaFunction((f, ...args) => {
   try {
     return [ true, ...OP_CALL(f, args) ];
   } catch (e) {

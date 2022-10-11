@@ -80,7 +80,6 @@ local opcodes = {
   mul    = "binop";
   div    = "binop";
   idiv   = "binop";
-  mod    = "binop";
   pow    = "binop";
   band   = "binop";
   bxor   = "binop";
@@ -95,10 +94,9 @@ local opcodes = {
   eq     = "binop";
   ne     = "binop";
 
-  unm     = "unop";
-  ["not"] = "unop";
-  len     = "unop";
-  bnot    = "unop";
+  unm  = "unop";
+  len  = "unop";
+  bnot = "unop";
 
   new_local   = "pop";
   tbc_local   = "pop";
@@ -134,7 +132,7 @@ local function process_code(map, u)
     u.x = push_stack(map, t + 1)
 
   elseif u_name == "if" then
-    u.x = pop_stack(map, t)
+    u.x = pop_stack(map, t, true)
     for _, v in ipairs(u[1]) do
       process_code(map, v)
     end
@@ -145,6 +143,13 @@ local function process_code(map, u)
     for _, v in ipairs(u) do
       process_code(map, v)
     end
+  elseif u_name == "mod" then
+    u.x = pop_stack(map, t - 1)
+    u.y = pop_stack(map, t, true)
+    u.z = push_stack(map, t - 1)
+  elseif u_name == "not" then
+    u.x = pop_stack(map, t, true)
+    u.y = push_stack(map, t)
   elseif u_name == "set_local" or u_name == "set_upvalue" then
     u.x = pop_stack(map, t, b)
   elseif u_name == "set_field" then
@@ -287,7 +292,8 @@ local function generate_code(result, chunk, proto, map, u)
     append(result, "break;")
 
   elseif u_name == "if" then
-    append(result, "if(a=", use(map, u.x), ",a!==undefined&&a!==false){\n")
+    local x = use(map, u.x)
+    append(result, "if(" .. x .. "!==undefined&&" .. x .. "!==false){\n")
     for _, v in ipairs(u[1]) do
       generate_code(result, chunk, proto, map, v)
     end
@@ -326,7 +332,8 @@ local function generate_code(result, chunk, proto, map, u)
     def(result, map, u.z, "Math.floor(" .. use(map, u.x) .. "/" .. use(map, u.y) .. ")")
 
   elseif u_name == "mod" then
-    def(result, map, u.z, "(a=" .. use(map, u.x) .. ",b=" .. use(map, u.y) .. ",(a%b+b)%b)")
+    local y = use(map, u.y)
+    def(result, map, u.z, "((" .. use(map, u.x) .. "%" .. y .. "+" .. y .. ")%" .. y .. ")")
 
   elseif u_name == "pow" then
     def(result, map, u.z, "Math.pow(" .. use(map, u.x) .. "," .. use(map, u.y) .. ")")
@@ -348,7 +355,7 @@ local function generate_code(result, chunk, proto, map, u)
 
   elseif u_name == "concat" then
     -- TODO 細かい最適化
-    def(result, map, u.z, [[(""+]] .. use(map, u.x) .. "+" .. use(map, u.y) .. ")")
+    def(result, map, u.z, '(""+' .. use(map, u.x) .. "+" .. use(map, u.y) .. ")")
 
   elseif u_name == "lt" then
     def(result, map, u.z, "(" .. use(map, u.x) .. "<" .. use(map, u.y) .. ")")
@@ -372,7 +379,8 @@ local function generate_code(result, chunk, proto, map, u)
     def(result, map, u.y, "(-" .. use(map, u.x) .. ")")
 
   elseif u_name == "not" then
-    def(result, map, u.y, "(a=" .. use(map, u.x) .. ",a===undefined||a===false)")
+    local x = use(map, u.x)
+    def(result, map, u.y, "(" .. x .. "===undefined||" .. x .. "===false)")
 
   elseif u_name == "len" then
     def(result, map, u.y, "OP_LEN(" .. use(map, u.x) .. ")")
@@ -443,7 +451,7 @@ local function generate_code(result, chunk, proto, map, u)
     end
 
   elseif u_name == "close" then
-    append(result, "a=V", a, [[;if(a!==undefined)OP_CALL(getmetafield(a,"__close"),[a]);V]], a, "=undefined;")
+    append(result, "if(V", a, "!==undefined)OP_CALL(getmetafield(V", a, ',"__close"),[V', a, "]);V", a, "=undefined;")
 
   elseif u_name == "return" then
     append(result, "return ", use_range(map, u.x, t), ";")
@@ -528,7 +536,7 @@ local function generate_proto(result, chunk, proto)
   end
   append(result, "\n")
 
-  append(result, "let a,b,S")
+  append(result, "let S")
   for i, v in ipairs(proto.locals) do
     append(result, ",V", i)
     if i <= proto.nparams then
@@ -562,7 +570,7 @@ local function generate_proto(result, chunk, proto)
     for i = #proto.locals, 1, -1 do
       local v = proto.locals[i]
       if v.attribute == "close" then
-        append(result, "a=V", i, [[;if(a!==undefined)OP_CALL(getmetafield(a,"__close"),[a]);V]], i, "=undefined;\n")
+        append(result, "if(V", i, "!==undefined)OP_CALL(getmetafield(V", i, ',"__close"),[V', i, "]);V", i, "=undefined;\n")
       end
     end
     append(result, "throw e;\n}\n")
