@@ -28,7 +28,6 @@ local s = buffer
   :gsub("/%*.-%*/", "")
   :gsub("//[^\n]*", "")
   :gsub("[ \t]+\n", "\n")
-  -- :gsub("\n[ \t]+", "\n")
   :gsub("\n\n+", "\n")
   :gsub("^\n+", "")
 
