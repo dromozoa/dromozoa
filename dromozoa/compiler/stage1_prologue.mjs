@@ -83,17 +83,6 @@ const OP_NEWFUNCTION = f => {
 
 const OP_SETTABLE = (t, k, v) => {
   if (t.LuaTable) {
-    if (t.get(k) === undefined && t.metatable) {
-      const metafield = t.metatable.get("__newindex");
-      if (metafield !== undefined) {
-        if (metafield.LuaTable) {
-          OP_SETTABLE(metafield, k, v);
-        } else {
-          OP_CALL(metafield, [t, k, v]);
-        }
-        return;
-      }
-    }
     if (v !== undefined) {
       if (t.n !== undefined && Number.isInteger(k) && k > t.n && k !== ++t.n) {
         t.n = undefined;

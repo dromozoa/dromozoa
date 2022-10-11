@@ -22,10 +22,6 @@ setmetatable(t, {
   __index = function (self, k)
     return u[k]
   end;
-
-  __newindex = function (self, k, v)
-    u[k] = v
-  end;
 })
 
 print(t.foo, u.foo, t.bar, u.bar, t.baz, u.baz)
