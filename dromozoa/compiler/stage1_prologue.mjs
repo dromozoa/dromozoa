@@ -70,6 +70,8 @@ class LuaTable extends Map {
   LuaTable() {}
 }
 
+//-------------------------------------------------------------------------
+
 const OP_NEWTABLE = () => {
   return new LuaTable();
 };
@@ -128,7 +130,7 @@ const OP_GETTABLE = (t, k) => {
       return OP_CALL(metafield, [t, k])[0];
     }
   } else if (typeof t === "string") {
-    return OP_GETTABLE(D.string_metatable.get("__index"), k);
+    return D.string_metatable.get("__index").get(k);
   } else {
     return t[k];
   }
@@ -267,10 +269,10 @@ OP_SETTABLE(E, "getmetatable", t => {
       return undefined;
     }
     const metafield = t.metatable.get("__metatable");
-    if (metafield !== undefined) {
-      return metafield;
+    if (metafield === undefined) {
+      return t.metatable;
     }
-    return t.metatable;
+    return metafield;
   } else if (typeof t === "string") {
     return D.string_metatable;
   }
