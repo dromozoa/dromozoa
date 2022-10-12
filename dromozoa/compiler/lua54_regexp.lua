@@ -217,6 +217,11 @@ function()guard_append(93)
 end;
  }
   end)()
+  local error = error
+  local select = select
+  local string_byte = string.byte
+  local string_char = string.char
+  local string_sub = string.sub
   local table_unpack = table.unpack or unpack
   local main = _.main
   local action_continuations = _.action_continuations
@@ -285,10 +290,10 @@ end;
     end
   end
   function push(value_from_buffer)
-    local s = string.sub(source, fs, fp)
+    local s = string_sub(source, fs, fp)
     local v = s
     if value_from_buffer then
-      v = string.char(table_unpack(buffer))
+      v = string_char(table_unpack(buffer))
     end
     pushed = fn {
       [0] = ts;
@@ -303,7 +308,7 @@ end;
   end
   function ferror(message)
     if current_byte then
-      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (" .. message .. " near '" .. string.char(current_byte) .. "')")
+      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (" .. message .. " near '" .. string_char(current_byte) .. "')")
     else
       error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (" .. message .. ")")
     end
@@ -324,11 +329,11 @@ end;
     end
   end
   function append_range(i, j)
-    append(string.byte(source, i, j))
+    append(string_byte(source, i, j))
   end
   if utf8 and utf8.char then
     function append_unicode(a)
-      append(string.byte(utf8.char(a), 1, -1))
+      append(string_byte(utf8.char(a), 1, -1))
     end
   else
     function append_unicode(a)
@@ -387,7 +392,7 @@ end;
     end
   end
   function guard_append_range(i, j)
-    guard_append(string.byte(source, i, j))
+    guard_append(string_byte(source, i, j))
   end
   local function execute(action, reset)
     current_cont = action_continuations[action]
@@ -418,7 +423,7 @@ end;
     current_state = _[current_index].start_state
   end
   local function transition()
-    current_byte = string.byte(source, current_position)
+    current_byte = string_byte(source, current_position)
     if not current_byte then
       return accept()
     end
@@ -445,7 +450,7 @@ end;
       return transition()
     end
     for i = 1, #guard_buffer do
-      if string.byte(source, current_position + i - 1) ~= guard_buffer[i] then
+      if string_byte(source, current_position + i - 1) ~= guard_buffer[i] then
         return transition()
       end
     end
