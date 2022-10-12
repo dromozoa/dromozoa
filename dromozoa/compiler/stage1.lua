@@ -152,12 +152,12 @@ local function process_code(map, u)
   elseif u_name == "set_local" or u_name == "set_upvalue" then
     u.x = pop_stack(map, t, u.store)
   elseif u_name == "set_field" then
-    u.x = get_stack(map, a, not u.string_key)
-    u.y = get_stack(map, b, not u.string_key)
+    u.x = get_stack(map, a, not u.literal)
+    u.y = get_stack(map, b, not u.literal)
     u.z = pop_stack(map, t, true)
   elseif u_name == "set_table" then
-    u.x = get_stack(map, a, not u.string_key)
-    u.y = pop_stack(map, t - 1, not u.string_key)
+    u.x = get_stack(map, a, not u.literal)
+    u.y = pop_stack(map, t - 1, not u.literal)
     u.z = pop_stack(map, t, true)
   elseif u_name == "get_table" then
     u.x = pop_stack(map, t - 1)
@@ -428,7 +428,7 @@ local function generate_code(result, chunk, proto, map, u)
     local x = use(map, u.x)
     local y = use(map, u.y)
     local z = use(map, u.z)
-    if u.string_key then
+    if u.literal then
       append(result, z, "!==undefined?", x, ".set(", y, ",", z, "):", x, ".delete(", y, ");")
     else
       local cond = x..".n!==undefined&&Number.isInteger("..y..")&&"

@@ -484,7 +484,7 @@ local function process2(chunk, proto, scope, u, code)
         end
       else
         c = append_code(proto, code, u, "set_field", target - 1, target)
-        c.string_key = v.string_key
+        c.literal = v.literal
         target = target - 2
       end
       c.store = i < n
@@ -684,7 +684,7 @@ local function process2(chunk, proto, scope, u, code)
       end
     else
       local c = append_code(proto, code, u, "set_table", proto.top - 2)
-      c.string_key = assert(x.string_key)
+      c.literal = assert(x.literal)
       append_code(proto, code, u, "pop", 1)
     end
     process2(chunk, proto, scope, y, code)
@@ -810,7 +810,7 @@ local function process2(chunk, proto, scope, u, code)
   elseif u_name == "." then
     process2(chunk, proto, scope, x, code)
     process2(chunk, proto, scope, y, code)
-    u.string_key = y.string_key
+    u.literal = y.literal
     if not u.define then
       append_code(proto, code, u, "get_table")
     end
@@ -862,7 +862,7 @@ local function process2(chunk, proto, scope, u, code)
     if y then
       process2(chunk, proto, scope, y, code)
       local c = append_code(proto, code, u, "set_table", u.target)
-      c.string_key = x.string_key
+      c.literal = x.literal
     end
 
   elseif u_name == "nil" then
@@ -876,7 +876,7 @@ local function process2(chunk, proto, scope, u, code)
 
   elseif u_name == "LiteralString" then
     append_code(proto, code, u, "push_literal", u.v)
-    u.string_key = true
+    u.literal = true
 
   elseif u_name == "Numeral" then
     append_code(proto, code, u, "push_numeral", u.v, u.hint)
@@ -888,7 +888,7 @@ local function process2(chunk, proto, scope, u, code)
 
     if not u.resolve then
       append_code(proto, code, u, "push_literal", u.v)
-      u.string_key = true
+      u.literal = true
       return
     end
 
@@ -899,7 +899,7 @@ local function process2(chunk, proto, scope, u, code)
         append_code(proto, code, u, "get_local", u.env)
       end
       append_code(proto, code, u, "push_literal", u.v)
-      u.string_key = true
+      u.literal = true
       if not u.define then
         append_code(proto, code, u, "get_table")
       end
