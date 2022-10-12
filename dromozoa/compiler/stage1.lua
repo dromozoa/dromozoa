@@ -446,7 +446,7 @@ local function generate_code(result, chunk, proto, map, u)
     def(result, map, u.z, "OP_GETTABLE(" .. use(map, u.x) .. "," .. use(map, u.y) .. ")")
 
   elseif u_name == "new_table" then
-    def(result, map, u.x, "OP_NEWTABLE()")
+    def(result, map, u.x, "new LuaTable()")
 
   elseif u_name == "closure" then
     local buffer = { "P", a, "(" }
@@ -562,7 +562,7 @@ local function generate_proto(result, chunk, proto)
     end
     append(result, "U", i)
   end
-  append(result, ")=>OP_NEWFUNCTION((")
+  append(result, ")=>{const F=(")
   for i = 1, proto.nparams do
     if i > 1 then
       append(result, ",")
@@ -628,7 +628,7 @@ local function generate_proto(result, chunk, proto)
     append(result, "throw e;\n}\n")
   end
 
-  append(result, "return S0;\n});\n")
+  append(result, "return S0;\n};\nF.LuaFunction=true;\nreturn F;\n};\n")
 end
 
 local module = {}

@@ -70,16 +70,12 @@ class LuaTable extends Map {
   LuaTable() {}
 }
 
-//-------------------------------------------------------------------------
-
-const OP_NEWTABLE = () => {
-  return new LuaTable();
-};
-
-const OP_NEWFUNCTION = f => {
+const LuaFunction = f => {
   f.LuaFunction = true;
   return f;
 };
+
+//-------------------------------------------------------------------------
 
 const OP_GETTABLE = (t, k) => {
   if (t.LuaTable) {
@@ -157,7 +153,7 @@ const OP_CHECKNUMBER = (v, msg) => {
 //-------------------------------------------------------------------------
 
 const D = {
-  string_metatable: OP_NEWTABLE(),
+  string_metatable: new LuaTable(),
 
   getmetafield: (t, ev) => {
     if (t.LuaTable) {
@@ -188,7 +184,7 @@ const D = {
     return args;
   },
 
-  array_unpack: OP_NEWFUNCTION(r => {
+  array_unpack: LuaFunction(r => {
     return r;
   }),
 
@@ -203,20 +199,20 @@ const D = {
 
 //-------------------------------------------------------------------------
 
-const E = OP_NEWTABLE();
+const E = new LuaTable();
 E.set("globalThis", globalThis);
 E.set("type", type);
 E.set("dromozoa", D);
 
 {
-  const P = OP_NEWTABLE();
-  P.set("preload", OP_NEWTABLE());
-  P.set("loaded", OP_NEWTABLE());
+  const P = new LuaTable();
+  P.set("preload", new LuaTable());
+  P.set("loaded", new LuaTable());
   E.set("package", P);
 }
 
 {
-  const A = OP_NEWTABLE();
+  const A = new LuaTable();
   for (let i = 0; i < process.argv.length; ++i) {
     A.set(i - 1, process.argv[i]);
   }
@@ -254,7 +250,7 @@ E.set("setmetatable", (t, metatable) => {
   return t;
 });
 
-E.set("select", OP_NEWFUNCTION((k, ...args) => {
+E.set("select", LuaFunction((k, ...args) => {
   if (k === "#") {
     return [ args.length ];
   } else {
@@ -262,7 +258,7 @@ E.set("select", OP_NEWFUNCTION((k, ...args) => {
   }
 }));
 
-E.set("pcall", OP_NEWFUNCTION((f, ...args) => {
+E.set("pcall", LuaFunction((f, ...args) => {
   try {
     return [ true, ...f(...args) ];
   } catch (e) {
