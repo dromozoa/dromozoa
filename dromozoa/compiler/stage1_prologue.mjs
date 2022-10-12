@@ -53,21 +53,19 @@ const type = v => {
 class LuaError extends Error {
   constructor(msg) {
     super(msg);
+    this.LuaError = true;
     this.name = "LuaError";
     this.msg = msg;
   }
-
-  LuaError() {}
 }
 
 class LuaTable extends Map {
   constructor() {
     super();
+    this.LuaTable = true;
     this.n = 0;
     this.metatable = undefined;
   }
-
-  LuaTable() {}
 }
 
 const LuaFunction = f => {
@@ -76,6 +74,7 @@ const LuaFunction = f => {
 };
 
 //-------------------------------------------------------------------------
+
 
 const OP_GETTABLE = (t, k) => {
   if (t.LuaTable) {
