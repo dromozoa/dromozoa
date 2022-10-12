@@ -480,7 +480,7 @@ local function generate_code(result, chunk, proto, map, u)
     end
 
   elseif u_name == "close" then
-    append(result, "OP_CLOSE(V", a, ");V", a, "=undefined;")
+    append(result, "if(V", a, "!==undefined)V", a, '.metatable.get("__close")(V', a, ");V", a, "=undefined;")
 
   elseif u_name == "return" then
     append(result, "return ", use_range_array(map, u.x, t), ";")
@@ -622,7 +622,7 @@ local function generate_proto(result, chunk, proto)
     for i = #proto.locals, 1, -1 do
       local v = proto.locals[i]
       if v.attribute == "close" then
-        append(result, "OP_CLOSE(V", i, ");V", i, "=undefined;\n")
+        append(result, "if(V", i, "!==undefined)V", i, '.metatable.get("__close")(V', i, ");V", i, "=undefined;")
       end
     end
     append(result, "throw e;\n}\n")

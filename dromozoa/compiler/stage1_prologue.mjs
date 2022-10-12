@@ -129,12 +129,6 @@ const OP_LEN = t => {
   }
 };
 
-const OP_CLOSE = t => {
-  if (t !== undefined) {
-    t.metatable.get("__close")(t);
-  }
-};
-
 const OP_CHECKNUMBER = (v, msg) => {
   const t = typeof v;
   if (t === "number") {
