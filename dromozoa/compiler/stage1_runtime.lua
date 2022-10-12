@@ -233,7 +233,11 @@ local function string_byte(s, i, j)
     j = i
   end
   local i, j = string_prepare(buffer.length, i, j)
-  return D.array_unpack(G.Array:from(buffer:subarray(i - 1, j)))
+  if i == j then
+    return buffer[i - 1]
+  else
+    return D.array_unpack(G.Array:from(buffer:subarray(i - 1, j)))
+  end
 end
 
 local function string_char(...)
