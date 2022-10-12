@@ -33,5 +33,5 @@ local LS = "\226\128\168" -- U+2028 | E2 80 A8 | LINE SEPARATOR
 local PS = "\226\128\169" -- U+2029 | E2 80 A9 | PARAGRAPH SEPARATOR
 
 return function (s)
-  return '"' .. s:gsub("[%z\1-\31\"\\\127]", quote):gsub(LS, [[\u2028]]):gsub(PS, [[\u2029]]) .. '"'
+  return '"'..s:gsub("[%z\1-\31\"\\\127]", quote):gsub(LS, [[\u2028]]):gsub(PS, [[\u2029]])..'"'
 end

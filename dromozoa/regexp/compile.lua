@@ -32,7 +32,7 @@ local function insert_action(context, action)
   local actions = {}
 
   -- 単語境界を調べるために番兵を置く。
-  local s = (" " .. action)
+  local s = (" "..action)
     :gsub("%$([A-Za-z_][0-9A-Za-z_]*)", context.action.variables)
     :gsub("%$%{%'(..-)%'%}", context.action.variables)
     :gsub("%$%{%<(..-)%>%}", function (a)
@@ -40,10 +40,10 @@ local function insert_action(context, action)
     end)
     -- fcall()の後の処理が存在する場合、継続として分割する。
     :gsub("(.-[^0-9A-Za-z_]fcall[\t-\r ]*%(.-%))[\t-\r ]*", function (a)
-      append(actions, insert(context.action, "function()" .. a:gsub("^[\t-\r ]+", "") .. "\nend;\n"))
+      append(actions, insert(context.action, "function()"..a:gsub("^[\t-\r ]+", "").."\nend;\n"))
       return ""
     end)
-  append(actions, insert(context.action, "function()" .. s:gsub("^[\t-\r ]+", "") .. "\nend;\n"))
+  append(actions, insert(context.action, "function()"..s:gsub("^[\t-\r ]+", "").."\nend;\n"))
 
   for i, action in ipairs(actions) do
     context.action.continuations[action] = actions[i + 1] or 0
@@ -52,7 +52,7 @@ local function insert_action(context, action)
 end
 
 local function insert_shared(context, shared)
-  return "_[" .. insert(context.shared, table.concat(shared, ",")) .. "]"
+  return "_["..insert(context.shared, table.concat(shared, ",")).."]"
 end
 
 local function update_state_indices_nonaccept(u, index, color)

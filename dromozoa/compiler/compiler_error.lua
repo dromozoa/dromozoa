@@ -17,8 +17,8 @@
 
 return function (message, u)
   if u and u.f and u.n and u.c then
-    error(u.f .. ":" .. u.n .. ":" .. u.c .. ": compiler error (" .. message .. ")")
+    error(u.f..":"..u.n..":"..u.c..": compiler error ("..message..")")
   else
-    error("compiler error (" .. message .. ")")
+    error("compiler error ("..message..")")
   end
 end

@@ -233,7 +233,7 @@ local function nfa_to_dfa_impl(u_closure, u, epsilon_closures, states, color)
       end
       local tkey = vkey
       if resolved.action then
-        tkey = tkey .. ";" .. resolved.action
+        tkey = tkey..";"..resolved.action
       end
       local t = tmap[tkey]
       if t then
@@ -374,7 +374,7 @@ local function minimize(u)
         local v = partition_map[x_to].state
         local tkey = v.index
         if resolved.action then
-          tkey = tkey .. ";" .. resolved.action
+          tkey = tkey..";"..resolved.action
         end
         local t = tmap[tkey]
         if t then
@@ -478,7 +478,7 @@ local function difference_impl(x, y)
         if index ~= 0 then
           local tkey = index
           if action then
-            tkey = tkey .. ";" .. action
+            tkey = tkey..";"..action
           end
           local t = tmap[tkey]
           if t then
@@ -551,9 +551,9 @@ function module.lexer(token_names, that)
     end
 
     if v.accept_action == "" then
-      v.accept_action = "ts=" .. symbol .. " push()"
+      v.accept_action = "ts="..symbol.." push()"
     else
-      v.accept_action = "ts=" .. symbol .. ";" .. v.accept_action
+      v.accept_action = "ts="..symbol..";"..v.accept_action
     end
   end
 

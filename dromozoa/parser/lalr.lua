@@ -88,7 +88,7 @@ local function eliminate_left_recursion(grammar)
     end
 
     if n_bodies[1] then
-      append(new_symbol_names, symbol_names[i] .. "'")
+      append(new_symbol_names, symbol_names[i].."'")
       append(n_bodies, {})
       for _, body in ipairs(i_bodies) do
         append(body, n)
@@ -482,7 +482,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
           local buffer = {}
           data[item.la] = resolve_sr(grammar, item, action, item.index + max_state, buffer)
           if next(buffer) then
-            append(conflictions, "[info] conflict between production " .. item.index .. " and symbol '" .. symbol_names[item.la] .. "' resolved as " .. table.concat(buffer))
+            append(conflictions, "[info] conflict between production "..item.index.." and symbol '"..symbol_names[item.la].."' resolved as "..table.concat(buffer))
           else
             sr = sr + 1
           end
@@ -534,7 +534,7 @@ local function lr1_construct_table(grammar, set_of_items, transitions)
     append(conflictions, table.concat(buffer))
   end
   if total_rr > 0 then
-    append(conflictions, "[warn] reduce/reduce conflicts: " .. total_rr .. " found")
+    append(conflictions, "[warn] reduce/reduce conflicts: "..total_rr.." found")
   end
 
   return actions, conflictions

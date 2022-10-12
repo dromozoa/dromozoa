@@ -45,7 +45,7 @@ local lua54_parser = require "dromozoa.compiler.lua54_parser"
 
 local function declare(scope, name, u, attribute)
   if attribute and attribute ~= "const" and attribute ~= "close" then
-    compiler_error("unknown attribute '" .. attribute .. "'", u)
+    compiler_error("unknown attribute '"..attribute.."'", u)
   end
   local var = append(scope.proto.locals, { name = name, attribute = attribute, node = u })
   append(scope.locals, var)
@@ -61,7 +61,7 @@ local function resolve(scope, name, u, define)
       if v.name == name then
         if define then
           if v.attribute == "const" or v.attribute == "close" then
-            compiler_error("attempt to assign to const variable '" .. name .. "'", u)
+            compiler_error("attempt to assign to const variable '"..name.."'", u)
           end
           v.def = true
         else
@@ -123,7 +123,7 @@ end
 local function define_label(scope, name, u)
   local label, v = find_label(scope, name)
   if label then
-    compiler_error("label '" .. name .. "' already defined on line " .. v.node.n, u)
+    compiler_error("label '"..name.."' already defined on line "..v.node.n, u)
   end
   local label = append(scope.proto.labels, { name = name, node = u })
   append(scope.labels, label)
@@ -133,7 +133,7 @@ end
 local function resolve_label(scope, name, u)
   local label = find_label(scope, name)
   if not label then
-    compiler_error("no visible label '" .. name .. "' for <goto> at line " .. u.n, u)
+    compiler_error("no visible label '"..name.."' for <goto> at line "..u.n, u)
   end
   return label
 end
@@ -227,7 +227,7 @@ local function append_code(proto, code, u, op, a, b)
   elseif op == "pop" then
     top = top - a
   else
-    error("unknown op " .. op)
+    error("unknown op "..op)
   end
 
   proto.top = top
@@ -392,7 +392,7 @@ local function process1(chunk, proto, scope, u, loop)
 
   elseif u_name == "break" then
     if not loop then
-      compiler_error("break outside loop at line " .. u.n, u)
+      compiler_error("break outside loop at line "..u.n, u)
     end
     u.target = loop
     -- ジャンプ前の変数リストを記録する。
@@ -473,21 +473,34 @@ local function process2(chunk, proto, scope, u, code)
     process2(chunk, proto, scope, y, code)
 
     local n = #x
-    for i = n, 1, -1 do
-      local v = x[i]
-      local c
+    if n == 1 then
+      local v = x[1]
       if v.var then
         if v.var < 0 then
-          c = append_code(proto, code, u, "set_upvalue", -v.var)
+          append_code(proto, code, u, "set_upvalue", -v.var)
         else
-          c = append_code(proto, code, u, "set_local", v.var)
+          append_code(proto, code, u, "set_local", v.var)
         end
       else
-        c = append_code(proto, code, u, "set_field", target - 1, target)
-        c.string_key = v.string_key
-        target = target - 2
+        append_code(proto, code, u, "set_table", target - 1)
       end
-      c.store = i < n
+    else
+      for i = n, 1, -1 do
+        local v = x[i]
+        local c
+        if v.var then
+          if v.var < 0 then
+            c = append_code(proto, code, u, "set_upvalue", -v.var)
+          else
+            c = append_code(proto, code, u, "set_local", v.var)
+          end
+        else
+          c = append_code(proto, code, u, "set_field", target - 1, target)
+          c.literal = v.literal
+          target = target - 2
+        end
+        c.store = i < n
+      end
     end
 
     if proto.top > 0 then
@@ -520,7 +533,7 @@ local function process2(chunk, proto, scope, u, code)
       for i = 0, n - 1 do
         local var = v.stack[n - i]
         if u.stack[m - i] ~= var then
-          compiler_error("<goto " .. x.v .. "> at line " .. u.n .. " jumps into the scope of local '" .. proto.locals[var].name .. "'", u)
+          compiler_error("<goto "..x.v.."> at line "..u.n.." jumps into the scope of local '"..proto.locals[var].name.."'", u)
         end
       end
     end
@@ -684,7 +697,7 @@ local function process2(chunk, proto, scope, u, code)
       end
     else
       local c = append_code(proto, code, u, "set_table", proto.top - 2)
-      c.string_key = assert(x.string_key)
+      c.literal = assert(x.literal)
       append_code(proto, code, u, "pop", 1)
     end
     process2(chunk, proto, scope, y, code)
@@ -810,7 +823,7 @@ local function process2(chunk, proto, scope, u, code)
   elseif u_name == "." then
     process2(chunk, proto, scope, x, code)
     process2(chunk, proto, scope, y, code)
-    u.string_key = y.string_key
+    u.literal = y.literal
     if not u.define then
       append_code(proto, code, u, "get_table")
     end
@@ -862,7 +875,7 @@ local function process2(chunk, proto, scope, u, code)
     if y then
       process2(chunk, proto, scope, y, code)
       local c = append_code(proto, code, u, "set_table", u.target)
-      c.string_key = x.string_key
+      c.literal = x.literal
     end
 
   elseif u_name == "nil" then
@@ -876,7 +889,7 @@ local function process2(chunk, proto, scope, u, code)
 
   elseif u_name == "LiteralString" then
     append_code(proto, code, u, "push_literal", u.v)
-    u.string_key = true
+    u.literal = true
 
   elseif u_name == "Numeral" then
     append_code(proto, code, u, "push_numeral", u.v, u.hint)
@@ -888,7 +901,7 @@ local function process2(chunk, proto, scope, u, code)
 
     if not u.resolve then
       append_code(proto, code, u, "push_literal", u.v)
-      u.string_key = true
+      u.literal = true
       return
     end
 
@@ -899,7 +912,7 @@ local function process2(chunk, proto, scope, u, code)
         append_code(proto, code, u, "get_local", u.env)
       end
       append_code(proto, code, u, "push_literal", u.v)
-      u.string_key = true
+      u.literal = true
       if not u.define then
         append_code(proto, code, u, "get_table")
       end

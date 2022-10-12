@@ -65,7 +65,7 @@ local function tostring(v)
   if type(metafield) == "string" then
     t = metafield
   end
-  return t .. ": " .. v
+  return t..": "..v
 end
 
 local function print(...)

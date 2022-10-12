@@ -46,6 +46,10 @@ do
   diff -u "test/stage1/$j.exp" "out/stage1/$j.out"
 done
 
+time "$@" compile_stage1.lua out/stage1a.mjs dromozoa/compiler/stage1_runtime.lua compile_stage1.lua
+time node out/stage1a.mjs out/stage1b.mjs dromozoa/compiler/stage1_runtime.lua compile_stage1.lua
+diff -u out/stage1a.mjs out/stage1b.mjs
+
 case X$DROMOZOA_TEST_DEBUG in
   X|X0) rm -fr out;;
 esac
