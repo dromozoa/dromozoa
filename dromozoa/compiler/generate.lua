@@ -45,7 +45,7 @@ local lua54_parser = require "dromozoa.compiler.lua54_parser"
 
 local function declare(scope, name, u, attribute)
   if attribute and attribute ~= "const" and attribute ~= "close" then
-    compiler_error("unknown attribute '" .. attribute .. "'", u)
+    compiler_error("unknown attribute '"..attribute.."'", u)
   end
   local var = append(scope.proto.locals, { name = name, attribute = attribute, node = u })
   append(scope.locals, var)
@@ -61,7 +61,7 @@ local function resolve(scope, name, u, define)
       if v.name == name then
         if define then
           if v.attribute == "const" or v.attribute == "close" then
-            compiler_error("attempt to assign to const variable '" .. name .. "'", u)
+            compiler_error("attempt to assign to const variable '"..name.."'", u)
           end
           v.def = true
         else
@@ -123,7 +123,7 @@ end
 local function define_label(scope, name, u)
   local label, v = find_label(scope, name)
   if label then
-    compiler_error("label '" .. name .. "' already defined on line " .. v.node.n, u)
+    compiler_error("label '"..name.."' already defined on line "..v.node.n, u)
   end
   local label = append(scope.proto.labels, { name = name, node = u })
   append(scope.labels, label)
@@ -133,7 +133,7 @@ end
 local function resolve_label(scope, name, u)
   local label = find_label(scope, name)
   if not label then
-    compiler_error("no visible label '" .. name .. "' for <goto> at line " .. u.n, u)
+    compiler_error("no visible label '"..name.."' for <goto> at line "..u.n, u)
   end
   return label
 end
@@ -227,7 +227,7 @@ local function append_code(proto, code, u, op, a, b)
   elseif op == "pop" then
     top = top - a
   else
-    error("unknown op " .. op)
+    error("unknown op "..op)
   end
 
   proto.top = top
@@ -392,7 +392,7 @@ local function process1(chunk, proto, scope, u, loop)
 
   elseif u_name == "break" then
     if not loop then
-      compiler_error("break outside loop at line " .. u.n, u)
+      compiler_error("break outside loop at line "..u.n, u)
     end
     u.target = loop
     -- ジャンプ前の変数リストを記録する。
@@ -520,7 +520,7 @@ local function process2(chunk, proto, scope, u, code)
       for i = 0, n - 1 do
         local var = v.stack[n - i]
         if u.stack[m - i] ~= var then
-          compiler_error("<goto " .. x.v .. "> at line " .. u.n .. " jumps into the scope of local '" .. proto.locals[var].name .. "'", u)
+          compiler_error("<goto "..x.v.."> at line "..u.n.." jumps into the scope of local '"..proto.locals[var].name.."'", u)
         end
       end
     end

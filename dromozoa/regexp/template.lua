@@ -151,9 +151,9 @@ local main = function (_, source, source_name, eof_symbol, fn)
 
   function ferror(message)
     if current_byte then
-      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (" .. message .. " near '" .. string_char(current_byte) .. "')")
+      error(source_name..":"..start_line..":"..start_column..": regexp error ("..message.." near '"..string_char(current_byte).."')")
     else
-      error(source_name .. ":" .. start_line .. ":" .. start_column .. ": regexp error (" .. message .. ")")
+      error(source_name..":"..start_line..":"..start_column..": regexp error ("..message..")")
     end
   end
 

@@ -198,7 +198,7 @@ end
 
 local function box_env(chunk, value)
   if boxed(chunk.env) then
-    return "[" .. value .. "]"
+    return "["..value.."]"
   else
     return value
   end
@@ -206,7 +206,7 @@ end
 
 local function box_local(proto, var, value)
   if boxed(proto.locals[var]) then
-    return "[" .. value .. "]"
+    return "["..value.."]"
   else
     return value
   end
@@ -214,17 +214,17 @@ end
 
 local function unbox_local(proto, var)
   if boxed(proto.locals[var]) then
-    return "V" .. var .. "[0]"
+    return "V"..var.."[0]"
   else
-    return "V" .. var
+    return "V"..var
   end
 end
 
 local function unbox_upvalue(proto, var)
   if boxed(proto.upvalues[var].v) then
-    return "U" .. var .. "[0]"
+    return "U"..var.."[0]"
   else
-    return "U" .. var
+    return "U"..var
   end
 end
 
@@ -286,7 +286,7 @@ local function def(result, map, n, v)
   else
     local m = map.m + 1
     map.m = m
-    t.v = "R" .. m
+    t.v = "R"..m
     append(result, "R", m, "=")
     if v then
       append(result, v, ";")
@@ -300,7 +300,7 @@ local function def_range(result, map, range, name)
     assert(not t.v)
     local m = map.m + 1
     map.m = m
-    t.v = "R" .. m
+    t.v = "R"..m
     append(result, "R", m, "=", name, "[", i - 1, "];")
   end
 end
@@ -317,7 +317,7 @@ local function generate_code(result, chunk, proto, map, u)
 
   elseif u_name == "if" then
     local x = use(map, u.x)
-    append(result, "if(" .. x .. "!==undefined&&" .. x .. "!==false){\n")
+    append(result, "if("..x.."!==undefined&&"..x.."!==false){\n")
     for _, v in ipairs(u[1]) do
       generate_code(result, chunk, proto, map, v)
     end
@@ -341,75 +341,75 @@ local function generate_code(result, chunk, proto, map, u)
     append(result, "if(V", a + 2, [[===0)throw new LuaError("'for' step is zero");]])
 
   elseif u_name == "add" then
-    def(result, map, u.z, "(+" .. use(map, u.x) .. "+ +" .. use(map, u.y) .. ")")
+    def(result, map, u.z, "(+"..use(map, u.x).."+ +"..use(map, u.y)..")")
 
   elseif u_name == "sub" then
-    def(result, map, u.z, "(" .. use(map, u.x) .. "-" .. use(map, u.y) .. ")")
+    def(result, map, u.z, "("..use(map, u.x).."-"..use(map, u.y)..")")
 
   elseif u_name == "mul" then
-    def(result, map, u.z, "(" .. use(map, u.x) .. "*" .. use(map, u.y) .. ")")
+    def(result, map, u.z, "("..use(map, u.x).."*"..use(map, u.y)..")")
 
   elseif u_name == "div" then
-    def(result, map, u.z, "(" .. use(map, u.x) .. "/" .. use(map, u.y) .. ")")
+    def(result, map, u.z, "("..use(map, u.x).."/"..use(map, u.y)..")")
 
   elseif u_name == "idiv" then
-    def(result, map, u.z, "Math.floor(" .. use(map, u.x) .. "/" .. use(map, u.y) .. ")")
+    def(result, map, u.z, "Math.floor("..use(map, u.x).."/"..use(map, u.y)..")")
 
   elseif u_name == "mod" then
     local y = use(map, u.y)
-    def(result, map, u.z, "((" .. use(map, u.x) .. "%" .. y .. "+" .. y .. ")%" .. y .. ")")
+    def(result, map, u.z, "(("..use(map, u.x).."%"..y.."+"..y..")%"..y..")")
 
   elseif u_name == "pow" then
-    def(result, map, u.z, "Math.pow(" .. use(map, u.x) .. "," .. use(map, u.y) .. ")")
+    def(result, map, u.z, "Math.pow("..use(map, u.x)..","..use(map, u.y)..")")
 
   elseif u_name == "band" then
-    def(result, map, u.z, "(" .. use(map, u.x) .. "&" .. use(map, u.y) .. ")")
+    def(result, map, u.z, "("..use(map, u.x).."&"..use(map, u.y)..")")
 
   elseif u_name == "bxor" then
-    def(result, map, u.z, "(" .. use(map, u.x) .. "^" .. use(map, u.y) .. ")")
+    def(result, map, u.z, "("..use(map, u.x).."^"..use(map, u.y)..")")
 
   elseif u_name == "bor" then
-    def(result, map, u.z, "(" .. use(map, u.x) .. "|" .. use(map, u.y) .. ")")
+    def(result, map, u.z, "("..use(map, u.x).."|"..use(map, u.y)..")")
 
   elseif u_name == "shr" then
-    def(result, map, u.z, "(" .. use(map, u.x) .. ">>>" .. use(map, u.y) .. ")")
+    def(result, map, u.z, "("..use(map, u.x)..">>>"..use(map, u.y)..")")
 
   elseif u_name == "shl" then
-    def(result, map, u.z, "(" .. use(map, u.x) .. "<<" .. use(map, u.y) .. ")")
+    def(result, map, u.z, "("..use(map, u.x).."<<"..use(map, u.y)..")")
 
   elseif u_name == "concat" then
-    def(result, map, u.z, '(""+' .. use(map, u.x) .. "+" .. use(map, u.y) .. ")")
+    def(result, map, u.z, '(""+'..use(map, u.x).."+"..use(map, u.y)..")")
 
   elseif u_name == "lt" then
-    def(result, map, u.z, "(" .. use(map, u.x) .. "<" .. use(map, u.y) .. ")")
+    def(result, map, u.z, "("..use(map, u.x).."<"..use(map, u.y)..")")
 
   elseif u_name == "le" then
-    def(result, map, u.z, "(" .. use(map, u.x) .. "<=" .. use(map, u.y) .. ")")
+    def(result, map, u.z, "("..use(map, u.x).."<="..use(map, u.y)..")")
 
   elseif u_name == "gt" then
-    def(result, map, u.z, "(" .. use(map, u.x) .. ">" .. use(map, u.y) .. ")")
+    def(result, map, u.z, "("..use(map, u.x)..">"..use(map, u.y)..")")
 
   elseif u_name == "ge" then
-    def(result, map, u.z, "(" .. use(map, u.x) .. ">=" .. use(map, u.y) .. ")")
+    def(result, map, u.z, "("..use(map, u.x)..">="..use(map, u.y)..")")
 
   elseif u_name == "eq" then
-    def(result, map, u.z, "(" .. use(map, u.x) .. "===" .. use(map, u.y) .. ")")
+    def(result, map, u.z, "("..use(map, u.x).."==="..use(map, u.y)..")")
 
   elseif u_name == "ne" then
-    def(result, map, u.z, "(" .. use(map, u.x) .. "!==" .. use(map, u.y) .. ")")
+    def(result, map, u.z, "("..use(map, u.x).."!=="..use(map, u.y)..")")
 
   elseif u_name == "unm" then
-    def(result, map, u.y, "(-" .. use(map, u.x) .. ")")
+    def(result, map, u.y, "(-"..use(map, u.x)..")")
 
   elseif u_name == "not" then
     local x = use(map, u.x)
-    def(result, map, u.y, "(" .. x .. "===undefined||" .. x .. "===false)")
+    def(result, map, u.y, "("..x.."===undefined||"..x.."===false)")
 
   elseif u_name == "len" then
-    def(result, map, u.y, "OP_LEN(" .. use(map, u.x) .. ")")
+    def(result, map, u.y, "OP_LEN("..use(map, u.x)..")")
 
   elseif u_name == "bnot" then
-    def(result, map, u.y, "(~" .. use(map, u.x) .. ")")
+    def(result, map, u.y, "(~"..use(map, u.x)..")")
 
   elseif u_name == "new_local" then
     append(result, "V", a, "=", box_local(proto, a, use(map, u.x)), ";")
@@ -431,7 +431,7 @@ local function generate_code(result, chunk, proto, map, u)
     if u.string_key then
       append(result, z, "!==undefined?", x, ".set(", y, ",", z, "):", x, ".delete(", y, ");")
     else
-      local cond = x .. ".n!==undefined&&Number.isInteger(" .. y .. ")&&"
+      local cond = x..".n!==undefined&&Number.isInteger("..y..")&&"
       append(result, "if(", z, "!==undefined){if(", cond, y, ">", x, ".n&&", y, "!==++", x, ".n)", x, ".n=undefined;", x, ".set(", y, ",", z, ");}")
       append(result, "else{if(", cond, y, "!==", x, ".n--)", x, ".n=undefined;", x, ".delete(", y, ");}")
     end
@@ -443,7 +443,7 @@ local function generate_code(result, chunk, proto, map, u)
     def(result, map, u.x, unbox_upvalue(proto, a))
 
   elseif u_name == "get_table" then
-    def(result, map, u.z, "OP_GETTABLE(" .. use(map, u.x) .. "," .. use(map, u.y) .. ")")
+    def(result, map, u.z, "OP_GETTABLE("..use(map, u.x)..","..use(map, u.y)..")")
 
   elseif u_name == "new_table" then
     def(result, map, u.x, "new LuaTable()")
@@ -474,7 +474,7 @@ local function generate_code(result, chunk, proto, map, u)
 
   elseif u_name == "push_numeral" then
     if b == "HexadecimalFloatingNumeral" then
-      compiler_error("not supported: push_numeral " .. a .. " HexadecimalFloatingNumeral", u.node)
+      compiler_error("not supported: push_numeral "..a.." HexadecimalFloatingNumeral", u.node)
     else
       def(result, map, u.x, a)
     end
@@ -488,7 +488,7 @@ local function generate_code(result, chunk, proto, map, u)
   elseif u_name == "call" then
     local x = use(map, u.x)
     local y = use_range_tuple(map, u.y, t)
-    local xy = y == "" and x or x .. "," .. y
+    local xy = y == "" and x or x..","..y
     if b == 0 then
       append(result, "!", x, ".LuaTable?", x, "(", y, "):", x, '.metatable.get("__call")(', xy, ");")
     elseif b == 1 then
@@ -505,7 +505,7 @@ local function generate_code(result, chunk, proto, map, u)
     local x = use(map, u.x)
     local y = use(map, u.y)
     local z = use_range_tuple(map, u.z, t)
-    local xz = z == "" and x or x .. "," .. z
+    local xz = z == "" and x or x..","..z
     append(result, y, "=OP_GETTABLE(", x, ",", y, ");")
     if b == 0 then
       append(result, y, ".LuaFunction?", y, "(", xz, "):!", y, ".LuaTable?", y, ".call(", xz, "):", y, '.metatable.get("__call")(', y, ",", xz, ");")
@@ -539,7 +539,7 @@ local function generate_code(result, chunk, proto, map, u)
     -- noop
 
   else
-    compiler_error("not supported: " .. u_name, u.node)
+    compiler_error("not supported: "..u_name, u.node)
   end
 
   if #result > n then
@@ -589,7 +589,7 @@ local function generate_proto(result, chunk, proto)
   for i, v in ipairs(proto.locals) do
     if i <= proto.nparams then
       if boxed(proto.locals[i]) then
-        append(result, ",V", i, "=", box_local(proto, i, "A" .. i))
+        append(result, ",V", i, "=", box_local(proto, i, "A"..i))
       end
     else
       append(result, ",V", i)

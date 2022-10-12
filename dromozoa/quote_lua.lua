@@ -30,5 +30,5 @@ local quote = {
 }
 
 return function (s)
-  return '"' .. s:gsub("[%z\1-\31\"\\\127]", quote) .. '"'
+  return '"'..s:gsub("[%z\1-\31\"\\\127]", quote)..'"'
 end
