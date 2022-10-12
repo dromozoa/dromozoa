@@ -473,21 +473,34 @@ local function process2(chunk, proto, scope, u, code)
     process2(chunk, proto, scope, y, code)
 
     local n = #x
-    for i = n, 1, -1 do
-      local v = x[i]
-      local c
+    if n == 1 then
+      local v = x[1]
       if v.var then
         if v.var < 0 then
-          c = append_code(proto, code, u, "set_upvalue", -v.var)
+          append_code(proto, code, u, "set_upvalue", -v.var)
         else
-          c = append_code(proto, code, u, "set_local", v.var)
+          append_code(proto, code, u, "set_local", v.var)
         end
       else
-        c = append_code(proto, code, u, "set_field", target - 1, target)
-        c.literal = v.literal
-        target = target - 2
+        append_code(proto, code, u, "set_table", target - 1)
       end
-      c.store = i < n
+    else
+      for i = n, 1, -1 do
+        local v = x[i]
+        local c
+        if v.var then
+          if v.var < 0 then
+            c = append_code(proto, code, u, "set_upvalue", -v.var)
+          else
+            c = append_code(proto, code, u, "set_local", v.var)
+          end
+        else
+          c = append_code(proto, code, u, "set_field", target - 1, target)
+          c.literal = v.literal
+          target = target - 2
+        end
+        c.store = i < n
+      end
     end
 
     if proto.top > 0 then
