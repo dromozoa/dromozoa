@@ -232,9 +232,11 @@ local function use(map, n)
   return assert(map[n].v)
 end
 
-local function use_range(map, range, top)
+local function use_range_array(map, range, top)
   local result = {}
-  if top >= 0 then
+  if top == 0 then
+    append(result, "S0")
+  elseif top > 0 then
     append(result, "[")
     for i, n in ipairs(range) do
       if i > 1 then
@@ -255,7 +257,7 @@ local function use_range(map, range, top)
   return table.concat(result)
 end
 
-local function use_range_r(map, range, top)
+local function use_range_tuple(map, range, top)
   local result = {}
   if top >= 0 then
     for i, n in ipairs(range) do
@@ -278,23 +280,18 @@ end
 local function def(result, map, n, v)
   local t = map[n]
   assert(not t.v)
-  if t.use == 1 and not t.store then
+
+  if t.use == 1 and not t.store and v then
     t.v = v
   else
     local m = map.m + 1
     map.m = m
     t.v = "R" .. m
-    append(result, "R", m, "=", v, ";")
+    append(result, "R", m, "=")
+    if v then
+      append(result, v, ";")
+    end
   end
-end
-
-local function def_r(map, n)
-  local t = map[n]
-  assert(not t.v)
-  local m = map.m + 1
-  map.m = m
-  t.v = "R" .. m
-  return t.v
 end
 
 local function def_range(result, map, range, name)
@@ -434,14 +431,9 @@ local function generate_code(result, chunk, proto, map, u)
     if u.string_key then
       append(result, z, "!==undefined?", x, ".set(", y, ",", z, "):", x, ".delete(", y, ");")
     else
-      append(result,
-        "if(", z, "!==undefined){",
-          "if(", x, ".n!==undefined&&Number.isInteger(", y, ")&&", y , ">", x, ".n&&", y, "!==++", x, ".n)", x, ".n=undefined;",
-          x, ".set(", y, ",", z, ");",
-        "}else{",
-          "if(", x, ".n!==undefined&&Number.isInteger(", y, ")&&", y, "!==", x, ".n--)", x, ".n=undefined;",
-          x, ".delete(", y, ");",
-        "}")
+      local cond = x .. ".n!==undefined&&Number.isInteger(" .. y .. ")&&"
+      append(result, "if(", z, "!==undefined){if(", cond, y, ">", x, ".n&&", y, "!==++", x, ".n)", x, ".n=undefined;", x, ".set(", y, ",", z, ");}")
+      append(result, "else{if(", cond, y, "!==", x, ".n--)", x, ".n=undefined;", x, ".delete(", y, ");}")
     end
 
   elseif u_name == "get_local" then
@@ -491,29 +483,19 @@ local function generate_code(result, chunk, proto, map, u)
     append(result, "OP_CLOSE(V", a, ");V", a, "=undefined;")
 
   elseif u_name == "return" then
-    append(result, "return ", use_range(map, u.x, t), ";")
+    append(result, "return ", use_range_array(map, u.x, t), ";")
 
   elseif u_name == "call" then
     local x = use(map, u.x)
-    local y = use_range_r(map, u.y, t)
+    local y = use_range_tuple(map, u.y, t)
+    local xy = y == "" and x or x .. "," .. y
     if b == 0 then
-      append(result, "!", x, ".LuaTable?", x, "(", y, "):", x, '.metatable.get("__call")(', x)
-      if y ~= "" then
-        append(result, ",", y)
-      end
-      append(result, ");")
+      append(result, "!", x, ".LuaTable?", x, "(", y, "):", x, '.metatable.get("__call")(', xy, ");")
     elseif b == 1 then
-      append(result, def_r(map, u.z[1]), "=", x, ".LuaFunction?", x, "(", y, ")[0]:!", x, ".LuaTable?", x, "(", y, "):", x, '.metatable.get("__call")(', x)
-      if y ~= "" then
-        append(result, ",", y)
-      end
-      append(result, ")[0];")
+      def(result, map, u.z[1])
+      append(result, x, ".LuaFunction?", x, "(", y, ")[0]:!", x, ".LuaTable?", x, "(", y, "):", x, '.metatable.get("__call")(', xy, ")[0];")
     else
-      append(result, "S=", x, ".LuaFunction?", x, "(", y, "):!", x, ".LuaTable?[", x, "(", y, ")]:", x, '.metatable.get("__call")(', x)
-      if y ~= "" then
-        append(result, ",", y)
-      end
-      append(result, ");")
+      append(result, "S=", x, ".LuaFunction?", x, "(", y, "):!", x, ".LuaTable?[", x, "(", y, ")]:", x, '.metatable.get("__call")(', xy, ");")
       if b > 1 then
         def_range(result, map, u.z, "S")
       end
@@ -522,17 +504,16 @@ local function generate_code(result, chunk, proto, map, u)
   elseif u_name == "self" then
     local x = use(map, u.x)
     local y = use(map, u.y)
-    local z = use_range_r(map, u.z, t)
+    local z = use_range_tuple(map, u.z, t)
+    local xz = z == "" and x or x .. "," .. z
     append(result, y, "=OP_GETTABLE(", x, ",", y, ");")
-    if z ~= "" then
-      x = x .. "," .. z
-    end
     if b == 0 then
-      append(result, y, ".LuaFunction?", y, "(", x, "):!", y, ".LuaTable?", y, ".call(", x, "):", y, '.metatable.get("__call")(', y, ",", x, ");")
+      append(result, y, ".LuaFunction?", y, "(", xz, "):!", y, ".LuaTable?", y, ".call(", xz, "):", y, '.metatable.get("__call")(', y, ",", xz, ");")
     elseif b == 1 then
-      append(result, def_r(map, u.w[1]), "=", y, ".LuaFunction?", y, "(", x, ")[0]:!", y, ".LuaTable?", y, ".call(", x, "):", y, '.metatable.get("__call")(', y, ",", x, ")[0];")
+      def(result, map, u.w[1])
+      append(result, y, ".LuaFunction?", y, "(", xz, ")[0]:!", y, ".LuaTable?", y, ".call(", xz, "):", y, '.metatable.get("__call")(', y, ",", xz, ")[0];")
     else
-      append(result, "S=", y, ".LuaFunction?", y, "(", x, "):!", y, ".LuaTable?[", y, ".call(", x, ")]:", y, '.metatable.get("__call")(', y, ",", x, ");")
+      append(result, "S=", y, ".LuaFunction?", y, "(", xz, "):!", y, ".LuaTable?[", y, ".call(", xz, ")]:", y, '.metatable.get("__call")(', y, ",", xz, ");")
       if b > 1 then
         def_range(result, map, u.w, "S")
       end
@@ -547,7 +528,7 @@ local function generate_code(result, chunk, proto, map, u)
     end
 
   elseif u_name == "set_list" then
-    append(result, "OP_SETLIST(", use(map, u.x), ",", use_range(map, u.y, t), ");")
+    append(result, "OP_SETLIST(", use(map, u.x), ",", use_range_array(map, u.y, t), ");")
 
   elseif u_name == "push_nil" then
     for _, n in ipairs(u.x) do
