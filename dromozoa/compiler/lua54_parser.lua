@@ -170,7 +170,8 @@ end;
   local sizes = static_data.sizes
   local semantic_actions = static_data.semantic_actions
   local stack = { 1 }
-  local nodes = {}
+  local nodes = { false }
+  local n = 1
   function create(symbol)
     return { [0] = symbol }
   end
@@ -188,7 +189,7 @@ end;
     local symbol = token[0]
     if symbol then
       while true do
-        local state = stack[#stack]
+        local state = stack[n]
         local action = actions[state][symbol]
         if action == 0 then
           if token.f and token.n and token.c and token.s then
@@ -198,15 +199,15 @@ end;
           end
         end
         if action <= max_state then
-          stack[#stack + 1] = action
-          nodes[#nodes + 1] = token
+          n = n + 1
+          stack[n] = action
+          nodes[n] = token
           break
         end
         local index = action - max_state
         if index == 1 then
-          local node = nodes[#nodes]
-          stack[#stack] = nil
-          nodes[#nodes] = nil
+          local node = nodes[n]
+          n = n - 1
           return node
         end
         local head = heads[index]
@@ -214,7 +215,7 @@ end;
         S = { [0] = { [0] = head } }
         SS = { [0] = head }
         local sf, si, sj, sn, sc
-        local n = #nodes - size
+        n = n - size
         for i = 1, size do
           local s = nodes[n + i]
           S[i] = s
@@ -233,15 +234,12 @@ end;
             end
           end
         end
-        for i = 1, size do
-          stack[#stack] = nil
-          nodes[#nodes] = nil
-        end
         action_data[semantic_actions[index]]()
         SS.f, SS.i, SS.j, SS.n, SS.c = sf, si, sj, sn, sc
-        local state = stack[#stack]
-        stack[#stack + 1] = actions[state][head]
-        nodes[#nodes + 1] = SS
+        local state = stack[n]
+        n = n + 1
+        stack[n] = actions[state][head]
+        nodes[n] = SS
       end
     end
   end
