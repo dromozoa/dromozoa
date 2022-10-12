@@ -185,23 +185,16 @@ _ENV.table = table
 
 ---------------------------------------------------------------------------
 
-local string_encoder = D.native_new(G.TextEncoder)
-local string_encoder_cache = {}
+local string_encode_cache = {}
 
 local function string_encode_utf8(s)
-  local b = string_encoder_cache[s]
+  local b = string_encode_cache[s]
   if b ~= nil then
     return b
   end
-  local b = string_encoder:encode(s)
-  string_encoder_cache[s] = b
+  local b = G.Buffer:from(s)
+  string_encode_cache[s] = b
   return b
-end
-
-local string_decoder = D.native_new(G.TextDecoder)
-
-local function string_decode_utf8(b)
-  return string_decoder:decode(b)
 end
 
 local function string_len(s)
@@ -225,32 +218,32 @@ local function string_prepare(n, i, j)
 end
 
 local function string_byte(s, i, j)
-  local buffer = string_encode_utf8(s)
+  local b = string_encode_utf8(s)
   if i == nil then
     i = 1
   end
   if j == nil then
     j = i
   end
-  local i, j = string_prepare(buffer.length, i, j)
+  local i, j = string_prepare(b.length, i, j)
   if i == j then
-    return buffer[i - 1]
+    return b[i - 1]
   else
-    return D.array_unpack(G.Array:from(buffer:subarray(i - 1, j)))
+    return D.array_unpack(G.Array:from(b:subarray(i - 1, j)))
   end
 end
 
 local function string_char(...)
-  return string_decode_utf8(G.Uint8Array:from(D.array_pack(...)))
+  return G.Buffer:from(D.array_pack(...)):toString()
 end
 
 local function string_sub(s, i, j)
-  local buffer = string_encode_utf8(s)
+  local b = string_encode_utf8(s)
   if j == nil then
     j = -1
   end
-  local i, j = string_prepare(buffer.length, i, j)
-  return string_decode_utf8(buffer:subarray(i - 1, j))
+  local i, j = string_prepare(b.length, i, j)
+  return b:toString("utf8", i - 1, j)
 end
 
 local function string_gsub_regexp(pattern)
@@ -354,7 +347,7 @@ function class:read(p)
   local s = F:fstatSync(fd)
   local b = D.native_new(G.Uint8Array, s.size)
   F:readSync(fd, b)
-  return string_decode_utf8(b)
+  return G.Buffer:from(b):toString()
 end
 
 function class:close()
