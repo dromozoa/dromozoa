@@ -18,6 +18,7 @@
 local metatable = {
   __close = function (self)
     print("__close", self[1])
+    self[1] = self[1] .. " closed"
   end;
 }
 
@@ -37,3 +38,25 @@ if true then
   end
   local g <close> = setmetatable({ "g" }, metatable)
 end
+
+local fn
+
+do
+  local U <close> = setmetatable({ "U" }, metatable)
+  function fn(c)
+    print(U[1])
+    local A <close>
+    local B <close> = setmetatable({ "B" }, metatable)
+    if c then
+      local C <close> = setmetatable({ "C" }, metatable)
+      error "error"
+    else
+      local D <close> = setmetatable({ "D" }, metatable)
+      return
+    end
+    local E <close> = setmetatable({ "E" }, metatable)
+  end
+end
+
+pcall(fn, true)
+pcall(fn, false)

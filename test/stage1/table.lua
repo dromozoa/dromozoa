@@ -35,4 +35,16 @@ print(table.concat({"foo", "bar", "baz", "qux"}, ",", 1, 3))
 print(table.concat({"foo", "bar", "baz", "qux"}, ",", 2, 4))
 print(table.concat({"foo", "bar", "baz", "qux"}, ",", 2, 3))
 
+--[[
+local t = { [1] = "foo", [2] = "bar", [3] = "baz", 1, 2 }
+print(#t, t[1], t[2], t[3])
 
+local t = { [1] = "foo", [3] = "baz", nil, 2, nil }
+print(#t, t[1], t[2], t[3])
+
+local t = { [3] = "baz", 1, 2 }
+print(#t, t[1], t[2], t[3])
+
+local t = { 1, nil, 2, nil, nil, 3, nil, nil, nil }
+print(#t)
+]]

@@ -197,36 +197,45 @@ local opcodes = {
 }
 
 local function append_code(proto, code, u, op, a, b)
-  local v = { [0] = op, a = a, b = b, node = u }
+  local top = proto.top
+  local v = { [0] = op, a = a, b = b, node = u, top = top }
+
   append(code, v)
-  local c = opcodes[op]
-  if c then
-    proto.top = proto.top + c
+  local opcode = opcodes[op]
+  if opcode then
+    top = top + opcode
   elseif op == "return" then
-    proto.top = 0
+    top = 0
   elseif op == "call" or op == "self" then
     if b < 0 then
       assert(b == -1)
-      proto.top = -a
+      top = -a
     else
-      proto.top = a + b - 1
+      top = a + b - 1
     end
   elseif op == "vararg" then
     if a < 0 then
       assert(a == -1)
-      proto.top = a - proto.top
+      top = a - top
     else
-      proto.top = proto.top + a
+      top = top + a
     end
   elseif op == "set_list" then
-    proto.top = a
+    top = a
   elseif op == "push_nil" then
-    proto.top = proto.top + a
+    top = top + a
   elseif op == "pop" then
-    proto.top = proto.top - a
+    top = top - a
   else
     error("unknown op " .. op)
   end
+
+  proto.top = top
+  local s = top >= 0 and top or -top - 1
+  if proto.max < s then
+    proto.max = s
+  end
+
   return v
 end
 
@@ -274,6 +283,7 @@ local function process1(chunk, proto, scope, u, loop)
       scopes = {};
       code = {};
       top = 0;
+      max = 0;
       node = u;
       parent = proto;
     }
@@ -397,6 +407,18 @@ local function process1(chunk, proto, scope, u, loop)
       compiler_error("cannot use '...' outside a vararg function near '...'", u)
     end
 
+  elseif u_name == "and" then
+    -- short-circuitの解決時に、スタックが単一代入を満たすように、内部変数でphi
+    -- 関数を実現する。
+    u.var = declare(scope, "(and phi)", u)
+
+  elseif u_name == "or" then
+    -- short-circuitの解決時に、スタックが単一代入を満たすように、内部変数でphi
+    -- 関数を実現する。
+    u.var = declare(scope, "(or phi)", u)
+
+  elseif u_name == "or" then
+
   elseif u_name == "Name" then
     if u.declare then
       u.var = declare(scope, u.v, u, u.attribute)
@@ -450,18 +472,22 @@ local function process2(chunk, proto, scope, u, code)
     local target = proto.top
     process2(chunk, proto, scope, y, code)
 
-    for i = #x, 1, -1 do
+    local n = #x
+    for i = n, 1, -1 do
       local v = x[i]
+      local c
       if v.var then
         if v.var < 0 then
-          append_code(proto, code, u, "set_upvalue", -v.var)
+          c = append_code(proto, code, u, "set_upvalue", -v.var)
         else
-          append_code(proto, code, u, "set_local", v.var)
+          c = append_code(proto, code, u, "set_local", v.var)
         end
       else
-        append_code(proto, code, u, "set_field", target - 1, target)
+        c = append_code(proto, code, u, "set_field", target - 1, target)
+        c.string_key = v.string_key
         target = target - 2
       end
+      c.store = i < n
     end
 
     if proto.top > 0 then
@@ -657,7 +683,8 @@ local function process2(chunk, proto, scope, u, code)
         append_code(proto, code, u, "set_local", x.var)
       end
     else
-      append_code(proto, code, u, "set_table", proto.top - 2)
+      local c = append_code(proto, code, u, "set_table", proto.top - 2)
+      c.string_key = assert(x.string_key)
       append_code(proto, code, u, "pop", 1)
     end
     process2(chunk, proto, scope, y, code)
@@ -764,21 +791,26 @@ local function process2(chunk, proto, scope, u, code)
 
   elseif u_name == "and" then
     process2(chunk, proto, scope, x, code)
-    append_code(proto, code, u, "dup")
+    append_code(proto, code, u, "new_local", u.var)
+    append_code(proto, code, u, "get_local", u.var)
     local then_block = append_if(proto, code, u)
-    append_code(proto, then_block, u, "pop", 1)
     process2(chunk, proto, scope, y, then_block)
+    append_code(proto, then_block, u, "set_local", u.var)
+    append_code(proto, code, u, "get_local", u.var)
 
   elseif u_name == "or" then
     process2(chunk, proto, scope, x, code)
-    append_code(proto, code, u, "dup")
+    append_code(proto, code, u, "new_local", u.var)
+    append_code(proto, code, u, "get_local", u.var)
     local _, else_block = append_if(proto, code, u)
-    append_code(proto, else_block, u, "pop", 1)
     process2(chunk, proto, scope, y, else_block)
+    append_code(proto, else_block, u, "set_local", u.var)
+    append_code(proto, code, u, "get_local", u.var)
 
   elseif u_name == "." then
     process2(chunk, proto, scope, x, code)
     process2(chunk, proto, scope, y, code)
+    u.string_key = y.string_key
     if not u.define then
       append_code(proto, code, u, "get_table")
     end
@@ -829,7 +861,8 @@ local function process2(chunk, proto, scope, u, code)
     process2(chunk, proto, scope, x, code)
     if y then
       process2(chunk, proto, scope, y, code)
-      append_code(proto, code, u, "set_table", u.target)
+      local c = append_code(proto, code, u, "set_table", u.target)
+      c.string_key = x.string_key
     end
 
   elseif u_name == "nil" then
@@ -843,6 +876,7 @@ local function process2(chunk, proto, scope, u, code)
 
   elseif u_name == "LiteralString" then
     append_code(proto, code, u, "push_literal", u.v)
+    u.string_key = true
 
   elseif u_name == "Numeral" then
     append_code(proto, code, u, "push_numeral", u.v, u.hint)
@@ -854,6 +888,7 @@ local function process2(chunk, proto, scope, u, code)
 
     if not u.resolve then
       append_code(proto, code, u, "push_literal", u.v)
+      u.string_key = true
       return
     end
 
@@ -864,6 +899,7 @@ local function process2(chunk, proto, scope, u, code)
         append_code(proto, code, u, "get_local", u.env)
       end
       append_code(proto, code, u, "push_literal", u.v)
+      u.string_key = true
       if not u.define then
         append_code(proto, code, u, "get_table")
       end

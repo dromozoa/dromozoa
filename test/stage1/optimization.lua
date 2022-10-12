@@ -15,32 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local t = { foo = 1 }
-local u = { foo = 2, bar = 3 }
+local x = (9 % 10) % (7 % 4)
+print(x)
 
-setmetatable(t, {
-  __index = function (self, k)
-    return u[k]
-  end;
-})
-
-print(t.foo, u.foo, t.bar, u.bar, t.baz, u.baz)
-
-t.foo = 4
-t.bar = 5
-t.baz = 6
-
-print(t.foo, u.foo, t.bar, u.bar, t.baz, u.baz)
-
-local v = { foo = 1, bar = 2, baz = 3 }
-v.foo = nil
-local n = 0
-for _ in pairs(v) do
-  n = n + 1
-end
-print(n)
-
-local v = { [t] = 1, [u] = 2 }
-v[u] = 3
-v[v] = 4
-print(v[t], v[u], v[v])
+local x = not not not nil
+print(x)

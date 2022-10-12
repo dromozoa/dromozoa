@@ -15,32 +15,22 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local t = { foo = 1 }
-local u = { foo = 2, bar = 3 }
+local append = require "dromozoa.append"
+local quote_lua = require "dromozoa.quote_lua"
 
-setmetatable(t, {
-  __index = function (self, k)
-    return u[k]
-  end;
-})
+local source_filename, result_filename = ...
 
-print(t.foo, u.foo, t.bar, u.bar, t.baz, u.baz)
+local handle = assert(io.open(source_filename))
+local buffer = handle:read "*a"
+handle:close()
 
-t.foo = 4
-t.bar = 5
-t.baz = 6
+local s = buffer
+  :gsub("/%*.-%*/", "")
+  :gsub("//[^\n]*", "")
+  :gsub("[ \t]+\n", "\n")
+  :gsub("\n\n+", "\n")
+  :gsub("^\n+", "")
 
-print(t.foo, u.foo, t.bar, u.bar, t.baz, u.baz)
-
-local v = { foo = 1, bar = 2, baz = 3 }
-v.foo = nil
-local n = 0
-for _ in pairs(v) do
-  n = n + 1
-end
-print(n)
-
-local v = { [t] = 1, [u] = 2 }
-v[u] = 3
-v[v] = 4
-print(v[t], v[u], v[v])
+local out = assert(io.open(result_filename, "w"))
+out:write("return ", quote_lua(s), "\n")
+out:close()

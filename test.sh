@@ -41,8 +41,8 @@ fi
 for i in test/stage1/*.lua
 do
   j=`expr "X$i" : 'Xtest/stage1/\([^/]*\)\.lua$'`
-  "$@" compile_stage1.lua "out/stage1/$j.mjs" ../../ dromozoa/compiler/stage1_runtime.lua "$i"
-  node --enable-source-maps "out/stage1/$j.mjs" foo 42 "bar baz qux" >"out/stage1/$j.out"
+  "$@" compile_stage1.lua "out/stage1/$j.mjs" dromozoa/compiler/stage1_runtime.lua "$i"
+  node "out/stage1/$j.mjs" foo 42 "bar baz qux" >"out/stage1/$j.out"
   diff -u "test/stage1/$j.exp" "out/stage1/$j.out"
 done
 

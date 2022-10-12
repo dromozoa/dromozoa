@@ -18,6 +18,179 @@
 local append = require "dromozoa.append"
 local quote_js = require "dromozoa.quote_js"
 local compiler_error = require "dromozoa.compiler.compiler_error"
+local stage1_prologue = require "dromozoa.compiler.stage1_prologue"
+
+local function push_stack(map, i)
+  local stack = map.stack
+
+  assert(not stack[i])
+  local n = map.n + 1
+  map.n = n
+  map[n] = { use = 0 }
+
+  stack[i] = n
+  return n
+end
+
+local function get_stack(map, i)
+  local stack = map.stack
+
+  local n = assert(stack[i])
+  local t = assert(map[n])
+  t.use = t.use + 1
+
+  return n
+end
+
+local function pop_stack(map, i, store)
+  local stack = map.stack
+
+  local n = assert(stack[i])
+  local t = assert(map[n])
+  t.use = t.use + 1
+  t.store = store
+
+  stack[i] = nil
+  return n
+end
+
+local function push_stack_range(map, m, n)
+  local result = {}
+  for i = m, n do
+    append(result, push_stack(map, i))
+  end
+  return result
+end
+
+local function pop_stack_range(map, m, n)
+  if n < 0 then
+    n = -n - 1
+  end
+
+  local result = {}
+  for i = m, n do
+    append(result, pop_stack(map, i))
+  end
+  return result
+end
+
+local opcodes = {
+  add    = "binop";
+  sub    = "binop";
+  mul    = "binop";
+  div    = "binop";
+  idiv   = "binop";
+  pow    = "binop";
+  band   = "binop";
+  bxor   = "binop";
+  bor    = "binop";
+  shr    = "binop";
+  shl    = "binop";
+  concat = "binop";
+  lt     = "binop";
+  le     = "binop";
+  gt     = "binop";
+  ge     = "binop";
+  eq     = "binop";
+  ne     = "binop";
+
+  unm  = "unop";
+  len  = "unop";
+  bnot = "unop";
+
+  new_local   = "pop";
+  tbc_local   = "pop";
+
+  get_local    = "push";
+  get_upvalue  = "push";
+  new_table    = "push";
+  closure      = "push";
+  push_false   = "push";
+  push_true    = "push";
+  push_literal = "push";
+  push_numeral = "push";
+}
+
+local function process_code(map, u)
+  local u_name = u[0]
+  local a = u.a
+  local b = u.b
+  local t = u.top
+
+  local opcode = opcodes[u_name]
+  if opcode == "binop" then
+    u.x = pop_stack(map, t - 1)
+    u.y = pop_stack(map, t)
+    u.z = push_stack(map, t - 1)
+  elseif opcode == "unop" then
+    u.x = pop_stack(map, t)
+    u.y = push_stack(map, t)
+  elseif opcode == "pop" then
+    u.x = pop_stack(map, t)
+  elseif opcode == "push" then
+    u.x = push_stack(map, t + 1)
+
+  elseif u_name == "if" then
+    u.x = pop_stack(map, t, true)
+    for _, v in ipairs(u[1]) do
+      process_code(map, v)
+    end
+    for _, v in ipairs(u[2]) do
+      process_code(map, v)
+    end
+  elseif u_name == "loop" then
+    for _, v in ipairs(u) do
+      process_code(map, v)
+    end
+  elseif u_name == "mod" then
+    u.x = pop_stack(map, t - 1)
+    u.y = pop_stack(map, t, true)
+    u.z = push_stack(map, t - 1)
+  elseif u_name == "not" then
+    u.x = pop_stack(map, t, true)
+    u.y = push_stack(map, t)
+  elseif u_name == "set_local" or u_name == "set_upvalue" then
+    u.x = pop_stack(map, t, u.store)
+  elseif u_name == "set_field" then
+    u.x = get_stack(map, a, not u.string_key)
+    u.y = get_stack(map, b, not u.string_key)
+    u.z = pop_stack(map, t, true)
+  elseif u_name == "set_table" then
+    u.x = get_stack(map, a, not u.string_key)
+    u.y = pop_stack(map, t - 1, not u.string_key)
+    u.z = pop_stack(map, t, true)
+  elseif u_name == "get_table" then
+    u.x = pop_stack(map, t - 1)
+    u.y = pop_stack(map, t)
+    u.z = push_stack(map, t - 1)
+  elseif u_name == "return" then
+    u.x = pop_stack_range(map, 1, t)
+  elseif u_name == "call" then
+    u.x = pop_stack(map, a, true)
+    u.y = pop_stack_range(map, a + 1, t)
+    if b > 0 then
+      u.z = push_stack_range(map, a, a + b - 1)
+    end
+  elseif u_name == "self" then
+    u.x = pop_stack(map, a, true)
+    u.y = pop_stack(map, a + 1, true)
+    u.z = pop_stack_range(map, a + 2, t)
+    if b > 0 then
+      u.w = push_stack_range(map, a, a + b - 1)
+    end
+  elseif u_name == "vararg" then
+    if a > 0 then
+      u.x = push_stack_range(map, t + 1, t + a)
+    end
+  elseif u_name == "set_list" then
+    u.x = get_stack(map, a)
+    u.y = pop_stack_range(map, a + 1, t)
+  elseif u_name == "push_nil" then
+    u.x = push_stack_range(map, t + 1, t + a)
+  elseif u_name == "pop" then
+    u.x = pop_stack_range(map, t - a + 1, t)
+  end
+end
 
 local function boxed(v)
   return v.updef or v.def and v.upuse
@@ -55,189 +228,332 @@ local function unbox_upvalue(proto, var)
   end
 end
 
-local function generate_code(result, source_map, chunk, proto, u)
+local function use(map, n)
+  return assert(map[n].v)
+end
+
+local function use_range_array(map, range, top)
+  local result = {}
+  if top == 0 then
+    append(result, "S0")
+  elseif top > 0 then
+    append(result, "[")
+    for i, n in ipairs(range) do
+      if i > 1 then
+        append(result, ",")
+      end
+      append(result, use(map, n))
+    end
+    append(result, "]")
+  elseif #range == 0 then
+    append(result, "S")
+  else
+    append(result, "[")
+    for i, n in ipairs(range) do
+      append(result, use(map, n), ",")
+    end
+    append(result, "...S]")
+  end
+  return table.concat(result)
+end
+
+local function use_range_tuple(map, range, top)
+  local result = {}
+  if top >= 0 then
+    for i, n in ipairs(range) do
+      if i > 1 then
+        append(result, ",")
+      end
+      append(result, use(map, n))
+    end
+  elseif #range == 0 then
+    append(result, "...S")
+  else
+    for i, n in ipairs(range) do
+      append(result, use(map, n), ",")
+    end
+    append(result, "...S")
+  end
+  return table.concat(result)
+end
+
+local function def(result, map, n, v)
+  local t = map[n]
+  assert(not t.v)
+
+  if t.use == 1 and not t.store and v then
+    t.v = v
+  else
+    local m = map.m + 1
+    map.m = m
+    t.v = "R" .. m
+    append(result, "R", m, "=")
+    if v then
+      append(result, v, ";")
+    end
+  end
+end
+
+local function def_range(result, map, range, name)
+  for i, n in ipairs(range) do
+    local t = map[n]
+    assert(not t.v)
+    local m = map.m + 1
+    map.m = m
+    t.v = "R" .. m
+    append(result, "R", m, "=", name, "[", i - 1, "];")
+  end
+end
+
+local function generate_code(result, chunk, proto, map, u)
   local u_name = u[0]
   local a = u.a
   local b = u.b
+  local t = u.top
+  local n = #result
 
   if u_name == "break" then
     append(result, "break;")
 
   elseif u_name == "if" then
-    append(result, "a=S.pop();if(a!==undefined&&a!==false){\n")
-    source_map:append_mapping(u[1].node)
+    local x = use(map, u.x)
+    append(result, "if(" .. x .. "!==undefined&&" .. x .. "!==false){\n")
     for _, v in ipairs(u[1]) do
-      generate_code(result, source_map, chunk, proto, v)
+      generate_code(result, chunk, proto, map, v)
     end
     append(result, "}else{\n")
-    source_map:append_mapping(u[2].node)
     for _, v in ipairs(u[2]) do
-      generate_code(result, source_map, chunk, proto, v)
+      generate_code(result, chunk, proto, map, v)
     end
-    append(result, "}\n")
-    source_map:append_empty_mappings(1)
-    return
+    append(result, "}")
 
   elseif u_name == "loop" then
     append(result, "while(true){\n")
-    source_map:append_mapping(u.node)
     for _, v in ipairs(u) do
-      generate_code(result, source_map, chunk, proto, v)
+      generate_code(result, chunk, proto, map, v)
     end
-    append(result, "}\n")
-    source_map:append_empty_mappings(1)
-    return
+    append(result, "}")
 
   elseif u_name == "check_for" then
-    append(result, "V", a, "=D.checknumber(V", a, [[,"bad 'for' initial value");]])
-    append(result, "V", a + 1, "=D.checknumber(V", a + 1, [[,"bad 'for' limit");]])
-    append(result, "V", a + 2, "=D.checknumber(V", a + 2, [[,"bad 'for' step");]])
-    append(result, "if(V", a + 2, [[===0)D.error("'for' step is zero");]])
+    append(result, "V", a, "=OP_CHECKNUMBER(V", a, [[,"bad 'for' initial value");]])
+    append(result, "V", a + 1, "=OP_CHECKNUMBER(V", a + 1, [[,"bad 'for' limit");]])
+    append(result, "V", a + 2, "=OP_CHECKNUMBER(V", a + 2, [[,"bad 'for' step");]])
+    append(result, "if(V", a + 2, [[===0)throw new LuaError("'for' step is zero");]])
 
-  elseif u_name == "add"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_ADD(a,b));")
-  elseif u_name == "sub"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_SUB(a,b));")
-  elseif u_name == "mul"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_MUL(a,b));")
-  elseif u_name == "div"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_DIV(a,b));")
-  elseif u_name == "idiv"   then append(result, "b=S.pop();a=S.pop();S.push(D.OP_IDIV(a,b));")
-  elseif u_name == "mod"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_MOD(a,b));")
-  elseif u_name == "pow"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_POW(a,b));")
-  elseif u_name == "band"   then append(result, "b=S.pop();a=S.pop();S.push(D.OP_BAND(a,b));")
-  elseif u_name == "bxor"   then append(result, "b=S.pop();a=S.pop();S.push(D.OP_BXOR(a,b));")
-  elseif u_name == "bor"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_BOR(a,b));")
-  elseif u_name == "shr"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_SHR(a,b));")
-  elseif u_name == "shl"    then append(result, "b=S.pop();a=S.pop();S.push(D.OP_SHL(a,b));")
-  elseif u_name == "concat" then append(result, "b=S.pop();a=S.pop();S.push(D.OP_CONCAT(a,b));")
-  elseif u_name == "lt"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_LT(a,b));")
-  elseif u_name == "le"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_LE(a,b));")
-  elseif u_name == "gt"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_GT(a,b));")
-  elseif u_name == "ge"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_GE(a,b));")
-  elseif u_name == "eq"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_EQ(a,b));")
-  elseif u_name == "ne"     then append(result, "b=S.pop();a=S.pop();S.push(D.OP_NE(a,b));")
+  elseif u_name == "add" then
+    def(result, map, u.z, "(+" .. use(map, u.x) .. "+ +" .. use(map, u.y) .. ")")
 
-  elseif u_name == "unm"  then append(result, "a=S.pop();S.push(D.OP_UNM(a));")
-  elseif u_name == "not"  then append(result, "a=S.pop();S.push(D.OP_NOT(a));")
-  elseif u_name == "len"  then append(result, "a=S.pop();S.push(D.OP_LEN(a));")
-  elseif u_name == "bnot" then append(result, "a=S.pop();S.push(D.OP_BNOT(a));")
+  elseif u_name == "sub" then
+    def(result, map, u.z, "(" .. use(map, u.x) .. "-" .. use(map, u.y) .. ")")
 
-  elseif u_name == "new_local" or u_name == "tbc_local" then
-    append(result, "V", a, "=", box_local(proto, a, "S.pop()"), ";")
+  elseif u_name == "mul" then
+    def(result, map, u.z, "(" .. use(map, u.x) .. "*" .. use(map, u.y) .. ")")
+
+  elseif u_name == "div" then
+    def(result, map, u.z, "(" .. use(map, u.x) .. "/" .. use(map, u.y) .. ")")
+
+  elseif u_name == "idiv" then
+    def(result, map, u.z, "Math.floor(" .. use(map, u.x) .. "/" .. use(map, u.y) .. ")")
+
+  elseif u_name == "mod" then
+    local y = use(map, u.y)
+    def(result, map, u.z, "((" .. use(map, u.x) .. "%" .. y .. "+" .. y .. ")%" .. y .. ")")
+
+  elseif u_name == "pow" then
+    def(result, map, u.z, "Math.pow(" .. use(map, u.x) .. "," .. use(map, u.y) .. ")")
+
+  elseif u_name == "band" then
+    def(result, map, u.z, "(" .. use(map, u.x) .. "&" .. use(map, u.y) .. ")")
+
+  elseif u_name == "bxor" then
+    def(result, map, u.z, "(" .. use(map, u.x) .. "^" .. use(map, u.y) .. ")")
+
+  elseif u_name == "bor" then
+    def(result, map, u.z, "(" .. use(map, u.x) .. "|" .. use(map, u.y) .. ")")
+
+  elseif u_name == "shr" then
+    def(result, map, u.z, "(" .. use(map, u.x) .. ">>>" .. use(map, u.y) .. ")")
+
+  elseif u_name == "shl" then
+    def(result, map, u.z, "(" .. use(map, u.x) .. "<<" .. use(map, u.y) .. ")")
+
+  elseif u_name == "concat" then
+    def(result, map, u.z, '(""+' .. use(map, u.x) .. "+" .. use(map, u.y) .. ")")
+
+  elseif u_name == "lt" then
+    def(result, map, u.z, "(" .. use(map, u.x) .. "<" .. use(map, u.y) .. ")")
+
+  elseif u_name == "le" then
+    def(result, map, u.z, "(" .. use(map, u.x) .. "<=" .. use(map, u.y) .. ")")
+
+  elseif u_name == "gt" then
+    def(result, map, u.z, "(" .. use(map, u.x) .. ">" .. use(map, u.y) .. ")")
+
+  elseif u_name == "ge" then
+    def(result, map, u.z, "(" .. use(map, u.x) .. ">=" .. use(map, u.y) .. ")")
+
+  elseif u_name == "eq" then
+    def(result, map, u.z, "(" .. use(map, u.x) .. "===" .. use(map, u.y) .. ")")
+
+  elseif u_name == "ne" then
+    def(result, map, u.z, "(" .. use(map, u.x) .. "!==" .. use(map, u.y) .. ")")
+
+  elseif u_name == "unm" then
+    def(result, map, u.y, "(-" .. use(map, u.x) .. ")")
+
+  elseif u_name == "not" then
+    local x = use(map, u.x)
+    def(result, map, u.y, "(" .. x .. "===undefined||" .. x .. "===false)")
+
+  elseif u_name == "len" then
+    def(result, map, u.y, "OP_LEN(" .. use(map, u.x) .. ")")
+
+  elseif u_name == "bnot" then
+    def(result, map, u.y, "(~" .. use(map, u.x) .. ")")
+
+  elseif u_name == "new_local" then
+    append(result, "V", a, "=", box_local(proto, a, use(map, u.x)), ";")
+
+  elseif u_name == "tbc_local" then
+    assert(not boxed(proto.locals[a]))
+    append(result, "V", a, "=", use(map, u.x), ";")
 
   elseif u_name == "set_local" then
-    append(result, unbox_local(proto, a), "=S.pop();")
+    append(result, unbox_local(proto, a), "=", use(map, u.x), ";")
 
   elseif u_name == "set_upvalue" then
-    append(result, unbox_upvalue(proto, a), "=S.pop();")
+    append(result, unbox_upvalue(proto, a), "=", use(map, u.x), ";")
 
-  elseif u_name == "set_field" then
-    append(result, "c=S.pop();b=S[", b - 1, "];a=S[", a - 1, "];D.OP_SETTABLE(a,b,c);")
-
-  elseif u_name == "set_table" then
-    append(result, "c=S.pop();b=S.pop();a=S[", a - 1, "];D.OP_SETTABLE(a,b,c);")
+  elseif u_name == "set_field" or u_name == "set_table" then
+    local x = use(map, u.x)
+    local y = use(map, u.y)
+    local z = use(map, u.z)
+    if u.string_key then
+      append(result, z, "!==undefined?", x, ".set(", y, ",", z, "):", x, ".delete(", y, ");")
+    else
+      local cond = x .. ".n!==undefined&&Number.isInteger(" .. y .. ")&&"
+      append(result, "if(", z, "!==undefined){if(", cond, y, ">", x, ".n&&", y, "!==++", x, ".n)", x, ".n=undefined;", x, ".set(", y, ",", z, ");}")
+      append(result, "else{if(", cond, y, "!==", x, ".n--)", x, ".n=undefined;", x, ".delete(", y, ");}")
+    end
 
   elseif u_name == "get_local" then
-    append(result, "S.push(", unbox_local(proto, a), ");")
+    def(result, map, u.x, unbox_local(proto, a))
 
   elseif u_name == "get_upvalue" then
-    append(result, "S.push(", unbox_upvalue(proto, a), ");")
+    def(result, map, u.x, unbox_upvalue(proto, a))
 
   elseif u_name == "get_table" then
-    append(result, "b=S.pop();a=S.pop();S.push(D.OP_GETTABLE(a,b));")
+    def(result, map, u.z, "OP_GETTABLE(" .. use(map, u.x) .. "," .. use(map, u.y) .. ")")
 
   elseif u_name == "new_table" then
-    append(result, "S.push(D.OP_NEWTABLE());")
+    def(result, map, u.x, "new LuaTable()")
 
   elseif u_name == "closure" then
-    append(result, "S.push(P", a, "(")
+    local buffer = { "P", a, "(" }
     for i, v in ipairs(chunk[a].upvalues) do
       if i > 1 then
-        append(result, ",")
+        append(buffer, ",")
       end
       if v.var < 0 then
-        append(result, "U", -v.var)
+        append(buffer, "U", -v.var)
       else
-        append(result, "V", v.var)
+        append(buffer, "V", v.var)
       end
     end
-    append(result, "));")
+    append(buffer, ")")
+    def(result, map, u.x, table.concat(buffer))
 
   elseif u_name == "push_false" then
-    append(result, "S.push(false);")
+    def(result, map, u.x, "false")
 
   elseif u_name == "push_true" then
-    append(result, "S.push(true);")
+    def(result, map, u.x, "true")
 
   elseif u_name == "push_literal" then
-    append(result, "S.push(", quote_js(a), ");")
+    def(result, map, u.x, quote_js(a))
 
   elseif u_name == "push_numeral" then
     if b == "HexadecimalFloatingNumeral" then
       compiler_error("not supported: push_numeral " .. a .. " HexadecimalFloatingNumeral", u.node)
     else
-      append(result, "S.push(", a, ");")
+      def(result, map, u.x, a)
     end
 
-  elseif u_name == "dup" then
-    append(result, "S.push(S[S.length-1]);")
-
   elseif u_name == "close" then
-    append(result, "D.OP_CLOSE(", unbox_local(proto, a), ");V", a, "=undefined;")
+    append(result, "if(V", a, "!==undefined)V", a, '.metatable.get("__close")(V', a, ");V", a, "=undefined;")
 
   elseif u_name == "return" then
-    append(result, "return S;")
+    append(result, "return ", use_range_array(map, u.x, t), ";")
 
   elseif u_name == "call" then
-    assert(a > 0)
-    append(result, "b=S.splice(", a, ");a=S.pop();b=D.OP_CALL(a,b);")
-    if b ~= 0 then
-      if b > 0 then
-        append(result, "D.OP_ADJUST(b,", b, ");")
+    local x = use(map, u.x)
+    local y = use_range_tuple(map, u.y, t)
+    local xy = y == "" and x or x .. "," .. y
+    if b == 0 then
+      append(result, "!", x, ".LuaTable?", x, "(", y, "):", x, '.metatable.get("__call")(', xy, ");")
+    elseif b == 1 then
+      def(result, map, u.z[1])
+      append(result, x, ".LuaFunction?", x, "(", y, ")[0]:!", x, ".LuaTable?", x, "(", y, "):", x, '.metatable.get("__call")(', xy, ")[0];")
+    else
+      append(result, "S=", x, ".LuaFunction?", x, "(", y, "):!", x, ".LuaTable?[", x, "(", y, ")]:", x, '.metatable.get("__call")(', xy, ");")
+      if b > 1 then
+        def_range(result, map, u.z, "S")
       end
-      append(result, "S.push(...b);")
     end
 
   elseif u_name == "self" then
-    append(result, "c=S.splice(", a + 1, ");b=S.pop();a=S.pop();c=D.OP_SELF(D.OP_GETTABLE(a,b),a,c);")
-    if b ~= 0 then
-      if b > 0 then
-        append(result, "D.OP_ADJUST(c,", b, ");")
+    local x = use(map, u.x)
+    local y = use(map, u.y)
+    local z = use_range_tuple(map, u.z, t)
+    local xz = z == "" and x or x .. "," .. z
+    append(result, y, "=OP_GETTABLE(", x, ",", y, ");")
+    if b == 0 then
+      append(result, y, ".LuaFunction?", y, "(", xz, "):!", y, ".LuaTable?", y, ".call(", xz, "):", y, '.metatable.get("__call")(', y, ",", xz, ");")
+    elseif b == 1 then
+      def(result, map, u.w[1])
+      append(result, y, ".LuaFunction?", y, "(", xz, ")[0]:!", y, ".LuaTable?", y, ".call(", xz, "):", y, '.metatable.get("__call")(', y, ",", xz, ")[0];")
+    else
+      append(result, "S=", y, ".LuaFunction?", y, "(", xz, "):!", y, ".LuaTable?[", y, ".call(", xz, ")]:", y, '.metatable.get("__call")(', y, ",", xz, ");")
+      if b > 1 then
+        def_range(result, map, u.w, "S")
       end
-      append(result, "S.push(...c);")
     end
 
   elseif u_name == "vararg" then
     if a > 0 then
-      append(result, "a=[...VA];D.OP_ADJUST(a,", a, ");S.push(...a);")
+      def_range(result, map, u.x, "VA")
     else
-      append(result, "S.push(...VA);")
+      assert(a == -1)
+      append(result, "S=VA;")
     end
 
   elseif u_name == "set_list" then
-    append(result, "b=S.splice(", a, ");a=S[", a - 1, "];D.OP_SETLIST(a,b);")
+    append(result, "OP_SETLIST(", use(map, u.x), ",", use_range_array(map, u.y, t), ");")
 
   elseif u_name == "push_nil" then
-    if a == 1 then
-      append(result, "S.push(undefined);")
-    else
-      append(result, "S.length+=", a, ";")
+    for _, n in ipairs(u.x) do
+      def(result, map, n, "undefined")
     end
 
   elseif u_name == "pop" then
-    if a == 1 then
-      append(result, "S.pop();")
-    else
-      append(result, "S.length-=", a, ";")
-    end
+    -- noop
 
   else
     compiler_error("not supported: " .. u_name, u.node)
   end
 
-  append(result, "\n")
-  source_map:append_mapping(u.node)
+  if #result > n then
+    append(result, "\n")
+  end
 end
 
-local function generate_proto(result, source_map, chunk, proto)
+local function generate_proto(result, chunk, proto)
   local try_catch
+  local map = { m = 0, n = 0, stack = {} }
+
+  for _, v in ipairs(proto.code) do
+    process_code(map, v)
+  end
 
   append(result, "const P", proto.index, "=(")
   for i = 1, #proto.upvalues do
@@ -246,12 +562,16 @@ local function generate_proto(result, source_map, chunk, proto)
     end
     append(result, "U", i)
   end
-  append(result, ")=>new LuaFunction((")
+  append(result, ")=>{const F=(")
   for i = 1, proto.nparams do
     if i > 1 then
       append(result, ",")
     end
-    append(result, "A", i)
+    if boxed(proto.locals[i]) then
+      append(result, "A", i)
+    else
+      append(result, "V", i)
+    end
   end
   if proto.vararg then
     if proto.nparams > 0 then
@@ -264,165 +584,73 @@ local function generate_proto(result, source_map, chunk, proto)
     append(result, "// ", proto.node.f, ":", proto.node.n, ":", proto.node.c)
   end
   append(result, "\n")
-  source_map:append_empty_mappings(1)
 
-  append(result, "let S=[],a,b,c")
+  append(result, "let S")
   for i, v in ipairs(proto.locals) do
-    append(result, ",V", i)
     if i <= proto.nparams then
-      append(result, "=", box_local(proto, i, "A" .. i))
+      if boxed(proto.locals[i]) then
+        append(result, ",V", i, "=", box_local(proto, i, "A" .. i))
+      end
+    else
+      append(result, ",V", i)
     end
     if v.attribute == "close" then
       try_catch = true
     end
   end
-  append(result, ";\n")
-  source_map:append_empty_mappings(1)
+  local place_holder = append(result, ";\n")
 
   if try_catch then
     append(result, "try{\n")
-    source_map:append_empty_mappings(1)
   end
 
   for _, v in ipairs(proto.code) do
-    generate_code(result, source_map, chunk, proto, v)
+    generate_code(result, chunk, proto, map, v)
+  end
+
+  if map.m > 0 then
+    local buffer = {}
+    for i = 1, map.m do
+      append(buffer, ",R", i)
+    end
+    append(buffer, ";\n")
+    result[place_holder] = table.concat(buffer)
   end
 
   if try_catch then
     append(result, "}catch(e){\n")
-    source_map:append_empty_mappings(1)
     for i = #proto.locals, 1, -1 do
       local v = proto.locals[i]
       if v.attribute == "close" then
-        append(result, "if(V", i, "!==undefined)D.OP_CLOSE(", unbox_local(proto, i), ");V", i, "=undefined;\n")
-        source_map:append_empty_mappings(1)
+        append(result, "if(V", i, "!==undefined)V", i, '.metatable.get("__close")(V', i, ");V", i, "=undefined;")
       end
     end
     append(result, "throw e;\n}\n")
-    source_map:append_empty_mappings(2)
   end
 
-  append(result, "return S;\n});\n")
-  source_map:append_empty_mappings(2)
+  append(result, "return S0;\n};\nF.LuaFunction=true;\nreturn F;\n};\n")
 end
-
-local code, n = ([[
-import * as fs from "fs";
-globalThis.fs=fs;
-class LuaError extends Error{constructor(msg){super(msg);this.name="LuaError";this.msg=msg;}}
-class LuaFunction{constructor(fn){this.fn=fn;}}
-class LuaTable{constructor(){this.map=new Map();this.n=0}}
-const D={
-type_impl:{undefined:"nil",number:"number",string:"string",boolean:"boolean"},
-type:a=>{const t=D.type_impl[typeof a];return t!==undefined?t:a instanceof LuaFunction?"function":a instanceof LuaTable?"table":"userdata";},
-error:a=>{throw new LuaError(a);},
-checknumber:(a,b)=>{const t=D.type(a),v=t==="number"||t==="string"?Number(a):NaN;if (Number.isNaN(v))D.error(b+" (number expected, got "+t+")");return v;},
-rawget:(a,b)=>a instanceof LuaTable?a.map.get(b):a[b],
-rawset:(a,b,c)=>{
-  if(a instanceof LuaTable)if(c===undefined){if(a.n!==undefined&&a.n--!==b)a.n=undefined;a.map.delete(b);}else{if(a.n!==undefined&&++a.n!==b)a.n=undefined;a.map.set(b,c);}
-  else if(c===undefined)delete a[b];else a[b]=c;
-  return a;
-},
-rawlen:a=>{
-  if(a instanceof LuaTable){let n=a.n;if(n!==undefined)return n;for(n=1;a.map.get(n)!==undefined;++n);return a.n=--n;}
-  else return typeof a==="string"?D.string_len(a):a.length;
-},
-getmetatable:a=>{const m=typeof a==="string"?D.string_metatable:a.metatable;if(m===undefined)return m;const f=D.rawget(m,"__metatable");return f===undefined?m:f;},
-getmetafield:(a,b)=>{const m=typeof a==="string"?D.string_metatable:a.metatable;if(m!==undefined)return D.rawget(m,b);},
-setmetatable:(a,b)=>{if(D.getmetafield(a,"__metatable")!==undefined)D.error("cannot change a protected metatable");a.metatable=b;return a;},
-select:new LuaFunction((a,...b)=>a==="#"?[b.length]:b.slice(a-1)),
-native:(a)=>(...b)=>D.OP_CALL(a,b)[0],
-array_pack:(...a)=>a,
-array_unpack:new LuaFunction(a=>a),
-array_from:(a,b,c)=>{let v=[];for(let i=b;i<=c;++i)v[i-b]=D.OP_GETTABLE(a,i);return v;},
-newuserdata:(a,...b)=>new a(...b),
-entries:a=>a.map.entries(),
-replace:(a,...b)=>a.replace(...b),
-arg:[],
-OP_ADD:(a,b)=>Number(a)+Number(b),
-OP_SUB:(a,b)=>a-b,
-OP_MUL:(a,b)=>a*b,
-OP_DIV:(a,b)=>a/b,
-OP_IDIV:(a,b)=>Math.floor(a/b),
-OP_MOD:(a,b)=>(a%b+b)%b,
-OP_POW:(a,b)=>Math.pow(a,b),
-OP_BAND:(a,b)=>a&b,
-OP_BXOR:(a,b)=>a^b,
-OP_BOR:(a,b)=>a|b,
-OP_SHR:(a,b)=>a>>>b,
-OP_SHL:(a,b)=>a<<b,
-OP_CONCAT:(a,b)=>String(a)+String(b),
-OP_LT:(a,b)=>a<b,
-OP_LE:(a,b)=>a<=b,
-OP_GT:(a,b)=>a>b,
-OP_GE:(a,b)=>a>=b,
-OP_EQ:(a,b)=>a===b,
-OP_NE:(a,b)=>a!==b,
-OP_UNM:a=>-a,
-OP_NOT:a=>a===undefined||a===false,
-OP_LEN:a=>D.rawlen(a),
-OP_BNOT:a=>~a,
-OP_SETTABLE:(a,b,c)=>{
-  if(D.rawget(a,b)===undefined){const f=D.getmetafield(a,"__newindex");if(f!==undefined){if(f instanceof LuaTable)D.OP_SETTABLE(f,b,c);else D.OP_CALL(f,[a,b,c]);return a;}}
-  return D.rawset(a,b,c);
-},
-OP_GETTABLE:(a,b)=>{
-  if(typeof a!=="string"){const v=D.rawget(a,b);if(v!==undefined)return v;}
-  const f=D.getmetafield(a,"__index");if(f!==undefined)return f instanceof LuaTable?D.OP_GETTABLE(f,b):D.OP_CALL(f,[a,b])[0];
-},
-OP_NEWTABLE:()=>new LuaTable(),
-OP_CALL:(a,b)=>a instanceof LuaFunction?a.fn(...b):a instanceof LuaTable?D.OP_CALL(D.getmetafield(a,"__call"),[a,...b]):[a.apply(undefined,b)],
-OP_SELF:(a,b,c)=>a instanceof LuaFunction?a.fn(b,...c):a instanceof LuaTable?D.OP_CALL(D.getmetafield(a,"__call"),[a,b,...c]):[a.apply(b,c)],
-OP_CLOSE:(a)=>{if(a!==undefined)D.OP_CALL(D.getmetafield(a,"__close"),[a]);},
-OP_ADJUST:(a,b)=>{if(a.length<b)a[b-1]=undefined;else a.splice(b);},
-OP_SETLIST:(a,b)=>{for(let i=0;i<b.length;++i)D.rawset(a,i+1,b[i]);},
-};
-const E=new LuaTable();
-D.OP_SETTABLE(E,"dromozoa",D);
-D.OP_SETTABLE(E,"globalThis",globalThis);
-D.OP_SETTABLE(E,"package",D.OP_SETTABLE(D.OP_SETTABLE(D.OP_NEWTABLE(),"preload",D.OP_NEWTABLE()),"loaded",D.OP_NEWTABLE()));
-D.OP_SETTABLE(E,"type",D.type);
-D.OP_SETTABLE(E,"error",D.error);
-D.OP_SETTABLE(E,"getmetatable",D.getmetatable);
-D.OP_SETTABLE(E,"setmetatable",D.setmetatable);
-D.OP_SETTABLE(E,"select",D.select);
-D.OP_SETTABLE(E,"pcall",new LuaFunction((a,...b)=>{try{return[true,...D.OP_CALL(a,b)];}catch(e){return[false,e instanceof LuaError?e.msg:e.toString()];}}));
-]]):gsub("\n", {})
 
 local module = {}
 
-function module.generate_prologue(result, source_map)
-  append(result, code)
-  source_map:append_empty_mappings(n)
+function module.generate_prologue(result)
+  append(result, stage1_prologue)
 end
 
-function module.generate_chunk(result, source_map, chunk)
+function module.generate_chunk(result, chunk)
   append(result, "{\n")
-  source_map:append_empty_mappings(1)
-
   for i = #chunk, 1, -1 do
-    generate_proto(result, source_map, chunk, chunk[i])
+    generate_proto(result, chunk, chunk[i])
   end
-
-  append(result, "D.OP_CALL(P1(", box_env(chunk, "E"), "),D.arg);\n}\n")
-  source_map:append_empty_mappings(2)
+  append(result, "P1(", box_env(chunk, "E"), ")(...A);\n}\n")
 end
 
-function module.generate_module(result, source_map, name, chunk)
+function module.generate_module(result, name, chunk)
   append(result, "{\n")
-  source_map:append_empty_mappings(1)
-
   for i = #chunk, 1, -1 do
-    generate_proto(result, source_map, chunk, chunk[i])
+    generate_proto(result, chunk, chunk[i])
   end
-
-  append(result, 'D.OP_SETTABLE(D.OP_GETTABLE(D.OP_GETTABLE(E,"package"),"preload"),', quote_js(name), ",P1(", box_env(chunk, "E"), "));\n}\n")
-  source_map:append_empty_mappings(2)
-end
-
-function module.generate_epilogue(result, source_map, source_map_filename)
-  append(result, "//# sourceMappingURL=", source_map_filename, "\n")
-  source_map:append_empty_mappings(1)
+  append(result, 'E.get("package").get("preload").set(', quote_js(name), ",P1(", box_env(chunk, "E"), "));\n}\n")
 end
 
 return module

@@ -160,6 +160,8 @@ function()SS=S[0] SS.v=S[1].v SS.hint='HexadecimalFloatingNumeral'
 end;
  }
   end)()
+  local error = error
+  local select = select
   local table_unpack = table.unpack or unpack
   local symbol_names = static_data.symbol_names
   local actions = static_data.actions

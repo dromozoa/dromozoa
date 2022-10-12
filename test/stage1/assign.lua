@@ -15,32 +15,23 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local t = { foo = 1 }
-local u = { foo = 2, bar = 3 }
+local x, y, z = 1, 2, 3
 
-setmetatable(t, {
-  __index = function (self, k)
-    return u[k]
-  end;
-})
+local function f()
+  local a, b, c = 1, 2, 3
 
-print(t.foo, u.foo, t.bar, u.bar, t.baz, u.baz)
+  print(a, b, c)
+  a, b, c = b * 4, c * 3, a * 2
+  print(a, b, c)
 
-t.foo = 4
-t.bar = 5
-t.baz = 6
+  print(x, y, z)
+  x, y, z = z * 4, y * 3, x * 2
+  print(x, y, z)
 
-print(t.foo, u.foo, t.bar, u.bar, t.baz, u.baz)
-
-local v = { foo = 1, bar = 2, baz = 3 }
-v.foo = nil
-local n = 0
-for _ in pairs(v) do
-  n = n + 1
+  local t = { x = 1, y = 2, z = 3 }
+  print(t.x, t.y, t.z)
+  t.x, t.y, t.z = t.z * 4, t.y * 3, t.x * 2
+  print(t.x, t.y, t.z)
 end
-print(n)
 
-local v = { [t] = 1, [u] = 2 }
-v[u] = 3
-v[v] = 4
-print(v[t], v[u], v[v])
+f()

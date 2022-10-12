@@ -33,6 +33,8 @@ local main = function (static_data)
     return { $action_data }
   end)()
 
+  local error = error
+  local select = select
   local table_unpack = table.unpack or unpack
 
   local symbol_names = static_data.symbol_names
