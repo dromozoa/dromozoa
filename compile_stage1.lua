@@ -46,7 +46,7 @@ local modules = {}
 preload(modules, main_chunk)
 
 local result = {}
-stage1.generate_prologue(result)
+stage1.generate_preamble(result)
 stage1.generate_chunk(result, runtime_chunk)
 for _, module in ipairs(modules) do
   stage1.generate_module(result, module.name, module.chunk)

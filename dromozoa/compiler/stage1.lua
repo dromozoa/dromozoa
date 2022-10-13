@@ -18,7 +18,7 @@
 local append = require "dromozoa.append"
 local quote_js = require "dromozoa.quote_js"
 local compiler_error = require "dromozoa.compiler.compiler_error"
-local stage1_prologue = require "dromozoa.compiler.stage1_prologue"
+local stage1_preamble = require "dromozoa.compiler.stage1_preamble"
 
 local function push_stack(map, i)
   local stack = map.stack
@@ -638,8 +638,8 @@ end
 
 local module = {}
 
-function module.generate_prologue(result)
-  append(result, stage1_prologue)
+function module.generate_preamble(result)
+  append(result, stage1_preamble)
 end
 
 function module.generate_chunk(result, chunk)

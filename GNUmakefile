@@ -20,7 +20,7 @@ target = \
 	dromozoa/parser/runtime.lua \
 	dromozoa/compiler/lua54_regexp.lua \
 	dromozoa/compiler/lua54_parser.lua \
-	dromozoa/compiler/stage1_prologue.lua
+	dromozoa/compiler/stage1_preamble.lua
 
 all:: $(target)
 
@@ -36,5 +36,5 @@ dromozoa/parser/runtime.lua: build_runtime.lua dromozoa/parser/template.lua
 dromozoa/compiler/lua54_regexp.lua dromozoa/compiler/lua54_parser.lua: build_lua54.lua dromozoa/regexp/runtime.lua dromozoa/parser/runtime.lua
 	lua build_lua54.lua dromozoa/compiler/lua54_regexp.lua dromozoa/compiler/lua54_parser.lua
 
-dromozoa/compiler/stage1_prologue.lua: build_prologue.lua dromozoa/compiler/stage1_prologue.mjs
-	lua build_prologue.lua dromozoa/compiler/stage1_prologue.mjs $@
+dromozoa/compiler/stage1_preamble.lua: build_prologue.lua dromozoa/compiler/stage1_preamble.mjs
+	lua build_prologue.lua dromozoa/compiler/stage1_preamble.mjs $@
