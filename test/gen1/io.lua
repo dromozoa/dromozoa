@@ -15,12 +15,12 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local out = io.open("out/stage1/io.txt", "w")
+local out = io.open("out/gen1/io.txt", "w")
 out:write "foo\nbar\nbaz\n"
 out:write "あいうえお\n"
 out:close()
 
-local handle = io.open("out/stage1/io.txt", "r")
+local handle = io.open("out/gen1/io.txt", "r")
 local s = handle:read "*a"
 handle:close()
 

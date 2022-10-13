@@ -19,7 +19,7 @@ local append = require "dromozoa.append"
 local lua54_regexp = require "dromozoa.compiler.lua54_regexp"
 local lua54_parser = require "dromozoa.compiler.lua54_parser"
 local generate = require "dromozoa.compiler.generate"
-local stage1 = require "dromozoa.compiler.stage1"
+local gen1 = require "dromozoa.compiler.gen1"
 
 local function parse(filename)
   local handle = assert(io.open(filename))
@@ -46,12 +46,12 @@ local modules = {}
 preload(modules, main_chunk)
 
 local result = {}
-stage1.generate_preamble(result)
-stage1.generate_chunk(result, runtime_chunk)
+gen1.generate_preamble(result)
+gen1.generate_chunk(result, runtime_chunk)
 for _, module in ipairs(modules) do
-  stage1.generate_module(result, module.name, module.chunk)
+  gen1.generate_module(result, module.name, module.chunk)
 end
-stage1.generate_chunk(result, main_chunk)
+gen1.generate_chunk(result, main_chunk)
 
 local out = assert(io.open(result_filename, "w"))
 out:write(table.concat(result))
