@@ -319,10 +319,10 @@ local function process1(chunk, proto, scope, u, loop)
   end
 
   if u_name == "block" then
-    -- empty statementsは解析の時点でとりのぞかれるので、label文だけがvoid
+    -- empty statementsは構文解析時にとりのぞかれるので、label文だけがvoid
     -- statementsとして残る。repeat-until文以外のスコープは、スコープの最後の
-    -- void statementsの前でスコープを終了する。ブロックの末尾にラベル文があ
-    -- るかどうかを検査する。
+    -- void statementsの前でスコープを終了する。ブロックの末尾にラベル文がある
+    -- かどうかを検査する。
     if not scope.repeat_until then
       for i = #u, 1, -1 do
         local v = u[i]
@@ -414,17 +414,9 @@ local function process1(chunk, proto, scope, u, loop)
       compiler_error("cannot use '...' outside a vararg function near '...'", u)
     end
 
-  elseif u_name == "and" then
-    -- short-circuitの解決時に、スタックが単一代入を満たすように、内部変数でphi
-    -- 関数を実現する。
-    u.var = declare(scope, "(and phi)", u)
-
-  elseif u_name == "or" then
-    -- short-circuitの解決時に、スタックが単一代入を満たすように、内部変数でphi
-    -- 関数を実現する。
-    u.var = declare(scope, "(or phi)", u)
-
-  elseif u_name == "or" then
+  elseif u_name == "and" or u_name == "or" then
+    -- 内部変数を使用して、短絡演算子のスタック操作を単一代入にする。
+    u.var = declare(scope, "(short-circuit)", u)
 
   elseif u_name == "Name" then
     if u.declare then
@@ -489,7 +481,7 @@ local function process2(chunk, proto, scope, u, code)
           append_code(proto, code, u, "set_local", v.var)
         end
       else
-        append_code(proto, code, u, "set_table", target - 1, true)
+        append_code(proto, code, u, "set_table", 1, true)
       end
     else
       for i = n, 1, -1 do
@@ -508,12 +500,10 @@ local function process2(chunk, proto, scope, u, code)
         end
         c.store = i < n
       end
-
       if proto.top > 0 then
         append_code(proto, code, u, "pop", proto.top)
       end
     end
-
     assert(proto.top == 0)
 
   elseif u_name == "label" then
@@ -524,11 +514,11 @@ local function process2(chunk, proto, scope, u, code)
     local m = #u.stack
     local n = #v.stack
 
+    -- ジャンプ後の変数リストがジャンプ前の変数リストの部分であることを確認する。
     assert(m >= n)
     for i = 0, n - 1 do
       assert(u.stack[m - i] == v.stack[n - i])
     end
-
     append_close_stack(proto, code, u, u.stack, m - n)
     append_code(proto, code, u, "break")
 
