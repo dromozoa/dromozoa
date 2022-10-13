@@ -75,39 +75,44 @@ local function pop_stack_range(map, m, n)
 end
 
 local opcodes = {
-  add    = "binop";
-  sub    = "binop";
-  mul    = "binop";
-  div    = "binop";
-  idiv   = "binop";
-  pow    = "binop";
-  band   = "binop";
-  bxor   = "binop";
-  bor    = "binop";
-  shr    = "binop";
-  shl    = "binop";
-  concat = "binop";
-  lt     = "binop";
-  le     = "binop";
-  gt     = "binop";
-  ge     = "binop";
-  eq     = "binop";
-  ne     = "binop";
+  push_nil     = false;
+  push_false   = 1;
+  push_true    = 1;
+  push_literal = 1;
+  push_numeral = 1;
+  new_table    = 1;
+  closure      = 1;
+  pop          = false;
 
-  unm  = "unop";
-  len  = "unop";
-  bnot = "unop";
+  get_local   = 1;
+  get_upvalue = 1;
+  get_table   = false;
 
-  new_local   = "pop";
+  add    = -1;
+  sub    = -1;
+  mul    = -1;
+  div    = -1;
+  mod    =  false;
+  idiv   = -1;
+  pow    = -1;
+  band   = -1;
+  bxor   = -1;
+  bor    = -1;
+  shr    = -1;
+  shl    = -1;
+  concat = -1;
+  lt     = -1;
+  le     = -1;
+  gt     = -1;
+  ge     = -1;
+  eq     = -1;
+  ne     = -1;
 
-  get_local    = "push";
-  get_upvalue  = "push";
-  new_table    = "push";
-  closure      = "push";
-  push_false   = "push";
-  push_true    = "push";
-  push_literal = "push";
-  push_numeral = "push";
+  unm     = 0;
+  ["not"] = false;
+  len     = 0;
+  bnot    = 0;
+
 }
 
 local function process_code(map, u)
@@ -117,17 +122,54 @@ local function process_code(map, u)
   local t = u.top
 
   local opcode = opcodes[u_name]
-  if opcode == "binop" then
+  if opcode == 1 then
+    u.x = push_stack(map, t + 1)
+  elseif opcode == -1 then
     u.x = pop_stack(map, t - 1)
     u.y = pop_stack(map, t)
     u.z = push_stack(map, t - 1)
-  elseif opcode == "unop" then
+  elseif opcode == 0 then
     u.x = pop_stack(map, t)
     u.y = push_stack(map, t)
-  elseif opcode == "pop" then
+
+  elseif u_name == "push_nil" then
+    u.x = push_stack_range(map, t + 1, t + a)
+  elseif u_name == "pop" then
+    u.x = pop_stack_range(map, t - a + 1, t)
+
+  elseif u_name == "get_table" then
+    u.x = pop_stack(map, t - 1)
+    u.y = pop_stack(map, t)
+    u.z = push_stack(map, t - 1)
+
+  elseif u_name == "new_local" then
     u.x = pop_stack(map, t)
-  elseif opcode == "push" then
-    u.x = push_stack(map, t + 1)
+  elseif u_name == "set_local" or u_name == "set_upvalue" then
+    u.x = pop_stack(map, t, u.store)
+  elseif u_name == "set_table" then
+    if b then
+      u.x = pop_stack(map, a)
+    else
+      u.x = get_stack(map, a)
+    end
+    u.y = pop_stack(map, t - 1)
+    u.z = pop_stack(map, t)
+  elseif u_name == "set_field" then
+    u.x = get_stack(map, a)
+    u.y = get_stack(map, b)
+    u.z = pop_stack(map, t, u.store)
+  elseif u_name == "set_list" then
+    u.x = get_stack(map, a)
+    u.y = pop_stack_range(map, a + 1, t)
+
+  elseif u_name == "mod" then
+    u.x = pop_stack(map, t - 1)
+    u.y = pop_stack(map, t, true)
+    u.z = push_stack(map, t - 1)
+
+  elseif u_name == "not" then
+    u.x = pop_stack(map, t, true)
+    u.y = push_stack(map, t)
 
   elseif u_name == "if" then
     u.x = pop_stack(map, t)
@@ -141,33 +183,7 @@ local function process_code(map, u)
     for _, v in ipairs(u) do
       process_code(map, v)
     end
-  elseif u_name == "mod" then
-    u.x = pop_stack(map, t - 1)
-    u.y = pop_stack(map, t, true)
-    u.z = push_stack(map, t - 1)
-  elseif u_name == "not" then
-    u.x = pop_stack(map, t, true)
-    u.y = push_stack(map, t)
-  elseif u_name == "set_local" or u_name == "set_upvalue" then
-    u.x = pop_stack(map, t, u.store)
-  elseif u_name == "set_field" then
-    u.x = get_stack(map, a)
-    u.y = get_stack(map, b)
-    u.z = pop_stack(map, t, u.store)
-  elseif u_name == "set_table" then
-    if b then
-      u.x = pop_stack(map, a)
-    else
-      u.x = get_stack(map, a)
-    end
-    u.y = pop_stack(map, t - 1)
-    u.z = pop_stack(map, t)
-  elseif u_name == "get_table" then
-    u.x = pop_stack(map, t - 1)
-    u.y = pop_stack(map, t)
-    u.z = push_stack(map, t - 1)
-  elseif u_name == "return" then
-    u.x = pop_stack_range(map, 1, t)
+
   elseif u_name == "call" then
     u.x = pop_stack(map, a)
     u.y = pop_stack_range(map, a + 1, t)
@@ -185,13 +201,8 @@ local function process_code(map, u)
     if a > 0 then
       u.x = push_stack_range(map, t + 1, t + a)
     end
-  elseif u_name == "set_list" then
-    u.x = get_stack(map, a)
-    u.y = pop_stack_range(map, a + 1, t)
-  elseif u_name == "push_nil" then
-    u.x = push_stack_range(map, t + 1, t + a)
-  elseif u_name == "pop" then
-    u.x = pop_stack_range(map, t - a + 1, t)
+  elseif u_name == "return" then
+    u.x = pop_stack_range(map, 1, t)
   end
 end
 
