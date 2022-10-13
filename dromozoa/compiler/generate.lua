@@ -141,13 +141,25 @@ end
 ---------------------------------------------------------------------------
 
 local opcodes = {
-  label     =  0;
-  ["break"] =  0;
-  ["goto"]  =  0;
-  ["if"]    = -1;
-  block     =  0;
-  loop      =  0;
-  check_for =  0;
+  push_nil     = false;
+  push_false   = 1;
+  push_true    = 1;
+  push_literal = 1;
+  push_numeral = 1;
+  new_table    = 1;
+  closure      = 1;
+  pop          = false;
+
+  get_local   =  1;
+  get_upvalue =  1;
+  get_table   = -1;
+
+  new_local   = -1;
+  tbc_local   = -1;
+  set_local   = -1;
+  set_upvalue = -1;
+  set_table   =  false;
+  set_field   = -1;
 
   add    = -1;
   sub    = -1;
@@ -174,24 +186,19 @@ local opcodes = {
   len     = 0;
   bnot    = 0;
 
-  new_local   = -1;
-  tbc_local   = -1;
-  set_local   = -1;
-  set_upvalue = -1;
-  set_field   = -1;
+  ["if"]    = -1;
+  block     =  0;
+  loop      =  0;
+  check_for =  0;
+  ["break"] =  0;
+  label     =  0;
+  ["goto"]  =  0;
 
-  get_local   =  1;
-  get_upvalue =  1;
-  get_table   = -1;
-
-  new_table    = 1;
-  closure      = 1;
-  push_false   = 1;
-  push_true    = 1;
-  push_literal = 1;
-  push_numeral = 1;
-
-  close = 0;
+  call       = false;
+  self       = false;
+  vararg     = false;
+  ["return"] = false;
+  close      = 0;
 }
 
 local function append_code(proto, code, u, op, a, b)
