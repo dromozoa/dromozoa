@@ -48,11 +48,17 @@ end)
 print(result, f(message))
 
 local result, message = pcall(function ()
-  for i = 1, -1, 0 do
+  local zero = 0
+  for i = 1, -1, zero do
     print(i)
   end
 end)
 print(result, f(message))
 
+for i = 1, 4 do
+  print(i)
+end
 
-
+for i = 4, 1, -1 do
+  print(i)
+end

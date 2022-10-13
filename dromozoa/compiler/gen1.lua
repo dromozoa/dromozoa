@@ -340,8 +340,10 @@ local function generate_code(result, chunk, proto, map, u)
   elseif u_name == "check_for" then
     append(result, "V", a, "=OP_CHECKNUMBER(V", a, [[,"bad 'for' initial value");]])
     append(result, "V", a + 1, "=OP_CHECKNUMBER(V", a + 1, [[,"bad 'for' limit");]])
-    append(result, "V", a + 2, "=OP_CHECKNUMBER(V", a + 2, [[,"bad 'for' step");]])
-    append(result, "if(V", a + 2, [[===0)throw new LuaError("'for' step is zero");]])
+    if b == 3 then
+      append(result, "V", a + 2, "=OP_CHECKNUMBER(V", a + 2, [[,"bad 'for' step");]])
+      append(result, "if(V", a + 2, [[===0)throw new LuaError("'for' step is zero");]])
+    end
 
   elseif u_name == "add" then
     def(result, map, u.z, "(+"..use(map, u.x).."+ +"..use(map, u.y)..")")

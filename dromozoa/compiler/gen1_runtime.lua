@@ -39,6 +39,10 @@ local function assert(...)
   end
 end
 
+local function tonumber(v)
+  return G:Number(v)
+end
+
 local function tostring(v)
   local t = type(v)
   if t == "nil" then
@@ -119,6 +123,7 @@ local function pairs(t)
 end
 
 _ENV.assert = assert
+_ENV.tonumber = tonumber
 _ENV.tostring = tostring
 _ENV.print = print
 _ENV.require = require

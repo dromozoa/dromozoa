@@ -569,75 +569,137 @@ local function process2(chunk, proto, scope, u, code)
     -- Lua 5.4のマニュアルでは、制御変数が整数である場合の意味論が変更された。
     -- 1. stepが0の場合にエラーになる。
     -- 2. ラップアラウンドしなくなった。
-    --
-    -- for v = e1, e2, e3 do block end
-    --
-    -- do
-    --   local var, limit, step = e1, e2, e3
-    --   var, limit, step = OP_CHECK_FOR(var, limit, step)
-    --   while true do
-    --     if step >= 0 then
-    --       if var > limit then
-    --         break
-    --       end
-    --     else
-    --       if var < limit then
-    --         break
-    --       end
-    --     end
-    --     local v = var
-    --     block
-    --     var = var + step
-    --   end
-    -- end
 
     process2(chunk, proto, scope, y, code)
-    append_code(proto, code, u, "new_local", u.var + 2)
-    append_code(proto, code, u, "new_local", u.var + 1)
-    append_code(proto, code, u, "new_local", u.var)
+    if y.step then
+      -- for v = e1, e2, K do block end
+      --
+      -- do
+      --   local var, limit = e1, e2
+      --   var, limit = OP_CHECK_FOR(var, limit)
+      --   while true do
+      --     if var CMP limit then
+      --       break
+      --     end
+      --     local v = var
+      --     block
+      --     var = var OP K
+      --   end
+      -- end
 
-    append_code(proto, code, u, "check_for", u.var)
+      if y.step == 0 then
+        compiler_error("'for' step is zero", y[3])
+      end
 
-    local loop_block = append_code(proto, code, u, "loop")
+      append_code(proto, code, u, "new_local", u.var + 1)
+      append_code(proto, code, u, "new_local", u.var)
+      append_code(proto, code, u, "check_for", u.var, 2)
 
-    append_code(proto, loop_block, u, "get_local", u.var + 2)
-    append_code(proto, loop_block, u, "push_numeral", "0", "DecimalIntegerNumeral")
-    append_code(proto, loop_block, u, "ge")
-    local then_block, else_block = append_if(proto, loop_block, u)
+      local loop_block = append_code(proto, code, u, "loop")
 
-    append_code(proto, then_block, u, "get_local", u.var)
-    append_code(proto, then_block, u, "get_local", u.var + 1)
-    append_code(proto, then_block, u, "gt")
-    local then_block = append_if(proto, then_block, u)
-    append_code(proto, then_block, u, "break")
+      append_code(proto, loop_block, u, "get_local", u.var)
+      append_code(proto, loop_block, u, "get_local", u.var + 1)
+      append_code(proto, loop_block, u, y.step_cmp)
+      local then_block = append_if(proto, loop_block, u)
+      append_code(proto, then_block, u, "break")
 
-    append_code(proto, else_block, u, "get_local", u.var)
-    append_code(proto, else_block, u, "get_local", u.var + 1)
-    append_code(proto, else_block, u, "lt")
-    local then_block = append_if(proto, else_block, u)
-    append_code(proto, then_block, u, "break")
+      append_code(proto, loop_block, u, "get_local", u.var)
+      append_code(proto, loop_block, u, "new_local", u.var + 3)
 
-    append_code(proto, loop_block, u, "get_local", u.var)
-    append_code(proto, loop_block, u, "new_local", u.var + 3)
+      process2(chunk, proto, scope, z, loop_block)
 
-    process2(chunk, proto, scope, z, loop_block)
+      append_code(proto, loop_block, u, "get_local", u.var)
+      append_code(proto, loop_block, u, "push_numeral", y.step_v, y.step_hint)
+      append_code(proto, loop_block, u, y.step_op)
+      append_code(proto, loop_block, u, "set_local", u.var)
 
-    append_code(proto, loop_block, u, "get_local", u.var)
-    append_code(proto, loop_block, u, "get_local", u.var + 2)
-    append_code(proto, loop_block, u, "add")
-    append_code(proto, loop_block, u, "set_local", u.var)
+    else
+      -- for v = e1, e2, e3 do block end
+      --
+      -- do
+      --   local var, limit, step = e1, e2, e3
+      --   var, limit, step = OP_CHECK_FOR(var, limit, step)
+      --   while true do
+      --     if step >= 0 then
+      --       if var > limit then
+      --         break
+      --       end
+      --     else
+      --       if var < limit then
+      --         break
+      --       end
+      --     end
+      --     local v = var
+      --     block
+      --     var = var + step
+      --   end
+      -- end
+
+      append_code(proto, code, u, "new_local", u.var + 2)
+      append_code(proto, code, u, "new_local", u.var + 1)
+      append_code(proto, code, u, "new_local", u.var)
+      append_code(proto, code, u, "check_for", u.var, 3)
+
+      local loop_block = append_code(proto, code, u, "loop")
+
+      append_code(proto, loop_block, u, "get_local", u.var + 2)
+      append_code(proto, loop_block, u, "push_numeral", "0", "DecimalIntegerNumeral")
+      append_code(proto, loop_block, u, "ge")
+      local then_block, else_block = append_if(proto, loop_block, u)
+
+      append_code(proto, then_block, u, "get_local", u.var)
+      append_code(proto, then_block, u, "get_local", u.var + 1)
+      append_code(proto, then_block, u, "gt")
+      local then_block = append_if(proto, then_block, u)
+      append_code(proto, then_block, u, "break")
+
+      append_code(proto, else_block, u, "get_local", u.var)
+      append_code(proto, else_block, u, "get_local", u.var + 1)
+      append_code(proto, else_block, u, "lt")
+      local then_block = append_if(proto, else_block, u)
+      append_code(proto, then_block, u, "break")
+
+      append_code(proto, loop_block, u, "get_local", u.var)
+      append_code(proto, loop_block, u, "new_local", u.var + 3)
+
+      process2(chunk, proto, scope, z, loop_block)
+
+      append_code(proto, loop_block, u, "get_local", u.var)
+      append_code(proto, loop_block, u, "get_local", u.var + 2)
+      append_code(proto, loop_block, u, "add")
+      append_code(proto, loop_block, u, "set_local", u.var)
+    end
 
   elseif u_name == "exp_2or3" then
     process2(chunk, proto, scope, x, code)
     process2(chunk, proto, scope, y, code)
     if z then
-      process2(chunk, proto, scope, z, code)
+      -- stepが定数の場合はスタックに積まない。
+      if lua54_parser.symbol_names[z[0]] == "Numeral" then
+        u.step = tonumber(z.v)
+        u.step_cmp = "gt"
+        u.step_v = z.v
+        u.step_hint = z.hint
+        u.step_op = "add"
+      elseif z.unop == "unm" and lua54_parser.symbol_names[z[1][0]] then
+        u.step = -tonumber(z[1].v)
+        u.step_cmp = "lt"
+        u.step_v = z[1].v
+        u.step_hint = z[1].hint
+        u.step_op = "sub"
+      else
+        process2(chunk, proto, scope, z, code)
+      end
     else
-      append_code(proto, code, u, "push_numeral", "1", "DecimalIntegerNumeral")
+      u.step = 1
+      u.step_cmp = "gt"
+      u.step_v = "1"
+      u.step_hint = "DecimalIntegerNumeral"
+      u.step_op = "add"
     end
 
   elseif u_name == "for_in" then
-    -- Lua 5.3のマニュアルの元にtbcを足して実装する。
+    -- Lua 5.3のマニュアルを元にtbcを足して実装する。
     --
     -- for var_1, ..., var_N in explist do block end
     --
