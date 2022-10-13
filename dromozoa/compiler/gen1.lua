@@ -207,7 +207,7 @@ local function process_code(map, u)
 end
 
 local function boxed(v)
-  return v.updef or v.def and v.upuse
+  return v.updef > 0 or v.def > 1 and v.upuse > 0
 end
 
 local function box_env(chunk, value)

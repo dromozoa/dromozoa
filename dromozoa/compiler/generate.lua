@@ -47,7 +47,15 @@ local function declare(scope, name, u, attribute)
   if attribute and attribute ~= "const" and attribute ~= "close" then
     compiler_error("unknown attribute '"..attribute.."'", u)
   end
-  local var = append(scope.proto.locals, { name = name, attribute = attribute, node = u })
+  local var = append(scope.proto.locals, {
+    name = name;
+    attribute = attribute;
+    def = 1;
+    use = 0;
+    updef = 0;
+    upuse = 0;
+    node = u;
+  })
   append(scope.locals, var)
   return var
 end
@@ -63,9 +71,9 @@ local function resolve(scope, name, u, define)
           if v.attribute == "const" or v.attribute == "close" then
             compiler_error("attempt to assign to const variable '"..name.."'", u)
           end
-          v.def = true
+          v.def = v.def + 1
         else
-          v.use = true
+          v.use = v.use + 1
         end
         return var, v
       end
@@ -82,9 +90,9 @@ local function resolve(scope, name, u, define)
   end
 
   if define then
-    v.updef = true
+    v.updef = v.updef + 1
   else
-    v.upuse = true
+    v.upuse = v.upuse + 1
   end
   for i, u in ipairs(proto.upvalues) do
     if u.var == var then
@@ -355,6 +363,12 @@ local function process1(chunk, proto, scope, u, loop)
     declare(scope, "(for state)", u, "close")
     process1(chunk, proto, scope, x, loop)
     return process1(chunk, proto, scope, z, loop)
+
+  elseif u_name == "local_function" then
+    process1(chunk, proto, scope, x, code)
+    local v = proto.locals[x.var]
+    v.def = v.def + 1
+    return process1(chunk, proto, scope, y, code)
 
   elseif u_name == "local" then
     local n = 0
@@ -763,7 +777,6 @@ local function process2(chunk, proto, scope, u, code)
 
   elseif u_name == "local_function" then
     -- local f; f = function () body end
-    proto.locals[x.var].def = true
     append_code(proto, code, u, "push_nil", 1)
     append_code(proto, code, u, "new_local", x.var)
     append_code(proto, code, u, "closure", y.proto.index)
