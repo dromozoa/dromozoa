@@ -379,7 +379,7 @@ local function generate_code(result, chunk, proto, map, u)
     def(result, map, u.z, "("..use(map, u.x).."<<"..use(map, u.y)..")")
 
   elseif u_name == "concat" then
-    def(result, map, u.z, '(""+'..use(map, u.x).."+"..use(map, u.y)..")")
+    def(result, map, u.z, "(''+"..use(map, u.x).."+"..use(map, u.y)..")")
 
   elseif u_name == "lt" then
     def(result, map, u.z, "("..use(map, u.x).."<"..use(map, u.y)..")")
@@ -483,7 +483,7 @@ local function generate_code(result, chunk, proto, map, u)
     end
 
   elseif u_name == "close" then
-    append(result, "if(V", a, "!==undefined)V", a, '.metatable.get("__close")(V', a, ");")
+    append(result, "if(V", a, "!==undefined)V", a, ".metatable.get('__close')(V", a, ");")
     append(result, "V", a, "=undefined;")
 
   elseif u_name == "return" then
@@ -495,12 +495,12 @@ local function generate_code(result, chunk, proto, map, u)
     local xy = y == "" and "a" or "a,"..y
     append(result, "a=", x, ";")
     if b == 0 then
-      append(result, "!a.LuaTable?a(", y, '):a.metatable.get("__call")(', xy, ");")
+      append(result, "!a.LuaTable?a(", y, "):a.metatable.get('__call')(", xy, ");")
     elseif b == 1 then
       def(result, map, u.z[1])
-      append(result, "a.LuaFunction?a(", y, ")[0]:!a.LuaTable?a(", y, '):a.metatable.get("__call")(', xy, ")[0];")
+      append(result, "a.LuaFunction?a(", y, ")[0]:!a.LuaTable?a(", y, "):a.metatable.get('__call')(", xy, ")[0];")
     else
-      append(result, "S=a.LuaFunction?a(", y, "):!a.LuaTable?[a(", y, ')]:a.metatable.get("__call")(', xy, ");")
+      append(result, "S=a.LuaFunction?a(", y, "):!a.LuaTable?[a(", y, ")]:a.metatable.get('__call')(", xy, ");")
       if b > 1 then
         def_range(result, map, u.z, "S")
       end
@@ -513,12 +513,12 @@ local function generate_code(result, chunk, proto, map, u)
     local xz = z == "" and "a" or "a,"..z
     append(result, "a=", x, ";b=OP_GETTABLE(a,", y, ");")
     if b == 0 then
-      append(result, "b.LuaFunction?b(", xz, "):!b.LuaTable?b.call(", xz, '):b.metatable.get("__call")(b,', xz, ");")
+      append(result, "b.LuaFunction?b(", xz, "):!b.LuaTable?b.call(", xz, "):b.metatable.get('__call')(b,", xz, ");")
     elseif b == 1 then
       def(result, map, u.w[1])
-      append(result, "b.LuaFunction?b(", xz, ")[0]:!b.LuaTable?b.call(", xz, '):b.metatable.get("__call")(b,', xz, ")[0];")
+      append(result, "b.LuaFunction?b(", xz, ")[0]:!b.LuaTable?b.call(", xz, "):b.metatable.get('__call')(b,", xz, ")[0];")
     else
-      append(result, "S=b.LuaFunction?b(", xz, "):!b.LuaTable?[b.call(", xz, ')]:b.metatable.get("__call")(b,', xz, ");")
+      append(result, "S=b.LuaFunction?b(", xz, "):!b.LuaTable?[b.call(", xz, ")]:b.metatable.get('__call')(b,", xz, ");")
       if b > 1 then
         def_range(result, map, u.w, "S")
       end
@@ -627,7 +627,7 @@ local function generate_proto(result, chunk, proto)
     for i = #proto.locals, 1, -1 do
       local v = proto.locals[i]
       if v.attribute == "close" then
-        append(result, "if(V", i, "!==undefined)V", i, '.metatable.get("__close")(V', i, ");V", i, "=undefined;")
+        append(result, "if(V", i, "!==undefined)V", i, ".metatable.get('__close')(V", i, ");V", i, "=undefined;")
       end
     end
     append(result, "throw e;\n}\n")
@@ -655,7 +655,7 @@ function module.generate_module(result, name, chunk)
   for i = #chunk, 1, -1 do
     generate_proto(result, chunk, chunk[i])
   end
-  append(result, 'E.get("package").get("preload").set(', quote_js(name), ",P1(", box_env(chunk, "E"), "));\n}\n")
+  append(result, "E.get('package').get('preload').set(", quote_js(name), ",P1(", box_env(chunk, "E"), "));\n}\n")
 end
 
 return module
