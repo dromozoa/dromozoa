@@ -29,7 +29,7 @@ local function parse(filename)
 end
 
 local function preload(modules, chunk)
-  for _, name in ipairs(chunk.static_require) do
+  for _, name in ipairs(chunk.require) do
     if not modules[name] then
       local chunk = parse(name:gsub("%.", "/") .. ".lua")
       modules[name] = append(modules, { name = name, chunk = chunk })

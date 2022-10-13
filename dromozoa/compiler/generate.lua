@@ -910,9 +910,10 @@ local function process2(chunk, proto, scope, u, code)
       append_code(proto, code, u, "call", target, u.nr or 1)
     end
 
-    -- requireを静的に解決するために文字列を収集する。
-    if proto.index == 1 and x.env == -1 and x.v == "require" and #y == 1 and lua54_parser.symbol_names[y[1][0]] == "LiteralString" then
-      append(chunk.static_require, y[1].v)
+    -- チャンク直下のスコープで、文字列リテラルを引数にrequireを呼んでいる場合、
+    -- 静的解決の候補とする。
+    if proto.index == 1 and scope.index == 1 and x.env == -1 and x.v == "require" and #y == 1 and lua54_parser.symbol_names[y[1][0]] == "LiteralString" then
+      append(chunk.require, y[1].v)
     end
 
   elseif u_name == "fieldlist" then
@@ -1006,7 +1007,7 @@ end
 ---------------------------------------------------------------------------
 
 return function (root)
-  local chunk = { static_require = {} }
+  local chunk = { require = {} }
   local proto = { locals = {} }
   local scope = { locals = {}, proto = proto }
   declare(scope, "_ENV")
