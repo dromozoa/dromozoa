@@ -791,10 +791,6 @@ local function process2(chunk, proto, scope, u, code)
     process2(chunk, proto, scope, y, code)
     append_code(proto, code, u, u.binop)
 
-  elseif u.unop then
-    process2(chunk, proto, scope, x, code)
-    append_code(proto, code, u, u.unop)
-
   elseif u_name == "and" then
     process2(chunk, proto, scope, x, code)
     append_code(proto, code, u, "new_local", u.var)
@@ -812,6 +808,10 @@ local function process2(chunk, proto, scope, u, code)
     process2(chunk, proto, scope, y, else_block)
     append_code(proto, else_block, u, "set_local", u.var)
     append_code(proto, code, u, "get_local", u.var)
+
+  elseif u.unop then
+    process2(chunk, proto, scope, x, code)
+    append_code(proto, code, u, u.unop)
 
   elseif u_name == "." then
     process2(chunk, proto, scope, x, code)
@@ -835,6 +835,7 @@ local function process2(chunk, proto, scope, u, code)
       append_code(proto, code, u, "call", target, u.nr or 1)
     end
 
+    -- requireを静的に解決するために文字列を収集する。
     if proto.index == 1 and x.env == -1 and x.v == "require" and #y == 1 and lua54_parser.symbol_names[y[1][0]] == "LiteralString" then
       append(chunk.static_require, y[1].v)
     end
