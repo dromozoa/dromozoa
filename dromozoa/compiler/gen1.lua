@@ -326,35 +326,82 @@ local function generate_code(result, chunk, proto, map, u)
   local t = u.top
   local n = #result
 
-  if u_name == "break" then
-    append(result, "break;")
+  if u_name == "push_nil" then
+    for _, n in ipairs(u.x) do
+      def(result, map, n, "undefined")
+    end
 
-  elseif u_name == "if" then
+  elseif u_name == "push_false" then
+    def(result, map, u.x, "false")
+
+  elseif u_name == "push_true" then
+    def(result, map, u.x, "true")
+
+  elseif u_name == "push_literal" then
+    def(result, map, u.x, quote_js(a))
+
+  elseif u_name == "push_numeral" then
+    if b == "HexadecimalFloatingNumeral" then
+      compiler_error("not supported: push_numeral "..a.." HexadecimalFloatingNumeral", u.node)
+    else
+      def(result, map, u.x, a)
+    end
+
+  elseif u_name == "new_table" then
+    def(result, map, u.x, "new LuaTable()")
+
+  elseif u_name == "closure" then
+    local buffer = { "P", a, "(" }
+    for i, v in ipairs(chunk[a].upvalues) do
+      if i > 1 then
+        append(buffer, ",")
+      end
+      if v.var < 0 then
+        append(buffer, "U", -v.var)
+      else
+        append(buffer, "V", v.var)
+      end
+    end
+    append(buffer, ")")
+    def(result, map, u.x, table.concat(buffer))
+
+  elseif u_name == "pop" then
+    -- noop
+
+  elseif u_name == "get_local" then
+    def(result, map, u.x, unbox_local(proto, a))
+
+  elseif u_name == "get_upvalue" then
+    def(result, map, u.x, unbox_upvalue(proto, a))
+
+  elseif u_name == "get_table" then
+    def(result, map, u.z, "OP_GETTABLE("..use(map, u.x)..","..use(map, u.y)..")")
+
+  elseif u_name == "new_local" then
+    append(result, "V", a, "=", box_local(proto, a, use(map, u.x)), ";")
+
+  elseif u_name == "set_local" then
+    append(result, unbox_local(proto, a), "=", use(map, u.x), ";")
+
+  elseif u_name == "set_upvalue" then
+    append(result, unbox_upvalue(proto, a), "=", use(map, u.x), ";")
+
+  elseif u_name == "set_table" or u_name == "set_field" then
     local x = use(map, u.x)
-    append(result, "a=", use(map,u.x), ";if(a!==undefined&&a!==false){\n")
-    for _, v in ipairs(u[1]) do
-      generate_code(result, chunk, proto, map, v)
+    local y = use(map, u.y)
+    local z = use(map, u.z)
+    if u.literal then
+      append(result, "a=", z, ";")
+      append(result, "if(a!==undefined)", x, ".set(", y, ",a);")
+      append(result, "else ", x, ".delete(", y, ");")
+    else
+      append(result, "a=", x, ";b=", y, ";c=", z, ";")
+      append(result, "if(c!==undefined){if(a.n!==undefined&&Number.isInteger(b)&&b>a.n&&b!==++a.n)a.n=undefined;a.set(b,c);}")
+      append(result, "else{if(a.n!==undefined&&Number.isInteger(b)&&b!==a.n--)a.n=undefined;a.delete(b);}")
     end
-    append(result, "}else{\n")
-    for _, v in ipairs(u[2]) do
-      generate_code(result, chunk, proto, map, v)
-    end
-    append(result, "}")
 
-  elseif u_name == "loop" then
-    append(result, "while(true){\n")
-    for _, v in ipairs(u) do
-      generate_code(result, chunk, proto, map, v)
-    end
-    append(result, "}")
-
-  elseif u_name == "check_for" then
-    append(result, "V", a, "=OP_CHECKNUMBER(V", a, [[,"bad 'for' initial value");]])
-    append(result, "V", a + 1, "=OP_CHECKNUMBER(V", a + 1, [[,"bad 'for' limit");]])
-    if b == 3 then
-      append(result, "V", a + 2, "=OP_CHECKNUMBER(V", a + 2, [[,"bad 'for' step");]])
-      append(result, "if(V", a + 2, [[===0)throw new LuaError("'for' step is zero");]])
-    end
+  elseif u_name == "set_list" then
+    append(result, "OP_SETLIST(", use(map, u.x), ",", use_range_array(map, u.y, t), ");")
 
   elseif u_name == "add" then
     def(result, map, u.z, "(+"..use(map, u.x).."+ +"..use(map, u.y)..")")
@@ -427,79 +474,35 @@ local function generate_code(result, chunk, proto, map, u)
   elseif u_name == "bnot" then
     def(result, map, u.y, "(~"..use(map, u.x)..")")
 
-  elseif u_name == "new_local" then
-    append(result, "V", a, "=", box_local(proto, a, use(map, u.x)), ";")
-
-  elseif u_name == "set_local" then
-    append(result, unbox_local(proto, a), "=", use(map, u.x), ";")
-
-  elseif u_name == "set_upvalue" then
-    append(result, unbox_upvalue(proto, a), "=", use(map, u.x), ";")
-
-  elseif u_name == "set_field" or u_name == "set_table" then
+  elseif u_name == "if" then
     local x = use(map, u.x)
-    local y = use(map, u.y)
-    local z = use(map, u.z)
-    if u.literal then
-      append(result, "a=", z, ";")
-      append(result, "if(a!==undefined)", x, ".set(", y, ",a);")
-      append(result, "else ", x, ".delete(", y, ");")
-    else
-      append(result, "a=", x, ";b=", y, ";c=", z, ";")
-      append(result, "if(c!==undefined){if(a.n!==undefined&&Number.isInteger(b)&&b>a.n&&b!==++a.n)a.n=undefined;a.set(b,c);}")
-      append(result, "else{if(a.n!==undefined&&Number.isInteger(b)&&b!==a.n--)a.n=undefined;a.delete(b);}")
+    append(result, "a=", use(map,u.x), ";if(a!==undefined&&a!==false){\n")
+    for _, v in ipairs(u[1]) do
+      generate_code(result, chunk, proto, map, v)
+    end
+    append(result, "}else{\n")
+    for _, v in ipairs(u[2]) do
+      generate_code(result, chunk, proto, map, v)
+    end
+    append(result, "}")
+
+  elseif u_name == "check_for" then
+    append(result, "V", a, "=OP_CHECKNUMBER(V", a, [[,"bad 'for' initial value");]])
+    append(result, "V", a + 1, "=OP_CHECKNUMBER(V", a + 1, [[,"bad 'for' limit");]])
+    if b == 3 then
+      append(result, "V", a + 2, "=OP_CHECKNUMBER(V", a + 2, [[,"bad 'for' step");]])
+      append(result, "if(V", a + 2, [[===0)throw new LuaError("'for' step is zero");]])
     end
 
-  elseif u_name == "get_local" then
-    def(result, map, u.x, unbox_local(proto, a))
-
-  elseif u_name == "get_upvalue" then
-    def(result, map, u.x, unbox_upvalue(proto, a))
-
-  elseif u_name == "get_table" then
-    def(result, map, u.z, "OP_GETTABLE("..use(map, u.x)..","..use(map, u.y)..")")
-
-  elseif u_name == "new_table" then
-    def(result, map, u.x, "new LuaTable()")
-
-  elseif u_name == "closure" then
-    local buffer = { "P", a, "(" }
-    for i, v in ipairs(chunk[a].upvalues) do
-      if i > 1 then
-        append(buffer, ",")
-      end
-      if v.var < 0 then
-        append(buffer, "U", -v.var)
-      else
-        append(buffer, "V", v.var)
-      end
+  elseif u_name == "loop" then
+    append(result, "while(true){\n")
+    for _, v in ipairs(u) do
+      generate_code(result, chunk, proto, map, v)
     end
-    append(buffer, ")")
-    def(result, map, u.x, table.concat(buffer))
+    append(result, "}")
 
-  elseif u_name == "push_false" then
-    def(result, map, u.x, "false")
-
-  elseif u_name == "push_true" then
-    def(result, map, u.x, "true")
-
-  elseif u_name == "push_literal" then
-    def(result, map, u.x, quote_js(a))
-
-  elseif u_name == "push_numeral" then
-    if b == "HexadecimalFloatingNumeral" then
-      compiler_error("not supported: push_numeral "..a.." HexadecimalFloatingNumeral", u.node)
-    else
-      def(result, map, u.x, a)
-    end
-
-  elseif u_name == "close" then
-    assert(not boxed(proto.locals[a]))
-    append(result, "if(V", a, "!==undefined)V", a, ".metatable.get('__close')(V", a, ");")
-    append(result, "V", a, "=undefined;")
-
-  elseif u_name == "return" then
-    append(result, "return ", use_range_array(map, u.x, t), ";")
+  elseif u_name == "break" then
+    append(result, "break;")
 
   elseif u_name == "call" then
     local x = use(map, u.x)
@@ -538,22 +541,19 @@ local function generate_code(result, chunk, proto, map, u)
 
   elseif u_name == "vararg" then
     if a > 0 then
-      def_range(result, map, u.x, "VA")
+      def_range(result, map, u.x, "V")
     else
       assert(a == -1)
-      append(result, "S=VA;")
+      append(result, "S=V;")
     end
 
-  elseif u_name == "set_list" then
-    append(result, "OP_SETLIST(", use(map, u.x), ",", use_range_array(map, u.y, t), ");")
+  elseif u_name == "return" then
+    append(result, "return ", use_range_array(map, u.x, t), ";")
 
-  elseif u_name == "push_nil" then
-    for _, n in ipairs(u.x) do
-      def(result, map, n, "undefined")
-    end
-
-  elseif u_name == "pop" then
-    -- noop
+  elseif u_name == "close" then
+    assert(not boxed(proto.locals[a]))
+    append(result, "if(V", a, "!==undefined)V", a, ".metatable.get('__close')(V", a, ");")
+    append(result, "V", a, "=undefined;")
 
   else
     compiler_error("not supported: "..u_name, u.node)
@@ -594,7 +594,7 @@ local function generate_proto(result, chunk, proto)
     if proto.nparams > 0 then
       append(result, ",")
     end
-    append(result, "...VA")
+    append(result, "...V")
   end
   append(result, ")=>{")
   if proto.node.f then
