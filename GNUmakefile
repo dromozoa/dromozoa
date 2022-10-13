@@ -27,11 +27,11 @@ all:: $(target)
 check:: all
 	./test.sh lua
 
-dromozoa/regexp/runtime.lua: build_runtime.lua dromozoa/regexp/runtime.tmpl
-	lua build_runtime.lua dromozoa/regexp/runtime.tmpl $@
+dromozoa/regexp/runtime.lua: tool/template_lua.lua dromozoa/regexp/runtime.tmpl
+	lua tool/template_lua.lua dromozoa/regexp/runtime.tmpl $@
 
-dromozoa/parser/runtime.lua: build_runtime.lua dromozoa/parser/runtime.tmpl
-	lua build_runtime.lua dromozoa/parser/runtime.tmpl $@
+dromozoa/parser/runtime.lua: tool/template_lua.lua dromozoa/parser/runtime.tmpl
+	lua tool/template_lua.lua dromozoa/parser/runtime.tmpl $@
 
 dromozoa/compiler/lua54_regexp.lua dromozoa/compiler/lua54_parser.lua: build_lua54.lua dromozoa/regexp/runtime.lua dromozoa/parser/runtime.lua
 	lua build_lua54.lua dromozoa/compiler/lua54_regexp.lua dromozoa/compiler/lua54_parser.lua
