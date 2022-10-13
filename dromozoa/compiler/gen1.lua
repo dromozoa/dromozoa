@@ -360,9 +360,8 @@ local function generate_code(result, chunk, proto, map, u)
     def(result, map, u.z, "Math.floor("..use(map, u.x).."/"..use(map, u.y)..")")
 
   elseif u_name == "mod" then
-    local x = use(map, u.x)
     local y = use(map, u.y)
-    def(result, map, u.z, "(("..x.."%"..y.."+"..y..")%"..y..")")
+    def(result, map, u.z, "(("..use(map, u.x).."%"..y.."+"..y..")%"..y..")")
 
   elseif u_name == "pow" then
     def(result, map, u.z, "Math.pow("..use(map, u.x)..","..use(map, u.y)..")")
@@ -499,7 +498,7 @@ local function generate_code(result, chunk, proto, map, u)
     local xy = y == "" and "a" or "a,"..y
     append(result, "a=", x, ";")
     if b == 0 then
-      append(result, "!a.LuaTable?a(", y, "):a.metatable.get('__call')(", xy, ");")
+      append(result, "if(!a.LuaTable)a(", y, ");else a.metatable.get('__call')(", xy, ");")
     elseif b == 1 then
       def(result, map, u.z[1])
       append(result, "a.LuaFunction?a(", y, ")[0]:!a.LuaTable?a(", y, "):a.metatable.get('__call')(", xy, ")[0];")
@@ -517,7 +516,7 @@ local function generate_code(result, chunk, proto, map, u)
     local xz = z == "" and "a" or "a,"..z
     append(result, "a=", x, ";b=OP_GETTABLE(a,", y, ");")
     if b == 0 then
-      append(result, "b.LuaFunction?b(", xz, "):!b.LuaTable?b.call(", xz, "):b.metatable.get('__call')(b,", xz, ");")
+      append(result, "if(b.LuaFunction)b(", xz, ");else if(!b.LuaTable)b.call(", xz, ");else b.metatable.get('__call')(b,", xz, ");")
     elseif b == 1 then
       def(result, map, u.w[1])
       append(result, "b.LuaFunction?b(", xz, ")[0]:!b.LuaTable?b.call(", xz, "):b.metatable.get('__call')(b,", xz, ")[0];")
