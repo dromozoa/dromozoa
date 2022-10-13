@@ -41,13 +41,13 @@ fi
 for i in test/stage1/*.lua
 do
   j=`expr "X$i" : 'Xtest/stage1/\([^/]*\)\.lua$'`
-  "$@" compile_stage1.lua "out/stage1/$j.mjs" dromozoa/compiler/stage1_runtime.lua "$i"
+  "$@" tool/compile_stage1.lua "out/stage1/$j.mjs" dromozoa/compiler/stage1_runtime.lua "$i"
   node "out/stage1/$j.mjs" foo 42 "bar baz qux" >"out/stage1/$j.out"
   diff -u "test/stage1/$j.exp" "out/stage1/$j.out"
 done
 
-time "$@" compile_stage1.lua out/stage1a.mjs dromozoa/compiler/stage1_runtime.lua compile_stage1.lua
-time node out/stage1a.mjs out/stage1b.mjs dromozoa/compiler/stage1_runtime.lua compile_stage1.lua
+time "$@" tool/compile_stage1.lua out/stage1a.mjs dromozoa/compiler/stage1_runtime.lua tool/compile_stage1.lua
+time node out/stage1a.mjs out/stage1b.mjs dromozoa/compiler/stage1_runtime.lua tool/compile_stage1.lua
 diff -u out/stage1a.mjs out/stage1b.mjs
 
 case X$DROMOZOA_TEST_DEBUG in
