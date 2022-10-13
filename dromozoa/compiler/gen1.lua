@@ -156,7 +156,11 @@ local function process_code(map, u)
     u.y = get_stack(map, b)
     u.z = pop_stack(map, t, u.store)
   elseif u_name == "set_table" then
-    u.x = get_stack(map, a)
+    if b then
+      u.x = pop_stack(map, a)
+    else
+      u.x = get_stack(map, a)
+    end
     u.y = pop_stack(map, t - 1)
     u.z = pop_stack(map, t)
   elseif u_name == "get_table" then

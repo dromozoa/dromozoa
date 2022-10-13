@@ -35,3 +35,10 @@ local function f()
 end
 
 f()
+
+local t = { y = 17 }
+local x = 42
+t.x = x * 69
+print(t.x, t.y)
+t.x, t.y = t.y, t.x
+print(t.x, t.y)

@@ -179,7 +179,6 @@ local opcodes = {
   set_local   = -1;
   set_upvalue = -1;
   set_field   = -1;
-  set_table   = -2;
 
   get_local   =  1;
   get_upvalue =  1;
@@ -219,6 +218,12 @@ local function append_code(proto, code, u, op, a, b)
       top = a - top
     else
       top = top + a
+    end
+  elseif op == "set_table" then
+    if b then
+      top = top - 3
+    else
+      top = top - 2
     end
   elseif op == "set_list" then
     top = a
@@ -482,7 +487,7 @@ local function process2(chunk, proto, scope, u, code)
           append_code(proto, code, u, "set_local", v.var)
         end
       else
-        append_code(proto, code, u, "set_table", target - 1)
+        append_code(proto, code, u, "set_table", target - 1, true)
       end
     else
       for i = n, 1, -1 do
@@ -501,11 +506,13 @@ local function process2(chunk, proto, scope, u, code)
         end
         c.store = i < n
       end
+
+      if proto.top > 0 then
+        append_code(proto, code, u, "pop", proto.top)
+      end
     end
 
-    if proto.top > 0 then
-      append_code(proto, code, u, "pop", proto.top)
-    end
+    assert(proto.top == 0)
 
   elseif u_name == "label" then
     append_code(proto, code, u, "label", u.label)
@@ -696,9 +703,8 @@ local function process2(chunk, proto, scope, u, code)
         append_code(proto, code, u, "set_local", x.var)
       end
     else
-      local c = append_code(proto, code, u, "set_table", proto.top - 2)
+      local c = append_code(proto, code, u, "set_table", proto.top - 2, true)
       c.literal = assert(x.literal)
-      append_code(proto, code, u, "pop", 1)
     end
     process2(chunk, proto, scope, y, code)
 
@@ -874,7 +880,7 @@ local function process2(chunk, proto, scope, u, code)
     process2(chunk, proto, scope, x, code)
     if y then
       process2(chunk, proto, scope, y, code)
-      local c = append_code(proto, code, u, "set_table", u.target)
+      local c = append_code(proto, code, u, "set_table", u.target, false)
       c.literal = x.literal
     end
 
