@@ -191,7 +191,6 @@ local opcodes = {
   push_literal = 1;
   push_numeral = 1;
 
-  dup   = 1;
   close = 0;
 }
 
