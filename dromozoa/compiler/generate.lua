@@ -160,6 +160,7 @@ local opcodes = {
   set_upvalue = -1;
   set_table   =  false;
   set_field   = -1;
+  set_list    =  false;
 
   add    = -1;
   sub    = -1;
@@ -188,8 +189,8 @@ local opcodes = {
 
   ["if"]    = -1;
   block     =  0;
-  loop      =  0;
   check_for =  0;
+  loop      =  0;
   ["break"] =  0;
   label     =  0;
   ["goto"]  =  0;
@@ -198,7 +199,8 @@ local opcodes = {
   self       = false;
   vararg     = false;
   ["return"] = false;
-  close      = 0;
+
+  close = 0;
 }
 
 local function append_code(proto, code, u, op, a, b)
@@ -209,8 +211,18 @@ local function append_code(proto, code, u, op, a, b)
   local opcode = opcodes[op]
   if opcode then
     top = top + opcode
-  elseif op == "return" then
-    top = 0
+  elseif op == "push_nil" then
+    top = top + a
+  elseif op == "pop" then
+    top = top - a
+  elseif op == "set_table" then
+    if b then
+      top = top - 3
+    else
+      top = top - 2
+    end
+  elseif op == "set_list" then
+    top = a
   elseif op == "call" or op == "self" then
     if b < 0 then
       assert(b == -1)
@@ -225,18 +237,8 @@ local function append_code(proto, code, u, op, a, b)
     else
       top = top + a
     end
-  elseif op == "set_table" then
-    if b then
-      top = top - 3
-    else
-      top = top - 2
-    end
-  elseif op == "set_list" then
-    top = a
-  elseif op == "push_nil" then
-    top = top + a
-  elseif op == "pop" then
-    top = top - a
+  elseif op == "return" then
+    top = 0
   else
     error("unknown op "..op)
   end
