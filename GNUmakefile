@@ -20,21 +20,21 @@ target = \
 	dromozoa/parser/runtime.lua \
 	dromozoa/compiler/lua54_regexp.lua \
 	dromozoa/compiler/lua54_parser.lua \
-	dromozoa/compiler/stage1_prologue.lua
+	dromozoa/compiler/stage1_preamble.lua
 
 all:: $(target)
 
 check:: all
 	./test.sh lua
 
-dromozoa/regexp/runtime.lua: build_runtime.lua dromozoa/regexp/template.lua
-	lua build_runtime.lua dromozoa/regexp/template.lua $@
+dromozoa/regexp/runtime.lua: tool/template_lua.lua dromozoa/regexp/runtime.tmpl
+	lua tool/template_lua.lua dromozoa/regexp/runtime.tmpl $@
 
-dromozoa/parser/runtime.lua: build_runtime.lua dromozoa/parser/template.lua
-	lua build_runtime.lua dromozoa/parser/template.lua $@
+dromozoa/parser/runtime.lua: tool/template_lua.lua dromozoa/parser/runtime.tmpl
+	lua tool/template_lua.lua dromozoa/parser/runtime.tmpl $@
 
-dromozoa/compiler/lua54_regexp.lua dromozoa/compiler/lua54_parser.lua: build_lua54.lua dromozoa/regexp/runtime.lua dromozoa/parser/runtime.lua
-	lua build_lua54.lua dromozoa/compiler/lua54_regexp.lua dromozoa/compiler/lua54_parser.lua
+dromozoa/compiler/lua54_regexp.lua dromozoa/compiler/lua54_parser.lua: tool/generate_lua54.lua dromozoa/regexp/runtime.lua dromozoa/parser/runtime.lua
+	lua tool/generate_lua54.lua dromozoa/compiler/lua54_regexp.lua dromozoa/compiler/lua54_parser.lua
 
-dromozoa/compiler/stage1_prologue.lua: build_prologue.lua dromozoa/compiler/stage1_prologue.mjs
-	lua build_prologue.lua dromozoa/compiler/stage1_prologue.mjs $@
+dromozoa/compiler/stage1_preamble.lua: tool/template_js.lua dromozoa/compiler/stage1_preamble.tmpl
+	lua tool/template_js.lua dromozoa/compiler/stage1_preamble.tmpl $@
