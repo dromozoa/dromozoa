@@ -155,7 +155,6 @@ local opcodes = {
   get_table   = -1;
 
   new_local   = -1;
-  tbc_local   = -1;
   set_local   = -1;
   set_upvalue = -1;
   set_table   =  false;
@@ -519,23 +518,24 @@ local function process2(chunk, proto, scope, u, code)
     for i = 0, n - 1 do
       assert(u.stack[m - i] == v.stack[n - i])
     end
+
     append_close_stack(proto, code, u, u.stack, m - n)
     append_code(proto, code, u, "break")
 
   elseif u_name == "goto" then
     local label = resolve_label(scope, x.v, u)
-
     local v = proto.labels[label].node
     local m = #u.stack
     local n = #v.stack
-    if m <= n then
-      for i = 0, n - 1 do
-        local var = v.stack[n - i]
-        if u.stack[m - i] ~= var then
-          compiler_error("<goto "..x.v.."> at line "..u.n.." jumps into the scope of local '"..proto.locals[var].name.."'", u)
-        end
+
+    -- ジャンプ後の変数リストがジャンプ前の変数リストの部分であることを確認する。
+    for i = 0, n - 1 do
+      local var = v.stack[n - i]
+      if u.stack[m - i] ~= var then
+        compiler_error("<goto "..x.v.."> at line "..u.n.." jumps into the scope of local '"..proto.locals[var].name.."'", u)
       end
     end
+    assert(m >= n)
 
     append_close_stack(proto, code, u, u.stack, m - n)
     append_code(proto, code, u, "goto", label)
@@ -567,7 +567,6 @@ local function process2(chunk, proto, scope, u, code)
     -- Lua 5.3のマニュアルでは、制御変数を計算する位置が変わった。
     --
     -- Lua 5.4のマニュアルでは、制御変数が整数である場合の意味論が変更された。
-    -- この変更は必要に応じてOP_CHECK_FORで吸収する。
     -- 1. stepが0の場合にエラーになる。
     -- 2. ラップアラウンドしなくなった。
     --
@@ -656,7 +655,7 @@ local function process2(chunk, proto, scope, u, code)
     -- end
 
     process2(chunk, proto, scope, y, code)
-    append_code(proto, code, u, "tbc_local", u.var + 3)
+    append_code(proto, code, u, "new_local", u.var + 3, true)
     append_code(proto, code, u, "new_local", u.var + 2)
     append_code(proto, code, u, "new_local", u.var + 1)
     append_code(proto, code, u, "new_local", u.var)
@@ -702,11 +701,11 @@ local function process2(chunk, proto, scope, u, code)
 
   elseif u_name == "local_function" then
     -- local f; f = function () body end
+    proto.locals[x.var].def = true
     append_code(proto, code, u, "push_nil", 1)
     append_code(proto, code, u, "new_local", x.var)
     append_code(proto, code, u, "closure", y.proto.index)
     append_code(proto, code, u, "set_local", x.var)
-    proto.locals[x.var].def = true
     process2(chunk, proto, scope, y, code)
 
   elseif u_name == "local" then
@@ -719,11 +718,7 @@ local function process2(chunk, proto, scope, u, code)
 
     for i = #x, 1, -1 do
       local v = x[i]
-      if v.attribute == "close" then
-        append_code(proto, code, u, "tbc_local", v.var)
-      else
-        append_code(proto, code, u, "new_local", v.var)
-      end
+      append_code(proto, code, u, "new_local", v.var, v.attribute == "close")
     end
 
   elseif u_name == "return" then

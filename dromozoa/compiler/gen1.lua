@@ -99,7 +99,6 @@ local opcodes = {
   bnot = "unop";
 
   new_local   = "pop";
-  tbc_local   = "pop";
 
   get_local    = "push";
   get_upvalue  = "push";
@@ -418,10 +417,6 @@ local function generate_code(result, chunk, proto, map, u)
   elseif u_name == "new_local" then
     append(result, "V", a, "=", box_local(proto, a, use(map, u.x)), ";")
 
-  elseif u_name == "tbc_local" then
-    assert(not boxed(proto.locals[a]))
-    append(result, "V", a, "=", use(map, u.x), ";")
-
   elseif u_name == "set_local" then
     append(result, unbox_local(proto, a), "=", use(map, u.x), ";")
 
@@ -486,6 +481,7 @@ local function generate_code(result, chunk, proto, map, u)
     end
 
   elseif u_name == "close" then
+    assert(not boxed(proto.locals[a]))
     append(result, "if(V", a, "!==undefined)V", a, ".metatable.get('__close')(V", a, ");")
     append(result, "V", a, "=undefined;")
 
@@ -630,6 +626,7 @@ local function generate_proto(result, chunk, proto)
     for i = #proto.locals, 1, -1 do
       local v = proto.locals[i]
       if v.attribute == "close" then
+        assert(not boxed(proto.locals[i]))
         append(result, "if(V", i, "!==undefined)V", i, ".metatable.get('__close')(V", i, ");V", i, "=undefined;")
       end
     end
