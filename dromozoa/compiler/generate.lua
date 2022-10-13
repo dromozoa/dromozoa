@@ -205,7 +205,7 @@ local opcodes = {
 
 local function append_code(proto, code, u, op, a, b)
   local top = proto.top
-  local v = { [0] = op, a = a, b = b, node = u, top = top }
+  local v = { [0] = op, a = a, b = b, top = top, node = u }
 
   append(code, v)
   local opcode = opcodes[op]
@@ -233,7 +233,7 @@ local function append_code(proto, code, u, op, a, b)
   elseif op == "vararg" then
     if a < 0 then
       assert(a == -1)
-      top = a - top
+      top = -top - 1
     else
       top = top + a
     end
@@ -244,11 +244,6 @@ local function append_code(proto, code, u, op, a, b)
   end
 
   proto.top = top
-  local s = top >= 0 and top or -top - 1
-  if proto.max < s then
-    proto.max = s
-  end
-
   return v
 end
 
@@ -296,7 +291,6 @@ local function process1(chunk, proto, scope, u, loop)
       scopes = {};
       code = {};
       top = 0;
-      max = 0;
       node = u;
       parent = proto;
     }
