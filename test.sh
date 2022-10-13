@@ -21,7 +21,7 @@ case X$1 in
   X) exec sh -e "$0" lua;;
 esac
 
-mkdir -p out/stage1
+mkdir -p out/gen1
 
 for i in test/test*.lua
 do
@@ -31,24 +31,24 @@ done
 LUA_VERSION=`"$@" -e 'io.write(_VERSION)'`
 if test "X$LUA_VERSION" = "XLua 5.4"
 then
-  for i in test/stage1/*.lua
+  for i in test/gen1/*.lua
   do
     j=`expr "X$i" : 'X\(.*\)\.lua$'`
     "$@" "$i" foo 42 "bar baz qux" >"$j.exp"
   done
 fi
 
-for i in test/stage1/*.lua
+for i in test/gen1/*.lua
 do
-  j=`expr "X$i" : 'Xtest/stage1/\([^/]*\)\.lua$'`
-  "$@" tool/compile_stage1.lua "out/stage1/$j.mjs" dromozoa/compiler/stage1_runtime.lua "$i"
-  node "out/stage1/$j.mjs" foo 42 "bar baz qux" >"out/stage1/$j.out"
-  diff -u "test/stage1/$j.exp" "out/stage1/$j.out"
+  j=`expr "X$i" : 'Xtest/gen1/\([^/]*\)\.lua$'`
+  "$@" tool/compile_gen1.lua "out/gen1/$j.mjs" dromozoa/compiler/gen1_runtime.lua "$i"
+  node "out/gen1/$j.mjs" foo 42 "bar baz qux" >"out/gen1/$j.out"
+  diff -u "test/gen1/$j.exp" "out/gen1/$j.out"
 done
 
-time "$@" tool/compile_stage1.lua out/stage1a.mjs dromozoa/compiler/stage1_runtime.lua tool/compile_stage1.lua
-time node out/stage1a.mjs out/stage1b.mjs dromozoa/compiler/stage1_runtime.lua tool/compile_stage1.lua
-diff -u out/stage1a.mjs out/stage1b.mjs
+time "$@" tool/compile_gen1.lua out/gen1_stg1.mjs dromozoa/compiler/gen1_runtime.lua tool/compile_gen1.lua
+time node out/gen1_stg1.mjs out/gen1_stg2.mjs dromozoa/compiler/gen1_runtime.lua tool/compile_gen1.lua
+diff -u out/gen1_stg1.mjs out/gen1_stg2.mjs
 
 case X$DROMOZOA_TEST_DEBUG in
   X|X0) rm -fr out;;

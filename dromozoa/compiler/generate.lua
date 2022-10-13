@@ -47,7 +47,15 @@ local function declare(scope, name, u, attribute)
   if attribute and attribute ~= "const" and attribute ~= "close" then
     compiler_error("unknown attribute '"..attribute.."'", u)
   end
-  local var = append(scope.proto.locals, { name = name, attribute = attribute, node = u })
+  local var = append(scope.proto.locals, {
+    name = name;
+    attribute = attribute;
+    def = 1;
+    use = 0;
+    updef = 0;
+    upuse = 0;
+    node = u;
+  })
   append(scope.locals, var)
   return var
 end
@@ -63,9 +71,9 @@ local function resolve(scope, name, u, define)
           if v.attribute == "const" or v.attribute == "close" then
             compiler_error("attempt to assign to const variable '"..name.."'", u)
           end
-          v.def = true
+          v.def = v.def + 1
         else
-          v.use = true
+          v.use = v.use + 1
         end
         return var, v
       end
@@ -82,9 +90,9 @@ local function resolve(scope, name, u, define)
   end
 
   if define then
-    v.updef = true
+    v.updef = v.updef + 1
   else
-    v.upuse = true
+    v.upuse = v.upuse + 1
   end
   for i, u in ipairs(proto.upvalues) do
     if u.var == var then
@@ -141,13 +149,25 @@ end
 ---------------------------------------------------------------------------
 
 local opcodes = {
-  label     =  0;
-  ["break"] =  0;
-  ["goto"]  =  0;
-  ["if"]    = -1;
-  block     =  0;
-  loop      =  0;
-  check_for =  0;
+  push_nil     = false;
+  push_false   = 1;
+  push_true    = 1;
+  push_literal = 1;
+  push_numeral = 1;
+  new_table    = 1;
+  closure      = 1;
+  pop          = false;
+
+  get_local   =  1;
+  get_upvalue =  1;
+  get_table   = -1;
+
+  new_local   = -1;
+  set_local   = -1;
+  set_upvalue = -1;
+  set_table   =  false;
+  set_field   = -1;
+  set_list    =  false;
 
   add    = -1;
   sub    = -1;
@@ -174,38 +194,42 @@ local opcodes = {
   len     = 0;
   bnot    = 0;
 
-  new_local   = -1;
-  tbc_local   = -1;
-  set_local   = -1;
-  set_upvalue = -1;
-  set_field   = -1;
-  set_table   = -2;
+  ["if"]    = -1;
+  block     =  0;
+  check_for =  0;
+  loop      =  0;
+  ["break"] =  0;
+  label     =  0;
+  ["goto"]  =  0;
 
-  get_local   =  1;
-  get_upvalue =  1;
-  get_table   = -1;
+  call       = false;
+  self       = false;
+  vararg     = false;
+  ["return"] = false;
 
-  new_table    = 1;
-  closure      = 1;
-  push_false   = 1;
-  push_true    = 1;
-  push_literal = 1;
-  push_numeral = 1;
-
-  dup   = 1;
   close = 0;
 }
 
 local function append_code(proto, code, u, op, a, b)
   local top = proto.top
-  local v = { [0] = op, a = a, b = b, node = u, top = top }
+  local v = { [0] = op, a = a, b = b, top = top, node = u }
 
   append(code, v)
   local opcode = opcodes[op]
   if opcode then
     top = top + opcode
-  elseif op == "return" then
-    top = 0
+  elseif op == "push_nil" then
+    top = top + a
+  elseif op == "pop" then
+    top = top - a
+  elseif op == "set_table" then
+    if b then
+      top = top - 3
+    else
+      top = top - 2
+    end
+  elseif op == "set_list" then
+    top = a
   elseif op == "call" or op == "self" then
     if b < 0 then
       assert(b == -1)
@@ -216,26 +240,17 @@ local function append_code(proto, code, u, op, a, b)
   elseif op == "vararg" then
     if a < 0 then
       assert(a == -1)
-      top = a - top
+      top = -top - 1
     else
       top = top + a
     end
-  elseif op == "set_list" then
-    top = a
-  elseif op == "push_nil" then
-    top = top + a
-  elseif op == "pop" then
-    top = top - a
+  elseif op == "return" then
+    top = 0
   else
     error("unknown op "..op)
   end
 
   proto.top = top
-  local s = top >= 0 and top or -top - 1
-  if proto.max < s then
-    proto.max = s
-  end
-
   return v
 end
 
@@ -283,7 +298,6 @@ local function process1(chunk, proto, scope, u, loop)
       scopes = {};
       code = {};
       top = 0;
-      max = 0;
       node = u;
       parent = proto;
     }
@@ -312,10 +326,10 @@ local function process1(chunk, proto, scope, u, loop)
   end
 
   if u_name == "block" then
-    -- empty statementsは解析の時点でとりのぞかれるので、label文だけがvoid
+    -- empty statementsは構文解析時にとりのぞかれるので、label文だけがvoid
     -- statementsとして残る。repeat-until文以外のスコープは、スコープの最後の
-    -- void statementsの前でスコープを終了する。ブロックの末尾にラベル文があ
-    -- るかどうかを検査する。
+    -- void statementsの前でスコープを終了する。ブロックの末尾にラベル文がある
+    -- かどうかを検査する。
     if not scope.repeat_until then
       for i = #u, 1, -1 do
         local v = u[i]
@@ -349,6 +363,12 @@ local function process1(chunk, proto, scope, u, loop)
     declare(scope, "(for state)", u, "close")
     process1(chunk, proto, scope, x, loop)
     return process1(chunk, proto, scope, z, loop)
+
+  elseif u_name == "local_function" then
+    process1(chunk, proto, scope, x, code)
+    local v = proto.locals[x.var]
+    v.def = v.def + 1
+    return process1(chunk, proto, scope, y, code)
 
   elseif u_name == "local" then
     local n = 0
@@ -407,17 +427,9 @@ local function process1(chunk, proto, scope, u, loop)
       compiler_error("cannot use '...' outside a vararg function near '...'", u)
     end
 
-  elseif u_name == "and" then
-    -- short-circuitの解決時に、スタックが単一代入を満たすように、内部変数でphi
-    -- 関数を実現する。
-    u.var = declare(scope, "(and phi)", u)
-
-  elseif u_name == "or" then
-    -- short-circuitの解決時に、スタックが単一代入を満たすように、内部変数でphi
-    -- 関数を実現する。
-    u.var = declare(scope, "(or phi)", u)
-
-  elseif u_name == "or" then
+  elseif u_name == "and" or u_name == "or" then
+    -- 内部変数を使用して、短絡演算子のスタック操作を単一代入にする。
+    u.var = declare(scope, "(short-circuit)", u)
 
   elseif u_name == "Name" then
     if u.declare then
@@ -482,7 +494,7 @@ local function process2(chunk, proto, scope, u, code)
           append_code(proto, code, u, "set_local", v.var)
         end
       else
-        append_code(proto, code, u, "set_table", target - 1)
+        append_code(proto, code, u, "set_table", 1, true)
       end
     else
       for i = n, 1, -1 do
@@ -501,11 +513,11 @@ local function process2(chunk, proto, scope, u, code)
         end
         c.store = i < n
       end
+      if proto.top > 0 then
+        append_code(proto, code, u, "pop", proto.top)
+      end
     end
-
-    if proto.top > 0 then
-      append_code(proto, code, u, "pop", proto.top)
-    end
+    assert(proto.top == 0)
 
   elseif u_name == "label" then
     append_code(proto, code, u, "label", u.label)
@@ -515,6 +527,7 @@ local function process2(chunk, proto, scope, u, code)
     local m = #u.stack
     local n = #v.stack
 
+    -- ジャンプ後の変数リストがジャンプ前の変数リストの部分であることを確認する。
     assert(m >= n)
     for i = 0, n - 1 do
       assert(u.stack[m - i] == v.stack[n - i])
@@ -525,18 +538,18 @@ local function process2(chunk, proto, scope, u, code)
 
   elseif u_name == "goto" then
     local label = resolve_label(scope, x.v, u)
-
     local v = proto.labels[label].node
     local m = #u.stack
     local n = #v.stack
-    if m <= n then
-      for i = 0, n - 1 do
-        local var = v.stack[n - i]
-        if u.stack[m - i] ~= var then
-          compiler_error("<goto "..x.v.."> at line "..u.n.." jumps into the scope of local '"..proto.locals[var].name.."'", u)
-        end
+
+    -- ジャンプ後の変数リストがジャンプ前の変数リストの部分であることを確認する。
+    for i = 0, n - 1 do
+      local var = v.stack[n - i]
+      if u.stack[m - i] ~= var then
+        compiler_error("<goto "..x.v.."> at line "..u.n.." jumps into the scope of local '"..proto.locals[var].name.."'", u)
       end
     end
+    assert(m >= n)
 
     append_close_stack(proto, code, u, u.stack, m - n)
     append_code(proto, code, u, "goto", label)
@@ -568,78 +581,139 @@ local function process2(chunk, proto, scope, u, code)
     -- Lua 5.3のマニュアルでは、制御変数を計算する位置が変わった。
     --
     -- Lua 5.4のマニュアルでは、制御変数が整数である場合の意味論が変更された。
-    -- この変更は必要に応じてOP_CHECK_FORで吸収する。
     -- 1. stepが0の場合にエラーになる。
     -- 2. ラップアラウンドしなくなった。
-    --
-    -- for v = e1, e2, e3 do block end
-    --
-    -- do
-    --   local var, limit, step = e1, e2, e3
-    --   var, limit, step = OP_CHECK_FOR(var, limit, step)
-    --   while true do
-    --     if step >= 0 then
-    --       if var > limit then
-    --         break
-    --       end
-    --     else
-    --       if var < limit then
-    --         break
-    --       end
-    --     end
-    --     local v = var
-    --     block
-    --     var = var + step
-    --   end
-    -- end
 
     process2(chunk, proto, scope, y, code)
-    append_code(proto, code, u, "new_local", u.var + 2)
-    append_code(proto, code, u, "new_local", u.var + 1)
-    append_code(proto, code, u, "new_local", u.var)
+    if y.step then
+      -- for v = e1, e2, K do block end
+      --
+      -- do
+      --   local var, limit = e1, e2
+      --   var, limit = OP_CHECK_FOR(var, limit)
+      --   while true do
+      --     if var CMP limit then
+      --       break
+      --     end
+      --     local v = var
+      --     block
+      --     var = var OP K
+      --   end
+      -- end
 
-    append_code(proto, code, u, "check_for", u.var)
+      if y.step == 0 then
+        compiler_error("'for' step is zero", y[3])
+      end
 
-    local loop_block = append_code(proto, code, u, "loop")
+      append_code(proto, code, u, "new_local", u.var + 1)
+      append_code(proto, code, u, "new_local", u.var)
+      append_code(proto, code, u, "check_for", u.var, 2)
 
-    append_code(proto, loop_block, u, "get_local", u.var + 2)
-    append_code(proto, loop_block, u, "push_numeral", "0", "DecimalIntegerNumeral")
-    append_code(proto, loop_block, u, "ge")
-    local then_block, else_block = append_if(proto, loop_block, u)
+      local loop_block = append_code(proto, code, u, "loop")
 
-    append_code(proto, then_block, u, "get_local", u.var)
-    append_code(proto, then_block, u, "get_local", u.var + 1)
-    append_code(proto, then_block, u, "gt")
-    local then_block = append_if(proto, then_block, u)
-    append_code(proto, then_block, u, "break")
+      append_code(proto, loop_block, u, "get_local", u.var)
+      append_code(proto, loop_block, u, "get_local", u.var + 1)
+      append_code(proto, loop_block, u, y.step_cmp)
+      local then_block = append_if(proto, loop_block, u)
+      append_code(proto, then_block, u, "break")
 
-    append_code(proto, else_block, u, "get_local", u.var)
-    append_code(proto, else_block, u, "get_local", u.var + 1)
-    append_code(proto, else_block, u, "lt")
-    local then_block = append_if(proto, else_block, u)
-    append_code(proto, then_block, u, "break")
+      append_code(proto, loop_block, u, "get_local", u.var)
+      append_code(proto, loop_block, u, "new_local", u.var + 3)
 
-    append_code(proto, loop_block, u, "get_local", u.var)
-    append_code(proto, loop_block, u, "new_local", u.var + 3)
+      process2(chunk, proto, scope, z, loop_block)
 
-    process2(chunk, proto, scope, z, loop_block)
+      append_code(proto, loop_block, u, "get_local", u.var)
+      append_code(proto, loop_block, u, "push_numeral", y.step_v, y.step_hint)
+      append_code(proto, loop_block, u, y.step_op)
+      append_code(proto, loop_block, u, "set_local", u.var)
 
-    append_code(proto, loop_block, u, "get_local", u.var)
-    append_code(proto, loop_block, u, "get_local", u.var + 2)
-    append_code(proto, loop_block, u, "add")
-    append_code(proto, loop_block, u, "set_local", u.var)
+    else
+      -- for v = e1, e2, e3 do block end
+      --
+      -- do
+      --   local var, limit, step = e1, e2, e3
+      --   var, limit, step = OP_CHECK_FOR(var, limit, step)
+      --   while true do
+      --     if step >= 0 then
+      --       if var > limit then
+      --         break
+      --       end
+      --     else
+      --       if var < limit then
+      --         break
+      --       end
+      --     end
+      --     local v = var
+      --     block
+      --     var = var + step
+      --   end
+      -- end
+
+      append_code(proto, code, u, "new_local", u.var + 2)
+      append_code(proto, code, u, "new_local", u.var + 1)
+      append_code(proto, code, u, "new_local", u.var)
+      append_code(proto, code, u, "check_for", u.var, 3)
+
+      local loop_block = append_code(proto, code, u, "loop")
+
+      append_code(proto, loop_block, u, "get_local", u.var + 2)
+      append_code(proto, loop_block, u, "push_numeral", "0", "DecimalIntegerNumeral")
+      append_code(proto, loop_block, u, "ge")
+      local then_block, else_block = append_if(proto, loop_block, u)
+
+      append_code(proto, then_block, u, "get_local", u.var)
+      append_code(proto, then_block, u, "get_local", u.var + 1)
+      append_code(proto, then_block, u, "gt")
+      local then_block = append_if(proto, then_block, u)
+      append_code(proto, then_block, u, "break")
+
+      append_code(proto, else_block, u, "get_local", u.var)
+      append_code(proto, else_block, u, "get_local", u.var + 1)
+      append_code(proto, else_block, u, "lt")
+      local then_block = append_if(proto, else_block, u)
+      append_code(proto, then_block, u, "break")
+
+      append_code(proto, loop_block, u, "get_local", u.var)
+      append_code(proto, loop_block, u, "new_local", u.var + 3)
+
+      process2(chunk, proto, scope, z, loop_block)
+
+      append_code(proto, loop_block, u, "get_local", u.var)
+      append_code(proto, loop_block, u, "get_local", u.var + 2)
+      append_code(proto, loop_block, u, "add")
+      append_code(proto, loop_block, u, "set_local", u.var)
+    end
 
   elseif u_name == "exp_2or3" then
     process2(chunk, proto, scope, x, code)
     process2(chunk, proto, scope, y, code)
     if z then
-      process2(chunk, proto, scope, z, code)
+      -- stepが定数の場合はスタックに積まない。
+      if lua54_parser.symbol_names[z[0]] == "Numeral" then
+        u.step = tonumber(z.v)
+        u.step_cmp = "gt"
+        u.step_v = z.v
+        u.step_hint = z.hint
+        u.step_op = "add"
+      elseif z.unop == "unm" and lua54_parser.symbol_names[z[1][0]] then
+        u.step = -tonumber(z[1].v)
+        u.step_cmp = "lt"
+        u.step_v = z[1].v
+        u.step_hint = z[1].hint
+        u.step_op = "sub"
+      else
+        process2(chunk, proto, scope, z, code)
+      end
     else
-      append_code(proto, code, u, "push_numeral", "1", "DecimalIntegerNumeral")
+      u.step = 1
+      u.step_cmp = "gt"
+      u.step_v = "1"
+      u.step_hint = "DecimalIntegerNumeral"
+      u.step_op = "add"
     end
 
   elseif u_name == "for_in" then
-    -- Lua 5.3のマニュアルの元にtbcを足して実装する。
+    -- Lua 5.3のマニュアルを元にtbcを足して実装する。
     --
     -- for var_1, ..., var_N in explist do block end
     --
@@ -657,7 +731,7 @@ local function process2(chunk, proto, scope, u, code)
     -- end
 
     process2(chunk, proto, scope, y, code)
-    append_code(proto, code, u, "tbc_local", u.var + 3)
+    append_code(proto, code, u, "new_local", u.var + 3, true)
     append_code(proto, code, u, "new_local", u.var + 2)
     append_code(proto, code, u, "new_local", u.var + 1)
     append_code(proto, code, u, "new_local", u.var)
@@ -696,9 +770,8 @@ local function process2(chunk, proto, scope, u, code)
         append_code(proto, code, u, "set_local", x.var)
       end
     else
-      local c = append_code(proto, code, u, "set_table", proto.top - 2)
+      local c = append_code(proto, code, u, "set_table", proto.top - 2, true)
       c.literal = assert(x.literal)
-      append_code(proto, code, u, "pop", 1)
     end
     process2(chunk, proto, scope, y, code)
 
@@ -708,7 +781,6 @@ local function process2(chunk, proto, scope, u, code)
     append_code(proto, code, u, "new_local", x.var)
     append_code(proto, code, u, "closure", y.proto.index)
     append_code(proto, code, u, "set_local", x.var)
-    proto.locals[x.var].def = true
     process2(chunk, proto, scope, y, code)
 
   elseif u_name == "local" then
@@ -721,11 +793,7 @@ local function process2(chunk, proto, scope, u, code)
 
     for i = #x, 1, -1 do
       local v = x[i]
-      if v.attribute == "close" then
-        append_code(proto, code, u, "tbc_local", v.var)
-      else
-        append_code(proto, code, u, "new_local", v.var)
-      end
+      append_code(proto, code, u, "new_local", v.var, v.attribute == "close")
     end
 
   elseif u_name == "return" then
@@ -798,10 +866,6 @@ local function process2(chunk, proto, scope, u, code)
     process2(chunk, proto, scope, y, code)
     append_code(proto, code, u, u.binop)
 
-  elseif u.unop then
-    process2(chunk, proto, scope, x, code)
-    append_code(proto, code, u, u.unop)
-
   elseif u_name == "and" then
     process2(chunk, proto, scope, x, code)
     append_code(proto, code, u, "new_local", u.var)
@@ -819,6 +883,10 @@ local function process2(chunk, proto, scope, u, code)
     process2(chunk, proto, scope, y, else_block)
     append_code(proto, else_block, u, "set_local", u.var)
     append_code(proto, code, u, "get_local", u.var)
+
+  elseif u.unop then
+    process2(chunk, proto, scope, x, code)
+    append_code(proto, code, u, u.unop)
 
   elseif u_name == "." then
     process2(chunk, proto, scope, x, code)
@@ -842,6 +910,7 @@ local function process2(chunk, proto, scope, u, code)
       append_code(proto, code, u, "call", target, u.nr or 1)
     end
 
+    -- requireを静的に解決するために文字列を収集する。
     if proto.index == 1 and x.env == -1 and x.v == "require" and #y == 1 and lua54_parser.symbol_names[y[1][0]] == "LiteralString" then
       append(chunk.static_require, y[1].v)
     end
@@ -874,7 +943,7 @@ local function process2(chunk, proto, scope, u, code)
     process2(chunk, proto, scope, x, code)
     if y then
       process2(chunk, proto, scope, y, code)
-      local c = append_code(proto, code, u, "set_table", u.target)
+      local c = append_code(proto, code, u, "set_table", u.target, false)
       c.literal = x.literal
     end
 
