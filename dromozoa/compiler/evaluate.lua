@@ -15,12 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
--- static_function "require"
-
--- local static_env = {
---   require = static_function "require"
--- }
-
 local lua54_regexp = require "dromozoa.compiler.lua54_regexp"
 local lua54_parser = require "dromozoa.compiler.lua54_parser"
 local generate = require "dromozoa.compiler.generate"
@@ -33,7 +27,7 @@ end
 
 -- 決定論的に評価可能なコードを逐次実行する。
 -- 1. 浮動小数点数の計算も対象とする。
--- 2. 数値forのラップアラウンドの挙動が合致しない。
+-- 2. 数値forのラップアラウンドの挙動は合致しない。
 -- 3. OP_SETLIST後の長さがエッジケースで合致しない。
 
 local break_message = {}
@@ -67,6 +61,7 @@ local function new_table(map, determinate)
 end
 
 local function get_table(map, t, k, u)
+  -- TODO stringを特別扱いする？
   local v = t[k]
   if v == nil then
     local determinate = map[t].determinate
@@ -253,7 +248,6 @@ local function evaluate_code(map, chunk, proto, state, u)
     end
 
   elseif u_name == "self" then
-    -- TODO stringを特別扱いする？
     local x = table_pack(get_table(map, S[a], S[a + 1], u)(S[a], table_unpack(S, a + 2, S.n)))
     S.n = a - 1
     for i = 1, b < 0 and x.n or b do
