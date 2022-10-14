@@ -139,11 +139,11 @@ local function define_label(scope, name, u)
 end
 
 local function resolve_label(scope, name, u)
-  local label = find_label(scope, name)
+  local label, v = find_label(scope, name)
   if not label then
     compiler_error("no visible label '"..name.."' for <goto> at line "..u.n, u)
   end
-  return label
+  return label, v
 end
 
 ---------------------------------------------------------------------------
@@ -537,8 +537,8 @@ local function process2(chunk, proto, scope, u, code)
     append_code(proto, code, u, "break")
 
   elseif u_name == "goto" then
-    local label = resolve_label(scope, x.v, u)
-    local v = proto.labels[label].node
+    local label, to = resolve_label(scope, x.v, u)
+    local v = to.node
     local m = #u.stack
     local n = #v.stack
 
