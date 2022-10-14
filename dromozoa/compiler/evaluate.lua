@@ -34,6 +34,8 @@ end
 -- 2. 数値forのラップアラウンドの挙動が合致しない。
 -- 3. OP_SETLIST後の長さがエッジケースで合致しない。
 
+local break_message = {}
+
 local function evaluation_error(message, u)
   if u and u.f and u.n and u.c then
     error(u.f..":"..u.n..":"..u.c..": evaluation error ("..message..")\n")
@@ -56,20 +58,33 @@ local function def_var(var, v)
   var[n] = v
 end
 
-local function new_table()
-  return { {} }
+local function new_table(map, determinate)
+  local t = {}
+  map[t] = { determinate = determinate }
+  return t
 end
 
-local function get_table(t, k, u)
-  local v = t[1][k]
-  if v == nil and t.determinate and not t.determinate[k] then
-    evaluation_error("indeterminate: "..u[0], u.node)
+local function get_table(map, t, k, u)
+  local v = t[k]
+  if v == nil then
+    local determinate = map[t].determinate
+    if determinate and not determinate[k] then
+      evaluation_error("indeterminate: "..u[0], u.node)
+    end
   end
   return v
 end
 
+local function set_table(map, t, k, v)
+  t[k] = v
+  local determinate = map[t].determinate
+  if determinate then
+    determinate = true
+  end
+end
+
 local function set_table(t, k, v)
-  t[1][k] = v
+  t[k] = v
   if t.determinate then
     t.determinate[k] = true
   end
@@ -87,24 +102,12 @@ local function pop(stack, n)
   return stack[n]
 end
 
-local function get(v)
-  if type(v) == "table" then
-    return v[1]
-  else
-    return v
-  end
-end
-
-local env = { {}, determinate = {} }
-set_table(env, "print", print)
-
 local evaluate_closure
 
-local function evaluate_code(chunk, proto, state, u)
+local function evaluate_code(map, chunk, proto, state, u)
   local u_name = u[0]
   local a = u.a
   local b = u.b
-  local t = u.top
 
   local S = state.stack
   local V = state.locals
@@ -128,27 +131,29 @@ local function evaluate_code(chunk, proto, state, u)
     push(S, assert(tonumber(a)))
 
   elseif u_name == "new_table" then
-    push(S, new_table())
+    push(S, new_table(map))
 
   elseif u_name == "closure" then
-    local upvalues = {}
-    for i, v in ipairs(chunk[a].upvalues) do
+    local closure_proto = chunk[a]
+    local closure_upvalues = {}
+    for i, v in ipairs(closure_proto.upvalues) do
       if v.var < 0 then
         upvalues[i] = U[-v.var]
       else
         upvalues[i] = V[v.var]
       end
     end
-    push(S, {
-      function (...)
-        return evaluate_closure(chunk, chunk[a], upvalues, ...)
-      end;
+    local closure = function (...)
+      return evaluate_closure(map, chunk, closure_proto, closure_upvalues, ...)
+    end
+    map[closure] = {
       chunk = chunk;
-      proto = chunk[a];
-      upvalues = upvalues;
+      proto = closure_proto;
+      upvalues = closure_upvalues;
       parent_proto = proto;
       parent_state = state;
-    })
+    }
+    push(S, closure)
 
   elseif u_name == "pop" then
     for i = 1, a do
@@ -195,39 +200,62 @@ local function evaluate_code(chunk, proto, state, u)
     end
     S.n = a
 
-  elseif u_name == "add"    then local y, x = pop(S), pop(S) push(S, get(x) + get(y))
-  elseif u_name == "sub"    then local y, x = pop(S), pop(S) push(S, get(x) - get(y))
-  elseif u_name == "mul"    then local y, x = pop(S), pop(S) push(S, get(x) * get(y))
-  elseif u_name == "div"    then local y, x = pop(S), pop(S) push(S, get(x) / get(y))
-  elseif u_name == "idiv"   then local y, x = pop(S), pop(S) push(S, math.floor(get(x) / get(y)))
-  elseif u_name == "mod"    then local y, x = pop(S), pop(S) push(S, get(x) % get(y))
-  elseif u_name == "pow"    then local y, x = pop(S), pop(S) push(S, get(x) ^ get(y))
-  elseif u_name == "concat" then local y, x = pop(S), pop(S) push(S, get(x) .. get(y))
-  elseif u_name == "lt"     then local y, x = pop(S), pop(S) push(S, get(x) < get(y))
-  elseif u_name == "le"     then local y, x = pop(S), pop(S) push(S, get(x) <= get(y))
-  elseif u_name == "gt"     then local y, x = pop(S), pop(S) push(S, get(x) > get(y))
-  elseif u_name == "ge"     then local y, x = pop(S), pop(S) push(S, get(x) >= get(y))
-  elseif u_name == "eq"     then local y, x = pop(S), pop(S) push(S, get(x) == get(y))
-  elseif u_name == "ne"     then local y, x = pop(S), pop(S) push(S, get(x) ~= get(y))
+  elseif u_name == "add"    then local y, x = pop(S), pop(S) push(S, x + y)
+  elseif u_name == "sub"    then local y, x = pop(S), pop(S) push(S, x - y)
+  elseif u_name == "mul"    then local y, x = pop(S), pop(S) push(S, x * y)
+  elseif u_name == "div"    then local y, x = pop(S), pop(S) push(S, x / y)
+  elseif u_name == "idiv"   then local y, x = pop(S), pop(S) push(S, math.floor(x / y))
+  elseif u_name == "mod"    then local y, x = pop(S), pop(S) push(S, x % y)
+  elseif u_name == "pow"    then local y, x = pop(S), pop(S) push(S, x ^ y)
+  elseif u_name == "concat" then local y, x = pop(S), pop(S) push(S, x .. y)
+  elseif u_name == "lt"     then local y, x = pop(S), pop(S) push(S, x < y)
+  elseif u_name == "le"     then local y, x = pop(S), pop(S) push(S, x <= y)
+  elseif u_name == "gt"     then local y, x = pop(S), pop(S) push(S, x > y)
+  elseif u_name == "ge"     then local y, x = pop(S), pop(S) push(S, x >= y)
+  elseif u_name == "eq"     then local y, x = pop(S), pop(S) push(S, x == y)
+  elseif u_name == "ne"     then local y, x = pop(S), pop(S) push(S, x ~= y)
 
-  elseif u_name == "unm" then push(S, -get(pop(S)))
-  elseif u_name == "not" then push(S, not get(pop(S)))
-  elseif u_name == "len" then push(S, #get(pop(S)))
+  elseif u_name == "unm" then push(S, -pop(S))
+  elseif u_name == "not" then push(S, not pop(S))
+  elseif u_name == "len" then push(S, #pop(S))
 
   elseif u_name == "if" then
-    for _, v in ipairs(pop(S) and 1 or 2) do
-      evaluate_code(chunk, proto, state, v)
+    for _, v in ipairs(u[pop(S) and 1 or 2]) do
+      evaluate_code(map, chunk, proto, state, v)
     end
 
-  elseif u_name == "call" then
-    local x = table_pack(get(S[a])(table_unpack(S, a + 1, S.n)))
+  elseif u_name == "check_for" then
+    def_var(V[a], assert(tonumber(use_var(V[a]))))
+    def_var(V[a + 1], assert(tonumber(use_var(V[a + 1]))))
+    if b == 3 then
+      local step = assert(tonumber(use_var(V[a + 2])))
+      assert(step ~= 0)
+      def_var(V[a + 2], step)
+    end
+
+  elseif u_name == "loop" then
+    local _, message = pcall(function ()
+      while true do
+        for _, v in ipairs(u) do
+          evaluate_code(map, chunk, proto, state, v)
+        end
+      end
+    end)
+    if message ~= break_message then
+      error(message, 0)
+    end
+
+  elseif u_name == "label" then
+
+  elseif u_name == "break" then
+    error(break_message, 0)
+
+  elseif u_name == "call" or u_name == "self" then
+    local x = table_pack(S[a](table_unpack(S, a + 1, S.n)))
     S.n = a - 1
     for i = 1, b < 0 and x.n or b do
       push(S, x[i])
     end
-
-  -- elseif u_name == "self" then
-  --   local x = table_pack(get(S[a])(get(S[a + 1]), table_unpack(S, a + 2, S.n)))
 
   elseif u_name == "vararg" then
     if proto.index == 1 then
@@ -251,11 +279,16 @@ local function evaluate_code(chunk, proto, state, u)
   end
 end
 
-function evaluate_closure(chunk, proto, upvalues, ...)
+function evaluate_closure(map, chunk, proto, upvalues, ...)
   local locals = {}
   for i = 1, proto.nparams do
     locals[i] = new_var(select(i, ...))
   end
+  local labels = {}
+  if #proto.labels > 0 then
+    
+  end
+
   local state = {
     stack = { n = 0 };
     vararg = table_pack(select(proto.nparams + 1, ...));
@@ -266,11 +299,14 @@ function evaluate_closure(chunk, proto, upvalues, ...)
   }
 
   for _, v in ipairs(proto.code) do
-    evaluate_code(chunk, proto, state, v)
+    evaluate_code(map, chunk, proto, state, v)
   end
   return table_unpack(state.result, 1, state.result.n)
 end
 
 return function (chunk)
-  print("=>", evaluate_closure(chunk, chunk[1], { new_var(env) }))
+  local map = {}
+  local env = new_table(map, {})
+  set_table(env, "print", print)
+  print("=>", evaluate_closure(map, chunk, chunk[1], { new_var(env) }))
 end
