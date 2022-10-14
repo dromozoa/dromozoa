@@ -15,13 +15,17 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local function f(a, b, c)
-  return b, c, a, 9
-end
+local metatable = {
+  __metatable = 23;
 
-local function g(x, ...)
-  return ..., x
-end
+  __close = function (self)
+    print("close:"..self[1])
+  end;
+}
 
-local a, b, c = f(a, g(3, 2))
-return 0, f(a, b, c)
+local x <close> = setmetatable({42}, metatable)
+print(getmetatable(x))
+
+local y <close> = setmetatable({69}, metatable)
+-- local a = ...
+

@@ -15,13 +15,13 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local function f(a, b, c)
-  return b, c, a, 9
+local a = 0
+for i = 1, 4 do
+  a = a + i
 end
 
-local function g(x, ...)
-  return ..., x
+local t = {}
+for k, v in pairs(t) do
 end
 
-local a, b, c = f(a, g(3, 2))
-return 0, f(a, b, c)
+return a

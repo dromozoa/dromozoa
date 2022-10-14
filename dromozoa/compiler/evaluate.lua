@@ -83,13 +83,6 @@ local function set_table(map, t, k, v)
   end
 end
 
-local function set_table(t, k, v)
-  t[k] = v
-  if t.determinate then
-    t.determinate[k] = true
-  end
-end
-
 local function push(stack, v)
   local n = stack.n + 1
   stack.n = n
@@ -138,9 +131,9 @@ local function evaluate_code(map, chunk, proto, state, u)
     local closure_upvalues = {}
     for i, v in ipairs(closure_proto.upvalues) do
       if v.var < 0 then
-        upvalues[i] = U[-v.var]
+        closure_upvalues[i] = U[-v.var]
       else
-        upvalues[i] = V[v.var]
+        closure_upvalues[i] = V[v.var]
       end
     end
     local closure = function (...)
@@ -169,7 +162,7 @@ local function evaluate_code(map, chunk, proto, state, u)
   elseif u_name == "get_table" then
     local y = pop(S)
     local x = pop(S)
-    push(S, get_table(x, y, u))
+    push(S, get_table(map, x, y, u))
 
   elseif u_name == "new_local" then
     V[a] = new_var(pop(S))
@@ -185,18 +178,18 @@ local function evaluate_code(map, chunk, proto, state, u)
     local x = pop(S)
     if b then
       assert(a == S.n)
-      set_table(pop(S), x, y)
+      set_table(map, pop(S), x, y)
     else
-      set_table(S[a], x, y)
+      set_table(map, S[a], x, y)
     end
 
   elseif u_name == "set_field" then
-    set_table(S[a], S[b], pop(S))
+    set_table(map, S[a], S[b], pop(S))
 
   elseif u_name == "set_list" then
     local x = S[a]
     for i = a + 1, S.n do
-      set_table(x, i - a, S[i])
+      set_table(map, x, i - a, S[i])
     end
     S.n = a
 
@@ -274,6 +267,13 @@ local function evaluate_code(map, chunk, proto, state, u)
     S.n = 0
     state.result = R
 
+  elseif u_name == "close" then
+    local tbc = use_var(V[a])
+    if tbc ~= nil then
+      map[tbc].metatable.__close(tbc)
+      def_var(V[a], nil)
+    end
+
   else
     evaluation_error("not supported: "..u_name, u.node)
   end
@@ -284,29 +284,46 @@ function evaluate_closure(map, chunk, proto, upvalues, ...)
   for i = 1, proto.nparams do
     locals[i] = new_var(select(i, ...))
   end
-  local labels = {}
-  if #proto.labels > 0 then
-    
-  end
-
   local state = {
     stack = { n = 0 };
     vararg = table_pack(select(proto.nparams + 1, ...));
     locals = locals;
     upvalues = upvalues;
-    labels = {};
     result = { n = 0 }
   }
 
-  for _, v in ipairs(proto.code) do
-    evaluate_code(map, chunk, proto, state, v)
+  local result, message = pcall(function ()
+    for _, v in ipairs(proto.code) do
+      evaluate_code(map, chunk, proto, state, v)
+    end
+  end)
+  if not result then
+    for i = #proto.locals, 1, -1 do
+      local v = proto.locals[i]
+      if v.attribute == "close" then
+        local tbc = use_var(locals[i])
+        if tbc ~= nil then
+          map[tbc].metatable.__close(tbc)
+          def_var(locals[i], nil)
+        end
+      end
+    end
+    error(message, 0)
   end
+
   return table_unpack(state.result, 1, state.result.n)
 end
 
 return function (chunk)
   local map = {}
   local env = new_table(map, {})
-  set_table(env, "print", print)
+  set_table(map, env, "pairs", pairs)
+  set_table(map, env, "print", print)
+  set_table(map, env, "setmetatable", function (table, metatable)
+    map[table].metatable = metatable
+    return setmetatable(table, metatable)
+  end)
+  set_table(map, env, "getmetatable", getmetatable)
+
   print("=>", evaluate_closure(map, chunk, chunk[1], { new_var(env) }))
 end
