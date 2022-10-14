@@ -15,15 +15,13 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local p = { foo = 42, bar = 69, baz = 666 }
-if nil then
-  p.baz = 17
-end
-p.foo, p.bar = p.bar, p.foo
-
-local function f()
-  print("!", "fuck")
-  return 42
+local function f(a, b, c)
+  return b, c, a, 9
 end
 
-return f(1, 2, 3)
+local function g(x, ...)
+  return ..., x
+end
+
+local a, b, c = f(1, g(3, 2))
+return 0, f(a, b, c)

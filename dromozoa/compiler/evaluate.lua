@@ -179,14 +179,29 @@ local function evaluate_code(chunk, proto, state, u)
     end
 
   elseif u_name == "call" then
-    local x = table.pack(get(S[a])(table_unpack(S, a + 1, t)))
+    local x = table.pack(get(S[a])(table_unpack(S, a + 1, t < 0 and S.n or t)))
     for i = 1, b < 0 and x.n or b do
       S[a + i - 1] = x[i]
     end
+    S.n = a + (b < 0 and x.n or b) - 1
+    for i = a, S.n do
+      S[i] = x[i - a + 1]
+    end
+
+  elseif u_name == "vararg" then
+    if proto.index == 1 then
+      evaluation_error("not supported: "..u_name, u.node)
+    end
+
+    S.n = t + (a < 0 and state.vararg.n or a)
+    for i = t + 1, S.n do
+      S[i] = state.vararg[i - t]
+    end
+
 
   elseif u_name == "return" then
-    local R = { n = t }
-    for i = 1, t do
+    local R = { n = t < 0 and S.n or t }
+    for i = 1, R.n do
       R[i] = S[i]
     end
     state.result = R
@@ -197,13 +212,19 @@ local function evaluate_code(chunk, proto, state, u)
 end
 
 function evaluate_closure(chunk, proto, upvalues, ...)
+  local locals = {}
+  for i = 1, proto.nparams do
+    locals[i] = new_var(select(i, ...))
+  end
   local state = {
     stack = {};
-    locals = {};
+    vararg = table.pack(select(proto.nparams + 1, ...));
+    locals = locals;
     upvalues = upvalues;
     labels = {};
     result = { n = 0 }
   }
+
   for _, v in ipairs(proto.code) do
     evaluate_code(chunk, proto, state, v)
   end
