@@ -21,7 +21,9 @@
 --   require = static_function "require"
 -- }
 
+local lua54_regexp = require "dromozoa.compiler.lua54_regexp"
 local lua54_parser = require "dromozoa.compiler.lua54_parser"
+local generate = require "dromozoa.compiler.generate"
 
 local table_unpack = table.unpack or unpack
 
@@ -243,8 +245,16 @@ local function evaluate_code(map, chunk, proto, state, u)
   elseif u_name == "break" then
     error(break_message, 0)
 
-  elseif u_name == "call" or u_name == "self" then
+  elseif u_name == "call" then
     local x = table_pack(S[a](table_unpack(S, a + 1, S.n)))
+    S.n = a - 1
+    for i = 1, b < 0 and x.n or b do
+      push(S, x[i])
+    end
+
+  elseif u_name == "self" then
+    -- TODO stringを特別扱いする？
+    local x = table_pack(get_table(map, S[a], S[a + 1], u)(S[a], table_unpack(S, a + 2, S.n)))
     S.n = a - 1
     for i = 1, b < 0 and x.n or b do
       push(S, x[i])
@@ -314,7 +324,12 @@ function evaluate_closure(map, chunk, proto, upvalues, ...)
   return table_unpack(state.result, 1, state.result.n)
 end
 
+local function evaluate_chunk(map, chunk, env)
+  return evaluate_closure(map, chunk, chunk[1], { new_var(env) })
+end
+
 return function (chunk)
+  local loaded = {}
   local map = {}
   local env = new_table(map, {})
   set_table(map, env, "pairs", pairs)
@@ -324,6 +339,21 @@ return function (chunk)
     return setmetatable(table, metatable)
   end)
   set_table(map, env, "getmetatable", getmetatable)
-
-  print("=>", evaluate_closure(map, chunk, chunk[1], { new_var(env) }))
+  set_table(map, env, "require", function (name)
+    local module = loaded[name]
+    if module == nil then
+      local filename = name:gsub("%.", "/") .. ".lua"
+      local handle = assert(io.open(filename))
+      local source = handle:read "*a"
+      handle:close()
+      local chunk = generate(lua54_regexp(source, filename, lua54_parser.max_terminal_symbol, lua54_parser()))
+      module = evaluate_chunk(map, chunk, env)
+      if module == nil then
+        module = true
+      end
+      loaded[name] = module
+    end
+    return module
+  end)
+  return evaluate_chunk(map, chunk, env)
 end
