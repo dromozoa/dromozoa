@@ -34,6 +34,10 @@ local function compiler_warning(message, u)
   end
 end
 
+local function new(v)
+  return { n = 1, v }
+end
+
 local function use(var)
   return var[var.n]
 end
@@ -53,6 +57,10 @@ local function get_table(t, k)
   end
 end
 
+local function new_table()
+  return { {}, {} }
+end
+
 local function set_table(t, k, v)
   t[1][k] = v
   t[2][k] = true
@@ -63,7 +71,7 @@ local function static_require(modname)
   return indeterminate
 end
 
-local env = { {}, {} }
+local env = new_table()
 set_table(env, "require", static_require)
 
 local function evaluate_code(modules, chunk, proto, state, u)
@@ -94,7 +102,7 @@ local function evaluate_code(modules, chunk, proto, state, u)
     S[t + 1] = assert(tonumber(a))
 
   elseif u_name == "new_table" then
-    S[t + 1] = { {}, {} }
+    S[t + 1] = new_table()
 
   -- closure!!!
 
@@ -115,7 +123,7 @@ local function evaluate_code(modules, chunk, proto, state, u)
     S[t - 1] = x
 
   elseif u_name == "new_local" then
-    V[a] = { n = 1, S[t] }
+    V[a] = new(S[t])
 
   elseif u_name == "set_local" then
     def(V[a], S[t])
@@ -130,9 +138,21 @@ local function evaluate_code(modules, chunk, proto, state, u)
     set_table(S[a], S[b], S[t])
 
   elseif u_name == "set_list" then
+    -- TODO 厳密な実装が必要か？
     local x = S[a]
     for i = a + 1, t do
       set_table(x, i - a, S[i])
+    end
+
+  elseif u_name == "not" then
+    S[t] = not S[t]
+
+  elseif u_name == "if" then
+    for _, v in ipairs(u[S[t] and 1 or 2]) do
+      local message = evaluate_code(modules, chunk, proto, state, v)
+      if message then
+        return message
+      end
     end
 
   elseif u_name == "return" then
@@ -152,7 +172,7 @@ local function evaluate_proto(modules, chunk, proto)
   local state = {
     stack = {};
     locals = {};
-    upvalues = { env };
+    upvalues = { new(env) };
     labels = {};
   }
   for _, v in ipairs(proto.code) do

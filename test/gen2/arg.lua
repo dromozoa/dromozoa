@@ -15,6 +15,9 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local p = { foo = 42, bar = 69, qux = 666 }
+local p = { foo = 42, bar = 69, baz = 666 }
+if nil then
+  p.baz = 17
+end
 p.foo, p.bar = p.bar, p.foo
 return p.baz
