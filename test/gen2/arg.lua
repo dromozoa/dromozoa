@@ -20,4 +20,10 @@ if nil then
   p.baz = 17
 end
 p.foo, p.bar = p.bar, p.foo
-return p.baz
+
+local function f()
+  print("!", "fuck")
+  return 42
+end
+
+return f(1, 2, 3)

@@ -15,7 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
--- indeterminate
 -- static_function "require"
 
 -- local static_env = {
@@ -24,57 +23,68 @@
 
 local lua54_parser = require "dromozoa.compiler.lua54_parser"
 
-local indeterminate = {}
+local table_unpack = table.unpack or unpack
 
-local function compiler_warning(message, u)
+-- 決定論的に評価可能なコードを逐次実行する。
+-- 1. 浮動小数点数の計算も対象とする。
+-- 2. 数値forのラップアラウンドの挙動が合致しない。
+-- 3. OP_SETLIST後の長さがエッジケースで合致しない。
+
+local function evaluation_error(message, u)
   if u and u.f and u.n and u.c then
-    io.stderr:write(u.f..":"..u.n..":"..u.c..": compiler warning ("..message..")\n")
+    error(u.f..":"..u.n..":"..u.c..": evaluation error ("..message..")\n")
   else
-    io.stderr:write("compiler warning ("..message..")\n")
+    error("evaluation error ("..message..")\n")
   end
 end
 
-local function new(v)
+local function new_var(v)
   return { n = 1, v }
 end
 
-local function use(var)
+local function use_var(var)
   return var[var.n]
 end
 
-local function def(var, v)
+local function def_var(var, v)
   local n = var.n + 1
   var.n = n
   var[n] = v
 end
 
-local function get_table(t, k)
+local function new_table()
+  return { {} }
+end
+
+local function get_table(t, k, u)
   local v = t[1][k]
-  if v == nil and not t[2][k] then
-    return indeterminate
+  if v == nil and t.determinate and not t.determinate[k] then
+    evaluation_error("indeterminate: "..u[0], u.node)
+  end
+  return v
+end
+
+local function set_table(t, k, v)
+  t[1][k] = v
+  if t.determinate then
+    t.determinate[k] = true
+  end
+end
+
+local function get(v)
+  if type(v) == "table" then
+    return v[1]
   else
     return v
   end
 end
 
-local function new_table()
-  return { {}, {} }
-end
+local env = { {}, determinate = {} }
+set_table(env, "print", print)
 
-local function set_table(t, k, v)
-  t[1][k] = v
-  t[2][k] = true
-end
+local evaluate_closure
 
-local function static_require(modname)
-  print("static_require", modname)
-  return indeterminate
-end
-
-local env = new_table()
-set_table(env, "require", static_require)
-
-local function evaluate_code(modules, chunk, proto, state, u)
+local function evaluate_code(chunk, proto, state, u)
   local u_name = u[0]
   local a = u.a
   local b = u.b
@@ -99,37 +109,51 @@ local function evaluate_code(modules, chunk, proto, state, u)
     S[t + 1] = a
 
   elseif u_name == "push_numeral" then
-    S[t + 1] = assert(tonumber(a))
+    S[t + 1] = tonumber(a)
 
   elseif u_name == "new_table" then
     S[t + 1] = new_table()
 
-  -- closure!!!
+  elseif u_name == "closure" then
+    local upvalues = {}
+    for i, v in ipairs(chunk[a].upvalues) do
+      if v.var < 0 then
+        upvalues[i] = U[-v.var]
+      else
+        upvalues[i] = V[v.var]
+      end
+    end
+    S[t + 1] = {
+      function (...)
+        return evaluate_closure(chunk, chunk[a], upvalues, ...)
+      end;
+      chunk = chunk;
+      proto = chunk[a];
+      upvalues = upvalues;
+      parent_proto = proto;
+      parent_state = state;
+    }
 
   elseif u_name == "pop" then
     -- noop
 
   elseif u_name == "get_local" then
-    S[t + 1] = use(V[a])
+    S[t + 1] = use_var(V[a])
 
   elseif u_name == "get_upvalue" then
-    S[t + 1] = use(U[a])
+    S[t + 1] = use_var(U[a])
 
   elseif u_name == "get_table" then
-    local x = get_table(S[t - 1], S[t])
-    if x == indeterminate then
-      return "indeterminate"
-    end
-    S[t - 1] = x
+    S[t - 1] = get_table(S[t - 1], S[t], u)
 
   elseif u_name == "new_local" then
-    V[a] = new(S[t])
+    V[a] = new_var(S[t])
 
   elseif u_name == "set_local" then
-    def(V[a], S[t])
+    def_var(V[a], S[t])
 
   elseif u_name == "set_upvalue" then
-    def(U[a], S[t])
+    def_var(U[a], S[t])
 
   elseif u_name == "set_table" then
     set_table(S[a], S[t - 1], S[t])
@@ -138,7 +162,6 @@ local function evaluate_code(modules, chunk, proto, state, u)
     set_table(S[a], S[b], S[t])
 
   elseif u_name == "set_list" then
-    -- TODO 厳密な実装が必要か？
     local x = S[a]
     for i = a + 1, t do
       set_table(x, i - a, S[i])
@@ -149,14 +172,19 @@ local function evaluate_code(modules, chunk, proto, state, u)
 
   elseif u_name == "if" then
     for _, v in ipairs(u[S[t] and 1 or 2]) do
-      local message = evaluate_code(modules, chunk, proto, state, v)
+      local message = evaluate_code(chunk, proto, state, v)
       if message then
         return message
       end
     end
 
+  elseif u_name == "call" then
+    local x = table.pack(get(S[a])(table_unpack(S, a + 1, t)))
+    for i = 1, b < 0 and x.n or b do
+      S[a + i - 1] = x[i]
+    end
+
   elseif u_name == "return" then
-    assert(not state.result)
     local R = { n = t }
     for i = 1, t do
       R[i] = S[i]
@@ -164,29 +192,24 @@ local function evaluate_code(modules, chunk, proto, state, u)
     state.result = R
 
   else
-    return "not supported"
+    evaluation_error("not supported: "..u_name, u.node)
   end
 end
 
-local function evaluate_proto(modules, chunk, proto)
+function evaluate_closure(chunk, proto, upvalues, ...)
   local state = {
     stack = {};
     locals = {};
-    upvalues = { new(env) };
+    upvalues = upvalues;
     labels = {};
+    result = { n = 0 }
   }
   for _, v in ipairs(proto.code) do
-    local message = evaluate_code(modules, chunk, proto, state, v)
-    if message then
-      compiler_warning(message..": "..v[0], v.node)
-      break
-    end
+    evaluate_code(chunk, proto, state, v)
   end
-  if state.result then
-    print("=>", table.unpack(state.result, 1, state.result.n))
-  end
+  return table_unpack(state.result, 1, state.result.n)
 end
 
-return function (chunks, chunk)
-  evaluate_proto(chunks, chunk, chunk[1])
+return function (chunk)
+  print("=>", evaluate_closure(chunk, chunk[1], { new_var(env) }))
 end

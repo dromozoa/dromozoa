@@ -26,5 +26,4 @@ local handle = assert(io.open(filename))
 local source = handle:read "*a"
 handle:close()
 local chunk = generate(lua54_regexp(source, filename, lua54_parser.max_terminal_symbol, lua54_parser()))
-local chunks = { chunk }
-evaluate(chunks, chunk, chunk[1])
+evaluate(chunk, chunk[1])
