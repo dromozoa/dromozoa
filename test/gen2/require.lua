@@ -21,3 +21,4 @@ print(quote_lua [[
 foo	bar
 ]])
 
+print(DROMOZOA_STATIC)

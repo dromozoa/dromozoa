@@ -15,20 +15,24 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local append = require "dromozoa.append"
 local lua54_regexp = require "dromozoa.compiler.lua54_regexp"
 local lua54_parser = require "dromozoa.compiler.lua54_parser"
 local generate = require "dromozoa.compiler.generate"
-
-local table_unpack = table.unpack or unpack
 
 local table_pack = table.pack or function (...)
   return { n = select("#", ...), ... }
 end
 
+local table_unpack = table.unpack or unpack
+
 -- 決定論的に評価可能なコードを逐次実行する。
 -- 1. 浮動小数点数の計算も対象とする。
 -- 2. 数値forのラップアラウンドの挙動は合致しない。
 -- 3. OP_SETLIST後の長さがエッジケースで合致しない。
+-- protected metatableを使えば変更がないことがわかる
+--
+-- 目的は型を宣言できるようにすること。
 
 local break_message = {}
 
@@ -283,7 +287,117 @@ local function evaluate_code(map, chunk, proto, state, u)
   end
 end
 
+local function compile_code(result, labels, u, break_label)
+  local u_name = u[0]
+
+  if u_name == "if" then
+    -- if L1
+    -- ...
+    -- goto L2
+    -- label L1
+    -- ...
+    -- label L2
+
+    local L1 = append(labels, false)
+    local L2 = append(labels, false)
+
+    append(result, { [0] = "if", a = L1, top = u.top, node = u.node })
+    for _, v in ipairs(u[1]) do
+      compile_code(result, labels, v, break_label)
+    end
+    append(result, { [0] = "goto", a = L2 })
+    labels[L1] = append(result, { [0] = "label", a = L1 })
+    for _, v in ipairs(u[2]) do
+      compile_code(result, labels, v, break_label)
+    end
+    labels[L2] = append(result, { [0] = "label", a = L2 })
+
+  elseif u_name == "loop" then
+    -- label L1
+    -- ...
+    -- goto L2 (break)
+    -- ...
+    -- goto L1
+    -- label L2
+
+    local L1 = append(labels, false)
+    local L2 = append(labels, false)
+
+    labels[L1] = append(result, { [0] = "label", a = L1 })
+    for _, v in ipairs(u) do
+      compile_code(result, labels, v, L2)
+    end
+    append(result, { [0] = "goto", a = L1 })
+    labels[L2] = append(result, { [0] = "label", a = L2 })
+
+  elseif u_name == "break" then
+    append(result, { [0] = "goto", a = break_label, top = u.top, node = u.node })
+
+  elseif u_name == "label" then
+    labels[u.a] = append(result, u)
+
+  else
+    append(result, u)
+  end
+end
+
+local function compile_proto(proto)
+  local result = {}
+  local labels = {}
+  for i in ipairs(proto.labels) do
+    labels[i] = false
+  end
+  for _, u in ipairs(proto.code) do
+    compile_code(result, labels, u)
+  end
+  for _, u in ipairs(result) do
+    local u_name = u[0]
+    if u_name == "if" or u_name == "goto" then
+      u.b = assert(labels[u.a])
+    end
+  end
+  return result
+end
+
 function evaluate_closure(map, chunk, proto, upvalues, ...)
+  local code = compile_proto(proto)
+
+  local S = { n = 0 }
+  local V = {}
+  local U = {}
+  local R = { n = 0 }
+
+  local pc = 1
+  while true do
+    local u = code[pc]
+    if not u then
+      break
+    end
+    pc = pc + 1
+
+    local u_name = u[0]
+    local a = u.a
+    local b = u.b
+
+    if u_name == "push_nil" then
+      for i = 1, a do
+        push(S, nil)
+      end
+    elseif u_name == "push_false" then
+      push(S, false)
+    elseif u_name == "push_true" then
+      push(S, true)
+    elseif u_name == "push_numeral" then
+    end
+
+
+
+  end
+
+
+
+
+
   local locals = {}
   for i = 1, proto.nparams do
     locals[i] = new_var(select(i, ...))
@@ -295,6 +409,11 @@ function evaluate_closure(map, chunk, proto, upvalues, ...)
     upvalues = upvalues;
     result = { n = 0 }
   }
+
+
+
+
+
 
   local result, message = pcall(function ()
     for _, v in ipairs(proto.code) do
@@ -326,6 +445,7 @@ return function (chunk)
   local loaded = {}
   local map = {}
   local env = new_table(map, {})
+  set_table(map, env, "DROMOZOA_STATIC", true)
   set_table(map, env, "pairs", pairs)
   set_table(map, env, "print", print)
   set_table(map, env, "setmetatable", function (table, metatable)
