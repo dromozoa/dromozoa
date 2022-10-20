@@ -260,6 +260,11 @@ local function append_if(proto, tree_code, u)
   return tree_if[1], tree_if[2]
 end
 
+local function append_loop(proto, tree_code, u)
+  local tree_loop = append_code(proto, tree_code, u, "loop")
+  return tree_loop
+end
+
 local function append_close_scope(proto, tree_code, u, scope)
   for i = #scope.locals, 1, -1 do
     local var = scope.locals[i]
@@ -554,14 +559,14 @@ local function process2(chunk, proto, scope, u, tree_code)
     append_code(proto, tree_code, u, "goto", label)
 
   elseif u_name == "while" then
-    local tree_loop = append_code(proto, tree_code, u, "loop")
+    local tree_loop = append_loop(proto, tree_code, u)
     process2(chunk, proto, scope, x, tree_loop)
     local tree_then, tree_else = append_if(proto, tree_loop, u)
     process2(chunk, proto, scope, y, tree_then)
     append_code(proto, tree_else, u, "break")
 
   elseif u_name == "repeat" then
-    local tree_loop = append_code(proto, tree_code, u, "loop")
+    local tree_loop = append_loop(proto, tree_code, u)
     process2(chunk, proto, scope, x, tree_loop)
     process2(chunk, proto, scope, y, tree_loop)
     append_close_scope(proto, tree_loop, u, scope)
@@ -608,7 +613,7 @@ local function process2(chunk, proto, scope, u, tree_code)
       append_code(proto, tree_code, u, "new_local", u.var)
       append_code(proto, tree_code, u, "check_for", u.var, 2)
 
-      local tree_loop = append_code(proto, tree_code, u, "loop")
+      local tree_loop = append_loop(proto, tree_code, u)
 
       append_code(proto, tree_loop, u, "get_local", u.var)
       append_code(proto, tree_loop, u, "get_local", u.var + 1)
@@ -653,7 +658,7 @@ local function process2(chunk, proto, scope, u, tree_code)
       append_code(proto, tree_code, u, "new_local", u.var)
       append_code(proto, tree_code, u, "check_for", u.var, 3)
 
-      local tree_loop = append_code(proto, tree_code, u, "loop")
+      local tree_loop = append_loop(proto, tree_code, u)
 
       append_code(proto, tree_loop, u, "get_local", u.var + 2)
       append_code(proto, tree_loop, u, "push_numeral", "0", "DecimalIntegerNumeral")
@@ -735,7 +740,7 @@ local function process2(chunk, proto, scope, u, tree_code)
     append_code(proto, tree_code, u, "new_local", u.var + 1)
     append_code(proto, tree_code, u, "new_local", u.var)
 
-    local tree_loop = append_code(proto, tree_code, u, "loop")
+    local tree_loop = append_loop(proto, tree_code, u)
 
     append_code(proto, tree_loop, u, "get_local", u.var)
     append_code(proto, tree_loop, u, "get_local", u.var + 1)
