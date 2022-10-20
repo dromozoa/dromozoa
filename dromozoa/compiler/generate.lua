@@ -43,11 +43,11 @@ local lua54_parser = require "dromozoa.compiler.lua54_parser"
 --   |        |
 -- scope----proto <= external
 
-local function declare(scope, name, u, attribute)
+local function declare_internal(proto, name, u, attribute)
   if attribute and attribute ~= "const" and attribute ~= "close" then
     compiler_error("unknown attribute '"..attribute.."'", u)
   end
-  local var = append(scope.proto.locals, {
+  return append(proto.locals, {
     name = name;
     attribute = attribute;
     def = 1;
@@ -56,6 +56,10 @@ local function declare(scope, name, u, attribute)
     upuse = 0;
     node = u;
   })
+end
+
+local function declare(scope, name, u, attribute)
+  local var = declare_internal(scope.proto, name, u, attribute)
   append(scope.locals, var)
   return var
 end
@@ -128,12 +132,16 @@ local function find_label(scope, name)
   until proto ~= scope.proto
 end
 
+local function define_label_internal(proto, name, u)
+  return append(proto.labels, { name = name, node = u })
+end
+
 local function define_label(scope, name, u)
   local label, v = find_label(scope, name)
   if label then
     compiler_error("label '"..name.."' already defined on line "..v.node.n, u)
   end
-  local label = append(scope.proto.labels, { name = name, node = u })
+  local label = define_label_internal(scope.proto, name, u)
   append(scope.labels, label)
   return label
 end
@@ -345,13 +353,16 @@ local function process1(chunk, proto, scope, u, loop)
       end
     end
 
+  elseif u_name == "while" then
+    -- 内部的に使用するラベルを定義する。
+
   elseif u_name == "for" then
     -- 制御式の名前解決を先に行う。
     process1(chunk, proto, scope, y, loop)
     -- 内部的に使用する3個の変数を宣言する。
-    u.var = declare(scope, "(for state)", u)
-    declare(scope, "(for state)", u)
-    declare(scope, "(for state)", u)
+    u.var = declare_internal(proto, "(for state)", u)
+    declare_internal(proto, "(for state)", u)
+    declare_internal(proto, "(for state)", u)
     process1(chunk, proto, scope, x, loop)
     return process1(chunk, proto, scope, z, loop)
 
@@ -360,10 +371,10 @@ local function process1(chunk, proto, scope, u, loop)
     process1(chunk, proto, scope, y, loop)
     -- 内部的に使用する4個の変数を宣言する。Lua 5.3以前は3個だったが、Lua 5.4で
     -- to-be-closed変数が追加された。
-    u.var = declare(scope, "(for state)", u)
-    declare(scope, "(for state)", u)
-    declare(scope, "(for state)", u)
-    declare(scope, "(for state)", u, "close")
+    u.var = declare_internal(proto, "(for state)", u)
+    declare_internal(proto, "(for state)", u)
+    declare_internal(proto, "(for state)", u)
+    declare_internal(proto, "(for state)", u, "close")
     process1(chunk, proto, scope, x, loop)
     return process1(chunk, proto, scope, z, loop)
 
@@ -432,7 +443,7 @@ local function process1(chunk, proto, scope, u, loop)
 
   elseif u_name == "and" or u_name == "or" then
     -- 内部変数を使用して、短絡演算子のスタック操作を単一代入にする。
-    u.var = declare(scope, "(short-circuit)", u)
+    u.var = declare_internal(proto, "(short-circuit)", u)
 
   elseif u_name == "Name" then
     if u.declare then
