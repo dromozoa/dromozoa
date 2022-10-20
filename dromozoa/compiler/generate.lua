@@ -1078,25 +1078,6 @@ end
 
 ---------------------------------------------------------------------------
 
-local function process3(proto, u)
-  local u_name = u[0]
-  local flat_code = proto.flat_code
-
-  if u_name == "if" then
-    local tree_then = u[1]
-    local tree_else = u[2]
-
-    for _, v in ipairs(tree_then) do
-      process3(proto, v)
-    end
-
-  else
-    append(flat_code, u)
-  end
-end
-
----------------------------------------------------------------------------
-
 return function (root)
   local chunk = { require = {} }
   local proto = { locals = {} }
@@ -1106,12 +1087,5 @@ return function (root)
 
   process1(chunk, proto, scope, root)
   process2(chunk, proto, scope, root)
-
-  -- for _, proto in ipairs(chunk) do
-  --   for _, u in ipairs(proto.tree_code) do
-  --     process3(chunk, proto, u)
-  --   end
-  -- end
-
   return chunk
 end
