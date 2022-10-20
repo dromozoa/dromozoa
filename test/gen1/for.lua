@@ -62,3 +62,12 @@ end
 for i = 4, 1, -1 do
   print(i)
 end
+
+local x = 1
+for i = 1, 4, x do
+  print(i)
+end
+local x = -1
+for i = 4, 1, x do
+  print(i)
+end

@@ -504,7 +504,7 @@ local function generate_code(result, chunk, proto, map, u)
   elseif u_name == "break" then
     append(result, "break;")
 
-  elseif u_name == "label" then
+  elseif u_name == "label" or u_name == "exit" then
     -- ignore
 
   elseif u_name == "call" then
