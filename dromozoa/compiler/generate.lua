@@ -210,10 +210,8 @@ local opcodes = {
 }
 
 local function append_code(proto, code, u, op, a, b)
-  local address = proto.address + 1
-  proto.address = address
   local top = proto.top
-  local v = { [0] = op, a = a, b = b, address = address, top = top, node = u }
+  local v = { [0] = op, a = a, b = b, top = top, node = u }
 
   append(code, v)
   local opcode = opcodes[op]
@@ -298,7 +296,6 @@ local function process1(chunk, proto, scope, u, loop)
       labels = {};
       scopes = {};
       tree_code = {};
-      address = 0;
       top = 0;
       node = u;
       parent = proto;
