@@ -504,6 +504,9 @@ local function generate_code(result, chunk, proto, map, u)
   elseif u_name == "break" then
     append(result, "break;")
 
+  elseif u_name == "label" then
+    -- ignore
+
   elseif u_name == "call" then
     local x = use(map, u.x)
     local y = use_range_tuple(map, u.y, t)
