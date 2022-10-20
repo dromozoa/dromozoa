@@ -568,7 +568,7 @@ local function generate_proto(result, chunk, proto)
   local try_catch
   local map = { m = 0, n = 0, stack = {} }
 
-  for _, v in ipairs(proto.code) do
+  for _, v in ipairs(proto.tree_code) do
     process_code(map, v)
   end
 
@@ -621,7 +621,7 @@ local function generate_proto(result, chunk, proto)
     append(result, "try{\n")
   end
 
-  for _, v in ipairs(proto.code) do
+  for _, v in ipairs(proto.tree_code) do
     generate_code(result, chunk, proto, map, v)
   end
 

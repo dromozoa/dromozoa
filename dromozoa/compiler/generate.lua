@@ -297,7 +297,7 @@ local function process1(chunk, proto, scope, u, loop)
       upvalues = {};
       labels = {};
       scopes = {};
-      code = {};
+      tree_code = {};
       address = 0;
       top = 0;
       node = u;
@@ -367,10 +367,10 @@ local function process1(chunk, proto, scope, u, loop)
     return process1(chunk, proto, scope, z, loop)
 
   elseif u_name == "local_function" then
-    process1(chunk, proto, scope, x, code)
+    process1(chunk, proto, scope, x, loop)
     local v = proto.locals[x.var]
     v.def = v.def + 1
-    return process1(chunk, proto, scope, y, code)
+    return process1(chunk, proto, scope, y, loop)
 
   elseif u_name == "local" then
     local n = 0
@@ -461,7 +461,7 @@ local function process2(chunk, proto, scope, u, code)
 
   if u.proto then
     proto = u.proto
-    code = proto.code
+    code = proto.tree_code
   end
 
   if u.scope then
