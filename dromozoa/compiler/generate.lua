@@ -254,10 +254,10 @@ local function append_code(proto, tree_code, u, op, a, b)
 end
 
 local function append_if(proto, tree_code, u)
-  local cond = append_code(proto, tree_code, u, "if")
-  cond[1] = {}
-  cond[2] = {}
-  return cond[1], cond[2]
+  local tree_if = append_code(proto, tree_code, u, "if")
+  tree_if[1] = {}
+  tree_if[2] = {}
+  return tree_if[1], tree_if[2]
 end
 
 local function append_close_scope(proto, tree_code, u, scope)
