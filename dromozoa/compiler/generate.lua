@@ -227,6 +227,7 @@ local function append_code(proto, tree_code, u, op, a, b)
   local v = { [0] = op, a = a, b = b, top = top, node = u }
 
   append(tree_code, v)
+
   local opcode = opcodes[op]
   if opcode then
     top = top + opcode
@@ -260,6 +261,11 @@ local function append_code(proto, tree_code, u, op, a, b)
     top = 0
   else
     error("unknown op "..op)
+  end
+
+  local address = append(proto.flat_code, v)
+  if op == "label" then
+    proto.labels[a].address = address
   end
 
   proto.top = top
