@@ -254,18 +254,14 @@ local function append_code(proto, tree_code, u, op, a, b)
 end
 
 local function append_if(proto, tree_code, u)
-  u.label = append(proto.labels, { name = "(else)", node = u })
-  append(proto.labels, { name = "(end)", node = u })
-  local tree_if = append_code(proto, tree_code, u, "if", u.label)
+  local tree_if = append_code(proto, tree_code, u, "if")
   tree_if[1] = {}
   tree_if[2] = {}
   return tree_if[1], tree_if[2]
 end
 
 local function append_loop(proto, tree_code, u)
-  u.label = append(proto.labels, { name = "(loop)", node = u })
-  append(proto.labels, { name = "(end)", node = u })
-  return append_code(proto, tree_code, u, "loop", u.label)
+  return append_code(proto, tree_code, u, "loop")
 end
 
 local function append_close_scope(proto, tree_code, u, scope)
