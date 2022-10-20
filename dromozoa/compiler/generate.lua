@@ -132,8 +132,12 @@ local function find_label(scope, name)
   until proto ~= scope.proto
 end
 
-local function define_label_internal(proto, name, u)
-  return append(proto.labels, { name = name, node = u })
+local function define_internal_label(proto, n, u)
+  local label = append(proto.labels, { node = u })
+  for i = 2, n do
+    append(proto.labels, { node = u })
+  end
+  return label
 end
 
 local function define_label(scope, name, u)
@@ -141,7 +145,7 @@ local function define_label(scope, name, u)
   if label then
     compiler_error("label '"..name.."' already defined on line "..v.node.n, u)
   end
-  local label = define_label_internal(scope.proto, name, u)
+  local label = append(scope.proto.labels, { name = name, node = u })
   append(scope.labels, label)
   return label
 end
@@ -353,10 +357,18 @@ local function process1(chunk, proto, scope, u, loop)
       end
     end
 
-  elseif u_name == "while" then
-    -- 内部的に使用するラベルを定義する。
+  elseif u_name == "while" or u_name == "repeat" then
+    -- 内部的に使用する4個のラベルを定義する。
+    u.label = define_internal_label(proto, 4, u)
+
+  elseif u_name == "if" or u_name == "elseif" then
+    -- 内部的に使用する2個のラベルを定義する。
+    u.label = define_internal_label(proto, 2, u)
 
   elseif u_name == "for" then
+    -- 内部的に使用する8個のラベルを定義する。
+    u.label = define_internal_label(proto, 8, u)
+
     -- 制御式の名前解決を先に行う。
     process1(chunk, proto, scope, y, loop)
     -- 内部的に使用する3個の変数を宣言する。
@@ -367,6 +379,9 @@ local function process1(chunk, proto, scope, u, loop)
     return process1(chunk, proto, scope, z, loop)
 
   elseif u_name == "for_in" then
+    -- 内部的に使用する4個のラベルを定義する。
+    u.label = define_internal_label(proto, 4, u)
+
     -- 制御式の名前解決を先に行う。
     process1(chunk, proto, scope, y, loop)
     -- 内部的に使用する4個の変数を宣言する。Lua 5.3以前は3個だったが、Lua 5.4で
@@ -442,6 +457,9 @@ local function process1(chunk, proto, scope, u, loop)
     end
 
   elseif u_name == "and" or u_name == "or" then
+    -- 内部的に使用する2個のラベルを定義する。
+    u.label = define_internal_label(proto, 2, u)
+
     -- 内部変数を使用して、短絡演算子のスタック操作を単一代入にする。
     u.var = declare_internal(proto, "(short-circuit)", u)
 
