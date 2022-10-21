@@ -56,26 +56,20 @@ out:close()
 local _ = parser.grammar.body
 
 local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
-  valtype
-    = _"numtype"
-    + _"functype";
-
-  numtype
-    = _"i32"
-    + _"i64"
-    + _"f32"
-    + _"f64";
-
-  functype
-    = _"tuple" "->" "tuple";
+  type
+    = _"i32"                  %"$$=$1"
+    + _"i64"                  %"$$=$1"
+    + _"f32"                  %"$$=$1"
+    + _"f64"                  %"$$=$1"
+    + _"tuple" "->" "tuple"   %"$$=$2 append($1,$3)";
 
   tuple
-    = _"(" ")"
-    + _"(" "tuplelist" ")";
+    = _"(" ")"                %"$$=create($tuple)"
+    + _"(" "tuplelist" ")"    %"$$=$2";
 
   tuplelist
-    = _"valtype"
-    + _"tuplelist" "," "valtype";
+    = _"type"                 %"$$=create($tuple) append($1)"
+    + _"tuplelist" "," "type" %"$$=$1 append($3)";
 }))
 
 for _, message in ipairs(conflictions) do
