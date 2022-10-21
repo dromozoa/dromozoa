@@ -26,6 +26,14 @@ all:: $(target)
 
 check:: all
 	./test.sh lua
+	./test_gen1.sh lua
+	./test_gen2.sh lua
+
+check-gen1: all
+	./test_gen1.sh lua
+
+check-gen2: all
+	./test_gen2.sh lua
 
 dromozoa/regexp/runtime.lua: tool/template_lua.lua dromozoa/regexp/runtime.tmpl
 	lua tool/template_lua.lua dromozoa/regexp/runtime.tmpl $@

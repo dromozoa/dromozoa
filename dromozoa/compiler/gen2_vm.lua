@@ -25,6 +25,7 @@ local table_pack = table.pack or function (...)
 end
 
 local indeterminate = {}
+local string_metatable
 
 local function new_var(value)
   return { value }
@@ -48,8 +49,6 @@ local function set_table(t, k, v)
     t.determinate[k] = true
   end
 end
-
-local string_metatable = new_table {}
 
 local function get_metafield(t, ev)
   if type(t) == "string" then
@@ -308,6 +307,35 @@ local function process_chunk(chunk, env)
   return process_closure(chunk, chunk[1], { new_var(env) })
 end
 
+local function initialize_string(env)
+  local module = new_table {}
+
+  set_table(module, "gsub", function (s, pattern, repl, n)
+    local replace
+    if repl == "string" then
+      replace = repl
+    else
+      if repl.table then
+        replace = function (k)
+          local v = get_table(repl, k)
+          assert(v ~= indeterminate)
+          return v
+        end
+      else
+        replace = function (...)
+          return call(repl, ...)
+        end
+      end
+    end
+    return string.gsub(s, pattern, replace, n)
+  end)
+
+  set_table(env, "string", module)
+
+  string_metatable = new_table {}
+  set_table(string_metatable, "__index", module)
+end
+
 return function (chunk, enable_print)
   local env = new_table {}
   set_table(env, "pairs", pairs)
@@ -348,29 +376,7 @@ return function (chunk, enable_print)
     set_table(env, "print", print)
   end
 
-  local string_module = new_table {}
-  set_table(string_module, "gsub", function (s, pattern, repl, n)
-    local replace
-    if repl == "string" then
-      replace = repl
-    else
-      if repl.table then
-        replace = function (k)
-          local v = get_table(repl, k)
-          assert(v ~= indeterminate)
-          return v
-        end
-      else
-        replace = function (...)
-          return call(repl, ...)
-        end
-      end
-    end
-    return string.gsub(s, pattern, replace, n)
-  end)
-
-  set_table(env, "string", string_module)
-  set_table(string_metatable, "__index", string_module)
+  initialize_string(env)
 
   process_chunk(chunk, env)
 end

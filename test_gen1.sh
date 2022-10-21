@@ -21,12 +21,29 @@ case X$1 in
   X) exec sh -e "$0" lua;;
 esac
 
-mkdir -p out
+mkdir -p out/gen1
 
-for i in test/test*.lua
+LUA_VERSION=`"$@" -e 'io.write(_VERSION)'`
+if test "X$LUA_VERSION" = "XLua 5.4"
+then
+  for i in test/gen1/*.lua
+  do
+    j=`expr "X$i" : 'X\(.*\)\.lua$'`
+    "$@" "$i" foo 42 "bar baz qux" >"$j.exp"
+  done
+fi
+
+for i in test/gen1/*.lua
 do
-  "$@" "$i"
+  j=`expr "X$i" : 'Xtest/gen1/\([^/]*\)\.lua$'`
+  "$@" tool/compile_gen1.lua "out/gen1/$j.mjs" dromozoa/compiler/gen1_runtime.lua "$i"
+  node "out/gen1/$j.mjs" foo 42 "bar baz qux" >"out/gen1/$j.out"
+  diff -u "test/gen1/$j.exp" "out/gen1/$j.out"
 done
+
+time "$@" tool/compile_gen1.lua out/gen1_stg1.mjs dromozoa/compiler/gen1_runtime.lua tool/compile_gen1.lua
+time node out/gen1_stg1.mjs out/gen1_stg2.mjs dromozoa/compiler/gen1_runtime.lua tool/compile_gen1.lua
+diff -u out/gen1_stg1.mjs out/gen1_stg2.mjs
 
 case X$DROMOZOA_TEST_DEBUG in
   X|X0) rm -fr out;;
