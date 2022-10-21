@@ -15,11 +15,23 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local a = 23
-local b = 17.1
+local function f(message)
+  return (message:gsub("^.-: ", ""))
+end
 
-print(a + b, a - b, a / b, a // b == 1, a^3)
+for i = 1, 4 do
+  print(i)
+end
 
-print(10 + -4)
-print(10 % -4)
-print(10 // -4)
+for i = 4, 1, -1 do
+  print(i)
+end
+
+local x = 1
+for i = 1, 4, x do
+  print(i)
+end
+local x = -1
+for i = 4, 1, x do
+  print(i)
+end

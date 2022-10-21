@@ -15,13 +15,16 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+-- indeterminate
+-- local a = ...
+
 local function f(a, b, c)
-  return b, c, a, 9
+  return b, c, a
 end
 
-local function g(x, ...)
-  return ..., x
+local function g(a, ...)
+  return ..., a
 end
 
-local a, b, c = f(-1, g(3, 2))
-return 0, f(a, b, c)
+print(f(1, 2, 3))
+print(g(f(1, 2, 3)))

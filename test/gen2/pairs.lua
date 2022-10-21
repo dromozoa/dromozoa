@@ -15,11 +15,27 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local a = 23
-local b = 17.1
+local t = { foo = 1, bar = 2, "baz", "qux" }
 
-print(a + b, a - b, a / b, a // b == 1, a^3)
+local a = {}
+local b = {}
 
-print(10 + -4)
-print(10 % -4)
-print(10 // -4)
+for k, v in pairs(t) do
+  if type(k) == "string" then
+    a[v] = k
+  else
+    b[k] = v
+  end
+end
+
+for i = 1, #a do
+  print(a[i])
+end
+for i = 1, #b do
+  print(a[i])
+end
+
+local t = setmetatable({}, { __pairs = function (t) return 1, 2 end })
+local u = setmetatable({}, { __pairs = function (t) return 1, 2, 3, 4 end })
+print(pairs(t))
+print(pairs(u))

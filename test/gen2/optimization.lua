@@ -15,11 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local a = 23
-local b = 17.1
+local x = (9 % 10) % (7 % 4)
+print(x)
 
-print(a + b, a - b, a / b, a // b == 1, a^3)
-
-print(10 + -4)
-print(10 % -4)
-print(10 // -4)
+local x = not not not nil
+print(x)

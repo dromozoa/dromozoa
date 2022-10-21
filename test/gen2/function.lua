@@ -15,11 +15,50 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local a = 23
-local b = 17.1
+local function f1()
+  print "f1"
+end
 
-print(a + b, a - b, a / b, a // b == 1, a^3)
+local function f2(a, b)
+  print("f2", a, b)
+end
 
-print(10 + -4)
-print(10 % -4)
-print(10 // -4)
+f1()
+f2("foo", "bar")
+f1()
+
+local t = { "a", "b", "c", "d" }
+local function f(t, i)
+  i = i + 1
+  local v = t[i]
+  if v == nil then
+    return
+  else
+    return i, v
+  end
+end
+
+for i, v in f, t, 0 do
+  print(v)
+end
+
+for i, v in f, t, 0 do
+  if i == 3 then
+    break
+  end
+  print(v)
+end
+
+for i = 1, 4 do
+  print(t[i])
+end
+
+t.f = function (a)
+  if a then
+    print "t.f(a)"
+  else
+    print "t.f()"
+  end
+end
+t.f()
+t:f()

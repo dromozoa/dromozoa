@@ -15,11 +15,36 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local a = 23
-local b = 17.1
+local a = function ()
+  print("a")
+end
 
-print(a + b, a - b, a / b, a // b == 1, a^3)
+local b = {}
+b.f = function (x)
+  print(x == nil or x == b)
+  print("b.f", x and "x")
+end
 
-print(10 + -4)
-print(10 % -4)
-print(10 // -4)
+local c = {}
+setmetatable(c, {
+  __call = function (x)
+    print(x == nil or x == c)
+    print("c.__call", x and "x")
+  end;
+})
+
+local d = {}
+d.f = setmetatable({}, {
+  __call = function (x, y)
+    print(x == d.f)
+    print(y == nil or y == d)
+    print("d.f.__call", x and "x", y and "y")
+  end;
+})
+
+a()
+b.f()
+b:f()
+c()
+d.f()
+d:f()

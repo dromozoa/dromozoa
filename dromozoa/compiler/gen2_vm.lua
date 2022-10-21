@@ -75,14 +75,14 @@ local function get_table(t, k)
         return v
       end
     else
-      local v = call(metafield, t, k)
+      local v = call(metafield, t, k)[1]
       if v ~= nil then
         return v
       end
     end
   end
   if t.determinate and not t.determinate[k] then
-    return indeterminate
+    error(indeterminate, 0)
   end
 end
 
@@ -170,11 +170,7 @@ local function process_closure(chunk, proto, U, ...)
     elseif u_name == "get_table" then
       local y = pop(S)
       local x = pop(S)
-      local z = get_table(x, y)
-      if z == indeterminate then
-        return indeterminate
-      end
-      push(S, z)
+      push(S, get_table(x, y))
 
     elseif u_name == "new_local" then
       V[a] = new_var(pop(S))
@@ -259,19 +255,15 @@ local function process_closure(chunk, proto, U, ...)
 
     elseif u_name == "self" then
       local x = S[a]
-      local y = get_table(x, S[a + 1])
-      if y == indeterminate then
-        return indeterminate
-      end
-      local z = call(y, x, table_unpack(S, a + 2, S.n))
+      local y = call(get_table(x, S[a + 1]), x, table_unpack(S, a + 2, S.n))
       S.n = a - 1
-      for i = 1, b < 0 and z.n or b do
-        push(S, z[i])
+      for i = 1, b < 0 and y.n or b do
+        push(S, y[i])
       end
 
     elseif u_name == "vararg" then
       if proto.index == 1 then
-        return indeterminate
+        error(indeterminate, 0)
       end
 
       for i = 1, a < 0 and vararg.n or a do
@@ -298,6 +290,8 @@ end
 function call(f, ...)
   if type(f) == "function" then
     return table_pack(f(...))
+  elseif f.table then
+    return call(get_metafield(f, "__call"), f, ...)
   else
     return table_pack(process_closure(f.chunk, f.proto, f.upvalues, ...))
   end
@@ -307,42 +301,38 @@ local function process_chunk(chunk, env)
   return process_closure(chunk, chunk[1], { new_var(env) })
 end
 
-local function initialize_string(env)
-  local module = new_table {}
+local function initialize_env(enable_print)
+  local env = new_table {}
 
-  set_table(module, "gsub", function (s, pattern, repl, n)
-    local replace
-    if repl == "string" then
-      replace = repl
+  set_table(env, "type", function (v)
+    local t = type(v)
+    if t ~= "table" then
+      return t
+    elseif v.table then
+      return "table"
     else
-      if repl.table then
-        replace = function (k)
-          local v = get_table(repl, k)
-          assert(v ~= indeterminate)
-          return v
-        end
-      else
-        replace = function (...)
-          return call(repl, ...)
-        end
-      end
+      return "function"
     end
-    return string.gsub(s, pattern, replace, n)
   end)
 
-  set_table(env, "string", module)
+  set_table(env, "ipairs", function (t)
+    return ipairs(t.table)
+  end)
 
-  string_metatable = new_table {}
-  set_table(string_metatable, "__index", module)
-end
+  set_table(env, "pairs", function (t)
+    local metafield = get_metafield(t, "__pairs")
+    if metafield ~= nil then
+      local result = call(metafield, t)
+      return result[1], result[2], result[3]
+    end
+    return pairs(t.table)
+  end)
 
-return function (chunk, enable_print)
-  local env = new_table {}
-  set_table(env, "pairs", pairs)
   set_table(env, "setmetatable", function (t, metatable)
     t.metatable = metatable
     return t
   end)
+
   set_table(env, "getmetatable", function (t)
     local metafield = get_metafield(t, "__metatable")
     if metafield ~= nil then
@@ -365,9 +355,7 @@ return function (chunk, enable_print)
       if module == nil then
         module = true
       end
-      if module ~= indeterminate then
-        loaded[name] = module
-      end
+      loaded[name] = module
     end
     return module
   end)
@@ -376,7 +364,30 @@ return function (chunk, enable_print)
     set_table(env, "print", print)
   end
 
-  initialize_string(env)
+  return env
+end
 
+local function initialize_string(env)
+  local module = new_table {}
+
+  set_table(module, "gsub", function (s, pattern, repl, n)
+    if repl == "string" then
+      return string.gsub(s, pattern, repl, n)
+    elseif repl.table then
+      return string.gsub(s, pattern, function (k) return get_table(repl, k) end, n)
+    else
+      return string.gsub(s, pattern, function (...) return table_unpack(call(repl, ...)) end, n)
+    end
+  end)
+
+  set_table(env, "string", module)
+
+  string_metatable = new_table {}
+  set_table(string_metatable, "__index", module)
+end
+
+return function (chunk, enable_print)
+  local env = initialize_env(enable_print)
+  initialize_string(env)
   process_chunk(chunk, env)
 end

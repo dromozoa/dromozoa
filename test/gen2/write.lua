@@ -15,11 +15,30 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local a = 23
-local b = 17.1
+print "A"
 
-print(a + b, a - b, a / b, a // b == 1, a^3)
+if true then
+  print "B"
+else
+  print "C"
+end
 
-print(10 + -4)
-print(10 % -4)
-print(10 // -4)
+if false then
+  print "D"
+else
+  print "E"
+end
+
+while true do
+  print "F"
+  break
+  print "G"
+end
+print "H"
+
+repeat
+  print "I"
+  break
+  print "J"
+until false
+print "K"

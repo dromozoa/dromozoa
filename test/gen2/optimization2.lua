@@ -15,11 +15,13 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local a = 23
-local b = 17.1
+local one = 1
+local foo = "FOO"
 
-print(a + b, a - b, a / b, a // b == 1, a^3)
-
-print(10 + -4)
-print(10 % -4)
-print(10 // -4)
+local t = { one = 1, [one] = 2, foo = 3, [foo] = 4 }
+print(#t, t.one, t[1], t.foo, t.FOO)
+t.one = t.one * 1
+t[one] = t[one] * 2
+t.foo = t.foo * 3
+t[foo] = t[foo] * 4
+print(#t, t.one, t[1], t.foo, t.FOO)

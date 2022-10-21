@@ -15,11 +15,30 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local a = 23
-local b = 17.1
+local x, y, z = 1, 2, 3
 
-print(a + b, a - b, a / b, a // b == 1, a^3)
+local function f()
+  local a, b, c = 1, 2, 3
 
-print(10 + -4)
-print(10 % -4)
-print(10 // -4)
+  print(a, b, c)
+  a, b, c = b * 4, c * 3, a * 2
+  print(a, b, c)
+
+  print(x, y, z)
+  x, y, z = z * 4, y * 3, x * 2
+  print(x, y, z)
+
+  local t = { x = 1, y = 2, z = 3 }
+  print(t.x, t.y, t.z)
+  t.x, t.y, t.z = t.z * 4, t.y * 3, t.x * 2
+  print(t.x, t.y, t.z)
+end
+
+f()
+
+local t = { y = 17 }
+local x = 42
+t.x = x * 69
+print(t.x, t.y)
+t.x, t.y = t.y, t.x
+print(t.x, t.y)
