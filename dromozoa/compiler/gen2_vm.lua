@@ -27,31 +27,12 @@ local function new_var(value)
   return { value }
 end
 
-local function use_var(var)
-  return var[1]
-end
-
 local function def_var(var, value)
   var[1] = value
 end
 
-local function get_metafield(t, ev)
-  -- TODO 文字列を考慮する
-  if t.metatable then
-    return t.metatable.table[ev]
-  end
-end
-
-local function get_table(t, k)
-  -- TODO 文字列を考慮する
-  local v = t.table[k]
-  if v ~= nil then
-    return v
-  end
-  if t.determinate and not t.determinate[k] then
-    return indeterminate
-  end
-  return nil
+local function use_var(var)
+  return var[1]
 end
 
 local function new_table(determinate)
@@ -62,6 +43,44 @@ local function set_table(t, k, v)
   t.table[k] = v
   if t.determinate then
     t.determinate[k] = true
+  end
+end
+
+local string_metatable = new_table {}
+
+local function get_metafield(t, ev)
+  if type(t) == "string" then
+    return string_metatable.table[ev]
+  elseif t.metatable ~= nil then
+    return t.metatable.table[ev]
+  end
+end
+
+local call
+
+local function get_table(t, k)
+  if type(t) ~= "string" then
+    local v = t.table[k]
+    if v ~= nil then
+      return v
+    end
+  end
+  local metafield = get_metafield(t, "__index")
+  if metafield ~= nil then
+    if metafield.table then
+      local v = get_table(metafield, k)
+      if v ~= nil then
+        return v
+      end
+    else
+      local v = call(metafield, t, k)
+      if v ~= nil then
+        return v
+      end
+    end
+  end
+  if t.determinate and not t.determinate[k] then
+    return indeterminate
   end
 end
 
@@ -81,7 +100,6 @@ local function pop(stack)
   return stack[n]
 end
 
-local call
 
 local function process_closure(chunk, proto, U, ...)
   local S = { n = 0 }
@@ -104,6 +122,8 @@ local function process_closure(chunk, proto, U, ...)
     local u_name = u[0]
     local a = u.a
     local b = u.b
+
+    -- print("["..(pc - 1).."]", u.node.f, u.node.n, u.node.c, u_name)
 
     if u_name == "push_nil" then
       for i = 1, a do
@@ -159,6 +179,31 @@ local function process_closure(chunk, proto, U, ...)
 
     elseif u_name == "set_upvalue" then
       def_var(U[a], pop(S))
+
+    elseif u_name == "set_table" then
+      local z = pop(S)
+      local y = pop(S)
+      local x
+      if b then
+        assert(a == S.n)
+        x = pop(S)
+      else
+        x = S[a]
+      end
+      set_table(x, y, z)
+
+    elseif u_name == "set_field" then
+      local z = pop(S)
+      local y = S[b]
+      local x = S[a]
+      set_table(x, y, z)
+
+    elseif u_name == "set_list" then
+      local x = S[a]
+      for i = a + 1, S.n do
+        set_table(x, i - a, S[i])
+      end
+      S.n = a
 
     elseif u_name == "add"    then local y, x = pop(S), pop(S) push(S, x + y)
     elseif u_name == "sub"    then local y, x = pop(S), pop(S) push(S, x - y)
@@ -223,7 +268,7 @@ local function process_closure(chunk, proto, U, ...)
     elseif u_name == "close" then
       local x = use_var(V[a])
       if x ~= nil then
-        call(getmetafield(x, "__close"), x)
+        call(get_metafield(x, "__close"), x)
       end
 
     else
@@ -249,7 +294,18 @@ end
 local env = new_table {}
 set_table(env, "pairs", pairs)
 set_table(env, "print", print)
+set_table(env, "setmetatable", function (t, metatable)
+  t.metatable = metatable
+  return t
+end)
+set_table(env, "getmetatable", function (t)
+  local metafield = get_metafield(t, "__metatable")
+  if metafield ~= nil then
+    return metafield
+  end
+  return t.metatable
+end)
 
 return function (chunk)
-  print(process_chunk(chunk, env))
+  process_chunk(chunk, env)
 end
