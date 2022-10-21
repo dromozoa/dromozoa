@@ -156,6 +156,9 @@ local function process_closure(chunk, proto, U, ...)
       end
       push(S, new_closure(chunk, chunk[a], upvalues))
 
+    elseif u_name == "pop" then
+      S.n = S.n - a
+
     elseif u_name == "get_local" then
       push(S, use_var(V[a]))
 
@@ -181,22 +184,16 @@ local function process_closure(chunk, proto, U, ...)
       def_var(U[a], pop(S))
 
     elseif u_name == "set_table" then
-      local z = pop(S)
       local y = pop(S)
-      local x
+      local x = pop(S)
+      set_table(S[a], x, y)
       if b then
         assert(a == S.n)
-        x = pop(S)
-      else
-        x = S[a]
+        pop(S)
       end
-      set_table(x, y, z)
 
     elseif u_name == "set_field" then
-      local z = pop(S)
-      local y = S[b]
-      local x = S[a]
-      set_table(x, y, z)
+      set_table(S[a], S[b], pop(S))
 
     elseif u_name == "set_list" then
       local x = S[a]
@@ -223,6 +220,14 @@ local function process_closure(chunk, proto, U, ...)
     elseif u_name == "unm" then push(S, -pop(S))
     elseif u_name == "not" then push(S, not pop(S))
 
+    elseif u_name == "len" then
+      local x = pop(S)
+      if type(x) == "string" then
+        push(S, #x)
+      else
+        push(S, #x.table)
+      end
+
     elseif u_name == "if" then
       if not pop(S) then
         pc = proto.labels[a].address
@@ -237,16 +242,10 @@ local function process_closure(chunk, proto, U, ...)
         def_var(V[a + 2], step)
       end
 
-    elseif u_name == "loop" then
+    elseif u_name == "loop" or u_name == "label" then
       -- ignore
 
-    elseif u_name == "break" then
-      pc = proto.labels[a].address
-
-    elseif u_name == "label" then
-      -- ignore
-
-    elseif u_name == "exit" then
+    elseif u_name == "break" or u_name == "goto" or u_name == "exit"then
       pc = proto.labels[a].address
 
     elseif u_name == "call" then
@@ -256,8 +255,23 @@ local function process_closure(chunk, proto, U, ...)
         push(S, x[i])
       end
 
+    elseif u_name == "self" then
+      local x = S[a]
+      local y = get_table(x, S[a + 1])
+      if y == indeterminate then
+        return indeterminate
+      end
+      local z = call(x, table_unpack(S, a + 2, S.n))
+      S.n = a - 1
+      for i = 1, b < 0 and z.n or b do
+        push(S, z[i])
+      end
+
     elseif u_name == "vararg" then
-      -- TODO chunk直下では禁止する
+      if proto.index == 1 then
+        return indeterminate
+      end
+
       for i = 1, a < 0 and vararg.n or a do
         push(S, vararg[i])
       end
