@@ -15,4 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-return dromozoa_annotation_i32 or function (v) return v end
+local closure = require "dromozoa.annotation.closure"
+
+return closure("(i32)->(i32)", function (v) return v end)

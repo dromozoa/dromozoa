@@ -19,6 +19,7 @@ local compiler_error = require "dromozoa.compiler.compiler_error"
 local lua54_regexp = require "dromozoa.compiler.lua54_regexp"
 local lua54_parser = require "dromozoa.compiler.lua54_parser"
 local generate = require "dromozoa.compiler.generate"
+local parse = require "dromozoa.annotation.parse"
 local table_unpack = table.unpack or unpack
 local table_pack = table.pack or function (...)
   return { n = select("#", ...), ... }
@@ -386,18 +387,10 @@ local function initialize_string(env)
 end
 
 local function initialize_annotation(env)
-  --[[
-    if dromozoa_annotation then
-      return dromozoa_annotation("(i32)->(i32)", function (v) return v end)
-    end
-  ]]
-  -- dromozoa_annotation "i32=>i32", function (a)
-  -- end
-  -- set_table(env, "dromozoa_annotation", function (k)
-  -- end)
-
-  set_table(env, "dromozoa_annotation_i32", function (v) return v end)
-  set_table(env, "dromozoa_annotation_main", function (f) call(f) end)
+  set_table(env, "dromozoa_annotation_closure", function (annotation, f)
+    f.annotation = parse(annotation)
+    return f
+  end)
 end
 
 return function (chunk, enable_print)

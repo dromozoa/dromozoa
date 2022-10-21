@@ -16,9 +16,9 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local i32 = require "dromozoa.annotation.i32"
-local main = require "dromozoa.annotation.main"
 
-local x = i32(0)
-main(function ()
-  print(x)
-end)
+local function f(a, b, c)
+  return i32(a) + b + c
+end
+
+print(f(1, 2, 3))

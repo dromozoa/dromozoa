@@ -15,4 +15,4 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-return dromozoa_annotation_main or function (f) f() end
+return dromozoa_annotation_closure or function (_, f) return f end
