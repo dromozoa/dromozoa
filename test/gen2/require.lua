@@ -20,5 +20,3 @@ local quote_lua = require "dromozoa.quote_lua"
 print(quote_lua [[
 foo	bar
 ]])
-
-print(DROMOZOA_STATIC)

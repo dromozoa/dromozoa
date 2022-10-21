@@ -16,6 +16,9 @@
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
 local compiler_error = require "dromozoa.compiler.compiler_error"
+local lua54_regexp = require "dromozoa.compiler.lua54_regexp"
+local lua54_parser = require "dromozoa.compiler.lua54_parser"
+local generate = require "dromozoa.compiler.generate"
 local table_unpack = table.unpack or unpack
 local table_pack = table.pack or function (...)
   return { n = select("#", ...), ... }
@@ -261,7 +264,7 @@ local function process_closure(chunk, proto, U, ...)
       if y == indeterminate then
         return indeterminate
       end
-      local z = call(x, table_unpack(S, a + 2, S.n))
+      local z = call(y, x, table_unpack(S, a + 2, S.n))
       S.n = a - 1
       for i = 1, b < 0 and z.n or b do
         push(S, z[i])
@@ -305,21 +308,69 @@ local function process_chunk(chunk, env)
   return process_closure(chunk, chunk[1], { new_var(env) })
 end
 
-local env = new_table {}
-set_table(env, "pairs", pairs)
-set_table(env, "print", print)
-set_table(env, "setmetatable", function (t, metatable)
-  t.metatable = metatable
-  return t
-end)
-set_table(env, "getmetatable", function (t)
-  local metafield = get_metafield(t, "__metatable")
-  if metafield ~= nil then
-    return metafield
-  end
-  return t.metatable
-end)
+return function (chunk, enable_print)
+  local env = new_table {}
+  set_table(env, "pairs", pairs)
+  set_table(env, "setmetatable", function (t, metatable)
+    t.metatable = metatable
+    return t
+  end)
+  set_table(env, "getmetatable", function (t)
+    local metafield = get_metafield(t, "__metatable")
+    if metafield ~= nil then
+      return metafield
+    end
+    return t.metatable
+  end)
 
-return function (chunk)
+  local loaded = {}
+
+  set_table(env, "require", function (name)
+    local module = loaded[name]
+    if module == nil then
+      local filename = name:gsub("%.", "/")..".lua"
+      local handle = assert(io.open(filename))
+      local source = handle:read "*a"
+      handle:close()
+      local chunk = generate(lua54_regexp(source, filename, lua54_parser.max_terminal_symbol, lua54_parser()))
+      module = process_chunk(chunk, env)
+      if module == nil then
+        module = true
+      end
+      if module ~= indeterminate then
+        loaded[name] = module
+      end
+    end
+    return module
+  end)
+
+  if enable_print then
+    set_table(env, "print", print)
+  end
+
+  local string_module = new_table {}
+  set_table(string_module, "gsub", function (s, pattern, repl, n)
+    local replace
+    if repl == "string" then
+      replace = repl
+    else
+      if repl.table then
+        replace = function (k)
+          local v = get_table(repl, k)
+          assert(v ~= indeterminate)
+          return v
+        end
+      else
+        replace = function (...)
+          return call(repl, ...)
+        end
+      end
+    end
+    return string.gsub(s, pattern, replace, n)
+  end)
+
+  set_table(env, "string", string_module)
+  set_table(string_metatable, "__index", string_module)
+
   process_chunk(chunk, env)
 end
