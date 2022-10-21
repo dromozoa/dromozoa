@@ -20,7 +20,9 @@ target = \
 	dromozoa/parser/runtime.lua \
 	dromozoa/compiler/lua54_regexp.lua \
 	dromozoa/compiler/lua54_parser.lua \
-	dromozoa/compiler/gen1_preamble.lua
+	dromozoa/compiler/gen1_preamble.lua \
+	dromozoa/annotation/regexp.lua \
+	dromozoa/annotation/parser.lua
 
 all:: $(target)
 
@@ -46,3 +48,6 @@ dromozoa/compiler/lua54_regexp.lua dromozoa/compiler/lua54_parser.lua: tool/gene
 
 dromozoa/compiler/gen1_preamble.lua: tool/template_js.lua dromozoa/compiler/gen1_preamble.tmpl
 	lua tool/template_js.lua dromozoa/compiler/gen1_preamble.tmpl $@
+
+dromozoa/annotation/regexp.lua dromozoa/annotation/parser.lua: tool/generate_annotation.lua dromozoa/regexp/runtime.lua dromozoa/parser/runtime.lua
+	lua tool/generate_annotation.lua dromozoa/annotation/regexp.lua dromozoa/annotation/parser.lua
