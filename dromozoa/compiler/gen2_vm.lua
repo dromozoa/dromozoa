@@ -102,7 +102,6 @@ local function pop(stack)
   return stack[n]
 end
 
-
 local function process_closure(chunk, proto, U, ...)
   local S = { n = 0 }
   local V = {}
