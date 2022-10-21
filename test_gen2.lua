@@ -18,7 +18,7 @@
 local lua54_regexp = require "dromozoa.compiler.lua54_regexp"
 local lua54_parser = require "dromozoa.compiler.lua54_parser"
 local generate = require "dromozoa.compiler.generate"
-local evaluate = require "dromozoa.compiler.evaluate"
+local gen2_vm = require "dromozoa.compiler.gen2_vm"
 
 local filename = ...
 
@@ -26,4 +26,4 @@ local handle = assert(io.open(filename))
 local source = handle:read "*a"
 handle:close()
 local chunk = generate(lua54_regexp(source, filename, lua54_parser.max_terminal_symbol, lua54_parser()))
-evaluate(chunk, chunk[1])
+gen2_vm(chunk, chunk[1])

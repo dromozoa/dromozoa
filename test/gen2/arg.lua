@@ -23,5 +23,5 @@ local function g(x, ...)
   return ..., x
 end
 
-local a, b, c = f(a, g(3, 2))
+local a, b, c = f(-1, g(3, 2))
 return 0, f(a, b, c)

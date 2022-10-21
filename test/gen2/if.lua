@@ -15,10 +15,16 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local cond = ""
+local cond = true
 
 if cond then
-  return 17
+  cond = false
+else
+  cond = 42
+end
+
+if cond then
+  return "foo"
 else
   return 23
 end

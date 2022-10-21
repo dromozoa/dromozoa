@@ -263,11 +263,6 @@ local function append_code(proto, tree_code, u, op, a, b)
     error("unknown op "..op)
   end
 
-  local address = append(proto.flat_code, v)
-  if op == "label" then
-    proto.labels[a].address = address
-  end
-
   proto.top = top
   return v
 end
@@ -676,7 +671,7 @@ local function process2(chunk, proto, scope, u, tree_code)
         append_code(proto, tree_loop, u, y.step_cmp)
         do
           local tree_then = append_if(proto, tree_loop, u, u.label + 2)
-          append_code(proto, tree_then, u, "break")
+          append_code(proto, tree_then, u, "break", u.label + 1)
           append_exit(proto, tree_then, u)
         end
         append_code(proto, tree_loop, u, "get_local", u.var)
@@ -726,7 +721,7 @@ local function process2(chunk, proto, scope, u, tree_code)
           append_code(proto, tree_then, u, "gt")
           do
             local tree_then = append_if(proto, tree_then, u, u.label + 4)
-            append_code(proto, tree_then, u, "break")
+            append_code(proto, tree_then, u, "break", u.label + 1)
             append_exit(proto, tree_then, u)
           end
           append_exit(proto, tree_then, u)
@@ -735,7 +730,7 @@ local function process2(chunk, proto, scope, u, tree_code)
           append_code(proto, tree_else, u, "lt")
           do
             local tree_then = append_if(proto, tree_else, u, u.label + 6)
-            append_code(proto, tree_then, u, "break")
+            append_code(proto, tree_then, u, "break", u.label + 1)
             append_exit(proto, tree_then, u)
           end
         end
@@ -817,7 +812,7 @@ local function process2(chunk, proto, scope, u, tree_code)
       do
         local tree_then = append_if(proto, tree_loop, u, u.label + 2)
         append_code(proto, tree_then, u, "close", u.var + 3)
-        append_code(proto, tree_then, u, "break")
+        append_code(proto, tree_then, u, "break", u.label + 1)
         append_exit(proto, tree_then, u)
       end
       append_code(proto, tree_loop, u, "get_local", u.var + 4)
@@ -1078,6 +1073,28 @@ end
 
 ---------------------------------------------------------------------------
 
+local function process3(proto, u)
+  local u_name = u[0]
+
+  local address = append(proto.flat_code, u)
+  if u_name == "if" then
+    for _, v in ipairs(u[1]) do
+      process3(proto, v)
+    end
+    for _, v in ipairs(u[2]) do
+      process3(proto, v)
+    end
+  elseif u_name == "loop" then
+    for _, v in ipairs(u) do
+      process3(proto, v)
+    end
+  elseif u_name == "label" then
+    proto.labels[u.a].address = address
+  end
+end
+
+---------------------------------------------------------------------------
+
 return function (root)
   local chunk = { require = {} }
   local proto = { locals = {} }
@@ -1087,5 +1104,10 @@ return function (root)
 
   process1(chunk, proto, scope, root)
   process2(chunk, proto, scope, root)
+  for _, proto in ipairs(chunk) do
+    for _, u in ipairs(proto.tree_code) do
+      process3(proto, u)
+    end
+  end
   return chunk
 end
