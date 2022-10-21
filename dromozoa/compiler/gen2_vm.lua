@@ -385,8 +385,24 @@ local function initialize_string(env)
   set_table(string_metatable, "__index", module)
 end
 
+local function initialize_annotation(env)
+  --[[
+    if dromozoa_annotation then
+      return dromozoa_annotation("(i32)->(i32)", function (v) return v end)
+    end
+  ]]
+  -- dromozoa_annotation "i32=>i32", function (a)
+  -- end
+  -- set_table(env, "dromozoa_annotation", function (k)
+  -- end)
+
+  set_table(env, "dromozoa_annotation_i32", function (v) return v end)
+  set_table(env, "dromozoa_annotation_main", function (f) call(f) end)
+end
+
 return function (chunk, enable_print)
   local env = initialize_env(enable_print)
   initialize_string(env)
+  initialize_annotation(env)
   process_chunk(chunk, env)
 end
