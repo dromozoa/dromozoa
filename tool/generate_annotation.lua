@@ -44,6 +44,7 @@ out:write(regexp.compile {
     _"i64";
     _"f32";
     _"f64";
+    _"boolean";
 
     _"(";
     _")";
@@ -61,6 +62,7 @@ local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_na
     + _"i64"                  %"$$=$1"
     + _"f32"                  %"$$=$1"
     + _"f64"                  %"$$=$1"
+    + _"boolean"              %"$$=$1"
     + _"tuple" "->" "tuple"   %"$$=$2 append($1,$3)";
 
   tuple

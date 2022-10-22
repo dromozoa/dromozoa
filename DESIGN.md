@@ -40,6 +40,3 @@ tuple: '(' [type {',' type}] ')'
 function: tuple '->' tuple
 type: basic | function
 ```
-
-
-

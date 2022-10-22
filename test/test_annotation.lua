@@ -56,7 +56,7 @@ dump(buffer, t)
 append(buffer, "\n")
 
 local s = [[
-( ( i64 ) -> ( i32 ) , i64 ) -> ( i32 )
+( ( i64 ) -> ( i32 ) , i64 ) -> ( boolean, i32 )
 ]]
 local t = parse(s)
 dump(buffer, t)
@@ -65,5 +65,5 @@ append(buffer, "\n")
 -- print(table.concat(buffer))
 assert(table.concat(buffer) == [[
 (i32,f64)->()
-((i64)->(i32),i64)->(i32)
+((i64)->(i32),i64)->(boolean,i32)
 ]])
