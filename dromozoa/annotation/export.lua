@@ -15,13 +15,4 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local i32 = require "dromozoa.annotation.i32"
-local main = require "dromozoa.annotation.main"
-
-local function f(a, b, c)
-  return i32(a) + b + c
-end
-
--- main(function ()
---   print(f(1, 2, 3))
--- end)
+return dromozoa_annotation_export or function (_, f) return f end

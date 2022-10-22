@@ -391,6 +391,16 @@ local function initialize_annotation(env)
     f.annotation = parse(annotation)
     return f
   end)
+
+  set_table(env, "dromozoa_annotation_main", function (f)
+    f.main = true
+    return f
+  end)
+
+  set_table(env, "dromozoa_annotation_export", function (export, f)
+    f.export = export
+    return f
+  end)
 end
 
 return function (chunk, enable_print)
