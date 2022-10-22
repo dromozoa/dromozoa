@@ -344,19 +344,21 @@ local function initialize_env(enable_print)
   local loaded = {}
 
   set_table(env, "require", function (name)
-    local module = loaded[name]
-    if module == nil then
-      local filename = name:gsub("%.", "/")..".lua"
-      local handle = assert(io.open(filename))
-      local source = handle:read "*a"
-      handle:close()
-      local chunk = generate(lua54_regexp(source, filename, lua54_parser.max_terminal_symbol, lua54_parser()))
-      module = process_chunk(chunk, env)
-      if module == nil then
-        module = true
-      end
-      loaded[name] = module
+    local loader = loaded[name]
+    if loader then
+      return loader.module
     end
+
+    local filename = name:gsub("%.", "/")..".lua"
+    local handle = assert(io.open(filename))
+    local source = handle:read "*a"
+    handle:close()
+    local chunk = generate(lua54_regexp(source, filename, lua54_parser.max_terminal_symbol, lua54_parser()))
+    module = process_chunk(chunk, env)
+    if module == nil then
+      module = true
+    end
+    loaded[name] = { chunk = chunk, module = module }
     return module
   end)
 
