@@ -15,6 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
+local append = require "dromozoa.append"
 local compiler_error = require "dromozoa.compiler.compiler_error"
 local lua54_regexp = require "dromozoa.compiler.lua54_regexp"
 local lua54_parser = require "dromozoa.compiler.lua54_parser"
@@ -298,10 +299,15 @@ function call(f, ...)
 end
 
 local function process_chunk(chunk, env)
-  return process_closure(chunk, chunk[1], { new_var(env) })
+  local result = process_closure(chunk, chunk[1], { new_var(env) })
+  if result == nil then
+    return true
+  else
+    return result
+  end
 end
 
-local function initialize_env(enable_print)
+local function initialize_env(chunks, enable_print)
   local env = new_table {}
 
   set_table(env, "type", function (v)
@@ -341,12 +347,11 @@ local function initialize_env(enable_print)
     return t.metatable
   end)
 
-  local loaded = {}
-
+  local package_loaded = {}
   set_table(env, "require", function (name)
-    local loader = loaded[name]
-    if loader then
-      return loader.module
+    local module = package_loaded[name]
+    if module ~= nil then
+      return module
     end
 
     local filename = name:gsub("%.", "/")..".lua"
@@ -354,11 +359,11 @@ local function initialize_env(enable_print)
     local source = handle:read "*a"
     handle:close()
     local chunk = generate(lua54_regexp(source, filename, lua54_parser.max_terminal_symbol, lua54_parser()))
-    module = process_chunk(chunk, env)
-    if module == nil then
-      module = true
-    end
-    loaded[name] = { chunk = chunk, module = module }
+    chunk.closures = {}
+    local module = process_chunk(chunk, env)
+    chunk.module = module
+    append(chunks, chunk)
+    package_loaded[name] = module
     return module
   end)
 
@@ -406,8 +411,12 @@ local function initialize_annotation(env)
 end
 
 return function (chunk, enable_print)
-  local env = initialize_env(enable_print)
+  chunk.closures = {}
+  local chunks = { chunk }
+  local env = initialize_env(chunks, enable_print)
   initialize_string(env)
   initialize_annotation(env)
-  process_chunk(chunk, env)
+  local module = process_chunk(chunk, env)
+  chunk.module = module
+  return chunks
 end
