@@ -89,7 +89,9 @@ local function get_table(t, k)
 end
 
 local function new_closure(chunk, proto, upvalues)
-  return { chunk = chunk, proto = proto, upvalues = upvalues }
+  local closure = { chunk = chunk, proto = proto, upvalues = upvalues }
+  append(chunk.closures, closure)
+  return closure
 end
 
 local function push(stack, value)
