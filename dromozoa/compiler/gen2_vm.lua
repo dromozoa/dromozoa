@@ -27,7 +27,6 @@ local table_pack = table.pack or function (...)
 end
 
 local indeterminate = {}
-local string_metatable
 
 local function new_var(value)
   return { value }
@@ -52,9 +51,9 @@ local function set_table(t, k, v)
   end
 end
 
-local function get_metafield(t, ev)
+local function get_metafield(context, t, ev)
   if type(t) == "string" then
-    return string_metatable.table[ev]
+    return context.string_metatable.table[ev]
   elseif t.metatable ~= nil then
     return t.metatable.table[ev]
   end
@@ -69,7 +68,7 @@ local function get_table(context, t, k)
       return v
     end
   end
-  local metafield = get_metafield(t, "__index")
+  local metafield = get_metafield(context, t, "__index")
   if metafield ~= nil then
     if metafield.table then
       local v = get_table(context, metafield, k)
@@ -283,7 +282,7 @@ local function process_closure(context, closure, ...)
     elseif u_name == "close" then
       local x = use_var(V[a])
       if x ~= nil then
-        call(context, get_metafield(x, "__close"), x)
+        call(context, get_metafield(context, x, "__close"), x)
       end
 
     else
@@ -298,7 +297,7 @@ function call(context, f, ...)
   if type(f) == "function" then
     return table_pack(f(...))
   elseif f.table then
-    return call(context, get_metafield(f, "__call"), f, ...)
+    return call(context, get_metafield(context, f, "__call"), f, ...)
   else
     return table_pack(process_closure(context, f, ...))
   end
@@ -333,7 +332,7 @@ local function initialize_env(context, enable_print)
   end)
 
   set_table(env, "pairs", function (t)
-    local metafield = get_metafield(t, "__pairs")
+    local metafield = get_metafield(context, t, "__pairs")
     if metafield ~= nil then
       local result = call(context, metafield, t)
       return result[1], result[2], result[3]
@@ -347,7 +346,7 @@ local function initialize_env(context, enable_print)
   end)
 
   set_table(env, "getmetatable", function (t)
-    local metafield = get_metafield(t, "__metatable")
+    local metafield = get_metafield(context, t, "__metatable")
     if metafield ~= nil then
       return metafield
     end
