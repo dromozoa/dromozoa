@@ -50,6 +50,8 @@ local function pop(stack)
   return stack[n]
 end
 
+local call
+
 local function new_table(determinate)
   return { table = {}, determinate = determinate }
 end
@@ -68,8 +70,6 @@ local function get_metafield(context, t, ev)
     return t.metatable.table[ev]
   end
 end
-
-local call
 
 local function get_table(context, t, k, u)
   if type(t) ~= "string" then
@@ -309,7 +309,7 @@ local function process_chunk(context, chunk)
   end
 end
 
-local function initialize_env(context, enable_print)
+local function initialize(context, enable_print)
   local env = context.env
 
   set_table(env, "type", function (v)
@@ -360,8 +360,7 @@ local function initialize_env(context, enable_print)
     local handle = assert(io.open(filename))
     local source = handle:read "*a"
     handle:close()
-    local chunk = generate(lua54_regexp(source, filename, lua54_parser.max_terminal_symbol, lua54_parser()))
-    local module = process_chunk(context, chunk)
+    local module = process_chunk(context, generate(lua54_regexp(source, filename, lua54_parser.max_terminal_symbol, lua54_parser())))
     package_loaded[name] = module
     return module
   end)
@@ -393,8 +392,7 @@ return function (chunk, enable_print)
     chunks = {};
     closures = {};
   }
-
-  initialize_env(context, enable_print)
+  initialize(context, enable_print)
   process_chunk(context, chunk)
   return context
 end
