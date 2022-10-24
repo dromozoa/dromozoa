@@ -22,6 +22,6 @@ local function f(a, b, c)
   return i32(a) + b + c
 end
 
--- main(function ()
---   print(f(1, 2, 3))
--- end)
+main(function ()
+  print(f(1, 2, 3))
+end)
