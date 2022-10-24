@@ -106,7 +106,11 @@ local function pop(stack)
   return stack[n]
 end
 
-local function process_closure(context, chunk, proto, U, ...)
+local function process_closure(context, closure, ...)
+  local chunk = closure.chunk
+  local proto = closure.proto
+  local U = closure.upvalues
+
   local S = { n = 0 }
   local V = {}
   for i = 1, proto.nparams do
@@ -296,13 +300,13 @@ function call(context, f, ...)
   elseif f.table then
     return call(context, get_metafield(f, "__call"), f, ...)
   else
-    return table_pack(process_closure(context, f.chunk, f.proto, f.upvalues, ...))
+    return table_pack(process_closure(context, f, ...))
   end
 end
 
 local function process_chunk(context, chunk)
   local closure = new_closure(context, chunk, chunk[1], { new_var(context.env) })
-  local result = process_closure(context, closure.chunk, closure.proto, closure.upvalues)
+  local result = process_closure(context, closure)
   if result == nil then
     return true
   else
