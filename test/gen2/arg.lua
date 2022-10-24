@@ -18,6 +18,9 @@
 -- indeterminate
 -- local a = ...
 
+-- indeterminate
+-- local a = no_such_value
+
 local function f(a, b, c)
   return b, c, a
 end

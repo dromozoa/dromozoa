@@ -15,10 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local function f(message)
-  return (message:gsub("^.-: ", ""))
-end
-
 for i = 1, 4 do
   print(i)
 end

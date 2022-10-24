@@ -40,6 +40,18 @@ local function use_var(var)
   return var[1]
 end
 
+local function push(stack, value)
+  local n = stack.n + 1
+  stack.n = n
+  stack[n] = value
+end
+
+local function pop(stack)
+  local n = stack.n
+  stack.n = n - 1
+  return stack[n]
+end
+
 local function new_table(determinate)
   return { table = {}, determinate = determinate }
 end
@@ -61,7 +73,7 @@ end
 
 local call
 
-local function get_table(context, t, k)
+local function get_table(context, t, k, u)
   if type(t) ~= "string" then
     local v = t.table[k]
     if v ~= nil then
@@ -71,7 +83,7 @@ local function get_table(context, t, k)
   local metafield = get_metafield(context, t, "__index")
   if metafield ~= nil then
     if metafield.table then
-      local v = get_table(context, metafield, k)
+      local v = get_table(context, metafield, k, u)
       if v ~= nil then
         return v
       end
@@ -83,7 +95,7 @@ local function get_table(context, t, k)
     end
   end
   if t.determinate and not t.determinate[k] then
-    error(indeterminate, 0)
+    compiler_error("indeterminate", u)
   end
 end
 
@@ -91,18 +103,6 @@ local function new_closure(context, chunk, proto, upvalues)
   local closure = { chunk = chunk, proto = proto, upvalues = upvalues }
   append(context.closures, closure)
   return closure
-end
-
-local function push(stack, value)
-  local n = stack.n + 1
-  stack.n = n
-  stack[n] = value
-end
-
-local function pop(stack)
-  local n = stack.n
-  stack.n = n - 1
-  return stack[n]
 end
 
 local function process_closure(context, closure, ...)
@@ -176,7 +176,7 @@ local function process_closure(context, closure, ...)
     elseif u_name == "get_table" then
       local y = pop(S)
       local x = pop(S)
-      push(S, get_table(context, x, y))
+      push(S, get_table(context, x, y, u.node))
 
     elseif u_name == "new_local" then
       V[a] = new_var(pop(S))
@@ -261,7 +261,7 @@ local function process_closure(context, closure, ...)
 
     elseif u_name == "self" then
       local x = S[a]
-      local y = call(context, get_table(context, x, S[a + 1]), x, table_unpack(S, a + 2, S.n))
+      local y = call(context, get_table(context, x, S[a + 1], u.node), x, table_unpack(S, a + 2, S.n))
       S.n = a - 1
       for i = 1, b < 0 and y.n or b do
         push(S, y[i])
@@ -269,7 +269,7 @@ local function process_closure(context, closure, ...)
 
     elseif u_name == "vararg" then
       if proto.index == 1 then
-        error(indeterminate, 0)
+        compiler_error("indeterminate", u.node)
       end
 
       for i = 1, a < 0 and vararg.n or a do
@@ -381,19 +381,9 @@ end
 local function initialize_string(context)
   local env = context.env
   -- TODO 後で除去
-  string_metatable = context.string_metatable
+  -- string_metatable = context.string_metatable
 
   local module = new_table {}
-
-  set_table(module, "gsub", function (s, pattern, repl, n)
-    if repl == "string" then
-      return string.gsub(s, pattern, repl, n)
-    elseif repl.table then
-      return string.gsub(s, pattern, function (k) return get_table(context, repl, k) end, n)
-    else
-      return string.gsub(s, pattern, function (...) return table_unpack(call(context, repl, ...)) end, n)
-    end
-  end)
 
   set_table(context.env, "string", module)
   set_table(context.string_metatable, "__index", module)
