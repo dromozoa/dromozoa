@@ -88,9 +88,9 @@ local function get_table(context, t, k)
   end
 end
 
-local function new_closure(chunk, proto, upvalues)
+local function new_closure(context, chunk, proto, upvalues)
   local closure = { chunk = chunk, proto = proto, upvalues = upvalues }
-  append(chunk.closures, closure)
+  append(context.closures, closure)
   return closure
 end
 
@@ -159,7 +159,7 @@ local function process_closure(context, chunk, proto, U, ...)
           upvalues[i] = V[v.var]
         end
       end
-      push(S, new_closure(chunk, chunk[a], upvalues))
+      push(S, new_closure(context, chunk, chunk[a], upvalues))
 
     elseif u_name == "pop" then
       S.n = S.n - a
@@ -301,9 +301,7 @@ function call(context, f, ...)
 end
 
 local function process_chunk(context, chunk)
-  local closure = new_closure(chunk, chunk[1], { new_var(context.env) })
-  -- TODO appendは実行のあと？
-  append(context.closures, closure)
+  local closure = new_closure(context, chunk, chunk[1], { new_var(context.env) })
   local result = process_closure(context, closure.chunk, closure.proto, closure.upvalues)
   if result == nil then
     return true
