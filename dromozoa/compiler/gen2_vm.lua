@@ -127,8 +127,6 @@ local function process_closure(context, closure, ...)
     local a = u.a
     local b = u.b
 
-    -- print("["..(pc - 1).."]", u.node.f, u.node.n, u.node.c, u_name)
-
     if u_name == "push_nil" then
       for i = 1, a do
         push(S, nil)
@@ -302,8 +300,8 @@ function call(context, f, ...)
 end
 
 local function process_chunk(context, chunk)
-  local closure = new_closure(context, chunk, chunk[1], { new_var(context.env) })
-  local result = process_closure(context, closure)
+  append(context.chunks, chunk)
+  local result = process_closure(context, new_closure(context, chunk, chunk[1], { new_var(context.env) }))
   if result == nil then
     return true
   else
@@ -363,12 +361,25 @@ local function initialize_env(context, enable_print)
     local source = handle:read "*a"
     handle:close()
     local chunk = generate(lua54_regexp(source, filename, lua54_parser.max_terminal_symbol, lua54_parser()))
-    chunk.closures = {}
     local module = process_chunk(context, chunk)
-    chunk.module = module
-    append(context.chunks, chunk)
     package_loaded[name] = module
     return module
+  end)
+
+  set_table(env, "dromozoa_annotation_closure", function (annotation, f)
+    f.annotation = parse(annotation)
+    return f
+  end)
+
+  set_table(env, "dromozoa_annotation_main", function (f)
+    f.main = true
+    return f
+  end)
+  set_table(env, "dromozoa_annotation_main", nil)
+
+  set_table(env, "dromozoa_annotation_export", function (export, f)
+    f.export = export
+    return f
   end)
 
   if enable_print then
@@ -376,50 +387,14 @@ local function initialize_env(context, enable_print)
   end
 end
 
-local function initialize_string(context)
-  local env = context.env
-  -- TODO 後で除去
-  -- string_metatable = context.string_metatable
-
-  local module = new_table {}
-
-  set_table(context.env, "string", module)
-  set_table(context.string_metatable, "__index", module)
-end
-
-local function initialize_annotation(context)
-  local env = context.env
-
-  set_table(env, "dromozoa_annotation_closure", function (annotation, f)
-    f.annotation = parse(annotation)
-    return f
-  end)
-
-  -- set_table(env, "dromozoa_annotation_main", function (f)
-  --   f.main = true
-  --   return f
-  -- end)
-  set_table(env, "dromozoa_annotation_main", nil)
-
-  set_table(env, "dromozoa_annotation_export", function (export, f)
-    f.export = export
-    return f
-  end)
-end
-
 return function (chunk, enable_print)
   local context = {
-    chunks = { chunk };
-    closures = {};
     env = new_table {};
-    string_metatable = new_table {};
+    chunks = {};
+    closures = {};
   }
 
-  chunk.closures = {}
   initialize_env(context, enable_print)
-  initialize_string(context)
-  initialize_annotation(context)
-  local module = process_chunk(context, chunk)
-  chunk.module = module
-  return context.chunks
+  process_chunk(context, chunk)
+  return context
 end
