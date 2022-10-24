@@ -300,8 +300,11 @@ function call(f, ...)
   end
 end
 
-local function process_chunk(chunk, env)
-  local result = process_closure(chunk, chunk[1], { new_var(env) })
+local function process_chunk(context, chunk)
+  local closure = new_closure(chunk, chunk[1], { new_var(context.env) })
+  -- TODO appendは実行のあと？
+  append(context.closures, closure)
+  local result = process_closure(closure.chunk, closure.proto, closure.upvalues)
   if result == nil then
     return true
   else
@@ -309,8 +312,8 @@ local function process_chunk(chunk, env)
   end
 end
 
-local function initialize_env(chunks, enable_print)
-  local env = new_table {}
+local function initialize_env(context, enable_print)
+  local env = context.env
 
   set_table(env, "type", function (v)
     local t = type(v)
@@ -362,9 +365,9 @@ local function initialize_env(chunks, enable_print)
     handle:close()
     local chunk = generate(lua54_regexp(source, filename, lua54_parser.max_terminal_symbol, lua54_parser()))
     chunk.closures = {}
-    local module = process_chunk(chunk, env)
+    local module = process_chunk(context, chunk)
     chunk.module = module
-    append(chunks, chunk)
+    append(context.chunks, chunk)
     package_loaded[name] = module
     return module
   end)
@@ -372,11 +375,13 @@ local function initialize_env(chunks, enable_print)
   if enable_print then
     set_table(env, "print", print)
   end
-
-  return env
 end
 
-local function initialize_string(env)
+local function initialize_string(context)
+  local env = context.env
+  -- TODO 後で除去
+  string_metatable = context.string_metatable
+
   local module = new_table {}
 
   set_table(module, "gsub", function (s, pattern, repl, n)
@@ -389,22 +394,23 @@ local function initialize_string(env)
     end
   end)
 
-  set_table(env, "string", module)
-
-  string_metatable = new_table {}
-  set_table(string_metatable, "__index", module)
+  set_table(context.env, "string", module)
+  set_table(context.string_metatable, "__index", module)
 end
 
-local function initialize_annotation(env)
+local function initialize_annotation(context)
+  local env = context.env
+
   set_table(env, "dromozoa_annotation_closure", function (annotation, f)
     f.annotation = parse(annotation)
     return f
   end)
 
-  set_table(env, "dromozoa_annotation_main", function (f)
-    f.main = true
-    return f
-  end)
+  -- set_table(env, "dromozoa_annotation_main", function (f)
+  --   f.main = true
+  --   return f
+  -- end)
+  set_table(env, "dromozoa_annotation_main", nil)
 
   set_table(env, "dromozoa_annotation_export", function (export, f)
     f.export = export
@@ -413,12 +419,18 @@ local function initialize_annotation(env)
 end
 
 return function (chunk, enable_print)
+  local context = {
+    chunks = { chunk };
+    closures = {};
+    env = new_table {};
+    string_metatable = new_table {};
+  }
+
   chunk.closures = {}
-  local chunks = { chunk }
-  local env = initialize_env(chunks, enable_print)
-  initialize_string(env)
-  initialize_annotation(env)
-  local module = process_chunk(chunk, env)
+  initialize_env(context, enable_print)
+  initialize_string(context)
+  initialize_annotation(context)
+  local module = process_chunk(context, chunk)
   chunk.module = module
-  return chunks
+  return context.chunks
 end

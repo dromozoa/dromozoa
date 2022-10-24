@@ -26,11 +26,12 @@ local handle = assert(io.open(filename))
 local source = handle:read "*a"
 handle:close()
 local chunk = generate(lua54_regexp(source, filename, lua54_parser.max_terminal_symbol, lua54_parser()))
-local chunks = gen2_vm(chunk, true)
+gen2_vm(chunk, true)
 
-for i = #chunks, 1, -1 do
-  local chunk = chunks[i]
-  for j, closure in ipairs(chunk.closures) do
-    print(i, j, closure)
-  end
-end
+-- local chunks = gen2_vm(chunk, true)
+-- for i = #chunks, 1, -1 do
+--   local chunk = chunks[i]
+--   for j, closure in ipairs(chunk.closures) do
+--     print(i, j, closure)
+--   end
+-- end
