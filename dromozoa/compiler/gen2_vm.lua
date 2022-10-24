@@ -26,8 +26,6 @@ local table_pack = table.pack or function (...)
   return { n = select("#", ...), ... }
 end
 
-local indeterminate = {}
-
 local function new_var(value)
   return { value }
 end
@@ -95,7 +93,7 @@ local function get_table(context, t, k, u)
     end
   end
   if t.determinate and not t.determinate[k] then
-    compiler_error("indeterminate", u)
+    compiler_error("indeterminate", u.node)
   end
 end
 
@@ -106,18 +104,16 @@ local function new_closure(context, chunk, proto, upvalues)
 end
 
 local function process_closure(context, closure, ...)
-  local chunk = closure.chunk
-  local proto = closure.proto
+  local P = closure.proto
   local U = closure.upvalues
-
   local S = { n = 0 }
   local V = {}
-  for i = 1, proto.nparams do
+  for i = 1, P.nparams do
     V[i] = new_var(select(i, ...))
   end
-  local vararg = table_pack(select(proto.nparams + 1, ...))
+  local vararg = table_pack(select(P.nparams + 1, ...))
 
-  local flat_code = proto.flat_code
+  local flat_code = P.flat_code
   local pc = 1
 
   while true do
@@ -154,15 +150,17 @@ local function process_closure(context, closure, ...)
       push(S, new_table())
 
     elseif u_name == "closure" then
+      local chunk = closure.chunk
+      local proto = chunk[a]
       local upvalues = {}
-      for i, v in ipairs(chunk[a].upvalues) do
+      for i, v in ipairs(proto.upvalues) do
         if v.var < 0 then
           upvalues[i] = U[-v.var]
         else
           upvalues[i] = V[v.var]
         end
       end
-      push(S, new_closure(context, chunk, chunk[a], upvalues))
+      push(S, new_closure(context, chunk, proto, upvalues))
 
     elseif u_name == "pop" then
       S.n = S.n - a
@@ -176,7 +174,7 @@ local function process_closure(context, closure, ...)
     elseif u_name == "get_table" then
       local y = pop(S)
       local x = pop(S)
-      push(S, get_table(context, x, y, u.node))
+      push(S, get_table(context, x, y, u))
 
     elseif u_name == "new_local" then
       V[a] = new_var(pop(S))
@@ -234,7 +232,7 @@ local function process_closure(context, closure, ...)
 
     elseif u_name == "if" then
       if not pop(S) then
-        pc = proto.labels[a].address
+        pc = P.labels[a].address
       end
 
     elseif u_name == "check_for" then
@@ -250,7 +248,7 @@ local function process_closure(context, closure, ...)
       -- ignore
 
     elseif u_name == "break" or u_name == "goto" or u_name == "exit"then
-      pc = proto.labels[a].address
+      pc = P.labels[a].address
 
     elseif u_name == "call" then
       local x = call(context, S[a], table_unpack(S, a + 1, S.n))
@@ -261,14 +259,14 @@ local function process_closure(context, closure, ...)
 
     elseif u_name == "self" then
       local x = S[a]
-      local y = call(context, get_table(context, x, S[a + 1], u.node), x, table_unpack(S, a + 2, S.n))
+      local y = call(context, get_table(context, x, S[a + 1], u), x, table_unpack(S, a + 2, S.n))
       S.n = a - 1
       for i = 1, b < 0 and y.n or b do
         push(S, y[i])
       end
 
     elseif u_name == "vararg" then
-      if proto.index == 1 then
+      if P.index == 1 then
         compiler_error("indeterminate", u.node)
       end
 
