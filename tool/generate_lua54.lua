@@ -144,7 +144,7 @@ local expect = parser.grammar.expect
 local left = parser.grammar.left
 local right = parser.grammar.right
 
-local grammar, actions, conflictions, data = parser.lalr(parser.grammar(token_names, {
+local grammar, actions, conflictions = parser.lalr(parser.grammar(token_names, {
   expect(3);
 
   left "or";

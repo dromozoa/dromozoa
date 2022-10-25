@@ -43,11 +43,11 @@ local lua54_parser = require "dromozoa.compiler.lua54_parser"
 --   |        |
 -- scope----proto <= external
 
-local function declare(scope, name, u, attribute)
+local function declare_internal(proto, name, u, attribute)
   if attribute and attribute ~= "const" and attribute ~= "close" then
     compiler_error("unknown attribute '"..attribute.."'", u)
   end
-  local var = append(scope.proto.locals, {
+  return append(proto.locals, {
     name = name;
     attribute = attribute;
     def = 1;
@@ -56,6 +56,10 @@ local function declare(scope, name, u, attribute)
     upuse = 0;
     node = u;
   })
+end
+
+local function declare(scope, name, u, attribute)
+  local var = declare_internal(scope.proto, name, u, attribute)
   append(scope.locals, var)
   return var
 end
@@ -128,6 +132,14 @@ local function find_label(scope, name)
   until proto ~= scope.proto
 end
 
+local function define_internal_label(proto, n, u)
+  local label = append(proto.labels, { node = u })
+  for i = 2, n do
+    append(proto.labels, { node = u })
+  end
+  return label
+end
+
 local function define_label(scope, name, u)
   local label, v = find_label(scope, name)
   if label then
@@ -139,11 +151,11 @@ local function define_label(scope, name, u)
 end
 
 local function resolve_label(scope, name, u)
-  local label = find_label(scope, name)
+  local label, v = find_label(scope, name)
   if not label then
     compiler_error("no visible label '"..name.."' for <goto> at line "..u.n, u)
   end
-  return label
+  return label, v
 end
 
 ---------------------------------------------------------------------------
@@ -195,12 +207,12 @@ local opcodes = {
   bnot    = 0;
 
   ["if"]    = -1;
-  block     =  0;
   check_for =  0;
   loop      =  0;
   ["break"] =  0;
   label     =  0;
   ["goto"]  =  0;
+  exit      =  0;
 
   call       = false;
   self       = false;
@@ -210,11 +222,12 @@ local opcodes = {
   close = 0;
 }
 
-local function append_code(proto, code, u, op, a, b)
+local function append_code(proto, tree_code, u, op, a, b)
   local top = proto.top
   local v = { [0] = op, a = a, b = b, top = top, node = u }
 
-  append(code, v)
+  append(tree_code, v)
+
   local opcode = opcodes[op]
   if opcode then
     top = top + opcode
@@ -254,27 +267,41 @@ local function append_code(proto, code, u, op, a, b)
   return v
 end
 
-local function append_if(proto, code, u)
-  local cond = append_code(proto, code, u, "if")
-  local then_block = append_code(proto, cond, u, "block")
-  local else_block = append_code(proto, cond, u, "block")
-  return then_block, else_block
+local function append_if(proto, tree_code, u, label)
+  local tree_then = { exit = label + 1 }
+  local tree_else = {}
+  append(append_code(proto, tree_code, u, "if", label), tree_then, tree_else)
+  append_code(proto, tree_else, u, "label", label)
+  append_code(proto, tree_code, u, "label", label + 1)
+  return tree_then, tree_else
 end
 
-local function append_close_scope(proto, code, u, scope)
+local function append_loop(proto, tree_code, u, label)
+  local tree_loop = append_code(proto, tree_code, u, "loop")
+  tree_loop.exit = label
+  append_code(proto, tree_loop, u, "label", label)
+  append_code(proto, tree_code, u, "label", label + 1)
+  return tree_loop
+end
+
+local function append_exit(proto, block, u)
+  append_code(proto, block, u, "exit", assert(block.exit))
+end
+
+local function append_close_scope(proto, tree_code, u, scope)
   for i = #scope.locals, 1, -1 do
     local var = scope.locals[i]
     if proto.locals[var].attribute == "close" then
-      append_code(proto, code, u, "close", var)
+      append_code(proto, tree_code, u, "close", var)
     end
   end
 end
 
-local function append_close_stack(proto, code, u, stack, n)
+local function append_close_stack(proto, tree_code, u, stack, n)
   for i = 1, n or #stack do
     local var = stack[i]
     if proto.locals[var].attribute == "close" then
-      append_code(proto, code, u, "close", var)
+      append_code(proto, tree_code, u, "close", var)
     end
   end
 end
@@ -296,7 +323,8 @@ local function process1(chunk, proto, scope, u, loop)
       upvalues = {};
       labels = {};
       scopes = {};
-      code = {};
+      tree_code = {};
+      flat_code = {};
       top = 0;
       node = u;
       parent = proto;
@@ -342,33 +370,47 @@ local function process1(chunk, proto, scope, u, loop)
       end
     end
 
+  elseif u_name == "while" or u_name == "repeat" then
+    -- 内部的に使用する4個のラベルを定義する。
+    u.label = define_internal_label(proto, 4, u)
+
+  elseif u_name == "if" or u_name == "elseif" then
+    -- 内部的に使用する2個のラベルを定義する。
+    u.label = define_internal_label(proto, 2, u)
+
   elseif u_name == "for" then
+    -- 内部的に使用する8個のラベルを定義する。
+    u.label = define_internal_label(proto, 8, u)
+
     -- 制御式の名前解決を先に行う。
     process1(chunk, proto, scope, y, loop)
     -- 内部的に使用する3個の変数を宣言する。
-    u.var = declare(scope, "(for state)", u)
-    declare(scope, "(for state)", u)
-    declare(scope, "(for state)", u)
+    u.var = declare_internal(proto, "(for state)", u)
+    declare_internal(proto, "(for state)", u)
+    declare_internal(proto, "(for state)", u)
     process1(chunk, proto, scope, x, loop)
     return process1(chunk, proto, scope, z, loop)
 
   elseif u_name == "for_in" then
+    -- 内部的に使用する4個のラベルを定義する。
+    u.label = define_internal_label(proto, 4, u)
+
     -- 制御式の名前解決を先に行う。
     process1(chunk, proto, scope, y, loop)
     -- 内部的に使用する4個の変数を宣言する。Lua 5.3以前は3個だったが、Lua 5.4で
     -- to-be-closed変数が追加された。
-    u.var = declare(scope, "(for state)", u)
-    declare(scope, "(for state)", u)
-    declare(scope, "(for state)", u)
-    declare(scope, "(for state)", u, "close")
+    u.var = declare_internal(proto, "(for state)", u)
+    declare_internal(proto, "(for state)", u)
+    declare_internal(proto, "(for state)", u)
+    declare_internal(proto, "(for state)", u, "close")
     process1(chunk, proto, scope, x, loop)
     return process1(chunk, proto, scope, z, loop)
 
   elseif u_name == "local_function" then
-    process1(chunk, proto, scope, x, code)
+    process1(chunk, proto, scope, x, loop)
     local v = proto.locals[x.var]
     v.def = v.def + 1
-    return process1(chunk, proto, scope, y, code)
+    return process1(chunk, proto, scope, y, loop)
 
   elseif u_name == "local" then
     local n = 0
@@ -428,8 +470,11 @@ local function process1(chunk, proto, scope, u, loop)
     end
 
   elseif u_name == "and" or u_name == "or" then
+    -- 内部的に使用する2個のラベルを定義する。
+    u.label = define_internal_label(proto, 2, u)
+
     -- 内部変数を使用して、短絡演算子のスタック操作を単一代入にする。
-    u.var = declare(scope, "(short-circuit)", u)
+    u.var = declare_internal(proto, "(short-circuit)", u)
 
   elseif u_name == "Name" then
     if u.declare then
@@ -451,7 +496,7 @@ end
 
 ---------------------------------------------------------------------------
 
-local function process2(chunk, proto, scope, u, code)
+local function process2(chunk, proto, scope, u, tree_code)
   local u_name = lua54_parser.symbol_names[u[0]]
   local x = u[1]
   local y = u[2]
@@ -459,7 +504,7 @@ local function process2(chunk, proto, scope, u, code)
 
   if u.proto then
     proto = u.proto
-    code = proto.code
+    tree_code = proto.tree_code
   end
 
   if u.scope then
@@ -470,31 +515,31 @@ local function process2(chunk, proto, scope, u, code)
     local end_of_scope = u.end_of_scope
     for i, v in ipairs(u) do
       if end_of_scope == i then
-        append_close_scope(proto, code, u, scope)
+        append_close_scope(proto, tree_code, u, scope)
       end
-      process2(chunk, proto, scope, v, code)
+      process2(chunk, proto, scope, v, tree_code)
     end
 
     if not scope.repeat_until and not end_of_scope then
-      append_close_scope(proto, code, u, scope)
+      append_close_scope(proto, tree_code, u, scope)
     end
 
   elseif u_name == "=" then
-    process2(chunk, proto, scope, x, code)
+    process2(chunk, proto, scope, x, tree_code)
     local target = proto.top
-    process2(chunk, proto, scope, y, code)
+    process2(chunk, proto, scope, y, tree_code)
 
     local n = #x
     if n == 1 then
       local v = x[1]
       if v.var then
         if v.var < 0 then
-          append_code(proto, code, u, "set_upvalue", -v.var)
+          append_code(proto, tree_code, u, "set_upvalue", -v.var)
         else
-          append_code(proto, code, u, "set_local", v.var)
+          append_code(proto, tree_code, u, "set_local", v.var)
         end
       else
-        append_code(proto, code, u, "set_table", 1, true)
+        append_code(proto, tree_code, u, "set_table", 1, true)
       end
     else
       for i = n, 1, -1 do
@@ -502,25 +547,25 @@ local function process2(chunk, proto, scope, u, code)
         local c
         if v.var then
           if v.var < 0 then
-            c = append_code(proto, code, u, "set_upvalue", -v.var)
+            c = append_code(proto, tree_code, u, "set_upvalue", -v.var)
           else
-            c = append_code(proto, code, u, "set_local", v.var)
+            c = append_code(proto, tree_code, u, "set_local", v.var)
           end
         else
-          c = append_code(proto, code, u, "set_field", target - 1, target)
+          c = append_code(proto, tree_code, u, "set_field", target - 1, target)
           c.literal = v.literal
           target = target - 2
         end
         c.store = i < n
       end
       if proto.top > 0 then
-        append_code(proto, code, u, "pop", proto.top)
+        append_code(proto, tree_code, u, "pop", proto.top)
       end
     end
     assert(proto.top == 0)
 
   elseif u_name == "label" then
-    append_code(proto, code, u, "label", u.label)
+    append_code(proto, tree_code, u, "label", u.label)
 
   elseif u_name == "break" then
     local v = u.target
@@ -533,12 +578,12 @@ local function process2(chunk, proto, scope, u, code)
       assert(u.stack[m - i] == v.stack[n - i])
     end
 
-    append_close_stack(proto, code, u, u.stack, m - n)
-    append_code(proto, code, u, "break")
+    append_close_stack(proto, tree_code, u, u.stack, m - n)
+    append_code(proto, tree_code, u, "break", v.label + 1)
 
   elseif u_name == "goto" then
-    local label = resolve_label(scope, x.v, u)
-    local v = proto.labels[label].node
+    local label, to = resolve_label(scope, x.v, u)
+    local v = to.node
     local m = #u.stack
     local n = #v.stack
 
@@ -551,29 +596,40 @@ local function process2(chunk, proto, scope, u, code)
     end
     assert(m >= n)
 
-    append_close_stack(proto, code, u, u.stack, m - n)
-    append_code(proto, code, u, "goto", label)
+    append_close_stack(proto, tree_code, u, u.stack, m - n)
+    append_code(proto, tree_code, u, "goto", label)
 
   elseif u_name == "while" then
-    local loop_block = append_code(proto, code, u, "loop")
-    process2(chunk, proto, scope, x, loop_block)
-    local then_block, else_block = append_if(proto, loop_block, u)
-    process2(chunk, proto, scope, y, then_block)
-    append_code(proto, else_block, u, "break")
+    local tree_loop = append_loop(proto, tree_code, u, u.label)
+    process2(chunk, proto, scope, x, tree_loop)
+    do
+      local tree_then, tree_else = append_if(proto, tree_loop, u, u.label + 2)
+      process2(chunk, proto, scope, y, tree_then)
+      append_exit(proto, tree_then, u)
+      append_code(proto, tree_else, u, "break", u.label + 1)
+    end
+    append_exit(proto, tree_loop, u)
 
   elseif u_name == "repeat" then
-    local loop_block = append_code(proto, code, u, "loop")
-    process2(chunk, proto, scope, x, loop_block)
-    process2(chunk, proto, scope, y, loop_block)
-    append_close_scope(proto, loop_block, u, scope)
-    local then_block = append_if(proto, loop_block, u)
-    append_code(proto, then_block, u, "break")
+    local tree_loop = append_loop(proto, tree_code, u, u.label)
+    process2(chunk, proto, scope, x, tree_loop)
+    process2(chunk, proto, scope, y, tree_loop)
+    append_close_scope(proto, tree_loop, u, scope)
+    do
+      local tree_then = append_if(proto, tree_loop, u, u.label + 2)
+      append_code(proto, tree_then, u, "break", u.label + 1)
+      append_exit(proto, tree_then, u)
+    end
+    append_exit(proto, tree_loop, u)
 
   elseif u_name == "if" or u_name == "elseif" then
-    process2(chunk, proto, scope, x, code)
-    local then_block, else_block = append_if(proto, code, u)
-    process2(chunk, proto, scope, y, then_block)
-    process2(chunk, proto, scope, z, else_block)
+    process2(chunk, proto, scope, x, tree_code)
+    do
+      local tree_then, tree_else = append_if(proto, tree_code, u, u.label)
+      process2(chunk, proto, scope, y, tree_then)
+      append_exit(proto, tree_then, u)
+      process2(chunk, proto, scope, z, tree_else)
+    end
 
   elseif u_name == "for" then
     -- Lua 5.2のマニュアルを元に実装する。
@@ -584,7 +640,7 @@ local function process2(chunk, proto, scope, u, code)
     -- 1. stepが0の場合にエラーになる。
     -- 2. ラップアラウンドしなくなった。
 
-    process2(chunk, proto, scope, y, code)
+    process2(chunk, proto, scope, y, tree_code)
     if y.step then
       -- for v = e1, e2, K do block end
       --
@@ -605,28 +661,28 @@ local function process2(chunk, proto, scope, u, code)
         compiler_error("'for' step is zero", y[3])
       end
 
-      append_code(proto, code, u, "new_local", u.var + 1)
-      append_code(proto, code, u, "new_local", u.var)
-      append_code(proto, code, u, "check_for", u.var, 2)
-
-      local loop_block = append_code(proto, code, u, "loop")
-
-      append_code(proto, loop_block, u, "get_local", u.var)
-      append_code(proto, loop_block, u, "get_local", u.var + 1)
-      append_code(proto, loop_block, u, y.step_cmp)
-      local then_block = append_if(proto, loop_block, u)
-      append_code(proto, then_block, u, "break")
-
-      append_code(proto, loop_block, u, "get_local", u.var)
-      append_code(proto, loop_block, u, "new_local", u.var + 3)
-
-      process2(chunk, proto, scope, z, loop_block)
-
-      append_code(proto, loop_block, u, "get_local", u.var)
-      append_code(proto, loop_block, u, "push_numeral", y.step_v, y.step_hint)
-      append_code(proto, loop_block, u, y.step_op)
-      append_code(proto, loop_block, u, "set_local", u.var)
-
+      append_code(proto, tree_code, u, "new_local", u.var + 1)
+      append_code(proto, tree_code, u, "new_local", u.var)
+      append_code(proto, tree_code, u, "check_for", u.var, 2)
+      do
+        local tree_loop = append_loop(proto, tree_code, u, u.label)
+        append_code(proto, tree_loop, u, "get_local", u.var)
+        append_code(proto, tree_loop, u, "get_local", u.var + 1)
+        append_code(proto, tree_loop, u, y.step_cmp)
+        do
+          local tree_then = append_if(proto, tree_loop, u, u.label + 2)
+          append_code(proto, tree_then, u, "break", u.label + 1)
+          append_exit(proto, tree_then, u)
+        end
+        append_code(proto, tree_loop, u, "get_local", u.var)
+        append_code(proto, tree_loop, u, "new_local", u.var + 3)
+        process2(chunk, proto, scope, z, tree_loop)
+        append_code(proto, tree_loop, u, "get_local", u.var)
+        append_code(proto, tree_loop, u, "push_numeral", y.step_v, y.step_hint)
+        append_code(proto, tree_loop, u, y.step_op)
+        append_code(proto, tree_loop, u, "set_local", u.var)
+        append_exit(proto, tree_loop, u)
+      end
     else
       -- for v = e1, e2, e3 do block end
       --
@@ -649,44 +705,49 @@ local function process2(chunk, proto, scope, u, code)
       --   end
       -- end
 
-      append_code(proto, code, u, "new_local", u.var + 2)
-      append_code(proto, code, u, "new_local", u.var + 1)
-      append_code(proto, code, u, "new_local", u.var)
-      append_code(proto, code, u, "check_for", u.var, 3)
-
-      local loop_block = append_code(proto, code, u, "loop")
-
-      append_code(proto, loop_block, u, "get_local", u.var + 2)
-      append_code(proto, loop_block, u, "push_numeral", "0", "DecimalIntegerNumeral")
-      append_code(proto, loop_block, u, "ge")
-      local then_block, else_block = append_if(proto, loop_block, u)
-
-      append_code(proto, then_block, u, "get_local", u.var)
-      append_code(proto, then_block, u, "get_local", u.var + 1)
-      append_code(proto, then_block, u, "gt")
-      local then_block = append_if(proto, then_block, u)
-      append_code(proto, then_block, u, "break")
-
-      append_code(proto, else_block, u, "get_local", u.var)
-      append_code(proto, else_block, u, "get_local", u.var + 1)
-      append_code(proto, else_block, u, "lt")
-      local then_block = append_if(proto, else_block, u)
-      append_code(proto, then_block, u, "break")
-
-      append_code(proto, loop_block, u, "get_local", u.var)
-      append_code(proto, loop_block, u, "new_local", u.var + 3)
-
-      process2(chunk, proto, scope, z, loop_block)
-
-      append_code(proto, loop_block, u, "get_local", u.var)
-      append_code(proto, loop_block, u, "get_local", u.var + 2)
-      append_code(proto, loop_block, u, "add")
-      append_code(proto, loop_block, u, "set_local", u.var)
+      append_code(proto, tree_code, u, "new_local", u.var + 2)
+      append_code(proto, tree_code, u, "new_local", u.var + 1)
+      append_code(proto, tree_code, u, "new_local", u.var)
+      append_code(proto, tree_code, u, "check_for", u.var, 3)
+      do
+        local tree_loop = append_loop(proto, tree_code, u, u.label)
+        append_code(proto, tree_loop, u, "get_local", u.var + 2)
+        append_code(proto, tree_loop, u, "push_numeral", "0", "DecimalIntegerNumeral")
+        append_code(proto, tree_loop, u, "ge")
+        do
+          local tree_then, tree_else = append_if(proto, tree_loop, u, u.label + 2)
+          append_code(proto, tree_then, u, "get_local", u.var)
+          append_code(proto, tree_then, u, "get_local", u.var + 1)
+          append_code(proto, tree_then, u, "gt")
+          do
+            local tree_then = append_if(proto, tree_then, u, u.label + 4)
+            append_code(proto, tree_then, u, "break", u.label + 1)
+            append_exit(proto, tree_then, u)
+          end
+          append_exit(proto, tree_then, u)
+          append_code(proto, tree_else, u, "get_local", u.var)
+          append_code(proto, tree_else, u, "get_local", u.var + 1)
+          append_code(proto, tree_else, u, "lt")
+          do
+            local tree_then = append_if(proto, tree_else, u, u.label + 6)
+            append_code(proto, tree_then, u, "break", u.label + 1)
+            append_exit(proto, tree_then, u)
+          end
+        end
+        append_code(proto, tree_loop, u, "get_local", u.var)
+        append_code(proto, tree_loop, u, "new_local", u.var + 3)
+        process2(chunk, proto, scope, z, tree_loop)
+        append_code(proto, tree_loop, u, "get_local", u.var)
+        append_code(proto, tree_loop, u, "get_local", u.var + 2)
+        append_code(proto, tree_loop, u, "add")
+        append_code(proto, tree_loop, u, "set_local", u.var)
+        append_exit(proto, tree_loop, u)
+      end
     end
 
   elseif u_name == "exp_2or3" then
-    process2(chunk, proto, scope, x, code)
-    process2(chunk, proto, scope, y, code)
+    process2(chunk, proto, scope, x, tree_code)
+    process2(chunk, proto, scope, y, tree_code)
     if z then
       -- stepが定数の場合はスタックに積まない。
       if lua54_parser.symbol_names[z[0]] == "Numeral" then
@@ -702,7 +763,7 @@ local function process2(chunk, proto, scope, u, code)
         u.step_hint = z[1].hint
         u.step_op = "sub"
       else
-        process2(chunk, proto, scope, z, code)
+        process2(chunk, proto, scope, z, tree_code)
       end
     else
       u.step = 1
@@ -730,76 +791,76 @@ local function process2(chunk, proto, scope, u, code)
     --   end
     -- end
 
-    process2(chunk, proto, scope, y, code)
-    append_code(proto, code, u, "new_local", u.var + 3, true)
-    append_code(proto, code, u, "new_local", u.var + 2)
-    append_code(proto, code, u, "new_local", u.var + 1)
-    append_code(proto, code, u, "new_local", u.var)
-
-    local loop_block = append_code(proto, code, u, "loop")
-
-    append_code(proto, loop_block, u, "get_local", u.var)
-    append_code(proto, loop_block, u, "get_local", u.var + 1)
-    append_code(proto, loop_block, u, "get_local", u.var + 2)
-    append_code(proto, loop_block, u, "call", 1, #x)
-    for i = #x, 1, -1 do
-      local v = x[i]
-      append_code(proto, loop_block, u, "new_local", v.var)
+    process2(chunk, proto, scope, y, tree_code)
+    append_code(proto, tree_code, u, "new_local", u.var + 3, true)
+    append_code(proto, tree_code, u, "new_local", u.var + 2)
+    append_code(proto, tree_code, u, "new_local", u.var + 1)
+    append_code(proto, tree_code, u, "new_local", u.var)
+    do
+      local tree_loop = append_loop(proto, tree_code, u, u.label)
+      append_code(proto, tree_loop, u, "get_local", u.var)
+      append_code(proto, tree_loop, u, "get_local", u.var + 1)
+      append_code(proto, tree_loop, u, "get_local", u.var + 2)
+      append_code(proto, tree_loop, u, "call", 1, #x)
+      for i = #x, 1, -1 do
+        local v = x[i]
+        append_code(proto, tree_loop, u, "new_local", v.var)
+      end
+      append_code(proto, tree_loop, u, "get_local", u.var + 4)
+      append_code(proto, tree_loop, u, "push_nil", 1)
+      append_code(proto, tree_loop, u, "eq")
+      do
+        local tree_then = append_if(proto, tree_loop, u, u.label + 2)
+        append_code(proto, tree_then, u, "close", u.var + 3)
+        append_code(proto, tree_then, u, "break", u.label + 1)
+        append_exit(proto, tree_then, u)
+      end
+      append_code(proto, tree_loop, u, "get_local", u.var + 4)
+      append_code(proto, tree_loop, u, "set_local", u.var + 2)
+      process2(chunk, proto, scope, z, tree_loop)
+      append_exit(proto, tree_loop, u)
     end
-
-    append_code(proto, loop_block, u, "get_local", u.var + 4)
-    append_code(proto, loop_block, u, "push_nil", 1)
-    append_code(proto, loop_block, u, "eq")
-    local then_block, else_block = append_if(proto, loop_block, u)
-
-    append_code(proto, then_block, u, "close", u.var + 3)
-    append_code(proto, then_block, u, "break")
-
-    append_code(proto, else_block, u, "get_local", u.var + 4)
-    append_code(proto, else_block, u, "set_local", u.var + 2)
-
-    process2(chunk, proto, scope, z, else_block)
 
   elseif u_name == "function" then
-    process2(chunk, proto, scope, x, code)
-    append_code(proto, code, u, "closure", y.proto.index)
+    process2(chunk, proto, scope, x, tree_code)
+    append_code(proto, tree_code, u, "closure", y.proto.index)
     if x.var then
       if x.var < 0 then
-        append_code(proto, code, u, "set_upvalue", -x.var)
+        append_code(proto, tree_code, u, "set_upvalue", -x.var)
       else
-        append_code(proto, code, u, "set_local", x.var)
+        append_code(proto, tree_code, u, "set_local", x.var)
       end
     else
-      local c = append_code(proto, code, u, "set_table", proto.top - 2, true)
+      local c = append_code(proto, tree_code, u, "set_table", proto.top - 2, true)
       c.literal = assert(x.literal)
     end
-    process2(chunk, proto, scope, y, code)
+    process2(chunk, proto, scope, y, tree_code)
 
   elseif u_name == "local_function" then
     -- local f; f = function () body end
-    append_code(proto, code, u, "push_nil", 1)
-    append_code(proto, code, u, "new_local", x.var)
-    append_code(proto, code, u, "closure", y.proto.index)
-    append_code(proto, code, u, "set_local", x.var)
-    process2(chunk, proto, scope, y, code)
+    append_code(proto, tree_code, u, "push_nil", 1)
+    append_code(proto, tree_code, u, "new_local", x.var)
+    append_code(proto, tree_code, u, "closure", y.proto.index)
+    append_code(proto, tree_code, u, "set_local", x.var)
+    process2(chunk, proto, scope, y, tree_code)
 
   elseif u_name == "local" then
-    process2(chunk, proto, scope, x, code)
+    process2(chunk, proto, scope, x, tree_code)
     if y then
-      process2(chunk, proto, scope, y, code)
+      process2(chunk, proto, scope, y, tree_code)
     else
-      append_code(proto, code, u, "push_nil", #x)
+      append_code(proto, tree_code, u, "push_nil", #x)
     end
 
     for i = #x, 1, -1 do
       local v = x[i]
-      append_code(proto, code, u, "new_local", v.var, v.attribute == "close")
+      append_code(proto, tree_code, u, "new_local", v.var, v.attribute == "close")
     end
 
   elseif u_name == "return" then
-    process2(chunk, proto, scope, x, code)
-    append_close_stack(proto, code, u, u.stack)
-    append_code(proto, code, u, "return")
+    process2(chunk, proto, scope, x, tree_code)
+    append_close_stack(proto, tree_code, u, u.stack)
+    append_code(proto, tree_code, u, "return")
 
   elseif u_name == "explist" then
     local push
@@ -846,68 +907,74 @@ local function process2(chunk, proto, scope, u, code)
     end
 
     for _, v in ipairs(u) do
-      process2(chunk, proto, scope, v, code)
+      process2(chunk, proto, scope, v, tree_code)
     end
     if push then
-      append_code(proto, code, u, "push_nil", push)
+      append_code(proto, tree_code, u, "push_nil", push)
     elseif pop then
-      append_code(proto, code, u, "pop", pop)
+      append_code(proto, tree_code, u, "pop", pop)
     end
 
   elseif u_name == "..." then
-    append_code(proto, code, u, "vararg", u.nr or 1)
+    append_code(proto, tree_code, u, "vararg", u.nr or 1)
 
   elseif u_name == "functiondef" then
-    append_code(proto, code, u, "closure", x.proto.index)
-    process2(chunk, proto, scope, x, code)
+    append_code(proto, tree_code, u, "closure", x.proto.index)
+    process2(chunk, proto, scope, x, tree_code)
 
   elseif u.binop then
-    process2(chunk, proto, scope, x, code)
-    process2(chunk, proto, scope, y, code)
-    append_code(proto, code, u, u.binop)
+    process2(chunk, proto, scope, x, tree_code)
+    process2(chunk, proto, scope, y, tree_code)
+    append_code(proto, tree_code, u, u.binop)
 
   elseif u_name == "and" then
-    process2(chunk, proto, scope, x, code)
-    append_code(proto, code, u, "new_local", u.var)
-    append_code(proto, code, u, "get_local", u.var)
-    local then_block = append_if(proto, code, u)
-    process2(chunk, proto, scope, y, then_block)
-    append_code(proto, then_block, u, "set_local", u.var)
-    append_code(proto, code, u, "get_local", u.var)
+    process2(chunk, proto, scope, x, tree_code)
+    append_code(proto, tree_code, u, "new_local", u.var)
+    append_code(proto, tree_code, u, "get_local", u.var)
+    do
+      local tree_then = append_if(proto, tree_code, u, u.label)
+      process2(chunk, proto, scope, y, tree_then)
+      append_code(proto, tree_then, u, "set_local", u.var)
+      append_exit(proto, tree_then, u)
+    end
+    append_code(proto, tree_code, u, "get_local", u.var)
 
   elseif u_name == "or" then
-    process2(chunk, proto, scope, x, code)
-    append_code(proto, code, u, "new_local", u.var)
-    append_code(proto, code, u, "get_local", u.var)
-    local _, else_block = append_if(proto, code, u)
-    process2(chunk, proto, scope, y, else_block)
-    append_code(proto, else_block, u, "set_local", u.var)
-    append_code(proto, code, u, "get_local", u.var)
+    process2(chunk, proto, scope, x, tree_code)
+    append_code(proto, tree_code, u, "new_local", u.var)
+    append_code(proto, tree_code, u, "get_local", u.var)
+    do
+      local tree_then, tree_else = append_if(proto, tree_code, u, u.label)
+      append_exit(proto, tree_then, u)
+      process2(chunk, proto, scope, y, tree_else)
+      append_code(proto, tree_else, u, "set_local", u.var)
+    end
+    append_code(proto, tree_code, u, "get_local", u.var)
 
   elseif u.unop then
-    process2(chunk, proto, scope, x, code)
-    append_code(proto, code, u, u.unop)
+    process2(chunk, proto, scope, x, tree_code)
+    append_code(proto, tree_code, u, u.unop)
 
   elseif u_name == "." then
-    process2(chunk, proto, scope, x, code)
-    process2(chunk, proto, scope, y, code)
+    process2(chunk, proto, scope, x, tree_code)
+    process2(chunk, proto, scope, y, tree_code)
     u.literal = y.literal
     if not u.define then
-      append_code(proto, code, u, "get_table")
+      append_code(proto, tree_code, u, "get_table")
     end
 
   elseif u_name == ":" then
-    process2(chunk, proto, scope, x, code)
-    process2(chunk, proto, scope, y, code)
+    process2(chunk, proto, scope, x, tree_code)
+    process2(chunk, proto, scope, y, tree_code)
 
   elseif u_name == "functioncall" then
     local target = proto.top + 1
-    process2(chunk, proto, scope, x, code)
-    process2(chunk, proto, scope, y, code)
+    process2(chunk, proto, scope, x, tree_code)
+    process2(chunk, proto, scope, y, tree_code)
     if lua54_parser.symbol_names[x[0]] == ":" then
-      append_code(proto, code, u, "self", target, u.nr or 1)
+      append_code(proto, tree_code, u, "self", target, u.nr or 1)
     else
-      append_code(proto, code, u, "call", target, u.nr or 1)
+      append_code(proto, tree_code, u, "call", target, u.nr or 1)
     end
 
     -- チャンク直下のスコープで、文字列リテラルを引数にrequireを呼んでいる場合、
@@ -930,39 +997,39 @@ local function process2(chunk, proto, scope, u, code)
       end
     end
 
-    append_code(proto, code, u, "new_table")
+    append_code(proto, tree_code, u, "new_table")
     local target = proto.top
     for i, v in ipairs(u) do
       v.target = target
-      process2(chunk, proto, scope, v, code)
+      process2(chunk, proto, scope, v, tree_code)
     end
     if proto.top ~= target then
-      append_code(proto, code, u, "set_list", target)
+      append_code(proto, tree_code, u, "set_list", target)
     end
 
   elseif u_name == "field" then
-    process2(chunk, proto, scope, x, code)
+    process2(chunk, proto, scope, x, tree_code)
     if y then
-      process2(chunk, proto, scope, y, code)
-      local c = append_code(proto, code, u, "set_table", u.target, false)
+      process2(chunk, proto, scope, y, tree_code)
+      local c = append_code(proto, tree_code, u, "set_table", u.target, false)
       c.literal = x.literal
     end
 
   elseif u_name == "nil" then
-    append_code(proto, code, u, "push_nil", 1)
+    append_code(proto, tree_code, u, "push_nil", 1)
 
   elseif u_name == "false" then
-    append_code(proto, code, u, "push_false")
+    append_code(proto, tree_code, u, "push_false")
 
   elseif u_name == "true" then
-    append_code(proto, code, u, "push_true")
+    append_code(proto, tree_code, u, "push_true")
 
   elseif u_name == "LiteralString" then
-    append_code(proto, code, u, "push_literal", u.v)
+    append_code(proto, tree_code, u, "push_literal", u.v)
     u.literal = true
 
   elseif u_name == "Numeral" then
-    append_code(proto, code, u, "push_numeral", u.v, u.hint)
+    append_code(proto, tree_code, u, "push_numeral", u.v, u.hint)
 
   elseif u_name == "Name" then
     if u.declare or u.label then
@@ -970,37 +1037,59 @@ local function process2(chunk, proto, scope, u, code)
     end
 
     if not u.resolve then
-      append_code(proto, code, u, "push_literal", u.v)
+      append_code(proto, tree_code, u, "push_literal", u.v)
       u.literal = true
       return
     end
 
     if not u.var then
       if u.env < 0 then
-        append_code(proto, code, u, "get_upvalue", -u.env)
+        append_code(proto, tree_code, u, "get_upvalue", -u.env)
       else
-        append_code(proto, code, u, "get_local", u.env)
+        append_code(proto, tree_code, u, "get_local", u.env)
       end
-      append_code(proto, code, u, "push_literal", u.v)
+      append_code(proto, tree_code, u, "push_literal", u.v)
       u.literal = true
       if not u.define then
-        append_code(proto, code, u, "get_table")
+        append_code(proto, tree_code, u, "get_table")
       end
       return
     end
 
     if not u.define then
       if u.var < 0 then
-        append_code(proto, code, u, "get_upvalue", -u.var)
+        append_code(proto, tree_code, u, "get_upvalue", -u.var)
       else
-        append_code(proto, code, u, "get_local", u.var)
+        append_code(proto, tree_code, u, "get_local", u.var)
       end
     end
 
   else
     for _, v in ipairs(u) do
-      process2(chunk, proto, scope, v, code)
+      process2(chunk, proto, scope, v, tree_code)
     end
+  end
+end
+
+---------------------------------------------------------------------------
+
+local function process3(proto, u)
+  local u_name = u[0]
+
+  local address = append(proto.flat_code, u)
+  if u_name == "if" then
+    for _, v in ipairs(u[1]) do
+      process3(proto, v)
+    end
+    for _, v in ipairs(u[2]) do
+      process3(proto, v)
+    end
+  elseif u_name == "loop" then
+    for _, v in ipairs(u) do
+      process3(proto, v)
+    end
+  elseif u_name == "label" then
+    proto.labels[u.a].address = address
   end
 end
 
@@ -1015,5 +1104,10 @@ return function (root)
 
   process1(chunk, proto, scope, root)
   process2(chunk, proto, scope, root)
+  for _, proto in ipairs(chunk) do
+    for _, u in ipairs(proto.tree_code) do
+      process3(proto, u)
+    end
+  end
   return chunk
 end

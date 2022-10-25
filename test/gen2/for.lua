@@ -15,46 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <http://www.gnu.org/licenses/>.
 
-local function f(message)
-  return (message:gsub("^.-: ", ""))
-end
-
-local result, message = pcall(function ()
-  for i = nil, 1 do
-    print(i)
-  end
-end)
-print(result, f(message))
-
-local result, message = pcall(function ()
-  for i = 1, "two" do
-    print(i)
-  end
-end)
-print(result, f(message))
-
-local result, message = pcall(function ()
-  for i = 1, 2, true do
-    print(i)
-  end
-end)
-print(result, f(message))
-
-local result, message = pcall(function ()
-  for i = 1, 2, {} do
-    print(i)
-  end
-end)
-print(result, f(message))
-
-local result, message = pcall(function ()
-  local zero = 0
-  for i = 1, -1, zero do
-    print(i)
-  end
-end)
-print(result, f(message))
-
 for i = 1, 4 do
   print(i)
 end

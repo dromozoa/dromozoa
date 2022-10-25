@@ -1,6 +1,6 @@
 #! /bin/sh -e
 
-# Copyright (C) 2020,2022 Tomoyuki Fujimori <moyu@dromozoa.com>
+# Copyright (C) 2022 Tomoyuki Fujimori <moyu@dromozoa.com>
 #
 # This file is part of dromozoa.
 #
@@ -21,11 +21,23 @@ case X$1 in
   X) exec sh -e "$0" lua;;
 esac
 
-mkdir -p out
+mkdir -p out/gen2
 
-for i in test/test*.lua
+LUA_VERSION=`"$@" -e 'io.write(_VERSION)'`
+if test "X$LUA_VERSION" = "XLua 5.4"
+then
+  for i in test/gen2/*.lua
+  do
+    j=`expr "X$i" : 'X\(.*\)\.lua$'`
+    "$@" "$i" >"$j.exp"
+  done
+fi
+
+for i in test/gen2/*.lua
 do
-  "$@" "$i"
+  j=`expr "X$i" : 'Xtest/gen2/\([^/]*\)\.lua$'`
+  "$@" test_gen2.lua "$i" >"out/gen2/$j.out"
+  diff -u "test/gen2/$j.exp" "out/gen2/$j.out"
 done
 
 case X$DROMOZOA_TEST_DEBUG in

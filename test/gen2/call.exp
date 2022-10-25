@@ -1,0 +1,13 @@
+a
+true
+b.f	nil
+true
+b.f	x
+true
+c.__call	x
+true
+true
+d.f.__call	x	nil
+true
+true
+d.f.__call	x	y
