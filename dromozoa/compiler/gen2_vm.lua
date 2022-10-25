@@ -26,24 +26,24 @@ local table_pack = table.pack or function (...)
   return { n = select("#", ...), ... }
 end
 
-local function new_var(context, decl, value)
-  local variable = { decl = decl, value }
-  variable.index = append(context.variables, variable)
-  return variable
+local function new_var(context, decl, v)
+  local var = { decl = decl, v }
+  var.index = append(context.variables, var)
+  return var
 end
 
-local function def_var(var, value)
-  var[1] = value
+local function def_var(var, v)
+  var[1] = v
 end
 
 local function use_var(var)
   return var[1]
 end
 
-local function push(stack, value)
+local function push(stack, v)
   local n = stack.n + 1
   stack.n = n
-  stack[n] = value
+  stack[n] = v
 end
 
 local function pop(stack)
