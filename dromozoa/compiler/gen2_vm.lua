@@ -311,7 +311,7 @@ local function process_chunk(context, chunk)
   end
 end
 
-local function initialize(context, enable_print)
+local function initialize(context, debug)
   local env = context.env
 
   set_table(env, "type", function (v)
@@ -376,26 +376,27 @@ local function initialize(context, enable_print)
     f.main = true
     return f
   end)
-  set_table(env, "dromozoa_annotation_main", nil)
 
   set_table(env, "dromozoa_annotation_export", function (export, f)
     f.export = export
     return f
   end)
 
-  if enable_print then
+  if debug then
+    set_table(env, "dromozoa_annotation_main", nil)
+
     set_table(env, "print", print)
   end
 end
 
-return function (chunk, enable_print)
+return function (chunk, debug)
   local context = {
     env = new_table {};
     chunks = {};
     variables = {};
     closures = {};
   }
-  initialize(context, enable_print)
+  initialize(context, debug)
   process_chunk(context, chunk)
   return context
 end
