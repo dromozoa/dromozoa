@@ -314,17 +314,6 @@ end
 local function initialize(context, debug)
   local env = context.env
 
-  set_table(env, "type", function (v)
-    local t = type(v)
-    if t ~= "table" then
-      return t
-    elseif v.table then
-      return "table"
-    else
-      return "function"
-    end
-  end)
-
   set_table(env, "ipairs", function (t)
     return ipairs(t.table)
   end)

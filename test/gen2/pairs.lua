@@ -21,7 +21,7 @@ local a = {}
 local b = {}
 
 for k, v in pairs(t) do
-  if type(k) == "string" then
+  if k == "foo" or k == "bar" then
     a[v] = k
   else
     b[k] = v
