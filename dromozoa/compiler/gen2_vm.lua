@@ -26,8 +26,10 @@ local table_pack = table.pack or function (...)
   return { n = select("#", ...), ... }
 end
 
-local function new_var(value)
-  return { value }
+local function new_var(context, decl, value)
+  local variable = { decl = decl, value }
+  variable.index = append(context.variables, variable)
+  return variable
 end
 
 local function def_var(var, value)
@@ -99,7 +101,7 @@ end
 
 local function new_closure(context, chunk, proto, upvalues)
   local closure = { chunk = chunk, proto = proto, upvalues = upvalues }
-  append(context.closures, closure)
+  closure.index = append(context.closures, closure)
   return closure
 end
 
@@ -109,7 +111,7 @@ local function process_closure(context, closure, ...)
   local S = { n = 0 }
   local V = {}
   for i = 1, P.nparams do
-    V[i] = new_var(select(i, ...))
+    V[i] = new_var(context, P.locals[i], select(i, ...))
   end
   local vararg = table_pack(select(P.nparams + 1, ...))
 
@@ -175,7 +177,7 @@ local function process_closure(context, closure, ...)
       push(S, get_table(context, x, y, u))
 
     elseif u_name == "new_local" then
-      V[a] = new_var(pop(S))
+      V[a] = new_var(context, P.locals[a], pop(S))
 
     elseif u_name == "set_local" then
       def_var(V[a], pop(S))
@@ -301,7 +303,7 @@ end
 
 local function process_chunk(context, chunk)
   append(context.chunks, chunk)
-  local result = process_closure(context, new_closure(context, chunk, chunk[1], { new_var(context.env) }))
+  local result = process_closure(context, new_closure(context, chunk, chunk[1], { new_var(context, chunk.env, context.env) }))
   if result == nil then
     return true
   else
@@ -390,6 +392,7 @@ return function (chunk, enable_print)
   local context = {
     env = new_table {};
     chunks = {};
+    variables = {};
     closures = {};
   }
   initialize(context, enable_print)
