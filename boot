@@ -4,7 +4,6 @@ local json = require "dromozoa.commons.json"
 
 -- bp = binding power
 -- 最小限のPrattパーサを書いてみる。
--- まずは式だけとして、文はどうするのがよいか。
 local function parser(tokens)
 
   local NUD = {}
@@ -40,10 +39,30 @@ local function parser(tokens)
     }
   end
 
-  prefix "INTEGER"
+  local function postfix(symbol, bp)
+    LED[symbol] = {
+      lbp = bp;
+      rbp = bp;
+      action = function (left, token)
+        return { symbol, left }
+      end;
+    }
+  end
+
+  local function prefix_unary(symbol, bp)
+    NUD[symbol] = function (symbol)
+      local right = parse_expression(bp)
+      return { symbol, right }
+    end
+  end
+
+  prefix("INTEGER")
   infix("+", 10)
   infix("-", 10)
   infix("*", 20)
+  infix_r("^", 100)
+  prefix_unary("-", 200)
+  postfix("?", 300)
 
   local index = 1
 
@@ -79,7 +98,7 @@ local function parser(tokens)
 end
 
 -- local tokens = lexer "12+34*56-78"
-local tokens = {
+local tokens1 = {
   { "INTEGER", 12 },
   { "+" },
   { "INTEGER", 34 },
@@ -89,5 +108,25 @@ local tokens = {
   { "INTEGER", 78 },
   { "eof" },
 }
-local result = parser(tokens)
+
+local tokens2 = {
+  { "INTEGER", 2 },
+  { "^" },
+  { "INTEGER", 3 },
+  { "^" },
+  { "INTEGER", 2 },
+  { "eof" },
+}
+
+local tokens3 = {
+  { "-" },
+  { "INTEGER", 4 },
+  { "-" },
+  { "-" },
+  { "INTEGER", 5 },
+  { "?" },
+  { "eof" },
+}
+
+local result = parser(tokens3)
 print(json.encode(result, { pretty = true }))
