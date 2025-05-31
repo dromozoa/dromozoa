@@ -2,98 +2,80 @@
 
 local json = require "dromozoa.commons.json"
 
-local function lexer(source)
-
-
-end
-
+-- bp = binding power
 -- 最小限のPrattパーサを書いてみる。
 -- まずは式だけとして、文はどうするのがよいか。
 local function parser(tokens)
-  -- null denotation
-  local NUD = {
-    ["INTEGER"] = function (parser, token)
-      return {
-        type = token[1];
-        value = token[2];
-      }
-    end;
-  }
 
-  -- left denotation
-  local LED = {
-    ["+"] = {
-      lbp = 10;
-      rbp = 10;
-      action = function (parser, left, token)
-        local right = parser:parse(10)
-        return {
-          type = "binop";
-          op = "+";
-          left, right;
-        }
-      end;
-    };
+  local NUD = {}
+  local LED = {}
 
-    ["-"] = {
-      lbp = 10;
-      rbp = 10;
-      action = function (parser, left, token)
-        local right = parser:parse(10)
-        return {
-          type = "binop";
-          op = "-";
-          left, right;
-        }
-      end;
-    };
+  local parse_expression
 
-    ["*"] = {
-      lbp = 20;
-      rbp = 20;
-      action = function (parser, left, token)
-        local right = parser:parse(20)
-        return {
-          type = "binop";
-          op = "*";
-          left, right;
-        }
+  local function prefix(symbol)
+    NUD[symbol] = function (symbol)
+      return symbol
+    end
+  end
+
+  local function infix(symbol, bp, action)
+    LED[symbol] = {
+      lbp = bp;
+      rbp = bp;
+      action = function (left, token)
+        local right = parse_expression(bp)
+        return { symbol, left, right }
       end;
-    };
-  }
+    }
+  end
+
+  local function infix_r(symbol, bp, action)
+    LED[symbol] = {
+      lbp = bp;
+      rbp = bp - 1;
+      action = function (left, token)
+        local right = parse_expression(bp - 1)
+        return { symbol, left, right }
+      end;
+    }
+  end
+
+  prefix "INTEGER"
+  infix("+", 10)
+  infix("-", 10)
+  infix("*", 20)
 
   local index = 1
-  local parser = {}
 
-  function parser:peek()
+  local function peek()
     return tokens[index]
   end
 
-  function parser:next()
-    local token = self:peek()
+  local function next()
+    local token = peek()
     index = index + 1
     return token
   end
 
-  function parser:parse(rbp)
-    local token = self:next()
+  function parse_expression(rbp)
+    local token = next()
     local nud = assert(NUD[token[1]])
-    local left = nud(self, token)
+    local left = nud(token)
 
     while true do
-      local look = self:peek()
+      local look = peek()
       local inf = LED[look[1]]
       if not inf or inf.lbp <= rbp then
         break
       end
-      local op_token = self:next()
-      left = inf.action(self, left, op_token)
+      local op_token = next()
+      left = inf.action(left, op_token)
     end
 
     return left
   end
 
-  return parser:parse(0)
+  return parse_expression(0)
 end
 
 -- local tokens = lexer "12+34*56-78"
