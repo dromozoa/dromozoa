@@ -2,6 +2,71 @@
 
 local json = require "dromozoa.commons.json"
 
+local function lexer(source)
+  local rules = {
+    { skip = true, pattern = "%s+" };
+    { skip = true, pattern = "%-%-[^\r\n]*" };
+    "+";
+    "-";
+    "*";
+    "/";
+    "%";
+    "^"; "?"; -- test
+    { name = "Integer", pattern = "%d+" };
+    { name = "Name",    pattern = "[%a_][%w_]*" };
+  }
+
+  for i, rule in ipairs(rules) do
+    if type(rule) == "string" then
+      rules[i] = {
+        name = rule;
+        rule = function (source, position)
+          local i = position
+          local j = i + #rule - 1
+          if source:sub(i, j) == rule then
+            return i, j
+          end
+        end;
+      }
+    else
+      local pattern = "^"..rule.pattern
+      rule.rule = function (source, position)
+        return source:find(pattern, position)
+      end
+    end
+  end
+
+  local tokens = {}
+
+  local position = 1
+  while position <= #source do
+    local i, j, v
+    for _, rule in ipairs(rules) do
+      i, j, v = rule.rule(source, position)
+      if i then
+        if not v then
+          v = source:sub(i, j)
+        end
+        tokens[#tokens + 1] = {
+          name = rule.name;
+          skip = rule.skip;
+          value = v;
+          i = i;
+          j = j;
+        }
+        break
+      end
+    end
+
+    if not i then
+      error("lexer error at position "..position)
+    end
+    position = j + 1
+  end
+
+  return tokens
+end
+
 -- bp = binding power
 -- 最小限のPrattパーサを書いてみる。
 local function parser(tokens)
@@ -97,6 +162,10 @@ local function parser(tokens)
   return parse_expression(0)
 end
 
+local tokens1 = lexer "12 + 34 * 56 - 78"
+local tokens2 = lexer "2^3^2"
+local tokens3 = lexer "-4--5?"
+
 -- local tokens = lexer "12+34*56-78"
 local tokens1 = {
   { "INTEGER", 12 },
@@ -130,3 +199,10 @@ local tokens3 = {
 
 local result = parser(tokens3)
 print(json.encode(result, { pretty = true }))
+
+-- local tokens = lexer [[
+-- 12 + 34 * 56
+-- --test
+-- -78
+-- ]]
+-- print(json.encode(tokens, { pretty = true, stable = true }))
