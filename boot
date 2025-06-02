@@ -13,7 +13,7 @@ local function lexer(source)
     "%";
     "^"; "?"; -- test
     { name = "Integer", pattern = "%d+" };
-    { name = "Name",    pattern = "[%a_][%w_]*" };
+    -- { name = "Name",    pattern = "[%a_][%w_]*" };
   }
 
   for i, rule in ipairs(rules) do
@@ -47,13 +47,14 @@ local function lexer(source)
         if not v then
           v = source:sub(i, j)
         end
-        tokens[#tokens + 1] = {
-          name = rule.name;
-          skip = rule.skip;
-          value = v;
-          i = i;
-          j = j;
-        }
+        if not rule.skip then
+          tokens[#tokens + 1] = {
+            name = assert(rule.name);
+            value = v;
+            i = i;
+            j = j;
+          }
+        end
         break
       end
     end
@@ -63,6 +64,10 @@ local function lexer(source)
     end
     position = j + 1
   end
+
+  tokens[#tokens + 1] = {
+    name = "EOF";
+  }
 
   return tokens
 end
@@ -121,7 +126,7 @@ local function parser(tokens)
     end
   end
 
-  prefix("INTEGER")
+  prefix("Integer")
   infix("+", 10)
   infix("-", 10)
   infix("*", 20)
@@ -143,12 +148,12 @@ local function parser(tokens)
 
   function parse_expression(rbp)
     local token = next()
-    local nud = assert(NUD[token[1]])
+    local nud = assert(NUD[token.name])
     local left = nud(token)
 
     while true do
       local look = peek()
-      local inf = LED[look[1]]
+      local inf = LED[look.name]
       if not inf or inf.lbp <= rbp then
         break
       end
@@ -164,45 +169,10 @@ end
 
 local tokens1 = lexer "12 + 34 * 56 - 78"
 local tokens2 = lexer "2^3^2"
-local tokens3 = lexer "-4--5?"
+local tokens3 = lexer "-4- -5?"
 
--- local tokens = lexer "12+34*56-78"
-local tokens1 = {
-  { "INTEGER", 12 },
-  { "+" },
-  { "INTEGER", 34 },
-  { "*" },
-  { "INTEGER", 56 },
-  { "-" },
-  { "INTEGER", 78 },
-  { "eof" },
-}
-
-local tokens2 = {
-  { "INTEGER", 2 },
-  { "^" },
-  { "INTEGER", 3 },
-  { "^" },
-  { "INTEGER", 2 },
-  { "eof" },
-}
-
-local tokens3 = {
-  { "-" },
-  { "INTEGER", 4 },
-  { "-" },
-  { "-" },
-  { "INTEGER", 5 },
-  { "?" },
-  { "eof" },
-}
-
-local result = parser(tokens3)
-print(json.encode(result, { pretty = true }))
-
--- local tokens = lexer [[
--- 12 + 34 * 56
--- --test
--- -78
--- ]]
+local tokens = tokens1
 -- print(json.encode(tokens, { pretty = true, stable = true }))
+
+local result = parser(tokens)
+print(json.encode(result, { pretty = true }))
