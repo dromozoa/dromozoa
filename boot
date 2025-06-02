@@ -13,7 +13,7 @@ local function lexer(source)
     "%";
     "^"; "?"; -- test
     { name = "Integer", pattern = "%d+" };
-    -- { name = "Name",    pattern = "[%a_][%w_]*" };
+    { name = "Name",    pattern = "[%a_][%w_]*" };
   }
 
   for i, rule in ipairs(rules) do
@@ -75,9 +75,8 @@ end
 -- bp = binding power
 -- 最小限のPrattパーサを書いてみる。
 local function parser(tokens)
-
-  local NUD = {}
-  local LED = {}
+  local NUD = {} -- null denotion
+  local LED = {} -- left denotion
 
   local parse_expression
 
@@ -91,9 +90,9 @@ local function parser(tokens)
     LED[symbol] = {
       lbp = bp;
       rbp = bp;
-      action = function (left, token)
+      action = function (token, left, r_token)
         local right = parse_expression(bp)
-        return { symbol, left, right }
+        return { token, left, right }
       end;
     }
   end
@@ -102,9 +101,9 @@ local function parser(tokens)
     LED[symbol] = {
       lbp = bp;
       rbp = bp - 1;
-      action = function (left, token)
+      action = function (token, left, r_token)
         local right = parse_expression(bp - 1)
-        return { symbol, left, right }
+        return { token, left, right }
       end;
     }
   end
@@ -113,8 +112,8 @@ local function parser(tokens)
     LED[symbol] = {
       lbp = bp;
       rbp = bp;
-      action = function (left, token)
-        return { symbol, left }
+      action = function (token, left, r_token)
+        return { token, left }
       end;
     }
   end
@@ -158,7 +157,7 @@ local function parser(tokens)
         break
       end
       local op_token = next()
-      left = inf.action(left, op_token)
+      left = inf.action(look, left, op_token)
     end
 
     return left
@@ -171,7 +170,7 @@ local tokens1 = lexer "12 + 34 * 56 - 78"
 local tokens2 = lexer "2^3^2"
 local tokens3 = lexer "-4- -5?"
 
-local tokens = tokens1
+local tokens = tokens3
 -- print(json.encode(tokens, { pretty = true, stable = true }))
 
 local result = parser(tokens)
