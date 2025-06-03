@@ -72,57 +72,64 @@ local function lexer(source)
   return tokens
 end
 
--- bp = binding power
 -- 最小限のPrattパーサを書いてみる。
 local function parser(tokens)
+  local BP = {} -- binding power
   local NUD = {} -- null denotion
   local LED = {} -- left denotion
 
   local parse_expression
 
-  local function prefix(symbol)
-    NUD[symbol] = function (symbol)
-      return symbol
+  local function prefix(name, action)
+    if not action then
+      action = function (node)
+        return node
+      end
     end
+    NUD[name] = action
   end
 
-  local function infix(symbol, bp, action)
-    LED[symbol] = {
+  local function prefix_unary(name, bp, action)
+    prefix(name, function (node1)
+      local node2 = parse_expression(bp)
+      return { node1, node2 }
+    end)
+  end
+
+  local function infix(name, bp, action)
+    if not action then
+      action = function (node1, node2, _)
+        local node3 = parse_expression(bp)
+        return { node1, node2, node3 }
+      end
+    end
+    BP[name] = bp
+    LED[name] = {
       lbp = bp;
       rbp = bp;
-      action = function (token, left, r_token)
-        local right = parse_expression(bp)
-        return { token, left, right }
-      end;
+      action = action;
     }
   end
 
-  local function infix_r(symbol, bp, action)
-    LED[symbol] = {
-      lbp = bp;
-      rbp = bp - 1;
-      action = function (token, left, r_token)
-        local right = parse_expression(bp - 1)
-        return { token, left, right }
-      end;
-    }
+  local function infix_r(name, bp, action)
+    infix(name, bp, function (node1, node2, _)
+      local node3 = parse_expression(bp - 1)
+      return { node1, node2, node3 }
+    end)
   end
 
-  local function postfix(symbol, bp)
-    LED[symbol] = {
+  local function postfix(name, bp, action)
+    if not action then
+      action = function (node1, node2, _)
+        return { node1, node2 }
+      end
+    end
+    BP[name] = bp
+    LED[name] = {
       lbp = bp;
       rbp = bp;
-      action = function (token, left, r_token)
-        return { token, left }
-      end;
+      action = action;
     }
-  end
-
-  local function prefix_unary(symbol, bp)
-    NUD[symbol] = function (symbol)
-      local right = parse_expression(bp)
-      return { symbol, right }
-    end
   end
 
   prefix("Integer")
