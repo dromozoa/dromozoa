@@ -11,7 +11,6 @@ local function lexer(source)
     "*";
     "/";
     "%";
-    "^"; "?"; -- test
     { name = "Integer", pattern = "%d+" };
     { name = "Name",    pattern = "[%a_][%w_]*" };
   }
@@ -104,11 +103,7 @@ local function parser(tokens)
       end
     end
     BP[name] = bp
-    LED[name] = {
-      lbp = bp;
-      rbp = bp;
-      action = action;
-    }
+    LED[name] = action
   end
 
   local function infix_r(name, bp, action)
@@ -125,20 +120,14 @@ local function parser(tokens)
       end
     end
     BP[name] = bp
-    LED[name] = {
-      lbp = bp;
-      rbp = bp;
-      action = action;
-    }
+    LED[name] = action
   end
 
   prefix("Integer")
   infix("+", 10)
   infix("-", 10)
   infix("*", 20)
-  infix_r("^", 100)
   prefix_unary("-", 200)
-  postfix("?", 300)
 
   local index = 1
 
@@ -159,12 +148,14 @@ local function parser(tokens)
 
     while true do
       local look = peek()
-      local inf = LED[look.name]
-      if not inf or inf.lbp <= rbp then
+      local lbp = BP[look.name]
+
+      if not lbp or lbp <= rbp then
         break
       end
+      local led = LED[look.name]
       local op_token = next()
-      left = inf.action(look, left, op_token)
+      left = led(look, left, op_token)
     end
 
     return left
@@ -174,8 +165,8 @@ local function parser(tokens)
 end
 
 local tokens1 = lexer "12 + 34 * 56 - 78"
-local tokens2 = lexer "2^3^2"
-local tokens3 = lexer "-4- -5?"
+-- local tokens2 = lexer "2^3^2"
+local tokens3 = lexer "-4- -5"
 
 local tokens = tokens3
 -- print(json.encode(tokens, { pretty = true, stable = true }))
