@@ -112,6 +112,8 @@ local function parser(tokens)
   end
 
   prefix("Integer")
+  prefix("Name")
+
   infix("+", 10)
   infix("-", 10)
   infix("*", 20)
@@ -153,10 +155,9 @@ local function parser(tokens)
 end
 
 local tokens1 = lexer "12 + 34 * 56 - 78"
--- local tokens2 = lexer "2^3^2"
-local tokens3 = lexer "-4- -5"
+local tokens2 = lexer "-4- -5"
 
-local tokens = tokens3
+local tokens = tokens1
 -- print(json.encode(tokens, { pretty = true, stable = true }))
 
 local result = parser(tokens)
