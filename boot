@@ -73,8 +73,8 @@ end
 
 -- 最小限のPrattパーサを書いてみる。
 local function parser(tokens)
-  local BP = {} -- binding power
   local NUD = {} -- null denotion
+  local LBP = {} -- left binding power
   local LED = {} -- left denotion
 
   local parse_expression
@@ -102,7 +102,7 @@ local function parser(tokens)
         return { node1, node2, node3 }
       end
     end
-    BP[name] = bp
+    LBP[name] = bp
     LED[name] = action
   end
 
@@ -119,7 +119,7 @@ local function parser(tokens)
         return { node1, node2 }
       end
     end
-    BP[name] = bp
+    LBP[name] = bp
     LED[name] = action
   end
 
@@ -148,7 +148,7 @@ local function parser(tokens)
 
     while true do
       local look = peek()
-      local lbp = BP[look.name]
+      local lbp = LBP[look.name]
 
       if not lbp or lbp <= rbp then
         break
