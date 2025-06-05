@@ -79,48 +79,36 @@ local function parser(tokens)
 
   local parse_expression
 
-  local function prefix(name, action)
-    if not action then
-      action = function (node)
-        return node
-      end
+  local function prefix(name, nud)
+    NUD[name] = nud or function (node)
+      return node
     end
-    NUD[name] = action
   end
 
-  local function prefix_unary(name, bp, action)
-    prefix(name, function (node1)
-      local node2 = parse_expression(bp)
+  local function prefix_unary(name, bp)
+    prefix(name, function (node)
+      return { node, parse_expression(bp) }
+    end)
+  end
+
+  local function infix(name, bp, led)
+    LBP[name] = bp
+    LED[name] = led or function (node1, node2)
+        return { node1, node2, parse_expression(bp) }
+    end
+  end
+
+  local function infix_r(name, bp)
+    infix(name, bp, function (node1, node2)
+      return { node1, node2, parse_expression(bp - 1) }
+    end)
+  end
+
+  local function postfix(name, bp, led)
+    LBP[name] = bp
+    LED[name] = led or function (node1, node2)
       return { node1, node2 }
-    end)
-  end
-
-  local function infix(name, bp, action)
-    if not action then
-      action = function (node1, node2, _)
-        local node3 = parse_expression(bp)
-        return { node1, node2, node3 }
-      end
     end
-    LBP[name] = bp
-    LED[name] = action
-  end
-
-  local function infix_r(name, bp, action)
-    infix(name, bp, function (node1, node2, _)
-      local node3 = parse_expression(bp - 1)
-      return { node1, node2, node3 }
-    end)
-  end
-
-  local function postfix(name, bp, action)
-    if not action then
-      action = function (node1, node2, _)
-        return { node1, node2 }
-      end
-    end
-    LBP[name] = bp
-    LED[name] = action
   end
 
   prefix("Integer")
@@ -172,4 +160,4 @@ local tokens = tokens3
 -- print(json.encode(tokens, { pretty = true, stable = true }))
 
 local result = parser(tokens)
-print(json.encode(result, { pretty = true }))
+print(json.encode(result, { pretty = true, stable = true }))
