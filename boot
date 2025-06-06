@@ -66,6 +66,7 @@ local function lexer(source)
 
   tokens[#tokens + 1] = {
     name = "EOF";
+    eof = true;
   }
 
   return tokens
@@ -85,7 +86,7 @@ local function parser(tokens)
     end
   end
 
-  local function prefix_unary(name, bp)
+  local function prefix_operator(name, bp)
     prefix(name, function (node)
       return { node, parse_expression(bp) }
     end)
@@ -98,7 +99,7 @@ local function parser(tokens)
     end
   end
 
-  local function infix_r(name, bp)
+  local function infix_right(name, bp)
     infix(name, bp, function (node1, node2)
       return { node1, node2, parse_expression(bp - 1) }
     end)
@@ -117,47 +118,52 @@ local function parser(tokens)
   infix("+", 10)
   infix("-", 10)
   infix("*", 20)
-  prefix_unary("-", 200)
+  prefix_operator("-", 200)
 
   local index = 1
 
-  local function peek()
+  local function peek_token()
     return tokens[index]
   end
 
-  local function next()
-    local token = peek()
+  local function next_token()
+    local token = peek_token()
     index = index + 1
     return token
   end
 
   function parse_expression(rbp)
-    local token = next()
+    local token = next_token()
     local nud = assert(NUD[token.name])
-    local left = nud(token)
+    local node = nud(token)
 
     while true do
-      local look = peek()
-      local lbp = LBP[look.name]
-
-      if not lbp or lbp <= rbp then
+      local token = peek_token()
+      if token.eof then
         break
       end
-      local led = LED[look.name]
-      local op_token = next()
-      left = led(look, left, op_token)
+      local lbp = assert(LBP[token.name])
+      if lbp <= rbp then
+        break
+      end
+
+      local led = LED[token.name]
+      next_token()
+      node = led(token, node)
     end
 
-    return left
+    return node
   end
 
-  return parse_expression(0)
+  local result = parse_expression(0)
+  assert(peek_token().eof)
+  return result
 end
 
 local tokens1 = lexer "12 + 34 * 56 - 78"
-local tokens2 = lexer "-4- -5"
+local tokens2 = lexer "-4 * -5"
 
-local tokens = tokens1
+local tokens = tokens2
 -- print(json.encode(tokens, { pretty = true, stable = true }))
 
 local result = parser(tokens)
