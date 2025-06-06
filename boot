@@ -6,6 +6,7 @@ local function lexer(source)
   local rules = {
     { skip = true, pattern = "%s+" };
     { skip = true, pattern = "%-%-[^\r\n]*" };
+
     "+";
     "-";
     "*";
@@ -13,6 +14,8 @@ local function lexer(source)
     "%";
     "(";
     ")";
+    ",";
+
     { name = "Integer", pattern = "%d+" };
     { name = "Name",    pattern = "[%a_][%w_]*" };
   }
@@ -110,17 +113,17 @@ local function parser(tokens)
     end
   end
 
-  local function prefix_operator(name, bp)
-    prefix(name, function (token)
-      return { token, parse_expression(bp) }
-    end)
-  end
-
   local function prefix_group(open, close)
     prefix(open, function (token)
       local group = parse_expression(0)
       expect_token(close)
       return group
+    end)
+  end
+
+  local function prefix_operator(name, bp)
+    prefix(name, function (token)
+      return { token, parse_expression(bp) }
     end)
   end
 
@@ -144,16 +147,50 @@ local function parser(tokens)
     end
   end
 
+  local function postfix_call(open, close, separator, bp)
+    postfix(open, bp, function (callee_token, node)
+      local arguments = {}
+
+      local token = peek_token()
+      if token.name == close then
+        next_token()
+      else
+        while true do
+          arguments[#arguments + 1] = parse_expression(0)
+
+          local token = peek_token()
+          if token.name == close then
+            next_token()
+            break
+          end
+          expect_token(separator)
+        end
+      end
+
+      return { callee_token, node, arguments }
+    end)
+  end
+
+  local bp = 0
+
   prefix("Integer")
   prefix("Name")
   prefix_group("(", ")")
 
-  infix("+", 10)
-  infix("-", 10)
-  infix("*", 20)
-  infix("/", 20)
-  prefix_operator("-", 200)
+  bp = bp + 10
+  infix("+", bp)
+  infix("-", bp)
 
+  bp = bp + 10
+  infix("*", bp)
+  infix("/", bp)
+  infix("%", bp)
+
+  bp = bp + 10
+  prefix_operator("-", bp)
+
+  bp = bp + 10
+  postfix_call("(", ")", ",", bp)
 
   function parse_expression(rbp)
     local token = next_token()
@@ -188,9 +225,10 @@ local function parser(tokens)
 end
 
 local tokens1 = lexer "(12 + 34) * (56 - 78)"
-local tokens2 = lexer "-4 - -5"
+local tokens2 = lexer "-4 - -x"
+local tokens3 = lexer "f() + g(1 + 1) + h(1, 2, 3 * 4)"
 
-local tokens = tokens1
+local tokens = tokens3
 -- print(json.encode(tokens, { pretty = true, stable = true }))
 
 local result = parser(tokens)
