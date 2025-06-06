@@ -107,6 +107,28 @@ local function parser(tokens)
 
   local parse_expression
 
+  local function parse_arguments(close, separator)
+    local arguments = {}
+
+    local token = peek_token()
+    if token.name == close then
+      next_token()
+    else
+      while true do
+        arguments[#arguments + 1] = parse_expression(0)
+
+        local token = peek_token()
+        if token.name == close then
+          next_token()
+          break
+        end
+        expect_token(separator)
+      end
+    end
+
+    return arguments
+  end
+
   local function prefix(name, nud)
     NUD[name] = nud or function (token)
       return token
@@ -148,26 +170,8 @@ local function parser(tokens)
   end
 
   local function postfix_call(open, close, separator, bp)
-    postfix(open, bp, function (callee_token, node)
-      local arguments = {}
-
-      local token = peek_token()
-      if token.name == close then
-        next_token()
-      else
-        while true do
-          arguments[#arguments + 1] = parse_expression(0)
-
-          local token = peek_token()
-          if token.name == close then
-            next_token()
-            break
-          end
-          expect_token(separator)
-        end
-      end
-
-      return { callee_token, node, arguments }
+    postfix(open, bp, function (token, node)
+      return { token, node, parse_arguments(close, separator) }
     end)
   end
 
