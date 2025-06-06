@@ -1,25 +1,25 @@
 #! /usr/bin/env lua
 
-local function dump(out, node, depth)
-  local t = type(node)
+local function dump(out, value, depth)
+  local t = type(value)
   if t == "number" then
-    out:write(("%.17g"):format(node))
-    return
+    out:write(("%.17g"):format(value))
+    return out
   elseif t == "string" then
-    out:write(("%q"):format(node))
-    return
+    out:write(("%q"):format(value))
+    return out
   elseif t == "boolean" then
-    if node then
+    if value then
       out:write "true"
     else
       out:write "false"
     end
-    return
+    return out
   end
   assert(t == "table")
 
   local keys = {}
-  for k, v in pairs(node) do
+  for k, v in pairs(value) do
     if type(k) == "string" then
       keys[#keys + 1] = k
     end
@@ -27,26 +27,32 @@ local function dump(out, node, depth)
   table.sort(keys)
 
   local m = #keys
-  local n = #node
+  local n = #value
 
   if m + n == 0 then
     out:write "{}"
     return
   end
 
+  depth = depth or 0
   local indent = ("  "):rep(depth)
+  depth = depth + 1
+
   out:write "{"
-  for _, k in ipairs(keys) do
+  for i = 1, m do
+    local k = keys[i]
     out:write("\n", indent, ("  [%q] = "):format(k))
-    dump(out, node[k], depth + 1)
+    dump(out, value[k], depth)
     out:write ";"
   end
-  for i = 1, #node do
+  for i = 1, n do
     out:write("\n", indent, "  ")
-    dump(out, node[i], depth + 1)
+    dump(out, value[i], depth)
     out:write ";"
   end
   out:write("\n", indent, "}")
+
+  return out
 end
 
 local function lexer(source)
@@ -308,9 +314,7 @@ local tokens2 = lexer "-4 - -x"
 local tokens3 = lexer "f() + g(1 + 1) + h(1, 2, 3 * 4)"
 
 local tokens = tokens3
--- io.write "return "
--- dump(io.stdout, tokens, 0)
--- io.write "\n"
+-- dump(io.stdout, result):write "\n"
 
 local result = parser(tokens)
-dump(io.stdout, result, 0)
+dump(io.stdout, result):write "\n"
