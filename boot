@@ -168,15 +168,15 @@ local function parser(tokens)
 
   local parse_expression
 
-  local function parse_arguments(close, separator)
-    local arguments = {}
+  local function parse_args(close, separator)
+    local args = { type = "args" }
 
     local token = peek_token()
     if token.name == close then
       next_token()
     else
       while true do
-        arguments[#arguments + 1] = parse_expression(0)
+        args[#args + 1] = parse_expression(0)
 
         local token = peek_token()
         if token.name == close then
@@ -187,7 +187,7 @@ local function parser(tokens)
       end
     end
 
-    return arguments
+    return args
   end
 
   local function parse_names(separator)
@@ -235,7 +235,7 @@ local function parser(tokens)
 
   local function postfix_call(open, close, separator, bp)
     postfix(open, bp, function (token, node)
-      return { token, node, parse_arguments(close, separator) }
+      return { token, node, parse_args(close, separator) }
     end)
   end
 
@@ -314,7 +314,7 @@ local tokens2 = lexer "-4 - -x"
 local tokens3 = lexer "f() + g(1 + 1) + h(1, 2, 3 * 4)"
 
 local tokens = tokens3
--- dump(io.stdout, result):write "\n"
+-- dump(io.stdout, tokens):write "\n"
 
 local result = parser(tokens)
 dump(io.stdout, result):write "\n"
