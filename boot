@@ -81,34 +81,34 @@ local function parser(tokens)
   local parse_expression
 
   local function prefix(name, nud)
-    NUD[name] = nud or function (node)
-      return node
+    NUD[name] = nud or function (token)
+      return token
     end
   end
 
   local function prefix_operator(name, bp)
-    prefix(name, function (node)
-      return { node, parse_expression(bp) }
+    prefix(name, function (token)
+      return { token, parse_expression(bp) }
     end)
   end
 
   local function infix(name, bp, led)
     LBP[name] = bp
-    LED[name] = led or function (node1, node2)
-        return { node1, node2, parse_expression(bp) }
+    LED[name] = led or function (token, node)
+        return { token, node, parse_expression(bp) }
     end
   end
 
   local function infix_right(name, bp)
-    infix(name, bp, function (node1, node2)
-      return { node1, node2, parse_expression(bp - 1) }
+    infix(name, bp, function (token, node)
+      return { token, node, parse_expression(bp - 1) }
     end)
   end
 
   local function postfix(name, bp, led)
     LBP[name] = bp
-    LED[name] = led or function (node1, node2)
-      return { node1, node2 }
+    LED[name] = led or function (token, node)
+      return { token, node }
     end
   end
 
@@ -139,11 +139,9 @@ local function parser(tokens)
 
     while true do
       local token = peek_token()
-      if token.eof then
-        break
-      end
-      local lbp = assert(LBP[token.name])
-      if lbp <= rbp then
+
+      local lbp = LBP[token.name]
+      if not lbp or lbp <= rbp then
         break
       end
 
@@ -163,7 +161,7 @@ end
 local tokens1 = lexer "12 + 34 * 56 - 78"
 local tokens2 = lexer "-4 * -5"
 
-local tokens = tokens2
+local tokens = tokens1
 -- print(json.encode(tokens, { pretty = true, stable = true }))
 
 local result = parser(tokens)
