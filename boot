@@ -135,7 +135,6 @@ local function lexer(source)
   return tokens
 end
 
--- 最小限のPrattパーサを書いてみる。
 local function parser(tokens)
   local index = 1
 
@@ -162,10 +161,6 @@ local function parser(tokens)
     return token
   end
 
-  local NUD = {} -- null denotion
-  local LBP = {} -- left binding power
-  local LED = {} -- left denotion
-
   local parse_expression
 
   local function parse_args(close, separator)
@@ -190,8 +185,9 @@ local function parser(tokens)
     return args
   end
 
-  local function parse_names(separator)
-  end
+  local NUD = {} -- null denotion
+  local LBP = {} -- left binding power
+  local LED = {} -- left denotion
 
   local function prefix(name, nud)
     NUD[name] = nud or function (token)
@@ -235,14 +231,14 @@ local function parser(tokens)
 
   local function postfix_call(open, close, separator, bp)
     postfix(open, bp, function (token, node)
-      return { token, node, parse_args(close, separator) }
+      return { type = "call", token, node, parse_args(close, separator) }
     end)
   end
 
   local bp = 0
 
-  prefix("Integer")
-  prefix("Name")
+  prefix "Integer"
+  prefix "Name"
   prefix_group("(", ")")
 
   bp = bp + 10
