@@ -67,6 +67,8 @@ local function lexer(source)
   tokens[#tokens + 1] = {
     name = "EOF";
     eof = true;
+    i = position;
+    j = position;
   }
 
   return tokens
@@ -74,6 +76,18 @@ end
 
 -- 最小限のPrattパーサを書いてみる。
 local function parser(tokens)
+  local index = 1
+
+  local function peek_token()
+    return tokens[index]
+  end
+
+  local function next_token()
+    local token = peek_token()
+    index = index + 1
+    return token
+  end
+
   local NUD = {} -- null denotion
   local LBP = {} -- left binding power
   local LED = {} -- left denotion
@@ -120,21 +134,12 @@ local function parser(tokens)
   infix("*", 20)
   prefix_operator("-", 200)
 
-  local index = 1
-
-  local function peek_token()
-    return tokens[index]
-  end
-
-  local function next_token()
-    local token = peek_token()
-    index = index + 1
-    return token
-  end
-
   function parse_expression(rbp)
     local token = next_token()
-    local nud = assert(NUD[token.name])
+    local nud = NUD[token.name]
+    if not nud then
+      error("parser error at token <"..token.name.."> position "..token.i)
+    end
     local node = nud(token)
 
     while true do
@@ -154,14 +159,17 @@ local function parser(tokens)
   end
 
   local result = parse_expression(0)
-  assert(peek_token().eof)
+  local token = peek_token()
+  if not token.eof then
+    error("parser error at token <"..token.name.."> position "..token.i)
+  end
   return result
 end
 
 local tokens1 = lexer "12 + 34 * 56 - 78"
-local tokens2 = lexer "-4 * -5"
+local tokens2 = lexer "-4 - -5"
 
-local tokens = tokens1
+local tokens = tokens2
 -- print(json.encode(tokens, { pretty = true, stable = true }))
 
 local result = parser(tokens)
