@@ -1,11 +1,61 @@
 #! /usr/bin/env lua
 
-local json = require "dromozoa.commons.json"
+local function dump(out, node, depth)
+  local t = type(node)
+  if t == "number" then
+    out:write(("%.17g"):format(node))
+    return
+  elseif t == "string" then
+    out:write(("%q"):format(node))
+    return
+  elseif t == "boolean" then
+    if node then
+      out:write "true"
+    else
+      out:write "false"
+    end
+    return
+  end
+  assert(t == "table")
+
+  local keys = {}
+  for k, v in pairs(node) do
+    if type(k) == "string" then
+      keys[#keys + 1] = k
+    end
+  end
+  table.sort(keys)
+
+  local m = #keys
+  local n = #node
+
+  if m + n == 0 then
+    out:write "{}"
+    return
+  end
+
+  local indent = ("  "):rep(depth)
+  out:write "{"
+  for _, k in ipairs(keys) do
+    out:write("\n", indent, ("  [%q] = "):format(k))
+    dump(out, node[k], depth + 1)
+    out:write ";"
+  end
+  for i = 1, #node do
+    out:write("\n", indent, "  ")
+    dump(out, node[i], depth + 1)
+    out:write ";"
+  end
+  out:write("\n", indent, "}")
+end
 
 local function lexer(source)
   local rules = {
     { skip = true, pattern = "%s+" };
     { skip = true, pattern = "%-%-[^\r\n]*" };
+
+    "function";
+    "local";
 
     "+";
     "-";
@@ -83,6 +133,10 @@ end
 local function parser(tokens)
   local index = 1
 
+  local function parser_error(token)
+    error("parser error at token <"..token.name.."> position "..token.i)
+  end
+
   local function peek_token()
     return tokens[index]
   end
@@ -96,9 +150,10 @@ local function parser(tokens)
   local function expect_token(name)
     local token = peek_token()
     if token.name ~= name then
-      error("parser error at token <"..token.name.."> position "..token.i)
+      parser_error(token)
     end
     next_token()
+    return token
   end
 
   local NUD = {} -- null denotion
@@ -127,6 +182,9 @@ local function parser(tokens)
     end
 
     return arguments
+  end
+
+  local function parse_names(separator)
   end
 
   local function prefix(name, nud)
@@ -200,7 +258,7 @@ local function parser(tokens)
     local token = next_token()
     local nud = NUD[token.name]
     if not nud then
-      error("parser error at token <"..token.name.."> position "..token.i)
+      parser_error(token)
     end
     local node = nud(token)
 
@@ -220,10 +278,27 @@ local function parser(tokens)
     return node
   end
 
+  local function parse_statement()
+    local token = peek_token()
+    if token.name == "local" then
+      -- local function Name funcbody
+      -- local attnamelist [= explist]
+      next_token()
+      local token = peek_token()
+      if token.name == "function" then
+        next_token()
+      else
+      end
+
+    else
+      parser_error(token)
+    end
+  end
+
   local result = parse_expression(0)
   local token = peek_token()
   if not token.eof then
-    error("parser error at token <"..token.name.."> position "..token.i)
+    parser_error(token)
   end
   return result
 end
@@ -233,7 +308,9 @@ local tokens2 = lexer "-4 - -x"
 local tokens3 = lexer "f() + g(1 + 1) + h(1, 2, 3 * 4)"
 
 local tokens = tokens3
--- print(json.encode(tokens, { pretty = true, stable = true }))
+-- io.write "return "
+-- dump(io.stdout, tokens, 0)
+-- io.write "\n"
 
 local result = parser(tokens)
-print(json.encode(result, { pretty = true, stable = true }))
+dump(io.stdout, result, 0)
