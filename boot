@@ -11,6 +11,8 @@ local function lexer(source)
     "*";
     "/";
     "%";
+    "(";
+    ")";
     { name = "Integer", pattern = "%d+" };
     { name = "Name",    pattern = "[%a_][%w_]*" };
   }
@@ -88,6 +90,14 @@ local function parser(tokens)
     return token
   end
 
+  local function expect_token(name)
+    local token = peek_token()
+    if token.name ~= name then
+      error("parser error at token <"..token.name.."> position "..token.i)
+    end
+    next_token()
+  end
+
   local NUD = {} -- null denotion
   local LBP = {} -- left binding power
   local LED = {} -- left denotion
@@ -103,6 +113,14 @@ local function parser(tokens)
   local function prefix_operator(name, bp)
     prefix(name, function (token)
       return { token, parse_expression(bp) }
+    end)
+  end
+
+  local function prefix_group(open, close)
+    prefix(open, function (token)
+      local group = parse_expression(0)
+      expect_token(close)
+      return group
     end)
   end
 
@@ -128,11 +146,14 @@ local function parser(tokens)
 
   prefix("Integer")
   prefix("Name")
+  prefix_group("(", ")")
 
   infix("+", 10)
   infix("-", 10)
   infix("*", 20)
+  infix("/", 20)
   prefix_operator("-", 200)
+
 
   function parse_expression(rbp)
     local token = next_token()
@@ -166,10 +187,10 @@ local function parser(tokens)
   return result
 end
 
-local tokens1 = lexer "12 + 34 * 56 - 78"
+local tokens1 = lexer "(12 + 34) * (56 - 78)"
 local tokens2 = lexer "-4 - -5"
 
-local tokens = tokens2
+local tokens = tokens1
 -- print(json.encode(tokens, { pretty = true, stable = true }))
 
 local result = parser(tokens)
