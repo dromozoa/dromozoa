@@ -60,6 +60,7 @@ local function lexer(source)
     { skip = true, pattern = "%s+" };
     { skip = true, pattern = "%-%-[^\r\n]*" };
 
+    "end";
     "function";
     "local";
 
@@ -68,6 +69,7 @@ local function lexer(source)
     "*";
     "/";
     "%";
+    "=";
     "(";
     ")";
     ",";
@@ -162,37 +164,35 @@ local function parser(tokens)
   end
 
   local parse_expression
+  local parse_statement
 
-  local function parse_params()
-    local names = { type = "params" }
-
-    expect_token "("
-    local token = peek_token()
-    if token.name == ")" then
-      next_token()
-      return names
-    end
+  local function parse_names(tag, separator, close)
+    local result = { tag = tag }
 
     while true do
-      names[#names + 1] = expect_token "Name"
-      local token = peek_token()
-      if token.name == ")" then
-        next_token()
-        return names
+      if peek_token().name ~= "Name" then
+        break
       end
-      expect_token ","
+      result[#result + 1] = next_token()
+      expect_token(separator)
     end
+
+    if close then
+      expect_token(close)
+    end
+
+    return result
   end
 
-  local function parse_args(close, separator)
-    local args = { type = "args" }
+  local function parse_expressions(tag, separator, close)
+    local result = { tag = tag }
 
     local token = peek_token()
     if token.name == close then
       next_token()
     else
       while true do
-        args[#args + 1] = parse_expression(0)
+        result[#result + 1] = parse_expression(0)
 
         local token = peek_token()
         if token.name == close then
@@ -203,7 +203,7 @@ local function parser(tokens)
       end
     end
 
-    return args
+    return result
   end
 
   local NUD = {} -- null denotion
@@ -250,9 +250,9 @@ local function parser(tokens)
     end
   end
 
-  local function postfix_call(open, close, separator, bp)
-    postfix(open, bp, function (token, node)
-      return { type = "call", token, node, parse_args(close, separator) }
+  local function postfix_call(bp)
+    postfix("(", bp, function (token, node)
+      return { tag = "call", token, node, parse_expressions("args", ",", ")") }
     end)
   end
 
@@ -275,7 +275,41 @@ local function parser(tokens)
   prefix_operator("-", bp)
 
   bp = bp + 10
-  postfix_call("(", ")", ",", bp)
+  postfix_call(bp)
+
+  local function parse_block()
+    local block = { tag = "block" }
+
+    while true do
+      local statement = parse_statement()
+      if not statement then
+        break
+      end
+      block[#block + 1] = statement
+    end
+
+    return block
+  end
+
+  function parse_statement()
+    local token = peek_token()
+    if token.name == "function" then
+      -- "function" Name funcbody end
+      next_token()
+
+      local token = expect_token "Name"
+      expect_token "("
+      local params = parse_names("params", ",", ")")
+      local block = parse_block()
+      expect_token "end"
+
+      return { tag = "function", token, params, block }
+
+    elseif token.name == "Name" then
+
+      local vars = parse_names("vars", ",", "=")
+    end
+  end
 
   function parse_expression(rbp)
     local token = next_token()
@@ -301,31 +335,8 @@ local function parser(tokens)
     return node
   end
 
-  local function parse_statement()
-    local token = peek_token()
-    if token.name == "function" then
-      -- "function" Name funcbody end
-
-      local name_token = expect_token "Name"
-      local params = parse_params()
-      local block = parse_block()
-
-    elseif token.name == "local" then
-      -- local function Name funcbody
-      -- local attnamelist [= explist]
-      next_token()
-      local token = peek_token()
-      if token.name == "function" then
-        next_token()
-      else
-      end
-
-    else
-      parser_error(token)
-    end
-  end
-
-  local result = parse_expression(0)
+  local result = parse_block()
+  -- local result = parse_expression(0)
   local token = peek_token()
   if not token.eof then
     parser_error(token)
@@ -336,8 +347,12 @@ end
 local tokens1 = lexer "(12 + 34) * (56 - 78)"
 local tokens2 = lexer "-4 - -x"
 local tokens3 = lexer "f() + g(1 + 1) + h(1, 2, 3 * 4)"
+local tokens4 = lexer [[
+function f1()
+end
+]]
 
-local tokens = tokens3
+local tokens = tokens4
 -- dump(io.stdout, tokens):write "\n"
 
 local result = parser(tokens)
