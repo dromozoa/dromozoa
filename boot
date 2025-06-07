@@ -163,6 +163,27 @@ local function parser(tokens)
 
   local parse_expression
 
+  local function parse_params()
+    local names = { type = "params" }
+
+    expect_token "("
+    local token = peek_token()
+    if token.name == ")" then
+      next_token()
+      return names
+    end
+
+    while true do
+      names[#names + 1] = expect_token "Name"
+      local token = peek_token()
+      if token.name == ")" then
+        next_token()
+        return names
+      end
+      expect_token ","
+    end
+  end
+
   local function parse_args(close, separator)
     local args = { type = "args" }
 
@@ -282,7 +303,14 @@ local function parser(tokens)
 
   local function parse_statement()
     local token = peek_token()
-    if token.name == "local" then
+    if token.name == "function" then
+      -- "function" Name funcbody end
+
+      local name_token = expect_token "Name"
+      local params = parse_params()
+      local block = parse_block()
+
+    elseif token.name == "local" then
       -- local function Name funcbody
       -- local attnamelist [= explist]
       next_token()
