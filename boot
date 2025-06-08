@@ -63,6 +63,7 @@ local function lexer(source)
     "end";
     "function";
     "local";
+    "return";
 
     "+";
     "-";
@@ -285,8 +286,10 @@ local function parser(tokens)
   end
 
   function parse_statement()
-    local token = read_token()
+    local token = peek_token()
     if token.name == "function" then
+      read_token()
+
       local token = expect_token "Name"
       expect_token "("
       local parameters = parse_names("parameters", ",", ")")
@@ -296,14 +299,11 @@ local function parser(tokens)
       return { tag = "function", token, parameters, block }
 
     elseif token.name == "Name" then
-      unread_token()
       local variables = parse_names("variables", ",", "=")
       local expressions = parse_expressions("expressions", ",")
 
       return { tag = "assign", variables, expressions }
-
     end
-    unread_token()
   end
 
   function parse_expression(rbp, return_if_not_nud)
