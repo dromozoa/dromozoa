@@ -60,10 +60,17 @@ local function lexer(source)
     { skip = true, pattern = "%s+" };
     { skip = true, pattern = "%-%-[^\r\n]*" };
 
+    "break";
+    "do";
+    "elseif";
+    "else";
     "end";
     "function";
+    "if";
     "local";
     "return";
+    "then";
+    "while";
 
     "+";
     "-";
@@ -73,6 +80,7 @@ local function lexer(source)
     "=";
     "(";
     ")";
+    ";";
     ",";
 
     { name = "Integer", pattern = "%d+" };
@@ -171,6 +179,7 @@ local function parser(tokens)
   local parse_expression
   local parse_statement
 
+  -- queryじゃなくてparseのほうがよいかな
   local function parse_items(tag, separator, close, query)
     local result = { tag = tag }
 
@@ -256,7 +265,7 @@ local function parser(tokens)
 
   local function postfix_call(bp)
     postfix("(", bp, function (token, node)
-      return { tag = "call", token, node, parse_expressions("args", ",", ")") }
+      return { tag = "call", token, node, parse_expressions("arguments", ",", ")") }
     end)
   end
 
@@ -285,24 +294,108 @@ local function parser(tokens)
     return parse_items("block", nil, nil, parse_statement)
   end
 
-  function parse_statement()
-    local token = peek_token()
-    if token.name == "function" then
-      read_token()
+  local function parse_function(tag)
+    local token = expect_token "Name"
+    expect_token "("
+    local parameters = parse_names("parameters", ",", ")")
+    local block = parse_block()
+    expect_token "end"
 
-      local token = expect_token "Name"
-      expect_token "("
-      local parameters = parse_names("parameters", ",", ")")
+    return { tag = tag, token, parameters, block }
+  end
+
+  local function parse_if(tag)
+    local expression = parse_expression(0)
+    expect_token "then"
+    local block = parse_block()
+    local result = { tag = tag, expression, block }
+
+    local token = read_token()
+    if token.name == "else" then
       local block = parse_block()
       expect_token "end"
+      result[#result + 1] = block
+      return result
 
-      return { tag = "function", token, parameters, block }
+    elseif token.name == "elseif" then
+      result[#result + 1] = parse_if "elseif"
+      return result
+
+    elseif token.name == "end" then
+      return result
+
+    else
+      unread_token()
+      parse_error(token)
+    end
+  end
+
+  function parse_statement()
+    local token = peek_token()
+    if token.name == ";" then
+      read_token()
+      return { tag = ";" }
+
+    -- 関数呼び出しの式を文として扱う必要がある
 
     elseif token.name == "Name" then
       local variables = parse_names("variables", ",", "=")
       local expressions = parse_expressions("expressions", ",")
 
       return { tag = "assign", variables, expressions }
+
+    elseif token.name == "break" then
+      read_token()
+      return { tag = "break" }
+
+    elseif token.name == "do" then
+      read_token()
+      local block = parse_block()
+      expect_token "end"
+
+      return { tag = "do", block }
+
+    elseif token.name == "while" then
+      read_token()
+      local expression = parse_expression(0)
+      expect_token "do"
+      local block = parse_block()
+      expect_token "end"
+
+      return { tag = "while", expression, block }
+
+    elseif token.name == "function" then
+      read_token()
+      return parse_function "function"
+
+    elseif token.name == "if" then
+      read_token()
+      return parse_if "if"
+
+    elseif token.name == "local" then
+      read_token()
+
+      local token = peek_token()
+      if token.name == "function" then
+        read_token()
+        return parse_function "local function"
+      elseif token.name == "Name" then
+        local variables = parse_names("variables", ",")
+        local expressions
+        if peek_token().name == "=" then
+          expressions = parse_expressions("expressions", ",")
+        end
+        return { tag = "local", variables, expressions }
+      else
+        parser_error(token)
+      end
+
+    elseif token.name == "return" then
+      read_token()
+
+      local expressions = parse_expressions("expressions", ",")
+
+      return { tag = "return", expressions }
     end
   end
 
@@ -350,6 +443,15 @@ local tokens4 = lexer [[
 function f1()
   x = f(42, 69)
   x = x * x
+  if x then
+    x = print(1)
+  elseif x then
+    x = print(2)
+  else
+    x = print(3)
+  end
+
+  return 1, x
 end
 ]]
 
