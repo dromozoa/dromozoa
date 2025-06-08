@@ -148,33 +148,44 @@ local function parser(tokens)
     return tokens[index]
   end
 
-  local function next_token()
-    local token = peek_token()
+  local function read_token()
+    local token = tokens[index]
     index = index + 1
     return token
   end
 
+  local function unread_token()
+    index = index - 1
+  end
+
   local function expect_token(name)
-    local token = peek_token()
+    local token = tokens[index]
     if token.name ~= name then
       parser_error(token)
     end
-    next_token()
+    index = index + 1
     return token
   end
 
   local parse_expression
   local parse_statement
 
-  local function parse_names(tag, separator, close)
+  local function parse_items(tag, separator, close, query)
     local result = { tag = tag }
 
     while true do
-      if peek_token().name ~= "Name" then
+      local item = query()
+      if not item then
         break
       end
-      result[#result + 1] = next_token()
-      expect_token(separator)
+      result[#result + 1] = item
+
+      if separator then
+        if peek_token().name ~= separator then
+          break
+        end
+        read_token()
+      end
     end
 
     if close then
@@ -184,26 +195,18 @@ local function parser(tokens)
     return result
   end
 
-  local function parse_expressions(tag, separator, close)
-    local result = { tag = tag }
-
-    local token = peek_token()
-    if token.name == close then
-      next_token()
-    else
-      while true do
-        result[#result + 1] = parse_expression(0)
-
-        local token = peek_token()
-        if token.name == close then
-          next_token()
-          break
-        end
-        expect_token(separator)
+  local function parse_names(tag, separator, close)
+    return parse_items(tag, separator, close, function ()
+      if peek_token().name == "Name" then
+        return read_token()
       end
-    end
+    end)
+  end
 
-    return result
+  local function parse_expressions(tag, separator, close)
+    return parse_items(tag, separator, close, function ()
+      return parse_expression(0, true)
+    end)
   end
 
   local NUD = {} -- null denotion
@@ -278,44 +281,40 @@ local function parser(tokens)
   postfix_call(bp)
 
   local function parse_block()
-    local block = { tag = "block" }
-
-    while true do
-      local statement = parse_statement()
-      if not statement then
-        break
-      end
-      block[#block + 1] = statement
-    end
-
-    return block
+    return parse_items("block", nil, nil, parse_statement)
   end
 
   function parse_statement()
-    local token = peek_token()
+    local token = read_token()
     if token.name == "function" then
-      -- "function" Name funcbody end
-      next_token()
-
       local token = expect_token "Name"
       expect_token "("
-      local params = parse_names("params", ",", ")")
+      local parameters = parse_names("parameters", ",", ")")
       local block = parse_block()
       expect_token "end"
 
-      return { tag = "function", token, params, block }
+      return { tag = "function", token, parameters, block }
 
     elseif token.name == "Name" then
+      unread_token()
+      local variables = parse_names("variables", ",", "=")
+      local expressions = parse_expressions("expressions", ",")
 
-      local vars = parse_names("vars", ",", "=")
+      return { tag = "assign", variables, expressions }
+
     end
+    unread_token()
   end
 
-  function parse_expression(rbp)
-    local token = next_token()
+  function parse_expression(rbp, return_if_not_nud)
+    local token = read_token()
     local nud = NUD[token.name]
     if not nud then
-      parser_error(token)
+      if return_if_not_nud then
+        return
+      else
+        parser_error(token)
+      end
     end
     local node = nud(token)
 
@@ -328,7 +327,7 @@ local function parser(tokens)
       end
 
       local led = LED[token.name]
-      next_token()
+      read_token()
       node = led(token, node)
     end
 
@@ -349,6 +348,8 @@ local tokens2 = lexer "-4 - -x"
 local tokens3 = lexer "f() + g(1 + 1) + h(1, 2, 3 * 4)"
 local tokens4 = lexer [[
 function f1()
+  x = f(42, 69)
+  x = x * x
 end
 ]]
 
