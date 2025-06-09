@@ -336,9 +336,14 @@ local function parser(tokens)
       read_token()
       return { tag = ";" }
 
-    -- 関数呼び出しの式を文として扱う必要がある
-
     elseif token.name == "Name" then
+      -- 最小限の関数呼び出し文をサポートする
+      read_token()
+      if peek_token().name == "(" then
+        return { tag = "call", read_token(), parse_expressions("arguments", ",", ")") }
+      end
+      unread_token()
+
       local variables = parse_names("variables", ",", "=")
       local expressions = parse_expressions("expressions", ",")
 
@@ -444,11 +449,15 @@ function f1()
   x = f(42, 69)
   x = x * x
   if x then
-    x = print(1)
+    print(1)
   elseif x then
-    x = print(2)
+    print(2)
   else
-    x = print(3)
+    print(3)
+  end
+
+  while true do
+    break
   end
 
   return 1, x
