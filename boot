@@ -55,6 +55,35 @@ local function dump(out, value, depth)
   return out
 end
 
+local function short_string(source, position)
+  local i, j, q = source:find([[^(["'])]], position)
+  if not i then
+    return
+  end
+  local k, l = source:find("[^\\]"..q, position)
+  if not k then
+    error("lexer error at position "..position)
+  end
+  local v = source:sub(i + 1, k)
+    :gsub([[\([abfnrtv\"'])]], {
+      a = "\a", b = "\b", f = "\f", n = "\n", r = "\r", t = "\t", v = "\v";
+      ["\\"] = "\\";
+      ['"'] = '"';
+      ["'"] = "'";
+    })
+    :gsub([[\z%s*]], "")
+    :gsub([[\x(%x%x)]], function (v)
+      return string.char(tonumber(v, 16))
+    end)
+    :gsub([[\(%d%d?%d?)]], function (v)
+      return string.char(tonumber(v, 10))
+    end)
+    :gsub([[\u{(%x+)}]], function (v)
+      return utf8.char(tonumber(v, 16))
+    end)
+  return i, l, v
+end
+
 local function lexer(source)
   local rules = {
     { skip = true, pattern = "%s+" };
@@ -83,8 +112,9 @@ local function lexer(source)
     ";";
     ",";
 
-    { name = "Integer", pattern = "%d+" };
     { name = "Name",    pattern = "[%a_][%w_]*" };
+    { name = "Integer", pattern = "%d+" };
+    { name = "String",  rule = short_string };
   }
 
   for i, rule in ipairs(rules) do
@@ -99,7 +129,7 @@ local function lexer(source)
           end
         end;
       }
-    else
+    elseif rule.pattern then
       local pattern = "^"..rule.pattern
       rule.rule = function (source, position)
         return source:find(pattern, position)
@@ -270,8 +300,9 @@ local function parser(tokens)
 
   local bp = 0
 
-  prefix "Integer"
   prefix "Name"
+  prefix "Integer"
+  prefix "String"
   prefix_group("(", ")")
 
   bp = bp + 10
@@ -434,31 +465,8 @@ local function parser(tokens)
   return result
 end
 
-local tokens1 = lexer "(12 + 34) * (56 - 78)"
-local tokens2 = lexer "-4 - -x"
-local tokens3 = lexer "f() + g(1 + 1) + h(1, 2, 3 * 4)"
-local tokens4 = lexer [[
-function f1()
-  x = f(42, 69)
-  x = x * x
-  if x then
-    print(1)
-  elseif x then
-    print(2)
-  else
-    print(3)
-  end
-
-  while true do
-    break
-  end
-
-  return 1, x
-end
-]]
-
-local tokens = tokens4
+local source = io.read "*a"
 -- dump(io.stdout, tokens):write "\n"
-
-local result = parser(tokens)
-dump(io.stdout, result):write "\n"
+local tokens = lexer(source)
+local tree = parser(tokens)
+dump(io.stdout, tree):write "\n"
