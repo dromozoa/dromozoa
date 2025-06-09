@@ -411,6 +411,7 @@ local function parser(tokens)
         local variables = parse_names("variables", ",")
         local expressions
         if peek_token().name == "=" then
+          read_token()
           expressions = parse_expressions("expressions", ",")
         end
         return { tag = "local", variables, expressions }

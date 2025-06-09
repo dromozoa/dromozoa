@@ -1,3 +1,3 @@
 function main()
-  write(1, "Hello World")
+  local message = "Hello World"
 end
