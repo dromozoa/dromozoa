@@ -265,7 +265,7 @@ local function parser(tokens)
 
   local function postfix_call(bp)
     postfix("(", bp, function (token, node)
-      return { tag = "call", token, node, parse_expressions("arguments", ",", ")") }
+      return { tag = "call", node, parse_expressions("arguments", ",", ")") }
     end)
   end
 
@@ -340,7 +340,8 @@ local function parser(tokens)
       -- 最小限の関数呼び出し文をサポートする
       read_token()
       if peek_token().name == "(" then
-        return { tag = "call", read_token(), parse_expressions("arguments", ",", ")") }
+        read_token()
+        return { tag = "call", token, parse_expressions("arguments", ",", ")") }
       end
       unread_token()
 
