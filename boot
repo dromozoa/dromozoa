@@ -434,6 +434,7 @@ local function parser(tokens)
     local nud = NUD[token.name]
     if not nud then
       if return_if_not_nud then
+        unread_token()
         return
       else
         parser_error(token)
@@ -458,7 +459,6 @@ local function parser(tokens)
   end
 
   local result = parse_block()
-  -- local result = parse_expression(0)
   local token = peek_token()
   if not token.eof then
     parser_error(token)
