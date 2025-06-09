@@ -179,12 +179,11 @@ local function parser(tokens)
   local parse_expression
   local parse_statement
 
-  -- queryじゃなくてparseのほうがよいかな
-  local function parse_items(tag, separator, close, query)
+  local function parse_items(tag, separator, close, parse)
     local result = { tag = tag }
 
     while true do
-      local item = query()
+      local item = parse()
       if not item then
         break
       end
@@ -331,38 +330,34 @@ local function parser(tokens)
   end
 
   function parse_statement()
-    local token = peek_token()
+    local token = read_token()
+
     if token.name == ";" then
-      read_token()
       return { tag = ";" }
 
     elseif token.name == "Name" then
       -- 最小限の関数呼び出し文をサポートする
-      read_token()
       if peek_token().name == "(" then
         read_token()
         return { tag = "call", token, parse_expressions("arguments", ",", ")") }
       end
-      unread_token()
 
+      unread_token()
       local variables = parse_names("variables", ",", "=")
       local expressions = parse_expressions("expressions", ",")
 
       return { tag = "assign", variables, expressions }
 
     elseif token.name == "break" then
-      read_token()
       return { tag = "break" }
 
     elseif token.name == "do" then
-      read_token()
       local block = parse_block()
       expect_token "end"
 
       return { tag = "do", block }
 
     elseif token.name == "while" then
-      read_token()
       local expression = parse_expression(0)
       expect_token "do"
       local block = parse_block()
@@ -371,16 +366,12 @@ local function parser(tokens)
       return { tag = "while", expression, block }
 
     elseif token.name == "function" then
-      read_token()
       return parse_function "function"
 
     elseif token.name == "if" then
-      read_token()
       return parse_if "if"
 
     elseif token.name == "local" then
-      read_token()
-
       local token = peek_token()
       if token.name == "function" then
         read_token()
@@ -397,11 +388,12 @@ local function parser(tokens)
       end
 
     elseif token.name == "return" then
-      read_token()
-
       local expressions = parse_expressions("expressions", ",")
 
       return { tag = "return", expressions }
+
+    else
+      unread_token()
     end
   end
 
