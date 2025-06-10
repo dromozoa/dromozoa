@@ -492,6 +492,9 @@ local function parser(tokens)
   return result
 end
 
+local function compiler(tree)
+end
+
 local source = io.read "*a"
 -- dump(io.stdout, tokens):write "\n"
 local tokens = lexer(source)
