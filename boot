@@ -360,19 +360,45 @@ local function parser(tokens)
     end
   end
 
+  local function parse_call(tag)
+    local result
+
+    local token = read_token()
+    if token.name == "Name" then
+      if peek_token().name == "(" then
+        read_token()
+        result = { tag = tag, token, parse_expressions("arguments", ",", ")") }
+      end
+    elseif token.name == "(" then
+      unread_token()
+      result = parse_expression(0)
+    end
+
+    if not result then
+      unread_token()
+      return
+    end
+
+    while peek_token().name == "(" do
+      read_token()
+      result = { tag = tag, result, parse_expressions("arguments", ",", ")") }
+    end
+
+    return result
+  end
+
   function parse_statement()
+    local call = parse_call "call"
+    if call then
+      return call
+    end
+
     local token = read_token()
 
     if token.name == ";" then
       return { tag = ";" }
 
     elseif token.name == "Name" then
-      -- 最小限の関数呼び出し文をサポートする
-      if peek_token().name == "(" then
-        read_token()
-        return { tag = "call", token, parse_expressions("arguments", ",", ")") }
-      end
-
       unread_token()
       local variables = parse_names("variables", ",", "=")
       local expressions = parse_expressions("expressions", ",")
