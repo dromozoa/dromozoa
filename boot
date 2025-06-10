@@ -360,14 +360,14 @@ local function parser(tokens)
     end
   end
 
-  local function parse_call(tag)
+  local function parse_call()
     local result
 
     local token = read_token()
     if token.name == "Name" then
       if peek_token().name == "(" then
         read_token()
-        result = { tag = tag, token, parse_expressions("arguments", ",", ")") }
+        result = { tag = "call", token, parse_expressions("arguments", ",", ")") }
       end
     elseif token.name == "(" then
       unread_token()
@@ -381,14 +381,16 @@ local function parser(tokens)
 
     while peek_token().name == "(" do
       read_token()
-      result = { tag = tag, result, parse_expressions("arguments", ",", ")") }
+      result = { tag = "call", result, parse_expressions("arguments", ",", ")") }
     end
+
+    result.statement = true
 
     return result
   end
 
   function parse_statement()
-    local call = parse_call "call"
+    local call = parse_call()
     if call then
       return call
     end
@@ -402,7 +404,6 @@ local function parser(tokens)
       unread_token()
       local variables = parse_names("variables", ",", "=")
       local expressions = parse_expressions("expressions", ",")
-
       return { tag = "assign", variables, expressions }
 
     elseif token.name == "break" then
@@ -411,7 +412,6 @@ local function parser(tokens)
     elseif token.name == "do" then
       local block = parse_block()
       expect_token "end"
-
       return { tag = "do", block }
 
     elseif token.name == "while" then
@@ -419,7 +419,6 @@ local function parser(tokens)
       expect_token "do"
       local block = parse_block()
       expect_token "end"
-
       return { tag = "while", expression, block }
 
     elseif token.name == "function" then
@@ -447,7 +446,6 @@ local function parser(tokens)
 
     elseif token.name == "return" then
       local expressions = parse_expressions("expressions", ",")
-
       return { tag = "return", expressions }
 
     else
@@ -493,6 +491,13 @@ local function parser(tokens)
 end
 
 local function compiler(tree)
+  local constant_pool = {}
+
+  local function visit(node)
+
+  end
+
+  visit(tree)
 end
 
 local source = io.read "*a"
@@ -500,3 +505,4 @@ local source = io.read "*a"
 local tokens = lexer(source)
 local tree = parser(tokens)
 dump(io.stdout, tree):write "\n"
+compiler(tree)
