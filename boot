@@ -234,12 +234,16 @@ local function parser(tokens)
     return result
   end
 
-  local function parse_names(name, separator, close)
-    return parse_items(name, separator, close, function ()
+  local function parse_names(name, separator, close, def)
+    local result = parse_items(name, separator, close, function ()
       if peek_token().name == "Name" then
         return read_token()
       end
     end)
+    for _, name in ipairs(result) do
+      name.def = def
+    end
+    return result
   end
 
   local function parse_expressions(name, separator, close)
@@ -268,27 +272,27 @@ local function parser(tokens)
 
   local function prefix_operator(name, bp)
     prefix(name, function (token)
-      return { token, parse_expression(bp) }
+      return { type = "prefix", name = token.name, parse_expression(bp) }
     end)
   end
 
   local function infix(name, bp, led)
     LBP[name] = bp
     LED[name] = led or function (token, node)
-        return { token, node, parse_expression(bp) }
+        return { type = "left", name = token.name, node, parse_expression(bp) }
     end
   end
 
   local function infix_right(name, bp)
     infix(name, bp, function (token, node)
-      return { token, node, parse_expression(bp - 1) }
+      return { type = "right", name = token.name, node, parse_expression(bp - 1) }
     end)
   end
 
   local function postfix(name, bp, led)
     LBP[name] = bp
     LED[name] = led or function (token, node)
-      return { token, node }
+      return { type = "postfix", name = token.name, node }
     end
   end
 
@@ -329,11 +333,11 @@ local function parser(tokens)
 
   local function parse_function(name)
     local token = expect_token "Name"
+    token.def = true
     expect_token "("
-    local parameters = parse_names("parameters", ",", ")")
+    local parameters = parse_names("parameters", ",", ")", true)
     local block = parse_block "block"
     expect_token "end"
-    -- 引数格納用のスコープを割り当てる。
     return { name = name, scope = {}, token, parameters, block }
   end
 
@@ -405,7 +409,7 @@ local function parser(tokens)
 
     elseif token.name == "Name" then
       unread_token()
-      local variables = parse_names("variables", ",", "=")
+      local variables = parse_names("variables", ",", "=", true)
       local expressions = parse_expressions("expressions", ",")
       return { name = "assign", variables, expressions }
 
@@ -438,7 +442,7 @@ local function parser(tokens)
         result["local"] = true
         return result
       elseif token.name == "Name" then
-        local variables = parse_names("variables", ",")
+        local variables = parse_names("variables", ",", nil, true)
         local expressions
         if peek_token().name == "=" then
           read_token()
@@ -496,7 +500,23 @@ local function parser(tokens)
 end
 
 local function compiler(chunk)
-  local string_pool = {}
+  local identifier = 0
+  local strings = {}
+  local string_offset = 1024
+
+  local function make_identifier()
+    identifier = identifier + 1
+    return "$"..identifier
+  end
+
+  local function make_alignment(n, a)
+    local r = n % a
+    if r == 0 then
+      return n
+    else
+      return n + a - r
+    end
+  end
 
   local function get_names(scope)
     while true do
@@ -507,11 +527,36 @@ local function compiler(chunk)
     end
   end
 
+  local function get_results(scope)
+    while true do
+      if scope.results then
+        return scope.results
+      end
+      scope = scope.parent
+    end
+  end
+
+  local function find_name(scope, name)
+    while true do
+      local id = scope[name]
+      if id then
+        return id
+      end
+
+      if not scope.parent then
+        return nil
+      end
+
+      scope = scope.parent
+    end
+  end
+
   local function visit(u, scope)
     if u.scope then
       u.scope.parent = scope
       if u.name == "chunk" or u.name == "function" then
         u.scope.names = {}
+        u.scope.results = {}
       end
       scope = u.scope
     end
@@ -523,6 +568,7 @@ local function compiler(chunk)
         name = u[1];
         type = "function";
       }
+      u[1].id = make_identifier()
 
       local names = scope.names
       for _, parameter in ipairs(u[2]) do
@@ -530,6 +576,8 @@ local function compiler(chunk)
           name = parameter;
           type = "parameter";
         }
+        parameter.id = make_identifier()
+        scope[parameter.value] = parameter.id
       end
 
     elseif u.name == "local" then
@@ -539,14 +587,25 @@ local function compiler(chunk)
           name = variable;
           type = "variable";
         }
+        variable.id = make_identifier()
+        scope[variable.value] = variable.id
       end
-      -- 値の代入
-      if u[2] then
+
+    elseif u.name == "return" then
+      local results = get_results(scope)
+      -- 個数だけ入れておく
+      results[#results + 1] = #u[1]
+
+    elseif u.name == "Name" then
+      if not u.def then
+        local id = assert(find_name(scope, u.value))
+        u.id = id
       end
 
     elseif u.name == "String" then
-      string_pool[#string_pool + 1] = u
-      u.id = #string_pool
+      local n = #strings
+      strings[n + 1] = u
+      u.address = string_offset + n * 8
     end
 
     for _, v in ipairs(u) do
@@ -555,6 +614,106 @@ local function compiler(chunk)
   end
 
   visit(chunk)
+
+  local function visit(u)
+    if u.name == "function" then
+      io.write("(func ", u[1].id)
+      for _, parameter in ipairs(u[2]) do
+        io.write("(param ", parameter.id, " i32)")
+      end
+
+      local result
+      for _, v in ipairs(u.scope.results) do
+        if not result then
+          result = v
+        else
+          assert(result == v)
+        end
+      end
+      if not result then
+        result = 0
+      end
+      if result > 0 then
+        io.write "(result"
+        for i = 1, result do
+          io.write " i32"
+        end
+        io.write ")"
+      end
+      io.write "\n"
+
+      for _, name in ipairs(u.scope.names) do
+        if name.type == "variable" then
+          io.write("(local ", name.name.id, " i32)\n")
+        end
+      end
+
+    elseif u.name == "Name" then
+      if not u.def then
+        io.write("(local.get ", u.id, ")\n")
+      end
+
+    elseif u.name == "Integer" then
+      io.write("(i32.const ", u.value, ")\n")
+
+    elseif u.name == "String" then
+      io.write("(i32.const ", u.address, ")\n")
+    end
+
+    for _, v in ipairs(u) do
+      visit(v, scope)
+    end
+
+    if u.name == "function" then
+      io.write ")\n"
+      if u[1].value == "main" then
+        io.write('(export "_start" (func ', u[1].id, "))\n")
+      end
+
+    elseif u.name == "local" then
+      -- 値の代入
+      for i = #u[1], 1, -1 do
+        local v = u[1][i]
+        io.write("(local.set ", v.id, ")\n")
+      end
+
+    elseif u.name == "*" then
+      io.write "(i32.add)\n"
+    end
+  end
+
+  io.write [[
+(module
+(import "wasi_unstable" "fd_write"
+  (func $fd_write (param i32 i32 i32 i32) (result i32)))
+(memory 1)
+(export "memory" (memory 0))
+]]
+
+  visit(chunk)
+
+  local function encode_wat_string(s, pattern)
+    return (s:gsub(pattern or '[\x00-\x1F\x7F"\\]', function (c)
+      return ([[\%02X]]):format(string.byte(c))
+    end))
+  end
+
+  io.write("(data 0 (i32.const ", string_offset, ') "')
+  local string_address = string_offset + #strings * 8
+  for i, string in ipairs(strings) do
+    string.data_address = string_address
+    string.data_size = make_alignment(#string.value + 1, 8)
+    string_address = string_address + string.data_size
+    io.write(encode_wat_string(("<I4I4"):pack(string.data_address, #string.value), "."))
+  end
+  for i, string in ipairs(strings) do
+    io.write(encode_wat_string(string.value..("\0"):rep(string.data_size - #string.value)))
+  end
+  io.write '")\n'
+
+  io.write [[
+)
+]]
 end
 
 local source = io.read "*a"

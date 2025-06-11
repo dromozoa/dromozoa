@@ -1,6 +1,6 @@
-local g = "foo\nbar\xFF"
+-- local g = "foo\nbar\x7Fあいうえお"
 
 function main()
-  local message, abc = "Hello World", 42
-  local x = message
+  local s, d = "Hello World", 42
+  local t = d * d
 end
