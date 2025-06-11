@@ -509,6 +509,27 @@ local function compiler(chunk)
     return "$"..identifier
   end
 
+  local external_scope = { type = "external", names = {} }
+
+  local function add_external_scope_import_function(name)
+    local id = make_identifier()
+    local names = external_scope.names
+    names[#names + 1] = { name = { id = id, value = name }, type = "function" }
+    external_scope[name] = id
+  end
+
+  local function add_external_scope_variable(name)
+    local id = make_identifier()
+    local names = external_scope.names
+    names[#names + 1] = { name = { id = id, value = name }, type = "variable" }
+    external_scope[name] = id
+  end
+
+  add_external_scope_import_function "fd_write"
+  add_external_scope_variable "stack_pointer"
+  add_external_scope_variable "stack_offset"
+  add_external_scope_variable "heap_offset"
+
   local function make_alignment(n, a)
     local r = n % a
     if r == 0 then
@@ -540,7 +561,7 @@ local function compiler(chunk)
     while true do
       local id = scope[name]
       if id then
-        return id
+        return id, scope.type
       end
 
       if not scope.parent then
@@ -555,8 +576,11 @@ local function compiler(chunk)
     if u.scope then
       u.scope.parent = scope
       if u.name == "chunk" or u.name == "function" then
+        u.scope.type = u.name
         u.scope.names = {}
         u.scope.results = {}
+      elseif scope then
+        u.scope.type = scope.type
       end
       scope = u.scope
     end
@@ -564,11 +588,13 @@ local function compiler(chunk)
     if u.name == "function" then
       -- チャンクスコープに関数名を登録する。
       local names = get_names(scope.parent)
+      local fname = u[1]
       names[#names + 1] = {
-        name = u[1];
+        name = fname;
         type = "function";
       }
-      u[1].id = make_identifier()
+      fname.id = make_identifier()
+      scope.parent[fname.value] = fname.id
 
       local names = scope.names
       for _, parameter in ipairs(u[2]) do
@@ -588,7 +614,13 @@ local function compiler(chunk)
           type = "variable";
         }
         variable.id = make_identifier()
+        if scope.type == "chunk" then
+          variable.global = true
+        end
         scope[variable.value] = variable.id
+      end
+      if scope.type == "chunk" then
+        u.global = true
       end
 
     elseif u.name == "return" then
@@ -598,8 +630,11 @@ local function compiler(chunk)
 
     elseif u.name == "Name" then
       if not u.def then
-        local id = assert(find_name(scope, u.value))
+        local id, type = assert(find_name(scope, u.value), u.value.." not found")
         u.id = id
+        if type == "chunk" or type == "external" then
+          u.global = true
+        end
       end
 
     elseif u.name == "String" then
@@ -613,10 +648,14 @@ local function compiler(chunk)
     end
   end
 
-  visit(chunk)
+  visit(chunk, external_scope)
 
   local function visit(u)
-    if u.name == "function" then
+    local no_recursion
+
+    if u.name == "call" then
+
+    elseif u.name == "function" then
       io.write("(func ", u[1].id)
       for _, parameter in ipairs(u[2]) do
         io.write("(param ", parameter.id, " i32)")
@@ -648,9 +687,31 @@ local function compiler(chunk)
         end
       end
 
+    elseif u.name == "local" then
+      if u.global then
+        for i, name in ipairs(u[1]) do
+          io.write("(global ", name.id, " (mut i32)")
+          if u[2] and u[2][i] then
+            local v = u[2][i]
+            assert(v.name == "Integer" or v.name == "String")
+            if v.name == "Integer" then
+              io.write(" (i32.const ", v.value, ")")
+            elseif v.name == "String" then
+              io.write(" (i32.const ", v.address, ")")
+            end
+          end
+          io.write ")\n"
+        end
+        no_recursion = true
+      end
+
     elseif u.name == "Name" then
       if not u.def then
-        io.write("(local.get ", u.id, ")\n")
+        if u.global then
+          io.write("(global.get ", u.id, ")\n")
+        else
+          io.write("(local.get ", u.id, ")\n")
+        end
       end
 
     elseif u.name == "Integer" then
@@ -660,8 +721,10 @@ local function compiler(chunk)
       io.write("(i32.const ", u.address, ")\n")
     end
 
-    for _, v in ipairs(u) do
-      visit(v, scope)
+    if not no_recursion then
+      for _, v in ipairs(u) do
+        visit(v, scope)
+      end
     end
 
     if u.name == "function" then
@@ -671,24 +734,48 @@ local function compiler(chunk)
       end
 
     elseif u.name == "local" then
-      -- 値の代入
-      for i = #u[1], 1, -1 do
-        local v = u[1][i]
-        io.write("(local.set ", v.id, ")\n")
+      if not u.global then
+        -- 値の代入
+        for i = #u[1], 1, -1 do
+          local v = u[1][i]
+          io.write("(local.set ", v.id, ")\n")
+        end
       end
 
     elseif u.name == "*" then
-      io.write "(i32.add)\n"
+      io.write "(i32.mul)\n"
     end
   end
 
-  io.write [[
+  local string_address = string_offset + #strings * 8
+  for i, string in ipairs(strings) do
+    string.data_address = string_address
+    string.data_size = make_alignment(#string.value + 1, 8)
+    string_address = string_address + string.data_size
+  end
+  local stack_offset = make_alignment(string_address, 1024)
+  local stack_size = 16 * 1024
+  local heap_offset = stack_offset + stack_size
+  assert(heap_offset < 64 * 1024)
+
+  io.write(([[
 (module
-(import "wasi_unstable" "fd_write"
-  (func $fd_write (param i32 i32 i32 i32) (result i32)))
+(import "wasi_unstable" "fd_write" (func %s (param i32 i32 i32 i32) (result i32)))
 (memory 1)
 (export "memory" (memory 0))
-]]
+]]):format(external_scope.fd_write))
+
+  local external_data = {
+    stack_pointer = stack_offset;
+    stack_offset = stack_offset;
+    heap_offset = heap_offset;
+  }
+
+  for _, v in ipairs(external_scope.names) do
+    if v.type == "variable" then
+      io.write("global ", v.name.id, " (mut i32) (i32.const ", external_data[v.name.value], "))\n")
+    end
+  end
 
   visit(chunk)
 
@@ -699,11 +786,7 @@ local function compiler(chunk)
   end
 
   io.write("(data 0 (i32.const ", string_offset, ') "')
-  local string_address = string_offset + #strings * 8
   for i, string in ipairs(strings) do
-    string.data_address = string_address
-    string.data_size = make_alignment(#string.value + 1, 8)
-    string_address = string_address + string.data_size
     io.write(encode_wat_string(("<I4I4"):pack(string.data_address, #string.value), "."))
   end
   for i, string in ipairs(strings) do
