@@ -209,8 +209,8 @@ local function parser(tokens)
   local parse_expression
   local parse_statement
 
-  local function parse_items(tag, separator, close, parse)
-    local result = { tag = tag }
+  local function parse_items(name, separator, close, parse)
+    local result = { name = name }
 
     while true do
       local item = parse()
@@ -234,16 +234,16 @@ local function parser(tokens)
     return result
   end
 
-  local function parse_names(tag, separator, close)
-    return parse_items(tag, separator, close, function ()
+  local function parse_names(name, separator, close)
+    return parse_items(name, separator, close, function ()
       if peek_token().name == "Name" then
         return read_token()
       end
     end)
   end
 
-  local function parse_expressions(tag, separator, close)
-    return parse_items(tag, separator, close, function ()
+  local function parse_expressions(name, separator, close)
+    return parse_items(name, separator, close, function ()
       return parse_expression(0, true)
     end)
   end
@@ -294,7 +294,7 @@ local function parser(tokens)
 
   local function postfix_call(bp)
     postfix("(", bp, function (token, node)
-      return { tag = "call", node, parse_expressions("arguments", ",", ")") }
+      return { name = "call", node, parse_expressions("arguments", ",", ")") }
     end)
   end
 
@@ -320,29 +320,32 @@ local function parser(tokens)
   bp = bp + 10
   postfix_call(bp)
 
-  local function parse_block()
-    return parse_items("block", nil, nil, parse_statement)
+  local function parse_block(tag)
+    local result = parse_items(tag, nil, nil, parse_statement)
+    -- repeat-until文がないので単純にブロックにスコープを割り当てる。
+    result.scope = {}
+    return result
   end
 
-  local function parse_function(tag)
+  local function parse_function(name)
     local token = expect_token "Name"
     expect_token "("
     local parameters = parse_names("parameters", ",", ")")
-    local block = parse_block()
+    local block = parse_block "block"
     expect_token "end"
-
-    return { tag = tag, token, parameters, block }
+    -- 引数格納用のスコープを割り当てる。
+    return { name = name, scope = {}, token, parameters, block }
   end
 
-  local function parse_if(tag)
+  local function parse_if(name)
     local expression = parse_expression(0)
     expect_token "then"
-    local block = parse_block()
-    local result = { tag = tag, expression, block }
+    local block = parse_block "block"
+    local result = { name = name, expression, block }
 
     local token = read_token()
     if token.name == "else" then
-      local block = parse_block()
+      local block = parse_block "block"
       expect_token "end"
       result[#result + 1] = block
       return result
@@ -367,7 +370,7 @@ local function parser(tokens)
     if token.name == "Name" then
       if peek_token().name == "(" then
         read_token()
-        result = { tag = "call", token, parse_expressions("arguments", ",", ")") }
+        result = { name = "call", token, parse_expressions("arguments", ",", ")") }
       end
     elseif token.name == "(" then
       unread_token()
@@ -381,7 +384,7 @@ local function parser(tokens)
 
     while peek_token().name == "(" do
       read_token()
-      result = { tag = "call", result, parse_expressions("arguments", ",", ")") }
+      result = { name = "call", result, parse_expressions("arguments", ",", ")") }
     end
 
     result.statement = true
@@ -398,28 +401,28 @@ local function parser(tokens)
     local token = read_token()
 
     if token.name == ";" then
-      return { tag = ";" }
+      return { name = ";" }
 
     elseif token.name == "Name" then
       unread_token()
       local variables = parse_names("variables", ",", "=")
       local expressions = parse_expressions("expressions", ",")
-      return { tag = "assign", variables, expressions }
+      return { name = "assign", variables, expressions }
 
     elseif token.name == "break" then
-      return { tag = "break" }
+      return { name = "break" }
 
     elseif token.name == "do" then
-      local block = parse_block()
+      local block = parse_block "block"
       expect_token "end"
-      return { tag = "do", block }
+      return { name = "do", block }
 
     elseif token.name == "while" then
       local expression = parse_expression(0)
       expect_token "do"
-      local block = parse_block()
+      local block = parse_block "block"
       expect_token "end"
-      return { tag = "while", expression, block }
+      return { name = "while", expression, block }
 
     elseif token.name == "function" then
       return parse_function "function"
@@ -431,7 +434,9 @@ local function parser(tokens)
       local token = peek_token()
       if token.name == "function" then
         read_token()
-        return parse_function "local function"
+        local result = parse_function "function"
+        result["local"] = true
+        return result
       elseif token.name == "Name" then
         local variables = parse_names("variables", ",")
         local expressions
@@ -439,14 +444,14 @@ local function parser(tokens)
           read_token()
           expressions = parse_expressions("expressions", ",")
         end
-        return { tag = "local", variables, expressions }
+        return { name = "local", variables, expressions }
       else
         parser_error(token)
       end
 
     elseif token.name == "return" then
       local expressions = parse_expressions("expressions", ",")
-      return { tag = "return", expressions }
+      return { name = "return", expressions }
 
     else
       unread_token()
@@ -482,7 +487,7 @@ local function parser(tokens)
     return node
   end
 
-  local result = parse_block()
+  local result = parse_block "chunk"
   local token = peek_token()
   if not token.eof then
     parser_error(token)
@@ -490,19 +495,71 @@ local function parser(tokens)
   return result
 end
 
-local function compiler(tree)
-  local constant_pool = {}
+local function compiler(chunk)
+  local string_pool = {}
 
-  local function visit(node)
-
+  local function get_names(scope)
+    while true do
+      if scope.names then
+        return scope.names
+      end
+      scope = scope.parent
+    end
   end
 
-  visit(tree)
+  local function visit(u, scope)
+    if u.scope then
+      u.scope.parent = scope
+      if u.name == "chunk" or u.name == "function" then
+        u.scope.names = {}
+      end
+      scope = u.scope
+    end
+
+    if u.name == "function" then
+      -- チャンクスコープに関数名を登録する。
+      local names = get_names(scope.parent)
+      names[#names + 1] = {
+        name = u[1];
+        type = "function";
+      }
+
+      local names = scope.names
+      for _, parameter in ipairs(u[2]) do
+        names[#names + 1] = {
+          name = parameter;
+          type = "parameter";
+        }
+      end
+
+    elseif u.name == "local" then
+      local names = get_names(scope)
+      for _, variable in ipairs(u[1]) do
+        names[#names + 1] = {
+          name = variable;
+          type = "variable";
+        }
+      end
+      -- 値の代入
+      if u[2] then
+      end
+
+    elseif u.name == "String" then
+      string_pool[#string_pool + 1] = u
+      u.id = #string_pool
+    end
+
+    for _, v in ipairs(u) do
+      visit(v, scope)
+    end
+  end
+
+  visit(chunk)
 end
 
 local source = io.read "*a"
 -- dump(io.stdout, tokens):write "\n"
 local tokens = lexer(source)
-local tree = parser(tokens)
-dump(io.stdout, tree):write "\n"
-compiler(tree)
+local chunk = parser(tokens)
+-- dump(io.stdout, chunk):write "\n"
+compiler(chunk)
