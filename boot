@@ -107,6 +107,7 @@ local function lexer(source)
     "/";
     "%";
     "==";
+    "~=";
 
     "=";
     "(";
@@ -236,7 +237,7 @@ local function parser(tokens)
     return result
   end
 
-  local function parse_names(name, separator, close, not_ref)
+  local function parse_names(name, separator, close, not_ref, def)
     local result = parse_items(name, separator, close, function ()
       if peek_token().name == "Name" then
         return read_token()
@@ -244,6 +245,7 @@ local function parser(tokens)
     end)
     for _, name in ipairs(result) do
       name.not_ref = not_ref
+      name.def = def
     end
     return result
   end
@@ -315,6 +317,10 @@ local function parser(tokens)
   prefix_group("(", ")")
 
   bp = bp + 10
+  infix("==", bp)
+  infix("~=", bp)
+
+  bp = bp + 10
   infix("+", bp)
   infix("-", bp)
 
@@ -324,7 +330,6 @@ local function parser(tokens)
   infix("*", bp)
   infix("/", bp)
   infix("%", bp)
-  infix("==", bp)
 
   bp = bp + 10
   prefix_operator("-", bp)
@@ -363,7 +368,7 @@ local function parser(tokens)
       return result
 
     elseif token.name == "elseif" then
-      result[#result + 1] = parse_if "elseif"
+      result[#result + 1] = parse_if "if"
       return result
 
     elseif token.name == "end" then
@@ -418,7 +423,7 @@ local function parser(tokens)
 
     elseif token.name == "Name" then
       unread_token()
-      local variables = parse_names("variables", ",", "=", true)
+      local variables = parse_names("variables", ",", "=", true, true)
       local expressions = parse_expressions("expressions", ",")
       return { name = "assign", variables, expressions }
 
@@ -648,7 +653,7 @@ local function compiler(chunk)
       results[#results + 1] = #u[1]
 
     elseif u.name == "Name" then
-      if not u.not_ref then
+      if not u.not_ref or u.def then
         local id, type = assert(find_name(scope, u.value), u.value.." not found")
         u.id = id
         if type == "chunk" or type == "external" then
@@ -672,7 +677,10 @@ local function compiler(chunk)
   local function visit(u)
     local no_recursion
 
-    if u.name == "function" then
+    if u.name == "if" then
+      no_recursion = 1
+
+    elseif u.name == "function" then
       io.write("(func ", u[1].id)
       for _, parameter in ipairs(u[2]) do
         io.write("(param ", parameter.id, " i32)")
@@ -720,7 +728,7 @@ local function compiler(chunk)
           end
           io.write ")\n"
         end
-        no_recursion = true
+        no_recursion = 0
       end
 
     elseif u.name == "Name" then
@@ -739,13 +747,42 @@ local function compiler(chunk)
       io.write("(i32.const ", u.address, ")\n")
     end
 
-    if not no_recursion then
+    if no_recursion then
+      local n = no_recursion
+      if n > #u then
+        n = #u
+      end
+      for i = 1, n do
+        visit(u[1], scope)
+      end
+    else
       for _, v in ipairs(u) do
         visit(v, scope)
       end
     end
 
-    if u.name == "call" then
+    if u.name == "assign" then
+      -- 値の代入
+      for i = #u[1], 1, -1 do
+        local v = u[1][i]
+        if v.global then
+          io.write("(global.set ", v.id, ")\n")
+        else
+          io.write("(local.set ", v.id, ")\n")
+        end
+      end
+
+    elseif u.name == "if" then
+      -- blockがreturnを含む場合resultが変わるのに対応する必要がある
+      io.write "if\n"
+      visit(u[2])
+      if u[3] then
+        io.write "else\n"
+        visit(u[3])
+      end
+      io.write "end\n"
+
+    elseif u.name == "call" then
       io.write("(call ", u[1].id, ")\n")
 
       local v = assert(function_table[u[1].id])
@@ -786,6 +823,12 @@ local function compiler(chunk)
 
     elseif u.name == "==" then
       io.write "(i32.eq)\n"
+
+    elseif u.name == "~=" then
+      io.write "(i32.ne)\n"
+
+    elseif u.name == "return" then
+      io.write "(return)\n"
 
     end
   end

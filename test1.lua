@@ -2,7 +2,11 @@ local g = "foo\nbar\x7Fあいうえお"
 local x = 42
 
 function make_alignment(n, a)
-  local r = n % a == 0
+  local r = n % a
+  if r ~= 0 then
+    n = n + a - r
+  end
+  return n
 end
 
 function allocate_stack(n)
