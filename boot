@@ -234,14 +234,14 @@ local function parser(tokens)
     return result
   end
 
-  local function parse_names(name, separator, close, def)
+  local function parse_names(name, separator, close, not_ref)
     local result = parse_items(name, separator, close, function ()
       if peek_token().name == "Name" then
         return read_token()
       end
     end)
     for _, name in ipairs(result) do
-      name.def = def
+      name.not_ref = not_ref
     end
     return result
   end
@@ -298,6 +298,9 @@ local function parser(tokens)
 
   local function postfix_call(bp)
     postfix("(", bp, function (token, node)
+      if node.name == "Name" then
+        node.not_ref = true
+      end
       return { name = "call", node, parse_expressions("arguments", ",", ")") }
     end)
   end
@@ -333,7 +336,7 @@ local function parser(tokens)
 
   local function parse_function(name)
     local token = expect_token "Name"
-    token.def = true
+    token.not_ref = true
     expect_token "("
     local parameters = parse_names("parameters", ",", ")", true)
     local block = parse_block "block"
@@ -374,6 +377,7 @@ local function parser(tokens)
     if token.name == "Name" then
       if peek_token().name == "(" then
         read_token()
+        token.not_ref = true
         result = { name = "call", token, parse_expressions("arguments", ",", ")") }
       end
     elseif token.name == "(" then
@@ -509,13 +513,16 @@ local function compiler(chunk)
     return "$"..identifier
   end
 
+  local function_table = {}
   local external_scope = { type = "external", names = {} }
 
   local function add_external_scope_import_function(name)
     local id = make_identifier()
     local names = external_scope.names
-    names[#names + 1] = { name = { id = id, value = name }, type = "function" }
+    local def = { name = { id = id, value = name }, type = "function" }
+    names[#names + 1] = def
     external_scope[name] = id
+    function_table[id] = def.name
   end
 
   local function add_external_scope_variable(name)
@@ -585,7 +592,12 @@ local function compiler(chunk)
       scope = u.scope
     end
 
-    if u.name == "function" then
+    if u.name == "call" then
+      assert(u[1].name == "Name")
+      local id, type = assert(find_name(scope, u[1].value), u[1].value.." not found")
+      u[1].id = id
+
+    elseif u.name == "function" then
       -- チャンクスコープに関数名を登録する。
       local names = get_names(scope.parent)
       local fname = u[1]
@@ -595,6 +607,7 @@ local function compiler(chunk)
       }
       fname.id = make_identifier()
       scope.parent[fname.value] = fname.id
+      function_table[fname.id] = fname
 
       local names = scope.names
       for _, parameter in ipairs(u[2]) do
@@ -629,7 +642,7 @@ local function compiler(chunk)
       results[#results + 1] = #u[1]
 
     elseif u.name == "Name" then
-      if not u.def then
+      if not u.not_ref then
         local id, type = assert(find_name(scope, u.value), u.value.." not found")
         u.id = id
         if type == "chunk" or type == "external" then
@@ -653,9 +666,7 @@ local function compiler(chunk)
   local function visit(u)
     local no_recursion
 
-    if u.name == "call" then
-
-    elseif u.name == "function" then
+    if u.name == "function" then
       io.write("(func ", u[1].id)
       for _, parameter in ipairs(u[2]) do
         io.write("(param ", parameter.id, " i32)")
@@ -672,6 +683,7 @@ local function compiler(chunk)
       if not result then
         result = 0
       end
+      u[1].result = result
       if result > 0 then
         io.write "(result"
         for i = 1, result do
@@ -706,7 +718,7 @@ local function compiler(chunk)
       end
 
     elseif u.name == "Name" then
-      if not u.def then
+      if not u.not_ref then
         if u.global then
           io.write("(global.get ", u.id, ")\n")
         else
@@ -727,7 +739,19 @@ local function compiler(chunk)
       end
     end
 
-    if u.name == "function" then
+    if u.name == "call" then
+      io.write("(call ", u[1].id, ")\n")
+
+      local v = assert(function_table[u[1].id])
+      if u.statement then
+        for i = 1, v.result do
+          io.write("(drop)\n")
+        end
+      else
+        -- 式の場合も処理するべきだが、とりあえずは手動で対応する
+      end
+
+    elseif u.name == "function" then
       io.write ")\n"
       if u[1].value == "main" then
         io.write('(export "_start" (func ', u[1].id, "))\n")
@@ -773,7 +797,7 @@ local function compiler(chunk)
 
   for _, v in ipairs(external_scope.names) do
     if v.type == "variable" then
-      io.write("global ", v.name.id, " (mut i32) (i32.const ", external_data[v.name.value], "))\n")
+      io.write("(global ", v.name.id, " (mut i32) (i32.const ", external_data[v.name.value], "))\n")
     end
   end
 

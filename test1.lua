@@ -2,7 +2,8 @@ local g = "foo\nbar\x7Fあいうえお"
 local x = 42
 
 function allocate_stack(n)
-  local x = n
+  local x = n * n
+  return x
 end
 
 function main()
