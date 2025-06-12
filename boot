@@ -106,6 +106,8 @@ local function lexer(source)
     "*";
     "/";
     "%";
+    "==";
+
     "=";
     "(";
     ")";
@@ -317,9 +319,12 @@ local function parser(tokens)
   infix("-", bp)
 
   bp = bp + 10
+  infix("+", bp)
+  infix("-", bp)
   infix("*", bp)
   infix("/", bp)
   infix("%", bp)
+  infix("==", bp)
 
   bp = bp + 10
   prefix_operator("-", bp)
@@ -767,8 +772,21 @@ local function compiler(chunk)
         end
       end
 
+    elseif u.name == "+" then
+      io.write "(i32.add)\n"
+
+    elseif u.name == "-" then
+      io.write "(i32.sub)\n"
+
     elseif u.name == "*" then
       io.write "(i32.mul)\n"
+
+    elseif u.name == "%" then
+      io.write "(i32.rem_s)\n"
+
+    elseif u.name == "==" then
+      io.write "(i32.eq)\n"
+
     end
   end
 

@@ -1,6 +1,10 @@
 local g = "foo\nbar\x7Fあいうえお"
 local x = 42
 
+function make_alignment(n, a)
+  local r = n % a == 0
+end
+
 function allocate_stack(n)
   local x = n * n
   return x
