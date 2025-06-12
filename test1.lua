@@ -33,7 +33,11 @@ end
 
 function main()
   local s = "Hello World\n"
-  write_string(s)
+  local i = 0
+  while i ~= 10 do
+    write_string(s)
+    i = i + 1
+  end
   -- allocate(16)
   -- fd_write(0, 0, 0, 0)
   -- local t = 3 * stack_pointer

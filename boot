@@ -689,7 +689,15 @@ local function compiler(chunk)
   local function visit(u)
     local no_recursion
 
-    if u.name == "if" then
+    if u.name == "while" then
+      no_recursion = 1
+      u.block_id = make_identifier()
+      u.loop_id = make_identifier()
+
+      io.write("block ", u.block_id, "\n")
+      io.write("loop ", u.loop_id, "\n")
+
+    elseif u.name == "if" then
       no_recursion = 1
 
     elseif u.name == "function" then
@@ -784,6 +792,16 @@ local function compiler(chunk)
         end
       end
 
+    elseif u.name == "while" then
+      io.write "(i32.eqz)\n"
+      io.write("(br_if ", u.block_id, ")\n")
+
+      visit(u[2])
+
+      io.write("(br ", u.loop_id, ")\n")
+      io.write "end\n"
+      io.write "end\n"
+
     elseif u.name == "if" then
       -- blockがreturnを含む場合resultが変わるのに対応する必要がある
       io.write "if\n"
@@ -844,6 +862,7 @@ local function compiler(chunk)
       io.write "(i32.ne)\n"
 
     elseif u.name == "return" then
+      -- returnを直接呼ぶのではなく、末尾にbrして後片付けをするのも良いかも
       io.write "(return)\n"
 
     end
