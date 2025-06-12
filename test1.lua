@@ -67,6 +67,14 @@ function test()
   local ifelse = write_string
   write_i32(ifelse)
   write_string("\n")
+  call_indirect0("test\n", ifelse)
+
+  local f = unpack_string
+  local data, size = call_indirect2(g, f)
+  write_i32(data)
+  write_string(",")
+  write_i32(size)
+  write_string("\n")
 end
 
 function main()

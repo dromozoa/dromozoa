@@ -563,9 +563,34 @@ local function compiler(chunk)
     external_scope[name] = def
   end
 
+  local function gen_call_indirect(m)
+    return function (u)
+      local n = #u[2] - 1
+      io.write "(call_indirect"
+      if n > 0 then
+        io.write " (param"
+        for i = 1, n do
+          io.write " i32"
+        end
+        io.write ")"
+      end
+      if m > 0 then
+        io.write " (result"
+        for i = 1, m do
+          io.write " i32"
+        end
+        io.write ")"
+      end
+      io.write ")\n"
+    end
+  end
+
   add_external_scope_instruction("i32_load", "(i32.load)")
   add_external_scope_instruction("i32_store", "(i32.store)")
   add_external_scope_instruction("i32_store8", "(i32.store8)")
+  for i = 0, 8 do
+    add_external_scope_instruction("call_indirect"..i, gen_call_indirect(i))
+  end
   add_external_scope_import_function("fd_write", 1)
   add_external_scope_variable "stack_pointer"
   add_external_scope_variable "stack_offset"
@@ -859,7 +884,11 @@ local function compiler(chunk)
     elseif u.name == "call" then
       local instruction = instruction_table[u[1].id]
       if instruction then
-        io.write(instruction, "\n")
+        if type(instruction) == "string" then
+          io.write(instruction, "\n")
+        else
+          instruction(u)
+        end
       else
         io.write("(call ", u[1].id, ")\n")
         local v = assert(function_table[u[1].id])
