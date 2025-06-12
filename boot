@@ -94,11 +94,13 @@ local function lexer(source)
     "elseif";
     "else";
     "end";
+    "false";
     "function";
     "if";
     "local";
     "return";
     "then";
+    "true";
     "while";
 
     "+";
@@ -108,6 +110,7 @@ local function lexer(source)
     "%";
     "==";
     "~=";
+    "<";
 
     "=";
     "(";
@@ -311,6 +314,8 @@ local function parser(tokens)
 
   local bp = 0
 
+  prefix "true"
+  prefix "false"
   prefix "Name"
   prefix "Integer"
   prefix "String"
@@ -319,6 +324,7 @@ local function parser(tokens)
   bp = bp + 10
   infix("==", bp)
   infix("~=", bp)
+  infix("<", bp)
 
   bp = bp + 10
   infix("+", bp)
@@ -554,6 +560,7 @@ local function compiler(chunk)
 
   add_external_scope_instruction("i32_load", "(i32.load)")
   add_external_scope_instruction("i32_store", "(i32.store)")
+  add_external_scope_instruction("i32_store8", "(i32.store8)")
   add_external_scope_import_function("fd_write", 1)
   add_external_scope_variable "stack_pointer"
   add_external_scope_variable "stack_offset"
@@ -602,7 +609,7 @@ local function compiler(chunk)
     end
   end
 
-  local function visit(u, scope)
+  local function visit(u, scope, loop)
     if u.scope then
       u.scope.parent = scope
       if u.name == "chunk" or u.name == "function" then
@@ -620,7 +627,18 @@ local function compiler(chunk)
       local id, type = assert(find_name(scope, u[1].value), u[1].value.." not found")
       u[1].id = id
 
+    elseif u.name == "break" then
+      assert(loop)
+      u.loop = loop
+
+    elseif u.name == "while" then
+      loop = u
+      u.block_id = make_identifier()
+      u.loop_id = make_identifier()
+
     elseif u.name == "function" then
+      loop = nil
+
       -- チャンクスコープに関数名を登録する。
       local names = get_names(scope.parent)
       local fname = u[1]
@@ -680,7 +698,7 @@ local function compiler(chunk)
     end
 
     for _, v in ipairs(u) do
-      visit(v, scope)
+      visit(v, scope, loop)
     end
   end
 
@@ -689,11 +707,11 @@ local function compiler(chunk)
   local function visit(u)
     local no_recursion
 
-    if u.name == "while" then
-      no_recursion = 1
-      u.block_id = make_identifier()
-      u.loop_id = make_identifier()
+    if u.name == "break" then
+      io.write("(br ", u.loop.block_id, ")\n")
 
+    elseif u.name == "while" then
+      no_recursion = 1
       io.write("block ", u.block_id, "\n")
       io.write("loop ", u.loop_id, "\n")
 
@@ -759,6 +777,17 @@ local function compiler(chunk)
           io.write("(local.get ", u.id, ")\n")
         end
       end
+
+    elseif u.name == "-" then
+      if u.type == "prefix" then
+        io.write "(i32.const 0)\n"
+      end
+
+    elseif u.name == "true" then
+      io.write "(i32.const 1)\n"
+
+    elseif u.name == "false" then
+      io.write "(i32.const 0)\n"
 
     elseif u.name == "Integer" then
       io.write("(i32.const ", u.value, ")\n")
@@ -843,6 +872,10 @@ local function compiler(chunk)
         end
       end
 
+    elseif u.name == "return" then
+      -- returnを直接呼ぶのではなく、末尾にbrして後片付けをするのも良いかも
+      io.write "(return)\n"
+
     elseif u.name == "+" then
       io.write "(i32.add)\n"
 
@@ -851,6 +884,9 @@ local function compiler(chunk)
 
     elseif u.name == "*" then
       io.write "(i32.mul)\n"
+
+    elseif u.name == "/" then
+      io.write "(i32.div_s)\n"
 
     elseif u.name == "%" then
       io.write "(i32.rem_s)\n"
@@ -861,9 +897,8 @@ local function compiler(chunk)
     elseif u.name == "~=" then
       io.write "(i32.ne)\n"
 
-    elseif u.name == "return" then
-      -- returnを直接呼ぶのではなく、末尾にbrして後片付けをするのも良いかも
-      io.write "(return)\n"
+    elseif u.name == "<" then
+      io.write "(i32.lt_s)\n"
 
     end
   end
@@ -885,6 +920,28 @@ local function compiler(chunk)
 (memory 1)
 (export "memory" (memory 0))
 ]]):format(external_scope.fd_write))
+
+  local function_ids = {}
+  for _, v in ipairs(external_scope.names) do
+    if v.type == "function" then
+      local n = #function_ids + 1
+      function_ids[n] = v.name.id
+      v.name.index = n
+    end
+  end
+  for _, v in ipairs(chunk.scope.names) do
+    if v.type == "function" then
+      local n = #function_ids + 1
+      function_ids[n] = v.name.id
+      v.name.index = n
+    end
+  end
+  io.write("(table ", #function_ids + 1, " funcref)\n")
+  io.write "(elem (i32.const 1)"
+  for _, id in ipairs(function_ids) do
+    io.write(" ", id)
+  end
+  io.write ")\n"
 
   local external_data = {
     stack_pointer = stack_offset;

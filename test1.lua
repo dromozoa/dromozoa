@@ -31,6 +31,38 @@ function write_string(s)
   fd_write(1, item, 1, out)
 end
 
+function write_i32(v)
+  if v < 0 then
+    write_string("-")
+    write_i32(-v)
+    return
+  end
+
+  local buffer = allocate(12)
+  local p = buffer + 11
+  i32_store8(p, 0)
+  p = p - 1
+
+  local n = 0
+  while true do
+    local r = v % 10
+    v = v / 10
+
+    i32_store8(p, r + 48)
+    n = n + 1
+
+    if v == 0 then
+      break
+    end
+    p = p - 1
+  end
+
+  local s = allocate(8)
+  i32_store(s, p)
+  i32_store(s + 4, n)
+  write_string(s)
+end
+
 function main()
   local s = "Hello World\n"
   local i = 0
@@ -38,6 +70,9 @@ function main()
     write_string(s)
     i = i + 1
   end
+  write_i32(42)
+  write_string("\n")
+
   -- allocate(16)
   -- fd_write(0, 0, 0, 0)
   -- local t = 3 * stack_pointer
