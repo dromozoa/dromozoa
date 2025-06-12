@@ -535,6 +535,7 @@ local function compiler(chunk)
   add_external_scope_import_function "fd_write"
   add_external_scope_variable "stack_pointer"
   add_external_scope_variable "stack_offset"
+  add_external_scope_variable "heap_pointer"
   add_external_scope_variable "heap_offset"
 
   local function make_alignment(n, a)
@@ -792,6 +793,7 @@ local function compiler(chunk)
   local external_data = {
     stack_pointer = stack_offset;
     stack_offset = stack_offset;
+    heap_pointer = heap_offset;
     heap_offset = heap_offset;
   }
 
