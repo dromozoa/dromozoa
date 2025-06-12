@@ -1,5 +1,8 @@
 #! /usr/bin/env lua
 
+-- アイディア: 関数式も関数ポインタに変換できる
+-- アイディア: テーブルコンストラクタは少なくとも配列に変換できる
+
 local function dump(out, value, depth)
   local t = type(value)
   if t == "number" then
