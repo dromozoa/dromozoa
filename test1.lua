@@ -9,14 +9,20 @@ function make_alignment(n, a)
   return n
 end
 
-function allocate_stack(n)
-  local x = n * n
-  return x
+function allocate(n)
+  local p = stack_pointer
+  stack_pointer = p + make_alignment(n, 8)
+  return p
+end
+
+function unpack_string(s)
+  return 1, 42
 end
 
 function main()
-  local s, d = "Hello World", 42
-  allocate_stack(17)
+  local s = "Hello World"
+  local data, size = unpack_string(s)
+  -- allocate(16)
   -- fd_write(0, 0, 0, 0)
   -- local t = 3 * stack_pointer
   -- local u = g

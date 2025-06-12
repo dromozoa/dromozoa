@@ -654,7 +654,7 @@ local function compiler(chunk)
 
     elseif u.name == "Name" then
       if not u.not_ref or u.def then
-        local id, type = assert(find_name(scope, u.value), u.value.." not found")
+        local id, type = assert(find_name(scope, u.value))
         u.id = id
         if type == "chunk" or type == "external" then
           u.global = true
