@@ -16,7 +16,9 @@ function allocate(n)
 end
 
 function unpack_string(s)
-  return 1, 42
+  local data = i32_load(s)
+  local size = i32_load(s + 4)
+  return data, size
 end
 
 function main()

@@ -523,8 +523,18 @@ local function compiler(chunk)
     return "$"..identifier
   end
 
+  local instruction_table = {}
   local function_table = {}
   local external_scope = { type = "external", names = {} }
+
+  local function add_external_scope_instruction(name, instruction)
+    local id = make_identifier()
+    local names = external_scope.names
+    local def = { name = { id = id, value = name }, type = "instruction" }
+    names[#names + 1] = def
+    external_scope[name] = id
+    instruction_table[id] = instruction
+  end
 
   local function add_external_scope_import_function(name)
     local id = make_identifier()
@@ -542,6 +552,7 @@ local function compiler(chunk)
     external_scope[name] = id
   end
 
+  add_external_scope_instruction("i32_load", "(i32.load)")
   add_external_scope_import_function "fd_write"
   add_external_scope_variable "stack_pointer"
   add_external_scope_variable "stack_offset"
@@ -783,15 +794,19 @@ local function compiler(chunk)
       io.write "end\n"
 
     elseif u.name == "call" then
-      io.write("(call ", u[1].id, ")\n")
-
-      local v = assert(function_table[u[1].id])
-      if u.statement then
-        for i = 1, v.result do
-          io.write("(drop)\n")
-        end
+      local instruction = instruction_table[u[1].id]
+      if instruction then
+        io.write(instruction, "\n")
       else
-        -- 式の場合も処理するべきだが、とりあえずは手動で対応する
+        io.write("(call ", u[1].id, ")\n")
+        local v = assert(function_table[u[1].id])
+        if u.statement then
+          for i = 1, v.result do
+            io.write("(drop)\n")
+          end
+        else
+          -- 式の場合も処理するべきだが、とりあえずは手動で対応する
+        end
       end
 
     elseif u.name == "function" then
