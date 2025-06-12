@@ -63,6 +63,10 @@ function write_i32(v)
   write_string(s)
 end
 
+function test()
+  local ifelse = 0
+end
+
 function main()
   local s = "Hello World\n"
   local i = 0

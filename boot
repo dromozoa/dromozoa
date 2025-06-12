@@ -148,28 +148,32 @@ local function lexer(source)
   local position = 1
   while position <= #source do
     local i, j, v
+    local token
     for _, rule in ipairs(rules) do
       i, j, v = rule.rule(source, position)
       if i then
         if not v then
           v = source:sub(i, j)
         end
-        if not rule.skip then
-          tokens[#tokens + 1] = {
-            name = assert(rule.name);
+        if not token or token.j < j then
+          token = {
+            name = rule.name;
             value = v;
             i = i;
             j = j;
+            skip = rule.skip
           }
         end
-        break
       end
     end
-
-    if not i then
+    if not token then
       error("lexer error at position "..position)
     end
-    position = j + 1
+
+    if not token.skip then
+      tokens[#tokens + 1] = token
+    end
+    position = token.j + 1
   end
 
   tokens[#tokens + 1] = {
