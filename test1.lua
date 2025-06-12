@@ -1,4 +1,4 @@
-local g = "foo\nbar\x7Fあいうえお"
+local g = "foo\n"
 local x = 42
 
 function make_alignment(n, a)
@@ -21,9 +21,19 @@ function unpack_string(s)
   return data, size
 end
 
-function main()
-  local s = "Hello World"
+function write_string(s)
   local data, size = unpack_string(s)
+  local item = allocate(8)
+  i32_store(item, data)
+  i32_store(item + 4, size)
+  local out = allocate(4)
+  i32_store(out, 0)
+  fd_write(1, item, 1, out)
+end
+
+function main()
+  local s = "Hello World\n"
+  write_string(s)
   -- allocate(16)
   -- fd_write(0, 0, 0, 0)
   -- local t = 3 * stack_pointer

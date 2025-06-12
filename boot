@@ -536,10 +536,10 @@ local function compiler(chunk)
     instruction_table[id] = instruction
   end
 
-  local function add_external_scope_import_function(name)
+  local function add_external_scope_import_function(name, result)
     local id = make_identifier()
     local names = external_scope.names
-    local def = { name = { id = id, value = name }, type = "function" }
+    local def = { name = { id = id, value = name, result = result }, type = "function" }
     names[#names + 1] = def
     external_scope[name] = id
     function_table[id] = def.name
@@ -553,7 +553,8 @@ local function compiler(chunk)
   end
 
   add_external_scope_instruction("i32_load", "(i32.load)")
-  add_external_scope_import_function "fd_write"
+  add_external_scope_instruction("i32_store", "(i32.store)")
+  add_external_scope_import_function("fd_write", 1)
   add_external_scope_variable "stack_pointer"
   add_external_scope_variable "stack_offset"
   add_external_scope_variable "heap_pointer"
