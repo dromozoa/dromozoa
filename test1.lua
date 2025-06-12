@@ -64,7 +64,9 @@ function write_i32(v)
 end
 
 function test()
-  local ifelse = 0
+  local ifelse = write_string
+  write_i32(ifelse)
+  write_string("\n")
 end
 
 function main()
@@ -76,6 +78,7 @@ function main()
   end
   write_i32(42)
   write_string("\n")
+  test()
 
   -- allocate(16)
   -- fd_write(0, 0, 0, 0)

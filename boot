@@ -542,7 +542,7 @@ local function compiler(chunk)
     local names = external_scope.names
     local def = { name = { id = id, value = name }, type = "instruction" }
     names[#names + 1] = def
-    external_scope[name] = id
+    external_scope[name] = def
     instruction_table[id] = instruction
   end
 
@@ -551,15 +551,16 @@ local function compiler(chunk)
     local names = external_scope.names
     local def = { name = { id = id, value = name, result = result }, type = "function" }
     names[#names + 1] = def
-    external_scope[name] = id
+    external_scope[name] = def
     function_table[id] = def.name
   end
 
   local function add_external_scope_variable(name)
     local id = make_identifier()
     local names = external_scope.names
-    names[#names + 1] = { name = { id = id, value = name }, type = "variable" }
-    external_scope[name] = id
+    local def = { name = { id = id, value = name }, type = "variable" }
+    names[#names + 1] = def
+    external_scope[name] = def
   end
 
   add_external_scope_instruction("i32_load", "(i32.load)")
@@ -600,9 +601,10 @@ local function compiler(chunk)
 
   local function find_name(scope, name)
     while true do
-      local id = scope[name]
-      if id then
-        return id, scope.type
+      local def = scope[name]
+      if def then
+        assert(def.name, name)
+        return def, scope.type
       end
 
       if not scope.parent then
@@ -628,8 +630,8 @@ local function compiler(chunk)
 
     if u.name == "call" then
       assert(u[1].name == "Name")
-      local id, type = assert(find_name(scope, u[1].value), u[1].value.." not found")
-      u[1].id = id
+      local def, type = assert(find_name(scope, u[1].value))
+      u[1].id = def.name.id
 
     elseif u.name == "break" then
       assert(loop)
@@ -646,36 +648,39 @@ local function compiler(chunk)
       -- チャンクスコープに関数名を登録する。
       local names = get_names(scope.parent)
       local fname = u[1]
-      names[#names + 1] = {
+      local def = {
         name = fname;
         type = "function";
       }
+      names[#names + 1] = def
       fname.id = make_identifier()
-      scope.parent[fname.value] = fname.id
+      scope.parent[fname.value] = def
       function_table[fname.id] = fname
 
       local names = scope.names
       for _, parameter in ipairs(u[2]) do
-        names[#names + 1] = {
+        local def = {
           name = parameter;
           type = "parameter";
         }
+        names[#names + 1] = def
         parameter.id = make_identifier()
-        scope[parameter.value] = parameter.id
+        scope[parameter.value] = def
       end
 
     elseif u.name == "local" then
       local names = get_names(scope)
       for _, variable in ipairs(u[1]) do
-        names[#names + 1] = {
+        local def = {
           name = variable;
           type = "variable";
         }
+        names[#names + 1] = def
         variable.id = make_identifier()
         if scope.type == "chunk" then
           variable.global = true
         end
-        scope[variable.value] = variable.id
+        scope[variable.value] = def
       end
       if scope.type == "chunk" then
         u.global = true
@@ -688,8 +693,9 @@ local function compiler(chunk)
 
     elseif u.name == "Name" then
       if not u.not_ref or u.def then
-        local id, type = assert(find_name(scope, u.value))
-        u.id = id
+        local def, type = assert(find_name(scope, u.value))
+        u.id = def.name.id
+        u.def_data = def
         if type == "chunk" or type == "external" then
           u.global = true
         end
@@ -775,10 +781,15 @@ local function compiler(chunk)
 
     elseif u.name == "Name" then
       if not u.not_ref then
-        if u.global then
-          io.write("(global.get ", u.id, ")\n")
+        assert(u.def_data)
+        if u.def_data.type == "function" then
+          io.write("(i32.const ", u.def_data.name.index, ")\n")
         else
-          io.write("(local.get ", u.id, ")\n")
+          if u.global then
+            io.write("(global.get ", u.id, ")\n")
+          else
+            io.write("(local.get ", u.id, ")\n")
+          end
         end
       end
 
@@ -923,7 +934,7 @@ local function compiler(chunk)
 (import "wasi_unstable" "fd_write" (func %s (param i32 i32 i32 i32) (result i32)))
 (memory 1)
 (export "memory" (memory 0))
-]]):format(external_scope.fd_write))
+]]):format(external_scope.fd_write.name.id))
 
   local function_ids = {}
   for _, v in ipairs(external_scope.names) do
