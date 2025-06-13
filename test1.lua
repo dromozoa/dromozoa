@@ -77,6 +77,18 @@ function test()
   write_string("\n")
 end
 
+function test2(v)
+  if v == 0 then
+    write_string("foo\n")
+  elseif v == 1 then
+    write_string("bar\n")
+  elseif v == 2 then
+    write_string("baz\n")
+  else
+    write_string("qux\n")
+  end
+end
+
 function main()
   local s = "Hello World\n"
   local i = 0
@@ -86,7 +98,13 @@ function main()
   end
   write_i32(42)
   write_string("\n")
+  write_i32(-1234)
+  write_string("\n")
   test()
+  test2(0)
+  test2(1)
+  test2(2)
+  test2(3)
 
   -- allocate(16)
   -- fd_write(0, 0, 0, 0)
