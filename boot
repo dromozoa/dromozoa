@@ -1,7 +1,12 @@
 #! /usr/bin/env lua
 
 -- アイディア: 関数式も関数ポインタに変換できる
+
 -- アイディア: テーブルコンストラクタは少なくとも配列に変換できる
+-- 組み込み構造体は文字列と配列（テーブル）だけ
+--   構造体といっても{ data, size }だけ
+--   size (length) 取得は型を無視する
+--   添字アクセスは配列に対してだけ
 
 local function dump(out, value, depth)
   local t = type(value)
