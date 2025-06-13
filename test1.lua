@@ -106,6 +106,16 @@ function main()
   test2(2)
   test2(3)
 
+  write_i32(1 <= 1)
+  write_i32(1 <= 2)
+  write_i32(1 < 1)
+  write_i32(1 < 2)
+  write_i32(1 >= 1)
+  write_i32(2 >= 1)
+  write_i32(1 > 1)
+  write_i32(2 > 1)
+  write_string("\n")
+
   -- allocate(16)
   -- fd_write(0, 0, 0, 0)
   -- local t = 3 * stack_pointer

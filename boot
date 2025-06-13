@@ -119,7 +119,10 @@ local function lexer(source)
     "%";
     "==";
     "~=";
+    "<=";
+    ">=";
     "<";
+    ">";
 
     "=";
     "(";
@@ -337,7 +340,10 @@ local function parser(tokens)
   bp = bp + 10
   infix("==", bp)
   infix("~=", bp)
+  infix("<=", bp)
+  infix(">=", bp)
   infix("<", bp)
+  infix(">", bp)
 
   bp = bp + 10
   infix("+", bp)
@@ -945,8 +951,17 @@ local function compiler(chunk)
     elseif u.name == "~=" then
       io.write "(i32.ne)\n"
 
+    elseif u.name == "<=" then
+      io.write "(i32.le_s)\n"
+
+    elseif u.name == ">=" then
+      io.write "(i32.ge_s)\n"
+
     elseif u.name == "<" then
       io.write "(i32.lt_s)\n"
+
+    elseif u.name == ">" then
+      io.write "(i32.gt_s)\n"
 
     end
   end
