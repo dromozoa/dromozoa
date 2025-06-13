@@ -631,6 +631,7 @@ local function compiler(chunk)
     add_external_scope_instruction("call_indirect"..i, gen_call_indirect(i))
   end
   add_external_scope_import_function("fd_write", 1)
+  add_external_scope_import_function("fd_read", 1)
   add_external_scope_variable "stack_pointer"
   add_external_scope_variable "stack_offset"
   add_external_scope_variable "heap_pointer"
@@ -1026,9 +1027,10 @@ local function compiler(chunk)
   io.write(([[
 (module
 (import "wasi_unstable" "fd_write" (func %s (param i32 i32 i32 i32) (result i32)))
+(import "wasi_unstable" "fd_read" (func %s (param i32 i32 i32 i32) (result i32)))
 (memory 1)
 (export "memory" (memory 0))
-]]):format(external_scope.fd_write.name.id))
+]]):format(external_scope.fd_write.name.id, external_scope.fd_read.name.id))
 
   local function_ids = {}
   for _, v in ipairs(external_scope.names) do
