@@ -1,3 +1,8 @@
+function lexer(source)
+  write_string(source)
+end
+
 export_start(function ()
-  print("foo")
+  local source = read_all()
+  lexer(source)
 end)
