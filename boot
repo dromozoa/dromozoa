@@ -6,6 +6,7 @@
 -- 組み込み構造体は文字列と配列（テーブル）だけ
 --   構造体といっても{ data, size }だけ
 --   size (length) 取得は型を無視する
+--     #オペレータを作る
 --   添字アクセスは配列に対してだけ
 
 local function dump(out, value, depth)
