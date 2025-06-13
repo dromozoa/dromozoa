@@ -1,5 +1,5 @@
 function read_all()
-  return io.read("*a")
+  return io.read "a"
 end
 
 function write_string(s)
