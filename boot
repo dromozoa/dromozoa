@@ -127,6 +127,8 @@ local function lexer(source)
     "=";
     "(";
     ")";
+    "{";
+    "}";
     ";";
     ",";
 
@@ -299,6 +301,32 @@ local function parser(tokens)
     end)
   end
 
+  local function prefix_table_constructor(open, close)
+    prefix(open, function (token)
+      local result = { name = "Table" }
+      while true do
+        local item = parse_expression(0, true)
+        if not item then
+          break
+        end
+        result[#result + 1] = item
+
+        local token = peek_token()
+        if token.name == close then
+          break
+        end
+
+        if token.name == "," or token.name == ";" then
+          read_token()
+        else
+          parse_error(token)
+        end
+      end
+      expect_token(close)
+      return result
+    end)
+  end
+
   local function infix(name, bp, led)
     LBP[name] = bp
     LED[name] = led or function (token, node)
@@ -336,6 +364,7 @@ local function parser(tokens)
   prefix "Integer"
   prefix "String"
   prefix_group("(", ")")
+  prefix_table_constructor("{", "}")
 
   bp = bp + 10
   infix("==", bp)
@@ -535,8 +564,8 @@ end
 
 local function compiler(chunk)
   local identifier = 0
-  local strings = {}
-  local string_offset = 1024
+  local data_area = {}
+  local data_offset = 1024
 
   local function make_identifier()
     identifier = identifier + 1
@@ -737,9 +766,14 @@ local function compiler(chunk)
       end
 
     elseif u.name == "String" then
-      local n = #strings
-      strings[n + 1] = u
-      u.address = string_offset + n * 8
+      local n = #data_area
+      data_area[n + 1] = u
+      u.address = data_offset + n * 8
+
+    elseif u.name == "Table" then
+      u.new_table_id = assert(find_name(scope, "__new_table")).name.id
+      u.set_table_id = assert(find_name(scope, "__set_table")).name.id
+
     end
 
     for _, v in ipairs(u) do
@@ -826,6 +860,17 @@ local function compiler(chunk)
             io.write("(local.get ", u.id, ")\n")
           end
         end
+      end
+
+    elseif u.name == "Table" then
+      no_recursion = 0
+      io.write("(i32.const ", #u, ")\n")
+      io.write("(call ", u.new_table_id, ")\n")
+
+      for i = 1, #u do
+        io.write("(i32.const ", i, ")\n")
+        visit(u[i])
+        io.write("(call ", u.set_table_id, ")\n")
       end
 
     elseif u.name == "-" then
@@ -966,13 +1011,14 @@ local function compiler(chunk)
     end
   end
 
-  local string_address = string_offset + #strings * 8
-  for i, string in ipairs(strings) do
-    string.data_address = string_address
-    string.data_size = make_alignment(#string.value + 1, 8)
-    string_address = string_address + string.data_size
+  local data_address = data_offset + #data_area * 8
+  for i, data in ipairs(data_area) do
+    data.data_address = data_address
+    assert(data.name == "String")
+    data.data_size = make_alignment(#data.value + 1, 8)
+    data_address = data_address + data.data_size
   end
-  local stack_offset = make_alignment(string_address, 1024)
+  local stack_offset = make_alignment(data_address, 1024)
   local stack_size = 16 * 1024
   local heap_offset = stack_offset + stack_size
   assert(heap_offset < 64 * 1024)
@@ -1027,12 +1073,12 @@ local function compiler(chunk)
     end))
   end
 
-  io.write("(data 0 (i32.const ", string_offset, ') "')
-  for i, string in ipairs(strings) do
-    io.write(encode_wat_string(("<I4I4"):pack(string.data_address, #string.value), "."))
+  io.write("(data 0 (i32.const ", data_offset, ') "')
+  for i, data in ipairs(data_area) do
+    io.write(encode_wat_string(("<I4I4"):pack(data.data_address, #data.value), "."))
   end
-  for i, string in ipairs(strings) do
-    io.write(encode_wat_string(string.value..("\0"):rep(string.data_size - #string.value)))
+  for i, data in ipairs(data_area) do
+    io.write(encode_wat_string(data.value..("\0"):rep(data.data_size - #data.value)))
   end
   io.write '")\n'
 

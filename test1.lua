@@ -1,6 +1,3 @@
-local g = "foo\n"
-local x = 42
-
 function make_alignment(n, a)
   local r = n % a
   if r ~= 0 then
@@ -14,6 +11,25 @@ function allocate(n)
   stack_pointer = p + make_alignment(n, 8)
   return p
 end
+
+function __new_table(n)
+  local t = allocate(8)
+  i32_store(t, allocate(n * 4))
+  i32_store(t + 4, n)
+  return t
+end
+
+function __set_table(t, i, v)
+  i32_store(t + (i - 1) * 4, v)
+  return t
+end
+
+function get(t, i)
+  return i32_load(t + (i - 1) * 4)
+end
+
+local g = "foo\n"
+local x = 42
 
 function unpack_string(s)
   local data = i32_load(s)
@@ -89,6 +105,15 @@ function test2(v)
   end
 end
 
+function test3()
+  local t = { 1, 2 * 3, "foo\n" }
+  write_i32(get(t, 1))
+  write_string("\n")
+  write_i32(get(t, 2))
+  write_string("\n")
+  write_string(get(t, 3))
+end
+
 function main()
   local s = "Hello World\n"
   local i = 0
@@ -115,6 +140,8 @@ function main()
   write_i32(1 > 1)
   write_i32(2 > 1)
   write_string("\n")
+
+  test3()
 
   -- allocate(16)
   -- fd_write(0, 0, 0, 0)
