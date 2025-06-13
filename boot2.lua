@@ -16,10 +16,66 @@
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
 function lexer(source)
-  write_string(source)
+  local keywords = {
+    "break";
+    "do";
+    "else";
+    "elseif";
+    "end";
+    "false";
+    "for";
+    "function";
+    "if";
+    "in";
+    "local";
+    "nil";
+    "not";
+    "repeat";
+    "return";
+    "then";
+    "true";
+    "until";
+    "while";
+  }
+
+  local symbols = {
+    "+";
+    "-";
+    "*";
+    "/";
+    "%";
+    "^";
+    "#";
+    "&";
+    "~";
+    "|";
+    "<<";
+    ">>";
+    "//";
+    "==";
+    "~=";
+    "<=";
+    ">=";
+    "<";
+    ">";
+    "=";
+    "(";
+    ")";
+    "{";
+    "}";
+    "[";
+    "]";
+    ";";
+    ",";
+  }
+
+
+
+
+  io_write_string(source)
 end
 
 export_start(function ()
-  local source = read_all()
+  local source = io_read_all()
   lexer(source)
 end)
