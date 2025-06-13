@@ -449,11 +449,6 @@ local function parser(tokens)
     elseif token.name == "break" then
       return { name = "break" }
 
-    elseif token.name == "do" then
-      local block = parse_block "block"
-      expect_token "end"
-      return { name = "do", block }
-
     elseif token.name == "while" then
       local expression = parse_expression(0)
       expect_token "do"
