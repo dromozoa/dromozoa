@@ -194,17 +194,17 @@ function lexer_rule_keyword_or_name(source, position)
     p = p + 1
   end
 
-  local name = "Name"
-  local value = string_sub(source, position, p - 1)
+  local u = "Name"
+  local v = string_sub(source, position, p - 1)
 
   for i = 1, #lexer_keywords do
-    if string_compare(value, lexer_keywords[i]) == 0 then
-      name = value
+    if string_compare(v, lexer_keywords[i]) == 0 then
+      u = v
       break
     end
   end
 
-  return p, { name, value }
+  return p, { u, v }
 end
 
 function lexer_rule_symbol(source, position)
