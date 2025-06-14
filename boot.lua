@@ -44,7 +44,7 @@ function lexer_initialize()
     "while";
   }
 
-  lexer_symbols = {
+  local symbols = {
     "+";
     "-";
     "*";
@@ -75,10 +75,17 @@ function lexer_initialize()
     ",";
   }
 
+  lexer_symbols = { {}, {} }
+  for i = 1, #symbols do
+    local symbol = symbols[i]
+    table_insert(lexer_symbols[#symbol], symbol)
+  end
+
   lexer_rules = {
     lexer_rule_space;
     lexer_rule_comment;
     lexer_rule_keyword_or_name;
+    lexer_rule_symbol;
   }
 end
 
@@ -150,6 +157,20 @@ function lexer_rule_keyword_or_name(source, position)
   end
 
   return p, { name, value }
+end
+
+function lexer_rule_symbol(source, position)
+  local name = nil
+  for i = 2, 1, -1 do
+    local symbols = lexer_symbols[i]
+    local value = string_sub(source, position, position + i - 1)
+    for j = 1, #symbols do
+      if string_compare(value, symbols[j]) == 0 then
+        return position + i, { value, value }
+      end
+    end
+  end
+  return 0, nil
 end
 
 function lexer(source)
