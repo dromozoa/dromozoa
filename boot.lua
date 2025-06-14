@@ -291,6 +291,8 @@ function lexer(source)
   local p = 1
   local n = #source
 
+  local tokens = {}
+
   while p <= n do
     local q = 0
     local token = nil
@@ -308,18 +310,38 @@ function lexer(source)
     p = q
 
     if token ~= nil then
-      -- token
-      io_write_string(token[1])
-      io_write_string "\t"
-      io_write_string(token[2])
-      io_write_string "\t"
-      io_write_string(token[3])
-      io_write_string "\n"
+      table_insert(tokens, token)
     end
   end
+
+  return tokens
 end
 
-export_start(function ()
+--------------------------------------------------------------------------------
+
+local parser_nud = nil
+local parser_lbp = nil
+local parser_led = nil
+
+function parser_error(token)
+  error("parser error at token <"..token[1].."> position "..integer_to_string(token[3]))
+end
+
+function parser(tokens)
+end
+
+--------------------------------------------------------------------------------
+
+function compiler(tokens, chunk)
+end
+
+--------------------------------------------------------------------------------
+
+function main()
   local source = io_read_all()
-  lexer(source)
-end)
+  local tokens = lexer(source)
+  local chunk = parser(tokens)
+  compiler(tokens, chunk)
+end
+
+export_start(main)
