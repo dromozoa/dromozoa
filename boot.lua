@@ -48,10 +48,9 @@ function binary_search(t, i, j, compare, v)
   while n > 0 do
     local step = n >> 1
     local m = i + step
-    local u = t[m]
-    local r = call_indirect1(compare, u, v)
+    local r = call_indirect1(compare, t[m], v)
     if r == 0 then
-      return m, u
+      return m
     elseif r < 0 then
       i = m + 1
       n = n - step - 1
@@ -59,7 +58,7 @@ function binary_search(t, i, j, compare, v)
       n = step
     end
   end
-  return -1, nil
+  return 0
 end
 
 --------------------------------------------------------------------------------
@@ -93,43 +92,41 @@ function lexer_initialize()
     "while";
   }
 
-  local symbols = {
-    "+";
-    "-";
-    "*";
-    "/";
-    "%";
-    "^";
-    "#";
-    "&";
-    "~";
-    "|";
-    "<<";
-    ">>";
-    "//";
-    "==";
-    "~=";
-    "<=";
-    ">=";
-    "<";
-    ">";
-    "=";
-    "(";
-    ")";
-    "{";
-    "}";
-    "[";
-    "]";
-    ";";
-    ",";
-    "..";
+  lexer_symbols = {
+    {
+      "#";
+      "%";
+      "&";
+      "(";
+      ")";
+      "*";
+      "+";
+      ",";
+      "-";
+      "/";
+      ";";
+      "<";
+      "=";
+      ">";
+      "[";
+      "]";
+      "^";
+      "{";
+      "|";
+      "}";
+      "~";
+    };
+    {
+      "..";
+      "//";
+      "<<";
+      "<=";
+      "==";
+      ">=";
+      ">>";
+      "~=";
+    };
   }
-
-  lexer_symbols = { {}, {} }
-  for i = 1, #symbols do
-    local symbol = symbols[i]
-    table_insert(lexer_symbols[#symbol], symbol)
-  end
 
   lexer_rules = {
     lexer_rule_space;
@@ -218,27 +215,21 @@ function lexer_rule_keyword_or_name(source, position)
     p = p + 1
   end
 
-  local u = "Name"
   local v = string_sub(source, position, p - 1)
-
-  for i = 1, #lexer_keywords do
-    if string_compare(v, lexer_keywords[i]) == 0 then
-      u = v
-      break
-    end
+  local i = binary_search(lexer_keywords, 1, #lexer_keywords, string_compare, v)
+  if i ~= 0 then
+    return p, { v, v, position }
   end
-
-  return p, { u, v, position }
+  return p, { "Name", v, position }
 end
 
 function lexer_rule_symbol(source, position)
-  for i = 2, 1, -1 do
+  for i = #lexer_symbols, 1, -1 do
     local symbols = lexer_symbols[i]
     local v = string_sub(source, position, position + i - 1)
-    for j = 1, #symbols do
-      if string_compare(v, symbols[j]) == 0 then
-        return position + i, { v, v, position }
-      end
+    local j = binary_search(symbols, 1, #symbols, string_compare, v)
+    if j ~= 0 then
+      return position + i, { v, v, position }
     end
   end
   return 0, nil
@@ -392,11 +383,10 @@ function main()
   local chunk = parser(tokens)
   compiler(tokens, chunk)
 
-  local t = { 34, 7, 23, 32, 5, 62, -1, 0, 99, 17 }
-  quick_sort(t, 1, #t, function (a, b) return a - b end)
-  print("=>", table.unpack(t))
-
-  print(binary_search(t, 1, #t, function (a, b) return a - b end, 19))
+  -- local t = { 34, 7, 23, 32, 5, 62, -1, 0, 99, 17 }
+  -- quick_sort(t, 1, #t, function (a, b) return a - b end)
+  -- print("=>", table.unpack(t))
+  -- print(binary_search(t, 1, #t, function (a, b) return a - b end, 34))
 end
 
 export_start(main)
