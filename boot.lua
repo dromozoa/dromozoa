@@ -15,8 +15,13 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-function lexer(source)
-  local keywords = {
+local lexer_keywords = nil
+local lexer_symbols = nil
+local lexer_rules = nil
+
+function lexer_initialize()
+  lexer_keywords = {
+    "and";
     "break";
     "do";
     "else";
@@ -30,6 +35,7 @@ function lexer(source)
     "local";
     "nil";
     "not";
+    "or";
     "repeat";
     "return";
     "then";
@@ -38,7 +44,7 @@ function lexer(source)
     "while";
   }
 
-  local symbols = {
+  lexer_symbols = {
     "+";
     "-";
     "*";
@@ -69,10 +75,115 @@ function lexer(source)
     ",";
   }
 
+  lexer_rules = {
+    lexer_rule_space;
+    lexer_rule_comment;
+    lexer_rule_keyword_or_name;
+  }
+end
 
+function lexer_rule_space(source, position)
+  local p = position
+  local n = #source
 
+  while p <= n do
+    local c = string_byte(source, p)
+    if not (0x09 <= c and c <= 0x0D or c == 0x20) then
+      break
+    end
+    p = p + 1
+  end
 
-  io_write_string(source)
+  if p == position then
+    return 0, nil
+  else
+    return p - 1, nil
+  end
+end
+
+function lexer_rule_comment(source, position)
+  local p = position
+  local n = #source
+
+  if string_sub(source, p, p + 1) ~= "--" then
+    return 0, nil
+  end
+  p = p + 2
+
+  while p <= n do
+    local c = string_byte(source, p)
+    if c == 0x0A or c == 0x0D then
+      break
+    end
+    p = p + 1
+  end
+
+  return p - 1, nil
+end
+
+function lexer_rule_keyword_or_name(source, position)
+  local p = position
+  local n = #source
+
+  local c = string_byte(source, p)
+  if not (0x41 <= c and c <= 0x5A or 0x61 <= c and c <= 0x7A or c == 0x5F) then
+    return 0, nil
+  end
+  p = p + 1
+
+  while p <= n do
+    local c = string_byte(source, p)
+    if not (0x30 <= c and c <= 0x39 or 0x41 <= c and c <= 0x5A or 0x61 <= c and c <= 0x7A or c == 0x5F) then
+      break
+    end
+    p = p + 1
+  end
+
+  p = p - 1
+
+  local name = "Name"
+  local value = string_sub(source, position, p)
+
+  for i = 1, #lexer_keywords do
+    if string_compare(value, lexer_keywords[i]) == 0 then
+      name = value
+      break
+    end
+  end
+
+  return p, { name, value }
+end
+
+function lexer(source)
+  lexer_initialize()
+
+  local p = 1
+  local n = #source
+
+  while p <= n do
+    local q = 0
+    local token = nil
+
+    for i = 1, #lexer_rules do
+      q, token = call_indirect2(lexer_rules[i], source, p)
+      if q ~= 0 then
+        break
+      end
+    end
+
+    if q == 0 then
+      error("lexer error at position "..integer_to_string(p))
+    end
+    p = q + 1
+
+    if token ~= nil then
+      -- token
+      io_write_string(token[1])
+      io_write_string "\t"
+      io_write_string(token[2])
+      io_write_string "\n"
+    end
+  end
 end
 
 export_start(function ()
