@@ -15,6 +15,55 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
+function quick_sort(t, i, j, compare)
+  local n = j - i + 1
+  if n <= 1 then
+    return
+  end
+
+  local pivot = t[i + (n >> 1)]
+  local a = i
+  local b = j
+
+  while a <= b do
+    while call_indirect1(compare, t[a], pivot) < 0 do
+      a = a + 1
+    end
+    while call_indirect1(compare, t[b], pivot) > 0 do
+      b = b - 1
+    end
+    if a <= b then
+      t[a], t[b] = t[b], t[a]
+      a = a + 1
+      b = b - 1
+    end
+  end
+
+  quick_sort(t, i, b, compare)
+  quick_sort(t, a, j, compare)
+end
+
+function binary_search(t, i, j, compare, v)
+  local n = j - i + 1
+  while n > 0 do
+    local step = n >> 1
+    local m = i + step
+    local u = t[m]
+    local r = call_indirect1(compare, u, v)
+    if r == 0 then
+      return m, u
+    elseif r < 0 then
+      i = m + 1
+      n = n - step - 1
+    else
+      n = step
+    end
+  end
+  return -1, nil
+end
+
+--------------------------------------------------------------------------------
+
 local lexer_keywords = nil
 local lexer_symbols = nil
 local lexer_rules = nil
@@ -342,6 +391,12 @@ function main()
   local tokens = lexer(source)
   local chunk = parser(tokens)
   compiler(tokens, chunk)
+
+  local t = { 34, 7, 23, 32, 5, 62, -1, 0, 99, 17 }
+  quick_sort(t, 1, #t, function (a, b) return a - b end)
+  print("=>", table.unpack(t))
+
+  print(binary_search(t, 1, #t, function (a, b) return a - b end, 19))
 end
 
 export_start(main)
