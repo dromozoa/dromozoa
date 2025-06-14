@@ -97,7 +97,7 @@ function lexer_rule_space(source, position)
   if p == position then
     return 0, nil
   else
-    return p - 1, nil
+    return p, nil
   end
 end
 
@@ -118,7 +118,7 @@ function lexer_rule_comment(source, position)
     p = p + 1
   end
 
-  return p - 1, nil
+  return p, nil
 end
 
 function lexer_rule_keyword_or_name(source, position)
@@ -139,10 +139,8 @@ function lexer_rule_keyword_or_name(source, position)
     p = p + 1
   end
 
-  p = p - 1
-
   local name = "Name"
-  local value = string_sub(source, position, p)
+  local value = string_sub(source, position, p - 1)
 
   for i = 1, #lexer_keywords do
     if string_compare(value, lexer_keywords[i]) == 0 then
@@ -174,7 +172,7 @@ function lexer(source)
     if q == 0 then
       error("lexer error at position "..integer_to_string(p))
     end
-    p = q + 1
+    p = q
 
     if token ~= nil then
       -- token
