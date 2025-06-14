@@ -73,6 +73,7 @@ function lexer_initialize()
     "]";
     ";";
     ",";
+    "..";
   }
 
   lexer_symbols = { {}, {} }
@@ -86,54 +87,28 @@ function lexer_initialize()
     lexer_rule_comment;
     lexer_rule_keyword_or_name;
     lexer_rule_symbol;
+    lexer_rule_string;
     lexer_rule_integer;
   }
 end
 
-function lexer_string_to_integer_hex(source, position)
-  local p = position
-  local n = #source
-  local v = 0
-
-  while p <= n do
-    local c = string_byte(source, p)
-    if 0x30 <= c and c <= 0x39 then
-      v = v * 16 + c - 0x30
-    elseif 0x41 <= c and c <= 0x46 then
-      v = v * 16 + c - 0x41 + 10
-    elseif 0x61 <= c and c <= 0x66 then
-      v = v * 16 + c - 0x41 + 10
-    else
-      break
-    end
-    p = p + 1
-  end
-
-  if p == position then
-    return 0, v
+function lexer_char_to_integer_hex(c, v)
+  if 0x30 <= c and c <= 0x39 then
+    return true, v * 16 + c - 0x30
+  elseif 0x41 <= c and c <= 0x46 then
+    return true, v * 16 + c - 0x41 + 10
+  elseif 0x61 <= c and c <= 0x66 then
+    return true, v * 16 + c - 0x41 + 10
   else
-    return p, v
+    return false, v
   end
 end
 
-function lexer_string_to_integer_dec(source, position)
-  local p = position
-  local n = #source
-  local v = 0
-
-  while p <= n do
-    local c = string_byte(source, p)
-    if not (0x30 <= c and c <= 0x39) then
-      break
-    end
-    v = v * 10 + c - 0x30
-    p = p + 1
-  end
-
-  if p == position then
-    return 0, v
+function lexer_char_to_integer_dec(c, v)
+  if 0x30 <= c and c <= 0x39 then
+    return true, v * 10 + c - 0x30
   else
-    return p, v
+    return false, v
   end
 end
 
@@ -220,19 +195,90 @@ function lexer_rule_symbol(source, position)
   return 0, nil
 end
 
+function lexer_rule_string(source, position)
+  local p = position
+  local n = #source
+  local t = {}
+
+  local quote = string_byte(source, p)
+  if not (quote == 0x22 or quote == 0x27) then
+    return 0, nil
+  end
+  p = p + 1
+
+  while p <= n do
+    local c = string_byte(source, p)
+    p = p + 1
+    if c == quote then
+      return p, { "String", string_char(t), position }
+    elseif c == 0x5C then
+      if p > n then
+        error("lexer error at position "..integer_to_string(p))
+      end
+      local c = string_byte(source, p)
+      p = p + 1
+      if     c == 0x61 then table_insert(t, 0x07) -- \a
+      elseif c == 0x62 then table_insert(t, 0x08) -- \b
+      elseif c == 0x74 then table_insert(t, 0x09) -- \t
+      elseif c == 0x6E then table_insert(t, 0x0A) -- \n
+      elseif c == 0x76 then table_insert(t, 0x0B) -- \v
+      elseif c == 0x66 then table_insert(t, 0x0C) -- \f
+      elseif c == 0x72 then table_insert(t, 0x0D) -- \r
+      elseif c == 0x22 then table_insert(t, 0x22) -- \"
+      elseif c == 0x27 then table_insert(t, 0x27) -- \'
+      elseif c == 0x5C then table_insert(t, 0x5C) -- \\
+      elseif c == 0x78 then -- \xXX
+        if p + 1 > n then
+          error("lexer error at position "..integer_to_string(p))
+        end
+        local r = false
+        local v = 0
+        r, v = lexer_char_to_integer_hex(string_byte(source, p), v)
+        if not r then
+          error("lexer error at position "..integer_to_string(p))
+        end
+        p = p + 1
+        r, v = lexer_char_to_integer_hex(string_byte(source, p), v)
+        if not r then
+          error("lexer error at position "..integer_to_string(p))
+        end
+        p = p + 1
+        table_insert(t, v)
+      else
+        error("lexer error at position "..integer_to_string(p - 1))
+      end
+    else
+      table_insert(t, c)
+    end
+  end
+
+  error("lexer error at position "..integer_to_string(p))
+end
+
 function lexer_rule_integer(source, position)
   local p = position
   local n = #source
-  local v = 0
+  local q = position
+  local char_to_integer = lexer_char_to_integer_dec
 
   local prefix = string_sub(source, p, p + 1)
   if prefix == "0X" or prefix == "0x" then
-    p, v = lexer_string_to_integer_hex(source, p + 2)
-  else
-    p, v = lexer_string_to_integer_dec(source, p)
+    p = p + 2
+    q = q + 2
+    char_to_integer = lexer_char_to_integer_hex
   end
 
-  if p == 0 then
+  local r = false
+  local v = 0
+  while p <= n do
+    r, v = call_indirect2(char_to_integer, string_byte(source, p), v)
+    if not r then
+      break
+    end
+    p = p + 1
+  end
+
+  if p == q then
     return 0, nil
   else
     return p, { "Integer", v, position }
