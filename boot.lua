@@ -86,7 +86,55 @@ function lexer_initialize()
     lexer_rule_comment;
     lexer_rule_keyword_or_name;
     lexer_rule_symbol;
+    lexer_rule_integer;
   }
+end
+
+function lexer_string_to_integer_hex(source, position)
+  local p = position
+  local n = #source
+  local v = 0
+
+  while p <= n do
+    local c = string_byte(source, p)
+    if 0x30 <= c and c <= 0x39 then
+      v = v * 16 + c - 0x30
+    elseif 0x41 <= c and c <= 0x46 then
+      v = v * 16 + c - 0x41 + 10
+    elseif 0x61 <= c and c <= 0x66 then
+      v = v * 16 + c - 0x41 + 10
+    else
+      break
+    end
+    p = p + 1
+  end
+
+  if p == position then
+    return 0, v
+  else
+    return p, v
+  end
+end
+
+function lexer_string_to_integer_dec(source, position)
+  local p = position
+  local n = #source
+  local v = 0
+
+  while p <= n do
+    local c = string_byte(source, p)
+    if not (0x30 <= c and c <= 0x39) then
+      break
+    end
+    v = v * 10 + c - 0x30
+    p = p + 1
+  end
+
+  if p == position then
+    return 0, v
+  else
+    return p, v
+  end
 end
 
 function lexer_rule_space(source, position)
@@ -160,17 +208,35 @@ function lexer_rule_keyword_or_name(source, position)
 end
 
 function lexer_rule_symbol(source, position)
-  local name = nil
   for i = 2, 1, -1 do
     local symbols = lexer_symbols[i]
-    local value = string_sub(source, position, position + i - 1)
+    local v = string_sub(source, position, position + i - 1)
     for j = 1, #symbols do
-      if string_compare(value, symbols[j]) == 0 then
-        return position + i, { value, value }
+      if string_compare(v, symbols[j]) == 0 then
+        return position + i, { v, v }
       end
     end
   end
   return 0, nil
+end
+
+function lexer_rule_integer(source, position)
+  local p = position
+  local n = #source
+  local v = 0
+
+  local prefix = string_sub(source, p, p + 1)
+  if prefix == "0X" or prefix == "0x" then
+    p, v = lexer_string_to_integer_hex(source, p + 2)
+  else
+    p, v = lexer_string_to_integer_dec(source, p)
+  end
+
+  if p == 0 then
+    return 0, nil
+  else
+    return p, { "Integer", v }
+  end
 end
 
 function lexer(source)
