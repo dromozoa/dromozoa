@@ -204,7 +204,7 @@ function lexer_rule_keyword_or_name(source, position)
     end
   end
 
-  return p, { u, v }
+  return p, { u, v, position }
 end
 
 function lexer_rule_symbol(source, position)
@@ -213,7 +213,7 @@ function lexer_rule_symbol(source, position)
     local v = string_sub(source, position, position + i - 1)
     for j = 1, #symbols do
       if string_compare(v, symbols[j]) == 0 then
-        return position + i, { v, v }
+        return position + i, { v, v, position }
       end
     end
   end
@@ -235,7 +235,7 @@ function lexer_rule_integer(source, position)
   if p == 0 then
     return 0, nil
   else
-    return p, { "Integer", v }
+    return p, { "Integer", v, position }
   end
 end
 
@@ -266,6 +266,8 @@ function lexer(source)
       io_write_string(token[1])
       io_write_string "\t"
       io_write_string(token[2])
+      io_write_string "\t"
+      io_write_string(token[3])
       io_write_string "\n"
     end
   end
