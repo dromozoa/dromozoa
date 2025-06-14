@@ -382,11 +382,6 @@ function main()
   local tokens = lexer(source)
   local chunk = parser(tokens)
   compiler(tokens, chunk)
-
-  -- local t = { 34, 7, 23, 32, 5, 62, -1, 0, 99, 17 }
-  -- quick_sort(t, 1, #t, function (a, b) return a - b end)
-  -- print("=>", table.unpack(t))
-  -- print(binary_search(t, 1, #t, function (a, b) return a - b end, 34))
 end
 
 export_start(main)
