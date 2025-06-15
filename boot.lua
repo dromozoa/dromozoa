@@ -256,7 +256,6 @@ function lexer_rule_string(source, position)
     elseif c == 0x5C then
       if p > n then
         error("lexer error at position "..integer_to_string(p))
-        unreachable()
       end
       local c = string_byte(source, p)
       p = p + 1
@@ -273,26 +272,22 @@ function lexer_rule_string(source, position)
       elseif c == 0x78 then -- \xXX
         if p + 1 > n then
           error("lexer error at position "..integer_to_string(p))
-          unreachable()
         end
         local r = false
         local v = 0
         r, v = lexer_char_to_integer_hex(string_byte(source, p), v)
         if not r then
           error("lexer error at position "..integer_to_string(p))
-          unreachable()
         end
         p = p + 1
         r, v = lexer_char_to_integer_hex(string_byte(source, p), v)
         if not r then
           error("lexer error at position "..integer_to_string(p))
-          unreachable()
         end
         p = p + 1
         table_insert(t, v)
       else
         error("lexer error at position "..integer_to_string(p - 1))
-        unreachable()
       end
     else
       table_insert(t, c)
@@ -300,7 +295,6 @@ function lexer_rule_string(source, position)
   end
 
   error("lexer error at position "..integer_to_string(p))
-  unreachable()
 end
 
 function lexer_rule_integer(source, position)
@@ -354,7 +348,6 @@ function lexer(source)
 
     if q == 0 then
       error("lexer error at position "..integer_to_string(p))
-      unreachable()
     end
     p = q
 
@@ -501,7 +494,6 @@ function parser_expect(parser, kind)
   local token = tokens[index]
   if token[1] ~= kind then
     parser_error(token)
-    unreachable()
   end
   parser[2] = index + 1
   return token
@@ -514,7 +506,6 @@ function parser_expect2(parser, kind1, kind2)
   local kind = token[1]
   if not (kind == kind1 or kind == kind2) then
     parser_error(token)
-    unreachable()
   end
   parser[2] = index + 1
   return token
@@ -535,7 +526,6 @@ function parser_exp(parser, rbp, error_if_no_nud)
   if nud == nil then
     if error_if_no_nud then
       parser_error(token)
-      unreachable()
     end
     parser_unread(parser)
     return nil

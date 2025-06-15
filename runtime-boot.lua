@@ -65,7 +65,3 @@ end
 function table_insert(t, v)
   table.insert(t, v)
 end
-
-function unreachable()
-  error("unreachable")
-end
