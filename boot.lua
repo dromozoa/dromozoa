@@ -354,20 +354,132 @@ function lexer(source)
     end
   end
 
+  table_insert(tokens, { "EOF", "EOF", p })
+
   return tokens
 end
 
 --------------------------------------------------------------------------------
 
 local parser_nud = nil
-local parser_lbp = nil
 local parser_led = nil
+
+function nud_token(parser, token)
+  return token
+end
+
+function nud_group(parser, token)
+end
+
+function led_right(parser, token, node)
+end
+
+function led_prefix(parser, token, node)
+end
+
+function led_call(parser, token, node)
+end
+
+function compare_first_string(a, b)
+  return string_compare(a[1], b[1])
+end
+
+function parser_initialize()
+  parser_nud = {}
+  parser_led = {}
+
+  table_insert(parser_nud, { "false",   nud_token })
+  table_insert(parser_nud, { "nil",     nud_token })
+  table_insert(parser_nud, { "true",    nud_token })
+  table_insert(parser_nud, { "Name",    nud_token })
+  table_insert(parser_nud, { "String",  nud_token })
+  table_insert(parser_nud, { "Integer", nud_token })
+  table_insert(parser_nud, { "(",       nud_group })
+  table_insert(parser_nud, { "{",       nud_table })
+
+  local bp = 10
+  table_insert(parser_led, { "or",  bp, led_left   }) bp = bp + 10
+  table_insert(parser_led, { "and", bp, led_left   }) bp = bp + 10
+  table_insert(parser_led, { "<",   bp, led_left   })
+  table_insert(parser_led, { ">",   bp, led_left   })
+  table_insert(parser_led, { "<=",  bp, led_left   })
+  table_insert(parser_led, { ">=",  bp, led_left   })
+  table_insert(parser_led, { "~=",  bp, led_left   })
+  table_insert(parser_led, { "==",  bp, led_left   }) bp = bp + 10
+  table_insert(parser_led, { "|",   bp, led_left   }) bp = bp + 10
+  table_insert(parser_led, { "~",   bp, led_left   }) bp = bp + 10
+  table_insert(parser_led, { "&",   bp, led_left   }) bp = bp + 10
+  table_insert(parser_led, { "<<",  bp, led_left   })
+  table_insert(parser_led, { ">>",  bp, led_left   }) bp = bp + 10
+  table_insert(parser_led, { "..",  bp, led_right  }) bp = bp + 10
+  table_insert(parser_led, { "+",   bp, led_left   })
+  table_insert(parser_led, { "-",   bp, led_left   }) bp = bp + 10
+  table_insert(parser_led, { "*",   bp, led_left   })
+  table_insert(parser_led, { "/",   bp, led_left   })
+  table_insert(parser_led, { "//",  bp, led_left   })
+  table_insert(parser_led, { "%",   bp, led_left   }) bp = bp + 10
+  table_insert(parser_led, { "not", bp, led_prefix })
+  table_insert(parser_led, { "#",   bp, led_prefix })
+  table_insert(parser_led, { "-",   bp, led_prefix })
+  table_insert(parser_led, { "~",   bp, led_prefix }) bp = bp + 10
+  table_insert(parser_led, { "^",   bp, led_right  }) bp = bp + 10
+  table_insert(parser_led, { "(",   bp, led_call   }) bp = bp + 10
+
+  quick_sort(parser_nud, 1, #parser_nud, compare_first_string)
+  quick_sort(parser_led, 1, #parser_led, compare_first_string)
+end
 
 function parser_error(token)
   error("parser error at token <"..token[1].."> position "..integer_to_string(token[3]))
 end
 
+function parser_peek(parser)
+  local tokens = parser[1]
+  local index = parser[2]
+  return tokens[index]
+end
+
+function parser_read(parser)
+  local tokens = parser[1]
+  local index = parser[2]
+  local token = tokens[index]
+  parser[2] = index + 1
+  return token
+end
+
+function parser_unread(parser)
+  local tokens = parser[1]
+  local index = parser[2]
+  parser[2] = index - 1
+end
+
+function parser_expect(parser, kind)
+  local tokens = parser[1]
+  local index = parser[2]
+  local token = tokens[index]
+  if token[1] ~= kind then
+    parser_error(token)
+  end
+  parser[2] = index + 1
+  return token
+end
+
+function parser_expect2(parser, kind1, kind2)
+  local tokens = parser[1]
+  local index = parser[2]
+  local token = tokens[index]
+  local kind = token[1]
+  if not (kind == kind1 or kind == kind2) then
+    parser_error(token)
+  end
+  parser[2] = index + 1
+  return token
+end
+
 function parser(tokens)
+  parser_initialize()
+
+  local parser = { tokens, 1 }
 end
 
 --------------------------------------------------------------------------------
