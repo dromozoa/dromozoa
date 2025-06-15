@@ -379,9 +379,31 @@ function nud_token(parser, token)
 end
 
 function nud_group(parser, token)
+  local node = parser_exp(parser, 0, true)
+  parser_expect(parser, ")")
+  return node
 end
 
 function nud_table(parser, token)
+  local node = { "Table" }
+
+  while true do
+    local item = parser_exp(parser, 0, false)
+    if item == nil then
+      break
+    end
+    table_insert(node, item)
+
+    local token = parser_peek(parser)
+    if string_compare(token[1], "}") == 0 then
+      break
+    end
+
+    parser_expect2(parser, ",", ";")
+  end
+  parser_expect(parser, "}")
+
+  return node
 end
 
 function nud_prefix(parser, token, lbp, node)
