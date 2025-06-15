@@ -183,7 +183,8 @@ function lexer_rule_comment(source, position)
   local p = position
   local n = #source
 
-  if string_sub(source, p, p + 1) ~= "--" then
+
+  if string_compare(string_sub(source, p, p + 1), "--") ~= 0 then
     return 0, nil
   end
   p = p + 2
@@ -304,7 +305,7 @@ function lexer_rule_integer(source, position)
   local char_to_integer = lexer_char_to_integer_dec
 
   local prefix = string_sub(source, p, p + 1)
-  if prefix == "0X" or prefix == "0x" then
+  if string_compare(prefix, "0X") == 0 or string_compare(prefix, "0x") == 0 then
     p = p + 2
     q = q + 2
     char_to_integer = lexer_char_to_integer_hex
@@ -492,7 +493,7 @@ function parser_expect(parser, kind)
   local tokens = parser[1]
   local index = parser[2]
   local token = tokens[index]
-  if token[1] ~= kind then
+  if string_compare(token[1], kind) ~= 0 then
     parser_error(token)
   end
   parser[2] = index + 1
@@ -504,7 +505,7 @@ function parser_expect2(parser, kind1, kind2)
   local index = parser[2]
   local token = tokens[index]
   local kind = token[1]
-  if not (kind == kind1 or kind == kind2) then
+  if not (string_compare(kind, kind1) == 0 or string_compare(kind, kind2) == 0) then
     parser_error(token)
   end
   parser[2] = index + 1
