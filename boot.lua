@@ -15,6 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
+local json = require "dromozoa.commons.json"
+
 function quick_sort(t, i, j, compare)
   local n = j - i + 1
   if n <= 1 then
@@ -254,6 +256,7 @@ function lexer_rule_string(source, position)
     elseif c == 0x5C then
       if p > n then
         error("lexer error at position "..integer_to_string(p))
+        unreachable()
       end
       local c = string_byte(source, p)
       p = p + 1
@@ -270,22 +273,26 @@ function lexer_rule_string(source, position)
       elseif c == 0x78 then -- \xXX
         if p + 1 > n then
           error("lexer error at position "..integer_to_string(p))
+          unreachable()
         end
         local r = false
         local v = 0
         r, v = lexer_char_to_integer_hex(string_byte(source, p), v)
         if not r then
           error("lexer error at position "..integer_to_string(p))
+          unreachable()
         end
         p = p + 1
         r, v = lexer_char_to_integer_hex(string_byte(source, p), v)
         if not r then
           error("lexer error at position "..integer_to_string(p))
+          unreachable()
         end
         p = p + 1
         table_insert(t, v)
       else
         error("lexer error at position "..integer_to_string(p - 1))
+        unreachable()
       end
     else
       table_insert(t, c)
@@ -293,6 +300,7 @@ function lexer_rule_string(source, position)
   end
 
   error("lexer error at position "..integer_to_string(p))
+  unreachable()
 end
 
 function lexer_rule_integer(source, position)
@@ -346,6 +354,7 @@ function lexer(source)
 
     if q == 0 then
       error("lexer error at position "..integer_to_string(p))
+      unreachable()
     end
     p = q
 
@@ -363,6 +372,7 @@ end
 
 local parser_nud = nil
 local parser_led = nil
+local parser_prefix_lbp = 0
 
 function nud_token(parser, token)
   return token
@@ -371,16 +381,25 @@ end
 function nud_group(parser, token)
 end
 
-function led_right(parser, token, node)
+function nud_table(parser, token)
 end
 
-function led_prefix(parser, token, node)
+function nud_prefix(parser, token, lbp, node)
+  return { token[1], parser_exp(parser, parser_prefix_lbp, true) }
+end
+
+function led_left(parser, lbp, token, node)
+  return { token[1], node, parser_exp(parser, lbp, true) }
+end
+
+function led_right(parser, lbp, token, node)
+  return { token[1], node, parser_exp(parser, lbp - 1, true) }
 end
 
 function led_call(parser, token, node)
 end
 
-function compare_first_string(a, b)
+function parser_item_compare(a, b)
   return string_compare(a[1], b[1])
 end
 
@@ -388,14 +407,18 @@ function parser_initialize()
   parser_nud = {}
   parser_led = {}
 
-  table_insert(parser_nud, { "false",   nud_token })
-  table_insert(parser_nud, { "nil",     nud_token })
-  table_insert(parser_nud, { "true",    nud_token })
-  table_insert(parser_nud, { "Name",    nud_token })
-  table_insert(parser_nud, { "String",  nud_token })
-  table_insert(parser_nud, { "Integer", nud_token })
-  table_insert(parser_nud, { "(",       nud_group })
-  table_insert(parser_nud, { "{",       nud_table })
+  table_insert(parser_nud, { "false",   nud_token  })
+  table_insert(parser_nud, { "nil",     nud_token  })
+  table_insert(parser_nud, { "true",    nud_token  })
+  table_insert(parser_nud, { "Name",    nud_token  })
+  table_insert(parser_nud, { "String",  nud_token  })
+  table_insert(parser_nud, { "Integer", nud_token  })
+  table_insert(parser_nud, { "(",       nud_group  })
+  table_insert(parser_nud, { "{",       nud_table  })
+  table_insert(parser_nud, { "not",     nud_prefix })
+  table_insert(parser_nud, { "#",       nud_prefix })
+  table_insert(parser_nud, { "-",       nud_prefix })
+  table_insert(parser_nud, { "~",       nud_prefix })
 
   local bp = 10
   table_insert(parser_led, { "or",  bp, led_left   }) bp = bp + 10
@@ -418,15 +441,12 @@ function parser_initialize()
   table_insert(parser_led, { "/",   bp, led_left   })
   table_insert(parser_led, { "//",  bp, led_left   })
   table_insert(parser_led, { "%",   bp, led_left   }) bp = bp + 10
-  table_insert(parser_led, { "not", bp, led_prefix })
-  table_insert(parser_led, { "#",   bp, led_prefix })
-  table_insert(parser_led, { "-",   bp, led_prefix })
-  table_insert(parser_led, { "~",   bp, led_prefix }) bp = bp + 10
+  parser_prefix_lbp = bp                              bp = bp + 10
   table_insert(parser_led, { "^",   bp, led_right  }) bp = bp + 10
   table_insert(parser_led, { "(",   bp, led_call   }) bp = bp + 10
 
-  quick_sort(parser_nud, 1, #parser_nud, compare_first_string)
-  quick_sort(parser_led, 1, #parser_led, compare_first_string)
+  quick_sort(parser_nud, 1, #parser_nud, parser_item_compare)
+  quick_sort(parser_led, 1, #parser_led, parser_item_compare)
 end
 
 function parser_error(token)
@@ -459,6 +479,7 @@ function parser_expect(parser, kind)
   local token = tokens[index]
   if token[1] ~= kind then
     parser_error(token)
+    unreachable()
   end
   parser[2] = index + 1
   return token
@@ -471,15 +492,53 @@ function parser_expect2(parser, kind1, kind2)
   local kind = token[1]
   if not (kind == kind1 or kind == kind2) then
     parser_error(token)
+    unreachable()
   end
   parser[2] = index + 1
   return token
+end
+
+function parser_search(t, item)
+  local i = binary_search(t, 1, #t, parser_item_compare, item)
+  if i == 0 then
+    return nil
+  else
+    return t[i]
+  end
+end
+
+function parser_exp(parser, rbp, error_if_no_nud)
+  local token = parser_read(parser)
+  local nud = parser_search(parser_nud, token)
+  if nud == nil then
+    if error_if_no_nud then
+      parser_error(token)
+      unreachable()
+    end
+    parser_unread(parser)
+    return nil
+  end
+
+  local node = call_indirect1(nud[2], parser, token)
+  while true do
+    local token = parser_peek(parser)
+    local led = parser_search(parser_led, token)
+    if led == nil or led[2] <= rbp then
+      break
+    end
+
+    parser_read(parser)
+    node = call_indirect1(led[3], parser, led[2], token, node)
+  end
+  return node
 end
 
 function parser(tokens)
   parser_initialize()
 
   local parser = { tokens, 1 }
+  local tree = parser_exp(parser, 0, true)
+  print(json.encode(tree, { pretty = true, stable = true }))
 end
 
 --------------------------------------------------------------------------------

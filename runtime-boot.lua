@@ -29,7 +29,7 @@ function integer_to_string(v)
 end
 
 function io_read_all()
-  return io.read "a"
+  return io.read("a")
 end
 
 function io_write_integer(v)
@@ -64,4 +64,8 @@ end
 
 function table_insert(t, v)
   table.insert(t, v)
+end
+
+function unreachable()
+  error("unreachable")
 end
