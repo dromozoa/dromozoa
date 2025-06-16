@@ -15,24 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
--- token {
---   kind: string;
---   value: string or integer;
---   position: integer;
--- }
-
--- node {
---   kind: string;
---   attrs:
---   token or node...;
--- }
-
--- attrs {
---   未定
--- }
-
---------------------------------------------------------------------------------
-
 function quick_sort(t, i, j, compare)
   local n = j - i + 1
   if n <= 1 then
@@ -77,6 +59,29 @@ function binary_search(t, i, j, compare, v)
     end
   end
   return 0
+end
+
+--------------------------------------------------------------------------------
+
+-- token {
+--   kind     : string
+--   attrs    : attrs
+--   value    : string|integer
+--   position : integer;
+-- }
+--
+-- node {
+--   kind  : string
+--   attrs : attrs
+--   ...   : (token|node)*
+-- }
+--
+-- attrs {
+--   level : "token"|"exp"|"stat"|"block"
+-- }
+
+function attrs()
+  return {}
 end
 
 --------------------------------------------------------------------------------
@@ -236,9 +241,9 @@ function lexer_rule_keyword_or_name(source, position)
   local v = string_sub(source, position, p - 1)
   local i = binary_search(lexer_keywords, 1, #lexer_keywords, string_compare, v)
   if i ~= 0 then
-    return p, { v, v, position }
+    return p, { v, attrs(), v, position }
   end
-  return p, { "Name", v, position }
+  return p, { "Name", attrs(), v, position }
 end
 
 function lexer_rule_symbol(source, position)
@@ -247,7 +252,7 @@ function lexer_rule_symbol(source, position)
     local v = string_sub(source, position, position + i - 1)
     local j = binary_search(symbols, 1, #symbols, string_compare, v)
     if j ~= 0 then
-      return position + i, { v, v, position }
+      return position + i, { v, attrs(), v, position }
     end
   end
   return 0, nil
@@ -268,7 +273,7 @@ function lexer_rule_string(source, position)
     local c = string_byte(source, p)
     p = p + 1
     if c == quote then
-      return p, { "String", string_char(t), position }
+      return p, { "String", attrs(), string_char(t), position }
     elseif c == 0x5C then
       if p > n then
         error("lexer error at position "..integer_to_string(p))
@@ -339,7 +344,7 @@ function lexer_rule_integer(source, position)
   if p == q then
     return 0, nil
   else
-    return p, { "Integer", v, position }
+    return p, { "Integer", attrs(), v, position }
   end
 end
 
@@ -389,7 +394,7 @@ function nud_token(parser, token)
 end
 
 function nud_group(parser, token)
-  local result = { "group", parser_attrs(), parser_exp(parser, 0) }
+  local result = { "group", attrs(), parser_exp(parser, 0) }
   parser_expect(parser, ")")
   return result
 end
@@ -417,27 +422,27 @@ function nud_table(parser, token)
 end
 
 function nud_prefix(parser, token, lbp, node)
-  return { token[1], parser_attrs(), parser_exp(parser, parser_prefix_lbp) }
+  return { token[1], attrs(), parser_exp(parser, parser_prefix_lbp) }
 end
 
 function led_left(parser, lbp, token, node)
-  return { token[1], parser_attrs(), node, parser_exp(parser, lbp) }
+  return { token[1], attrs(), node, parser_exp(parser, lbp) }
 end
 
 function led_right(parser, lbp, token, node)
-  return { token[1], parser_attrs(), node, parser_exp(parser, lbp - 1) }
+  return { token[1], attrs(), node, parser_exp(parser, lbp - 1) }
 end
 
 function led_call(parser, lbp, token, node)
   return {
-    "call", parser_attrs();
+    "call", attrs();
     node;
     parser_list(parser, "args", parser_exp_or_nil, ",", ")");
   }
 end
 
 function led_index(parser, lbp, token, node)
-  local result = { "index", parser_attrs(), node, parser_exp(parser, 0) }
+  local result = { "index", attrs(), node, parser_exp(parser, 0) }
   parser_expect(parser, "]")
   return result
 end
@@ -491,7 +496,7 @@ function parser_initialize()
 end
 
 function parser_error(token)
-  error("parser error at token <"..token[1].."> position "..integer_to_string(token[3]))
+  error("parser error at token <"..token[1].."> position "..integer_to_string(token[4]))
 end
 
 function parser_item_compare(a, b)
@@ -550,12 +555,8 @@ function parser_expect2(parser, kind1, kind2)
   return token
 end
 
-function parser_attrs()
-  return {}
-end
-
 function parser_list(parser, kind, parse, separator, close)
-  local result = { kind, parser_attrs() }
+  local result = { kind, attrs() }
 
   while true do
     local node = call_indirect1(parse, parser)
@@ -587,7 +588,7 @@ end
 function parser_stat_assign(parser)
   local varlist = parser_list(parser, "varlist", parser_var, ",", "=")
   local explist = parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
-  return { "assign", parser_attrs(), varlist, explist }
+  return { "assign", attrs(), varlist, explist }
 end
 
 function parser_stat_if(parser)
@@ -598,20 +599,20 @@ function parser_stat_if(parser)
 
   local token = parser_read(parser)
   if string_compare(token[1], "elseif") == 0 then
-    else_block = { "block", parser_attrs(), parser_stat_if(parser) }
+    else_block = { "block", attrs(), parser_stat_if(parser) }
   elseif string_compare(token[1], "else") == 0 then
     else_block = parser_block(parser)
   else
     parser_unread(parser)
   end
 
-  return { "if", parser_attrs(), exp, then_block, else_block }
+  return { "if", attrs(), exp, then_block, else_block }
 end
 
 function parser_stat(parser)
   local token = parser_read(parser)
   if string_compare(token[1], ";") == 0 then
-    return { ";", parser_attrs() }
+    return { ";", attrs() }
 
   elseif string_compare(token[1], "Name") == 0 then
     -- var ::= Name
@@ -623,7 +624,7 @@ function parser_stat(parser)
       parser_read(parser)
       local args = parser_list(parser, "args", parser_exp_or_nil, ",", ")")
       if string_compare(parser_peek(parser)[1], "[") ~= 0 then
-        return { "call", parser_attrs(), token, args }
+        return { "call", attrs(), token, args }
       end
       parser[2] = index
     end
@@ -635,25 +636,25 @@ function parser_stat(parser)
     return parser_stat_assign(parser)
 
   elseif string_compare(token[1], "break") == 0 then
-    return { "break", parser_attrs() }
+    return { "break", attrs() }
 
   elseif string_compare(token[1], "do") == 0 then
     local block = parser_block(parser)
     parser_expect(parser, "end")
-    return { "do", parser_attrs(), block }
+    return { "do", attrs(), block }
 
   elseif string_compare(token[1], "while") == 0 then
     local exp = parser_exp(parser, 0)
     parser_expect(parser, "do")
     local block = parser_block(parser)
     parser_expect(parser, "end")
-    return { "while", parser_attrs(), exp, block }
+    return { "while", attrs(), exp, block }
 
   elseif string_compare(token[1], "repeat") == 0 then
     local block = parser_block(parser)
     parser_expect(parser, "until")
     local exp = parser_exp(parser, 0)
-    return { "repeat", parser_attrs(), block, exp }
+    return { "repeat", attrs(), block, exp }
 
   elseif string_compare(token[1], "if") == 0 then
     local result = parser_stat_if(parser)
@@ -676,7 +677,7 @@ function parser_stat(parser)
     parser_expect(parser, "do")
     local block = parser_block(parser)
     parser_expect(parser, "end")
-    return { "for", parser_attrs(), name, exp1, exp2, exp3, block }
+    return { "for", attrs(), name, exp1, exp2, exp3, block }
 
   elseif string_compare(token[1], "function") == 0 then
     local name = parser_expect(parser, "Name")
@@ -684,7 +685,7 @@ function parser_stat(parser)
     local parlist = parser_list(parser, "parlist", parser_name, ",", ")")
     local block = parser_block(parser)
     parser_expect(parser, "end")
-    return { "function", parser_attrs(), name, parlist, block }
+    return { "function", attrs(), name, parlist, block }
 
   elseif string_compare(token[1], "local") == 0 then
     local namelist = parser_list(parser, "parlist", parser_name, ",", nil)
@@ -693,11 +694,11 @@ function parser_stat(parser)
       parser_read(parser)
       explist = parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
     end
-    return { "local", parser_attrs(), namelist, explist }
+    return { "local", attrs(), namelist, explist }
 
   elseif string_compare(token[1], "return") == 0 then
     local explist = parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
-    return { "return", parser_attrs(), explist }
+    return { "return", attrs(), explist }
 
   else
     parser_unread(parser)
@@ -714,7 +715,7 @@ function parser_var(parser)
     if string_compare(next_token[1], "(") == 0 then
       parser_read(parser)
       local args = parser_list(parser, "args", parser_exp_or_nil, ",", ")")
-      node = { "call", parser_attrs(), token, args }
+      node = { "call", attrs(), token, args }
     elseif string_compare(next_token[1], "[") ~= 0 then
       return token
     else
