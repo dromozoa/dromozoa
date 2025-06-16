@@ -28,7 +28,7 @@ local json = require "dromozoa.commons.json"
 --   attrs:
 --   token or node...;
 -- }
---
+
 -- attrs {
 --   未定
 -- }
@@ -385,22 +385,23 @@ end
 local parser_nud = nil
 local parser_led = nil
 local parser_prefix_lbp = 0
+local parser_max_lbp = 0
 
 function nud_token(parser, token)
   return token
 end
 
 function nud_group(parser, token)
-  local result = parser_exp(parser, 0, true)
+  local result = { "group", parser_attrs(), parser_exp(parser, 0) }
   parser_expect(parser, ")")
   return result
 end
 
 function nud_table(parser, token)
-  local result = { "Table" }
+  local result = { "table" }
 
   while true do
-    local node = parser_exp(parser, 0, false)
+    local node = parser_exp_or_nil(parser, 0)
     if node == nil then
       break
     end
@@ -419,19 +420,29 @@ function nud_table(parser, token)
 end
 
 function nud_prefix(parser, token, lbp, node)
-  return { token[1], parser_attrs(), parser_exp(parser, parser_prefix_lbp, true) }
+  return { token[1], parser_attrs(), parser_exp(parser, parser_prefix_lbp) }
 end
 
 function led_left(parser, lbp, token, node)
-  return { token[1], parser_attrs(), node, parser_exp(parser, lbp, true) }
+  return { token[1], parser_attrs(), node, parser_exp(parser, lbp) }
 end
 
 function led_right(parser, lbp, token, node)
-  return { token[1], parser_attrs(), node, parser_exp(parser, lbp - 1, true) }
+  return { token[1], parser_attrs(), node, parser_exp(parser, lbp - 1) }
 end
 
 function led_call(parser, lbp, token, node)
-  return { "call", parser_attrs(), node, parser_list(parser, "args", parser_list_exp, ",", ")") }
+  return {
+    "call", parser_attrs();
+    node;
+    parser_list(parser, "args", parser_exp_or_nil, ",", ")");
+  }
+end
+
+function led_index(parser, lbp, token, node)
+  local result = { "index", parser_attrs(), node, parser_exp(parser, 0) }
+  parser_expect(parser, "]")
+  return result
 end
 
 function parser_initialize()
@@ -474,7 +485,9 @@ function parser_initialize()
   table_insert(parser_led, { "%",   bp, led_left   }) bp = bp + 10
   parser_prefix_lbp = bp                              bp = bp + 10
   table_insert(parser_led, { "^",   bp, led_right  }) bp = bp + 10
-  table_insert(parser_led, { "(",   bp, led_call   }) bp = bp + 10
+  table_insert(parser_led, { "(",   bp, led_call   })
+  table_insert(parser_led, { "[",   bp, led_index  })
+  parser_max_lbp = bp
 
   quick_sort(parser_nud, 1, #parser_nud, parser_item_compare)
   quick_sort(parser_led, 1, #parser_led, parser_item_compare)
@@ -570,12 +583,16 @@ function parser_list(parser, kind, parse, separator, close)
   return result
 end
 
-function parser_list_exp(parser)
-  return parser_exp(parser, 0, false)
+function parser_block(parser)
+  return parser_list(parser, "block", parser_stat, nil, nil)
 end
 
-function parser_block(parser, kind)
-  return parser_list(parser, kind, parser_stat, nil, nil)
+function parser_stat_assign(parser)
+  return {
+    "assign", parser_attrs();
+    parser_list(parser, "varlist", parser_var, ",", "=");
+    parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
+  }
 end
 
 function parser_stat(parser)
@@ -584,6 +601,25 @@ function parser_stat(parser)
     return { ";", parser_attrs() }
 
   elseif string_compare(token[1], "Name") == 0 then
+    -- var ::= Name
+    --       | Name       '[' exp ']' { '[' exp ']' }
+    --       | Name args  '[' exp ']' { '[' exp ']' }
+    --       | '(' exp ') '[' exp ']' { '[' exp ']' }
+    if string_compare(parser_peek(parser)[1], "(") == 0 then
+      local index = parser[2]
+      parser_read(parser)
+      local args = parser_list(parser, "args", parser_exp_or_nil, ",", ")")
+      if string_compare(parser_peek(parser)[1], "[") ~= 0 then
+        return { "call", parser_attrs(), token, result }
+      end
+      parser[2] = index
+    end
+    parser_unread(parser)
+    return parser_stat_assign(parser)
+
+  elseif string_compare(token[1], "(") == 0 then
+    parser_unread(parser)
+    return parser_stat_assign(parser)
 
   else
     parser_unread(parser)
@@ -591,15 +627,51 @@ function parser_stat(parser)
   end
 end
 
-function parser_exp(parser, rbp, error_if_no_nud)
+function parser_var(parser)
+  local node = nil
+
+  local token = parser_read(parser)
+  if string_compare(token[1], "Name") == 0 then
+    local next_token = parser_peek(parser)
+    if string_compare(next_token[1], "(") == 0 then
+      parser_read(parser)
+      node = {
+        "call", parser_attrs();
+        token;
+        parser_list(parser, "args", parser_exp_or_nil, ",", ")");
+      }
+    elseif string_compare(next_token[1], "[") ~= 0 then
+      return token
+    else
+      node = token
+    end
+  elseif string_compare(token[1], "(") then
+    node = nud_group(parser, token)
+  else
+    parser_unread(parser)
+    return nil
+  end
+
+  while true do
+    node = led_index(parser, parser_max_lbp, parser_expect(parser, "["), node)
+    if string_compare(parser_peek(parser)[1], "[") ~= 0 then
+      break
+    end
+  end
+
+  return node
+end
+
+function parser_exp_impl(parser, rbp, return_if_nud_is_nil)
   local token = parser_read(parser)
   local nud = parser_item_search(parser_nud, token)
   if nud == nil then
-    if error_if_no_nud then
+    if return_if_nud_is_nil then
+      parser_unread(parser)
+      return nil
+    else
       parser_error(token)
     end
-    parser_unread(parser)
-    return nil
   end
 
   local node = call_indirect1(nud[2], parser, token)
@@ -616,12 +688,26 @@ function parser_exp(parser, rbp, error_if_no_nud)
   return node
 end
 
+function parser_exp(parser, rbp)
+  return parser_exp_impl(parser, rbp, false)
+end
+
+function parser_exp_or_nil(parser, rbp)
+  return parser_exp_impl(parser, 0, true)
+end
+
 function parser(tokens)
   parser_initialize()
 
   local parser = { tokens, 1 }
-  local tree = parser_block(parser, "chunk")
-  print(json.encode(tree, { pretty = true, stable = true }))
+  local chunk = parser_block(parser)
+
+  local token = parser_peek(parser)
+  if string_compare(token[1], "EOF") ~= 0 then
+    parser_error(token)
+  end
+
+  print(json.encode(chunk, { pretty = true, stable = true }))
 end
 
 --------------------------------------------------------------------------------
