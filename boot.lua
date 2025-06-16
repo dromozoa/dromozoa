@@ -610,7 +610,7 @@ function parser_stat(parser)
       parser_read(parser)
       local args = parser_list(parser, "args", parser_exp_or_nil, ",", ")")
       if string_compare(parser_peek(parser)[1], "[") ~= 0 then
-        return { "call", parser_attrs(), token, result }
+        return { "call", parser_attrs(), token, args }
       end
       parser[2] = index
     end
@@ -620,6 +620,27 @@ function parser_stat(parser)
   elseif string_compare(token[1], "(") == 0 then
     parser_unread(parser)
     return parser_stat_assign(parser)
+
+  elseif string_compare(token[1], "break") == 0 then
+    return { "break", parser_attrs() }
+
+  elseif string_compare(token[2], "do") == 0 then
+    local block = parser_block(parser)
+    parser_expect(parser, "end")
+    return { "do", parser_attrs(), block }
+
+  elseif string_compare(token[2], "while") == 0 then
+    local exp = parser_exp(parser, 0)
+    parser_expect(parser, "do")
+    local block = parser_block(parser)
+    parser_expect(parser, "end")
+    return { "while", parser_attrs(), exp, block }
+
+  elseif string_compare(token[2], "repeat") == 0 then
+    local block = parser_block(parser)
+    parser_expect(parser, "until")
+    local exp = parser_exp(parser, 0)
+    return { "repeat", parser_attrs(), block, exp }
 
   else
     parser_unread(parser)
