@@ -562,6 +562,7 @@ function parser_stat(parser)
     return { ";" }
 
   elseif string_compare(token[1], "Name") == 0 then
+
   else
     parser_unread(parser)
     return nil
