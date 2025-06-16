@@ -77,7 +77,7 @@ end
 -- }
 --
 -- attrs {
---   level : "token"|"exp"|"stat"|"block"
+--   ...
 -- }
 
 function attrs()
@@ -377,8 +377,8 @@ function lexer(source)
     end
   end
 
-  table_insert(tokens, { "EOF", "EOF", p })
-
+  table_insert(tokens, { "EOF", attrs(), "EOF", p })
+  -- dump(tokens)
   return tokens
 end
 
@@ -792,6 +792,7 @@ function parser(tokens)
   end
 
   dump(chunk)
+  return chunk
 end
 
 --------------------------------------------------------------------------------
