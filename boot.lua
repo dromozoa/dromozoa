@@ -462,6 +462,10 @@ function parser_initialize()
   quick_sort(parser_led, 1, #parser_led, parser_item_compare)
 end
 
+function parser_error(token)
+  error("parser error at token <"..token[1].."> position "..integer_to_string(token[3]))
+end
+
 function parser_item_compare(a, b)
   return string_compare(a[1], b[1])
 end
@@ -473,10 +477,6 @@ function parser_item_search(t, item)
   else
     return t[i]
   end
-end
-
-function parser_error(token)
-  error("parser error at token <"..token[1].."> position "..integer_to_string(token[3]))
 end
 
 function parser_peek(parser)
