@@ -587,11 +587,27 @@ function parser_block(parser)
 end
 
 function parser_stat_assign(parser)
-  return {
-    "assign", parser_attrs();
-    parser_list(parser, "varlist", parser_var, ",", "=");
-    parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
-  }
+  local varlist = parser_list(parser, "varlist", parser_var, ",", "=")
+  local explist = parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
+  return { "assign", parser_attrs(), varlist, explist }
+end
+
+function parser_stat_if(parser)
+  local exp = parser_exp(parser, 0)
+  parser_expect(parser, "then")
+  local then_block = parser_block(parser)
+  local else_block = nil
+
+  local token = parser_read(parser)
+  if string_compare(token[1], "elseif") == 0 then
+    else_block = { "block", parser_attrs(), parser_stat_if(parser) }
+  elseif string_compare(token[1], "else") == 0 then
+    else_block = parser_block(parser)
+  else
+    parser_unread(parser)
+  end
+
+  return { "if", parser_attrs(), exp, then_block, else_block }
 end
 
 function parser_stat(parser)
@@ -641,6 +657,11 @@ function parser_stat(parser)
     local exp = parser_exp(parser, 0)
     return { "repeat", parser_attrs(), block, exp }
 
+  elseif string_compare(token[1], "if") == 0 then
+    local result = parser_stat_if(parser)
+    parser_expect(parser, "end")
+    return result
+
   elseif string_compare(token[1], "for") == 0 then
     local name = parser_expect(parser, "Name")
     parser_expect(parser, "=")
@@ -667,6 +688,15 @@ function parser_stat(parser)
     parser_expect(parser, "end")
     return { "function", parser_attrs(), name, parlist, block }
 
+  elseif string_compare(token[1], "local") == 0 then
+    local namelist = parser_list(parser, "parlist", parser_name, ",", nil)
+    local explist = nil
+    if string_compare(parser_peek(parser)[1], "=") == 0 then
+      parser_read(parser)
+      explist = parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
+    end
+    return { "local", parser_attrs(), namelist, explist }
+
   else
     parser_unread(parser)
     return nil
@@ -681,11 +711,8 @@ function parser_var(parser)
     local next_token = parser_peek(parser)
     if string_compare(next_token[1], "(") == 0 then
       parser_read(parser)
-      node = {
-        "call", parser_attrs();
-        token;
-        parser_list(parser, "args", parser_exp_or_nil, ",", ")");
-      }
+      local args = parser_list(parser, "args", parser_exp_or_nil, ",", ")")
+      node = { "call", parser_attrs(), token, args }
     elseif string_compare(next_token[1], "[") ~= 0 then
       return token
     else
