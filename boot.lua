@@ -373,20 +373,20 @@ function nud_token(parser, token)
 end
 
 function nud_group(parser, token)
-  local node = parser_exp(parser, 0, true)
+  local result = parser_exp(parser, 0, true)
   parser_expect(parser, ")")
-  return node
+  return result
 end
 
 function nud_table(parser, token)
-  local node = { "Table" }
+  local result = { "Table" }
 
   while true do
-    local item = parser_exp(parser, 0, false)
-    if item == nil then
+    local node = parser_exp(parser, 0, false)
+    if node == nil then
       break
     end
-    table_insert(node, item)
+    table_insert(result, node)
 
     local token = parser_peek(parser)
     if string_compare(token[1], "}") == 0 then
@@ -397,7 +397,7 @@ function nud_table(parser, token)
   end
   parser_expect(parser, "}")
 
-  return node
+  return result
 end
 
 function nud_prefix(parser, token, lbp, node)
@@ -514,14 +514,14 @@ function parser_expect2(parser, kind1, kind2)
 end
 
 function parser_items(parser, kind, parse, separator, close)
-  local node = { kind }
+  local result = { kind }
 
   while true do
     local item = call_indirect1(parse, parser)
     if item == nil then
       break
     end
-    table_insert(node, item)
+    table_insert(result, item)
 
     if separator ~= nil then
       local token = parser_peek(parser)
@@ -536,7 +536,7 @@ function parser_items(parser, kind, parse, separator, close)
     parser_expect(parser, close)
   end
 
-  return node
+  return result
 end
 
 function parser_items_exp(parser)
