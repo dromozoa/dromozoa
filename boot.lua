@@ -99,7 +99,6 @@ function lexer_initialize()
     "for";
     "function";
     "if";
-    "in";
     "local";
     "nil";
     "not";
@@ -624,23 +623,49 @@ function parser_stat(parser)
   elseif string_compare(token[1], "break") == 0 then
     return { "break", parser_attrs() }
 
-  elseif string_compare(token[2], "do") == 0 then
+  elseif string_compare(token[1], "do") == 0 then
     local block = parser_block(parser)
     parser_expect(parser, "end")
     return { "do", parser_attrs(), block }
 
-  elseif string_compare(token[2], "while") == 0 then
+  elseif string_compare(token[1], "while") == 0 then
     local exp = parser_exp(parser, 0)
     parser_expect(parser, "do")
     local block = parser_block(parser)
     parser_expect(parser, "end")
     return { "while", parser_attrs(), exp, block }
 
-  elseif string_compare(token[2], "repeat") == 0 then
+  elseif string_compare(token[1], "repeat") == 0 then
     local block = parser_block(parser)
     parser_expect(parser, "until")
     local exp = parser_exp(parser, 0)
     return { "repeat", parser_attrs(), block, exp }
+
+  elseif string_compare(token[1], "for") == 0 then
+    local name = parser_expect(parser, "Name")
+    parser_expect(parser, "=")
+    local exp1 = parser_exp(parser, 0)
+    parser_expect(parser, ",")
+    local exp2 = parser_exp(parser, 0)
+    local exp3 = nil
+    if string_compare(parser_peek(parser)[1], ",") == 0 then
+      parser_read(parser)
+      exp3 = parser_exp(parser, 0)
+    else
+      exp3 = { "Integer", 1, 0 }
+    end
+    parser_expect(parser, "do")
+    local block = parser_block(parser)
+    parser_expect(parser, "end")
+    return { "for", parser_attrs(), name, exp1, exp2, exp3, block }
+
+  elseif string_compare(token[1], "function") == 0 then
+    local name = parser_expect(parser, "Name")
+    parser_expect(parser, "(")
+    local parlist = parser_list(parser, "parlist", parser_name, ",", ")")
+    local block = parser_block(parser)
+    parser_expect(parser, "end")
+    return { "function", parser_attrs(), name, parlist, block }
 
   else
     parser_unread(parser)
@@ -713,8 +738,16 @@ function parser_exp(parser, rbp)
   return parser_exp_impl(parser, rbp, false)
 end
 
-function parser_exp_or_nil(parser, rbp)
+function parser_exp_or_nil(parser)
   return parser_exp_impl(parser, 0, true)
+end
+
+function parser_name(parser)
+  if string_compare(parser_peek(parser)[1], "Name") == 0 then
+    return parser_read(parser)
+  else
+    return nil
+  end
 end
 
 function parser(tokens)
