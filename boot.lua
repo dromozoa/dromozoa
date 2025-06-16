@@ -413,11 +413,7 @@ function led_right(parser, lbp, token, node)
 end
 
 function led_call(parser, lbp, token, node)
-  return { "call", node, parser_items(parser, "args", parser_items_exp, ",", ")") }
-end
-
-function parser_item_compare(a, b)
-  return string_compare(a[1], b[1])
+  return { "call", node, parser_list(parser, "args", parser_list_exp, ",", ")") }
 end
 
 function parser_initialize()
@@ -464,6 +460,19 @@ function parser_initialize()
 
   quick_sort(parser_nud, 1, #parser_nud, parser_item_compare)
   quick_sort(parser_led, 1, #parser_led, parser_item_compare)
+end
+
+function parser_item_compare(a, b)
+  return string_compare(a[1], b[1])
+end
+
+function parser_item_search(t, item)
+  local i = binary_search(t, 1, #t, parser_item_compare, item)
+  if i == 0 then
+    return nil
+  else
+    return t[i]
+  end
 end
 
 function parser_error(token)
@@ -513,7 +522,7 @@ function parser_expect2(parser, kind1, kind2)
   return token
 end
 
-function parser_items(parser, kind, parse, separator, close)
+function parser_list(parser, kind, parse, separator, close)
   local result = { kind }
 
   while true do
@@ -539,22 +548,13 @@ function parser_items(parser, kind, parse, separator, close)
   return result
 end
 
-function parser_items_exp(parser)
+function parser_list_exp(parser)
   return parser_exp(parser, 0, false)
-end
-
-function parser_search(t, item)
-  local i = binary_search(t, 1, #t, parser_item_compare, item)
-  if i == 0 then
-    return nil
-  else
-    return t[i]
-  end
 end
 
 function parser_exp(parser, rbp, error_if_no_nud)
   local token = parser_read(parser)
-  local nud = parser_search(parser_nud, token)
+  local nud = parser_item_search(parser_nud, token)
   if nud == nil then
     if error_if_no_nud then
       parser_error(token)
@@ -566,7 +566,7 @@ function parser_exp(parser, rbp, error_if_no_nud)
   local node = call_indirect1(nud[2], parser, token)
   while true do
     local token = parser_peek(parser)
-    local led = parser_search(parser_led, token)
+    local led = parser_item_search(parser_led, token)
     if led == nil or led[2] <= rbp then
       break
     end
