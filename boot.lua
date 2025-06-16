@@ -17,6 +17,24 @@
 
 local json = require "dromozoa.commons.json"
 
+-- token {
+--   kind: string;
+--   value: string or integer;
+--   position: integer;
+-- }
+
+-- node {
+--   kind: string;
+--   attrs:
+--   token or node...;
+-- }
+--
+-- attrs {
+--   未定
+-- }
+
+--------------------------------------------------------------------------------
+
 function quick_sort(t, i, j, compare)
   local n = j - i + 1
   if n <= 1 then
@@ -401,19 +419,19 @@ function nud_table(parser, token)
 end
 
 function nud_prefix(parser, token, lbp, node)
-  return { token[1], parser_exp(parser, parser_prefix_lbp, true) }
+  return { token[1], parser_attrs(), parser_exp(parser, parser_prefix_lbp, true) }
 end
 
 function led_left(parser, lbp, token, node)
-  return { token[1], node, parser_exp(parser, lbp, true) }
+  return { token[1], parser_attrs(), node, parser_exp(parser, lbp, true) }
 end
 
 function led_right(parser, lbp, token, node)
-  return { token[1], node, parser_exp(parser, lbp - 1, true) }
+  return { token[1], parser_attrs(), node, parser_exp(parser, lbp - 1, true) }
 end
 
 function led_call(parser, lbp, token, node)
-  return { "call", node, parser_list(parser, "args", parser_list_exp, ",", ")") }
+  return { "call", parser_attrs(), node, parser_list(parser, "args", parser_list_exp, ",", ")") }
 end
 
 function parser_initialize()
@@ -522,8 +540,12 @@ function parser_expect2(parser, kind1, kind2)
   return token
 end
 
+function parser_attrs()
+  return {}
+end
+
 function parser_list(parser, kind, parse, separator, close)
-  local result = { kind }
+  local result = { kind, parser_attrs() }
 
   while true do
     local node = call_indirect1(parse, parser)
@@ -559,7 +581,7 @@ end
 function parser_stat(parser)
   local token = parser_read(parser)
   if string_compare(token[1], ";") == 0 then
-    return { ";" }
+    return { ";", parser_attrs() }
 
   elseif string_compare(token[1], "Name") == 0 then
 
@@ -598,7 +620,7 @@ function parser(tokens)
   parser_initialize()
 
   local parser = { tokens, 1 }
-  local tree = parser_block(parser, 0, true)
+  local tree = parser_block(parser, "chunk")
   print(json.encode(tree, { pretty = true, stable = true }))
 end
 
