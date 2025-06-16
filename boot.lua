@@ -552,6 +552,22 @@ function parser_list_exp(parser)
   return parser_exp(parser, 0, false)
 end
 
+function parser_block(parser, kind)
+  return parser_list(parser, kind, parser_stat, nil, nil)
+end
+
+function parser_stat(parser)
+  local token = parser_read(parser)
+  if string_compare(token[1], ";") == 0 then
+    return { ";" }
+
+  elseif string_compare(token[1], "Name") == 0 then
+  else
+    parser_unread(parser)
+    return nil
+  end
+end
+
 function parser_exp(parser, rbp, error_if_no_nud)
   local token = parser_read(parser)
   local nud = parser_item_search(parser_nud, token)
@@ -581,7 +597,7 @@ function parser(tokens)
   parser_initialize()
 
   local parser = { tokens, 1 }
-  local tree = parser_exp(parser, 0, true)
+  local tree = parser_block(parser, 0, true)
   print(json.encode(tree, { pretty = true, stable = true }))
 end
 
