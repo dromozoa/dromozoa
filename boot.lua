@@ -517,11 +517,11 @@ function parser_items(parser, kind, parse, separator, close)
   local result = { kind }
 
   while true do
-    local item = call_indirect1(parse, parser)
-    if item == nil then
+    local node = call_indirect1(parse, parser)
+    if node == nil then
       break
     end
-    table_insert(result, item)
+    table_insert(result, node)
 
     if separator ~= nil then
       local token = parser_peek(parser)
