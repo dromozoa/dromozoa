@@ -15,8 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-local json = require "dromozoa.commons.json"
-
 -- token {
 --   kind: string;
 --   value: string or integer;
@@ -792,7 +790,7 @@ function parser(tokens)
     parser_error(token)
   end
 
-  print(json.encode(chunk, { pretty = true, stable = true }))
+  dump(chunk)
 end
 
 --------------------------------------------------------------------------------
