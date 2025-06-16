@@ -412,7 +412,8 @@ function led_right(parser, lbp, token, node)
   return { token[1], node, parser_exp(parser, lbp - 1, true) }
 end
 
-function led_call(parser, token, node)
+function led_call(parser, lbp, token, node)
+  return { "call", node, parser_items(parser, "args", parser_items_exp, ",", ")") }
 end
 
 function parser_item_compare(a, b)
@@ -510,6 +511,36 @@ function parser_expect2(parser, kind1, kind2)
   end
   parser[2] = index + 1
   return token
+end
+
+function parser_items(parser, kind, parse, separator, close)
+  local node = { kind }
+
+  while true do
+    local item = call_indirect1(parse, parser)
+    if item == nil then
+      break
+    end
+    table_insert(node, item)
+
+    if separator ~= nil then
+      local token = parser_peek(parser)
+      if string_compare(token[1], separator) ~= 0 then
+        break
+      end
+      parser_read(parser)
+    end
+  end
+
+  if close ~= nil then
+    parser_expect(parser, close)
+  end
+
+  return node
+end
+
+function parser_items_exp(parser)
+  return parser_exp(parser, 0, false)
 end
 
 function parser_search(t, item)
