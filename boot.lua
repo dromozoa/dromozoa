@@ -697,6 +697,10 @@ function parser_stat(parser)
     end
     return { "local", parser_attrs(), namelist, explist }
 
+  elseif string_compare(token[1], "return") == 0 then
+    local explist = parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
+    return { "return", parser_attrs(), explist }
+
   else
     parser_unread(parser)
     return nil
