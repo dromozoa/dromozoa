@@ -704,12 +704,13 @@ function parser_stat(parser)
 
   elseif string_compare(token[1], "local") == 0 then
     local namelist = parser_list(parser, "parlist", parser_name, ",", nil)
-    local explist = nil
     if string_compare(parser_peek(parser)[1], "=") == 0 then
       parser_read(parser)
-      explist = parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
+      local explist = parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
+      return { "local", attrs(), namelist, explist }
+    else
+      return { "local", attrs(), namelist }
     end
-    return { "local", attrs(), namelist, explist }
 
   elseif string_compare(token[1], "return") == 0 then
     local explist = parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
@@ -799,14 +800,15 @@ function parser(tokens)
   parser_initialize()
 
   local parser = { tokens, 1 }
-  local chunk = parser_block(parser)
+  local block = parser_block(parser)
 
   local token = parser_peek(parser)
   if string_compare(token[1], "EOF") ~= 0 then
     parser_error(token)
   end
 
-  dump(chunk)
+  local chunk = { "chunk", attrs(), block }
+  -- dump(chunk)
   return chunk
 end
 
@@ -911,8 +913,26 @@ function write_string_table(string_table)
   io_write_string("\")\n")
 end
 
+function process1(chunk, proto, scope, u, v)
+  print(u[1], v[1])
+
+  for i = 3, #v do
+    local x = v[i]
+    -- true, false, nil
+    -- if not (string_compare(x[1], "Name") == 0 or string_compare(x[1], "String") == 0 or string_compare(x[1], "Integer") == 0) then
+    --   process1(chunk, proto, scope, v, x)
+    -- end
+  end
+end
+
 function compiler(tokens, chunk)
   local string_table, string_end = generate_string_table(tokens)
+
+  local chunk_proto = {}
+  local chunk_scope = {}
+
+  process1(chunk, chunk_proto, chunk_scope, chunk, chunk[3])
+
   -- write_string_table(string_table)
 end
 
