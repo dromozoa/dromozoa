@@ -75,13 +75,24 @@ end
 --   attrs : attrs
 --   ...   : (token|node)*
 -- }
---
 -- attrs {
---   ...
+--   : integer
 -- }
 
 function attrs()
-  return {}
+  return { 0 }
+end
+
+function compare_string_index1(a, b)
+  return string_compare(a[1], b[1])
+end
+
+function compare_string_index2(a, b)
+  return string_compare(a[2], b[2])
+end
+
+function compare_string_index3(a, b)
+  return string_compare(a[3], b[3])
 end
 
 --------------------------------------------------------------------------------
@@ -491,20 +502,16 @@ function parser_initialize()
   table_insert(parser_led, { "[",   bp, led_index  })
   parser_max_lbp = bp
 
-  quick_sort(parser_nud, 1, #parser_nud, parser_item_compare)
-  quick_sort(parser_led, 1, #parser_led, parser_item_compare)
+  quick_sort(parser_nud, 1, #parser_nud, compare_string_index1)
+  quick_sort(parser_led, 1, #parser_led, compare_string_index1)
 end
 
 function parser_error(token)
   error("parser error at token <"..token[1].."> position "..integer_to_string(token[4]))
 end
 
-function parser_item_compare(a, b)
-  return string_compare(a[1], b[1])
-end
-
 function parser_item_search(t, item)
-  local i = binary_search(t, 1, #t, parser_item_compare, item)
+  local i = binary_search(t, 1, #t, compare_string_index1, item)
   if i == 0 then
     return nil
   else
@@ -558,20 +565,27 @@ end
 function parser_list(parser, kind, parse, separator, close)
   local result = { kind, attrs() }
 
+  local i = 0
   while true do
-    local node = call_indirect1(parse, parser)
-    if node == nil then
-      break
-    end
-    table_insert(result, node)
-
-    if separator ~= nil then
-      local token = parser_peek(parser)
-      if string_compare(token[1], separator) ~= 0 then
+    if i > 0 and separator ~= nil then
+      if string_compare(parser_peek(parser)[1], separator) == 0 then
+        parser_read(parser)
+      else
         break
       end
-      parser_read(parser)
     end
+
+    local node = call_indirect1(parse, parser)
+    if node == nil then
+      if i == 0 or separator == nil then
+        break
+      else
+        parser_error(parser_peek(parser))
+      end
+    end
+
+    i = i + 1
+    table_insert(result, node)
   end
 
   if close ~= nil then
@@ -797,7 +811,46 @@ end
 
 --------------------------------------------------------------------------------
 
+function roundup(n, a)
+  local r = n % a
+  if r == 0 then
+    return n
+  else
+    return n + a - r
+  end
+end
+
+function generate_string_table(tokens)
+  local string_tokens = {}
+
+  for i = 1, #tokens do
+    local token = tokens[i]
+    if token[1] == "String" then
+      table_insert(string_tokens, token)
+    end
+  end
+  quick_sort(string_tokens, 1, #string_tokens, compare_string_index3)
+
+  local string_table = {}
+  local value = nil
+  local offset = 0
+
+  for i = 1, #string_tokens do
+    local token = string_tokens[i]
+    if value == nil or string_compare(value, token[3]) ~= 0 then
+      value = token[3]
+      table_insert(string_table, { value, offset })
+      offset = offset + roundup(#value + 1, 8)
+    end
+    token[2][1] = #string_table * 8
+  end
+
+  return string_table, (#string_table + 1) * 8 + offset
+end
+
 function compiler(tokens, chunk)
+  local string_table, string_end = generate_string_table(tokens)
+  -- print(string_end)
 end
 
 --------------------------------------------------------------------------------
