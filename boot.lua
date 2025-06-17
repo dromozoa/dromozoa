@@ -76,15 +76,18 @@ end
 --   ...   : (token|node)*
 -- }
 
-local attr_class   = 1
-local attr_address = 2
+local attr_class    = 1 -- "token" | "node"
+local attr_address  = 2 -- 文字列リテラルの静的アドレス
+local attr_resolver = 3 -- "function" | "def" | "ref" | "set"
+local attr_proto    = 4
+local attr_scope    = 5
 
-function token_attrs()
-  return { "token", 0 }
+function new_token_attrs()
+  return { "token", 0, "", nil, nil }
 end
 
-function node_attrs()
-  return { "node", 0 }
+function new_node_attrs()
+  return { "node", 0, "", nil, nil }
 end
 
 function compare_string_index1(a, b)
@@ -256,9 +259,9 @@ function lexer_rule_keyword_or_name(source, position)
   local v = string_sub(source, position, p - 1)
   local i = binary_search(lexer_keywords, 1, #lexer_keywords, string_compare, v)
   if i ~= 0 then
-    return p, { v, token_attrs(), v, position }
+    return p, { v, new_token_attrs(), v, position }
   end
-  return p, { "Name", token_attrs(), v, position }
+  return p, { "Name", new_token_attrs(), v, position }
 end
 
 function lexer_rule_symbol(source, position)
@@ -267,7 +270,7 @@ function lexer_rule_symbol(source, position)
     local v = string_sub(source, position, position + i - 1)
     local j = binary_search(symbols, 1, #symbols, string_compare, v)
     if j ~= 0 then
-      return position + i, { v, token_attrs(), v, position }
+      return position + i, { v, new_token_attrs(), v, position }
     end
   end
   return 0, nil
@@ -288,7 +291,7 @@ function lexer_rule_string(source, position)
     local c = string_byte(source, p)
     p = p + 1
     if c == quote then
-      return p, { "String", token_attrs(), string_char(t), position }
+      return p, { "String", new_token_attrs(), string_char(t), position }
     elseif c == 0x5C then
       if p > n then
         error("lexer error at position "..integer_to_string(p))
@@ -359,7 +362,7 @@ function lexer_rule_integer(source, position)
   if p == q then
     return 0, nil
   else
-    return p, { "Integer", token_attrs(), v, position }
+    return p, { "Integer", new_token_attrs(), v, position }
   end
 end
 
@@ -392,7 +395,7 @@ function lexer(source)
     end
   end
 
-  table_insert(tokens, { "EOF", token_attrs(), "EOF", p })
+  table_insert(tokens, { "EOF", new_token_attrs(), "EOF", p })
   -- dump(tokens)
   return tokens
 end
@@ -409,13 +412,13 @@ function nud_token(parser, token)
 end
 
 function nud_group(parser, token)
-  local result = { "group", node_attrs(), parser_exp(parser, 0) }
+  local result = { "group", new_node_attrs(), parser_exp(parser, 0) }
   parser_expect(parser, ")")
   return result
 end
 
 function nud_table(parser, token)
-  local result = { "table", node_attrs() }
+  local result = { "table", new_node_attrs() }
 
   while true do
     local node = parser_exp_or_nil(parser, 0)
@@ -437,24 +440,24 @@ function nud_table(parser, token)
 end
 
 function nud_prefix(parser, token, lbp, node)
-  return { token[1], node_attrs(), parser_exp(parser, parser_prefix_lbp) }
+  return { token[1], new_node_attrs(), parser_exp(parser, parser_prefix_lbp) }
 end
 
 function led_left(parser, lbp, token, node)
-  return { token[1], node_attrs(), node, parser_exp(parser, lbp) }
+  return { token[1], new_node_attrs(), node, parser_exp(parser, lbp) }
 end
 
 function led_right(parser, lbp, token, node)
-  return { token[1], node_attrs(), node, parser_exp(parser, lbp - 1) }
+  return { token[1], new_node_attrs(), node, parser_exp(parser, lbp - 1) }
 end
 
 function led_call(parser, lbp, token, node)
   local args = parser_list(parser, "args", parser_exp_or_nil, ",", ")")
-  return { "call", node_attrs(), node, args }
+  return { "call", new_node_attrs(), node, args }
 end
 
 function led_index(parser, lbp, token, node)
-  local result = { "index", node_attrs(), node, parser_exp(parser, 0) }
+  local result = { "index", new_node_attrs(), node, parser_exp(parser, 0) }
   parser_expect(parser, "]")
   return result
 end
@@ -564,7 +567,7 @@ function parser_expect2(parser, kind1, kind2)
 end
 
 function parser_list(parser, kind, parse, separator, close)
-  local result = { kind, node_attrs() }
+  local result = { kind, new_node_attrs() }
 
   local i = 0
   while true do
@@ -603,7 +606,7 @@ end
 function parser_stat_assign(parser)
   local varlist = parser_list(parser, "varlist", parser_var, ",", "=")
   local explist = parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
-  return { "assign", node_attrs(), varlist, explist }
+  return { "assign", new_node_attrs(), varlist, explist }
 end
 
 function parser_stat_if(parser)
@@ -614,21 +617,21 @@ function parser_stat_if(parser)
 
   local token = parser_read(parser)
   if string_compare(token[1], "elseif") == 0 then
-    else_block = { "block", node_attrs(), parser_stat_if(parser) }
+    else_block = { "block", new_node_attrs(), parser_stat_if(parser) }
   elseif string_compare(token[1], "else") == 0 then
     else_block = parser_block(parser)
   else
     parser_unread(parser)
-    else_block = { "block", node_attrs() }
+    else_block = { "block", new_node_attrs() }
   end
 
-  return { "if", node_attrs(), exp, then_block, else_block }
+  return { "if", new_node_attrs(), exp, then_block, else_block }
 end
 
 function parser_stat(parser)
   local token = parser_read(parser)
   if string_compare(token[1], ";") == 0 then
-    return { ";", node_attrs() }
+    return { ";", new_node_attrs() }
 
   elseif string_compare(token[1], "Name") == 0 then
     -- var ::= Name
@@ -640,7 +643,7 @@ function parser_stat(parser)
       parser_read(parser)
       local args = parser_list(parser, "args", parser_exp_or_nil, ",", ")")
       if string_compare(parser_peek(parser)[1], "[") ~= 0 then
-        return { "call", node_attrs(), token, args }
+        return { "call", new_node_attrs(), token, args }
       end
       parser[2] = index
     end
@@ -652,25 +655,25 @@ function parser_stat(parser)
     return parser_stat_assign(parser)
 
   elseif string_compare(token[1], "break") == 0 then
-    return { "break", node_attrs() }
+    return { "break", new_node_attrs() }
 
   elseif string_compare(token[1], "do") == 0 then
     local block = parser_block(parser)
     parser_expect(parser, "end")
-    return { "do", node_attrs(), block }
+    return { "do", new_node_attrs(), block }
 
   elseif string_compare(token[1], "while") == 0 then
     local exp = parser_exp(parser, 0)
     parser_expect(parser, "do")
     local block = parser_block(parser)
     parser_expect(parser, "end")
-    return { "while", node_attrs(), exp, block }
+    return { "while", new_node_attrs(), exp, block }
 
   elseif string_compare(token[1], "repeat") == 0 then
     local block = parser_block(parser)
     parser_expect(parser, "until")
     local exp = parser_exp(parser, 0)
-    return { "repeat", node_attrs(), block, exp }
+    return { "repeat", new_node_attrs(), block, exp }
 
   elseif string_compare(token[1], "if") == 0 then
     local result = parser_stat_if(parser)
@@ -688,12 +691,12 @@ function parser_stat(parser)
       parser_read(parser)
       exp3 = parser_exp(parser, 0)
     else
-      exp3 = { "Integer", token_attrs(), 1, 0 }
+      exp3 = { "Integer", new_token_attrs(), 1, 0 }
     end
     parser_expect(parser, "do")
     local block = parser_block(parser)
     parser_expect(parser, "end")
-    return { "for", node_attrs(), name, exp1, exp2, exp3, block }
+    return { "for", new_node_attrs(), name, exp1, exp2, exp3, block }
 
   elseif string_compare(token[1], "function") == 0 then
     local name = parser_expect(parser, "Name")
@@ -701,21 +704,21 @@ function parser_stat(parser)
     local parlist = parser_list(parser, "parlist", parser_name, ",", ")")
     local block = parser_block(parser)
     parser_expect(parser, "end")
-    return { "function", node_attrs(), name, parlist, block }
+    return { "function", new_node_attrs(), name, parlist, block }
 
   elseif string_compare(token[1], "local") == 0 then
     local namelist = parser_list(parser, "parlist", parser_name, ",", nil)
     if string_compare(parser_peek(parser)[1], "=") == 0 then
       parser_read(parser)
       local explist = parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
-      return { "local", node_attrs(), namelist, explist }
+      return { "local", new_node_attrs(), namelist, explist }
     else
-      return { "local", node_attrs(), namelist }
+      return { "local", new_node_attrs(), namelist }
     end
 
   elseif string_compare(token[1], "return") == 0 then
     local explist = parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
-    return { "return", node_attrs(), explist }
+    return { "return", new_node_attrs(), explist }
 
   else
     parser_unread(parser)
@@ -732,7 +735,7 @@ function parser_var(parser)
     if string_compare(next_token[1], "(") == 0 then
       parser_read(parser)
       local args = parser_list(parser, "args", parser_exp_or_nil, ",", ")")
-      node = { "call", node_attrs(), token, args }
+      node = { "call", new_node_attrs(), token, args }
     elseif string_compare(next_token[1], "[") ~= 0 then
       return token
     else
@@ -808,12 +811,14 @@ function parser(tokens)
     parser_error(token)
   end
 
-  local chunk = { "chunk", node_attrs(), block }
+  local chunk = { "chunk", new_node_attrs(), block }
   -- dump(chunk)
   return chunk
 end
 
 --------------------------------------------------------------------------------
+
+
 
 function roundup(n, a)
   local r = n % a
@@ -824,7 +829,7 @@ function roundup(n, a)
   end
 end
 
-function generate_string_table(tokens)
+function make_string_table(tokens)
   local string_tokens = {}
 
   for i = 1, #tokens do
@@ -914,22 +919,110 @@ function write_string_table(string_table)
   io_write_string("\")\n")
 end
 
-function process1(chunk, proto, scope, parent, u)
-  if string_compare(u[2][attr_class], "node") == 0 then
-    for i = 3, #u do
-      local v = u[i]
-      process1(chunk, proto, scope, u, v)
+function new_proto(u)
+  return { u[3][3], u, -1 }
+end
+
+local proto_name     = 1
+local proto_function = 2
+local proto_result   = 3
+
+function process1(proto_table, proto, u, v)
+  if string_compare(v[1], "function") == 0 then
+    if proto ~= nil then
+      error("compiler error: invalid proto")
+    end
+    proto = new_proto(v)
+    table_insert(proto_table, proto)
+
+  elseif string_compare(v[1], "return") == 0 then
+    local result = #v[3] - 2
+    if proto[proto_result] == -1 then
+      proto[proto_result] = result
+    elseif proto[proto_result] ~= result then
+      error("compiler error: invalid result")
+    end
+  end
+
+  if string_compare(v[2][attr_class], "node") == 0 then
+    for i = 3, #v do
+      process1(proto_table, proto, v, v[i])
+    end
+  end
+
+  if string_compare(v[1], "function") == 0 then
+    if proto[proto_result] == -1 then
+      proto[proto_result] = 0
+    end
+  end
+end
+
+function new_scope(u, parent)
+  local scope = { {}, parent }
+  u[2][attr_scope] = scope
+  return scope
+end
+
+local scope_data = 1
+local scope_parent = 2
+
+-- do
+-- while
+-- repeat
+-- if then_block else_block
+-- for +ローカル
+-- function
+-- local ???
+-- return +ローカル, result
+-- and +ローカル
+-- or +ローカル
+
+function process2(scope, u, v)
+  if string_compare(v[1], "block") == 0 then
+    -- then blockとelse blockにスコープを割り当てる
+    if string_compare(u[1], "if") == 0 then
+      scope = new_scope(v, scope)
+    end
+
+  elseif string_compare(v[1], "do") == 0 then
+    scope = new_scope(v, scope)
+
+  elseif string_compare(v[1], "while") == 0 then
+    scope = new_scope(v, scope)
+
+  elseif string_compare(v[1], "repeat") == 0 then
+    scope = new_scope(v, scope)
+
+  elseif string_compare(v[1], "for") == 0 then
+    scope = new_scope(v, scope)
+
+  elseif string_compare(v[1], "function") == 0 then
+    scope = new_scope(v, scope)
+
+  end
+
+  if string_compare(v[2][attr_class], "node") == 0 then
+    for i = 3, #v do
+      process2(scope, v, v[i])
     end
   end
 end
 
 function compiler(tokens, chunk)
-  local string_table, string_end = generate_string_table(tokens)
+  local string_table, string_end = make_string_table(tokens)
 
-  local chunk_proto = {}
-  local chunk_scope = {}
+  local proto_table = {}
+  process1(proto_table, nil, chunk, chunk[3])
 
-  process1(chunk, chunk_proto, chunk_scope, chunk, chunk[3])
+  -- for i = 1, #proto_table do
+  --   local proto = proto_table[i]
+  --   print(proto[1], proto[3])
+  -- end
+
+  -- local scope = new_scope(chunk, nil)
+  -- process2(scope, chunk, chunk[3])
+
+  -- dump(chunk)
 
   -- write_string_table(string_table)
 end
