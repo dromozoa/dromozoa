@@ -805,7 +805,7 @@ function parser(tokens)
     parser_error(token)
   end
 
-  dump(chunk)
+  -- dump(chunk)
   return chunk
 end
 
@@ -833,24 +833,86 @@ function generate_string_table(tokens)
 
   local string_table = {}
   local value = nil
-  local offset = 0
 
   for i = 1, #string_tokens do
     local token = string_tokens[i]
     if value == nil or string_compare(value, token[3]) ~= 0 then
       value = token[3]
-      table_insert(string_table, { value, offset })
-      offset = offset + roundup(#value + 1, 8)
+      table_insert(string_table, { value, 0 })
     end
     token[2][1] = #string_table * 8
   end
 
-  return string_table, (#string_table + 1) * 8 + offset
+  local address = (#string_table + 1) * 8
+  for i = 1, #string_table do
+    local entry = string_table[i]
+    entry[2] = address
+    address = address + roundup(#entry[1] + 1, 8)
+  end
+
+  return string_table, address
+end
+
+function encode_i4_hex(v)
+  if 0 <= v then
+    if v <= 9 then
+      return v + 0x30
+    elseif v <= 15 then
+      return v + 0x41 - 10
+    end
+  end
+  error("out of range")
+end
+
+function encode_char(t, v)
+  table_insert(t, 0x5C)
+  table_insert(t, encode_i4_hex(v >> 4))
+  table_insert(t, encode_i4_hex(v & 0xF))
+end
+
+function encode_integer(t, v)
+  encode_char(t, v & 0xFF)
+  encode_char(t, v >> 8 & 0xFF)
+  encode_char(t, v >> 16 & 0xFF)
+  encode_char(t, v >> 24)
+end
+
+function write_string_table(string_table)
+  io_write_string("(data 0 (i32.const 8) \"")
+
+  for i = 1, #string_table do
+    local entry = string_table[i]
+    local t = {}
+    encode_integer(t, #entry[1])
+    encode_integer(t, entry[2])
+    io_write_string(string_char(t))
+  end
+
+  for i = 1, #string_table do
+    local entry = string_table[i]
+    local t = {}
+    local m = #entry[1]
+    local n = roundup(#entry[1] + 1, 8) - m
+    for j = 1, m do
+      local c = string_byte(entry[1], j)
+      if 0 <= c and c <= 0x1F or c == 0x22 or c == 0x5C or c == 0x7F then
+        encode_char(t, c)
+      else
+        table_insert(t, c)
+      end
+    end
+    for j = 1, n do
+      encode_char(t, 0)
+    end
+    io_write_string(string_char(t))
+  end
+
+  io_write_string("\")\n")
 end
 
 function compiler(tokens, chunk)
   local string_table, string_end = generate_string_table(tokens)
-  -- print(string_end)
+  write_string_table(string_table)
 end
 
 --------------------------------------------------------------------------------
