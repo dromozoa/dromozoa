@@ -618,6 +618,7 @@ function parser_stat_if(parser)
     else_block = parser_block(parser)
   else
     parser_unread(parser)
+    else_block = { "block", attrs() }
   end
 
   return { "if", attrs(), exp, then_block, else_block }
@@ -805,7 +806,7 @@ function parser(tokens)
     parser_error(token)
   end
 
-  -- dump(chunk)
+  dump(chunk)
   return chunk
 end
 
@@ -912,7 +913,7 @@ end
 
 function compiler(tokens, chunk)
   local string_table, string_end = generate_string_table(tokens)
-  write_string_table(string_table)
+  -- write_string_table(string_table)
 end
 
 --------------------------------------------------------------------------------
