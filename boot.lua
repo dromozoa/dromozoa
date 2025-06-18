@@ -926,15 +926,6 @@ function make_id(ctx)
   return id
 end
 
-function new_proto(u, id)
-  return { u[3][3], id, u, -1 }
-end
-
-local proto_name     = 1
-local proto_id       = 2
-local proto_function = 3
-local proto_result   = 4
-
 function process1(ctx, proto_table, proto, u, v)
   if string_compare(v[1], "function") == 0 then
     if proto ~= nil then
