@@ -606,7 +606,7 @@ end
 function parser_stat_assign(parser)
   local varlist = parser_list(parser, "varlist", parser_var, ",", "=")
   local explist = parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
-  return { "assign", new_node_attrs(), varlist, explist }
+  return { "assign", new_node_attrs(), explist, varlist }
 end
 
 function parser_stat_if(parser)
@@ -696,7 +696,7 @@ function parser_stat(parser)
     parser_expect(parser, "do")
     local block = parser_block(parser)
     parser_expect(parser, "end")
-    return { "for", new_node_attrs(), name, exp1, exp2, exp3, block }
+    return { "for", new_node_attrs(), exp1, exp2, exp3, name, block }
 
   elseif string_compare(token[1], "function") == 0 then
     local name = parser_expect(parser, "Name")
@@ -707,14 +707,10 @@ function parser_stat(parser)
     return { "function", new_node_attrs(), name, parlist, block }
 
   elseif string_compare(token[1], "local") == 0 then
-    local namelist = parser_list(parser, "parlist", parser_name, ",", nil)
-    if string_compare(parser_peek(parser)[1], "=") == 0 then
-      parser_read(parser)
-      local explist = parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
-      return { "local", new_node_attrs(), namelist, explist }
-    else
-      return { "local", new_node_attrs(), namelist }
-    end
+    -- 初期化無しのローカルは許可しない
+    local namelist = parser_list(parser, "parlist", parser_name, ",", "=")
+    local explist = parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
+    return { "local", new_node_attrs(), explist, namelist }
 
   elseif string_compare(token[1], "return") == 0 then
     local explist = parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
