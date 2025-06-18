@@ -77,10 +77,9 @@ end
 -- }
 
 local attr_class    = 1 -- "token" | "node"
-local attr_address  = 2 -- 文字列リテラルの静的アドレス
+local attr_address  = 2 -- 文字列または関数の静的アドレス
 local attr_resolver = 3 -- "function" | "def" | "ref" | "set"
-local attr_proto    = 4
-local attr_scope    = 5
+local attr_id       = 4
 
 function new_token_attrs()
   return { "token", 0, "", nil, nil }
@@ -814,8 +813,6 @@ end
 
 --------------------------------------------------------------------------------
 
-
-
 function roundup(n, a)
   local r = n % a
   if r == 0 then
@@ -915,21 +912,38 @@ function write_string_table(string_table)
   io_write_string("\")\n")
 end
 
-function new_proto(u)
-  return { u[3][3], u, -1 }
+function new_ctx()
+  return { 0 }
+end
+
+local ctx_id = 1
+
+function make_id(ctx)
+  local id = ctx[ctx_id] + 1
+  ctx[ctx_id] = id
+  return id
+end
+
+function new_proto(u, id)
+  return { u[3][3], id, u, -1 }
 end
 
 local proto_name     = 1
-local proto_function = 2
-local proto_result   = 3
+local proto_id       = 2
+local proto_function = 3
+local proto_result   = 4
 
-function process1(proto_table, proto, u, v)
+function process1(ctx, proto_table, proto, u, v)
   if string_compare(v[1], "function") == 0 then
     if proto ~= nil then
       error("compiler error: invalid proto")
     end
-    proto = new_proto(v)
+    proto = new_proto(v, make_id(ctx))
     table_insert(proto_table, proto)
+
+    local name_attrs = v[3][2]
+    name_attrs[attr_address] = #proto_table
+    name_attrs[attr_resolver] = "function"
 
   elseif string_compare(v[1], "return") == 0 then
     local result = #v[3] - 2
@@ -942,7 +956,7 @@ function process1(proto_table, proto, u, v)
 
   if string_compare(v[2][attr_class], "node") == 0 then
     for i = 3, #v do
-      process1(proto_table, proto, v, v[i])
+      process1(ctx, proto_table, proto, v, v[i])
     end
   end
 
@@ -953,10 +967,8 @@ function process1(proto_table, proto, u, v)
   end
 end
 
-function new_scope(u, parent)
-  local scope = { {}, parent }
-  u[2][attr_scope] = scope
-  return scope
+function new_scope(parent)
+  return { {}, parent }
 end
 
 local scope_data = 1
@@ -973,33 +985,44 @@ local scope_parent = 2
 -- and +ローカル
 -- or +ローカル
 
-function process2(scope, u, v)
+function process2(ctx, proto_table, var_table, scope, u, v)
   if string_compare(v[1], "block") == 0 then
     -- then blockとelse blockにスコープを割り当てる
     if string_compare(u[1], "if") == 0 then
-      scope = new_scope(v, scope)
+      scope = new_scope(scope)
     end
 
   elseif string_compare(v[1], "do") == 0 then
-    scope = new_scope(v, scope)
+    scope = new_scope(scope)
 
   elseif string_compare(v[1], "while") == 0 then
-    scope = new_scope(v, scope)
+    scope = new_scope(scope)
 
   elseif string_compare(v[1], "repeat") == 0 then
-    scope = new_scope(v, scope)
+    scope = new_scope(scope)
 
   elseif string_compare(v[1], "for") == 0 then
-    scope = new_scope(v, scope)
+    -- for用のローカル変数 3個
+    scope = new_scope(scope)
 
   elseif string_compare(v[1], "function") == 0 then
-    scope = new_scope(v, scope)
+    -- return用のローカル変数 n個
+    var_table = {}
+    scope = new_scope(scope)
+
+  elseif string_compare(v[1], "or") == 0 then
+    -- 一時保存用のローカル変数1個
+
+  elseif string_compare(v[1], "and") == 0 then
+    -- 一時保存用のローカル変数1個
+
+  elseif string_compare(v[1], "Name") == 0 then
 
   end
 
   if string_compare(v[2][attr_class], "node") == 0 then
     for i = 3, #v do
-      process2(scope, v, v[i])
+      process2(ctx, proto_table, var_table, scope, v, v[i])
     end
   end
 end
@@ -1007,16 +1030,17 @@ end
 function compiler(tokens, chunk)
   local string_table, string_end = make_string_table(tokens)
 
+  local ctx = new_ctx()
   local proto_table = {}
-  process1(proto_table, nil, chunk, chunk[3])
+  process1(ctx, proto_table, nil, chunk, chunk[3])
 
-  -- for i = 1, #proto_table do
-  --   local proto = proto_table[i]
-  --   print(proto[1], proto[3])
-  -- end
+  for i = 1, #proto_table do
+    local proto = proto_table[i]
+  end
 
-  -- local scope = new_scope(chunk, nil)
-  -- process2(scope, chunk, chunk[3])
+  local var_table = {}
+  local scope = new_scope(nil)
+  process2(ctx, proto_table, var_table, scope, chunk, chunk[3])
 
   -- dump(chunk)
 
