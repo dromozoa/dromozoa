@@ -10,7 +10,7 @@ function main(x, a)
     local v = a * b * i
   end
 
-  return A, b
+  return A, b, b
 end
 
 -- export_start(main)

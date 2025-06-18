@@ -1075,9 +1075,6 @@ function process2(ctx, proto_table, var_table, scope, u, v)
   end
 end
 
-function process3(proto_table, var_table, chunk)
-end
-
 function compiler(tokens, chunk)
   local string_table, string_end = make_string_table(tokens)
 
@@ -1089,10 +1086,7 @@ function compiler(tokens, chunk)
   local scope = new_scope(nil)
   process2(ctx, proto_table, var_table, scope, chunk, chunk[3])
 
-  -- adjustを計算する
-
-  dump(chunk)
-
+  -- dump(chunk)
   -- write_string_table(string_table)
 end
 
