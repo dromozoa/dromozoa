@@ -10,6 +10,7 @@ function main(x, a)
     local v = a * b * i
   end
 
+  x = ('foooooooooooooooo')
   return A, b, b
 end
 

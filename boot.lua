@@ -26,10 +26,10 @@ function quick_sort(t, i, j, compare)
   local b = j
 
   while a <= b do
-    while call_indirect1(compare, t[a], pivot) < 0 do
+    while __call_indirect1(compare, t[a], pivot) < 0 do
       a = a + 1
     end
-    while call_indirect1(compare, t[b], pivot) > 0 do
+    while __call_indirect1(compare, t[b], pivot) > 0 do
       b = b - 1
     end
     if a <= b then
@@ -48,7 +48,7 @@ function binary_search(t, i, j, compare, v)
   while n > 0 do
     local step = n >> 1
     local m = i + step
-    local r = call_indirect1(compare, t[m], v)
+    local r = __call_indirect1(compare, t[m], v)
     if r == 0 then
       return m
     elseif r < 0 then
@@ -77,7 +77,7 @@ end
 -- }
 
 local attr_class    = 1 -- "token" | "node"
-local attr_resolver = 2 -- "fun" | "var" | "par" | "ref"
+local attr_resolver = 2 -- "fun" | "var" | "par" | "ref" | "asm"
 local attr_address  = 3 -- 文字列または関数の静的アドレス
 local attr_id       = 4 -- 大域ID
 local attr_result   = 5 -- 関数の返り値の個数
@@ -353,7 +353,7 @@ function lexer_rule_integer(source, position)
   local r = false
   local v = 0
   while p <= n do
-    r, v = call_indirect2(char_to_integer, string_byte(source, p), v)
+    r, v = __call_indirect2(char_to_integer, string_byte(source, p), v)
     if not r then
       break
     end
@@ -380,7 +380,7 @@ function lexer(source)
     local token = nil
 
     for i = 1, #lexer_rules do
-      q, token = call_indirect2(lexer_rules[i], source, p)
+      q, token = __call_indirect2(lexer_rules[i], source, p)
       if q ~= 0 then
         break
       end
@@ -580,7 +580,7 @@ function parser_list(parser, kind, parse, separator, close)
       end
     end
 
-    local node = call_indirect1(parse, parser)
+    local node = __call_indirect1(parse, parser)
     if node == nil then
       if i == 0 or separator == nil then
         break
@@ -767,7 +767,7 @@ function parser_exp_impl(parser, rbp, return_if_nud_is_nil)
     end
   end
 
-  local node = call_indirect1(nud[2], parser, token)
+  local node = __call_indirect1(nud[2], parser, token)
   while true do
     local token = parser_peek(parser)
     local led = parser_item_search(parser_led, token)
@@ -776,7 +776,7 @@ function parser_exp_impl(parser, rbp, return_if_nud_is_nil)
     end
 
     parser_read(parser)
-    node = call_indirect1(led[3], parser, led[2], token, node)
+    node = __call_indirect1(led[3], parser, led[2], token, node)
   end
   return node
 end
@@ -932,13 +932,7 @@ function process1(ctx, proto_table, proto, u, v)
       error("compiler error: invalid proto")
     end
     proto = v[3]
-    table_insert(proto_table, proto)
-
-    local proto_attrs = proto[2]
-    proto_attrs[attr_address] = #proto_table
-    proto_attrs[attr_id] = make_id(ctx)
-    proto_attrs[attr_resolver] = "fun"
-    proto_attrs[attr_ref] = {}
+    add_fun(ctx, proto_table, proto, -1)
 
   elseif string_compare(v[1], "return") == 0 then
     local result = #v[3] - 2
@@ -972,7 +966,7 @@ end
 local scope_data = 1
 local scope_parent = 2
 
-function new_var(name)
+function new_name(name)
   return { "Name", new_token_attrs(), name, 0 }
 end
 
@@ -992,6 +986,25 @@ end
 
 function add_par(ctx, var_table, scope, u)
   return add_var_impl(ctx, var_table, scope, u, "par")
+end
+
+function add_fun(ctx, proto_table, u, result)
+  table_insert(proto_table, u)
+  local id = make_id(ctx)
+  local attrs = u[2]
+  attrs[attr_resolver] = "fun"
+  attrs[attr_address] = #proto_table
+  attrs[attr_id] = id
+  attrs[attr_result] = result
+  attrs[attr_ref] = {}
+  return id
+end
+
+function add_asm(ctx, proto_table, u, result)
+  table_insert(proto_table, u)
+  local attrs = u[2]
+  attrs[attr_resolver] = resolver
+  attrs[attr_result] = result
 end
 
 function resolve_name(proto_table, scope, u)
@@ -1039,9 +1052,9 @@ function process2(ctx, proto_table, var_table, scope, u, v)
   elseif string_compare(v[1], "for") == 0 then
     scope = new_scope(scope)
 
-    v[2][attr_id] = add_var(ctx, var_table, scope, new_var("(var)"))
-    add_var(ctx, var_table, scope, new_var("(limit)"))
-    add_var(ctx, var_table, scope, new_var("(step)"))
+    v[2][attr_id] = add_var(ctx, var_table, scope, new_name("(var)"))
+    add_var(ctx, var_table, scope, new_name("(limit)"))
+    add_var(ctx, var_table, scope, new_name("(step)"))
 
   elseif string_compare(v[1], "function") == 0 then
     var_table = v[3][2][attr_ref]
@@ -1068,15 +1081,52 @@ end
 
 function compiler(tokens, chunk)
   local string_table, string_end = make_string_table(tokens)
+  local heap_pointer = roundup(string_end, 1024)
+  local memory_size = roundup(heap_pointer, 65536) >> 16
 
   local ctx = new_ctx()
   local proto_table = {}
-  process1(ctx, proto_table, nil, chunk, chunk[3])
-
   local var_table = {}
   local scope = new_scope(nil)
+
+  add_asm(ctx, proto_table, new_name("__call_indirect0"), 0)
+  add_asm(ctx, proto_table, new_name("__call_indirect1"), 1)
+  add_asm(ctx, proto_table, new_name("__call_indirect2"), 2)
+  add_asm(ctx, proto_table, new_name("__call_indirect3"), 3)
+  add_asm(ctx, proto_table, new_name("__i32_load"), 1)
+  add_asm(ctx, proto_table, new_name("__i32_load8"), 1)
+  add_asm(ctx, proto_table, new_name("__i32_store"), 0)
+  add_asm(ctx, proto_table, new_name("__i32_store8"), 0)
+  add_asm(ctx, proto_table, new_name("__memory_size"), 1)
+  add_asm(ctx, proto_table, new_name("__memory_grow"), 1)
+  add_asm(ctx, proto_table, new_name("__export_start"), 0)
+  local fd_read_id = add_fun(ctx, proto_table, new_name("__fd_read"), 1)
+  local fd_write_id = add_fun(ctx, proto_table, new_name("__fd_write"), 1)
+  local heap_pointer_id = add_var(ctx, var_table, scope, new_name("__heap_pointer"))
+
+  process1(ctx, proto_table, nil, chunk, chunk[3])
   process2(ctx, proto_table, var_table, scope, chunk, chunk[3])
 
+  io_write_string('(module\n')
+
+  io_write_string('(import "wasi_unstable" "fd_read" (func $')
+  io_write_integer(fd_read_id)
+  io_write_string(' (param i32 i32 i32 i32) (result i32)))\n')
+
+  io_write_string('(import "wasi_unstable" "fd_write" (func $')
+  io_write_integer(fd_write_id)
+  io_write_string(' (param i32 i32 i32 i32) (result i32)))')
+
+  io_write_string('(memory ')
+  io_write_integer(memory_size)
+  io_write_string(')\n')
+
+  io_write_string('(export "memory" (memory 0))\n')
+
+  io_write_string(')\n')
+
+  -- dump(proto_table)
+  -- dump(var_table)
   -- dump(chunk)
   -- write_string_table(string_table)
 end
@@ -1090,4 +1140,4 @@ function main()
   compiler(tokens, chunk)
 end
 
-export_start(main)
+__export_start(main)
