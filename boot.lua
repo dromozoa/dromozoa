@@ -77,16 +77,18 @@ end
 -- }
 
 local attr_class    = 1 -- "token" | "node"
-local attr_address  = 2 -- 文字列または関数の静的アドレス
-local attr_resolver = 3 -- "function" | "def" | "ref" | "set"
-local attr_id       = 4
+local attr_resolver = 2 -- "function" | "var"
+local attr_address  = 3 -- 文字列または関数の静的アドレス
+local attr_id       = 4 -- 大域ID
+local attr_result   = 5 -- 関数の返り値の個数
+local attr_ref      = 6 -- 参照または変数テーブル
 
 function new_token_attrs()
-  return { "token", 0, "", nil, nil }
+  return { "token", "", 0, 0, -1, nil }
 end
 
 function new_node_attrs()
-  return { "node", 0, "", nil, nil }
+  return { "node", "", 0, 0, -1, nil }
 end
 
 function compare_string_index1(a, b)
@@ -707,7 +709,7 @@ function parser_stat(parser)
 
   elseif string_compare(token[1], "local") == 0 then
     -- 初期化無しのローカルは許可しない
-    local namelist = parser_list(parser, "parlist", parser_name, ",", "=")
+    local namelist = parser_list(parser, "namelist", parser_name, ",", "=")
     local explist = parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
     return { "local", new_node_attrs(), explist, namelist }
 
@@ -938,18 +940,22 @@ function process1(ctx, proto_table, proto, u, v)
     if proto ~= nil then
       error("compiler error: invalid proto")
     end
-    proto = new_proto(v, make_id(ctx))
+    proto = v[3]
     table_insert(proto_table, proto)
 
-    local name_attrs = v[3][2]
-    name_attrs[attr_address] = #proto_table
-    name_attrs[attr_resolver] = "function"
+    local proto_attrs = proto[2]
+    proto_attrs[attr_address] = #proto_table
+    proto_attrs[attr_id] = make_id(ctx)
+    proto_attrs[attr_resolver] = "function"
+    proto_attrs[attr_ref] = {}
 
   elseif string_compare(v[1], "return") == 0 then
     local result = #v[3] - 2
-    if proto[proto_result] == -1 then
-      proto[proto_result] = result
-    elseif proto[proto_result] ~= result then
+
+    local proto_attrs = proto[2]
+    if proto_attrs[attr_result] == -1 then
+      proto_attrs[attr_result] = result
+    elseif proto_attrs[attr_result] ~= result then
       error("compiler error: invalid result")
     end
   end
@@ -961,8 +967,9 @@ function process1(ctx, proto_table, proto, u, v)
   end
 
   if string_compare(v[1], "function") == 0 then
-    if proto[proto_result] == -1 then
-      proto[proto_result] = 0
+    local proto_attrs = proto[2]
+    if proto_attrs[attr_result] == -1 then
+      proto[attr_result] = 0
     end
   end
 end
@@ -974,16 +981,43 @@ end
 local scope_data = 1
 local scope_parent = 2
 
--- do
--- while
--- repeat
--- if then_block else_block
--- for +ローカル
--- function
--- local ???
--- return +ローカル, result
--- and +ローカル
--- or +ローカル
+function new_var(name)
+  return { "Name", new_token_attrs(), name, 0 }
+end
+
+function add_var(ctx, var_table, scope, u)
+  local id = make_id(ctx)
+  local attrs = u[2]
+  attrs[attr_resolver] = "var"
+  attrs[attr_id] = id
+  table_insert(var_table, u)
+  table_insert(scope[scope_data], u)
+  return id
+end
+
+function resolve_name(proto_table, scope, u)
+  while scope ~= nil do
+    local data = scope[scope_data]
+    for i = #data, 1, -1 do
+      local v = data[i]
+      if string_compare(u[3], v[3]) == 0 then
+        u[2][attr_ref] = v
+        return v
+      end
+    end
+    scope = scope[scope_parent]
+  end
+
+  for i = 1, #proto_table do
+    local proto = proto_table[i]
+    if string_compare(u[3], proto[3]) == 0 then
+      u[2][attr_ref] = proto
+      return proto
+    end
+  end
+
+  error("compiler error")
+end
 
 function process2(ctx, proto_table, var_table, scope, u, v)
   if string_compare(v[1], "block") == 0 then
@@ -1002,22 +1036,26 @@ function process2(ctx, proto_table, var_table, scope, u, v)
     scope = new_scope(scope)
 
   elseif string_compare(v[1], "for") == 0 then
-    -- for用のローカル変数 3個
     scope = new_scope(scope)
+
+    v[2][attr_id] = add_var(ctx, var_table, scope, new_var("(var)"))
+    add_var(ctx, var_table, scope, new_var("(limit)"))
+    add_var(ctx, var_table, scope, new_var("(step)"))
 
   elseif string_compare(v[1], "function") == 0 then
-    -- return用のローカル変数 n個
-    var_table = {}
+    var_table = v[3][2][attr_ref]
     scope = new_scope(scope)
 
-  elseif string_compare(v[1], "or") == 0 then
-    -- 一時保存用のローカル変数1個
-
-  elseif string_compare(v[1], "and") == 0 then
-    -- 一時保存用のローカル変数1個
-
   elseif string_compare(v[1], "Name") == 0 then
+    if string_compare(u[1], "for") == 0
+      or string_compare(u[1], "parlist") == 0
+      or string_compare(u[1], "namelist") == 0 then
+      add_var(ctx, var_table, scope, v)
+    end
 
+    if string_compare(v[2][attr_resolver], "") == 0 then
+      resolve_name(proto_table, scope, v)
+    end
   end
 
   if string_compare(v[2][attr_class], "node") == 0 then
@@ -1034,15 +1072,11 @@ function compiler(tokens, chunk)
   local proto_table = {}
   process1(ctx, proto_table, nil, chunk, chunk[3])
 
-  for i = 1, #proto_table do
-    local proto = proto_table[i]
-  end
-
   local var_table = {}
   local scope = new_scope(nil)
   process2(ctx, proto_table, var_table, scope, chunk, chunk[3])
 
-  -- dump(chunk)
+  dump(chunk)
 
   -- write_string_table(string_table)
 end
