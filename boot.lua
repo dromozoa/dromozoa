@@ -77,7 +77,7 @@ end
 -- }
 
 local attr_class    = 1 -- "token" | "node"
-local attr_resolver = 2 -- "function" | "var"
+local attr_resolver = 2 -- "fun" | "var" | "par" | "ref"
 local attr_address  = 3 -- 文字列または関数の静的アドレス
 local attr_id       = 4 -- 大域ID
 local attr_result   = 5 -- 関数の返り値の個数
@@ -946,7 +946,7 @@ function process1(ctx, proto_table, proto, u, v)
     local proto_attrs = proto[2]
     proto_attrs[attr_address] = #proto_table
     proto_attrs[attr_id] = make_id(ctx)
-    proto_attrs[attr_resolver] = "function"
+    proto_attrs[attr_resolver] = "fun"
     proto_attrs[attr_ref] = {}
 
   elseif string_compare(v[1], "return") == 0 then
@@ -985,14 +985,22 @@ function new_var(name)
   return { "Name", new_token_attrs(), name, 0 }
 end
 
-function add_var(ctx, var_table, scope, u)
+function add_var_impl(ctx, var_table, scope, u, resolver)
   local id = make_id(ctx)
   local attrs = u[2]
-  attrs[attr_resolver] = "var"
+  attrs[attr_resolver] = resolver
   attrs[attr_id] = id
   table_insert(var_table, u)
   table_insert(scope[scope_data], u)
   return id
+end
+
+function add_var(ctx, var_table, scope, u)
+  return add_var_impl(ctx, var_table, scope, u, "var")
+end
+
+function add_par(ctx, var_table, scope, u)
+  return add_var_impl(ctx, var_table, scope, u, "par")
 end
 
 function resolve_name(proto_table, scope, u)
@@ -1001,6 +1009,7 @@ function resolve_name(proto_table, scope, u)
     for i = #data, 1, -1 do
       local v = data[i]
       if string_compare(u[3], v[3]) == 0 then
+        u[2][attr_resolver] = "ref"
         u[2][attr_ref] = v
         return v
       end
@@ -1009,14 +1018,15 @@ function resolve_name(proto_table, scope, u)
   end
 
   for i = 1, #proto_table do
-    local proto = proto_table[i]
-    if string_compare(u[3], proto[3]) == 0 then
-      u[2][attr_ref] = proto
-      return proto
+    local v = proto_table[i]
+    if string_compare(u[3], v[3]) == 0 then
+      u[2][attr_resolver] = "ref"
+      u[2][attr_ref] = v
+      return v
     end
   end
 
-  error("compiler error")
+  error("compiler error: cannot resolve <"..u[3]..">")
 end
 
 function process2(ctx, proto_table, var_table, scope, u, v)
@@ -1047,10 +1057,10 @@ function process2(ctx, proto_table, var_table, scope, u, v)
     scope = new_scope(scope)
 
   elseif string_compare(v[1], "Name") == 0 then
-    if string_compare(u[1], "for") == 0
-      or string_compare(u[1], "parlist") == 0
-      or string_compare(u[1], "namelist") == 0 then
+    if string_compare(u[1], "for") == 0 or string_compare(u[1], "namelist") == 0 then
       add_var(ctx, var_table, scope, v)
+    elseif string_compare(u[1], "parlist") == 0 then
+      add_par(ctx, var_table, scope, v)
     end
 
     if string_compare(v[2][attr_resolver], "") == 0 then
@@ -1065,6 +1075,9 @@ function process2(ctx, proto_table, var_table, scope, u, v)
   end
 end
 
+function process3(proto_table, var_table, chunk)
+end
+
 function compiler(tokens, chunk)
   local string_table, string_end = make_string_table(tokens)
 
@@ -1075,6 +1088,8 @@ function compiler(tokens, chunk)
   local var_table = {}
   local scope = new_scope(nil)
   process2(ctx, proto_table, var_table, scope, chunk, chunk[3])
+
+  -- adjustを計算する
 
   dump(chunk)
 

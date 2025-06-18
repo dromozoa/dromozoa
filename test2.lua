@@ -1,3 +1,7 @@
+local A = 42
+local B = 17
+
+
 function main(x, a)
   local a, b = main(17, a)
 
@@ -6,7 +10,7 @@ function main(x, a)
     local v = a * b * i
   end
 
-  return a, b
+  return A, b
 end
 
 -- export_start(main)
