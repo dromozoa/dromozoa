@@ -3,7 +3,7 @@ local B = true
 local C = "foo"
 
 function main()
-  local x = __heap_pointer
+  local x = 12
 end
 
 __export_start(main)

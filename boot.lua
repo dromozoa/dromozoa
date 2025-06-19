@@ -1175,6 +1175,8 @@ function process3(proto, u, v)
         process3(proto, explist, exp)
         io_write_string(')\n')
       end
+    else
+      range_j = 3
     end
 
   elseif string_compare(v[1], "false") == 0 then
@@ -1204,6 +1206,20 @@ function process3(proto, u, v)
 
   if string_compare(v[1], "function") == 0 then
     io_write_string(')\n')
+
+  elseif string_compare(v[1], "local") == 0 then
+    if proto ~= nil then
+      local namelist = v[4]
+      for i = #namelist, 3, -1 do
+        local var = namelist[i]
+        io_write_string('(local.set $')
+        io_write_integer(var[2][attr_id])
+        io_write_string(') (* ')
+        io_write_string(var[3])
+        io_write_string(' *)')
+      end
+    end
+
   end
 end
 
