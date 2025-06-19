@@ -68,6 +68,19 @@ function __unpack_table(t)
   return size, capacity, data
 end
 
+function __concat(a, b)
+  local a_size, a_data = __unpack_string(a)
+  local b_size, b_data = __unpack_string(b)
+
+  local size = a_size + b_size
+  local data = __new(size + 1)
+  __memory_copy(data, a_data, a_size)
+  __memory_copy(data + a_size, b_data, b_size)
+  __i32_store8(data + size, 0x00)
+
+  return __pack_string(size, data)
+end
+
 function __new_table(size)
   local capacity = __ceil_pow2(size)
   local data = __new(capacity * 4)

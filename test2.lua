@@ -28,10 +28,11 @@ function main()
   io_write_integer(#C)
   io_write_string("\n")
 
-  test()
+  test1()
+  test2()
 end
 
-function test()
+function test1()
   local t = { 17, 23, 42, 69 }
   io_write_integer(t[3])
   io_write_string("\n")
@@ -42,6 +43,14 @@ function test()
     io_write_integer(t[i])
     io_write_string("\n")
   end
+end
+
+function test2()
+  local a = "foo"
+  local b = "bar"
+  local c = "baz"
+
+  io_write_string(a..integer_to_string(42)..b..c.."\n")
 end
 
 __export_start(main)

@@ -918,9 +918,10 @@ end
 
 local ctx_id = 1
 local ctx_length = 2
-local ctx_new_table = 3
-local ctx_set_table = 4
-local ctx_get_table = 5
+local ctx_concat = 3
+local ctx_new_table = 4
+local ctx_set_table = 5
+local ctx_get_table = 6
 
 function make_id(ctx)
   local id = ctx[ctx_id] + 1
@@ -1674,6 +1675,11 @@ function process3(ctx, proto, u, v)
   elseif string_compare(v[1], ">>") == 0 then
     io_write_string('(i32.shr)\n')
 
+  elseif string_compare(v[1], "..") == 0 then
+    io_write_string('(call $')
+    io_write_integer(ctx[ctx_concat][2][attr_id])
+    io_write_string(') (; __concat ;)\n')
+
   elseif string_compare(v[1], "+") == 0 then
     io_write_string('(i32.add)\n')
 
@@ -1733,6 +1739,7 @@ function compiler(tokens, chunk)
   process2(ctx, proto_table, var_table, nil, scope, nil, chunk, chunk[3])
 
   ctx[ctx_length]    = resolve_name(proto_table, scope, new_name("__length"))
+  ctx[ctx_concat]    = resolve_name(proto_table, scope, new_name("__concat"))
   ctx[ctx_new_table] = resolve_name(proto_table, scope, new_name("__new_table"))
   ctx[ctx_set_table] = resolve_name(proto_table, scope, new_name("__set_table"))
   ctx[ctx_get_table] = resolve_name(proto_table, scope, new_name("__get_table"))
