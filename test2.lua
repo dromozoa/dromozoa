@@ -28,10 +28,10 @@ function main()
   io_write_integer(#C)
   io_write_string("\n")
 
-  test1()
-  test2()
-  test3()
-  test4()
+  local tests = { test1, test2, test3, test4 }
+  for i = 1, #tests do
+    __call_indirect0(tests[i])
+  end
 end
 
 function test1()

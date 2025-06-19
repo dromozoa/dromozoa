@@ -913,20 +913,27 @@ function write_string_table(string_table)
 end
 
 function new_ctx()
-  return { 0, nil }
+  return { 0, 0 }
 end
 
 local ctx_id = 1
-local ctx_length = 2
-local ctx_concat = 3
-local ctx_new_table = 4
-local ctx_set_table = 5
-local ctx_get_table = 6
+local ctx_address = 2
+local ctx_length = 3
+local ctx_concat = 4
+local ctx_new_table = 5
+local ctx_set_table = 6
+local ctx_get_table = 7
 
 function make_id(ctx)
   local id = ctx[ctx_id] + 1
   ctx[ctx_id] = id
   return id
+end
+
+function make_address(ctx)
+  local address = ctx[ctx_address] + 1
+  ctx[ctx_address] = address
+  return address
 end
 
 function process1(ctx, proto_table, proto, u, v)
@@ -1001,7 +1008,7 @@ function add_fun(ctx, proto_table, u, result)
   local id = make_id(ctx)
   local attrs = u[2]
   attrs[attr_resolver] = "fun"
-  attrs[attr_address] = #proto_table
+  attrs[attr_address] = make_address(ctx)
   attrs[attr_id] = id
   attrs[attr_result] = result
   attrs[attr_ref] = {}
@@ -1709,6 +1716,31 @@ function process3(ctx, proto, u, v)
   end
 end
 
+function write_proto_table(proto_table)
+  local function_table = {}
+  for i = 1, #proto_table do
+    local proto = proto_table[i]
+    if string_compare(proto[2][attr_resolver], "fun") == 0 then
+      table_insert(function_table, proto)
+    end
+  end
+  if #function_table > 0 then
+    io_write_string('(table ')
+    io_write_integer(#function_table + 1)
+    io_write_string(' funcref)\n')
+    io_write_string('(elem (i32.const 1)')
+    for i = 1, #function_table do
+      local proto = function_table[i]
+      if proto[2][attr_address] ~= i then
+        error("compiler error: invalid address")
+      end
+      io_write_string(' $')
+      io_write_integer(proto[2][attr_id])
+    end
+    io_write_string(')\n')
+  end
+end
+
 function compiler(tokens, chunk)
   local string_table, string_end = make_string_table(tokens)
   local heap_pointer = roundup(string_end, 1024)
@@ -1772,6 +1804,8 @@ function compiler(tokens, chunk)
   io_write_string('(export "memory" (memory 0))\n')
 
   process3(ctx, nil, chunk, chunk[3])
+
+  write_proto_table(proto_table)
 
   if #string_table > 0 then
     write_string_table(string_table)
