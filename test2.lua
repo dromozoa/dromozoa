@@ -8,6 +8,7 @@ function main(x, a)
   for i = 1, 10 do
     a = 12
     local v = a * b * i
+    break
   end
 
   x = ('foooooooooooooooo')

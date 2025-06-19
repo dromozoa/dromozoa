@@ -1030,23 +1030,41 @@ function resolve_name(proto_table, scope, u)
   error("compiler error: cannot resolve <"..u[3]..">")
 end
 
-function process2(ctx, proto_table, var_table, scope, u, v)
+function new_loop(ctx, u)
+  local loop = { make_id(ctx), make_id(ctx) }
+  u[2][attr_ref] = loop
+  return loop
+end
+
+local loop_block = 1
+local loop_loop = 2
+
+function process2(ctx, proto_table, var_table, scope, loop, u, v)
   if string_compare(v[1], "block") == 0 then
     -- then blockとelse blockにスコープを割り当てる
     if string_compare(u[1], "if") == 0 then
       scope = new_scope(scope)
     end
 
+  elseif string_compare(v[1], "break") == 0 then
+    if loop == nil then
+      error("compiler error: invalid loop")
+    end
+    v[2][attr_id] = loop[loop_block]
+
   elseif string_compare(v[1], "do") == 0 then
     scope = new_scope(scope)
 
   elseif string_compare(v[1], "while") == 0 then
+    loop = new_loop(ctx, v)
     scope = new_scope(scope)
 
   elseif string_compare(v[1], "repeat") == 0 then
+    loop = new_loop(ctx, v)
     scope = new_scope(scope)
 
   elseif string_compare(v[1], "for") == 0 then
+    loop = new_loop(ctx, v)
     scope = new_scope(scope)
 
     v[2][attr_id] = add_var(ctx, var_table, scope, new_name("(var)"))
@@ -1071,7 +1089,7 @@ function process2(ctx, proto_table, var_table, scope, u, v)
 
   if string_compare(v[2][attr_class], "node") == 0 then
     for i = 3, #v do
-      process2(ctx, proto_table, var_table, scope, v, v[i])
+      process2(ctx, proto_table, var_table, scope, loop, v, v[i])
     end
   end
 end
@@ -1103,7 +1121,7 @@ function compiler(tokens, chunk)
   local heap_pointer_id = add_var(ctx, var_table, scope, new_name("__heap_pointer"))
 
   process1(ctx, proto_table, nil, chunk, chunk[3])
-  process2(ctx, proto_table, var_table, scope, chunk, chunk[3])
+  process2(ctx, proto_table, var_table, scope, nil, chunk, chunk[3])
 
   io_write_string('(module\n')
 
