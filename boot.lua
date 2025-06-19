@@ -440,7 +440,7 @@ function nud_table(parser, token)
   return result
 end
 
-function nud_prefix(parser, token, lbp, node)
+function nud_prefix(parser, token)
   return { token[1], new_node_attrs(), parser_exp(parser, parser_prefix_lbp) }
 end
 
@@ -1512,9 +1512,9 @@ function process3(ctx, proto, u, v)
         process3(ctx, proto, args, args[3])
 
         io_write_string('(call_indirect')
-        if #args > 4 then
+        if #args > 3 then
           io_write_string(' (param')
-          for i = 1, #args - 4 do
+          for i = 1, #args - 3 do
             io_write_string(' i32')
           end
           io_write_string(')')
@@ -1522,7 +1522,7 @@ function process3(ctx, proto, u, v)
 
         if result > 0 then
           io_write_string(' (result')
-          for i = 1, #args - 4 do
+          for i = 1, result do
             io_write_string(' i32')
           end
           io_write_string(')')
