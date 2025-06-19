@@ -31,6 +31,7 @@ function main()
   test1()
   test2()
   test3()
+  test4()
 end
 
 function test1()
@@ -57,8 +58,21 @@ end
 
 function test3()
   local t = { 0x30, 0x41, 0x61 }
+  table_insert(t, 0x7A)
   local s = string_char(t)
   io_write_string(s.."\n")
+
+  io_write_integer(string_compare("bar", "barbar"))
+  io_write_string("\n")
+
+  io_write_string(string_sub(C, 4, 6).."\n")
+  io_write_string(string_sub("foo", 3, 4).."\n")
+end
+
+function test4()
+  local s = io_read_all()
+  io_write_string(s)
+  io_write_string("\n")
 end
 
 __export_start(main)

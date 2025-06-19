@@ -1572,6 +1572,11 @@ function process3(ctx, proto, u, v)
     process3(ctx, proto, v, v[5])
     io_write_string('end\n')
 
+  elseif string_compare(v[1], "break") == 0 then
+    io_write_string('(br $')
+    io_write_integer(v[2][attr_id])
+    io_write_string(')\n')
+
   elseif string_compare(v[1], "while") == 0 then
     local loop = v[2][attr_ref]
     io_write_string('(br $')
@@ -1673,7 +1678,7 @@ function process3(ctx, proto, u, v)
     io_write_string('(i32.shl)\n')
 
   elseif string_compare(v[1], ">>") == 0 then
-    io_write_string('(i32.shr)\n')
+    io_write_string('(i32.shr_s)\n')
 
   elseif string_compare(v[1], "..") == 0 then
     io_write_string('(call $')

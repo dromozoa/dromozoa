@@ -38,7 +38,7 @@ function __new(n)
 
   local memory_size = __memory_size() * 65536
   if __heap_pointer >= memory_size then
-    __memory_grow(__roundup(memory_size, 65536))
+    __memory_grow(__roundup(__heap_pointer, 65536) >> 16)
   end
 
   return pointer
@@ -155,6 +155,31 @@ function integer_to_string(v)
   return __pack_string(b + 15 - p, p)
 end
 
+function io_read_all()
+  local item = __new(8)
+  local out = __new(4)
+  local result = ""
+
+  while true do
+    local n = 4096
+    local data = __new(n)
+    __i32_store(item, data)
+    __i32_store(item + 4, n - 1)
+    local errno = __fd_read(0, item, 1, out)
+    if errno ~= 0 then
+      error("io read error: "..integer_to_string(errno))
+    end
+    local size = __i32_load(out)
+    if size == 0 then
+      break
+    end
+    __i32_store8(data + size, 0x00)
+    result = result..__pack_string(size, data)
+  end
+
+  return result
+end
+
 function io_write_string_impl(fd, s)
   local size, data = __unpack_string(s)
   local item = __new(8)
@@ -190,4 +215,44 @@ function string_char(t)
   end
   __i32_store8(data + size, 0x00)
   return __pack_string(size, data)
+end
+
+function string_compare(a, b)
+  local a_size, a_data = __unpack_string(a)
+  local b_size, b_data = __unpack_string(b)
+
+  local size = a_size
+  if size > b_size then
+    size = b_size
+  end
+
+  for i = 0, size do
+    local a_byte = __i32_load8(a_data + i)
+    local b_byte = __i32_load8(b_data + i)
+    if a_byte ~= b_byte then
+      return a_byte - b_byte
+    end
+  end
+
+  -- a == bなはずだけど
+  return a_size - b_size
+end
+
+function string_sub(s, i, j)
+  local s_size, s_data = __unpack_string(s)
+
+  if j > s_size then
+    j = s_size
+  end
+
+  local size = j - i + 1
+  local data = __new(size + 1)
+  __memory_copy(data, s_data + i - 1, size)
+  __i32_store8(data + size, 0x00)
+
+  return __pack_string(size, data)
+end
+
+function table_insert(t, v)
+  t[#t + 1] = v
 end
