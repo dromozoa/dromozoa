@@ -107,7 +107,7 @@ function __get_table(t, i)
   if i > size then
     return nil
   else
-    __i32_load(data + (i - 1) * 4)
+    return __i32_load(data + (i - 1) * 4)
   end
 end
 

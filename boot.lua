@@ -1124,6 +1124,9 @@ function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
         resolve_name(proto_table, scope, v)
       end
     end
+
+  elseif string_compare(v[1], "table") == 0 then
+    v[2][attr_id] = add_var(ctx, var_table, scope, new_name("(table)"))
   end
 
   if string_compare(v[2][attr_class], "node") == 0 then
@@ -1421,6 +1424,17 @@ function process3(ctx, proto, u, v)
     io_write_integer(v[2][attr_address])
     io_write_string(') (; String ;)\n')
 
+  elseif string_compare(v[1], "table") == 0 then
+    io_write_string('(i32.const ')
+    io_write_integer(#v - 2)
+    io_write_string(')\n')
+    io_write_string('(call $')
+    io_write_integer(ctx[ctx_new_table][2][attr_id])
+    io_write_string(') (; __new_table ;)\n')
+    io_write_string('(local.tee $')
+    io_write_integer(v[2][attr_id])
+    io_write_string(')\n')
+
   elseif string_compare(v[1], "-") == 0 then
     if #v == 3 then
       io_write_string('(i32.const 0)\n')
@@ -1447,8 +1461,14 @@ function process3(ctx, proto, u, v)
         io_write_string(') (; ')
         io_write_string(var[3])
         io_write_string(' ;)\n')
+      elseif string_compare(var[1], "index") == 0 then
+        process3(ctx, proto, varlist, var)
+        io_write_string('(call $')
+        io_write_integer(ctx[ctx_set_table][2][attr_id])
+        io_write_string(') (; __set_table ;)\n')
+      else
+        error("compiler error: invalid assign <"..var[1]..">")
       end
-
     end
 
   elseif string_compare(v[1], "call") == 0 then
@@ -1612,10 +1632,23 @@ function process3(ctx, proto, u, v)
     end
     io_write_string('(br $main)\n')
 
+  elseif string_compare(v[1], "table") == 0 then
+    for i = #v - 2, 1, -1 do
+      io_write_string('(local.get $')
+      io_write_integer(v[2][attr_id])
+      io_write_string(')\n')
+      io_write_string('(i32.const ')
+      io_write_integer(i)
+      io_write_string(')\n')
+      io_write_string('(call $')
+      io_write_integer(ctx[ctx_set_table][2][attr_id])
+      io_write_string(') (; __set_table ;)\n')
+    end
+
   elseif string_compare(v[1], "#") == 0 then
     io_write_string('(call $')
     io_write_integer(ctx[ctx_length][2][attr_id])
-    io_write_string(')\n')
+    io_write_string(') (; __length ;)\n')
 
   elseif string_compare(v[1], "<") == 0 then
     io_write_string('(i32.lt_s)\n')
@@ -1656,6 +1689,12 @@ function process3(ctx, proto, u, v)
   elseif string_compare(v[1], "%") == 0 then
     io_write_string('(i32.rem_s)\n')
 
+  elseif string_compare(v[1], "index") == 0 then
+    if string_compare(v[2][attr_resolver], "set") ~= 0 then
+      io_write_string('(call $')
+      io_write_integer(ctx[ctx_get_table][2][attr_id])
+      io_write_string(') (; __get_table ;)\n')
+    end
   end
 end
 
