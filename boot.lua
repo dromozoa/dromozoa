@@ -1117,7 +1117,9 @@ function process3(proto, u, v)
     range_j = #v
   end
 
-  if string_compare(v[1], "call") == 0 then
+  if string_compare(v[1], "assign") == 0 then
+
+  elseif string_compare(v[1], "call") == 0 then
     -- 文か式かを判定する
 
   elseif string_compare(v[1], "function") == 0 then
