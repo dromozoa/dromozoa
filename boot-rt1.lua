@@ -38,21 +38,21 @@ end
 
 function __pack_string(size, data)
   local this = __new(8)
-  i32_store(this, size)
-  i32_store(this + 4, data)
+  __i32_store(this, size)
+  __i32_store(this + 4, data)
   return this
 end
 
 function __unpack_string(s)
-  local size = i32_load(s)
-  local data = i32_load(s)
+  local size = __i32_load(s)
+  local data = __i32_load(s)
   return size, data
 end
 
 function integer_to_string(v)
-  local b = new(16)
+  local b = __new(16)
   local p = b + 15
-  i32_store8(p, 0x00)
+  __i32_store8(p, 0x00)
 
   local neg = v < 0
   if neg then
@@ -63,12 +63,12 @@ function integer_to_string(v)
     local r = v % 10
     v = v // 10
     p = p - 1
-    i32_store8(p, r + 0x30)
+    __i32_store8(p, r + 0x30)
   until v == 0
 
   if neg then
     p = p - 1
-    i32_store8(p, 0x2D)
+    __i32_store8(p, 0x2D)
   end
 
   return __pack_string(b + 15 - p, p)
@@ -77,11 +77,11 @@ end
 function io_write_string(s)
   local size, data = __unpack_string(s)
   local item = __new(8)
-  i32_store(item, data)
-  i32_store(item + 4, size)
+  __i32_store(item, data)
+  __i32_store(item + 4, size)
   local out = __new(4)
-  i32_store(out, 0)
-  fd_write(1, item, 1, out)
+  __i32_store(out, 0)
+  __fd_write(1, item, 1, out)
 end
 
 function io_write_integer(v)

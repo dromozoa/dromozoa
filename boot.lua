@@ -934,10 +934,10 @@ function process1(ctx, proto_table, proto, u, v)
   elseif string_compare(v[1], "return") == 0 then
     local result = #v[3] - 2
 
-    local proto_attrs = proto[2]
-    if proto_attrs[attr_result] == -1 then
-      proto_attrs[attr_result] = result
-    elseif proto_attrs[attr_result] ~= result then
+    local attrs = proto[2]
+    if attrs[attr_result] == -1 then
+      attrs[attr_result] = result
+    elseif attrs[attr_result] ~= result then
       error("compiler error: invalid result")
     end
   end
@@ -949,8 +949,8 @@ function process1(ctx, proto_table, proto, u, v)
   end
 
   if string_compare(v[1], "function") == 0 then
-    local proto_attrs = proto[2]
-    if proto_attrs[attr_result] == -1 then
+    local attrs = proto[2]
+    if attrs[attr_result] == -1 then
       proto[attr_result] = 0
     end
   end
@@ -1094,6 +1094,119 @@ function process2(ctx, proto_table, var_table, scope, loop, u, v)
   end
 end
 
+function process3(proto, u, v)
+  local range_i = 3
+  local range_j = 0
+
+  if string_compare(v[2][attr_class], "node") == 0 then
+    range_j = #v
+  end
+
+  if string_compare(v[1], "function") == 0 then
+    range_i = 5
+
+    proto = v[3]
+
+    local proto = v[3]
+    local attrs = proto[2]
+
+    io_write_string('(func $')
+    io_write_integer(attrs[attr_id])
+    io_write_string(' (* ')
+    io_write_string(proto[3])
+    io_write_string(' *)\n')
+
+    local parlist = v[4]
+    for i = 3, #parlist do
+      local par = parlist[i]
+      io_write_string('(param $')
+      io_write_integer(par[2][attr_id])
+      io_write_string(' i32) (* ')
+      io_write_string(par[3])
+      io_write_string(' *)\n')
+    end
+
+    local result = attrs[attr_result]
+    if result > 0 then
+      io_write_string('(result')
+      for i = 1, result do
+        io_write_string(' i32')
+      end
+      io_write_string(')\n')
+    end
+
+    local var_table = attrs[attr_ref]
+    for i = 1, #var_table do
+      local var = var_table[i]
+      local attrs = var[2]
+      if string_compare(attrs[attr_resolver], "var") == 0 then
+        io_write_string('(local $')
+        io_write_string(attrs[attr_id])
+        io_write_string(' i32) (* ')
+        io_write_string(var[3])
+        io_write_string(' *)\n')
+      end
+    end
+
+    for i = 1, result do
+      io_write_string('(local $r')
+      io_write_integer(i)
+      io_write_string(' i32)\n')
+    end
+    io_write_string('(local $dup i32)\n')
+
+  elseif string_compare(v[1], "local") == 0 then
+    if proto == nil then
+      range_j = 0
+
+      local explist = v[3]
+      local namelist = v[4]
+      if not (#explist == #namelist) then
+        error("compiler error: invalid global")
+      end
+
+      for i = 3, #explist do
+        local exp = explist[i]
+        local name = namelist[i]
+
+        io_write_string('(global $')
+        io_write_integer(name[2][attr_id])
+        io_write_string(' (mut i32)\n')
+        process3(proto, explist, exp)
+        io_write_string(')\n')
+      end
+    end
+
+  elseif string_compare(v[1], "false") == 0 then
+    io_write_string('(i32.const 0) (* false *)\n')
+
+  elseif string_compare(v[1], "nil") == 0 then
+    io_write_string('(i32.const 0) (* nil *)\n')
+
+  elseif string_compare(v[1], "true") == 0 then
+    io_write_string('(i32.const 1) (* true *)\n')
+
+  elseif string_compare(v[1], "Integer") == 0 then
+    io_write_string('(i32.const ')
+    io_write_integer(v[3])
+    io_write_string(') (* Integer *)\n')
+
+  elseif string_compare(v[1], "String") == 0 then
+    io_write_string('(i32.const ')
+    io_write_integer(v[2][attr_address])
+    io_write_string(') (* String *)\n')
+
+  end
+
+  for i = range_i, range_j do
+    process3(proto, v, v[i])
+  end
+
+  if string_compare(v[1], "function") == 0 then
+    io_write_string(')\n')
+  end
+end
+
 function compiler(tokens, chunk)
   local string_table, string_end = make_string_table(tokens)
   local heap_pointer = roundup(string_end, 1024)
@@ -1145,7 +1258,11 @@ function compiler(tokens, chunk)
 
   io_write_string('(export "memory" (memory 0))\n')
 
-  write_string_table(string_table)
+  process3(nil, chunk, chunk[3])
+
+  if #string_table > 0 then
+    write_string_table(string_table)
+  end
 
   io_write_string(')\n')
 end
