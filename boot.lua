@@ -1065,6 +1065,9 @@ function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
     local varlist = v[4]
     for i = 3, #varlist do
       local var = varlist[i]
+      if string_compare(var[1], "Name") == 0 then
+        resolve_name(proto_table, scope, var)
+      end
       var[2][attr_resolver] = "set"
     end
 
@@ -1136,7 +1139,7 @@ function process3(ctx, proto, u, v)
   end
 
   if string_compare(v[1], "assign") == 0 then
-    -- 代入
+    range_j = 3
 
   elseif string_compare(v[1], "call") == 0 then
     local name = v[3]
@@ -1157,6 +1160,21 @@ function process3(ctx, proto, u, v)
       end
     end
 
+  elseif string_compare(v[1], "if") == 0 then
+    range_j = 3
+
+  elseif string_compare(v[1], "repeat") == 0 then
+    range_j = 4
+
+    local loop = v[2][attr_ref]
+
+    io_write_string('block $')
+    io_write_integer(loop[loop_block])
+    io_write_string('\n')
+    io_write_string('loop $')
+    io_write_integer(loop[loop_loop])
+    io_write_string('\n')
+
   elseif string_compare(v[1], "function") == 0 then
     range_i = 5
 
@@ -1167,18 +1185,18 @@ function process3(ctx, proto, u, v)
 
     io_write_string('(func $')
     io_write_integer(attrs[attr_id])
-    io_write_string(' (* ')
+    io_write_string(' (; ')
     io_write_string(proto[3])
-    io_write_string(' *)\n')
+    io_write_string(' ;)\n')
 
     local parlist = v[4]
     for i = 3, #parlist do
       local par = parlist[i]
       io_write_string('(param $')
       io_write_integer(par[2][attr_id])
-      io_write_string(' i32) (* ')
+      io_write_string(' i32) (; ')
       io_write_string(par[3])
-      io_write_string(' *)\n')
+      io_write_string(' ;)\n')
     end
 
     local result = attrs[attr_result]
@@ -1197,9 +1215,9 @@ function process3(ctx, proto, u, v)
       if string_compare(attrs[attr_resolver], "var") == 0 then
         io_write_string('(local $')
         io_write_string(attrs[attr_id])
-        io_write_string(' i32) (* ')
+        io_write_string(' i32) (; ')
         io_write_string(var[3])
-        io_write_string(' *)\n')
+        io_write_string(' ;)\n')
       end
     end
 
@@ -1237,13 +1255,13 @@ function process3(ctx, proto, u, v)
     end
 
   elseif string_compare(v[1], "false") == 0 then
-    io_write_string('(i32.const 0) (* false *)\n')
+    io_write_string('(i32.const 0) (; false ;)\n')
 
   elseif string_compare(v[1], "nil") == 0 then
-    io_write_string('(i32.const 0) (* nil *)\n')
+    io_write_string('(i32.const 0) (; nil ;)\n')
 
   elseif string_compare(v[1], "true") == 0 then
-    io_write_string('(i32.const 1) (* true *)\n')
+    io_write_string('(i32.const 1) (; true ;)\n')
 
   elseif string_compare(v[1], "Name") == 0 then
     local attrs = v[2]
@@ -1253,7 +1271,7 @@ function process3(ctx, proto, u, v)
       if string_compare(ref_attrs[attr_resolver], "fun") == 0 then
         io_write_string('(i32.const ')
         io_write_integer(ref_attrs[attr_address])
-        io_write_string(') (* ')
+        io_write_string(') (; ')
       else
         if ref_attrs[attr_global] then
           io_write_string('(global.get $')
@@ -1261,29 +1279,56 @@ function process3(ctx, proto, u, v)
           io_write_string('(local.get $')
         end
         io_write_integer(ref_attrs[attr_id])
-        io_write_string(') (* ')
+        io_write_string(') (; ')
       end
       io_write_string(v[3])
-      io_write_string(' *)\n')
+      io_write_string(' ;)\n')
     end
 
   elseif string_compare(v[1], "Integer") == 0 then
     io_write_string('(i32.const ')
     io_write_integer(v[3])
-    io_write_string(') (* Integer *)\n')
+    io_write_string(') (; Integer ;)\n')
 
   elseif string_compare(v[1], "String") == 0 then
     io_write_string('(i32.const ')
     io_write_integer(v[2][attr_address])
-    io_write_string(') (* String *)\n')
+    io_write_string(') (; String ;)\n')
+
+  elseif string_compare(v[1], "-") == 0 then
+    if #v == 3 then
+      io_write_string('(i32.const 0)\n')
+    end
   end
 
   for i = range_i, range_j do
     process3(ctx, proto, v, v[i])
   end
 
-  if string_compare(v[1], "call") == 0 then
+  if string_compare(v[1], "assign") == 0 then
+    local varlist = v[4]
+    for i = #varlist, 3, -1 do
+      local var = varlist[i]
+      if string_compare(var[1], "Name") == 0 then
+        local ref = var[2][attr_ref]
+        local ref_attrs = ref[2]
+        if ref_attrs[attr_global] then
+          io_write_string('(global.set $')
+        else
+          io_write_string('(local.set $')
+        end
+        io_write_integer(ref_attrs[attr_id])
+        io_write_string(') (; ')
+        io_write_string(var[3])
+        io_write_string(' ;)\n')
+      end
+
+    end
+
+  elseif string_compare(v[1], "call") == 0 then
     local ref = v[3][2][attr_ref]
+    local result = ref[2][attr_result]
+
     if string_compare(ref[2][attr_resolver], "asm") == 0 then
       if string_compare(ref[3], "__call_indirect0") == 0
         or string_compare(ref[3], "__call_indirect1") == 0
@@ -1305,7 +1350,6 @@ function process3(ctx, proto, u, v)
           io_write_string(')')
         end
 
-        local result = ref[2][attr_result]
         if result > 0 then
           io_write_string(' (result')
           for i = 1, #args - 4 do
@@ -1353,15 +1397,40 @@ function process3(ctx, proto, u, v)
     else
       io_write_string('(call $')
       io_write_integer(ref[2][attr_id])
-      io_write_string(') (* ')
+      io_write_string(') (; ')
       io_write_string(ref[3])
-      io_write_string('*)\n')
+      io_write_string(';)\n')
     end
+
+    -- 関数呼び出し文の場合は返り値をすべて破棄する
+    if string_compare(u[1], "block") == 0 then
+      for i = 1, result do
+        io_write_string('(drop)\n')
+      end
+    end
+
+  elseif string_compare(v[1], "if") == 0 then
+    io_write_string('if\n')
+    process3(ctx, proto, v, v[4])
+    io_write_string('else\n')
+    process3(ctx, proto, v, v[5])
+    io_write_string('end\n')
+
+  elseif string_compare(v[1], "repeat") == 0 then
+    local loop = v[2][attr_ref]
+
+    io_write_string('(i32.eqz)\n')
+    io_write_string('(br_if $')
+    io_write_integer(loop[loop_loop])
+    io_write_string(')\n')
+
+    io_write_string('end\n')
+    io_write_string('end\n')
 
   elseif string_compare(v[1], "function") == 0 then
     local attrs = proto[2]
 
-    io_write_string(')\n')
+    io_write_string('end\n')
     local result = attrs[attr_result]
     for i = 1, result do
       io_write_string('(local.get $r')
@@ -1379,11 +1448,20 @@ function process3(ctx, proto, u, v)
         local var = namelist[i]
         io_write_string('(local.set $')
         io_write_integer(var[2][attr_id])
-        io_write_string(') (* ')
+        io_write_string(') (; ')
         io_write_string(var[3])
-        io_write_string(' *)\n')
+        io_write_string(' ;)\n')
       end
     end
+
+  elseif string_compare(v[1], "return") == 0 then
+    local result = proto[2][attr_result]
+    for i = result, 1, -1 do
+      io_write_string('(local.set $r')
+      io_write_integer(i)
+      io_write_string(')\n')
+    end
+    io_write_string('(br $main)\n')
 
   elseif string_compare(v[1], "<") == 0 then
     io_write_string('(i32.lt_s)\n')
