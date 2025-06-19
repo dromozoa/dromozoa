@@ -45,8 +45,28 @@ end
 
 function __unpack_string(s)
   local size = __i32_load(s)
-  local data = __i32_load(s)
+  local data = __i32_load(s + 4)
   return size, data
+end
+
+function __unpack_table(t)
+  local size = __i32_load(t)
+  local capacity = __i32_load(t + 4)
+  local data = __i32_load(t + 8)
+  return size, capacity, data
+end
+
+function __set_table(t, i, v)
+  local size, capacity, data = __unpack_table(t)
+  if i > capacity then
+  end
+
+  -- TODO 実装
+  -- if i <= size then
+  --   __i32_store(data + (i - 1) * 4, v)
+  -- elseif i <= capacity then
+  -- end
+
 end
 
 function integer_to_string(v)

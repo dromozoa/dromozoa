@@ -77,7 +77,7 @@ end
 -- }
 
 local attr_class    = 1 -- "token" | "node"
-local attr_resolver = 2 -- "fun" | "var" | "par" | "ref" | "asm"
+local attr_resolver = 2 -- "fun" | "asm" | "par" | "var" | "call" | "ref" | "set"
 local attr_address  = 3 -- 文字列または関数の静的アドレス
 local attr_id       = 4 -- 大域ID
 local attr_result   = 5 -- 関数の返り値の個数
@@ -913,10 +913,11 @@ function write_string_table(string_table)
 end
 
 function new_ctx()
-  return { 0 }
+  return { 0, nil }
 end
 
 local ctx_id = 1
+local ctx_set_table = 2
 
 function make_id(ctx)
   local id = ctx[ctx_id] + 1
@@ -1006,17 +1007,17 @@ end
 function add_asm(ctx, proto_table, u, result)
   table_insert(proto_table, u)
   local attrs = u[2]
-  attrs[attr_resolver] = resolver
+  attrs[attr_resolver] = "asm"
   attrs[attr_result] = result
 end
 
-function resolve_name(proto_table, scope, u)
+function resolve_name_impl(proto_table, scope, u, resolver)
   while scope ~= nil do
     local data = scope[scope_data]
     for i = #data, 1, -1 do
       local v = data[i]
       if string_compare(u[3], v[3]) == 0 then
-        u[2][attr_resolver] = "ref"
+        u[2][attr_resolver] = resolver
         u[2][attr_ref] = v
         return v
       end
@@ -1027,13 +1028,21 @@ function resolve_name(proto_table, scope, u)
   for i = 1, #proto_table do
     local v = proto_table[i]
     if string_compare(u[3], v[3]) == 0 then
-      u[2][attr_resolver] = "ref"
+      u[2][attr_resolver] = resolver
       u[2][attr_ref] = v
       return v
     end
   end
 
   error("compiler error: cannot resolve <"..u[3]..">")
+end
+
+function resolve_name(proto_table, scope, u)
+  return resolve_name_impl(proto_table, scope, u, "ref")
+end
+
+function resolve_call(proto_table, scope, u)
+  return resolve_name_impl(proto_table, scope, u, "call")
 end
 
 function new_loop(ctx, u)
@@ -1046,13 +1055,17 @@ local loop_block = 1
 local loop_loop = 2
 
 function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
-  if string_compare(v[1], "function") == 0 then
-    proto = v[3]
-
-  elseif string_compare(v[1], "block") == 0 then
+  if string_compare(v[1], "block") == 0 then
     -- then blockとelse blockにスコープを割り当てる
     if string_compare(u[1], "if") == 0 then
       scope = new_scope(scope)
+    end
+
+  elseif string_compare(v[1], "assign") == 0 then
+    local varlist = v[4]
+    for i = 3, #varlist do
+      local var = varlist[i]
+      var[2][attr_resolver] = "set"
     end
 
   elseif string_compare(v[1], "break") == 0 then
@@ -1082,10 +1095,11 @@ function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
 
   elseif string_compare(v[1], "function") == 0 then
     var_table = v[3][2][attr_ref]
+    proto = v[3]
     scope = new_scope(scope)
 
   elseif string_compare(v[1], "Name") == 0 then
-    if string_compare(u[1], "for") == 0 or string_compare(u[1], "namelist") == 0 then
+    if string_compare(u[1], "for") == 0 then
       add_var(ctx, var_table, scope, v)
     elseif string_compare(u[1], "namelist") == 0 then
       if proto == nil then
@@ -1098,7 +1112,11 @@ function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
     end
 
     if string_compare(v[2][attr_resolver], "") == 0 then
-      resolve_name(proto_table, scope, v)
+      if string_compare(u[1], "call") == 0 then
+        resolve_call(proto_table, scope, v)
+      else
+        resolve_name(proto_table, scope, v)
+      end
     end
   end
 
@@ -1109,7 +1127,7 @@ function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
   end
 end
 
-function process3(proto, u, v)
+function process3(ctx, proto, u, v)
   local range_i = 3
   local range_j = 0
 
@@ -1118,9 +1136,26 @@ function process3(proto, u, v)
   end
 
   if string_compare(v[1], "assign") == 0 then
+    -- 代入
 
   elseif string_compare(v[1], "call") == 0 then
-    -- 文か式かを判定する
+    local name = v[3]
+    if string_compare(name[1], "Name") ~= 0 then
+      error("compiler error: invalid name")
+    end
+
+    range_i = 4
+
+    local ref = name[2][attr_ref]
+    if string_compare(ref[2][attr_resolver], "asm") == 0 then
+      if string_compare(ref[3], "__call_indirect0") == 0
+        or string_compare(ref[3], "__call_indirect1") == 0
+        or string_compare(ref[3], "__call_indirect2") == 0
+        or string_compare(ref[3], "__call_indirect3") == 0
+        or string_compare(ref[3], "__export_start") == 0 then
+        range_j = 0
+      end
+    end
 
   elseif string_compare(v[1], "function") == 0 then
     range_i = 5
@@ -1192,7 +1227,7 @@ function process3(proto, u, v)
         io_write_string('(global $')
         io_write_integer(name[2][attr_id])
         io_write_string(' (mut i32)\n')
-        process3(proto, explist, exp)
+        process3(ctx, proto, explist, exp)
         io_write_string(')\n')
       end
     else
@@ -1208,6 +1243,28 @@ function process3(proto, u, v)
   elseif string_compare(v[1], "true") == 0 then
     io_write_string('(i32.const 1) (* true *)\n')
 
+  elseif string_compare(v[1], "Name") == 0 then
+    local attrs = v[2]
+    if string_compare(attrs[attr_resolver], "ref") == 0 then
+      local ref = attrs[attr_ref]
+      local ref_attrs = ref[2]
+      if string_compare(ref_attrs[attr_resolver], "fun") == 0 then
+        io_write_string('(i32.const ')
+        io_write_integer(ref_attrs[attr_address])
+        io_write_string(') (* ')
+      else
+        if ref_attrs[attr_global] then
+          io_write_string('(global.get $')
+        else
+          io_write_string('(local.get $')
+        end
+        io_write_integer(ref_attrs[attr_id])
+        io_write_string(') (* ')
+      end
+      io_write_string(v[3])
+      io_write_string(' *)\n')
+    end
+
   elseif string_compare(v[1], "Integer") == 0 then
     io_write_string('(i32.const ')
     io_write_integer(v[3])
@@ -1217,14 +1274,83 @@ function process3(proto, u, v)
     io_write_string('(i32.const ')
     io_write_integer(v[2][attr_address])
     io_write_string(') (* String *)\n')
-
   end
 
   for i = range_i, range_j do
-    process3(proto, v, v[i])
+    process3(ctx, proto, v, v[i])
   end
 
-  if string_compare(v[1], "function") == 0 then
+  if string_compare(v[1], "call") == 0 then
+    local ref = v[3][2][attr_ref]
+    if string_compare(ref[2][attr_resolver], "asm") == 0 then
+      if string_compare(ref[3], "__call_indirect0") == 0
+        or string_compare(ref[3], "__call_indirect1") == 0
+        or string_compare(ref[3], "__call_indirect2") == 0
+        or string_compare(ref[3], "__call_indirect3") == 0 then
+
+        local args = v[4]
+        for i = 4, #args do
+          process3(ctx, proto, args, args[i])
+        end
+        process3(ctx, proto, args, args[3])
+
+        io_write_string('(call_indirect')
+        if #args > 4 then
+          io_write_string(' (param')
+          for i = 1, #args - 4 do
+            io_write_string(' i32')
+          end
+          io_write_string(')')
+        end
+
+        local result = ref[2][attr_result]
+        if result > 0 then
+          io_write_string(' (result')
+          for i = 1, #args - 4 do
+            io_write_string(' i32')
+          end
+          io_write_string(')')
+        end
+
+        io_write_string(')\n')
+
+      elseif string_compare(ref[3], "__i32_load") == 0 then
+        io_write_string('(i32.load)\n')
+
+      elseif string_compare(ref[3], "__i32_load8") == 0 then
+        io_write_string('(i32.load8_u)\n')
+
+      elseif string_compare(ref[3], "__i32_store") == 0 then
+        io_write_string('(i32.store)\n')
+
+      elseif string_compare(ref[3], "__i32_store8") == 0 then
+        io_write_string('(i32.store8)\n')
+
+      elseif string_compare(ref[3], "__unreachable") == 0 then
+        io_write_string('(unreachable)\n')
+
+      elseif string_compare(ref[3], "__memory_size") == 0 then
+        io_write_string('(memory.size)\n')
+
+      elseif string_compare(ref[3], "__memory_grow") == 0 then
+        io_write_string('(memory.grow)\n')
+
+      elseif string_compare(ref[3], "__memory_copy") == 0 then
+        io_write_string('(memory.copy)\n')
+
+      elseif string_compare(ref[3], "__memory_fill") == 0 then
+        io_write_string('(memory.fill)\n')
+
+      elseif string_compare(ref[3], "__export_start") == 0 then
+        local arg = v[4][3]
+        local arg_ref = arg[2][attr_ref]
+        io_write_string('(export "_start" (func $')
+        io_write_integer(arg_ref[2][attr_id])
+        io_write_string('))\n')
+      end
+    end
+
+  elseif string_compare(v[1], "function") == 0 then
     io_write_string(')\n')
 
   elseif string_compare(v[1], "local") == 0 then
@@ -1236,7 +1362,7 @@ function process3(proto, u, v)
         io_write_integer(var[2][attr_id])
         io_write_string(') (* ')
         io_write_string(var[3])
-        io_write_string(' *)')
+        io_write_string(' *)\n')
       end
     end
 
@@ -1264,6 +1390,8 @@ function compiler(tokens, chunk)
   add_asm(ctx, proto_table, new_name("__unreachable"), 0)
   add_asm(ctx, proto_table, new_name("__memory_size"), 1)
   add_asm(ctx, proto_table, new_name("__memory_grow"), 1)
+  add_asm(ctx, proto_table, new_name("__memory_copy"), 0)
+  add_asm(ctx, proto_table, new_name("__memory_fill"), 0)
   add_asm(ctx, proto_table, new_name("__export_start"), 0)
   local fd_read_id = add_fun(ctx, proto_table, new_name("__fd_read"), 1)
   local fd_write_id = add_fun(ctx, proto_table, new_name("__fd_write"), 1)
@@ -1271,6 +1399,8 @@ function compiler(tokens, chunk)
 
   process1(ctx, proto_table, nil, chunk, chunk[3])
   process2(ctx, proto_table, var_table, nil, scope, nil, chunk, chunk[3])
+
+  ctx[ctx_set_table] = resolve_name(proto_table, scope, new_name("__set_table"))
 
   io_write_string('(module\n')
 
@@ -1294,7 +1424,7 @@ function compiler(tokens, chunk)
 
   io_write_string('(export "memory" (memory 0))\n')
 
-  process3(nil, chunk, chunk[3])
+  process3(ctx, nil, chunk, chunk[3])
 
   if #string_table > 0 then
     write_string_table(string_table)
