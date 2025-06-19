@@ -397,7 +397,6 @@ function lexer(source)
   end
 
   table_insert(tokens, { "EOF", new_token_attrs(), "EOF", p })
-  -- dump(tokens)
   return tokens
 end
 
@@ -808,9 +807,7 @@ function parser(tokens)
     parser_error(token)
   end
 
-  local chunk = { "chunk", new_node_attrs(), block }
-  -- dump(chunk)
-  return chunk
+  return { "chunk", new_node_attrs(), block }
 end
 
 --------------------------------------------------------------------------------
@@ -1116,7 +1113,13 @@ function compiler(tokens, chunk)
 
   io_write_string('(import "wasi_unstable" "fd_write" (func $')
   io_write_integer(fd_write_id)
-  io_write_string(' (param i32 i32 i32 i32) (result i32)))')
+  io_write_string(' (param i32 i32 i32 i32) (result i32)))\n')
+
+  io_write_string('(global $')
+  io_write_integer(heap_pointer_id)
+  io_write_string(' (mut i32) (i32.const ')
+  io_write_integer(heap_pointer)
+  io_write_integer('))\n')
 
   io_write_string('(memory ')
   io_write_integer(memory_size)
@@ -1124,12 +1127,9 @@ function compiler(tokens, chunk)
 
   io_write_string('(export "memory" (memory 0))\n')
 
-  io_write_string(')\n')
+  write_string_table(string_table)
 
-  -- dump(proto_table)
-  -- dump(var_table)
-  -- dump(chunk)
-  -- write_string_table(string_table)
+  io_write_string(')\n')
 end
 
 --------------------------------------------------------------------------------
