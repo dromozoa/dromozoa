@@ -44,17 +44,21 @@ function __new(n)
   return pointer
 end
 
-function __pack_string(size, data)
-  local this = __new(8)
-  __i32_store(this, size)
-  __i32_store(this + 4, data)
-  return this
+function __length(p)
+  return __i32_load(p)
 end
 
 function __unpack_string(s)
   local size = __i32_load(s)
   local data = __i32_load(s + 4)
   return size, data
+end
+
+function __pack_string(size, data)
+  local this = __new(8)
+  __i32_store(this, size)
+  __i32_store(this + 4, data)
+  return this
 end
 
 function __unpack_table(t)
@@ -64,18 +68,47 @@ function __unpack_table(t)
   return size, capacity, data
 end
 
-function __set_table(t, i, v)
+function __new_table(size)
+  local capacity = __ceil_pow2(size)
+  local data = __new(capacity * 4)
+  local this = __new(12)
+  __i32_store(this, size)
+  __i32_store(this + 4, capacity)
+  __i32_store(this + 8, data)
+  return this
+end
+
+-- スタック順序に合わせて、引数の順序を入れ替える。
+function __set_table(v, t, i)
   local size, capacity, data = __unpack_table(t)
   if i > capacity then
+    local new_capacity = __ceil_pow2(i)
+    local new_data = __new(new_capacity * 4)
+    __memory_copy(new_data, data, size * 4)
+    __memory_fill(new_data + size * 4, 0x00, (new_capacity - size) * 4)
 
+    capacity = new_capacity
+    data = new_data
+
+    __i32_store(t + 4, capacity)
+    __i32_store(t + 8, data)
   end
 
-  -- TODO 実装
-  -- if i <= size then
-  --   __i32_store(data + (i - 1) * 4, v)
-  -- elseif i <= capacity then
-  -- end
+  if i > size then
+    size = i
+    __i32_store(t, size)
+  end
 
+  __i32_store(data + (i - 1) * 4, v)
+end
+
+function __get_table(t, i)
+  local size, capacity, data = __unpack_table(t)
+  if i > size then
+    return nil
+  else
+    __i32_load(data + (i - 1) * 4)
+  end
 end
 
 function integer_to_string(v)

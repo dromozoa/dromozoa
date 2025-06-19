@@ -1,6 +1,6 @@
 local A = 42
 local B = true
-local C = "foo\n"
+local C = "foobarbaz\n"
 
 function main()
   local A = A * 2
@@ -25,7 +25,7 @@ function main()
   end
   io_write_string("\n")
 
-  io_write_integer(__ceil_pow2(32))
+  io_write_integer(#C)
   io_write_string("\n")
 end
 
