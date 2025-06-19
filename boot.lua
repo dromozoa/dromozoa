@@ -1363,7 +1363,7 @@ function process3(ctx, proto, u, v)
       io_write_integer(i)
       io_write_string(' i32)\n')
     end
-    io_write_string('(local $cond i32)\n')
+    io_write_string('(local $dup i32)\n')
 
     io_write_string('block $main\n')
 
@@ -1442,6 +1442,22 @@ function process3(ctx, proto, u, v)
     io_write_string('(local.tee $')
     io_write_integer(v[2][attr_id])
     io_write_string(')\n')
+
+  elseif string_compare(v[1], "or") == 0 then
+    range_i = 4
+
+    process3(ctx, proto, v, v[3])
+    io_write_string('(local.tee $dup)\n')
+    io_write_string('if (result i32)\n')
+    io_write_string('(local.get $dup)\n')
+    io_write_string('else\n')
+
+  elseif string_compare(v[1], "and") == 0 then
+    range_i = 4
+
+    process3(ctx, proto, v, v[3])
+    io_write_string('(local.tee $dup)\n')
+    io_write_string('if (result i32)\n')
 
   elseif string_compare(v[1], "-") == 0 then
     if #v == 3 then
@@ -1658,10 +1674,21 @@ function process3(ctx, proto, u, v)
       io_write_string(') (; __set_table ;)\n')
     end
 
+  elseif string_compare(v[1], "not") == 0 then
+    io_write_string('(i32.eqz)\n')
+
   elseif string_compare(v[1], "#") == 0 then
     io_write_string('(call $')
     io_write_integer(ctx[ctx_length][2][attr_id])
     io_write_string(') (; __length ;)\n')
+
+  elseif string_compare(v[1], "or") == 0 then
+    io_write_string('end\n')
+
+  elseif string_compare(v[1], "and") == 0 then
+    io_write_string('else\n')
+    io_write_string('(local.get $dup)\n')
+    io_write_string('end\n')
 
   elseif string_compare(v[1], "<") == 0 then
     io_write_string('(i32.lt_s)\n')
@@ -1680,6 +1707,12 @@ function process3(ctx, proto, u, v)
 
   elseif string_compare(v[1], "==") == 0 then
     io_write_string('(i32.eq)\n')
+
+  elseif string_compare(v[1], "|") == 0 then
+    io_write_string('(i32.or)\n')
+
+  elseif string_compare(v[1], "&") == 0 then
+    io_write_string('(i32.and)\n')
 
   elseif string_compare(v[1], "<<") == 0 then
     io_write_string('(i32.shl)\n')

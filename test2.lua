@@ -28,7 +28,7 @@ function main()
   io_write_integer(#C)
   io_write_string("\n")
 
-  local tests = { test1, test2, test3, test4 }
+  local tests = { test1, test2, test3, test4, test5 }
   for i = 1, #tests do
     __call_indirect0(tests[i])
   end
@@ -73,6 +73,32 @@ function test4()
   local s = io_read_all()
   io_write_string(s)
   io_write_string("\n")
+end
+
+function f_true()
+  io_write_string("f_true\n")
+  return true
+end
+
+function f_false()
+  io_write_string("f_false\n")
+  return false
+end
+
+function test5()
+  local cond = true
+
+  if not not cond then
+    io_write_string("x\n")
+  else
+    io_write_string("y\n")
+  end
+
+  io_write_string("--\n")
+  local _ = f_true() or f_false()
+  io_write_string("--\n")
+  local _ = f_true() and f_false() or f_true()
+  io_write_string("--\n")
 end
 
 __export_start(main)
