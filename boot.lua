@@ -1163,17 +1163,140 @@ function process3(ctx, proto, u, v)
   elseif string_compare(v[1], "if") == 0 then
     range_j = 3
 
-  elseif string_compare(v[1], "repeat") == 0 then
-    range_j = 4
+  elseif string_compare(v[1], "while") == 0 then
+    range_i = 4
 
     local loop = v[2][attr_ref]
-
     io_write_string('block $')
     io_write_integer(loop[loop_block])
     io_write_string('\n')
     io_write_string('loop $')
     io_write_integer(loop[loop_loop])
     io_write_string('\n')
+
+    process3(ctx, proto, v, v[3])
+
+    io_write_string('(i32.eqz)\n')
+    io_write_string('(br_if $')
+    io_write_integer(loop[loop_block])
+    io_write_string(')\n')
+
+  elseif string_compare(v[1], "repeat") == 0 then
+    local loop = v[2][attr_ref]
+    io_write_string('block $')
+    io_write_integer(loop[loop_block])
+    io_write_string('\n')
+    io_write_string('loop $')
+    io_write_integer(loop[loop_loop])
+    io_write_string('\n')
+
+  elseif string_compare(v[1], "for") == 0 then
+    range_i = 4
+
+    local loop = v[2][attr_ref]
+    io_write_string('block $')
+    io_write_integer(loop[loop_block])
+    io_write_string('\n')
+
+    local var = v[2][attr_id]
+
+    process3(ctx, proto, v, v[3])
+    process3(ctx, proto, v, v[4])
+    process3(ctx, proto, v, v[5])
+
+    io_write_string('(local.set $')
+    io_write_integer(var + 2)
+    io_write_string(')\n')
+
+    io_write_string('(local.set $')
+    io_write_integer(var + 1)
+    io_write_string(')\n')
+
+    io_write_string('(local.set $')
+    io_write_integer(var)
+    io_write_string(')\n')
+
+    io_write_string('(local.get $')
+    io_write_integer(var)
+    io_write_string(')\n')
+
+    io_write_string('(local.get $')
+    io_write_integer(var + 2)
+    io_write_string(')\n')
+
+    io_write_string('(i32.sub)\n')
+
+    io_write_string('(local.set $')
+    io_write_integer(var)
+    io_write_string(')\n')
+
+    io_write_string('loop $')
+    io_write_integer(loop[loop_loop])
+    io_write_string('\n')
+
+    io_write_string('(local.get $')
+    io_write_integer(var)
+    io_write_string(')\n')
+
+    io_write_string('(local.get $')
+    io_write_integer(var + 2)
+    io_write_string(')\n')
+
+    io_write_string('(i32.add)\n')
+
+    io_write_string('(local.set $')
+    io_write_integer(var)
+    io_write_string(')\n')
+
+    io_write_string('(local.get $')
+    io_write_integer(var + 2)
+    io_write_string(')\n')
+
+    io_write_string('(i32.const 0)\n')
+
+    io_write_string('(i32.ge_s)\n')
+
+    io_write_string('if\n')
+
+      io_write_string('(local.get $')
+      io_write_integer(var)
+      io_write_string(')\n')
+
+      io_write_string('(local.get $')
+      io_write_integer(var + 1)
+      io_write_string(')\n')
+
+      io_write_string('(i32.gt_s)\n')
+
+      io_write_string('(br_if $')
+      io_write_integer(loop[loop_block])
+      io_write_string(')\n')
+
+    io_write_string('else\n')
+
+      io_write_string('(local.get $')
+      io_write_integer(var)
+      io_write_string(')\n')
+
+      io_write_string('(local.get $')
+      io_write_integer(var + 1)
+      io_write_string(')\n')
+
+      io_write_string('(i32.lt_s)\n')
+
+      io_write_string('(br_if $')
+      io_write_integer(loop[loop_block])
+      io_write_string(')\n')
+
+    io_write_string('end\n')
+
+    io_write_string('(local.get $')
+    io_write_integer(var)
+    io_write_string(')\n')
+
+    io_write_string('(local.set $')
+    io_write_integer(v[6][2][attr_id])
+    io_write_string(')\n')
 
   elseif string_compare(v[1], "function") == 0 then
     range_i = 5
@@ -1416,14 +1539,28 @@ function process3(ctx, proto, u, v)
     process3(ctx, proto, v, v[5])
     io_write_string('end\n')
 
+  elseif string_compare(v[1], "while") == 0 then
+    local loop = v[2][attr_ref]
+    io_write_string('(br $')
+    io_write_integer(loop[loop_loop])
+    io_write_string(')\n')
+    io_write_string('end\n')
+    io_write_string('end\n')
+
   elseif string_compare(v[1], "repeat") == 0 then
     local loop = v[2][attr_ref]
-
     io_write_string('(i32.eqz)\n')
     io_write_string('(br_if $')
     io_write_integer(loop[loop_loop])
     io_write_string(')\n')
+    io_write_string('end\n')
+    io_write_string('end\n')
 
+  elseif string_compare(v[1], "for") == 0 then
+    local loop = v[2][attr_ref]
+    io_write_string('(br $')
+    io_write_integer(loop[loop_loop])
+    io_write_string(')\n')
     io_write_string('end\n')
     io_write_string('end\n')
 
