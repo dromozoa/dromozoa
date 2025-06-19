@@ -81,14 +81,15 @@ local attr_resolver = 2 -- "fun" | "var" | "par" | "ref" | "asm"
 local attr_address  = 3 -- 文字列または関数の静的アドレス
 local attr_id       = 4 -- 大域ID
 local attr_result   = 5 -- 関数の返り値の個数
-local attr_ref      = 6 -- 参照または変数テーブル
+local attr_global   = 6 -- 大域変数かどうか
+local attr_ref      = 7 -- 参照または変数テーブル
 
 function new_token_attrs()
-  return { "token", "", 0, 0, -1, nil }
+  return { "token", "", 0, 0, -1, false, nil }
 end
 
 function new_node_attrs()
-  return { "node", "", 0, 0, -1, nil }
+  return { "node", "", 0, 0, -1, false, nil }
 end
 
 function compare_string_index1(a, b)
@@ -967,22 +968,27 @@ function new_name(name)
   return { "Name", new_token_attrs(), name, 0 }
 end
 
-function add_var_impl(ctx, var_table, scope, u, resolver)
+function add_var_impl(ctx, var_table, scope, u, resolver, global)
   local id = make_id(ctx)
   local attrs = u[2]
   attrs[attr_resolver] = resolver
   attrs[attr_id] = id
+  attrs[attr_global] = global
   table_insert(var_table, u)
   table_insert(scope[scope_data], u)
   return id
 end
 
+function add_global(ctx, var_table, scope, u)
+  return add_var_impl(ctx, var_table, scope, u, "var", true)
+end
+
 function add_var(ctx, var_table, scope, u)
-  return add_var_impl(ctx, var_table, scope, u, "var")
+  return add_var_impl(ctx, var_table, scope, u, "var", false)
 end
 
 function add_par(ctx, var_table, scope, u)
-  return add_var_impl(ctx, var_table, scope, u, "par")
+  return add_var_impl(ctx, var_table, scope, u, "par", false)
 end
 
 function add_fun(ctx, proto_table, u, result)
@@ -1039,8 +1045,11 @@ end
 local loop_block = 1
 local loop_loop = 2
 
-function process2(ctx, proto_table, var_table, scope, loop, u, v)
-  if string_compare(v[1], "block") == 0 then
+function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
+  if string_compare(v[1], "function") == 0 then
+    proto = v[3]
+
+  elseif string_compare(v[1], "block") == 0 then
     -- then blockとelse blockにスコープを割り当てる
     if string_compare(u[1], "if") == 0 then
       scope = new_scope(scope)
@@ -1078,6 +1087,12 @@ function process2(ctx, proto_table, var_table, scope, loop, u, v)
   elseif string_compare(v[1], "Name") == 0 then
     if string_compare(u[1], "for") == 0 or string_compare(u[1], "namelist") == 0 then
       add_var(ctx, var_table, scope, v)
+    elseif string_compare(u[1], "namelist") == 0 then
+      if proto == nil then
+        add_global(ctx, var_table, scope, v)
+      else
+        add_var(ctx, var_table, scope, v)
+      end
     elseif string_compare(u[1], "parlist") == 0 then
       add_par(ctx, var_table, scope, v)
     end
@@ -1089,7 +1104,7 @@ function process2(ctx, proto_table, var_table, scope, loop, u, v)
 
   if string_compare(v[2][attr_class], "node") == 0 then
     for i = 3, #v do
-      process2(ctx, proto_table, var_table, scope, loop, v, v[i])
+      process2(ctx, proto_table, var_table, proto, scope, loop, v, v[i])
     end
   end
 end
@@ -1102,7 +1117,10 @@ function process3(proto, u, v)
     range_j = #v
   end
 
-  if string_compare(v[1], "function") == 0 then
+  if string_compare(v[1], "call") == 0 then
+    -- 文か式かを判定する
+
+  elseif string_compare(v[1], "function") == 0 then
     range_i = 5
 
     proto = v[3]
@@ -1247,10 +1265,10 @@ function compiler(tokens, chunk)
   add_asm(ctx, proto_table, new_name("__export_start"), 0)
   local fd_read_id = add_fun(ctx, proto_table, new_name("__fd_read"), 1)
   local fd_write_id = add_fun(ctx, proto_table, new_name("__fd_write"), 1)
-  local heap_pointer_id = add_var(ctx, var_table, scope, new_name("__heap_pointer"))
+  local heap_pointer_id = add_global(ctx, var_table, scope, new_name("__heap_pointer"))
 
   process1(ctx, proto_table, nil, chunk, chunk[3])
-  process2(ctx, proto_table, var_table, scope, nil, chunk, chunk[3])
+  process2(ctx, proto_table, var_table, nil, scope, nil, chunk, chunk[3])
 
   io_write_string('(module\n')
 
