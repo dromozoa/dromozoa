@@ -30,6 +30,7 @@ function main()
 
   test1()
   test2()
+  test3()
 end
 
 function test1()
@@ -51,6 +52,13 @@ function test2()
   local c = "baz"
 
   io_write_string(a..integer_to_string(42)..b..c.."\n")
+  -- error("ERROR!")
+end
+
+function test3()
+  local t = { 0x30, 0x41, 0x61 }
+  local s = string_char(t)
+  io_write_string(s.."\n")
 end
 
 __export_start(main)

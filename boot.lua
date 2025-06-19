@@ -1100,15 +1100,15 @@ function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
     add_var(ctx, var_table, scope, new_name("(limit)"))
     add_var(ctx, var_table, scope, new_name("(step)"))
 
+    add_var(ctx, var_table, scope, v[6])
+
   elseif string_compare(v[1], "function") == 0 then
     var_table = v[3][2][attr_ref]
     proto = v[3]
     scope = new_scope(scope)
 
   elseif string_compare(v[1], "Name") == 0 then
-    if string_compare(u[1], "for") == 0 then
-      add_var(ctx, var_table, scope, v)
-    elseif string_compare(u[1], "namelist") == 0 then
+    if string_compare(u[1], "namelist") == 0 then
       if proto == nil then
         add_global(ctx, var_table, scope, v)
       else
@@ -1198,7 +1198,7 @@ function process3(ctx, proto, u, v)
     io_write_string('\n')
 
   elseif string_compare(v[1], "for") == 0 then
-    range_i = 4
+    range_i = 7
 
     local loop = v[2][attr_ref]
     io_write_string('block $')

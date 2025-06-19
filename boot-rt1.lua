@@ -124,6 +124,12 @@ function __get_table(t, i)
   end
 end
 
+function error(message)
+  io_write_string_impl(2, message)
+  io_write_string_impl(2, "\n")
+  __unreachable()
+end
+
 function integer_to_string(v)
   local b = __new(16)
   local p = b + 15
@@ -149,16 +155,39 @@ function integer_to_string(v)
   return __pack_string(b + 15 - p, p)
 end
 
-function io_write_string(s)
+function io_write_string_impl(fd, s)
   local size, data = __unpack_string(s)
   local item = __new(8)
   __i32_store(item, data)
   __i32_store(item + 4, size)
   local out = __new(4)
   __i32_store(out, 0)
-  __fd_write(1, item, 1, out)
+  __fd_write(fd, item, 1, out)
+end
+
+function io_write_string(s)
+  io_write_string_impl(1, s)
 end
 
 function io_write_integer(v)
   io_write_string(integer_to_string(v))
+end
+
+function string_byte(s, i)
+  local size, data = __unpack_string(s)
+  if i > size then
+    return 0
+  else
+    return __i32_load8(data + (i - 1))
+  end
+end
+
+function string_char(t)
+  local size = #t
+  local data = __new(size + 1)
+  for i = 1, size do
+    __i32_store8(data + (i - 1), t[i])
+  end
+  __i32_store8(data + size, 0x00)
+  return __pack_string(size, data)
 end
