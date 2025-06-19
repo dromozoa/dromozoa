@@ -1495,6 +1495,15 @@ function process3(ctx, proto, u, v)
       elseif string_compare(ref[3], "__i32_store8") == 0 then
         io_write_string('(i32.store8)\n')
 
+      elseif string_compare(ref[3], "__i32_clz") == 0 then
+        io_write_string('(i32.clz)\n')
+
+      elseif string_compare(ref[3], "__i32_ctz") == 0 then
+        io_write_string('(i32.ctz)\n')
+
+      elseif string_compare(ref[3], "__i32_popcnt") == 0 then
+        io_write_string('(i32.popcnt)\n')
+
       elseif string_compare(ref[3], "__unreachable") == 0 then
         io_write_string('(unreachable)\n')
 
@@ -1618,6 +1627,12 @@ function process3(ctx, proto, u, v)
   elseif string_compare(v[1], "==") == 0 then
     io_write_string('(i32.eq)\n')
 
+  elseif string_compare(v[1], "<<") == 0 then
+    io_write_string('(i32.shl)\n')
+
+  elseif string_compare(v[1], ">>") == 0 then
+    io_write_string('(i32.shr)\n')
+
   elseif string_compare(v[1], "+") == 0 then
     io_write_string('(i32.add)\n')
 
@@ -1654,6 +1669,9 @@ function compiler(tokens, chunk)
   add_asm(ctx, proto_table, new_name("__i32_load8"), 1)
   add_asm(ctx, proto_table, new_name("__i32_store"), 0)
   add_asm(ctx, proto_table, new_name("__i32_store8"), 0)
+  add_asm(ctx, proto_table, new_name("__i32_clz"), 1)
+  add_asm(ctx, proto_table, new_name("__i32_ctz"), 1)
+  add_asm(ctx, proto_table, new_name("__i32_popcnt"), 1)
   add_asm(ctx, proto_table, new_name("__unreachable"), 0)
   add_asm(ctx, proto_table, new_name("__memory_size"), 1)
   add_asm(ctx, proto_table, new_name("__memory_grow"), 1)

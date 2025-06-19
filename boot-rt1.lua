@@ -24,6 +24,14 @@ function __roundup(n, a)
   end
 end
 
+function __ceil_pow2(v)
+  if v <= 1 then
+    return 1
+  else
+    return 1 << 32 - __i32_clz(v - 1)
+  end
+end
+
 function __new(n)
   local pointer = __heap_pointer
   __heap_pointer = pointer + __roundup(n, 8)
@@ -59,6 +67,7 @@ end
 function __set_table(t, i, v)
   local size, capacity, data = __unpack_table(t)
   if i > capacity then
+
   end
 
   -- TODO 実装

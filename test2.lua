@@ -25,6 +25,8 @@ function main()
   end
   io_write_string("\n")
 
+  io_write_integer(__ceil_pow2(32))
+  io_write_string("\n")
 end
 
 __export_start(main)
