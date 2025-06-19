@@ -1208,7 +1208,9 @@ function process3(ctx, proto, u, v)
       io_write_integer(i)
       io_write_string(' i32)\n')
     end
-    io_write_string('(local $dup i32)\n')
+    io_write_string('(local $cond i32)\n')
+
+    io_write_string('block $main\n')
 
   elseif string_compare(v[1], "local") == 0 then
     if proto == nil then
@@ -1348,9 +1350,26 @@ function process3(ctx, proto, u, v)
         io_write_integer(arg_ref[2][attr_id])
         io_write_string('))\n')
       end
+    else
+      io_write_string('(call $')
+      io_write_integer(ref[2][attr_id])
+      io_write_string(') (* ')
+      io_write_string(ref[3])
+      io_write_string('*)\n')
     end
 
   elseif string_compare(v[1], "function") == 0 then
+    local attrs = proto[2]
+
+    io_write_string(')\n')
+    local result = attrs[attr_result]
+    for i = 1, result do
+      io_write_string('(local.get $r')
+      io_write_integer(i)
+      io_write_string(')\n')
+    end
+    io_write_string('(return)\n')
+
     io_write_string(')\n')
 
   elseif string_compare(v[1], "local") == 0 then
@@ -1365,6 +1384,39 @@ function process3(ctx, proto, u, v)
         io_write_string(' *)\n')
       end
     end
+
+  elseif string_compare(v[1], "<") == 0 then
+    io_write_string('(i32.lt_s)\n')
+
+  elseif string_compare(v[1], ">") == 0 then
+    io_write_string('(i32.gt_s)\n')
+
+  elseif string_compare(v[1], "<=") == 0 then
+    io_write_string('(i32.le_s)\n')
+
+  elseif string_compare(v[1], ">=") == 0 then
+    io_write_string('(i32.ge_s)\n')
+
+  elseif string_compare(v[1], "~=") == 0 then
+    io_write_string('(i32.ne)\n')
+
+  elseif string_compare(v[1], "==") == 0 then
+    io_write_string('(i32.eq)\n')
+
+  elseif string_compare(v[1], "+") == 0 then
+    io_write_string('(i32.add)\n')
+
+  elseif string_compare(v[1], "-") == 0 then
+    io_write_string('(i32.sub)\n')
+
+  elseif string_compare(v[1], "*") == 0 then
+    io_write_string('(i32.mul)\n')
+
+  elseif string_compare(v[1], "/") == 0 or string_compare(v[1], "//") == 0 then
+    io_write_string('(i32.div_s)\n')
+
+  elseif string_compare(v[1], "%") == 0 then
+    io_write_string('(i32.rem_s)\n')
 
   end
 end
