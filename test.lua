@@ -134,8 +134,15 @@ function write(s)
   return 0
 end
 
+function tuple(s)
+  io_write_string("assign: "..s.."\n")
+  return { s }
+end
+
 function test7()
-  -- io_write_string "stat\n"
+  io_write_string "stat\n"
+  tuple"foo"[1] = 42
+
   -- local r = write "exp\n"
 end
 

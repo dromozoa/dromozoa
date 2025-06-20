@@ -639,10 +639,19 @@ function parser_stat(parser)
     --       | Name       '[' exp ']' { '[' exp ']' }
     --       | Name args  '[' exp ']' { '[' exp ']' }
     --       | '(' exp ') '[' exp ']' { '[' exp ']' }
-    if string_compare(parser_peek(parser)[1], "(") == 0 then
+    -- args ::= '(' ... ')'
+    --        | String
+    local next_token = parser_peek(parser)
+    if string_compare(next_token[1], "(") == 0
+      or string_compare(next_token[1], "String") == 0 then
       local index = parser[2]
       parser_read(parser)
-      local args = parser_list(parser, "args", parser_exp_or_nil, ",", ")")
+      local args = nil
+      if string_compare(next_token[1], "(") == 0 then
+        args = parser_list(parser, "args", parser_exp_or_nil, ",", ")")
+      else
+        args = { "args", new_node_attrs(), next_token }
+      end
       if string_compare(parser_peek(parser)[1], "[") ~= 0 then
         return { "call", new_node_attrs(), token, args }
       end
@@ -732,6 +741,10 @@ function parser_var(parser)
     if string_compare(next_token[1], "(") == 0 then
       parser_read(parser)
       local args = parser_list(parser, "args", parser_exp_or_nil, ",", ")")
+      node = { "call", new_node_attrs(), token, args }
+    elseif string_compare(next_token[1], "String") == 0 then
+      parser_read(parser)
+      local args = { "args", new_node_attrs(), next_token }
       node = { "call", new_node_attrs(), token, args }
     elseif string_compare(next_token[1], "[") ~= 0 then
       return token
