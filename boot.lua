@@ -422,7 +422,7 @@ function nud_table(parser, token)
   local result = { "table", new_node_attrs() }
 
   while true do
-    local node = parser_exp_or_nil(parser, 0)
+    local node = parser_exp_or_nil(parser)
     if node == nil then
       break
     end
