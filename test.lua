@@ -28,7 +28,7 @@ function main()
   io_write_integer(#C)
   io_write_string("\n")
 
-  local tests = { test1, test2, test3, test4, test5 }
+  local tests = { test1, test2, test3, test4, test5, test6 }
   for i = 1, #tests do
     __call_indirect0(tests[i])
   end
@@ -99,6 +99,16 @@ function test5()
   io_write_string("--\n")
   local _ = f_true() and f_false() or f_true()
   io_write_string("--\n")
+end
+
+function test6()
+  io_write_integer(3^3)
+  io_write_string("\n")
+
+  io_write_integer(0x7FFFFFFF & ~0xDEAD)
+  io_write_string("\n")
+  io_write_integer(0x1234 ~ 0xFEDC)
+  io_write_string("\n")
 end
 
 __export_start(main)

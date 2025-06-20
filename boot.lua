@@ -920,9 +920,10 @@ local ctx_id = 1
 local ctx_address = 2
 local ctx_length = 3
 local ctx_concat = 4
-local ctx_new_table = 5
-local ctx_set_table = 6
-local ctx_get_table = 7
+local ctx_power = 5
+local ctx_new_table = 6
+local ctx_set_table = 7
+local ctx_get_table = 8
 
 function make_id(ctx)
   local id = ctx[ctx_id] + 1
@@ -1711,6 +1712,13 @@ function process3(ctx, proto, u, v)
   elseif string_compare(v[1], "|") == 0 then
     io_write_string('(i32.or)\n')
 
+  elseif string_compare(v[1], "~") == 0 then
+    -- bnot or bxor
+    if #v == 3 then
+      io_write_string('(i32.const -1)\n')
+    end
+    io_write_string('(i32.xor)\n')
+
   elseif string_compare(v[1], "&") == 0 then
     io_write_string('(i32.and)\n')
 
@@ -1739,6 +1747,12 @@ function process3(ctx, proto, u, v)
 
   elseif string_compare(v[1], "%") == 0 then
     io_write_string('(i32.rem_s)\n')
+
+  elseif string_compare(v[1], "^") == 0 then
+    -- pow
+    io_write_string('(call $')
+    io_write_integer(ctx[ctx_power][2][attr_id])
+    io_write_string(') (; __power ;)\n')
 
   elseif string_compare(v[1], "index") == 0 then
     if string_compare(v[2][attr_resolver], "set") ~= 0 then
@@ -1810,6 +1824,7 @@ function compiler(tokens, chunk)
 
   ctx[ctx_length]    = resolve_name(proto_table, scope, new_name("__length"))
   ctx[ctx_concat]    = resolve_name(proto_table, scope, new_name("__concat"))
+  ctx[ctx_power]     = resolve_name(proto_table, scope, new_name("__power"))
   ctx[ctx_new_table] = resolve_name(proto_table, scope, new_name("__new_table"))
   ctx[ctx_set_table] = resolve_name(proto_table, scope, new_name("__set_table"))
   ctx[ctx_get_table] = resolve_name(proto_table, scope, new_name("__get_table"))

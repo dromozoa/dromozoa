@@ -81,6 +81,18 @@ function __concat(a, b)
   return __pack_string(size, data)
 end
 
+function __power(v, n)
+  if n < 1 then
+    return 1
+  else
+    local result = 1
+    for i = 1, n do
+      result = result * v
+    end
+    return result
+  end
+end
+
 function __new_table(size)
   local capacity = __ceil_pow2(size)
   local data = __new(capacity * 4)
