@@ -38,7 +38,6 @@ function test1()
   local t = { 17, 23, 42, 69 }
   io_write_integer(t[3])
   io_write_string("\n")
-  local size, capacity, data = __unpack_table(t)
   t[5], t[4] = -1, 0x69
 
   for i = 1, #t do
@@ -102,8 +101,9 @@ function test5()
 end
 
 function test6()
-  io_write_integer(3^3)
-  io_write_string("\n")
+  if 3^3 ~= 27 then
+    error("3^3 ~= 27")
+  end
 
   io_write_integer(0x7FFFFFFF & ~0xDEAD)
   io_write_string("\n")
