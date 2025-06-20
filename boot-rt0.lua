@@ -28,6 +28,7 @@ function dump(v)
 end
 
 function integer_to_string(v)
+  assert(math.type(v) == "integer")
   return tostring(v)
 end
 
@@ -36,10 +37,12 @@ function io_read_all()
 end
 
 function io_write_integer(v)
+  assert(math.type(v) == "integer")
   io.write(v)
 end
 
 function io_write_string(s)
+  assert(type(s) == "string")
   io.write(s)
 end
 

@@ -1351,7 +1351,7 @@ function process3(ctx, proto, u, v)
       local attrs = var[2]
       if string_compare(attrs[attr_resolver], "var") == 0 then
         io_write_string('(local $')
-        io_write_string(attrs[attr_id])
+        io_write_integer(attrs[attr_id])
         io_write_string(' i32) (; ')
         io_write_string(var[3])
         io_write_string(' ;)\n')
@@ -1828,7 +1828,7 @@ function compiler(tokens, chunk)
   io_write_integer(heap_pointer_id)
   io_write_string(' (mut i32) (i32.const ')
   io_write_integer(heap_pointer)
-  io_write_integer('))\n')
+  io_write_string('))\n')
 
   io_write_string('(memory ')
   io_write_integer(memory_size)
