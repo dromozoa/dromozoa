@@ -45,7 +45,7 @@ function main()
   io_write_integer(#C)
   io_write_string("\n")
 
-  local tests = { test1, test2, test3, test4, test5, test6 }
+  local tests = { test1, test2, test3, test4, test5, test6, test7 }
   for i = 1, #tests do
     __call_indirect0(tests[i])
   end
@@ -127,6 +127,16 @@ function test6()
   io_write_string("\n")
   io_write_integer(0x1234 ~ 0xFEDC)
   io_write_string("\n")
+end
+
+function write(s)
+  io_write_string(s)
+  return 0
+end
+
+function test7()
+  -- io_write_string "stat\n"
+  -- local r = write "exp\n"
 end
 
 __export_start(main)
