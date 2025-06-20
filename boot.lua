@@ -780,6 +780,16 @@ function parser_exp_impl(parser, rbp, return_if_nud_is_nil)
     end
   end
 
+  -- 文字列リテラル引数を特別扱いする
+  if string_compare(token[1], "Name") == 0 then
+    local next_token = parser_peek(parser)
+    if string_compare(next_token[1], "String") == 0 then
+      parser_read(parser)
+      local args = { "args", new_node_attrs(), next_token }
+      return { "call", new_node_attrs(), token, args }
+    end
+  end
+
   local node = __call_indirect1(nud[2], parser, token)
   while true do
     local token = parser_peek(parser)

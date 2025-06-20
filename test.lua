@@ -142,8 +142,7 @@ end
 function test7()
   io_write_string "stat\n"
   tuple"foo"[1] = 42
-
-  -- local r = write "exp\n"
+  local r = write "exp\n"
 end
 
 __export_start(main)
