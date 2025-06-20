@@ -78,8 +78,9 @@ function test3()
   local s = string_char(t)
   io_write_string(s.."\n")
 
-  io_write_integer(string_compare("bar", "barbar"))
-  io_write_string("\n")
+  if string_compare("bar", "barbar") >= 0 then
+    error('string_compare("bar", "barbar") >= 0')
+  end
 
   io_write_string(string_sub(C, 4, 6).."\n")
   io_write_string(string_sub("foo", 3, 4).."\n")

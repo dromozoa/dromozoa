@@ -17,4 +17,9 @@
 # You should have received a copy of the GNU General Public License
 # along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-
+cat boot-rt1.lua boot.lua | lua -l boot-rt0 boot.lua >boot-stage0.wat
+wat2wasm boot-stage0.wat
+cat boot-rt1.lua boot.lua | wasmer run boot-stage0.wasm >boot-stage1.wat
+cat boot-rt1.lua boot.lua | wasmtime run boot-stage0.wasm >boot-stage2.wat
+cmp boot-stage0.wat boot-stage1.wat
+cmp boot-stage0.wat boot-stage2.wat
