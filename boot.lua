@@ -925,7 +925,6 @@ local asm_table = nil
 function compiler_initialize()
   local leave_call_indirect = function (ctx, proto, u)
     local items = get_items(u)
-
     local args = get_items(items[2])
     for i = 2, #args do
       process3(ctx, proto, items[2], args[i])
@@ -941,8 +940,7 @@ function compiler_initialize()
       io_write_string ")"
     end
 
-    local ref = get_attr(items[1], attr_ref)
-    local result = get_attr(ref, attr_result)
+    local result = get_attr(get_attr(items[1], attr_ref), attr_result)
     if result > 0 then
       io_write_string " (result"
       for i = 1, result do
@@ -956,10 +954,9 @@ function compiler_initialize()
 
   local leave_export_start = function (ctx, proto, u)
     local items = get_items(u)
-    local arg = get_items(items[2])[1]
-    local arg_ref = get_attr(arg, attr_ref)
+    local args = get_items(items[2])
     io_write_string '(export "_start" (func $'
-    io_write_integer(get_attr(arg_ref, attr_id))
+    io_write_integer(get_attr(get_attr(args[1], attr_ref), attr_id))
     io_write_string "))\n"
   end
 
@@ -1332,7 +1329,6 @@ function process3(ctx, proto, u, v)
     range_i = 2
 
     local ref = get_attr(items[1], attr_ref)
-
     if string_compare(get_attr(ref, attr_resolver), "asm") == 0 then
       local name = get_value(ref)
       local i = binary_search(asm_table, 1, #asm_table, compare_string_index1, { name })
@@ -1621,7 +1617,6 @@ function process3(ctx, proto, u, v)
   elseif string_compare(kind, "call") == 0 then
     local ref = get_attr(items[1], attr_ref)
     local name = get_value(ref)
-
     if string_compare(get_attr(ref, attr_resolver), "asm") == 0 then
       local i = binary_search(asm_table, 1, #asm_table, compare_string_index1, { name })
       local asm = asm_table[i]
