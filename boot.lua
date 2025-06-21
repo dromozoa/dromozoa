@@ -1158,15 +1158,25 @@ local loop_block = 1
 local loop_loop = 2
 
 function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
-  if string_compare(v[1], "block") == 0 then
+  local kind = v[1]
+  local items = node_items(v)
+
+  local value = nil
+  if items == nil then
+    value = v[3]
+  else
+    value = items[1]
+  end
+
+  if string_compare(kind, "block") == 0 then
     -- then blockとelse blockにスコープを割り当てる
     if string_compare(u[1], "if") == 0 then
       scope = new_scope(scope)
     end
 
-  elseif string_compare(v[1], "assign") == 0 then
-    local varlist = v[4]
-    for i = 3, #varlist do
+  elseif string_compare(kind, "assign") == 0 then
+    local varlist = node_items(items[2])
+    for i = 1, #varlist do
       local var = varlist[i]
       if string_compare(var[1], "Name") == 0 then
         resolve_name(proto_table, scope, var)
@@ -1174,24 +1184,24 @@ function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
       var[2][attr_resolver] = "set"
     end
 
-  elseif string_compare(v[1], "break") == 0 then
+  elseif string_compare(kind, "break") == 0 then
     if loop == nil then
       error "compiler error: invalid loop"
     end
     v[2][attr_id] = loop[loop_block]
 
-  elseif string_compare(v[1], "do") == 0 then
+  elseif string_compare(kind, "do") == 0 then
     scope = new_scope(scope)
 
-  elseif string_compare(v[1], "while") == 0 then
+  elseif string_compare(kind, "while") == 0 then
     loop = new_loop(ctx, v)
     scope = new_scope(scope)
 
-  elseif string_compare(v[1], "repeat") == 0 then
+  elseif string_compare(kind, "repeat") == 0 then
     loop = new_loop(ctx, v)
     scope = new_scope(scope)
 
-  elseif string_compare(v[1], "for") == 0 then
+  elseif string_compare(kind, "for") == 0 then
     loop = new_loop(ctx, v)
     scope = new_scope(scope)
 
@@ -1199,14 +1209,14 @@ function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
     add_var(ctx, var_table, scope, new_name "(limit)")
     add_var(ctx, var_table, scope, new_name "(step)")
 
-    add_var(ctx, var_table, scope, v[6])
+    add_var(ctx, var_table, scope, items[4])
 
-  elseif string_compare(v[1], "function") == 0 then
-    var_table = v[3][2][attr_ref]
-    proto = v[3]
+  elseif string_compare(kind, "function") == 0 then
+    var_table = value[2][attr_ref]
+    proto = value
     scope = new_scope(scope)
 
-  elseif string_compare(v[1], "Name") == 0 then
+  elseif string_compare(kind, "Name") == 0 then
     if string_compare(u[1], "namelist") == 0 then
       if proto == nil then
         add_global(ctx, var_table, scope, v)
@@ -1225,13 +1235,13 @@ function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
       end
     end
 
-  elseif string_compare(v[1], "table") == 0 then
+  elseif string_compare(kind, "table") == 0 then
     v[2][attr_id] = add_var(ctx, var_table, scope, new_name "(table)")
   end
 
-  if string_compare(v[2][attr_class], "node") == 0 then
-    for i = 3, #v do
-      process2(ctx, proto_table, var_table, proto, scope, loop, v, v[i])
+  if items ~= nil then
+    for i = 1, #items do
+      process2(ctx, proto_table, var_table, proto, scope, loop, v, items[i])
     end
   end
 end
