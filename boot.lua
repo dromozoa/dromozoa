@@ -1533,7 +1533,7 @@ function process3(ctx, proto, u, v)
 
   elseif string_compare(kind, "table") == 0 then
     io_write_string "(i32.const "
-    io_write_integer(#v - 2)
+    io_write_integer(#get_items(v))
     io_write_string ")\n"
     io_write_string "(call $"
     io_write_integer(get_attr(ctx[ctx_new_table], attr_id))
@@ -1559,7 +1559,7 @@ function process3(ctx, proto, u, v)
     io_write_string "if (result i32)\n"
 
   elseif string_compare(kind, "-") == 0 then
-    if #v == 3 then
+    if #get_items(v) == 1 then
       io_write_string "(i32.const 0)\n"
     end
   end
