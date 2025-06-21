@@ -886,7 +886,7 @@ function encode_i4_hex(v)
       return v + 0x41 - 10
     end
   end
-  error("out of range")
+  error "out of range"
 end
 
 function encode_char(t, v)
@@ -903,7 +903,7 @@ function encode_integer(t, v)
 end
 
 function write_string_table(string_table)
-  io_write_string("(data 0 (i32.const 8) \"")
+  io_write_string '(data 0 (i32.const 8) "'
 
   for i = 1, #string_table do
     local entry = string_table[i]
@@ -932,7 +932,7 @@ function write_string_table(string_table)
     io_write_string(string_char(t))
   end
 
-  io_write_string("\")\n")
+  io_write_string '")\n'
 end
 
 function new_ctx()
@@ -963,7 +963,7 @@ end
 function process1(ctx, proto_table, proto, u, v)
   if string_compare(v[1], "function") == 0 then
     if proto ~= nil then
-      error("compiler error: invalid proto")
+      error "compiler error: invalid proto"
     end
     proto = v[3]
     add_fun(ctx, proto_table, proto, -1)
@@ -975,7 +975,7 @@ function process1(ctx, proto_table, proto, u, v)
     if attrs[attr_result] == -1 then
       attrs[attr_result] = result
     elseif attrs[attr_result] ~= result then
-      error("compiler error: invalid result")
+      error "compiler error: invalid result"
     end
   end
 
@@ -1108,7 +1108,7 @@ function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
 
   elseif string_compare(v[1], "break") == 0 then
     if loop == nil then
-      error("compiler error: invalid loop")
+      error "compiler error: invalid loop"
     end
     v[2][attr_id] = loop[loop_block]
 
@@ -1127,9 +1127,9 @@ function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
     loop = new_loop(ctx, v)
     scope = new_scope(scope)
 
-    v[2][attr_id] = add_var(ctx, var_table, scope, new_name("(var)"))
-    add_var(ctx, var_table, scope, new_name("(limit)"))
-    add_var(ctx, var_table, scope, new_name("(step)"))
+    v[2][attr_id] = add_var(ctx, var_table, scope, new_name "(var)")
+    add_var(ctx, var_table, scope, new_name "(limit)")
+    add_var(ctx, var_table, scope, new_name "(step)")
 
     add_var(ctx, var_table, scope, v[6])
 
@@ -1158,7 +1158,7 @@ function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
     end
 
   elseif string_compare(v[1], "table") == 0 then
-    v[2][attr_id] = add_var(ctx, var_table, scope, new_name("(table)"))
+    v[2][attr_id] = add_var(ctx, var_table, scope, new_name "(table)")
   end
 
   if string_compare(v[2][attr_class], "node") == 0 then
@@ -1182,7 +1182,7 @@ function process3(ctx, proto, u, v)
   elseif string_compare(v[1], "call") == 0 then
     local name = v[3]
     if string_compare(name[1], "Name") ~= 0 then
-      error("compiler error: invalid name")
+      error "compiler error: invalid name"
     end
 
     range_i = 4
@@ -1398,7 +1398,7 @@ function process3(ctx, proto, u, v)
       local explist = v[3]
       local namelist = v[4]
       if not (#explist == #namelist) then
-        error("compiler error: invalid global")
+        error "compiler error: invalid global"
       end
 
       for i = 3, #explist do
@@ -1802,7 +1802,7 @@ function write_proto_table(proto_table)
     for i = 1, #function_table do
       local proto = function_table[i]
       if proto[2][attr_address] ~= i then
-        error("compiler error: invalid address")
+        error "compiler error: invalid address"
       end
       io_write_string(' $')
       io_write_integer(proto[2][attr_id])
@@ -1821,36 +1821,36 @@ function compiler(tokens, chunk)
   local var_table = {}
   local scope = new_scope(nil)
 
-  add_asm(ctx, proto_table, new_name("__call_indirect0"), 0)
-  add_asm(ctx, proto_table, new_name("__call_indirect1"), 1)
-  add_asm(ctx, proto_table, new_name("__call_indirect2"), 2)
-  add_asm(ctx, proto_table, new_name("__call_indirect3"), 3)
-  add_asm(ctx, proto_table, new_name("__i32_load"), 1)
-  add_asm(ctx, proto_table, new_name("__i32_load8"), 1)
-  add_asm(ctx, proto_table, new_name("__i32_store"), 0)
-  add_asm(ctx, proto_table, new_name("__i32_store8"), 0)
-  add_asm(ctx, proto_table, new_name("__i32_clz"), 1)
-  add_asm(ctx, proto_table, new_name("__i32_ctz"), 1)
-  add_asm(ctx, proto_table, new_name("__i32_popcnt"), 1)
-  add_asm(ctx, proto_table, new_name("__unreachable"), 0)
-  add_asm(ctx, proto_table, new_name("__memory_size"), 1)
-  add_asm(ctx, proto_table, new_name("__memory_grow"), 1)
-  add_asm(ctx, proto_table, new_name("__memory_copy"), 0)
-  add_asm(ctx, proto_table, new_name("__memory_fill"), 0)
-  add_asm(ctx, proto_table, new_name("__export_start"), 0)
-  local fd_read_id = add_fun(ctx, proto_table, new_name("__fd_read"), 1)
-  local fd_write_id = add_fun(ctx, proto_table, new_name("__fd_write"), 1)
-  local heap_pointer_id = add_global(ctx, var_table, scope, new_name("__heap_pointer"))
+  add_asm(ctx, proto_table, new_name "__call_indirect0", 0)
+  add_asm(ctx, proto_table, new_name "__call_indirect1", 1)
+  add_asm(ctx, proto_table, new_name "__call_indirect2", 2)
+  add_asm(ctx, proto_table, new_name "__call_indirect3", 3)
+  add_asm(ctx, proto_table, new_name "__i32_load", 1)
+  add_asm(ctx, proto_table, new_name "__i32_load8", 1)
+  add_asm(ctx, proto_table, new_name "__i32_store", 0)
+  add_asm(ctx, proto_table, new_name "__i32_store8", 0)
+  add_asm(ctx, proto_table, new_name "__i32_clz", 1)
+  add_asm(ctx, proto_table, new_name "__i32_ctz", 1)
+  add_asm(ctx, proto_table, new_name "__i32_popcnt", 1)
+  add_asm(ctx, proto_table, new_name "__unreachable", 0)
+  add_asm(ctx, proto_table, new_name "__memory_size", 1)
+  add_asm(ctx, proto_table, new_name "__memory_grow", 1)
+  add_asm(ctx, proto_table, new_name "__memory_copy", 0)
+  add_asm(ctx, proto_table, new_name "__memory_fill", 0)
+  add_asm(ctx, proto_table, new_name "__export_start", 0)
+  local fd_read_id = add_fun(ctx, proto_table, new_name "__fd_read", 1)
+  local fd_write_id = add_fun(ctx, proto_table, new_name "__fd_write", 1)
+  local heap_pointer_id = add_global(ctx, var_table, scope, new_name "__heap_pointer")
 
   process1(ctx, proto_table, nil, chunk, chunk[3])
   process2(ctx, proto_table, var_table, nil, scope, nil, chunk, chunk[3])
 
-  ctx[ctx_length]    = resolve_name(proto_table, scope, new_name("__length"))
-  ctx[ctx_concat]    = resolve_name(proto_table, scope, new_name("__concat"))
-  ctx[ctx_power]     = resolve_name(proto_table, scope, new_name("__power"))
-  ctx[ctx_new_table] = resolve_name(proto_table, scope, new_name("__new_table"))
-  ctx[ctx_set_table] = resolve_name(proto_table, scope, new_name("__set_table"))
-  ctx[ctx_get_table] = resolve_name(proto_table, scope, new_name("__get_table"))
+  ctx[ctx_length]    = resolve_name(proto_table, scope, new_name "__length")
+  ctx[ctx_concat]    = resolve_name(proto_table, scope, new_name "__concat")
+  ctx[ctx_power]     = resolve_name(proto_table, scope, new_name "__power")
+  ctx[ctx_new_table] = resolve_name(proto_table, scope, new_name "__new_table")
+  ctx[ctx_set_table] = resolve_name(proto_table, scope, new_name "__set_table")
+  ctx[ctx_get_table] = resolve_name(proto_table, scope, new_name "__get_table")
 
   io_write_string('(module\n')
 
