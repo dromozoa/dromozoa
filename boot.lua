@@ -113,6 +113,14 @@ function get_kind(u)
   return u[1]
 end
 
+function get_attr(u, key)
+  return u[2][key]
+end
+
+function set_attr(u, key, value)
+  u[2][key] = value
+end
+
 function get_value(u)
   if string_compare(u[2][attr_class], "token") == 0 then
     return u[3]
@@ -936,7 +944,7 @@ function make_string_table(tokens)
       value = get_value(token)
       table_insert(string_table, { value, 0 })
     end
-    token[2][attr_address] = #string_table * 8
+    set_attr(token, attr_address, #string_table * 8)
   end
 
   local address = (#string_table + 1) * 8
@@ -1049,10 +1057,9 @@ function process1(ctx, proto_table, proto, u, v)
 
   elseif string_compare(kind, "return") == 0 then
     local result = #get_items(value)
-    local attrs = proto[2]
-    if attrs[attr_result] == -1 then
-      attrs[attr_result] = result
-    elseif attrs[attr_result] ~= result then
+    if get_attr(proto, attr_result) == -1 then
+      set_attr(proto, attr_result, result)
+    elseif get_attr(proto, attr_result) ~= result then
       error "compiler error: invalid result"
     end
   end
@@ -1064,9 +1071,8 @@ function process1(ctx, proto_table, proto, u, v)
   end
 
   if string_compare(kind, "function") == 0 then
-    local attrs = proto[2]
-    if attrs[attr_result] == -1 then
-      proto[attr_result] = 0
+    if get_attr(proto, attr_result) == -1 then
+      set_attr(proto, attr_result, 0)
     end
   end
 end
