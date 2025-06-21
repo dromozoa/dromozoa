@@ -71,7 +71,7 @@ end
       value = string|integer
       items = table<node>
     }
-    position = integer
+    position = integer?
   }
 ]]
 
