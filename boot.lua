@@ -1324,14 +1324,14 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
   end
 
   -- 一時的に記述
-  if string_compare(kind, "return") == 0 then
-    local result = #get_items(items[1])
-    if get_attr(proto, attr_result) == -1 then
-      set_attr(proto, attr_result, result)
-    elseif get_attr(proto, attr_result) ~= result then
-      error "compiler error: invalid result"
-    end
-  end
+  -- if string_compare(kind, "return") == 0 then
+  --   local result = #get_items(items[1])
+  --   if get_attr(proto, attr_result) == -1 then
+  --     set_attr(proto, attr_result, result)
+  --   elseif get_attr(proto, attr_result) ~= result then
+  --     error "compiler error: invalid result"
+  --   end
+  -- end
 
   if items ~= nil then
     for i = 1, #items do
@@ -1340,11 +1340,11 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
   end
 
   -- 一時的に記述
-  if string_compare(kind, "function") == 0 then
-    if get_attr(proto, attr_result) == -1 then
-      set_attr(proto, attr_result, 0)
-    end
-  end
+  -- if string_compare(kind, "function") == 0 then
+  --   if get_attr(proto, attr_result) == -1 then
+  --     set_attr(proto, attr_result, 0)
+  --   end
+  -- end
 
   if string_compare(kind, "explist") == 0 then
     if string_compare(get_kind(u), "return") == 0 then
@@ -1850,8 +1850,15 @@ function compiler(tokens, chunk)
     local proto = items[1]
     local r = result_table[get_attr(proto, attr_address)]
     local q = get_attr(proto, attr_result)
-    if #r ~= 1 or r[1] ~= q then
+    if #r ~= 1 then
       error "!!!"
+    end
+    -- if #r ~= 1 or r[1] ~= q then
+    --   error "!!!"
+    -- end
+    S";; " I(q) S" => " I(r[1]) S"\n"
+    if q == -1 then
+      set_attr(proto, attr_result, r[1])
     end
   end
 
