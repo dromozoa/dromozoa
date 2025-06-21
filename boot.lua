@@ -1376,35 +1376,35 @@ function process3(ctx, proto, u, v)
 
     io_write_string "if\n"
 
-      io_write_string "(local.get $"
-      io_write_integer(var)
-      io_write_string ")\n"
+    io_write_string "(local.get $"
+    io_write_integer(var)
+    io_write_string ")\n"
 
-      io_write_string "(local.get $"
-      io_write_integer(var + 1)
-      io_write_string ")\n"
+    io_write_string "(local.get $"
+    io_write_integer(var + 1)
+    io_write_string ")\n"
 
-      io_write_string "(i32.gt_s)\n"
+    io_write_string "(i32.gt_s)\n"
 
-      io_write_string "(br_if $"
-      io_write_integer(loop[loop_block])
-      io_write_string ")\n"
+    io_write_string "(br_if $"
+    io_write_integer(loop[loop_block])
+    io_write_string ")\n"
 
     io_write_string "else\n"
 
-      io_write_string "(local.get $"
-      io_write_integer(var)
-      io_write_string ")\n"
+    io_write_string "(local.get $"
+    io_write_integer(var)
+    io_write_string ")\n"
 
-      io_write_string "(local.get $"
-      io_write_integer(var + 1)
-      io_write_string ")\n"
+    io_write_string "(local.get $"
+    io_write_integer(var + 1)
+    io_write_string ")\n"
 
-      io_write_string "(i32.lt_s)\n"
+    io_write_string "(i32.lt_s)\n"
 
-      io_write_string "(br_if $"
-      io_write_integer(loop[loop_block])
-      io_write_string ")\n"
+    io_write_string "(br_if $"
+    io_write_integer(loop[loop_block])
+    io_write_string ")\n"
 
     io_write_string "end\n"
 
