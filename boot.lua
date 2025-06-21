@@ -1421,23 +1421,20 @@ function process3(ctx, proto, u, v)
   elseif string_compare(kind, "function") == 0 then
     range_i = 3
 
-    proto = v[3]
-
-    local proto = v[3]
-
+    proto = items[1]
     io_write_string "(func $"
     io_write_integer(get_attr(proto, attr_id))
     io_write_string " (; "
-    io_write_string(proto[3])
+    io_write_string(get_value(proto))
     io_write_string " ;)\n"
 
-    local parlist = v[4]
+    local parlist = items[2]
     for i = 3, #parlist do
       local par = parlist[i]
       io_write_string "(param $"
       io_write_integer(get_attr(par, attr_id))
       io_write_string " i32) (; "
-      io_write_string(par[3])
+      io_write_string(get_value(par))
       io_write_string " ;)\n"
     end
 
@@ -1457,7 +1454,7 @@ function process3(ctx, proto, u, v)
         io_write_string "(local $"
         io_write_integer(get_attr(var, attr_id))
         io_write_string " i32) (; "
-        io_write_string(var[3])
+        io_write_string(get_value(var))
         io_write_string " ;)\n"
       end
     end
@@ -1475,13 +1472,13 @@ function process3(ctx, proto, u, v)
     if proto == nil then
       range_j = 0
 
-      local explist = v[3]
-      local namelist = v[4]
+      local explist = get_items(items[1])
+      local namelist = get_items(items[2])
       if not (#explist == #namelist) then
         error "compiler error: invalid global"
       end
 
-      for i = 3, #explist do
+      for i = 1, #explist do
         local exp = explist[i]
         local name = namelist[i]
 
@@ -1520,7 +1517,7 @@ function process3(ctx, proto, u, v)
         io_write_integer(get_attr(ref, attr_id))
         io_write_string ") (; "
       end
-      io_write_string(v[3])
+      io_write_string(get_value(v))
       io_write_string " ;)\n"
     end
 
@@ -1548,7 +1545,7 @@ function process3(ctx, proto, u, v)
   elseif string_compare(kind, "or") == 0 then
     range_i = 2
 
-    process3(ctx, proto, v, v[3])
+    process3(ctx, proto, v, items[1])
     io_write_string "(local.tee $dup)\n"
     io_write_string "if (result i32)\n"
     io_write_string "(local.get $dup)\n"
@@ -1557,7 +1554,7 @@ function process3(ctx, proto, u, v)
   elseif string_compare(kind, "and") == 0 then
     range_i = 2
 
-    process3(ctx, proto, v, v[3])
+    process3(ctx, proto, v, items[1])
     io_write_string "(local.tee $dup)\n"
     io_write_string "if (result i32)\n"
 
@@ -1574,8 +1571,8 @@ function process3(ctx, proto, u, v)
   end
 
   if string_compare(kind, "assign") == 0 then
-    local varlist = v[4]
-    for i = #varlist, 3, -1 do
+    local varlist = get_items(items[2])
+    for i = #varlist, 1, -1 do
       local var = varlist[i]
       if string_compare(get_kind(var), "Name") == 0 then
         local ref = get_attr(var, attr_ref)
@@ -1586,7 +1583,7 @@ function process3(ctx, proto, u, v)
         end
         io_write_integer(get_attr(ref, attr_id))
         io_write_string ") (; "
-        io_write_string(var[3])
+        io_write_string(get_value(var))
         io_write_string " ;)\n"
       elseif string_compare(get_kind(var), "index") == 0 then
         process3(ctx, proto, varlist, var)
@@ -1609,16 +1606,16 @@ function process3(ctx, proto, u, v)
         or string_compare(name, "__call_indirect2") == 0
         or string_compare(name, "__call_indirect3") == 0 then
 
-        local args = v[4]
-        for i = 4, #args do
-          process3(ctx, proto, args, args[i])
+        local args = get_items(items[2])
+        for i = 2, #args do
+          process3(ctx, proto, items[2], args[i])
         end
-        process3(ctx, proto, args, args[3])
+        process3(ctx, proto, items[2], args[1])
 
         io_write_string "(call_indirect"
-        if #args > 3 then
+        if #args > 1 then
           io_write_string " (param"
-          for i = 1, #args - 3 do
+          for i = 2, #args do
             io_write_string " i32"
           end
           io_write_string ")"
@@ -1671,7 +1668,7 @@ function process3(ctx, proto, u, v)
         io_write_string "(memory.fill)\n"
 
       elseif string_compare(name, "__export_start") == 0 then
-        local arg = get_items(v[4])[1]
+        local arg = get_items(items[2])[1]
         local arg_ref = get_attr(arg, attr_ref)
         io_write_string '(export "_start" (func $'
         io_write_integer(get_attr(arg_ref, attr_id))
@@ -1694,9 +1691,9 @@ function process3(ctx, proto, u, v)
 
   elseif string_compare(kind, "if") == 0 then
     io_write_string "if\n"
-    process3(ctx, proto, v, v[4])
+    process3(ctx, proto, v, items[2])
     io_write_string "else\n"
-    process3(ctx, proto, v, v[5])
+    process3(ctx, proto, v, items[3])
     io_write_string "end\n"
 
   elseif string_compare(kind, "break") == 0 then
@@ -1743,13 +1740,13 @@ function process3(ctx, proto, u, v)
 
   elseif string_compare(kind, "local") == 0 then
     if proto ~= nil then
-      local namelist = v[4]
-      for i = #namelist, 3, -1 do
+      local namelist = get_items(items[2])
+      for i = #namelist, 1, -1 do
         local var = namelist[i]
         io_write_string "(local.set $"
         io_write_integer(get_attr(var, attr_id))
         io_write_string ") (; "
-        io_write_string(var[3])
+        io_write_string(get_value(var))
         io_write_string " ;)\n"
       end
     end
@@ -1921,8 +1918,9 @@ function compiler(tokens, chunk)
   local fd_write_id = add_fun(ctx, proto_table, new_name "__fd_write", 1)
   local heap_pointer_id = add_global(ctx, var_table, scope, new_name "__heap_pointer")
 
-  process1(ctx, proto_table, nil, chunk, chunk[3])
-  process2(ctx, proto_table, var_table, nil, scope, nil, chunk, chunk[3])
+  local chunk_block = get_items(chunk)[1]
+  process1(ctx, proto_table, nil, chunk, chunk_block)
+  process2(ctx, proto_table, var_table, nil, scope, nil, chunk, chunk_block)
 
   ctx[ctx_length]    = resolve_name(proto_table, scope, new_name "__length")
   ctx[ctx_concat]    = resolve_name(proto_table, scope, new_name "__concat")
@@ -1953,7 +1951,7 @@ function compiler(tokens, chunk)
 
   io_write_string'(export "memory" (memory 0))\n'
 
-  process3(ctx, nil, chunk, chunk[3])
+  process3(ctx, nil, chunk, chunk_block)
 
   write_proto_table(proto_table)
 
