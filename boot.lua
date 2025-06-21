@@ -1053,7 +1053,7 @@ function process1(ctx, proto_table, proto, u, v)
     end
   end
 
-  if string_compare(v[1], "function") == 0 then
+  if string_compare(kind, "function") == 0 then
     local attrs = proto[2]
     if attrs[attr_result] == -1 then
       proto[attr_result] = 0
@@ -1261,10 +1261,10 @@ function process3(ctx, proto, u, v)
     range_j = #items
   end
 
-  if string_compare(v[1], "assign") == 0 then
+  if string_compare(kind, "assign") == 0 then
     range_j = 1
 
-  elseif string_compare(v[1], "call") == 0 then
+  elseif string_compare(kind, "call") == 0 then
     local name = v[3]
     if string_compare(name[1], "Name") ~= 0 then
       error "compiler error: invalid name"
@@ -1283,10 +1283,10 @@ function process3(ctx, proto, u, v)
       end
     end
 
-  elseif string_compare(v[1], "if") == 0 then
+  elseif string_compare(kind, "if") == 0 then
     range_j = 1
 
-  elseif string_compare(v[1], "while") == 0 then
+  elseif string_compare(kind, "while") == 0 then
     range_i = 2
 
     local loop = v[2][attr_ref]
@@ -1304,7 +1304,7 @@ function process3(ctx, proto, u, v)
     io_write_integer(loop[loop_block])
     io_write_string ")\n"
 
-  elseif string_compare(v[1], "repeat") == 0 then
+  elseif string_compare(kind, "repeat") == 0 then
     local loop = v[2][attr_ref]
     io_write_string "block $"
     io_write_integer(loop[loop_block])
@@ -1313,7 +1313,7 @@ function process3(ctx, proto, u, v)
     io_write_integer(loop[loop_loop])
     io_write_string "\n"
 
-  elseif string_compare(v[1], "for") == 0 then
+  elseif string_compare(kind, "for") == 0 then
     range_i = 5
 
     local loop = v[2][attr_ref]
@@ -1421,7 +1421,7 @@ function process3(ctx, proto, u, v)
     io_write_integer(v[6][2][attr_id])
     io_write_string ")\n"
 
-  elseif string_compare(v[1], "function") == 0 then
+  elseif string_compare(kind, "function") == 0 then
     range_i = 3
 
     proto = v[3]
@@ -1476,7 +1476,7 @@ function process3(ctx, proto, u, v)
 
     io_write_string "block $main\n"
 
-  elseif string_compare(v[1], "local") == 0 then
+  elseif string_compare(kind, "local") == 0 then
     if proto == nil then
       range_j = 0
 
@@ -1500,16 +1500,16 @@ function process3(ctx, proto, u, v)
       range_j = 1
     end
 
-  elseif string_compare(v[1], "false") == 0 then
+  elseif string_compare(kind, "false") == 0 then
     io_write_string "(i32.const 0) (; false ;)\n"
 
-  elseif string_compare(v[1], "nil") == 0 then
+  elseif string_compare(kind, "nil") == 0 then
     io_write_string "(i32.const 0) (; nil ;)\n"
 
-  elseif string_compare(v[1], "true") == 0 then
+  elseif string_compare(kind, "true") == 0 then
     io_write_string "(i32.const 1) (; true ;)\n"
 
-  elseif string_compare(v[1], "Name") == 0 then
+  elseif string_compare(kind, "Name") == 0 then
     local attrs = v[2]
     if string_compare(attrs[attr_resolver], "ref") == 0 then
       local ref = attrs[attr_ref]
@@ -1531,17 +1531,17 @@ function process3(ctx, proto, u, v)
       io_write_string " ;)\n"
     end
 
-  elseif string_compare(v[1], "Integer") == 0 then
+  elseif string_compare(kind, "Integer") == 0 then
     io_write_string "(i32.const "
     io_write_integer(v[3])
     io_write_string ") (; Integer ;)\n"
 
-  elseif string_compare(v[1], "String") == 0 then
+  elseif string_compare(kind, "String") == 0 then
     io_write_string "(i32.const "
     io_write_integer(v[2][attr_address])
     io_write_string ") (; String ;)\n"
 
-  elseif string_compare(v[1], "table") == 0 then
+  elseif string_compare(kind, "table") == 0 then
     io_write_string "(i32.const "
     io_write_integer(#v - 2)
     io_write_string ")\n"
@@ -1552,7 +1552,7 @@ function process3(ctx, proto, u, v)
     io_write_integer(v[2][attr_id])
     io_write_string ")\n"
 
-  elseif string_compare(v[1], "or") == 0 then
+  elseif string_compare(kind, "or") == 0 then
     range_i = 2
 
     process3(ctx, proto, v, v[3])
@@ -1561,14 +1561,14 @@ function process3(ctx, proto, u, v)
     io_write_string "(local.get $dup)\n"
     io_write_string "else\n"
 
-  elseif string_compare(v[1], "and") == 0 then
+  elseif string_compare(kind, "and") == 0 then
     range_i = 2
 
     process3(ctx, proto, v, v[3])
     io_write_string "(local.tee $dup)\n"
     io_write_string "if (result i32)\n"
 
-  elseif string_compare(v[1], "-") == 0 then
+  elseif string_compare(kind, "-") == 0 then
     if #v == 3 then
       io_write_string "(i32.const 0)\n"
     end
@@ -1580,7 +1580,7 @@ function process3(ctx, proto, u, v)
     end
   end
 
-  if string_compare(v[1], "assign") == 0 then
+  if string_compare(kind, "assign") == 0 then
     local varlist = v[4]
     for i = #varlist, 3, -1 do
       local var = varlist[i]
@@ -1606,7 +1606,7 @@ function process3(ctx, proto, u, v)
       end
     end
 
-  elseif string_compare(v[1], "call") == 0 then
+  elseif string_compare(kind, "call") == 0 then
     local ref = v[3][2][attr_ref]
     local result = ref[2][attr_result]
 
@@ -1699,19 +1699,19 @@ function process3(ctx, proto, u, v)
       end
     end
 
-  elseif string_compare(v[1], "if") == 0 then
+  elseif string_compare(kind, "if") == 0 then
     io_write_string "if\n"
     process3(ctx, proto, v, v[4])
     io_write_string "else\n"
     process3(ctx, proto, v, v[5])
     io_write_string "end\n"
 
-  elseif string_compare(v[1], "break") == 0 then
+  elseif string_compare(kind, "break") == 0 then
     io_write_string "(br $"
     io_write_integer(v[2][attr_id])
     io_write_string ")\n"
 
-  elseif string_compare(v[1], "while") == 0 then
+  elseif string_compare(kind, "while") == 0 then
     local loop = v[2][attr_ref]
     io_write_string "(br $"
     io_write_integer(loop[loop_loop])
@@ -1719,7 +1719,7 @@ function process3(ctx, proto, u, v)
     io_write_string "end\n"
     io_write_string "end\n"
 
-  elseif string_compare(v[1], "repeat") == 0 then
+  elseif string_compare(kind, "repeat") == 0 then
     local loop = v[2][attr_ref]
     io_write_string "(i32.eqz)\n"
     io_write_string "(br_if $"
@@ -1728,7 +1728,7 @@ function process3(ctx, proto, u, v)
     io_write_string "end\n"
     io_write_string "end\n"
 
-  elseif string_compare(v[1], "for") == 0 then
+  elseif string_compare(kind, "for") == 0 then
     local loop = v[2][attr_ref]
     io_write_string "(br $"
     io_write_integer(loop[loop_loop])
@@ -1736,7 +1736,7 @@ function process3(ctx, proto, u, v)
     io_write_string "end\n"
     io_write_string "end\n"
 
-  elseif string_compare(v[1], "function") == 0 then
+  elseif string_compare(kind, "function") == 0 then
     local attrs = proto[2]
 
     io_write_string "end\n"
@@ -1750,7 +1750,7 @@ function process3(ctx, proto, u, v)
 
     io_write_string ")\n"
 
-  elseif string_compare(v[1], "local") == 0 then
+  elseif string_compare(kind, "local") == 0 then
     if proto ~= nil then
       local namelist = v[4]
       for i = #namelist, 3, -1 do
@@ -1763,7 +1763,7 @@ function process3(ctx, proto, u, v)
       end
     end
 
-  elseif string_compare(v[1], "return") == 0 then
+  elseif string_compare(kind, "return") == 0 then
     local result = proto[2][attr_result]
     for i = result, 1, -1 do
       io_write_string "(local.set $r"
@@ -1772,7 +1772,7 @@ function process3(ctx, proto, u, v)
     end
     io_write_string "(br $main)\n"
 
-  elseif string_compare(v[1], "table") == 0 then
+  elseif string_compare(kind, "table") == 0 then
     for i = #v - 2, 1, -1 do
       io_write_string "(local.get $"
       io_write_integer(v[2][attr_id])
@@ -1785,87 +1785,87 @@ function process3(ctx, proto, u, v)
       io_write_string ") (; __set_table ;)\n"
     end
 
-  elseif string_compare(v[1], "not") == 0 then
+  elseif string_compare(kind, "not") == 0 then
     io_write_string "(i32.eqz)\n"
 
-  elseif string_compare(v[1], "#") == 0 then
+  elseif string_compare(kind, "#") == 0 then
     io_write_string "(call $"
     io_write_integer(ctx[ctx_length][2][attr_id])
     io_write_string ") (; __length ;)\n"
 
-  elseif string_compare(v[1], "or") == 0 then
+  elseif string_compare(kind, "or") == 0 then
     io_write_string "end\n"
 
-  elseif string_compare(v[1], "and") == 0 then
+  elseif string_compare(kind, "and") == 0 then
     io_write_string "else\n"
     io_write_string "(local.get $dup)\n"
     io_write_string "end\n"
 
-  elseif string_compare(v[1], "<") == 0 then
+  elseif string_compare(kind, "<") == 0 then
     io_write_string "(i32.lt_s)\n"
 
-  elseif string_compare(v[1], ">") == 0 then
+  elseif string_compare(kind, ">") == 0 then
     io_write_string "(i32.gt_s)\n"
 
-  elseif string_compare(v[1], "<=") == 0 then
+  elseif string_compare(kind, "<=") == 0 then
     io_write_string "(i32.le_s)\n"
 
-  elseif string_compare(v[1], ">=") == 0 then
+  elseif string_compare(kind, ">=") == 0 then
     io_write_string "(i32.ge_s)\n"
 
-  elseif string_compare(v[1], "~=") == 0 then
+  elseif string_compare(kind, "~=") == 0 then
     io_write_string "(i32.ne)\n"
 
-  elseif string_compare(v[1], "==") == 0 then
+  elseif string_compare(kind, "==") == 0 then
     io_write_string "(i32.eq)\n"
 
-  elseif string_compare(v[1], "|") == 0 then
+  elseif string_compare(kind, "|") == 0 then
     io_write_string "(i32.or)\n"
 
-  elseif string_compare(v[1], "~") == 0 then
+  elseif string_compare(kind, "~") == 0 then
     -- bnot or bxor
     if #v == 3 then
       io_write_string "(i32.const -1)\n"
     end
     io_write_string "(i32.xor)\n"
 
-  elseif string_compare(v[1], "&") == 0 then
+  elseif string_compare(kind, "&") == 0 then
     io_write_string "(i32.and)\n"
 
-  elseif string_compare(v[1], "<<") == 0 then
+  elseif string_compare(kind, "<<") == 0 then
     io_write_string "(i32.shl)\n"
 
-  elseif string_compare(v[1], ">>") == 0 then
+  elseif string_compare(kind, ">>") == 0 then
     -- Luaのshrはゼロ埋め
     io_write_string "(i32.shr_u)\n"
 
-  elseif string_compare(v[1], "..") == 0 then
+  elseif string_compare(kind, "..") == 0 then
     io_write_string "(call $"
     io_write_integer(ctx[ctx_concat][2][attr_id])
     io_write_string ") (; __concat ;)\n"
 
-  elseif string_compare(v[1], "+") == 0 then
+  elseif string_compare(kind, "+") == 0 then
     io_write_string "(i32.add)\n"
 
-  elseif string_compare(v[1], "-") == 0 then
+  elseif string_compare(kind, "-") == 0 then
     io_write_string "(i32.sub)\n"
 
-  elseif string_compare(v[1], "*") == 0 then
+  elseif string_compare(kind, "*") == 0 then
     io_write_string "(i32.mul)\n"
 
-  elseif string_compare(v[1], "/") == 0 or string_compare(v[1], "//") == 0 then
+  elseif string_compare(kind, "/") == 0 or string_compare(kind, "//") == 0 then
     io_write_string "(i32.div_s)\n"
 
-  elseif string_compare(v[1], "%") == 0 then
+  elseif string_compare(kind, "%") == 0 then
     io_write_string "(i32.rem_s)\n"
 
-  elseif string_compare(v[1], "^") == 0 then
+  elseif string_compare(kind, "^") == 0 then
     -- pow
     io_write_string "(call $"
     io_write_integer(ctx[ctx_power][2][attr_id])
     io_write_string ") (; __power ;)\n"
 
-  elseif string_compare(v[1], "index") == 0 then
+  elseif string_compare(kind, "index") == 0 then
     if string_compare(v[2][attr_resolver], "set") ~= 0 then
       io_write_string "(call $"
       io_write_integer(ctx[ctx_get_table][2][attr_id])
