@@ -63,25 +63,15 @@ end
 
 --------------------------------------------------------------------------------
 
--- token {
---   kind     : string
---   attrs    : attrs
---   value    : string|integer
---   position : integer;
--- }
---
--- node {
---   kind  : string
---   attrs : attrs
---   ...   : (token|node)*
--- }
-
 --[[
   struct node {
     kind = string;
     attrs = attrs
-    items = table<token|node>
-    items = table<node>
+    union {
+      value = string|integer
+      items = table<node>
+    }
+    position = integer
   }
 ]]
 
@@ -106,11 +96,7 @@ function new_token(kind, value, position)
 end
 
 function new_node(kind, items)
-  local result = { kind, new_node_attrs() }
-  for i = 1, #items do
-    table_insert(result, items[i])
-  end
-  return result
+  return { kind, new_node_attrs(), items, 0 }
 end
 
 function get_kind(u)
@@ -138,11 +124,7 @@ function get_items(u)
     return nil
   end
 
-  local result = {}
-  for i = 3, #u do
-    table_insert(result, u[i])
-  end
-  return result
+  return u[3]
 end
 
 function get_position(u)
