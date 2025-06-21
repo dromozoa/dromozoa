@@ -109,7 +109,15 @@ function new_node(kind, items)
   return result
 end
 
-function node_items(node)
+function get_value(node)
+  if string_compare(node[2][attr_class], "token") == 0 then
+    return node[3]
+  else
+    return nil
+  end
+end
+
+function get_items(node)
   if string_compare(node[2][attr_class], "token") == 0 then
     return nil
   end
@@ -920,8 +928,8 @@ function make_string_table(tokens)
 
   for i = 1, #string_tokens do
     local token = string_tokens[i]
-    if value == nil or string_compare(value, token[3]) ~= 0 then
-      value = token[3]
+    if value == nil or string_compare(value, get_value(token)) ~= 0 then
+      value = get_value(token)
       table_insert(string_table, { value, 0 })
     end
     token[2][attr_address] = #string_table * 8
@@ -1021,7 +1029,7 @@ end
 
 function process1(ctx, proto_table, proto, u, v)
   local kind = v[1]
-  local items = node_items(v)
+  local items = get_items(v)
 
   local value = nil
   if items == nil then
@@ -1038,7 +1046,7 @@ function process1(ctx, proto_table, proto, u, v)
     add_fun(ctx, proto_table, proto, -1)
 
   elseif string_compare(kind, "return") == 0 then
-    local result = #node_items(value)
+    local result = #get_items(value)
     local attrs = proto[2]
     if attrs[attr_result] == -1 then
       attrs[attr_result] = result
@@ -1159,7 +1167,7 @@ local loop_loop = 2
 
 function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
   local kind = v[1]
-  local items = node_items(v)
+  local items = get_items(v)
 
   local value = nil
   if items == nil then
@@ -1175,7 +1183,7 @@ function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
     end
 
   elseif string_compare(kind, "assign") == 0 then
-    local varlist = node_items(items[2])
+    local varlist = get_items(items[2])
     for i = 1, #varlist do
       local var = varlist[i]
       if string_compare(var[1], "Name") == 0 then
@@ -1248,7 +1256,7 @@ end
 
 function process3(ctx, proto, u, v)
   local kind = v[1]
-  local items = node_items(v)
+  local items = get_items(v)
 
   local value = nil
   local range_i = 1
@@ -1265,7 +1273,7 @@ function process3(ctx, proto, u, v)
     range_j = 1
 
   elseif string_compare(kind, "call") == 0 then
-    local name = v[3]
+    local name = value
     if string_compare(name[1], "Name") ~= 0 then
       error "compiler error: invalid name"
     end
@@ -1297,7 +1305,7 @@ function process3(ctx, proto, u, v)
     io_write_integer(loop[loop_loop])
     io_write_string "\n"
 
-    process3(ctx, proto, v, v[3])
+    process3(ctx, proto, v, items[1])
 
     io_write_string "(i32.eqz)\n"
     io_write_string "(br_if $"
@@ -1323,9 +1331,9 @@ function process3(ctx, proto, u, v)
 
     local var = v[2][attr_id]
 
-    process3(ctx, proto, v, v[3])
-    process3(ctx, proto, v, v[4])
-    process3(ctx, proto, v, v[5])
+    process3(ctx, proto, v, items[1])
+    process3(ctx, proto, v, items[2])
+    process3(ctx, proto, v, items[3])
 
     io_write_string "(local.set $"
     io_write_integer(var + 2)
