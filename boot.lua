@@ -1042,7 +1042,6 @@ end
 function process1(ctx, proto_table, proto, u, v)
   local kind = get_kind(v)
   local items = get_items(v)
-
   local value = get_value(v)
   if items ~= nil then
     value = items[1]
@@ -1090,10 +1089,9 @@ end
 
 function add_var_impl(ctx, var_table, scope, u, resolver, global)
   local id = make_id(ctx)
-  local attrs = u[2]
-  attrs[attr_resolver] = resolver
-  attrs[attr_id] = id
-  attrs[attr_global] = global
+  set_attr(u, attr_resolver, resolver)
+  set_attr(u, attr_id, id)
+  set_attr(u, attr_global, global)
   table_insert(var_table, u)
   table_insert(scope[scope_data], u)
   return id
@@ -1114,20 +1112,19 @@ end
 function add_fun(ctx, proto_table, u, result)
   table_insert(proto_table, u)
   local id = make_id(ctx)
-  local attrs = u[2]
-  attrs[attr_resolver] = "fun"
-  attrs[attr_address] = make_address(ctx)
-  attrs[attr_id] = id
-  attrs[attr_result] = result
-  attrs[attr_ref] = {}
+  set_attr(u, attr_resolver, "fun")
+  set_attr(u, attr_address, make_address(ctx))
+  set_attr(u, attr_id, id)
+  set_attr(u, attr_result, result)
+  set_attr(u, attr_ref, {})
   return id
 end
 
 function add_asm(ctx, proto_table, u, result)
   table_insert(proto_table, u)
   local attrs = u[2]
-  attrs[attr_resolver] = "asm"
-  attrs[attr_result] = result
+  set_attr(u, attr_resolver, "asm")
+  set_attr(u, attr_result, result)
 end
 
 function resolve_name_impl(proto_table, scope, u, resolver)
@@ -1136,8 +1133,8 @@ function resolve_name_impl(proto_table, scope, u, resolver)
     for i = #data, 1, -1 do
       local v = data[i]
       if string_compare(get_value(u), get_value(v)) == 0 then
-        u[2][attr_resolver] = resolver
-        u[2][attr_ref] = v
+        set_attr(u, attr_resolver, resolver)
+        set_attr(u, attr_ref, v)
         return v
       end
     end
@@ -1147,8 +1144,8 @@ function resolve_name_impl(proto_table, scope, u, resolver)
   for i = 1, #proto_table do
     local v = proto_table[i]
     if string_compare(get_value(u), get_value(v)) == 0 then
-      u[2][attr_resolver] = resolver
-      u[2][attr_ref] = v
+      set_attr(u, attr_resolver, resolver)
+      set_attr(u, attr_ref, v)
       return v
     end
   end
@@ -1166,7 +1163,7 @@ end
 
 function new_loop(ctx, u)
   local loop = { make_id(ctx), make_id(ctx) }
-  u[2][attr_ref] = loop
+  set_attr(u, attr_ref, loop)
   return loop
 end
 
@@ -1195,14 +1192,14 @@ function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
       if string_compare(get_kind(var), "Name") == 0 then
         resolve_name(proto_table, scope, var)
       end
-      var[2][attr_resolver] = "set"
+      set_attr(var, attr_resolver, "set")
     end
 
   elseif string_compare(kind, "break") == 0 then
     if loop == nil then
       error "compiler error: invalid loop"
     end
-    v[2][attr_id] = loop[loop_block]
+    set_attr(v, attr_id, loop[loop_block])
 
   elseif string_compare(kind, "do") == 0 then
     scope = new_scope(scope)
@@ -1219,14 +1216,14 @@ function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
     loop = new_loop(ctx, v)
     scope = new_scope(scope)
 
-    v[2][attr_id] = add_var(ctx, var_table, scope, new_name "(var)")
+    set_attr(v, attr_id, add_var(ctx, var_table, scope, new_name "(var)"))
     add_var(ctx, var_table, scope, new_name "(limit)")
     add_var(ctx, var_table, scope, new_name "(step)")
 
     add_var(ctx, var_table, scope, items[4])
 
   elseif string_compare(kind, "function") == 0 then
-    var_table = value[2][attr_ref]
+    var_table = get_attr(value, attr_ref)
     proto = value
     scope = new_scope(scope)
 
@@ -1241,7 +1238,7 @@ function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
       add_par(ctx, var_table, scope, v)
     end
 
-    if string_compare(v[2][attr_resolver], "") == 0 then
+    if string_compare(get_attr(v, attr_resolver), "") == 0 then
       if string_compare(get_kind(u), "call") == 0 then
         resolve_call(proto_table, scope, v)
       else
@@ -1250,7 +1247,7 @@ function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
     end
 
   elseif string_compare(kind, "table") == 0 then
-    v[2][attr_id] = add_var(ctx, var_table, scope, new_name "(table)")
+    set_attr(v, attr_id, add_var(ctx, var_table, scope, new_name "(table)"))
   end
 
   if items ~= nil then
@@ -1279,20 +1276,20 @@ function process3(ctx, proto, u, v)
     range_j = 1
 
   elseif string_compare(kind, "call") == 0 then
-    local name = value
-    if string_compare(get_kind(name), "Name") ~= 0 then
+    if string_compare(get_kind(value), "Name") ~= 0 then
       error "compiler error: invalid name"
     end
 
     range_i = 2
 
-    local ref = name[2][attr_ref]
-    if string_compare(ref[2][attr_resolver], "asm") == 0 then
-      if string_compare(ref[3], "__call_indirect0") == 0
-        or string_compare(ref[3], "__call_indirect1") == 0
-        or string_compare(ref[3], "__call_indirect2") == 0
-        or string_compare(ref[3], "__call_indirect3") == 0
-        or string_compare(ref[3], "__export_start") == 0 then
+    local ref = get_attr(value, attr_ref)
+    if string_compare(get_attr(ref, attr_resolver), "asm") == 0 then
+      local name = get_value(ref)
+      if string_compare(name, "__call_indirect0") == 0
+        or string_compare(name, "__call_indirect1") == 0
+        or string_compare(name, "__call_indirect2") == 0
+        or string_compare(name, "__call_indirect3") == 0
+        or string_compare(name, "__export_start") == 0 then
         range_j = 0
       end
     end
@@ -1303,7 +1300,7 @@ function process3(ctx, proto, u, v)
   elseif string_compare(kind, "while") == 0 then
     range_i = 2
 
-    local loop = v[2][attr_ref]
+    local loop = get_attr(v, attr_ref)
     io_write_string "block $"
     io_write_integer(loop[loop_block])
     io_write_string "\n"
@@ -1319,7 +1316,7 @@ function process3(ctx, proto, u, v)
     io_write_string ")\n"
 
   elseif string_compare(kind, "repeat") == 0 then
-    local loop = v[2][attr_ref]
+    local loop = get_attr(v, attr_ref)
     io_write_string "block $"
     io_write_integer(loop[loop_block])
     io_write_string "\n"
@@ -1330,12 +1327,12 @@ function process3(ctx, proto, u, v)
   elseif string_compare(kind, "for") == 0 then
     range_i = 5
 
-    local loop = v[2][attr_ref]
+    local loop = get_attr(v, attr_ref)
     io_write_string "block $"
     io_write_integer(loop[loop_block])
     io_write_string "\n"
 
-    local var = v[2][attr_id]
+    local var = get_attr(v, attr_id)
 
     process3(ctx, proto, v, items[1])
     process3(ctx, proto, v, items[2])
@@ -1432,7 +1429,7 @@ function process3(ctx, proto, u, v)
     io_write_string ")\n"
 
     io_write_string "(local.set $"
-    io_write_integer(v[6][2][attr_id])
+    io_write_integer(get_attr(items[4], attr_id))
     io_write_string ")\n"
 
   elseif string_compare(kind, "function") == 0 then
@@ -1441,10 +1438,9 @@ function process3(ctx, proto, u, v)
     proto = v[3]
 
     local proto = v[3]
-    local attrs = proto[2]
 
     io_write_string "(func $"
-    io_write_integer(attrs[attr_id])
+    io_write_integer(get_attr(proto, attr_id))
     io_write_string " (; "
     io_write_string(proto[3])
     io_write_string " ;)\n"
@@ -1453,13 +1449,13 @@ function process3(ctx, proto, u, v)
     for i = 3, #parlist do
       local par = parlist[i]
       io_write_string "(param $"
-      io_write_integer(par[2][attr_id])
+      io_write_integer(get_attr(par, attr_id))
       io_write_string " i32) (; "
       io_write_string(par[3])
       io_write_string " ;)\n"
     end
 
-    local result = attrs[attr_result]
+    local result = get_attr(proto, attr_result)
     if result > 0 then
       io_write_string "(result"
       for i = 1, result do
@@ -1468,13 +1464,12 @@ function process3(ctx, proto, u, v)
       io_write_string ")\n"
     end
 
-    local var_table = attrs[attr_ref]
+    local var_table = get_attr(proto, attr_ref)
     for i = 1, #var_table do
       local var = var_table[i]
-      local attrs = var[2]
-      if string_compare(attrs[attr_resolver], "var") == 0 then
+      if string_compare(get_attr(var, attr_resolver), "var") == 0 then
         io_write_string "(local $"
-        io_write_integer(attrs[attr_id])
+        io_write_integer(get_attr(var, attr_id))
         io_write_string " i32) (; "
         io_write_string(var[3])
         io_write_string " ;)\n"
@@ -1505,7 +1500,7 @@ function process3(ctx, proto, u, v)
         local name = namelist[i]
 
         io_write_string "(global $"
-        io_write_integer(name[2][attr_id])
+        io_write_integer(get_attr(name, attr_id))
         io_write_string " (mut i32)\n"
         process3(ctx, proto, explist, exp)
         io_write_string ")\n"
@@ -1524,21 +1519,19 @@ function process3(ctx, proto, u, v)
     io_write_string "(i32.const 1) (; true ;)\n"
 
   elseif string_compare(kind, "Name") == 0 then
-    local attrs = v[2]
-    if string_compare(attrs[attr_resolver], "ref") == 0 then
-      local ref = attrs[attr_ref]
-      local ref_attrs = ref[2]
-      if string_compare(ref_attrs[attr_resolver], "fun") == 0 then
+    if string_compare(get_attr(v, attr_resolver), "ref") == 0 then
+      local ref = get_attr(v, attr_ref)
+      if string_compare(get_attr(ref, attr_resolver), "fun") == 0 then
         io_write_string "(i32.const "
-        io_write_integer(ref_attrs[attr_address])
+        io_write_integer(get_attr(ref, attr_address))
         io_write_string ") (; "
       else
-        if ref_attrs[attr_global] then
+        if get_attr(ref, attr_global) then
           io_write_string "(global.get $"
         else
           io_write_string "(local.get $"
         end
-        io_write_integer(ref_attrs[attr_id])
+        io_write_integer(get_attr(ref, attr_id))
         io_write_string ") (; "
       end
       io_write_string(v[3])
@@ -1552,7 +1545,7 @@ function process3(ctx, proto, u, v)
 
   elseif string_compare(kind, "String") == 0 then
     io_write_string "(i32.const "
-    io_write_integer(v[2][attr_address])
+    io_write_integer(get_attr(v, attr_address))
     io_write_string ") (; String ;)\n"
 
   elseif string_compare(kind, "table") == 0 then
@@ -1560,10 +1553,10 @@ function process3(ctx, proto, u, v)
     io_write_integer(#v - 2)
     io_write_string ")\n"
     io_write_string "(call $"
-    io_write_integer(ctx[ctx_new_table][2][attr_id])
+    io_write_integer(get_attr(ctx[ctx_new_table], attr_id))
     io_write_string ") (; __new_table ;)\n"
     io_write_string "(local.tee $"
-    io_write_integer(v[2][attr_id])
+    io_write_integer(get_attr(v, attr_id))
     io_write_string ")\n"
 
   elseif string_compare(kind, "or") == 0 then
