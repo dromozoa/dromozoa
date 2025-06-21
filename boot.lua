@@ -92,6 +92,10 @@ function new_token(kind, value, position)
   return { kind, new_attrs "token", value, position }
 end
 
+function new_name(name)
+  return new_token("Name", name, 0)
+end
+
 function new_node(kind, items)
   return { kind, new_attrs "node", items, 0 }
 end
@@ -1068,10 +1072,6 @@ end
 
 local scope_data = 1
 local scope_parent = 2
-
-function new_name(name)
-  return new_token("Name", name, 0)
-end
 
 function add_var_impl(ctx, var_table, scope, u, resolver, global)
   local id = make_id(ctx)
