@@ -141,6 +141,14 @@ function get_items(u)
   return result
 end
 
+function get_position(u)
+  if string_compare(u[2][attr_class], "token") == 0 then
+    return u[4]
+  else
+    return nil
+  end
+end
+
 function compare_string_index1(a, b)
   return string_compare(a[1], b[1])
 end
@@ -601,7 +609,7 @@ function parser_initialize()
 end
 
 function parser_error(token)
-  error("parser error at token <"..get_kind(token).."> position "..integer_to_string(token[4]))
+  error("parser error at token <"..get_kind(token).."> position "..integer_to_string(get_position(token)))
 end
 
 function parser_item_search(t, item)
@@ -1118,7 +1126,6 @@ end
 
 function add_asm(ctx, proto_table, u, result)
   table_insert(proto_table, u)
-  local attrs = u[2]
   set_attr(u, attr_resolver, "asm")
   set_attr(u, attr_result, result)
 end
