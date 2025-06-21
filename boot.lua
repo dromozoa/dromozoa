@@ -921,6 +921,13 @@ end
 --------------------------------------------------------------------------------
 
 local asm_table = nil
+local op_table = nil
+
+function io_write_string_repeat(n, s)
+  for i = 1, n do
+    io_write_string(s)
+  end
+end
 
 function compiler_initialize()
   local leave_call_indirect = function (ctx, proto, u)
@@ -934,18 +941,14 @@ function compiler_initialize()
     io_write_string "(call_indirect"
     if #args > 1 then
       io_write_string " (param"
-      for i = 2, #args do
-        io_write_string " i32"
-      end
+      io_write_string_repeat(#args - 1, " i32")
       io_write_string ")"
     end
 
     local result = get_attr(get_attr(items[1], attr_ref), attr_result)
     if result > 0 then
       io_write_string " (result"
-      for i = 1, result do
-        io_write_string " i32"
-      end
+      io_write_string_repeat(result, " i32")
       io_write_string ")"
     end
 
