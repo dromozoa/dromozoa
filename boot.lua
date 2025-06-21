@@ -1593,7 +1593,7 @@ function process3(ctx, proto, u, v)
       elseif string_compare(ref[3], "__export_start") == 0 then
         local arg = v[4][3]
         local arg_ref = arg[2][attr_ref]
-        io_write_string('(export "_start" (func $')
+        io_write_string '(export "_start" (func $'
         io_write_integer(arg_ref[2][attr_id])
         io_write_string("))\n")
       end
@@ -1854,11 +1854,11 @@ function compiler(tokens, chunk)
 
   io_write_string("(module\n")
 
-  io_write_string('(import "wasi_unstable" "fd_read" (func $')
+  io_write_string '(import "wasi_unstable" "fd_read" (func $'
   io_write_integer(fd_read_id)
   io_write_string(" (param i32 i32 i32 i32) (result i32)))\n")
 
-  io_write_string('(import "wasi_unstable" "fd_write" (func $')
+  io_write_string '(import "wasi_unstable" "fd_write" (func $'
   io_write_integer(fd_write_id)
   io_write_string(" (param i32 i32 i32 i32) (result i32)))\n")
 
@@ -1872,7 +1872,7 @@ function compiler(tokens, chunk)
   io_write_integer(memory_size)
   io_write_string(")\n")
 
-  io_write_string('(export "memory" (memory 0))\n')
+  io_write_string'(export "memory" (memory 0))\n'
 
   process3(ctx, nil, chunk, chunk[3])
 
