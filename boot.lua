@@ -526,6 +526,16 @@ function nud_prefix(parser, token)
   return new_node(get_kind(token), { parser_exp(parser, parser_prefix_lbp) })
 end
 
+function nud_function(parser, token)
+  parser_expect(parser, "(")
+  local parlist = parser_list(parser, "parlist", parser_name, ",", ")")
+  local block = parser_block(parser)
+  parser_expect(parser, "end")
+  local result = new_node("function", { new_name "(unnamed)", parlist, block })
+  set_attr(result, attr_exp, true)
+  return result
+end
+
 function led_left(parser, lbp, token, node)
   return new_node(get_kind(token), { node, parser_exp(parser, lbp) })
 end
@@ -551,18 +561,19 @@ function parser_initialize()
   parser_nud = {}
   parser_led = {}
 
-  table_insert(parser_nud, { "false",   nud_token  })
-  table_insert(parser_nud, { "nil",     nud_token  })
-  table_insert(parser_nud, { "true",    nud_token  })
-  table_insert(parser_nud, { "Name",    nud_name   })
-  table_insert(parser_nud, { "String",  nud_token  })
-  table_insert(parser_nud, { "Integer", nud_token  })
-  table_insert(parser_nud, { "(",       nud_group  })
-  table_insert(parser_nud, { "{",       nud_table  })
-  table_insert(parser_nud, { "not",     nud_prefix })
-  table_insert(parser_nud, { "#",       nud_prefix })
-  table_insert(parser_nud, { "-",       nud_prefix })
-  table_insert(parser_nud, { "~",       nud_prefix })
+  table_insert(parser_nud, { "false",    nud_token    })
+  table_insert(parser_nud, { "nil",      nud_token    })
+  table_insert(parser_nud, { "true",     nud_token    })
+  table_insert(parser_nud, { "Name",     nud_name     })
+  table_insert(parser_nud, { "String",   nud_token    })
+  table_insert(parser_nud, { "Integer",  nud_token    })
+  table_insert(parser_nud, { "(",        nud_group    })
+  table_insert(parser_nud, { "{",        nud_table    })
+  table_insert(parser_nud, { "not",      nud_prefix   })
+  table_insert(parser_nud, { "#",        nud_prefix   })
+  table_insert(parser_nud, { "-",        nud_prefix   })
+  table_insert(parser_nud, { "~",        nud_prefix   })
+  table_insert(parser_nud, { "function", nud_function })
 
   local bp = 10
   table_insert(parser_led, { "or",  bp, led_left   }) bp = bp + 10
@@ -1033,16 +1044,14 @@ function make_address(ctx)
   return address
 end
 
-function process1(ctx, proto_table, proto, u, v)
+function process1(ctx, proto_table, function_table, proto, u, v)
   local kind = get_kind(v)
   local items = get_items(v)
 
   if string_compare(kind, "function") == 0 then
-    if proto ~= nil then
-      error "compiler error: invalid proto"
-    end
     proto = items[1]
     add_fun(ctx, proto_table, proto, -1)
+    table_insert(function_table, v)
 
   elseif string_compare(kind, "return") == 0 then
     local result = #get_items(items[1])
@@ -1055,7 +1064,7 @@ function process1(ctx, proto_table, proto, u, v)
 
   if items ~= nil then
     for i = 1, #items do
-      process1(ctx, proto_table, proto, v, items[i])
+      process1(ctx, proto_table, function_table, proto, v, items[i])
     end
   end
 
@@ -1155,7 +1164,7 @@ end
 local loop_block = 1
 local loop_loop = 2
 
-function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
+function process2(ctx, proto_table, var_table, proto, chunk_scope, scope, loop, u, v)
   local kind = get_kind(v)
   local items = get_items(v)
 
@@ -1205,7 +1214,7 @@ function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
   elseif string_compare(kind, "function") == 0 then
     proto = items[1]
     var_table = get_attr(proto, attr_ref)
-    scope = new_scope(scope)
+    scope = new_scope(chunk_scope)
 
   elseif string_compare(kind, "Name") == 0 then
     if string_compare(get_kind(u), "namelist") == 0 then
@@ -1232,7 +1241,7 @@ function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
 
   if items ~= nil then
     for i = 1, #items do
-      process2(ctx, proto_table, var_table, proto, scope, loop, v, items[i])
+      process2(ctx, proto_table, var_table, proto, chunk_scope, scope, loop, v, items[i])
     end
   end
 end
@@ -1408,54 +1417,13 @@ function process3(ctx, proto, u, v)
     io_write_string ")\n"
 
   elseif string_compare(kind, "function") == 0 then
-    range_i = 3
+    range_j = 0
 
-    proto = items[1]
-    io_write_string "(func $"
-    io_write_integer(get_attr(proto, attr_id))
-    io_write_string " (; "
-    io_write_string(get_value(proto))
-    io_write_string " ;)\n"
-
-    local parlist = get_items(items[2])
-    for i = 1, #parlist do
-      local par = parlist[i]
-      io_write_string "(param $"
-      io_write_integer(get_attr(par, attr_id))
-      io_write_string " i32) (; "
-      io_write_string(get_value(par))
-      io_write_string " ;)\n"
-    end
-
-    local result = get_attr(proto, attr_result)
-    if result > 0 then
-      io_write_string "(result"
-      for i = 1, result do
-        io_write_string " i32"
-      end
+    if get_attr(v, attr_exp) then
+      io_write_string "(i32.const "
+      io_write_integer(get_attr(get_items(v)[1], attr_address))
       io_write_string ")\n"
     end
-
-    local var_table = get_attr(proto, attr_ref)
-    for i = 1, #var_table do
-      local var = var_table[i]
-      if string_compare(get_attr(var, attr_resolver), "var") == 0 then
-        io_write_string "(local $"
-        io_write_integer(get_attr(var, attr_id))
-        io_write_string " i32) (; "
-        io_write_string(get_value(var))
-        io_write_string " ;)\n"
-      end
-    end
-
-    for i = 1, result do
-      io_write_string "(local $r"
-      io_write_integer(i)
-      io_write_string " i32)\n"
-    end
-    io_write_string "(local $dup i32)\n"
-
-    io_write_string "block $main\n"
 
   elseif string_compare(kind, "local") == 0 then
     if proto == nil then
@@ -1715,18 +1683,6 @@ function process3(ctx, proto, u, v)
     io_write_string "end\n"
     io_write_string "end\n"
 
-  elseif string_compare(kind, "function") == 0 then
-    io_write_string "end\n"
-    local result = get_attr(proto, attr_result)
-    for i = 1, result do
-      io_write_string "(local.get $r"
-      io_write_integer(i)
-      io_write_string ")\n"
-    end
-    io_write_string "(return)\n"
-
-    io_write_string ")\n"
-
   elseif string_compare(kind, "local") == 0 then
     if proto ~= nil then
       local namelist = get_items(items[2])
@@ -1851,7 +1807,77 @@ function process3(ctx, proto, u, v)
   end
 end
 
+function write_function_table(ctx, function_table)
+  for i = 1, #function_table do
+    local u = function_table[i]
+    local items = get_items(u)
+
+    local proto = items[1]
+    io_write_string "(func $"
+    io_write_integer(get_attr(proto, attr_id))
+    io_write_string " (; "
+    io_write_string(get_value(proto))
+    io_write_string " ;)\n"
+
+    local parlist = get_items(items[2])
+    for i = 1, #parlist do
+      local par = parlist[i]
+      io_write_string "(param $"
+      io_write_integer(get_attr(par, attr_id))
+      io_write_string " i32) (; "
+      io_write_string(get_value(par))
+      io_write_string " ;)\n"
+    end
+
+    local result = get_attr(proto, attr_result)
+    if result > 0 then
+      io_write_string "(result"
+      for i = 1, result do
+        io_write_string " i32"
+      end
+      io_write_string ")\n"
+    end
+
+    local var_table = get_attr(proto, attr_ref)
+    for i = 1, #var_table do
+      local var = var_table[i]
+      if string_compare(get_attr(var, attr_resolver), "var") == 0 then
+        io_write_string "(local $"
+        io_write_integer(get_attr(var, attr_id))
+        io_write_string " i32) (; "
+        io_write_string(get_value(var))
+        io_write_string " ;)\n"
+      end
+    end
+
+    for i = 1, result do
+      io_write_string "(local $r"
+      io_write_integer(i)
+      io_write_string " i32)\n"
+    end
+    io_write_string "(local $dup i32)\n"
+
+    io_write_string "block $main\n"
+
+    for i = 3, #items do
+      process3(ctx, proto, u, items[i])
+    end
+
+    io_write_string "end\n"
+    local result = get_attr(proto, attr_result)
+    for i = 1, result do
+      io_write_string "(local.get $r"
+      io_write_integer(i)
+      io_write_string ")\n"
+    end
+    io_write_string "(return)\n"
+
+    io_write_string ")\n"
+  end
+end
+
 function write_proto_table(proto_table)
+  -- importした関数も参照を用意する
   local function_table = {}
   for i = 1, #proto_table do
     local proto = proto_table[i]
@@ -1859,21 +1885,20 @@ function write_proto_table(proto_table)
       table_insert(function_table, proto)
     end
   end
-  if #function_table > 0 then
-    io_write_string "(table "
-    io_write_integer(#function_table + 1)
-    io_write_string " funcref)\n"
-    io_write_string "(elem (i32.const 1)"
-    for i = 1, #function_table do
-      local proto = function_table[i]
-      if get_attr(proto, attr_address) ~= i then
-        error "compiler error: invalid address"
-      end
-      io_write_string " $"
-      io_write_integer(get_attr(proto, attr_id))
+
+  io_write_string "(table "
+  io_write_integer(#function_table + 1)
+  io_write_string " funcref)\n"
+  io_write_string "(elem (i32.const 1)"
+  for i = 1, #function_table do
+    local proto = function_table[i]
+    if get_attr(proto, attr_address) ~= i then
+      error "compiler error: invalid address"
     end
-    io_write_string ")\n"
+    io_write_string " $"
+    io_write_integer(get_attr(proto, attr_id))
   end
+  io_write_string ")\n"
 end
 
 function compiler(tokens, chunk)
@@ -1883,6 +1908,7 @@ function compiler(tokens, chunk)
 
   local ctx = new_ctx()
   local proto_table = {}
+  local function_table = {}
   local var_table = {}
   local scope = new_scope(nil)
 
@@ -1908,8 +1934,8 @@ function compiler(tokens, chunk)
   local heap_pointer_id = add_global(ctx, var_table, scope, new_name "__heap_pointer")
 
   local chunk_block = get_items(chunk)[1]
-  process1(ctx, proto_table, nil, chunk, chunk_block)
-  process2(ctx, proto_table, var_table, nil, scope, nil, chunk, chunk_block)
+  process1(ctx, proto_table, function_table, nil, chunk, chunk_block)
+  process2(ctx, proto_table, var_table, nil, scope, scope, nil, chunk, chunk_block)
 
   ctx[ctx_length]    = resolve_name(proto_table, scope, new_name "__length")
   ctx[ctx_concat]    = resolve_name(proto_table, scope, new_name "__concat")
@@ -1940,13 +1966,12 @@ function compiler(tokens, chunk)
 
   io_write_string'(export "memory" (memory 0))\n'
 
-  process3(ctx, nil, chunk, chunk_block)
-
+  write_function_table(ctx, function_table)
   write_proto_table(proto_table)
 
-  if #string_table > 0 then
-    write_string_table(string_table)
-  end
+  process3(ctx, nil, chunk, chunk_block)
+
+  write_string_table(string_table)
 
   io_write_string ")\n"
 end

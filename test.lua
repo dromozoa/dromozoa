@@ -52,7 +52,7 @@ function main()
   io_write_integer(#C)
   io_write_string("\n")
 
-  local tests = { test1, test2, test3, test4, test5, test6, test7 }
+  local tests = { test1, test2, test3, test4, test5, test6, test7, test8 }
   for i = 1, #tests do
     __call_indirect0(tests[i])
   end
@@ -150,6 +150,22 @@ function test7()
   io_write_string "stat\n"
   tuple"foo"[1] = 42
   local r = write "exp\n"
+end
+
+local x = 17
+
+function test8()
+  local x = 23
+  local f = function (a, b, c)
+    io_write_string "unnamed\n"
+    io_write_integer(a)
+    io_write_integer(b)
+    io_write_integer(c)
+    -- io_write_integer(x)
+    io_write_string "\n"
+  end
+  __call_indirect0(f, 1, 2, 3)
+
 end
 
 __export_start(main)
