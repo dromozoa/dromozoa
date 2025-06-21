@@ -223,11 +223,42 @@ function lexer_rule_comment(source, position)
   local p = position
   local n = #source
 
-
   if string_compare(string_sub(source, p, p + 1), "--") ~= 0 then
     return 0, nil
   end
   p = p + 2
+
+  local c = string_byte(source, p)
+  if c == 0x5B then -- '['
+    local q = p + 1
+    local t = { 0x5D } -- ']'
+
+    while q <= n do
+      local c = string_byte(source, q)
+      if c == 0x5B then -- '['
+        q = q + 1
+        table_insert(t, 0x5D) -- ']'
+        break
+      elseif c == 0x3D then -- '='
+        q = q + 1
+        table_insert(t, 0x3D)
+      else
+        q = 0
+        break
+      end
+    end
+
+    if q ~= 0 then
+      local e = string_char(t)
+      while q <= n do
+        if string_compare(string_sub(source, q, q + #e - 1), e) == 0 then
+          return q + #e, nil
+        end
+        q = q + 1
+      end
+      error("lexer error at position "..integer_to_string(q))
+    end
+  end
 
   while p <= n do
     local c = string_byte(source, p)

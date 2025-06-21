@@ -15,6 +15,13 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
+--[   short comment
+--[=  short comment
+--[== short comment
+--[[ long comment ]=] ]]
+--[=[ long comment ]]]=]
+--[==[ long comment ]] ]=]]==]
+
 local A = 42
 local B = true
 local C = "foobarbaz\n"
