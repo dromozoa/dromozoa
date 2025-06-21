@@ -920,6 +920,71 @@ end
 
 --------------------------------------------------------------------------------
 
+local asm_table = nil
+
+function compiler_initialize()
+  local leave_call_indirect = function (ctx, proto, u)
+    local items = get_items(u)
+
+    local args = get_items(items[2])
+    for i = 2, #args do
+      process3(ctx, proto, items[2], args[i])
+    end
+    process3(ctx, proto, items[2], args[1])
+
+    io_write_string "(call_indirect"
+    if #args > 1 then
+      io_write_string " (param"
+      for i = 2, #args do
+        io_write_string " i32"
+      end
+      io_write_string ")"
+    end
+
+    local ref = get_attr(items[1], attr_ref)
+    local result = get_attr(ref, attr_result)
+    if result > 0 then
+      io_write_string " (result"
+      for i = 1, result do
+        io_write_string " i32"
+      end
+      io_write_string ")"
+    end
+
+    io_write_string ")\n"
+  end
+
+  local leave_export_start = function (ctx, proto, u)
+    local items = get_items(u)
+    local arg = get_items(items[2])[1]
+    local arg_ref = get_attr(arg, attr_ref)
+    io_write_string '(export "_start" (func $'
+    io_write_integer(get_attr(arg_ref, attr_id))
+    io_write_string "))\n"
+  end
+
+  asm_table = {
+    { "__call_indirect0", 0, "",              true,  leave_call_indirect };
+    { "__call_indirect1", 1, "",              true,  leave_call_indirect };
+    { "__call_indirect2", 2, "",              true,  leave_call_indirect };
+    { "__call_indirect3", 3, "",              true,  leave_call_indirect };
+    { "__i32_load",       1, "(i32.load)",    false, nil                 };
+    { "__i32_load8",      1, "(i32.load8_u)", false, nil                 };
+    { "__i32_store",      0, "(i32.store)",   false, nil                 };
+    { "__i32_store8",     0, "(i32.store8)",  false, nil                 };
+    { "__i32_clz",        1, "(i32.clz)",     false, nil                 };
+    { "__i32_ctz",        1, "(i32.ctz)",     false, nil                 };
+    { "__i32_popcnt",     1, "(i32.popcnt)",  false, nil                 };
+    { "__unreachable",    0, "(unreachable)", false, nil                 };
+    { "__memory_size",    1, "(memory.size)", false, nil                 };
+    { "__memory_grow",    1, "(memory.grow)", false, nil                 };
+    { "__memory_copy",    0, "(memory.copy)", false, nil                 };
+    { "__memory_fill",    0, "(memory.fill)", false, nil                 };
+    { "__export_start",   0, "",              true,  leave_export_start  };
+  }
+  quick_sort(asm_table, 1, #asm_table, compare_string_index1)
+end
+
 function roundup(n, a)
   local r = n % a
   if r == 0 then
@@ -1269,11 +1334,11 @@ function process3(ctx, proto, u, v)
     local ref = get_attr(items[1], attr_ref)
     if string_compare(get_attr(ref, attr_resolver), "asm") == 0 then
       local name = get_value(ref)
-      if string_compare(name, "__call_indirect0") == 0
-        or string_compare(name, "__call_indirect1") == 0
-        or string_compare(name, "__call_indirect2") == 0
-        or string_compare(name, "__call_indirect3") == 0
-        or string_compare(name, "__export_start") == 0 then
+      local i = binary_search(asm_table, 1, #asm_table, compare_string_index1, { name })
+      if i == 0 then
+        error("compiler error: cannot resolve <"..name..">")
+      end
+      if asm_table[i][4] then
         range_j = 0
       end
     end
@@ -1558,78 +1623,13 @@ function process3(ctx, proto, u, v)
 
     if string_compare(get_attr(ref, attr_resolver), "asm") == 0 then
       local name = get_value(ref)
-      if string_compare(name, "__call_indirect0") == 0
-        or string_compare(name, "__call_indirect1") == 0
-        or string_compare(name, "__call_indirect2") == 0
-        or string_compare(name, "__call_indirect3") == 0 then
-
-        local args = get_items(items[2])
-        for i = 2, #args do
-          process3(ctx, proto, items[2], args[i])
-        end
-        process3(ctx, proto, items[2], args[1])
-
-        io_write_string "(call_indirect"
-        if #args > 1 then
-          io_write_string " (param"
-          for i = 2, #args do
-            io_write_string " i32"
-          end
-          io_write_string ")"
-        end
-
-        if result > 0 then
-          io_write_string " (result"
-          for i = 1, result do
-            io_write_string " i32"
-          end
-          io_write_string ")"
-        end
-
-        io_write_string ")\n"
-
-      elseif string_compare(name, "__i32_load") == 0 then
-        io_write_string "(i32.load)\n"
-
-      elseif string_compare(name, "__i32_load8") == 0 then
-        io_write_string "(i32.load8_u)\n"
-
-      elseif string_compare(name, "__i32_store") == 0 then
-        io_write_string "(i32.store)\n"
-
-      elseif string_compare(name, "__i32_store8") == 0 then
-        io_write_string "(i32.store8)\n"
-
-      elseif string_compare(name, "__i32_clz") == 0 then
-        io_write_string "(i32.clz)\n"
-
-      elseif string_compare(name, "__i32_ctz") == 0 then
-        io_write_string "(i32.ctz)\n"
-
-      elseif string_compare(name, "__i32_popcnt") == 0 then
-        io_write_string "(i32.popcnt)\n"
-
-      elseif string_compare(name, "__unreachable") == 0 then
-        io_write_string "(unreachable)\n"
-
-      elseif string_compare(name, "__memory_size") == 0 then
-        io_write_string "(memory.size)\n"
-
-      elseif string_compare(name, "__memory_grow") == 0 then
-        io_write_string "(memory.grow)\n"
-
-      elseif string_compare(name, "__memory_copy") == 0 then
-        io_write_string "(memory.copy)\n"
-
-      elseif string_compare(name, "__memory_fill") == 0 then
-        io_write_string "(memory.fill)\n"
-
-      elseif string_compare(name, "__export_start") == 0 then
-        local arg = get_items(items[2])[1]
-        local arg_ref = get_attr(arg, attr_ref)
-        io_write_string '(export "_start" (func $'
-        io_write_integer(get_attr(arg_ref, attr_id))
-        io_write_string "))\n"
+      local i = binary_search(asm_table, 1, #asm_table, compare_string_index1, { name })
+      local asm = asm_table[i]
+      if asm[5] ~= nil then
+        __call_indirect0(asm[5], ctx, proto, v)
+      else
+        io_write_string(asm[3])
+        io_write_string "\n"
       end
     else
       io_write_string "(call $"
@@ -1902,6 +1902,8 @@ function write_proto_table(proto_table)
 end
 
 function compiler(tokens, chunk)
+  compiler_initialize()
+
   local string_table, string_end = make_string_table(tokens)
   local heap_pointer = roundup(string_end, 1024)
   local memory_size = roundup(heap_pointer, 65536) >> 16
@@ -1912,23 +1914,11 @@ function compiler(tokens, chunk)
   local var_table = {}
   local scope = new_scope(nil)
 
-  add_asm(ctx, proto_table, new_name "__call_indirect0", 0)
-  add_asm(ctx, proto_table, new_name "__call_indirect1", 1)
-  add_asm(ctx, proto_table, new_name "__call_indirect2", 2)
-  add_asm(ctx, proto_table, new_name "__call_indirect3", 3)
-  add_asm(ctx, proto_table, new_name "__i32_load", 1)
-  add_asm(ctx, proto_table, new_name "__i32_load8", 1)
-  add_asm(ctx, proto_table, new_name "__i32_store", 0)
-  add_asm(ctx, proto_table, new_name "__i32_store8", 0)
-  add_asm(ctx, proto_table, new_name "__i32_clz", 1)
-  add_asm(ctx, proto_table, new_name "__i32_ctz", 1)
-  add_asm(ctx, proto_table, new_name "__i32_popcnt", 1)
-  add_asm(ctx, proto_table, new_name "__unreachable", 0)
-  add_asm(ctx, proto_table, new_name "__memory_size", 1)
-  add_asm(ctx, proto_table, new_name "__memory_grow", 1)
-  add_asm(ctx, proto_table, new_name "__memory_copy", 0)
-  add_asm(ctx, proto_table, new_name "__memory_fill", 0)
-  add_asm(ctx, proto_table, new_name "__export_start", 0)
+  for i = 1, #asm_table do
+    local asm = asm_table[i]
+    add_asm(ctx, proto_table, new_name(asm[1]), asm[2])
+  end
+
   local fd_read_id = add_fun(ctx, proto_table, new_name "__fd_read", 1)
   local fd_write_id = add_fun(ctx, proto_table, new_name "__fd_write", 1)
   local heap_pointer_id = add_global(ctx, var_table, scope, new_name "__heap_pointer")
