@@ -154,6 +154,13 @@ end
 
 local x = 17
 
+-- function a()
+--   return b(), b()
+-- end
+-- function b()
+--   return a(), a()
+-- end
+
 function test8()
   local x = 23
   local f = function (a, b, c)
@@ -165,7 +172,6 @@ function test8()
     io_write_string "\n"
   end
   __call_indirect0(f, 1, 2, 3)
-
 end
 
 __export_start(main)

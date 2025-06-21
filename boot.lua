@@ -1149,29 +1149,6 @@ function process1(ctx, proto_table, function_table, proto, u, v)
     proto = items[1]
     add_fun(ctx, proto_table, proto, -1)
     table_insert(function_table, v)
-
-  elseif string_compare(kind, "return") == 0 then
-    local result = #get_items(items[1])
-    if get_attr(proto, attr_result) == -1 then
-      set_attr(proto, attr_result, result)
-    elseif get_attr(proto, attr_result) ~= result then
-      error "compiler error: invalid result"
-    end
-
-  elseif string_compare(kind, "explist") == 0 then
-    if string_compare(get_kind(u), "return") == 0 then
-      S";; " S(get_value(proto)) S" = "
-      local result = 0
-      for i = 1, #items do
-        local item = items[i]
-        if string_compare(get_kind(item), "call") == 0 then
-          S(get_value(get_items(item)[1])) S" + "
-        else
-          result = result + 1
-        end
-      end
-     I(result) S"\n"
-    end
   end
 
   if items ~= nil then
@@ -1180,11 +1157,6 @@ function process1(ctx, proto_table, function_table, proto, u, v)
     end
   end
 
-  if string_compare(kind, "function") == 0 then
-    if get_attr(proto, attr_result) == -1 then
-      set_attr(proto, attr_result, 0)
-    end
-  end
 end
 
 function new_scope(parent)
@@ -1276,7 +1248,7 @@ end
 local loop_block = 1
 local loop_loop = 2
 
-function process2(ctx, proto_table, var_table, proto, chunk_scope, scope, loop, u, v)
+function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope, scope, loop, u, v)
   local kind = get_kind(v)
   local items = get_items(v)
 
@@ -1351,9 +1323,61 @@ function process2(ctx, proto_table, var_table, proto, chunk_scope, scope, loop, 
     set_attr(v, attr_id, add_var(ctx, var_table, scope, new_name "(table)"))
   end
 
+  -- 一時的に記述
+  if string_compare(kind, "return") == 0 then
+    local result = #get_items(items[1])
+    if get_attr(proto, attr_result) == -1 then
+      set_attr(proto, attr_result, result)
+    elseif get_attr(proto, attr_result) ~= result then
+      error "compiler error: invalid result"
+    end
+  end
+
   if items ~= nil then
     for i = 1, #items do
-      process2(ctx, proto_table, var_table, proto, chunk_scope, scope, loop, v, items[i])
+      process2(ctx, proto_table, var_table, result_table, proto, chunk_scope, scope, loop, v, items[i])
+    end
+  end
+
+  -- 一時的に記述
+  if string_compare(kind, "function") == 0 then
+    if get_attr(proto, attr_result) == -1 then
+      set_attr(proto, attr_result, 0)
+    end
+  end
+
+  if string_compare(kind, "explist") == 0 then
+    if string_compare(get_kind(u), "return") == 0 then
+      local q = { 0 }
+      for i = 1, #items do
+        local item = items[i]
+        if string_compare(get_kind(item), "call") == 0 then
+          -- 呼び出し先
+          local ref = get_attr(get_items(item)[1], attr_ref)
+          -- 呼び出し先がASMなら確定している
+          -- 「一時的に記述」を外せばresultが-1かどうか調べるのに変えられるはず
+          if string_compare(get_attr(ref, attr_resolver), "asm") == 0 then
+            q[1] = q[1] + get_attr(ref, attr_result)
+          else
+            -- 呼び出し先のアドレスをもらう
+            table_insert(q, get_attr(ref, attr_address))
+          end
+        else
+          q[1] = q[1] + 1
+        end
+      end
+
+      local address = get_attr(proto, attr_address)
+      local r = result_table[address]
+      if #r == 1 then
+        if r[1] == -1 then
+          result_table[address] = q
+        elseif #q == 1 and r[1] ~= q[1] then
+          error("compiler error: invalid result <"..get_value(proto)..">")
+        end
+      else
+        result_table[address] = q
+      end
     end
   end
 end
@@ -1717,22 +1741,21 @@ end
 
 function write_proto_table(proto_table)
   -- importした関数も参照を用意する
-  local function_table = {}
+  local n = 0
   for i = 1, #proto_table do
     local proto = proto_table[i]
     if string_compare(get_attr(proto, attr_resolver), "fun") == 0 then
-      table_insert(function_table, proto)
+      n = n + 1
     end
   end
 
-  S"(table " I(#function_table + 1) S" funcref)\n"
+  S"(table " I(n + 1) S" funcref)\n"
   S"(elem (i32.const 1)"
-  for i = 1, #function_table do
-    local proto = function_table[i]
-    if get_attr(proto, attr_address) ~= i then
-      error "compiler error: invalid address"
+  for i = 1, #proto_table do
+    local proto = proto_table[i]
+    if string_compare(get_attr(proto, attr_resolver), "fun") == 0 then
+      S" $" I(get_attr(proto, attr_id))
     end
-    S" $" I(get_attr(proto, attr_id))
   end
   S")\n"
 end
@@ -1746,22 +1769,91 @@ function compiler(tokens, chunk)
 
   local ctx = new_ctx()
   local proto_table = {}
-  local function_table = {}
-  local var_table = {}
-  local scope = new_scope(nil)
-
   for i = 1, #asm_table do
     local asm = asm_table[i]
     add_asm(ctx, proto_table, new_name(asm[1]), asm[2])
   end
 
+  local var_table = {}
+  local scope = new_scope(nil)
   local fd_read_id = add_fun(ctx, proto_table, new_name "__fd_read", 1)
   local fd_write_id = add_fun(ctx, proto_table, new_name "__fd_write", 1)
   local heap_pointer_id = add_global(ctx, var_table, scope, new_name "__heap_pointer")
 
+  local function_table = {}
   local chunk_block = get_items(chunk)[1]
   process1(ctx, proto_table, function_table, nil, chunk, chunk_block)
-  process2(ctx, proto_table, var_table, nil, scope, scope, nil, chunk, chunk_block)
+
+  local result_table = {}
+  for i = 1, #proto_table do
+    local proto = proto_table[i]
+    if string_compare(get_attr(proto, attr_resolver), "fun") == 0 then
+      table_insert(result_table, { get_attr(proto, attr_result) })
+      if get_attr(proto, attr_address) ~= #result_table then
+        error "compiler error: invalid address"
+      end
+    end
+  end
+  process2(ctx, proto_table, var_table, result_table, nil, scope, scope, nil, chunk, chunk_block)
+  for i = 1, #result_table do
+    local r = result_table[i]
+    if #r == 1 and r[1] == -1 then
+      r[1] = 0
+    end
+  end
+  while true do
+    local m = 0
+    local n = 0
+    for i = 1, #result_table do
+      local r = result_table[i]
+      if #r == 1 then
+        m = m + 1 -- 処理する必要がない
+      else
+        local v = r[1]
+        for j = 2, #r do
+          -- S";; " I(i) S"," I(j) S"," I(r[j]) S"\n"
+          local q = result_table[r[j]]
+          if #q == 1 then -- 値が確定していたら代入
+            v = v + q[1]
+          else -- あきらめる
+            v = -1
+            break
+          end
+        end
+        if v ~= -1 then
+          n = n + 1
+          result_table[i] = { v }
+        end
+      end
+    end
+
+    if n == 0 then
+      if m == #result_table then
+        break
+      end
+      error "compiler error: invalid result"
+    end
+  end
+
+  for i = 1, #result_table do
+    local r = result_table[i]
+    S";; [" I(i) S"] = " I(r[1])
+    for j = 2, #r do
+      S" + " I(r[j])
+    end
+    S"\n"
+  end
+
+  for i = 1, #function_table do
+    local u = function_table[i]
+    local items = get_items(u)
+    local proto = items[1]
+    local r = result_table[get_attr(proto, attr_address)]
+    local q = get_attr(proto, attr_result)
+    if #r ~= 1 or r[1] ~= q then
+      error "!!!"
+    end
+  end
 
   ctx[ctx_length]    = resolve_name(proto_table, scope, new_name "__length")
   ctx[ctx_concat]    = resolve_name(proto_table, scope, new_name "__concat")
