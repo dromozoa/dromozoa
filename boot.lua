@@ -83,20 +83,16 @@ local attr_result   = 5 -- 関数の返り値の個数
 local attr_global   = 6 -- 大域変数かどうか
 local attr_ref      = 7 -- 参照または変数テーブル
 
-function new_token_attrs()
-  return { "token", "", 0, 0, -1, false, nil }
-end
-
-function new_node_attrs()
-  return { "node", "", 0, 0, -1, false, nil }
+function new_attrs(class)
+  return { class, "", 0, 0, -1, false, nil }
 end
 
 function new_token(kind, value, position)
-  return { kind, new_token_attrs(), value, position }
+  return { kind, new_attrs "token", value, position }
 end
 
 function new_node(kind, items)
-  return { kind, new_node_attrs(), items, 0 }
+  return { kind, new_attrs "node", items, 0 }
 end
 
 function get_kind(u)
@@ -112,7 +108,7 @@ function set_attr(u, key, value)
 end
 
 function get_value(u)
-  if string_compare(u[2][attr_class], "token") == 0 then
+  if string_compare(get_attr(u, attr_class), "token") == 0 then
     return u[3]
   else
     return nil
@@ -120,19 +116,15 @@ function get_value(u)
 end
 
 function get_items(u)
-  if string_compare(u[2][attr_class], "token") == 0 then
-    return nil
-  end
-
-  return u[3]
-end
-
-function get_position(u)
-  if string_compare(u[2][attr_class], "token") == 0 then
-    return u[4]
+  if string_compare(get_attr(u, attr_class), "node") == 0 then
+    return u[3]
   else
     return nil
   end
+end
+
+function get_position(u)
+  return u[4]
 end
 
 function compare_string_index1(a, b)
