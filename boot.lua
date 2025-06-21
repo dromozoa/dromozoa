@@ -109,6 +109,18 @@ function new_node(kind, items)
   return result
 end
 
+function node_items(node)
+  if string_compare(node[2][attr_class], "token") == 0 then
+    return nil
+  end
+
+  local result = {}
+  for i = 3, #node do
+    table_insert(result, node[i])
+  end
+  return result
+end
+
 function compare_string_index1(a, b)
   return string_compare(a[1], b[1])
 end
@@ -1008,16 +1020,25 @@ function make_address(ctx)
 end
 
 function process1(ctx, proto_table, proto, u, v)
-  if string_compare(v[1], "function") == 0 then
+  local kind = v[1]
+  local items = node_items(v)
+
+  local value = nil
+  if items == nil then
+    value = v[3]
+  else
+    value = items[1]
+  end
+
+  if string_compare(kind, "function") == 0 then
     if proto ~= nil then
       error "compiler error: invalid proto"
     end
-    proto = v[3]
+    proto = value
     add_fun(ctx, proto_table, proto, -1)
 
-  elseif string_compare(v[1], "return") == 0 then
-    local result = #v[3] - 2
-
+  elseif string_compare(kind, "return") == 0 then
+    local result = #node_items(value)
     local attrs = proto[2]
     if attrs[attr_result] == -1 then
       attrs[attr_result] = result
@@ -1026,9 +1047,9 @@ function process1(ctx, proto_table, proto, u, v)
     end
   end
 
-  if string_compare(v[2][attr_class], "node") == 0 then
-    for i = 3, #v do
-      process1(ctx, proto_table, proto, v, v[i])
+  if items ~= nil then
+    for i = 1, #items do
+      process1(ctx, proto_table, proto, v, items[i])
     end
   end
 
