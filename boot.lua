@@ -81,10 +81,11 @@ local attr_address  = 3 -- 文字列または関数の静的アドレス
 local attr_id       = 4 -- 大域ID
 local attr_result   = 5 -- 関数の返り値の個数
 local attr_global   = 6 -- 大域変数かどうか
-local attr_ref      = 7 -- 参照または変数テーブル
+local attr_exp      = 7 -- 関数定義または呼び出しが式である
+local attr_ref      = 8 -- 参照または変数テーブル
 
 function new_attrs(class)
-  return { class, "", 0, 0, -1, false, nil }
+  return { class, "", 0, 0, -1, false, false, nil }
 end
 
 function new_token(kind, value, position)
@@ -481,7 +482,9 @@ end
 function nud_name(parser, token)
   if string_compare(get_kind(parser_peek(parser)), "String") == 0 then
     local args = new_node("args", { parser_read(parser) })
-    return new_node("call", { token, args })
+    local result = new_node("call", { token, args })
+    set_attr(result, attr_exp, true)
+    return result
   else
     return token
   end
@@ -529,7 +532,9 @@ end
 
 function led_call(parser, lbp, token, node)
   local args = parser_list(parser, "args", parser_exp_or_nil, ",", ")")
-  return new_node("call", { node, args })
+  local result = new_node("call", { node, args })
+  set_attr(result, attr_exp, true)
+  return result
 end
 
 function led_index(parser, lbp, token, node)
@@ -817,10 +822,12 @@ function parser_var(parser)
       parser_read(parser)
       local args = parser_list(parser, "args", parser_exp_or_nil, ",", ")")
       node = new_node("call", { token, args })
+      set_attr(node, attr_exp, true)
     elseif string_compare(get_kind(next_token), "String") == 0 then
       parser_read(parser)
       local args = new_node("args", { next_token })
       node = new_node("call", { token, args })
+      set_attr(node, attr_exp, true)
     elseif string_compare(get_kind(next_token), "[") ~= 0 then
       return token
     else
@@ -833,12 +840,9 @@ function parser_var(parser)
     return nil
   end
 
-  while true do
+  repeat
     node = led_index(parser, parser_max_lbp, parser_expect(parser, "["), node)
-    if string_compare(get_kind(parser_peek(parser)), "[") ~= 0 then
-      break
-    end
-  end
+  until string_compare(get_kind(parser_peek(parser)), "[") ~= 0
 
   return node
 end
@@ -1668,7 +1672,7 @@ function process3(ctx, proto, u, v)
     end
 
     -- 関数呼び出し文の場合は返り値をすべて破棄する
-    if string_compare(get_kind(u), "block") == 0 then
+    if not get_attr(v, attr_exp) then
       for i = 1, result do
         io_write_string "(drop)\n"
       end
