@@ -15,6 +15,26 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
+function io_write_string_repeat(n, s)
+  for i = 1, n do
+    io_write_string(s)
+  end
+end
+
+function S(s)
+  io_write_string(s)
+end
+
+function SR(n, s)
+  io_write_string_repeat(n, s)
+end
+
+function I(v)
+  io_write_integer(v)
+end
+
+--------------------------------------------------------------------------------
+
 function quick_sort(t, i, j, compare)
   local n = j - i + 1
   if n <= 1 then
@@ -923,12 +943,6 @@ end
 local asm_table = nil
 local op_table = nil
 
-function io_write_string_repeat(n, s)
-  for i = 1, n do
-    io_write_string(s)
-  end
-end
-
 function compiler_initialize()
   local leave_call_indirect = function (ctx, proto, u)
     local items = get_items(u)
@@ -938,29 +952,23 @@ function compiler_initialize()
     end
     process3(ctx, proto, items[2], args[1])
 
-    io_write_string "(call_indirect"
+    S"(call_indirect"
     if #args > 1 then
-      io_write_string " (param"
-      io_write_string_repeat(#args - 1, " i32")
-      io_write_string ")"
+      S" (param" SR(#args - 1, " i32") S")"
     end
 
     local result = get_attr(get_attr(items[1], attr_ref), attr_result)
     if result > 0 then
-      io_write_string " (result"
-      io_write_string_repeat(result, " i32")
-      io_write_string ")"
+      S" (result" SR(result, " i32") S")"
     end
 
-    io_write_string ")\n"
+    S")\n"
   end
 
   local leave_export_start = function (ctx, proto, u)
     local items = get_items(u)
     local args = get_items(items[2])
-    io_write_string '(export "_start" (func $'
-    io_write_integer(get_attr(get_attr(args[1], attr_ref), attr_id))
-    io_write_string "))\n"
+    S'(export "_start" (func $' I(get_attr(get_attr(args[1], attr_ref), attr_id)) S"))\n"
   end
 
   asm_table = {
@@ -985,23 +993,26 @@ function compiler_initialize()
   quick_sort(asm_table, 1, #asm_table, compare_string_index1)
 
   op_table = {
-    { "not", "(i32.eqz)"   };
-    { "<",   "(i32.lt_s)"  };
-    { ">",   "(i32.gt_s)"  };
-    { "<=",  "(i32.le_s)"  };
-    { ">=",  "(i32.ge_s)"  };
-    { "~=",  "(i32.ne)"    };
-    { "==",  "(i32.eq)"    };
-    { "|",   "(i32.or)"    };
-    { "&",   "(i32.and)"   };
-    { "<<",  "(i32.shl)"   };
-    { ">>",  "(i32.shr_u)" };
-    { "+",   "(i32.add)"   };
-    { "-",   "(i32.sub)"   };
-    { "*",   "(i32.mul)"   };
-    { "/",   "(i32.div_s)" };
-    { "//",  "(i32.div_s)" };
-    { "%",   "(i32.rem_s)" };
+    { "nil",   "(i32.const 0) (; nil ;)"   };
+    { "false", "(i32.const 0) (; false ;)" };
+    { "true",  "(i32.const 1) (; true ;)"  };
+    { "not",   "(i32.eqz)"                 };
+    { "<",     "(i32.lt_s)"                };
+    { ">",     "(i32.gt_s)"                };
+    { "<=",    "(i32.le_s)"                };
+    { ">=",    "(i32.ge_s)"                };
+    { "~=",    "(i32.ne)"                  };
+    { "==",    "(i32.eq)"                  };
+    { "|",     "(i32.or)"                  };
+    { "&",     "(i32.and)"                 };
+    { "<<",    "(i32.shl)"                 };
+    { ">>",    "(i32.shr_u)"               };
+    { "+",     "(i32.add)"                 };
+    { "-",     "(i32.sub)"                 };
+    { "*",     "(i32.mul)"                 };
+    { "/",     "(i32.div_s)"               };
+    { "//",    "(i32.div_s)"               };
+    { "%",     "(i32.rem_s)"               };
   }
   quick_sort(op_table, 1, #op_table, compare_string_index1)
 end
@@ -1073,14 +1084,14 @@ function encode_integer(t, v)
 end
 
 function write_string_table(string_table)
-  io_write_string '(data 0 (i32.const 8) "'
+  S'(data 0 (i32.const 8) "'
 
   for i = 1, #string_table do
     local entry = string_table[i]
     local t = {}
     encode_integer(t, #entry[1])
     encode_integer(t, entry[2])
-    io_write_string(string_char(t))
+    S(string_char(t))
   end
 
   for i = 1, #string_table do
@@ -1099,10 +1110,10 @@ function write_string_table(string_table)
     for j = 1, n do
       encode_char(t, 0)
     end
-    io_write_string(string_char(t))
+    S(string_char(t))
   end
 
-  io_write_string '")\n'
+  S'")\n'
 end
 
 function new_ctx()
@@ -1349,7 +1360,6 @@ function process3(ctx, proto, u, v)
     if string_compare(get_kind(items[1]), "Name") ~= 0 then
       error "compiler error: invalid name"
     end
-
     range_i = 2
 
     local ref = get_attr(items[1], attr_ref)
@@ -1371,144 +1381,69 @@ function process3(ctx, proto, u, v)
     range_i = 2
 
     local loop = get_attr(v, attr_ref)
-    io_write_string "block $"
-    io_write_integer(loop[loop_block])
-    io_write_string "\n"
-    io_write_string "loop $"
-    io_write_integer(loop[loop_loop])
-    io_write_string "\n"
+    S"block $" I(loop[loop_block]) S"\n"
+    S"loop $" I(loop[loop_loop]) S"\n"
 
     process3(ctx, proto, v, items[1])
 
-    io_write_string "(i32.eqz)\n"
-    io_write_string "(br_if $"
-    io_write_integer(loop[loop_block])
-    io_write_string ")\n"
+    S"(i32.eqz)\n"
+    S"(br_if $" I(loop[loop_block]) S")\n"
 
   elseif string_compare(kind, "repeat") == 0 then
     local loop = get_attr(v, attr_ref)
-    io_write_string "block $"
-    io_write_integer(loop[loop_block])
-    io_write_string "\n"
-    io_write_string "loop $"
-    io_write_integer(loop[loop_loop])
-    io_write_string "\n"
+    S"block $" I(loop[loop_block]) S"\n"
+    S"loop $" I(loop[loop_loop]) S"\n"
 
   elseif string_compare(kind, "for") == 0 then
     range_i = 5
 
     local loop = get_attr(v, attr_ref)
-    io_write_string "block $"
-    io_write_integer(loop[loop_block])
-    io_write_string "\n"
-
-    local var = get_attr(v, attr_id)
+    S"block $" I(loop[loop_block]) S"\n"
 
     process3(ctx, proto, v, items[1])
     process3(ctx, proto, v, items[2])
     process3(ctx, proto, v, items[3])
 
-    io_write_string "(local.set $"
-    io_write_integer(var + 2)
-    io_write_string ")\n"
+    local var = get_attr(v, attr_id)
+    S"(local.set $" I(var + 2) S")\n"
+    S"(local.set $" I(var + 1) S")\n"
+    S"(local.set $" I(var + 0) S")\n"
 
-    io_write_string "(local.set $"
-    io_write_integer(var + 1)
-    io_write_string ")\n"
+    S"(local.get $" I(var + 0) S")\n"
+    S"(local.get $" I(var + 2) S")\n"
+    S"(i32.sub)\n"
+    S"(local.set $" I(var + 0) S")\n"
 
-    io_write_string "(local.set $"
-    io_write_integer(var)
-    io_write_string ")\n"
+    S"loop $" I(loop[loop_loop]) S"\n"
 
-    io_write_string "(local.get $"
-    io_write_integer(var)
-    io_write_string ")\n"
+    S"(local.get $" I(var + 0) S")\n"
+    S"(local.get $" I(var + 2) S")\n"
+    S"(i32.add)\n"
+    S"(local.set $" I(var + 0) S")\n"
 
-    io_write_string "(local.get $"
-    io_write_integer(var + 2)
-    io_write_string ")\n"
+    S"(local.get $" I(var + 2) S")\n"
+    S"(i32.const 0)\n"
+    S"(i32.ge_s)\n"
 
-    io_write_string "(i32.sub)\n"
+    S"if\n"
+      S"(local.get $" I(var + 0) S")\n"
+      S"(local.get $" I(var + 1) S")\n"
+      S"(i32.gt_s)\n"
+      S"(br_if $" I(loop[loop_block]) S")\n"
+    S"else\n"
+      S"(local.get $" I(var + 0) S")\n"
+      S"(local.get $" I(var + 1) S")\n"
+      S"(i32.lt_s)\n"
+      S"(br_if $" I(loop[loop_block]) S")\n"
+    S"end\n"
 
-    io_write_string "(local.set $"
-    io_write_integer(var)
-    io_write_string ")\n"
-
-    io_write_string "loop $"
-    io_write_integer(loop[loop_loop])
-    io_write_string "\n"
-
-    io_write_string "(local.get $"
-    io_write_integer(var)
-    io_write_string ")\n"
-
-    io_write_string "(local.get $"
-    io_write_integer(var + 2)
-    io_write_string ")\n"
-
-    io_write_string "(i32.add)\n"
-
-    io_write_string "(local.set $"
-    io_write_integer(var)
-    io_write_string ")\n"
-
-    io_write_string "(local.get $"
-    io_write_integer(var + 2)
-    io_write_string ")\n"
-
-    io_write_string "(i32.const 0)\n"
-
-    io_write_string "(i32.ge_s)\n"
-
-    io_write_string "if\n"
-
-    io_write_string "(local.get $"
-    io_write_integer(var)
-    io_write_string ")\n"
-
-    io_write_string "(local.get $"
-    io_write_integer(var + 1)
-    io_write_string ")\n"
-
-    io_write_string "(i32.gt_s)\n"
-
-    io_write_string "(br_if $"
-    io_write_integer(loop[loop_block])
-    io_write_string ")\n"
-
-    io_write_string "else\n"
-
-    io_write_string "(local.get $"
-    io_write_integer(var)
-    io_write_string ")\n"
-
-    io_write_string "(local.get $"
-    io_write_integer(var + 1)
-    io_write_string ")\n"
-
-    io_write_string "(i32.lt_s)\n"
-
-    io_write_string "(br_if $"
-    io_write_integer(loop[loop_block])
-    io_write_string ")\n"
-
-    io_write_string "end\n"
-
-    io_write_string "(local.get $"
-    io_write_integer(var)
-    io_write_string ")\n"
-
-    io_write_string "(local.set $"
-    io_write_integer(get_attr(items[4], attr_id))
-    io_write_string ")\n"
+    S"(local.get $" I(var + 0) S")\n"
+    S"(local.set $" I(get_attr(items[4], attr_id)) S")\n"
 
   elseif string_compare(kind, "function") == 0 then
     range_j = 0
-
     if get_attr(v, attr_exp) then
-      io_write_string "(i32.const "
-      io_write_integer(get_attr(get_items(v)[1], attr_address))
-      io_write_string ")\n"
+      S"(i32.const " I(get_attr(get_items(v)[1], attr_address)) S")\n"
     end
 
   elseif string_compare(kind, "local") == 0 then
@@ -1525,85 +1460,60 @@ function process3(ctx, proto, u, v)
         local exp = explist[i]
         local name = namelist[i]
 
-        io_write_string "(global $"
-        io_write_integer(get_attr(name, attr_id))
-        io_write_string " (mut i32)\n"
+        S"(global $" I(get_attr(name, attr_id)) S" (mut i32)\n"
         process3(ctx, proto, explist, exp)
-        io_write_string ")\n"
+        S")\n"
       end
     else
       range_j = 1
     end
 
-  elseif string_compare(kind, "false") == 0 then
-    io_write_string "(i32.const 0) (; false ;)\n"
-
-  elseif string_compare(kind, "nil") == 0 then
-    io_write_string "(i32.const 0) (; nil ;)\n"
-
-  elseif string_compare(kind, "true") == 0 then
-    io_write_string "(i32.const 1) (; true ;)\n"
-
   elseif string_compare(kind, "Name") == 0 then
     if string_compare(get_attr(v, attr_resolver), "ref") == 0 then
       local ref = get_attr(v, attr_ref)
       if string_compare(get_attr(ref, attr_resolver), "fun") == 0 then
-        io_write_string "(i32.const "
-        io_write_integer(get_attr(ref, attr_address))
-        io_write_string ") (; "
+        S"(i32.const " I(get_attr(ref, attr_address)) S") (; "
       else
         if get_attr(ref, attr_global) then
-          io_write_string "(global.get $"
+          S"(global.get $"
         else
-          io_write_string "(local.get $"
+          S"(local.get $"
         end
-        io_write_integer(get_attr(ref, attr_id))
-        io_write_string ") (; "
+        I(get_attr(ref, attr_id)) S") (; "
       end
-      io_write_string(get_value(v))
-      io_write_string " ;)\n"
+      S(get_value(v)) S" ;)\n"
     end
 
   elseif string_compare(kind, "Integer") == 0 then
-    io_write_string "(i32.const "
-    io_write_integer(get_value(v))
-    io_write_string ") (; Integer ;)\n"
+    S"(i32.const " I(get_value(v)) S") (; Integer ;)\n"
 
   elseif string_compare(kind, "String") == 0 then
-    io_write_string "(i32.const "
-    io_write_integer(get_attr(v, attr_address))
-    io_write_string ") (; String ;)\n"
+    S"(i32.const " I(get_attr(v, attr_address)) S") (; String ;)\n"
 
   elseif string_compare(kind, "table") == 0 then
-    io_write_string "(i32.const "
-    io_write_integer(#get_items(v))
-    io_write_string ")\n"
-    io_write_string "(call $"
-    io_write_integer(get_attr(ctx[ctx_new_table], attr_id))
-    io_write_string ") (; __new_table ;)\n"
-    io_write_string "(local.tee $"
-    io_write_integer(get_attr(v, attr_id))
-    io_write_string ")\n"
+    S"(i32.const " I(#get_items(v)) S")\n"
+    S"(call $" I(get_attr(ctx[ctx_new_table], attr_id)) S") (; __new_table ;)\n"
+    S"(local.tee $" I(get_attr(v, attr_id)) S")\n"
 
   elseif string_compare(kind, "or") == 0 then
     range_i = 2
 
     process3(ctx, proto, v, items[1])
-    io_write_string "(local.tee $dup)\n"
-    io_write_string "if (result i32)\n"
-    io_write_string "(local.get $dup)\n"
-    io_write_string "else\n"
+    S"(local.tee $dup)\n"
+    S"if (result i32)\n"
+    S"(local.get $dup)\n"
+    S"else\n"
 
   elseif string_compare(kind, "and") == 0 then
     range_i = 2
 
     process3(ctx, proto, v, items[1])
-    io_write_string "(local.tee $dup)\n"
-    io_write_string "if (result i32)\n"
+    S"(local.tee $dup)\n"
+    S"if (result i32)\n"
 
   elseif string_compare(kind, "-") == 0 then
     if #get_items(v) == 1 then
-      io_write_string "(i32.const 0)\n"
+      S"(i32.const 0)\n"
     end
   end
 
@@ -1615,8 +1525,8 @@ function process3(ctx, proto, u, v)
 
   local i = binary_search(op_table, 1, #op_table, compare_string_index1, { kind })
   if i ~= 0 then
-    io_write_string(op_table[i][2])
-    io_write_string "\n"
+    S(op_table[i][2])
+    S"\n"
 
   elseif string_compare(kind, "assign") == 0 then
     local varlist = get_items(items[2])
@@ -1625,19 +1535,14 @@ function process3(ctx, proto, u, v)
       if string_compare(get_kind(var), "Name") == 0 then
         local ref = get_attr(var, attr_ref)
         if get_attr(ref, attr_global) then
-          io_write_string "(global.set $"
+          S"(global.set $"
         else
-          io_write_string "(local.set $"
+          S"(local.set $"
         end
-        io_write_integer(get_attr(ref, attr_id))
-        io_write_string ") (; "
-        io_write_string(get_value(var))
-        io_write_string " ;)\n"
+        I(get_attr(ref, attr_id)) S") (; " S(get_value(var)) S" ;)\n"
       elseif string_compare(get_kind(var), "index") == 0 then
         process3(ctx, proto, varlist, var)
-        io_write_string "(call $"
-        io_write_integer(get_attr(ctx[ctx_set_table], attr_id))
-        io_write_string ") (; __set_table ;)\n"
+        S"(call $" I(get_attr(ctx[ctx_set_table], attr_id)) S") (; __set_table ;)\n"
       else
         error("compiler error: invalid assign <"..get_kind(var)..">")
       end
@@ -1652,132 +1557,96 @@ function process3(ctx, proto, u, v)
       if asm[5] ~= nil then
         __call_indirect0(asm[5], ctx, proto, v)
       else
-        io_write_string(asm[3])
-        io_write_string "\n"
+        S(asm[3]) S"\n"
       end
     else
-      io_write_string "(call $"
-      io_write_integer(get_attr(ref, attr_id))
-      io_write_string ") (; "
-      io_write_string(name)
-      io_write_string ";)\n"
+      S"(call $" I(get_attr(ref, attr_id)) S") (; " S(name) S";)\n"
     end
 
     -- 関数呼び出し文の場合は返り値をすべて破棄する
     if not get_attr(v, attr_exp) then
-      for i = 1, get_attr(ref, attr_result) do
-        io_write_string "(drop)\n"
-      end
+      SR(get_attr(ref, attr_result), "(drop)\n")
     end
 
   elseif string_compare(kind, "if") == 0 then
-    io_write_string "if\n"
+    S"if\n"
     process3(ctx, proto, v, items[2])
-    io_write_string "else\n"
+    S"else\n"
     process3(ctx, proto, v, items[3])
-    io_write_string "end\n"
+    S"end\n"
 
   elseif string_compare(kind, "break") == 0 then
-    io_write_string "(br $"
-    io_write_integer(get_attr(v, attr_id))
-    io_write_string ")\n"
+    S"(br $" I(get_attr(v, attr_id)) S")\n"
 
   elseif string_compare(kind, "while") == 0 then
     local loop = get_attr(v, attr_ref)
-    io_write_string "(br $"
-    io_write_integer(loop[loop_loop])
-    io_write_string ")\n"
-    io_write_string "end\n"
-    io_write_string "end\n"
+    S"(br $" I(loop[loop_loop]) S")\n"
+    S"end\n"
+    S"end\n"
 
   elseif string_compare(kind, "repeat") == 0 then
     local loop = get_attr(v, attr_ref)
-    io_write_string "(i32.eqz)\n"
-    io_write_string "(br_if $"
-    io_write_integer(loop[loop_loop])
-    io_write_string ")\n"
-    io_write_string "end\n"
-    io_write_string "end\n"
+    S"(i32.eqz)\n"
+    S"(br_if $" I(loop[loop_loop]) S")\n"
+    S"end\n"
+    S"end\n"
 
   elseif string_compare(kind, "for") == 0 then
     local loop = get_attr(v, attr_ref)
-    io_write_string "(br $"
-    io_write_integer(loop[loop_loop])
-    io_write_string ")\n"
-    io_write_string "end\n"
-    io_write_string "end\n"
+    S"(br $" I(loop[loop_loop]) S")\n"
+    S"end\n"
+    S"end\n"
 
   elseif string_compare(kind, "local") == 0 then
     if proto ~= nil then
       local namelist = get_items(items[2])
       for i = #namelist, 1, -1 do
         local var = namelist[i]
-        io_write_string "(local.set $"
-        io_write_integer(get_attr(var, attr_id))
-        io_write_string ") (; "
-        io_write_string(get_value(var))
-        io_write_string " ;)\n"
+        S"(local.set $" I(get_attr(var, attr_id)) S") (; " S(get_value(var)) S" ;)\n"
       end
     end
 
   elseif string_compare(kind, "return") == 0 then
     local result = get_attr(proto, attr_result)
     for i = result, 1, -1 do
-      io_write_string "(local.set $r"
-      io_write_integer(i)
-      io_write_string ")\n"
+      S"(local.set $r" I(i) S")\n"
     end
-    io_write_string "(br $main)\n"
+    S"(br $main)\n"
 
   elseif string_compare(kind, "table") == 0 then
     for i = #get_items(v), 1, -1 do
-      io_write_string "(local.get $"
-      io_write_integer(get_attr(v, attr_id))
-      io_write_string ")\n"
-      io_write_string "(i32.const "
-      io_write_integer(i)
-      io_write_string ")\n"
-      io_write_string "(call $"
-      io_write_integer(get_attr(ctx[ctx_set_table], attr_id))
-      io_write_string ") (; __set_table ;)\n"
+      S"(local.get $" I(get_attr(v, attr_id)) S")\n"
+      S"(i32.const " I(i) S")\n"
+      S"(call $" I(get_attr(ctx[ctx_set_table], attr_id)) S") (; __set_table ;)\n"
     end
 
   elseif string_compare(kind, "#") == 0 then
-    io_write_string "(call $"
-    io_write_integer(get_attr(ctx[ctx_length], attr_id))
-    io_write_string ") (; __length ;)\n"
+    S"(call $" I(get_attr(ctx[ctx_length], attr_id)) S") (; __length ;)\n"
 
   elseif string_compare(kind, "or") == 0 then
-    io_write_string "end\n"
+    S"end\n"
 
   elseif string_compare(kind, "and") == 0 then
-    io_write_string "else\n"
-    io_write_string "(local.get $dup)\n"
-    io_write_string "end\n"
+    S"else\n"
+    S"(local.get $dup)\n"
+    S"end\n"
 
   elseif string_compare(kind, "~") == 0 then
     -- bnot or bxor
     if #get_items(v) == 1 then
-      io_write_string "(i32.const -1)\n"
+      S"(i32.const -1)\n"
     end
-    io_write_string "(i32.xor)\n"
+    S"(i32.xor)\n"
 
   elseif string_compare(kind, "..") == 0 then
-    io_write_string "(call $"
-    io_write_integer(get_attr(ctx[ctx_concat], attr_id))
-    io_write_string ") (; __concat ;)\n"
+    S"(call $" I(get_attr(ctx[ctx_concat], attr_id)) S") (; __concat ;)\n"
 
   elseif string_compare(kind, "^") == 0 then
-    -- pow
-    io_write_string "(call $"
-    io_write_integer(get_attr(ctx[ctx_power], attr_id))
-    io_write_string ") (; __power ;)\n"
+    S"(call $" I(get_attr(ctx[ctx_power], attr_id)) S") (; __power ;)\n"
 
   elseif string_compare(kind, "index") == 0 then
     if string_compare(get_attr(v, attr_resolver), "set") ~= 0 then
-      io_write_string "(call $"
-      io_write_integer(get_attr(ctx[ctx_get_table], attr_id))
-      io_write_string ") (; __get_table ;)\n"
+      S"(call $" I(get_attr(ctx[ctx_get_table], attr_id)) S") (; __get_table ;)\n"
     end
   end
 end
@@ -1788,66 +1657,46 @@ function write_function_table(ctx, function_table)
     local items = get_items(u)
 
     local proto = items[1]
-    io_write_string "(func $"
-    io_write_integer(get_attr(proto, attr_id))
-    io_write_string " (; "
-    io_write_string(get_value(proto))
-    io_write_string " ;)\n"
+    S"(func $" I(get_attr(proto, attr_id)) S" (; " S(get_value(proto)) S" ;)\n"
 
     local parlist = get_items(items[2])
     for i = 1, #parlist do
       local par = parlist[i]
-      io_write_string "(param $"
-      io_write_integer(get_attr(par, attr_id))
-      io_write_string " i32) (; "
-      io_write_string(get_value(par))
-      io_write_string " ;)\n"
+      S"(param $" I(get_attr(par, attr_id)) S" i32) (; " S(get_value(par)) S" ;)\n"
     end
 
     local result = get_attr(proto, attr_result)
     if result > 0 then
-      io_write_string "(result"
-      for i = 1, result do
-        io_write_string " i32"
-      end
-      io_write_string ")\n"
+      S"(result" SR(result, " i32") S")\n"
     end
 
     local var_table = get_attr(proto, attr_ref)
     for i = 1, #var_table do
       local var = var_table[i]
       if string_compare(get_attr(var, attr_resolver), "var") == 0 then
-        io_write_string "(local $"
-        io_write_integer(get_attr(var, attr_id))
-        io_write_string " i32) (; "
-        io_write_string(get_value(var))
-        io_write_string " ;)\n"
+        S"(local $" I(get_attr(var, attr_id)) S" i32) (; " S(get_value(var)) S" ;)\n"
       end
     end
-
     for i = 1, result do
-      io_write_string "(local $r"
-      io_write_integer(i)
-      io_write_string " i32)\n"
+      S"(local $r" I(i) S" i32)\n"
     end
-    io_write_string "(local $dup i32)\n"
+    S"(local $dup i32)\n"
 
-    io_write_string "block $main\n"
-
+    S"block $main\n"
     for i = 3, #items do
       process3(ctx, proto, u, items[i])
     end
-
-    io_write_string "end\n"
-    local result = get_attr(proto, attr_result)
-    for i = 1, result do
-      io_write_string "(local.get $r"
-      io_write_integer(i)
-      io_write_string ")\n"
+    if result > 0 then
+      S"(unreachable)\n"
     end
-    io_write_string "(return)\n"
+    S"end\n"
 
-    io_write_string ")\n"
+    for i = 1, result do
+      S"(local.get $r" I(i) S")\n"
+    end
+    S"(return)\n"
+
+    S")\n"
   end
 end
 
@@ -1861,19 +1710,16 @@ function write_proto_table(proto_table)
     end
   end
 
-  io_write_string "(table "
-  io_write_integer(#function_table + 1)
-  io_write_string " funcref)\n"
-  io_write_string "(elem (i32.const 1)"
+  S"(table " I(#function_table + 1) S" funcref)\n"
+  S"(elem (i32.const 1)"
   for i = 1, #function_table do
     local proto = function_table[i]
     if get_attr(proto, attr_address) ~= i then
       error "compiler error: invalid address"
     end
-    io_write_string " $"
-    io_write_integer(get_attr(proto, attr_id))
+    S" $" I(get_attr(proto, attr_id))
   end
-  io_write_string ")\n"
+  S")\n"
 end
 
 function compiler(tokens, chunk)
@@ -1909,36 +1755,19 @@ function compiler(tokens, chunk)
   ctx[ctx_set_table] = resolve_name(proto_table, scope, new_name "__set_table")
   ctx[ctx_get_table] = resolve_name(proto_table, scope, new_name "__get_table")
 
-  io_write_string "(module\n"
-
-  io_write_string '(import "wasi_unstable" "fd_read" (func $'
-  io_write_integer(fd_read_id)
-  io_write_string " (param i32 i32 i32 i32) (result i32)))\n"
-
-  io_write_string '(import "wasi_unstable" "fd_write" (func $'
-  io_write_integer(fd_write_id)
-  io_write_string " (param i32 i32 i32 i32) (result i32)))\n"
-
-  io_write_string "(global $"
-  io_write_integer(heap_pointer_id)
-  io_write_string " (mut i32) (i32.const "
-  io_write_integer(heap_pointer)
-  io_write_string "))\n"
-
-  io_write_string "(memory "
-  io_write_integer(memory_size)
-  io_write_string ")\n"
-
-  io_write_string'(export "memory" (memory 0))\n'
+  S"(module\n"
+  S'(import "wasi_unstable" "fd_read" (func $' I(fd_read_id) S" (param i32 i32 i32 i32) (result i32)))\n"
+  S'(import "wasi_unstable" "fd_write" (func $' I(fd_write_id) S" (param i32 i32 i32 i32) (result i32)))\n"
+  S"(global $" I(heap_pointer_id) S" (mut i32) (i32.const " I(heap_pointer) S"))\n"
+  S"(memory " I(memory_size) S")\n"
+  S'(export "memory" (memory 0))\n'
 
   write_function_table(ctx, function_table)
   write_proto_table(proto_table)
-
   process3(ctx, nil, chunk, chunk_block)
-
   write_string_table(string_table)
 
-  io_write_string ")\n"
+  S")\n"
 end
 
 --------------------------------------------------------------------------------
