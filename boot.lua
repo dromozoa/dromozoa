@@ -95,14 +95,14 @@ end
   }
 ]]
 
-local attr_class    = 1 -- "token" | "node"
-local attr_resolver = 2 -- "fun" | "asm" | "par" | "var" | "call" | "ref" | "set"
-local attr_address  = 3 -- 文字列または関数の静的アドレス
-local attr_id       = 4 -- 大域ID
-local attr_result   = 5 -- 関数の返り値の個数
-local attr_global   = 6 -- 大域変数かどうか
-local attr_exp      = 7 -- 関数定義または呼び出しが式である
-local attr_ref      = 8 -- 参照または変数テーブル
+local attr_class     = 1 -- "token" | "node"
+local attr_resolver  = 2 -- "fun" | "asm" | "par" | "var" | "call" | "ref" | "set"
+local attr_address   = 3 -- 文字列または関数の静的アドレス
+local attr_id        = 4 -- 大域ID
+local attr_result    = 5 -- 関数の返り値の個数
+local attr_is_exp    = 6 -- 関数定義または関数呼び出しが式である
+local attr_is_global = 7 -- 大域変数である
+local attr_ref       = 8 -- 各種の参照または変数テーブル
 
 function new_attrs(class)
   return { class, "", 0, 0, -1, false, false, nil }
@@ -507,7 +507,7 @@ function nud_name(parser, token)
   if string_compare(get_kind(parser_peek(parser)), "String") == 0 then
     local args = new_node("args", { parser_read(parser) })
     local result = new_node("call", { token, args })
-    set_attr(result, attr_exp, true)
+    set_attr(result, attr_is_exp, true)
     return result
   else
     return token
@@ -552,7 +552,7 @@ function nud_function(parser, token)
   local block = parser_block(parser)
   parser_expect(parser, "end")
   local result = new_node("function", { new_name "(unnamed)", parlist, block })
-  set_attr(result, attr_exp, true)
+  set_attr(result, attr_is_exp, true)
   return result
 end
 
@@ -567,7 +567,7 @@ end
 function led_call(parser, lbp, token, node)
   local args = parser_list(parser, "args", parser_exp_or_nil, ",", ")")
   local result = new_node("call", { node, args })
-  set_attr(result, attr_exp, true)
+  set_attr(result, attr_is_exp, true)
   return result
 end
 
@@ -857,12 +857,12 @@ function parser_var(parser)
       parser_read(parser)
       local args = parser_list(parser, "args", parser_exp_or_nil, ",", ")")
       node = new_node("call", { token, args })
-      set_attr(node, attr_exp, true)
+      set_attr(node, attr_is_exp, true)
     elseif string_compare(get_kind(next_token), "String") == 0 then
       parser_read(parser)
       local args = new_node("args", { next_token })
       node = new_node("call", { token, args })
-      set_attr(node, attr_exp, true)
+      set_attr(node, attr_is_exp, true)
     elseif string_compare(get_kind(next_token), "[") ~= 0 then
       return token
     else
@@ -1183,7 +1183,7 @@ function add_var_impl(ctx, var_table, scope, u, resolver, global)
   local id = make_id(ctx)
   set_attr(u, attr_resolver, resolver)
   set_attr(u, attr_id, id)
-  set_attr(u, attr_global, global)
+  set_attr(u, attr_is_global, global)
   table_insert(var_table, u)
   table_insert(scope[scope_data], u)
   return id
@@ -1442,7 +1442,7 @@ function process3(ctx, proto, u, v)
 
   elseif string_compare(kind, "function") == 0 then
     range_j = 0
-    if get_attr(v, attr_exp) then
+    if get_attr(v, attr_is_exp) then
       S"(i32.const " I(get_attr(get_items(v)[1], attr_address)) S")\n"
     end
 
@@ -1474,7 +1474,7 @@ function process3(ctx, proto, u, v)
       if string_compare(get_attr(ref, attr_resolver), "fun") == 0 then
         S"(i32.const " I(get_attr(ref, attr_address)) S") (; "
       else
-        if get_attr(ref, attr_global) then
+        if get_attr(ref, attr_is_global) then
           S"(global.get $"
         else
           S"(local.get $"
@@ -1534,7 +1534,7 @@ function process3(ctx, proto, u, v)
       local var = varlist[i]
       if string_compare(get_kind(var), "Name") == 0 then
         local ref = get_attr(var, attr_ref)
-        if get_attr(ref, attr_global) then
+        if get_attr(ref, attr_is_global) then
           S"(global.set $"
         else
           S"(local.set $"
@@ -1564,7 +1564,7 @@ function process3(ctx, proto, u, v)
     end
 
     -- 関数呼び出し文の場合は返り値をすべて破棄する
-    if not get_attr(v, attr_exp) then
+    if not get_attr(v, attr_is_exp) then
       SR(get_attr(ref, attr_result), "(drop)\n")
     end
 
