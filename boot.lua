@@ -1251,18 +1251,18 @@ function process3(ctx, proto, u, v)
   local items = node_items(v)
 
   local value = nil
-  local range_i = 3
+  local range_i = 1
   local range_j = 0
 
   if items == nil then
     value = v[3]
   else
     value = items[1]
-    range_j = #items + 2
+    range_j = #items
   end
 
   if string_compare(v[1], "assign") == 0 then
-    range_j = 3
+    range_j = 1
 
   elseif string_compare(v[1], "call") == 0 then
     local name = v[3]
@@ -1270,7 +1270,7 @@ function process3(ctx, proto, u, v)
       error "compiler error: invalid name"
     end
 
-    range_i = 4
+    range_i = 2
 
     local ref = name[2][attr_ref]
     if string_compare(ref[2][attr_resolver], "asm") == 0 then
@@ -1284,10 +1284,10 @@ function process3(ctx, proto, u, v)
     end
 
   elseif string_compare(v[1], "if") == 0 then
-    range_j = 3
+    range_j = 1
 
   elseif string_compare(v[1], "while") == 0 then
-    range_i = 4
+    range_i = 2
 
     local loop = v[2][attr_ref]
     io_write_string "block $"
@@ -1314,7 +1314,7 @@ function process3(ctx, proto, u, v)
     io_write_string "\n"
 
   elseif string_compare(v[1], "for") == 0 then
-    range_i = 7
+    range_i = 5
 
     local loop = v[2][attr_ref]
     io_write_string "block $"
@@ -1422,7 +1422,7 @@ function process3(ctx, proto, u, v)
     io_write_string ")\n"
 
   elseif string_compare(v[1], "function") == 0 then
-    range_i = 5
+    range_i = 3
 
     proto = v[3]
 
@@ -1497,7 +1497,7 @@ function process3(ctx, proto, u, v)
         io_write_string ")\n"
       end
     else
-      range_j = 3
+      range_j = 1
     end
 
   elseif string_compare(v[1], "false") == 0 then
@@ -1553,7 +1553,7 @@ function process3(ctx, proto, u, v)
     io_write_string ")\n"
 
   elseif string_compare(v[1], "or") == 0 then
-    range_i = 4
+    range_i = 2
 
     process3(ctx, proto, v, v[3])
     io_write_string "(local.tee $dup)\n"
@@ -1562,7 +1562,7 @@ function process3(ctx, proto, u, v)
     io_write_string "else\n"
 
   elseif string_compare(v[1], "and") == 0 then
-    range_i = 4
+    range_i = 2
 
     process3(ctx, proto, v, v[3])
     io_write_string "(local.tee $dup)\n"
@@ -1576,7 +1576,7 @@ function process3(ctx, proto, u, v)
 
   if items ~= nil then
     for i = range_i, range_j do
-      process3(ctx, proto, v, items[i - 2])
+      process3(ctx, proto, v, items[i])
     end
   end
 
