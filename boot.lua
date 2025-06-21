@@ -1749,7 +1749,8 @@ function process3(ctx, proto, u, v)
     io_write_string "(i32.shl)\n"
 
   elseif string_compare(v[1], ">>") == 0 then
-    io_write_string "(i32.shr_s)\n"
+    -- Luaのshrはゼロ埋め
+    io_write_string "(i32.shr_u)\n"
 
   elseif string_compare(v[1], "..") == 0 then
     io_write_string "(call $"
