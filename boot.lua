@@ -1170,11 +1170,6 @@ function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
   local kind = get_kind(v)
   local items = get_items(v)
 
-  local value = get_value(v)
-  if items ~= nil then
-    value = items[1]
-  end
-
   if string_compare(kind, "block") == 0 then
     -- then blockとelse blockにスコープを割り当てる
     if string_compare(get_kind(u), "if") == 0 then
@@ -1219,8 +1214,8 @@ function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
     add_var(ctx, var_table, scope, items[4])
 
   elseif string_compare(kind, "function") == 0 then
-    var_table = get_attr(value, attr_ref)
-    proto = value
+    proto = items[1]
+    var_table = get_attr(proto, attr_ref)
     scope = new_scope(scope)
 
   elseif string_compare(kind, "Name") == 0 then
@@ -1257,14 +1252,9 @@ function process3(ctx, proto, u, v)
   local kind = get_kind(v)
   local items = get_items(v)
 
-  local value = nil
   local range_i = 1
   local range_j = 0
-
-  if items == nil then
-    value = v[3]
-  else
-    value = items[1]
+  if items ~= nil then
     range_j = #items
   end
 
@@ -1272,13 +1262,13 @@ function process3(ctx, proto, u, v)
     range_j = 1
 
   elseif string_compare(kind, "call") == 0 then
-    if string_compare(get_kind(value), "Name") ~= 0 then
+    if string_compare(get_kind(items[1]), "Name") ~= 0 then
       error "compiler error: invalid name"
     end
 
     range_i = 2
 
-    local ref = get_attr(value, attr_ref)
+    local ref = get_attr(items[1], attr_ref)
     if string_compare(get_attr(ref, attr_resolver), "asm") == 0 then
       local name = get_value(ref)
       if string_compare(name, "__call_indirect0") == 0
@@ -1536,7 +1526,7 @@ function process3(ctx, proto, u, v)
 
   elseif string_compare(kind, "Integer") == 0 then
     io_write_string "(i32.const "
-    io_write_integer(v[3])
+    io_write_integer(get_value(v))
     io_write_string ") (; Integer ;)\n"
 
   elseif string_compare(kind, "String") == 0 then
@@ -1609,7 +1599,7 @@ function process3(ctx, proto, u, v)
     end
 
   elseif string_compare(kind, "call") == 0 then
-    local ref = get_attr(value, attr_ref)
+    local ref = get_attr(items[1], attr_ref)
     local result = get_attr(ref, attr_result)
 
     if string_compare(get_attr(ref, attr_resolver), "asm") == 0 then
