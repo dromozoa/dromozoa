@@ -964,10 +964,10 @@ function compiler_initialize()
   end
 
   asm_table = {
-    { "__call_indirect0", 0, "",              true,  leave_call_indirect };
-    { "__call_indirect1", 1, "",              true,  leave_call_indirect };
-    { "__call_indirect2", 2, "",              true,  leave_call_indirect };
-    { "__call_indirect3", 3, "",              true,  leave_call_indirect };
+    { "__call_indirect0", 0, nil,             true,  leave_call_indirect };
+    { "__call_indirect1", 1, nil,             true,  leave_call_indirect };
+    { "__call_indirect2", 2, nil,             true,  leave_call_indirect };
+    { "__call_indirect3", 3, nil,             true,  leave_call_indirect };
     { "__i32_load",       1, "(i32.load)",    false, nil                 };
     { "__i32_load8",      1, "(i32.load8_u)", false, nil                 };
     { "__i32_store",      0, "(i32.store)",   false, nil                 };
@@ -980,7 +980,7 @@ function compiler_initialize()
     { "__memory_grow",    1, "(memory.grow)", false, nil                 };
     { "__memory_copy",    0, "(memory.copy)", false, nil                 };
     { "__memory_fill",    0, "(memory.fill)", false, nil                 };
-    { "__export_start",   0, "",              true,  leave_export_start  };
+    { "__export_start",   0, nil,             true,  leave_export_start  };
   }
   quick_sort(asm_table, 1, #asm_table, compare_string_index1)
 end
@@ -1332,6 +1332,7 @@ function process3(ctx, proto, u, v)
     range_i = 2
 
     local ref = get_attr(items[1], attr_ref)
+
     if string_compare(get_attr(ref, attr_resolver), "asm") == 0 then
       local name = get_value(ref)
       local i = binary_search(asm_table, 1, #asm_table, compare_string_index1, { name })
@@ -1619,10 +1620,9 @@ function process3(ctx, proto, u, v)
 
   elseif string_compare(kind, "call") == 0 then
     local ref = get_attr(items[1], attr_ref)
-    local result = get_attr(ref, attr_result)
+    local name = get_value(ref)
 
     if string_compare(get_attr(ref, attr_resolver), "asm") == 0 then
-      local name = get_value(ref)
       local i = binary_search(asm_table, 1, #asm_table, compare_string_index1, { name })
       local asm = asm_table[i]
       if asm[5] ~= nil then
@@ -1635,13 +1635,13 @@ function process3(ctx, proto, u, v)
       io_write_string "(call $"
       io_write_integer(get_attr(ref, attr_id))
       io_write_string ") (; "
-      io_write_string(get_value(ref))
+      io_write_string(name)
       io_write_string ";)\n"
     end
 
     -- 関数呼び出し文の場合は返り値をすべて破棄する
     if not get_attr(v, attr_exp) then
-      for i = 1, result do
+      for i = 1, get_attr(ref, attr_result) do
         io_write_string "(drop)\n"
       end
     end
