@@ -1042,20 +1042,16 @@ end
 function process1(ctx, proto_table, proto, u, v)
   local kind = get_kind(v)
   local items = get_items(v)
-  local value = get_value(v)
-  if items ~= nil then
-    value = items[1]
-  end
 
   if string_compare(kind, "function") == 0 then
     if proto ~= nil then
       error "compiler error: invalid proto"
     end
-    proto = value
+    proto = items[1]
     add_fun(ctx, proto_table, proto, -1)
 
   elseif string_compare(kind, "return") == 0 then
-    local result = #get_items(value)
+    local result = #get_items(items[1])
     if get_attr(proto, attr_result) == -1 then
       set_attr(proto, attr_result, result)
     elseif get_attr(proto, attr_result) ~= result then
