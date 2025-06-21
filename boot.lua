@@ -412,6 +412,15 @@ function nud_token(parser, token)
   return token
 end
 
+function nud_name(parser, token)
+  if string_compare(parser_peek(parser)[1], "String") == 0 then
+    local args = { "args", new_node_attrs(), parser_read(parser) }
+    return { "call", new_node_attrs(), token, args }
+  else
+    return token
+  end
+end
+
 function nud_group(parser, token)
   local result = { "group", new_node_attrs(), parser_exp(parser, 0) }
   parser_expect(parser, ")")
@@ -470,7 +479,7 @@ function parser_initialize()
   table_insert(parser_nud, { "false",   nud_token  })
   table_insert(parser_nud, { "nil",     nud_token  })
   table_insert(parser_nud, { "true",    nud_token  })
-  table_insert(parser_nud, { "Name",    nud_token  })
+  table_insert(parser_nud, { "Name",    nud_name   })
   table_insert(parser_nud, { "String",  nud_token  })
   table_insert(parser_nud, { "Integer", nud_token  })
   table_insert(parser_nud, { "(",       nud_group  })
@@ -777,16 +786,6 @@ function parser_exp_impl(parser, rbp, return_if_nud_is_nil)
       return nil
     else
       parser_error(token)
-    end
-  end
-
-  -- 文字列リテラル引数を特別扱いする
-  if string_compare(token[1], "Name") == 0 then
-    local next_token = parser_peek(parser)
-    if string_compare(next_token[1], "String") == 0 then
-      parser_read(parser)
-      local args = { "args", new_node_attrs(), next_token }
-      return { "call", new_node_attrs(), token, args }
     end
   end
 
