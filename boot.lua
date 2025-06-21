@@ -1592,21 +1592,20 @@ function process3(ctx, proto, u, v)
     for i = #varlist, 3, -1 do
       local var = varlist[i]
       if string_compare(get_kind(var), "Name") == 0 then
-        local ref = var[2][attr_ref]
-        local ref_attrs = ref[2]
-        if ref_attrs[attr_global] then
+        local ref = get_attr(var, attr_ref)
+        if get_attr(ref, attr_global) then
           io_write_string "(global.set $"
         else
           io_write_string "(local.set $"
         end
-        io_write_integer(ref_attrs[attr_id])
+        io_write_integer(get_attr(ref, attr_id))
         io_write_string ") (; "
         io_write_string(var[3])
         io_write_string " ;)\n"
       elseif string_compare(get_kind(var), "index") == 0 then
         process3(ctx, proto, varlist, var)
         io_write_string "(call $"
-        io_write_integer(ctx[ctx_set_table][2][attr_id])
+        io_write_integer(get_attr(ctx[ctx_set_table], attr_id))
         io_write_string ") (; __set_table ;)\n"
       else
         error("compiler error: invalid assign <"..get_kind(var)..">")
@@ -1614,14 +1613,15 @@ function process3(ctx, proto, u, v)
     end
 
   elseif string_compare(kind, "call") == 0 then
-    local ref = v[3][2][attr_ref]
-    local result = ref[2][attr_result]
+    local ref = get_attr(value, attr_ref)
+    local result = get_attr(ref, attr_result)
 
-    if string_compare(ref[2][attr_resolver], "asm") == 0 then
-      if string_compare(ref[3], "__call_indirect0") == 0
-        or string_compare(ref[3], "__call_indirect1") == 0
-        or string_compare(ref[3], "__call_indirect2") == 0
-        or string_compare(ref[3], "__call_indirect3") == 0 then
+    if string_compare(get_attr(ref, attr_resolver), "asm") == 0 then
+      local name = get_value(ref)
+      if string_compare(name, "__call_indirect0") == 0
+        or string_compare(name, "__call_indirect1") == 0
+        or string_compare(name, "__call_indirect2") == 0
+        or string_compare(name, "__call_indirect3") == 0 then
 
         local args = v[4]
         for i = 4, #args do
@@ -1648,54 +1648,54 @@ function process3(ctx, proto, u, v)
 
         io_write_string ")\n"
 
-      elseif string_compare(ref[3], "__i32_load") == 0 then
+      elseif string_compare(name, "__i32_load") == 0 then
         io_write_string "(i32.load)\n"
 
-      elseif string_compare(ref[3], "__i32_load8") == 0 then
+      elseif string_compare(name, "__i32_load8") == 0 then
         io_write_string "(i32.load8_u)\n"
 
-      elseif string_compare(ref[3], "__i32_store") == 0 then
+      elseif string_compare(name, "__i32_store") == 0 then
         io_write_string "(i32.store)\n"
 
-      elseif string_compare(ref[3], "__i32_store8") == 0 then
+      elseif string_compare(name, "__i32_store8") == 0 then
         io_write_string "(i32.store8)\n"
 
-      elseif string_compare(ref[3], "__i32_clz") == 0 then
+      elseif string_compare(name, "__i32_clz") == 0 then
         io_write_string "(i32.clz)\n"
 
-      elseif string_compare(ref[3], "__i32_ctz") == 0 then
+      elseif string_compare(name, "__i32_ctz") == 0 then
         io_write_string "(i32.ctz)\n"
 
-      elseif string_compare(ref[3], "__i32_popcnt") == 0 then
+      elseif string_compare(name, "__i32_popcnt") == 0 then
         io_write_string "(i32.popcnt)\n"
 
-      elseif string_compare(ref[3], "__unreachable") == 0 then
+      elseif string_compare(name, "__unreachable") == 0 then
         io_write_string "(unreachable)\n"
 
-      elseif string_compare(ref[3], "__memory_size") == 0 then
+      elseif string_compare(name, "__memory_size") == 0 then
         io_write_string "(memory.size)\n"
 
-      elseif string_compare(ref[3], "__memory_grow") == 0 then
+      elseif string_compare(name, "__memory_grow") == 0 then
         io_write_string "(memory.grow)\n"
 
-      elseif string_compare(ref[3], "__memory_copy") == 0 then
+      elseif string_compare(name, "__memory_copy") == 0 then
         io_write_string "(memory.copy)\n"
 
-      elseif string_compare(ref[3], "__memory_fill") == 0 then
+      elseif string_compare(name, "__memory_fill") == 0 then
         io_write_string "(memory.fill)\n"
 
-      elseif string_compare(ref[3], "__export_start") == 0 then
-        local arg = v[4][3]
-        local arg_ref = arg[2][attr_ref]
+      elseif string_compare(name, "__export_start") == 0 then
+        local arg = get_items(v[4])[1]
+        local arg_ref = get_attr(arg, attr_ref)
         io_write_string '(export "_start" (func $'
-        io_write_integer(arg_ref[2][attr_id])
+        io_write_integer(get_attr(arg_ref, attr_id))
         io_write_string "))\n"
       end
     else
       io_write_string "(call $"
-      io_write_integer(ref[2][attr_id])
+      io_write_integer(get_attr(ref, attr_id))
       io_write_string ") (; "
-      io_write_string(ref[3])
+      io_write_string(get_value(ref))
       io_write_string ";)\n"
     end
 
@@ -1715,11 +1715,11 @@ function process3(ctx, proto, u, v)
 
   elseif string_compare(kind, "break") == 0 then
     io_write_string "(br $"
-    io_write_integer(v[2][attr_id])
+    io_write_integer(get_attr(v, attr_id))
     io_write_string ")\n"
 
   elseif string_compare(kind, "while") == 0 then
-    local loop = v[2][attr_ref]
+    local loop = get_attr(v, attr_ref)
     io_write_string "(br $"
     io_write_integer(loop[loop_loop])
     io_write_string ")\n"
@@ -1727,7 +1727,7 @@ function process3(ctx, proto, u, v)
     io_write_string "end\n"
 
   elseif string_compare(kind, "repeat") == 0 then
-    local loop = v[2][attr_ref]
+    local loop = get_attr(v, attr_ref)
     io_write_string "(i32.eqz)\n"
     io_write_string "(br_if $"
     io_write_integer(loop[loop_loop])
@@ -1736,7 +1736,7 @@ function process3(ctx, proto, u, v)
     io_write_string "end\n"
 
   elseif string_compare(kind, "for") == 0 then
-    local loop = v[2][attr_ref]
+    local loop = get_attr(v, attr_ref)
     io_write_string "(br $"
     io_write_integer(loop[loop_loop])
     io_write_string ")\n"
@@ -1744,10 +1744,8 @@ function process3(ctx, proto, u, v)
     io_write_string "end\n"
 
   elseif string_compare(kind, "function") == 0 then
-    local attrs = proto[2]
-
     io_write_string "end\n"
-    local result = attrs[attr_result]
+    local result = get_attr(proto, attr_result)
     for i = 1, result do
       io_write_string "(local.get $r"
       io_write_integer(i)
@@ -1763,7 +1761,7 @@ function process3(ctx, proto, u, v)
       for i = #namelist, 3, -1 do
         local var = namelist[i]
         io_write_string "(local.set $"
-        io_write_integer(var[2][attr_id])
+        io_write_integer(get_attr(var, attr_id))
         io_write_string ") (; "
         io_write_string(var[3])
         io_write_string " ;)\n"
@@ -1771,7 +1769,7 @@ function process3(ctx, proto, u, v)
     end
 
   elseif string_compare(kind, "return") == 0 then
-    local result = proto[2][attr_result]
+    local result = get_attr(proto, attr_result)
     for i = result, 1, -1 do
       io_write_string "(local.set $r"
       io_write_integer(i)
@@ -1782,13 +1780,13 @@ function process3(ctx, proto, u, v)
   elseif string_compare(kind, "table") == 0 then
     for i = #v - 2, 1, -1 do
       io_write_string "(local.get $"
-      io_write_integer(v[2][attr_id])
+      io_write_integer(get_attr(v, attr_id))
       io_write_string ")\n"
       io_write_string "(i32.const "
       io_write_integer(i)
       io_write_string ")\n"
       io_write_string "(call $"
-      io_write_integer(ctx[ctx_set_table][2][attr_id])
+      io_write_integer(get_attr(ctx[ctx_set_table], attr_id))
       io_write_string ") (; __set_table ;)\n"
     end
 
@@ -1797,7 +1795,7 @@ function process3(ctx, proto, u, v)
 
   elseif string_compare(kind, "#") == 0 then
     io_write_string "(call $"
-    io_write_integer(ctx[ctx_length][2][attr_id])
+    io_write_integer(get_attr(ctx[ctx_length], attr_id))
     io_write_string ") (; __length ;)\n"
 
   elseif string_compare(kind, "or") == 0 then
@@ -1848,7 +1846,7 @@ function process3(ctx, proto, u, v)
 
   elseif string_compare(kind, "..") == 0 then
     io_write_string "(call $"
-    io_write_integer(ctx[ctx_concat][2][attr_id])
+    io_write_integer(get_attr(ctx[ctx_concat], attr_id))
     io_write_string ") (; __concat ;)\n"
 
   elseif string_compare(kind, "+") == 0 then
@@ -1869,13 +1867,13 @@ function process3(ctx, proto, u, v)
   elseif string_compare(kind, "^") == 0 then
     -- pow
     io_write_string "(call $"
-    io_write_integer(ctx[ctx_power][2][attr_id])
+    io_write_integer(get_attr(ctx[ctx_power], attr_id))
     io_write_string ") (; __power ;)\n"
 
   elseif string_compare(kind, "index") == 0 then
-    if string_compare(v[2][attr_resolver], "set") ~= 0 then
+    if string_compare(get_attr(v, attr_resolver), "set") ~= 0 then
       io_write_string "(call $"
-      io_write_integer(ctx[ctx_get_table][2][attr_id])
+      io_write_integer(get_attr(ctx[ctx_get_table], attr_id))
       io_write_string ") (; __get_table ;)\n"
     end
   end
@@ -1885,7 +1883,7 @@ function write_proto_table(proto_table)
   local function_table = {}
   for i = 1, #proto_table do
     local proto = proto_table[i]
-    if string_compare(proto[2][attr_resolver], "fun") == 0 then
+    if string_compare(get_attr(proto, attr_resolver), "fun") == 0 then
       table_insert(function_table, proto)
     end
   end
@@ -1896,11 +1894,11 @@ function write_proto_table(proto_table)
     io_write_string "(elem (i32.const 1)"
     for i = 1, #function_table do
       local proto = function_table[i]
-      if proto[2][attr_address] ~= i then
+      if get_attr(proto, attr_address) ~= i then
         error "compiler error: invalid address"
       end
       io_write_string " $"
-      io_write_integer(proto[2][attr_id])
+      io_write_integer(get_attr(proto, attr_id))
     end
     io_write_string ")\n"
   end
