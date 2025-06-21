@@ -1120,11 +1120,11 @@ function new_ctx()
   return { 0, 0 }
 end
 
-local ctx_id = 1
-local ctx_address = 2
-local ctx_length = 3
-local ctx_concat = 4
-local ctx_power = 5
+local ctx_id        = 1
+local ctx_address   = 2
+local ctx_length    = 3
+local ctx_concat    = 4
+local ctx_power     = 5
 local ctx_new_table = 6
 local ctx_set_table = 7
 local ctx_get_table = 8
