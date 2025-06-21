@@ -76,6 +76,15 @@ end
 --   ...   : (token|node)*
 -- }
 
+--[[
+  struct node {
+    kind = string;
+    attrs = attrs
+    items = table<token|node>
+    items = table<node>
+  }
+]]
+
 local attr_class    = 1 -- "token" | "node"
 local attr_resolver = 2 -- "fun" | "asm" | "par" | "var" | "call" | "ref" | "set"
 local attr_address  = 3 -- 文字列または関数の静的アドレス
@@ -90,6 +99,14 @@ end
 
 function new_node_attrs()
   return { "node", "", 0, 0, -1, false, nil }
+end
+
+function new_node(kind, items)
+  local result = { kind, new_node_attrs() }
+  for i = 1, #items do
+    table_insert(result, items[i])
+  end
+  return result
 end
 
 function compare_string_index1(a, b)
@@ -445,28 +462,28 @@ end
 
 function nud_name(parser, token)
   if string_compare(parser_peek(parser)[1], "String") == 0 then
-    local args = { "args", new_node_attrs(), parser_read(parser) }
-    return { "call", new_node_attrs(), token, args }
+    local args = new_node("args", { parser_read(parser) })
+    return new_node("call", { token, args })
   else
     return token
   end
 end
 
 function nud_group(parser, token)
-  local result = { "group", new_node_attrs(), parser_exp(parser, 0) }
+  local items = { parser_exp(parser, 0) }
   parser_expect(parser, ")")
-  return result
+  return new_node("group", items)
 end
 
 function nud_table(parser, token)
-  local result = { "table", new_node_attrs() }
+  local items = {}
 
   while true do
     local node = parser_exp_or_nil(parser)
     if node == nil then
       break
     end
-    table_insert(result, node)
+    table_insert(items, node)
 
     local token = parser_peek(parser)
     if string_compare(token[1], "}") == 0 then
@@ -477,30 +494,30 @@ function nud_table(parser, token)
   end
   parser_expect(parser, "}")
 
-  return result
+  return new_node("table", items)
 end
 
 function nud_prefix(parser, token)
-  return { token[1], new_node_attrs(), parser_exp(parser, parser_prefix_lbp) }
+  return new_node(token[1], { parser_exp(parser, parser_prefix_lbp) })
 end
 
 function led_left(parser, lbp, token, node)
-  return { token[1], new_node_attrs(), node, parser_exp(parser, lbp) }
+  return new_node(token[1], { node, parser_exp(parser, lbp) })
 end
 
 function led_right(parser, lbp, token, node)
-  return { token[1], new_node_attrs(), node, parser_exp(parser, lbp - 1) }
+  return new_node(token[1], { node, parser_exp(parser, lbp - 1) })
 end
 
 function led_call(parser, lbp, token, node)
   local args = parser_list(parser, "args", parser_exp_or_nil, ",", ")")
-  return { "call", new_node_attrs(), node, args }
+  return new_node("call", { node, args })
 end
 
 function led_index(parser, lbp, token, node)
-  local result = { "index", new_node_attrs(), node, parser_exp(parser, 0) }
+  local items = { node, parser_exp(parser, 0) }
   parser_expect(parser, "]")
-  return result
+  return new_node("index", items)
 end
 
 function parser_initialize()
@@ -608,7 +625,7 @@ function parser_expect2(parser, kind1, kind2)
 end
 
 function parser_list(parser, kind, parse, separator, close)
-  local result = { kind, new_node_attrs() }
+  local items = {}
 
   local i = 0
   while true do
@@ -630,14 +647,14 @@ function parser_list(parser, kind, parse, separator, close)
     end
 
     i = i + 1
-    table_insert(result, node)
+    table_insert(items, node)
   end
 
   if close ~= nil then
     parser_expect(parser, close)
   end
 
-  return result
+  return new_node(kind, items)
 end
 
 function parser_block(parser)
@@ -647,7 +664,7 @@ end
 function parser_stat_assign(parser)
   local varlist = parser_list(parser, "varlist", parser_var, ",", "=")
   local explist = parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
-  return { "assign", new_node_attrs(), explist, varlist }
+  return new_node("assign", { explist, varlist })
 end
 
 function parser_stat_if(parser)
@@ -658,21 +675,21 @@ function parser_stat_if(parser)
 
   local token = parser_read(parser)
   if string_compare(token[1], "elseif") == 0 then
-    else_block = { "block", new_node_attrs(), parser_stat_if(parser) }
+    else_block = new_node("block", { parser_stat_if(parser) })
   elseif string_compare(token[1], "else") == 0 then
     else_block = parser_block(parser)
   else
     parser_unread(parser)
-    else_block = { "block", new_node_attrs() }
+    else_block = new_node("block", {})
   end
 
-  return { "if", new_node_attrs(), exp, then_block, else_block }
+  return new_node("if", { exp, then_block, else_block })
 end
 
 function parser_stat(parser)
   local token = parser_read(parser)
   if string_compare(token[1], ";") == 0 then
-    return { ";", new_node_attrs() }
+    return new_node(";", {})
 
   elseif string_compare(token[1], "Name") == 0 then
     -- var ::= Name
@@ -690,10 +707,10 @@ function parser_stat(parser)
       if string_compare(next_token[1], "(") == 0 then
         args = parser_list(parser, "args", parser_exp_or_nil, ",", ")")
       else
-        args = { "args", new_node_attrs(), next_token }
+        args = new_node("args", { next_token })
       end
       if string_compare(parser_peek(parser)[1], "[") ~= 0 then
-        return { "call", new_node_attrs(), token, args }
+        return new_node("call", { token, args })
       end
       parser[2] = index
     end
@@ -705,25 +722,25 @@ function parser_stat(parser)
     return parser_stat_assign(parser)
 
   elseif string_compare(token[1], "break") == 0 then
-    return { "break", new_node_attrs() }
+    return new_node("break", {})
 
   elseif string_compare(token[1], "do") == 0 then
     local block = parser_block(parser)
     parser_expect(parser, "end")
-    return { "do", new_node_attrs(), block }
+    return new_node("do", { block })
 
   elseif string_compare(token[1], "while") == 0 then
     local exp = parser_exp(parser, 0)
     parser_expect(parser, "do")
     local block = parser_block(parser)
     parser_expect(parser, "end")
-    return { "while", new_node_attrs(), exp, block }
+    return new_node("while", { exp, block })
 
   elseif string_compare(token[1], "repeat") == 0 then
     local block = parser_block(parser)
     parser_expect(parser, "until")
     local exp = parser_exp(parser, 0)
-    return { "repeat", new_node_attrs(), block, exp }
+    return new_node("repeat", { block, exp })
 
   elseif string_compare(token[1], "if") == 0 then
     local result = parser_stat_if(parser)
@@ -746,7 +763,7 @@ function parser_stat(parser)
     parser_expect(parser, "do")
     local block = parser_block(parser)
     parser_expect(parser, "end")
-    return { "for", new_node_attrs(), exp1, exp2, exp3, name, block }
+    return new_node("for", { exp1, exp2, exp3, name, block })
 
   elseif string_compare(token[1], "function") == 0 then
     local name = parser_expect(parser, "Name")
@@ -754,17 +771,17 @@ function parser_stat(parser)
     local parlist = parser_list(parser, "parlist", parser_name, ",", ")")
     local block = parser_block(parser)
     parser_expect(parser, "end")
-    return { "function", new_node_attrs(), name, parlist, block }
+    return new_node("function", { name, parlist, block })
 
   elseif string_compare(token[1], "local") == 0 then
     -- 初期化無しのローカルは許可しない
     local namelist = parser_list(parser, "namelist", parser_name, ",", "=")
     local explist = parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
-    return { "local", new_node_attrs(), explist, namelist }
+    return new_node("local", { explist, namelist })
 
   elseif string_compare(token[1], "return") == 0 then
     local explist = parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
-    return { "return", new_node_attrs(), explist }
+    return new_node("return", { explist })
 
   else
     parser_unread(parser)
@@ -781,11 +798,11 @@ function parser_var(parser)
     if string_compare(next_token[1], "(") == 0 then
       parser_read(parser)
       local args = parser_list(parser, "args", parser_exp_or_nil, ",", ")")
-      node = { "call", new_node_attrs(), token, args }
+      node = new_node("call", { token, args })
     elseif string_compare(next_token[1], "String") == 0 then
       parser_read(parser)
-      local args = { "args", new_node_attrs(), next_token }
-      node = { "call", new_node_attrs(), token, args }
+      local args = new_node("args", { next_token })
+      node = new_node("call", { token, args })
     elseif string_compare(next_token[1], "[") ~= 0 then
       return token
     else
@@ -861,7 +878,7 @@ function parser(tokens)
     parser_error(token)
   end
 
-  return { "chunk", new_node_attrs(), block }
+  return new_node("chunk", { block })
 end
 
 --------------------------------------------------------------------------------
