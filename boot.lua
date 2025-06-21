@@ -1247,11 +1247,18 @@ function process2(ctx, proto_table, var_table, proto, scope, loop, u, v)
 end
 
 function process3(ctx, proto, u, v)
+  local kind = v[1]
+  local items = node_items(v)
+
+  local value = nil
   local range_i = 3
   local range_j = 0
 
-  if string_compare(v[2][attr_class], "node") == 0 then
-    range_j = #v
+  if items == nil then
+    value = v[3]
+  else
+    value = items[1]
+    range_j = #items + 2
   end
 
   if string_compare(v[1], "assign") == 0 then
@@ -1567,8 +1574,10 @@ function process3(ctx, proto, u, v)
     end
   end
 
-  for i = range_i, range_j do
-    process3(ctx, proto, v, v[i])
+  if items ~= nil then
+    for i = range_i, range_j do
+      process3(ctx, proto, v, items[i - 2])
+    end
   end
 
   if string_compare(v[1], "assign") == 0 then
