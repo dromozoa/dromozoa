@@ -1428,8 +1428,8 @@ function process3(ctx, proto, u, v)
     io_write_string(get_value(proto))
     io_write_string " ;)\n"
 
-    local parlist = items[2]
-    for i = 3, #parlist do
+    local parlist = get_items(items[2])
+    for i = 1, #parlist do
       local par = parlist[i]
       io_write_string "(param $"
       io_write_integer(get_attr(par, attr_id))
@@ -1761,7 +1761,7 @@ function process3(ctx, proto, u, v)
     io_write_string "(br $main)\n"
 
   elseif string_compare(kind, "table") == 0 then
-    for i = #v - 2, 1, -1 do
+    for i = #get_items(v), 1, -1 do
       io_write_string "(local.get $"
       io_write_integer(get_attr(v, attr_id))
       io_write_string ")\n"
@@ -1812,7 +1812,7 @@ function process3(ctx, proto, u, v)
 
   elseif string_compare(kind, "~") == 0 then
     -- bnot or bxor
-    if #v == 3 then
+    if #get_items(v) == 1 then
       io_write_string "(i32.const -1)\n"
     end
     io_write_string "(i32.xor)\n"
