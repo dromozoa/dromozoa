@@ -983,6 +983,27 @@ function compiler_initialize()
     { "__export_start",   0, nil,             true,  leave_export_start  };
   }
   quick_sort(asm_table, 1, #asm_table, compare_string_index1)
+
+  op_table = {
+    { "not", "(i32.eqz)"   };
+    { "<",   "(i32.lt_s)"  };
+    { ">",   "(i32.gt_s)"  };
+    { "<=",  "(i32.le_s)"  };
+    { ">=",  "(i32.ge_s)"  };
+    { "~=",  "(i32.ne)"    };
+    { "==",  "(i32.eq)"    };
+    { "|",   "(i32.or)"    };
+    { "&",   "(i32.and)"   };
+    { "<<",  "(i32.shl)"   };
+    { ">>",  "(i32.shr_u)" };
+    { "+",   "(i32.add)"   };
+    { "-",   "(i32.sub)"   };
+    { "*",   "(i32.mul)"   };
+    { "/",   "(i32.div_s)" };
+    { "//",  "(i32.div_s)" };
+    { "%",   "(i32.rem_s)" };
+  }
+  quick_sort(op_table, 1, #op_table, compare_string_index1)
 end
 
 function roundup(n, a)
@@ -1592,7 +1613,12 @@ function process3(ctx, proto, u, v)
     end
   end
 
-  if string_compare(kind, "assign") == 0 then
+  local i = binary_search(op_table, 1, #op_table, compare_string_index1, { kind })
+  if i ~= 0 then
+    io_write_string(op_table[i][2])
+    io_write_string "\n"
+
+  elseif string_compare(kind, "assign") == 0 then
     local varlist = get_items(items[2])
     for i = #varlist, 1, -1 do
       local var = varlist[i]
@@ -1716,9 +1742,6 @@ function process3(ctx, proto, u, v)
       io_write_string ") (; __set_table ;)\n"
     end
 
-  elseif string_compare(kind, "not") == 0 then
-    io_write_string "(i32.eqz)\n"
-
   elseif string_compare(kind, "#") == 0 then
     io_write_string "(call $"
     io_write_integer(get_attr(ctx[ctx_length], attr_id))
@@ -1732,27 +1755,6 @@ function process3(ctx, proto, u, v)
     io_write_string "(local.get $dup)\n"
     io_write_string "end\n"
 
-  elseif string_compare(kind, "<") == 0 then
-    io_write_string "(i32.lt_s)\n"
-
-  elseif string_compare(kind, ">") == 0 then
-    io_write_string "(i32.gt_s)\n"
-
-  elseif string_compare(kind, "<=") == 0 then
-    io_write_string "(i32.le_s)\n"
-
-  elseif string_compare(kind, ">=") == 0 then
-    io_write_string "(i32.ge_s)\n"
-
-  elseif string_compare(kind, "~=") == 0 then
-    io_write_string "(i32.ne)\n"
-
-  elseif string_compare(kind, "==") == 0 then
-    io_write_string "(i32.eq)\n"
-
-  elseif string_compare(kind, "|") == 0 then
-    io_write_string "(i32.or)\n"
-
   elseif string_compare(kind, "~") == 0 then
     -- bnot or bxor
     if #get_items(v) == 1 then
@@ -1760,35 +1762,10 @@ function process3(ctx, proto, u, v)
     end
     io_write_string "(i32.xor)\n"
 
-  elseif string_compare(kind, "&") == 0 then
-    io_write_string "(i32.and)\n"
-
-  elseif string_compare(kind, "<<") == 0 then
-    io_write_string "(i32.shl)\n"
-
-  elseif string_compare(kind, ">>") == 0 then
-    -- Luaのshrはゼロ埋め
-    io_write_string "(i32.shr_u)\n"
-
   elseif string_compare(kind, "..") == 0 then
     io_write_string "(call $"
     io_write_integer(get_attr(ctx[ctx_concat], attr_id))
     io_write_string ") (; __concat ;)\n"
-
-  elseif string_compare(kind, "+") == 0 then
-    io_write_string "(i32.add)\n"
-
-  elseif string_compare(kind, "-") == 0 then
-    io_write_string "(i32.sub)\n"
-
-  elseif string_compare(kind, "*") == 0 then
-    io_write_string "(i32.mul)\n"
-
-  elseif string_compare(kind, "/") == 0 or string_compare(kind, "//") == 0 then
-    io_write_string "(i32.div_s)\n"
-
-  elseif string_compare(kind, "%") == 0 then
-    io_write_string "(i32.rem_s)\n"
 
   elseif string_compare(kind, "^") == 0 then
     -- pow
