@@ -101,6 +101,10 @@ function new_node_attrs()
   return { "node", "", 0, 0, -1, false, nil }
 end
 
+function new_token(kind, value, position)
+  return { kind, new_token_attrs(), value, position }
+end
+
 function new_node(kind, items)
   local result = { kind, new_node_attrs() }
   for i = 1, #items do
@@ -349,9 +353,9 @@ function lexer_rule_keyword_or_name(source, position)
   local v = string_sub(source, position, p - 1)
   local i = binary_search(lexer_keywords, 1, #lexer_keywords, string_compare, v)
   if i ~= 0 then
-    return p, { v, new_token_attrs(), v, position }
+    return p, new_token(v, v, position)
   end
-  return p, { "Name", new_token_attrs(), v, position }
+  return p, new_token("Name", v, position)
 end
 
 function lexer_rule_symbol(source, position)
@@ -360,7 +364,7 @@ function lexer_rule_symbol(source, position)
     local v = string_sub(source, position, position + i - 1)
     local j = binary_search(symbols, 1, #symbols, string_compare, v)
     if j ~= 0 then
-      return position + i, { v, new_token_attrs(), v, position }
+      return position + i, new_token(v, v, position)
     end
   end
   return 0, nil
@@ -381,7 +385,7 @@ function lexer_rule_string(source, position)
     local c = string_byte(source, p)
     p = p + 1
     if c == quote then
-      return p, { "String", new_token_attrs(), string_char(t), position }
+      return p, new_token("String", string_char(t), position)
     elseif c == 0x5C then
       if p > n then
         error("lexer error at position "..integer_to_string(p))
@@ -452,7 +456,7 @@ function lexer_rule_integer(source, position)
   if p == q then
     return 0, nil
   else
-    return p, { "Integer", new_token_attrs(), v, position }
+    return p, new_token("Integer", v, position)
   end
 end
 
@@ -485,7 +489,7 @@ function lexer(source)
     end
   end
 
-  table_insert(tokens, { "EOF", new_token_attrs(), "EOF", p })
+  table_insert(tokens, new_token("EOF", "EOF", p))
   return tokens
 end
 
@@ -798,7 +802,7 @@ function parser_stat(parser)
       parser_read(parser)
       exp3 = parser_exp(parser, 0)
     else
-      exp3 = { "Integer", new_token_attrs(), 1, 0 }
+      exp3 = new_token("Integer", 1, 0)
     end
     parser_expect(parser, "do")
     local block = parser_block(parser)
@@ -1088,7 +1092,7 @@ local scope_data = 1
 local scope_parent = 2
 
 function new_name(name)
-  return { "Name", new_token_attrs(), name, 0 }
+  return new_token("Name", name, 0)
 end
 
 function add_var_impl(ctx, var_table, scope, u, resolver, global)
