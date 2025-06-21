@@ -1157,6 +1157,21 @@ function process1(ctx, proto_table, function_table, proto, u, v)
     elseif get_attr(proto, attr_result) ~= result then
       error "compiler error: invalid result"
     end
+
+  elseif string_compare(kind, "explist") == 0 then
+    if string_compare(get_kind(u), "return") == 0 then
+      S";; " S(get_value(proto)) S" = "
+      local result = 0
+      for i = 1, #items do
+        local item = items[i]
+        if string_compare(get_kind(item), "call") == 0 then
+          S(get_value(get_items(item)[1])) S" + "
+        else
+          result = result + 1
+        end
+      end
+     I(result) S"\n"
+    end
   end
 
   if items ~= nil then
