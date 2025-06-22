@@ -1852,11 +1852,12 @@ function compiler(tokens, chunk)
   local scope = new_scope(nil)
   local fd_read_id = add_fun(ctx, proto_table, new_name "__fd_read", 1)
   local fd_write_id = add_fun(ctx, proto_table, new_name "__fd_write", 1)
-  local heap_pointer_id = add_global(ctx, var_table, scope, new_name "__heap_pointer")
 
   local function_table = {}
   local chunk_block = get_items(chunk)[1]
   process1(ctx, proto_table, function_table, nil, chunk, chunk_block)
+
+  local heap_pointer_id = add_global(ctx, var_table, scope, new_name "__heap_pointer")
 
   local result_table = new_result_table(proto_table)
   process2(ctx, proto_table, var_table, result_table, nil, scope, scope, nil, chunk, chunk_block)
@@ -1872,12 +1873,14 @@ function compiler(tokens, chunk)
   S"(module\n"
   S'(import "wasi_unstable" "fd_read" (func $' I(fd_read_id) S" (param i32 i32 i32 i32) (result i32)))\n"
   S'(import "wasi_unstable" "fd_write" (func $' I(fd_write_id) S" (param i32 i32 i32 i32) (result i32)))\n"
-  S"(global $" I(heap_pointer_id) S" (mut i32) (i32.const " I(heap_pointer) S"))\n"
   S"(memory " I(memory_size) S")\n"
   S'(export "memory" (memory 0))\n'
 
   write_function_table(ctx, function_table)
   write_proto_table(proto_table)
+
+  S"(global $" I(heap_pointer_id) S" (mut i32) (i32.const " I(heap_pointer) S"))\n"
+
   process3(ctx, nil, chunk, chunk_block)
   write_string_table(string_table)
 
