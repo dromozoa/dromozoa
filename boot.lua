@@ -1869,16 +1869,12 @@ function compiler(tokens, chunk)
     add_asm(ctx, proto_table, new_name(asm[1]), asm[2])
   end
 
-
   local var_table = {}
   local scope = new_scope(nil)
 
   S"(module\n"
-
-  local fd_read_id = add_fun(ctx, proto_table, new_name "__fd_read", 1)
-  local fd_write_id = add_fun(ctx, proto_table, new_name "__fd_write", 1)
-  S'(import "wasi_unstable" "fd_read" (func $' I(fd_read_id) S" (param i32 i32 i32 i32) (result i32)))\n"
-  S'(import "wasi_unstable" "fd_write" (func $' I(fd_write_id) S" (param i32 i32 i32 i32) (result i32)))\n"
+  add_wasi(ctx, proto_table, new_name "__fd_read",  1, "fd_read",  "(param i32 i32 i32 i32)")
+  add_wasi(ctx, proto_table, new_name "__fd_write", 1, "fd_write", "(param i32 i32 i32 i32)")
   S"(memory " I(memory_size) S")\n"
   S'(export "memory" (memory 0))\n'
 
