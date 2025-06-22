@@ -252,14 +252,6 @@ function lexer_char_to_integer_hex(c, v)
   end
 end
 
-function lexer_char_to_integer_dec(c, v)
-  if 0x30 <= c and c <= 0x39 then
-    return true, v * 10 + c - 0x30
-  else
-    return false, v
-  end
-end
-
 function lexer_rule_space(source, position)
   local p = position
   local n = #source
@@ -433,29 +425,40 @@ function lexer_rule_integer(source, position)
   local p = position
   local n = #source
   local q = position
-  local char_to_integer = lexer_char_to_integer_dec
+  local t = {}
+
+  local read_char = function (c)
+    return 0x30 <= c and c <= 0x39
+  end
 
   local prefix = string_sub(source, p, p + 1)
   if string_compare(prefix, "0X") == 0 or string_compare(prefix, "0x") == 0 then
     p = p + 2
     q = q + 2
-    char_to_integer = lexer_char_to_integer_hex
+
+    -- WATの16進数リテラルは0xだけ
+    table_insert(t, 0x30)
+    table_insert(t, 0x78)
+
+    read_char = function (c)
+      return 0x30 <= c and c <= 0x39 or 0x41 <= c and c <= 0x46 or 0x61 <= c and c <= 0x66
+    end
   end
 
   local r = false
-  local v = 0
   while p <= n do
-    r, v = __call_indirect2(char_to_integer, string_byte(source, p), v)
-    if not r then
+    local c = string_byte(source, p)
+    if not __call_indirect1(read_char, c) then
       break
     end
     p = p + 1
+    table_insert(t, c)
   end
 
   if p == q then
     return 0, nil
   else
-    return p, new_token("Integer", v, position)
+    return p, new_token("Integer", string_char(t), position)
   end
 end
 
@@ -816,7 +819,7 @@ function parser_stat(parser)
       parser_read(parser)
       exp3 = parser_exp(parser, 0)
     else
-      exp3 = new_token("Integer", 1, 0)
+      exp3 = new_token("Integer", "1", 0)
     end
     parser_expect(parser, "do")
     local block = parser_block(parser)
@@ -1570,7 +1573,7 @@ function process3(ctx, proto, u, v)
     end
 
   elseif string_compare(kind, "Integer") == 0 then
-    S"(i32.const " I(get_value(v)) S") (; Integer ;)\n"
+    S"(i32.const " S(get_value(v)) S") (; Integer ;)\n"
 
   elseif string_compare(kind, "String") == 0 then
     S"(i32.const " I(get_attr(v, attr_address)) S") (; String ;)\n"
