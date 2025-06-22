@@ -208,7 +208,7 @@ function test9()
   io_write_integer(b)
   io_write_string ")\n"
 
-  b, a = f3(17, 42, 69)
+  b, a = f3(17, 42, -0XFF)
   io_write_string "("
   io_write_integer(a)
   io_write_string ","
