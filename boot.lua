@@ -1323,28 +1323,11 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
     set_attr(v, attr_id, add_var(ctx, var_table, scope, new_name "(table)"))
   end
 
-  -- 一時的に記述
-  -- if string_compare(kind, "return") == 0 then
-  --   local result = #get_items(items[1])
-  --   if get_attr(proto, attr_result) == -1 then
-  --     set_attr(proto, attr_result, result)
-  --   elseif get_attr(proto, attr_result) ~= result then
-  --     error "compiler error: invalid result"
-  --   end
-  -- end
-
   if items ~= nil then
     for i = 1, #items do
       process2(ctx, proto_table, var_table, result_table, proto, chunk_scope, scope, loop, v, items[i])
     end
   end
-
-  -- 一時的に記述
-  -- if string_compare(kind, "function") == 0 then
-  --   if get_attr(proto, attr_result) == -1 then
-  --     set_attr(proto, attr_result, 0)
-  --   end
-  -- end
 
   if string_compare(kind, "explist") == 0 then
     if string_compare(get_kind(u), "return") == 0 then
@@ -1352,15 +1335,12 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
       for i = 1, #items do
         local item = items[i]
         if string_compare(get_kind(item), "call") == 0 then
-          -- 呼び出し先
           local ref = get_attr(get_items(item)[1], attr_ref)
-          -- 呼び出し先がASMなら確定している
-          -- 「一時的に記述」を外せばresultが-1かどうか調べるのに変えられるはず
-          if string_compare(get_attr(ref, attr_resolver), "asm") == 0 then
-            q[1] = q[1] + get_attr(ref, attr_result)
-          else
-            -- 呼び出し先のアドレスをもらう
+          local result = get_attr(ref, attr_result)
+          if result == -1 then
             table_insert(q, get_attr(ref, attr_address))
+          else
+            q[1] = q[1] + result
           end
         else
           q[1] = q[1] + 1
@@ -1801,32 +1781,31 @@ function compiler(tokens, chunk)
       r[1] = 0
     end
   end
+
   while true do
     local m = 0
     local n = 0
     for i = 1, #result_table do
       local r = result_table[i]
       if #r == 1 then
-        m = m + 1 -- 処理する必要がない
+        m = m + 1
       else
-        local v = r[1]
+        local result = r[1]
         for j = 2, #r do
-          -- S";; " I(i) S"," I(j) S"," I(r[j]) S"\n"
           local q = result_table[r[j]]
-          if #q == 1 then -- 値が確定していたら代入
-            v = v + q[1]
-          else -- あきらめる
-            v = -1
+          if #q == 1 then
+            result = result + q[1]
+          else
+            result = -1
             break
           end
         end
-        if v ~= -1 then
+        if result ~= -1 then
           n = n + 1
-          result_table[i] = { v }
+          result_table[i] = { result }
         end
       end
     end
-
     if n == 0 then
       if m == #result_table then
         break
@@ -1835,29 +1814,10 @@ function compiler(tokens, chunk)
     end
   end
 
-  for i = 1, #result_table do
-    local r = result_table[i]
-    S";; [" I(i) S"] = " I(r[1])
-    for j = 2, #r do
-      S" + " I(r[j])
-    end
-    S"\n"
-  end
-
   for i = 1, #function_table do
-    local u = function_table[i]
-    local items = get_items(u)
-    local proto = items[1]
+    local proto = get_items(function_table[i])[1]
     local r = result_table[get_attr(proto, attr_address)]
-    local q = get_attr(proto, attr_result)
-    if #r ~= 1 then
-      error "!!!"
-    end
-    -- if #r ~= 1 or r[1] ~= q then
-    --   error "!!!"
-    -- end
-    S";; " I(q) S" => " I(r[1]) S"\n"
-    if q == -1 then
+    if get_attr(proto, attr_result) == -1 then
       set_attr(proto, attr_result, r[1])
     end
   end
