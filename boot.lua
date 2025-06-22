@@ -1199,6 +1199,15 @@ function add_asm(ctx, proto_table, u, result)
   set_attr(u, attr_result, result)
 end
 
+function add_wasi(ctx, proto_table, u, result, name, param)
+  local id = add_fun(ctx, proto_table, u, result)
+  S'(import "wasi_unstable" "' S(name) S'" (func $' I(id) S" " S(param) S" "
+  if result > 0 then
+    S"(result" SR(result, " i32") S")"
+  end
+  S"))\n"
+end
+
 function resolve_name_impl(proto_table, scope, u, resolver)
   while scope ~= nil do
     local data = scope[scope_data]
@@ -1860,10 +1869,18 @@ function compiler(tokens, chunk)
     add_asm(ctx, proto_table, new_name(asm[1]), asm[2])
   end
 
+
   local var_table = {}
   local scope = new_scope(nil)
+
+  S"(module\n"
+
   local fd_read_id = add_fun(ctx, proto_table, new_name "__fd_read", 1)
   local fd_write_id = add_fun(ctx, proto_table, new_name "__fd_write", 1)
+  S'(import "wasi_unstable" "fd_read" (func $' I(fd_read_id) S" (param i32 i32 i32 i32) (result i32)))\n"
+  S'(import "wasi_unstable" "fd_write" (func $' I(fd_write_id) S" (param i32 i32 i32 i32) (result i32)))\n"
+  S"(memory " I(memory_size) S")\n"
+  S'(export "memory" (memory 0))\n'
 
   local function_table = {}
   local chunk_block = get_items(chunk)[1]
@@ -1881,12 +1898,6 @@ function compiler(tokens, chunk)
   ctx[ctx_new_table] = resolve_name(proto_table, scope, new_name "__new_table")
   ctx[ctx_set_table] = resolve_name(proto_table, scope, new_name "__set_table")
   ctx[ctx_get_table] = resolve_name(proto_table, scope, new_name "__get_table")
-
-  S"(module\n"
-  S'(import "wasi_unstable" "fd_read" (func $' I(fd_read_id) S" (param i32 i32 i32 i32) (result i32)))\n"
-  S'(import "wasi_unstable" "fd_write" (func $' I(fd_write_id) S" (param i32 i32 i32 i32) (result i32)))\n"
-  S"(memory " I(memory_size) S")\n"
-  S'(export "memory" (memory 0))\n'
 
   write_function_table(ctx, function_table)
   write_proto_table(proto_table)
