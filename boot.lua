@@ -1141,24 +1141,6 @@ function make_address(ctx)
   return address
 end
 
-function process1(ctx, proto_table, function_table, proto, u, v)
-  local kind = get_kind(v)
-  local items = get_items(v)
-
-  if string_compare(kind, "function") == 0 then
-    proto = items[1]
-    add_fun(ctx, proto_table, proto, -1)
-    table_insert(function_table, v)
-  end
-
-  if items ~= nil then
-    for i = 1, #items do
-      process1(ctx, proto_table, function_table, proto, v, items[i])
-    end
-  end
-
-end
-
 function new_scope(parent)
   return { {}, parent }
 end
@@ -1247,6 +1229,23 @@ end
 
 local loop_block = 1
 local loop_loop = 2
+
+function process1(ctx, proto_table, function_table, proto, u, v)
+  local kind = get_kind(v)
+  local items = get_items(v)
+
+  if string_compare(kind, "function") == 0 then
+    proto = items[1]
+    add_fun(ctx, proto_table, proto, -1)
+    table_insert(function_table, v)
+  end
+
+  if items ~= nil then
+    for i = 1, #items do
+      process1(ctx, proto_table, function_table, proto, v, items[i])
+    end
+  end
+end
 
 function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope, scope, loop, u, v)
   local kind = get_kind(v)
