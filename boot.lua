@@ -549,6 +549,15 @@ function nud_prefix(parser, token)
   return new_node(get_kind(token), { parser_exp(parser, parser_prefix_lbp) })
 end
 
+function nud_negate(parser, token)
+  local exp = parser_exp(parser, parser_prefix_lbp)
+  if string_compare(get_kind(exp), "Integer") == 0 then
+    return new_token("Integer", "-"..get_value(exp), get_position(token))
+  else
+    return new_node(get_kind(token), { exp })
+  end
+end
+
 function nud_function(parser, token)
   parser_expect(parser, "(")
   local parlist = parser_list(parser, "parlist", parser_name, ",", ")")
@@ -594,7 +603,7 @@ function parser_initialize()
   table_insert(parser_nud, { "{",        nud_table    })
   table_insert(parser_nud, { "not",      nud_prefix   })
   table_insert(parser_nud, { "#",        nud_prefix   })
-  table_insert(parser_nud, { "-",        nud_prefix   })
+  table_insert(parser_nud, { "-",        nud_negate   })
   table_insert(parser_nud, { "~",        nud_prefix   })
   table_insert(parser_nud, { "function", nud_function })
 
