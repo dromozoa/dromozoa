@@ -52,7 +52,7 @@ function main()
   io_write_integer(#C)
   io_write_string("\n")
 
-  local tests = { test1, test2, test3, test4, test5, test6, test7, test8 }
+  local tests = { test1, test2, test3, test4, test5, test6, test7, test8, test9 }
   for i = 1, #tests do
     __call_indirect0(tests[i])
   end
@@ -172,6 +172,52 @@ function test8()
     io_write_string "\n"
   end
   __call_indirect0(f, 1, 2, 3)
+end
+
+function f2(a, b)
+  io_write_string "("
+  io_write_integer(a)
+  io_write_string ","
+  io_write_integer(b)
+  io_write_string ")\n"
+  return a, b
+end
+
+function f3(a, b, c)
+  io_write_string "("
+  io_write_integer(a)
+  io_write_string ","
+  io_write_integer(b)
+  io_write_string ","
+  io_write_integer(c)
+  io_write_string ")\n"
+  return a, b, c
+end
+
+function test9()
+  f3(1, f2(2, 3))
+  f3(f3(4, 5, 6))
+  local t = { (f2(1, 2)), f2(3, 4) }
+  io_write_integer(#t)
+  io_write_string "\n"
+
+  local a, b = f3(17, 42, 69)
+  io_write_string "("
+  io_write_integer(a)
+  io_write_string ","
+  io_write_integer(b)
+  io_write_string ")\n"
+
+  b, a = f3(17, 42, 69)
+  io_write_string "("
+  io_write_integer(a)
+  io_write_string ","
+  io_write_integer(b)
+  io_write_string ")\n"
+
+  -- compiler error
+  -- local a, b, c = f2(0, 0)
+  -- a, b, a = f2(0, 0)
 end
 
 __export_start(main)

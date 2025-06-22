@@ -1319,8 +1319,12 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
       end
     end
 
+  elseif string_compare(kind, "explist") == 0 or string_compare(kind, "args") == 0 then
+    set_attr(v, attr_result, #items)
+
   elseif string_compare(kind, "table") == 0 then
     set_attr(v, attr_id, add_var(ctx, var_table, scope, new_name "(table)"))
+    set_attr(v, attr_result, #items)
   end
 
   if items ~= nil then
@@ -1471,8 +1475,8 @@ function process3(ctx, proto, u, v)
 
       local explist = get_items(items[1])
       local namelist = get_items(items[2])
-      if not (#explist == #namelist) then
-        error "compiler error: invalid global"
+      if #namelist ~= #explist then
+        error "compiler error: invalid result"
       end
 
       for i = 1, #explist do
@@ -1510,7 +1514,7 @@ function process3(ctx, proto, u, v)
     S"(i32.const " I(get_attr(v, attr_address)) S") (; String ;)\n"
 
   elseif string_compare(kind, "table") == 0 then
-    S"(i32.const " I(#get_items(v)) S")\n"
+    S"(i32.const " I(get_attr(v, attr_result)) S")\n"
     S"(call $" I(get_attr(ctx[ctx_new_table], attr_id)) S") (; __new_table ;)\n"
     S"(local.tee $" I(get_attr(v, attr_id)) S")\n"
 
@@ -1548,7 +1552,15 @@ function process3(ctx, proto, u, v)
     S"\n"
 
   elseif string_compare(kind, "assign") == 0 then
+    local explist = get_items(items[1])
     local varlist = get_items(items[2])
+
+    local result = get_attr(items[1], attr_result)
+    if result < #varlist then
+      error "compiler error: invalid result"
+    end
+    SR(result - #varlist, "(drop)\n")
+
     for i = #varlist, 1, -1 do
       local var = varlist[i]
       if string_compare(get_kind(var), "Name") == 0 then
@@ -1582,9 +1594,20 @@ function process3(ctx, proto, u, v)
       S"(call $" I(get_attr(ref, attr_id)) S") (; " S(name) S";)\n"
     end
 
-    -- 関数呼び出し文の場合は返り値をすべて破棄する
-    if not get_attr(v, attr_is_exp) then
-      SR(get_attr(ref, attr_result), "(drop)\n")
+    local result = get_attr(ref, attr_result)
+    if get_attr(v, attr_is_exp) then
+      if string_compare(get_kind(u), "explist") == 0
+        or string_compare(get_kind(u), "args") == 0
+        or string_compare(get_kind(u), "table") == 0 then
+        set_attr(u, attr_result, get_attr(u, attr_result) + result - 1)
+      elseif result == 0 then
+        error "compiler error: invalid result"
+      else
+        SR(result - 1, "(drop)\n")
+      end
+    else
+      -- 関数呼び出し文の場合は返り値を破棄する
+      SR(result, "(drop)\n")
     end
 
   elseif string_compare(kind, "if") == 0 then
@@ -1618,7 +1641,15 @@ function process3(ctx, proto, u, v)
 
   elseif string_compare(kind, "local") == 0 then
     if proto ~= nil then
+      local explist = get_items(items[1])
       local namelist = get_items(items[2])
+
+      local result = get_attr(items[1], attr_result)
+      if result < #namelist then
+        error "compiler error: invalid result"
+      end
+      SR(result - #namelist, "(drop)\n")
+
       for i = #namelist, 1, -1 do
         local var = namelist[i]
         S"(local.set $" I(get_attr(var, attr_id)) S") (; " S(get_value(var)) S" ;)\n"
@@ -1633,7 +1664,8 @@ function process3(ctx, proto, u, v)
     S"(br $main)\n"
 
   elseif string_compare(kind, "table") == 0 then
-    for i = #get_items(v), 1, -1 do
+    local result = get_attr(v, attr_result)
+    for i = result, 1, -1 do
       S"(local.get $" I(get_attr(v, attr_id)) S")\n"
       S"(i32.const " I(i) S")\n"
       S"(call $" I(get_attr(ctx[ctx_set_table], attr_id)) S") (; __set_table ;)\n"
