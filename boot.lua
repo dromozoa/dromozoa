@@ -1547,7 +1547,7 @@ function process3(ctx, proto, u, v)
 
         S"(global $" I(get_attr(name, attr_id)) S" (mut i32)\n"
         process3(ctx, proto, explist, exp)
-        S")\n"
+        S") (; " S(get_value(name)) S" ;)\n"
       end
     else
       range_j = 1
@@ -1879,7 +1879,7 @@ function compiler(tokens, chunk)
   write_function_table(ctx, function_table)
   write_proto_table(proto_table)
 
-  S"(global $" I(heap_pointer_id) S" (mut i32) (i32.const " I(heap_pointer) S"))\n"
+  S"(global $" I(heap_pointer_id) S" (mut i32) (i32.const " I(heap_pointer) S")) (; __heap_pointer ;)\n"
 
   process3(ctx, nil, chunk, chunk_block)
   write_string_table(string_table)
