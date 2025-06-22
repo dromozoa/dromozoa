@@ -1230,6 +1230,69 @@ end
 local loop_block = 1
 local loop_loop = 2
 
+function new_result_table(proto_table)
+  local result_table = {}
+  for i = 1, #proto_table do
+    local proto = proto_table[i]
+    if string_compare(get_attr(proto, attr_resolver), "fun") == 0 then
+      table_insert(result_table, { get_attr(proto, attr_result) })
+      if get_attr(proto, attr_address) ~= #result_table then
+        error "compiler error: invalid address"
+      end
+    end
+  end
+  return result_table
+end
+
+function solve_result_table(result_table, function_table)
+  for i = 1, #result_table do
+    local r = result_table[i]
+    if #r == 1 and r[1] == -1 then
+      r[1] = 0
+    end
+  end
+
+  while true do
+    local m = 0
+    local n = 0
+    for i = 1, #result_table do
+      local r = result_table[i]
+      if #r == 1 then
+        m = m + 1
+      else
+        local result = r[1]
+        for j = 2, #r do
+          local q = result_table[r[j]]
+          if #q == 1 then
+            result = result + q[1]
+          else
+            result = -1
+            break
+          end
+        end
+        if result ~= -1 then
+          n = n + 1
+          result_table[i] = { result }
+        end
+      end
+    end
+    if n == 0 then
+      if m == #result_table then
+        break
+      end
+      error "compiler error: invalid result"
+    end
+  end
+
+  for i = 1, #function_table do
+    local proto = get_items(function_table[i])[1]
+    local r = result_table[get_attr(proto, attr_address)]
+    if get_attr(proto, attr_result) == -1 then
+      set_attr(proto, attr_result, r[1])
+    end
+  end
+end
+
 function process1(ctx, proto_table, function_table, proto, u, v)
   local kind = get_kind(v)
   local items = get_items(v)
@@ -1795,63 +1858,9 @@ function compiler(tokens, chunk)
   local chunk_block = get_items(chunk)[1]
   process1(ctx, proto_table, function_table, nil, chunk, chunk_block)
 
-  local result_table = {}
-  for i = 1, #proto_table do
-    local proto = proto_table[i]
-    if string_compare(get_attr(proto, attr_resolver), "fun") == 0 then
-      table_insert(result_table, { get_attr(proto, attr_result) })
-      if get_attr(proto, attr_address) ~= #result_table then
-        error "compiler error: invalid address"
-      end
-    end
-  end
+  local result_table = new_result_table(proto_table)
   process2(ctx, proto_table, var_table, result_table, nil, scope, scope, nil, chunk, chunk_block)
-  for i = 1, #result_table do
-    local r = result_table[i]
-    if #r == 1 and r[1] == -1 then
-      r[1] = 0
-    end
-  end
-
-  while true do
-    local m = 0
-    local n = 0
-    for i = 1, #result_table do
-      local r = result_table[i]
-      if #r == 1 then
-        m = m + 1
-      else
-        local result = r[1]
-        for j = 2, #r do
-          local q = result_table[r[j]]
-          if #q == 1 then
-            result = result + q[1]
-          else
-            result = -1
-            break
-          end
-        end
-        if result ~= -1 then
-          n = n + 1
-          result_table[i] = { result }
-        end
-      end
-    end
-    if n == 0 then
-      if m == #result_table then
-        break
-      end
-      error "compiler error: invalid result"
-    end
-  end
-
-  for i = 1, #function_table do
-    local proto = get_items(function_table[i])[1]
-    local r = result_table[get_attr(proto, attr_address)]
-    if get_attr(proto, attr_result) == -1 then
-      set_attr(proto, attr_result, r[1])
-    end
-  end
+  solve_result_table(result_table, function_table)
 
   ctx[ctx_length]    = resolve_name(proto_table, scope, new_name "__length")
   ctx[ctx_concat]    = resolve_name(proto_table, scope, new_name "__concat")
