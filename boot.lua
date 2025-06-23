@@ -1911,11 +1911,25 @@ end
 
 --------------------------------------------------------------------------------
 
-function main()
-  local source = io_read_all()
+function lexer_parser(source_file)
+  local status, result = io_open_read(source_file)
+  if not status then
+    error("cannot open "..source_file..": "..result)
+  end
+
+  local source = file_read_all(result)
+  file_close(result)
+
   local tokens = lexer(source)
-  local chunk = parser(tokens)
-  compiler(tokens, chunk)
+  return tokens, parser(tokens)
+end
+
+function main()
+  local args = get_args()
+  if #args < 1 then
+    error "Usage: source_file"
+  end
+  compiler(lexer_parser(args[1]))
 end
 
 __export_start(main)

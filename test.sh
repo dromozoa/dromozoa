@@ -20,10 +20,13 @@
 wasm1="wasmer run --dir=."
 wasm2="wasmtime run --dir=."
 
-cat boot-rt1.lua boot.lua | lua -l boot-rt0 boot.lua | wat2wasm -o test-boot.wasm -
-cat boot-rt1.lua test.lua | lua -l boot-rt0 boot.lua >test-stage0.wat
-cat boot-rt1.lua test.lua | $wasm1 test-boot.wasm >test-stage1.wat
-cat boot-rt1.lua test.lua | $wasm2 test-boot.wasm >test-stage2.wat
+cat boot-rt1.lua boot.lua >boot-merged.dat
+lua -l boot-rt0 boot.lua boot-merged.dat | wat2wasm -o test-boot.wasm -
+
+cat boot-rt1.lua test.lua >test-merged.dat
+lua -l boot-rt0 boot.lua test-merged.dat >test-stage0.wat
+$wasm1 test-boot.wasm test-merged.dat >test-stage1.wat
+$wasm2 test-boot.wasm test-merged.dat >test-stage2.wat
 wat2wasm test-stage0.wat
 wat2wasm test-stage1.wat
 wat2wasm test-stage2.wat
