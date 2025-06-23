@@ -71,9 +71,7 @@ end
 
 function binary_search(t, compare, v)
   local i = 1
-  local j = #t
-
-  local n = j - i + 1
+  local n = #t
   while n > 0 do
     local step = n >> 1
     local m = i + step
