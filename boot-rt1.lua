@@ -64,23 +64,24 @@ end
 function __new_table(size)
   local capacity = __ceil_pow2(size)
   local data = __new(capacity * 4)
-  local this = __new(12)
-  __i32_store(this, size)
-  __i32_store(this + 4, capacity)
-  __i32_store(this + 8, data)
-  return this
+
+  local t = __new(12)
+  __i32_store(t, size)
+  __i32_store(t + 4, capacity)
+  __i32_store(t + 8, data)
+  return t
 end
 
--- スタック順序に合わせて、引数の順序を入れ替える。
+-- スタック操作の都合により、直感と異なる引数順にしている
 function __set_table(v, t, i)
   local size, capacity, data = __unpack_table(t)
-  if i > capacity then
-    local new_capacity = __ceil_pow2(i)
-    local new_data = __new(new_capacity * 4)
-    __memory_copy(new_data, data, size * 4)
-    __memory_fill(new_data + size * 4, 0x00, (new_capacity - size) * 4)
 
-    capacity = new_capacity
+  if i > capacity then
+    capacity = __ceil_pow2(i)
+
+    local new_data = __new(capacity * 4)
+    __memory_copy(new_data, data, size * 4)
+    __memory_fill(new_data + size * 4, 0x00, (capacity - size) * 4)
     data = new_data
 
     __i32_store(t + 4, capacity)
@@ -88,8 +89,7 @@ function __set_table(v, t, i)
   end
 
   if i > size then
-    size = i
-    __i32_store(t, size)
+    __i32_store(t, i)
   end
 
   __i32_store(data + (i - 1) * 4, v)
@@ -111,10 +111,10 @@ function __unpack_string(s)
 end
 
 function __pack_string(size, data)
-  local this = __new(8)
-  __i32_store(this, size)
-  __i32_store(this + 4, data)
-  return this
+  local s = __new(8)
+  __i32_store(s, size)
+  __i32_store(s + 4, data)
+  return s
 end
 
 function __unpack_table(t)
@@ -155,66 +155,41 @@ function integer_to_string(v)
   return __pack_string(b + 15 - p, p)
 end
 
---[[
-  rights
-  0: fd_datasync
-  1: fd_read
-  2: fd_seek（fd_tellをimplyする）
-  3: fd_fdstat_set_flags
-  4: fd_sync
-  5: fd_tell
-  6: fd_write
-
-  fd_read  | fd_seek | fd_tell = 0x02 | 0x04 | 0x20 = 0x26
-  fd_write | fd_seek | fd_tell = 0x40 | 0x04 | 0x20 = 0x64
-
-]]
-
-local atcwd = -1
-
-function strlen(data)
-  local n = 0
-  while true do
-    local c = __i32_load8(data + n)
-    if c == 0 then
-      return n
-    end
+function __cstring_size(data)
+  local n = -1
+  repeat
     n = n + 1
-  end
+  until __i32_load8(data + n) == 0
+  return n
 end
 
-function __prestat()
+
+local __atcwd = -1
+
+function __get_atcwd()
+  if __atcwd ~= -1 then
+    return __atcwd
+  end
+
   local fd = 3
+  local prestat = __new(8)
   while true do
-    local out = __new(8)
-    local errno = __fd_prestat_get(fd, out)
+    local errno = __fd_prestat_get(fd, prestat)
     if errno == 0 then
-      local tag = __i32_load(out)
-      local len = __i32_load(out + 4)
-      -- io_write_string "fd: "
-      -- io_write_integer(fd)
-      -- io_write_string ", tag: "
-      -- io_write_integer(tag)
-      -- io_write_string ", len: "
-      -- io_write_integer(len)
-      -- io_write_string "\n"
-
-      -- len
-      --   wasmtime: NULを含まない
-      --   wasmer:   NULを含む
-
-      local buffer = __new(len + 1)
-      local errno = __fd_prestat_dir_name(fd, buffer, len)
-      if errno == 0 then
-        __i32_store8(buffer + len, 0x00)
-        local dir = __pack_string(strlen(buffer), buffer)
-        -- io_write_string "dir: "
-        -- io_write_string(dir)
-        -- io_write_string "\n"
-
-        if string_compare(dir, ".") == 0 then
-          atcwd = fd
-          break
+      local tag = __i32_load(prestat)
+      if tag == 0 then
+        -- wasmer:   NULを含む
+        -- wasmtime: NULを含まない
+        local size = __i32_load(prestat + 4)
+        local data = __new(size + 1)
+        local errno = __fd_prestat_dir_name(fd, data, size)
+        if errno == 0 then
+          __i32_store8(data + size, 0x00)
+          local dir = __pack_string(__cstring_size(data), data)
+          if string_compare(dir, ".") == 0 then
+            __atcwd = fd
+            break
+          end
         end
       end
     else
@@ -222,31 +197,35 @@ function __prestat()
     end
     fd = fd + 1
   end
+
+  return __atcwd
 end
 
+-- rights
+-- 1<<0 = 0x01: fd_datasync
+-- 1<<1 = 0x02: fd_read
+-- 1<<2 = 0x04: fd_seek (implies fd_tell)
+-- 1<<3 = 0x08: fd_fdstat_set_flags
+-- 1<<4 = 0x10: fd_sync
+-- 1<<5 = 0x20: fd_tell
+-- 1<<6 = 0x40: fd_write
+--  :
+
 function file_open_read(path)
-  if atcwd == -1 then
-    __prestat()
-  end
-
-  -- io_write_string "atcwd: "
-  -- io_write_integer(atcwd)
-  -- io_write_string "\n"
-
   local size, data = __unpack_string(path)
-  local out = __new(4)
+  local fd = __new(4)
   local errno = __path_open(
-    atcwd, -- fd(dirfd)
-    0, -- dirflags
-    data, -- path
-    size, -- pathlen
-    0, -- oflags
+    __get_atcwd(),     -- dirfd
+    0,                 -- dirflags
+    data,              -- path
+    size,              -- path_len
+    0,                 -- o_flags
     __i64_const(0x26), -- fs_rights_base
     __i64_const(0x00), -- fs_rights_inheriting
-    0, -- fs_flags
-    out)
+    0,                 -- fs_flags
+    fd)                -- fd
   if errno == 0 then
-    return true, __i32_load(out)
+    return true, __i32_load(fd)
   else
     io_write_integer(errno)
     io_write_string "\n"

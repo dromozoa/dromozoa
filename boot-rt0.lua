@@ -15,17 +15,11 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-local json = require "dromozoa.commons.json"
-
 function __call_indirect0(f, ...) return f(...) end
 function __call_indirect1(f, ...) return f(...) end
 function __call_indirect2(f, ...) return f(...) end
 function __call_indirect3(f, ...) return f(...) end
 function __export_start(f) f() end
-
-function dump(v)
-  print(json.encode(v, { pretty = true, stable = true }))
-end
 
 function integer_to_string(v)
   assert(math.type(v) == "integer")
