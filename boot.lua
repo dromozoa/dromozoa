@@ -163,10 +163,6 @@ function compare_string_index1(a, b)
   return string_compare(a[1], b[1])
 end
 
-function compare_string_index3(a, b)
-  return string_compare(a[3], b[3])
-end
-
 --------------------------------------------------------------------------------
 
 local lexer_keywords = nil
@@ -1048,7 +1044,9 @@ function roundup(n, a)
 end
 
 function make_string_table(string_tokens)
-  quick_sort(string_tokens, compare_string_index3)
+  quick_sort(string_tokens, function (a, b)
+    return string_compare(a[3], b[3])
+  end)
 
   local string_table = {}
   local value = nil
