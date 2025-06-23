@@ -37,7 +37,7 @@ end
 
 --------------------------------------------------------------------------------
 
-function quick_sort(t, i, j, compare)
+function quick_sort_impl(t, i, j, compare)
   local n = j - i + 1
   if n <= 1 then
     return
@@ -61,8 +61,12 @@ function quick_sort(t, i, j, compare)
     end
   end
 
-  quick_sort(t, i, b, compare)
-  quick_sort(t, a, j, compare)
+  quick_sort_impl(t, i, b, compare)
+  quick_sort_impl(t, a, j, compare)
+end
+
+function quick_sort(t, compare)
+  quick_sort_impl(t, 1, #t, compare)
 end
 
 function binary_search(t, i, j, compare, v)
@@ -630,8 +634,8 @@ function parser_initialize()
   table_insert(parser_led, { "[",   bp, led_index  })
   parser_max_lbp = bp
 
-  quick_sort(parser_nud, 1, #parser_nud, compare_string_index1)
-  quick_sort(parser_led, 1, #parser_led, compare_string_index1)
+  quick_sort(parser_nud, compare_string_index1)
+  quick_sort(parser_led, compare_string_index1)
 end
 
 function parser_error(token)
@@ -1011,7 +1015,7 @@ function compiler_initialize()
     { "__export_start",   0, nil,             true,  leave_export_start  };
     { "__i64_const",      1, nil,             true,  leave_i64_const     };
   }
-  quick_sort(asm_table, 1, #asm_table, compare_string_index1)
+  quick_sort(asm_table, compare_string_index1)
 
   op_table = {
     { "nil",   "(i32.const 0) (; nil ;)"   };
@@ -1034,7 +1038,7 @@ function compiler_initialize()
     { "//",    "(i32.div_s)"               };
     { "%",     "(i32.rem_s)"               };
   }
-  quick_sort(op_table, 1, #op_table, compare_string_index1)
+  quick_sort(op_table, compare_string_index1)
 end
 
 function roundup(n, a)
@@ -1047,7 +1051,7 @@ function roundup(n, a)
 end
 
 function make_string_table(string_tokens)
-  quick_sort(string_tokens, 1, #string_tokens, compare_string_index3)
+  quick_sort(string_tokens, compare_string_index3)
 
   local string_table = {}
   local value = nil
