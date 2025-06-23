@@ -15,18 +15,23 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-function __call_indirect0(f, ...) return f(...) end
-function __call_indirect1(f, ...) return f(...) end
-function __call_indirect2(f, ...) return f(...) end
-function __call_indirect3(f, ...) return f(...) end
-function __export_start(f) f() end
+function __check_result(n, ...)
+  assert(select("#", ...) == n)
+  return ...
+end
+
+function __call_indirect0(f, ...) return __check_result(0, f(...)) end
+function __call_indirect1(f, ...) return __check_result(1, f(...)) end
+function __call_indirect2(f, ...) return __check_result(2, f(...)) end
+function __call_indirect3(f, ...) return __check_result(3, f(...)) end
+function __export_start(f) return __check_result(0, f()) end
 
 function integer_to_string(v)
   assert(math.type(v) == "integer")
   return tostring(v)
 end
 
-function file_open_read(path)
+function io_open_read(path)
   local file, message = io.open(path, "rb")
   if file then
     return true, file

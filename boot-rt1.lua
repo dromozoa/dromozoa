@@ -124,37 +124,6 @@ function __unpack_table(t)
   return size, capacity, data
 end
 
-function error(message)
-  __write_string_impl(2, message)
-  __write_string_impl(2, "\n")
-  __unreachable()
-end
-
-function integer_to_string(v)
-  local b = __new(16)
-  local p = b + 15
-  __i32_store8(p, 0x00)
-
-  local neg = v < 0
-  if neg then
-    v = -v
-  end
-
-  repeat
-    local r = v % 10
-    v = v // 10
-    p = p - 1
-    __i32_store8(p, r + 0x30)
-  until v == 0
-
-  if neg then
-    p = p - 1
-    __i32_store8(p, 0x2D)
-  end
-
-  return __pack_string(b + 15 - p, p)
-end
-
 function __cstring_size(data)
   local n = -1
   repeat
@@ -327,6 +296,37 @@ function __write_string_impl(fd, s)
   __fd_write(fd, item, 1, out)
 end
 
+function error(message)
+  __write_string_impl(2, message)
+  __write_string_impl(2, "\n")
+  __unreachable()
+end
+
+function integer_to_string(v)
+  local b = __new(16)
+  local p = b + 15
+  __i32_store8(p, 0x00)
+
+  local neg = v < 0
+  if neg then
+    v = -v
+  end
+
+  repeat
+    local r = v % 10
+    v = v // 10
+    p = p - 1
+    __i32_store8(p, r + 0x30)
+  until v == 0
+
+  if neg then
+    p = p - 1
+    __i32_store8(p, 0x2D)
+  end
+
+  return __pack_string(b + 15 - p, p)
+end
+
 -- rights
 -- 1<<0 = 0x01: fd_datasync
 -- 1<<1 = 0x02: fd_read
@@ -337,7 +337,7 @@ end
 -- 1<<6 = 0x40: fd_write
 --  :
 
-function file_open_read(path)
+function io_open_read(path)
   local size, data = __unpack_string(path)
   local fd = __new(4)
   local errno = __path_open(
@@ -374,7 +374,7 @@ function io_write_string(s)
 end
 
 function io_write_integer(v)
-  io_write_string(integer_to_string(v))
+  __write_string_impl(1, integer_to_string(v))
 end
 
 function string_byte(s, i)

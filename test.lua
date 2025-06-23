@@ -220,7 +220,7 @@ end
 
 function test_file()
   local path = "README.md"
-  local r, f = file_open_read(path)
+  local r, f = io_open_read(path)
   if not r then
     error("cannot open file "..path..": "..f)
   end
