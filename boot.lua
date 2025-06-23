@@ -15,6 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
+require "runtime"
+
 function io_write_string_repeat(n, s)
   for i = 1, n do
     io_write_string(s)
@@ -460,9 +462,7 @@ function lexer_rule_integer(source, position)
   end
 end
 
-function lexer(source)
-  lexer_initialize()
-
+function lexer(source_file, source)
   local p = 1
   local n = #source
 
@@ -776,6 +776,14 @@ function parser_stat(parser)
         args = new_node("args", { next_token })
       end
       if string_compare(get_kind(parser_peek(parser)), "[") ~= 0 then
+        -- 関数呼び出し文のrequireだけ特別扱いする
+        if string_compare(get_value(token), "require") == 0 then
+          local arg = get_items(args)[1]
+          if string_compare(get_kind(arg), "String") == 0 then
+            local chunk = lexer_parser("include1/"..get_value(arg)..".lua")
+            return get_items(chunk)[1]
+          end
+        end
         return new_node("call", { token, args })
       end
       parser[2] = index
@@ -933,8 +941,6 @@ function parser_name(parser)
 end
 
 function parser(tokens)
-  parser_initialize()
-
   local parser = { tokens, 1 }
   local block = parser_block(parser)
 
@@ -1848,8 +1854,6 @@ function write_proto_table(proto_table)
 end
 
 function compiler(chunk)
-  compiler_initialize()
-
   local ctx = new_ctx()
   local proto_table = {}
   for i = 1, #asm_table do
@@ -1914,10 +1918,14 @@ function lexer_parser(source_file)
 
   local source = file_read_all(result)
   file_close(result)
-  return parser(lexer(source))
+  return parser(lexer(source_file, source))
 end
 
 function main()
+  lexer_initialize()
+  parser_initialize()
+  compiler_initialize()
+
   local args = get_args()
   if #args < 1 then
     error "Usage: source_file"

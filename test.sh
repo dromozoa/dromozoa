@@ -23,20 +23,17 @@ export LUA_PATH
 wasm1="wasmer run --dir=."
 wasm2="wasmtime run --dir=."
 
-cat include1/runtime.lua boot.lua >boot-merged.dat
-lua -l runtime boot.lua boot-merged.dat | wat2wasm -o test-boot.wasm -
-
-cat include1/runtime.lua test.lua >test-merged.dat
-lua -l runtime boot.lua test-merged.dat >test-stage0.wat
-$wasm1 test-boot.wasm test-merged.dat >test-stage1.wat
-$wasm2 test-boot.wasm test-merged.dat >test-stage2.wat
+lua boot.lua boot.lua | wat2wasm -o test-boot.wasm -
+lua boot.lua test.lua >test-stage0.wat
+$wasm1 test-boot.wasm test.lua >test-stage1.wat
+$wasm2 test-boot.wasm test.lua >test-stage2.wat
 wat2wasm test-stage0.wat
 wat2wasm test-stage1.wat
 wat2wasm test-stage2.wat
 cmp test-stage0.wat test-stage1.wat
 cmp test-stage0.wat test-stage2.wat
 
-printf foobarbaz | lua -l runtime test.lua foo bar baz >test-stage0.dat
+printf foobarbaz | lua test.lua foo bar baz >test-stage0.dat
 printf foobarbaz | $wasm1 test-stage1.wasm foo bar baz >test-stage1.dat
 printf foobarbaz | $wasm2 test-stage2.wasm foo bar baz >test-stage2.dat
 cmp test-stage0.dat test-stage1.dat
