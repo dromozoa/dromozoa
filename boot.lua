@@ -163,10 +163,6 @@ function compare_string_index1(a, b)
   return string_compare(a[1], b[1])
 end
 
-function compare_string_index2(a, b)
-  return string_compare(a[2], b[2])
-end
-
 function compare_string_index3(a, b)
   return string_compare(a[3], b[3])
 end
