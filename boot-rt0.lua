@@ -31,7 +31,7 @@ function file_open_read(path)
   if file then
     return true, file
   else
-    return false, nil
+    return false, message
   end
 end
 

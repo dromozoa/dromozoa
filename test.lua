@@ -222,7 +222,7 @@ function test_file()
   local path = "README.md"
   local r, f = file_open_read(path)
   if not r then
-    error("cannot open file "..path)
+    error("cannot open file "..path..": "..f)
   end
   io_write_string(file_read_all(f))
   file_close(f)
