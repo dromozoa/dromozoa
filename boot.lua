@@ -1040,15 +1040,7 @@ function roundup(n, a)
   end
 end
 
-function make_string_table(tokens)
-  local string_tokens = {}
-
-  for i = 1, #tokens do
-    local token = tokens[i]
-    if string_compare(get_kind(token), "String") == 0 then
-      table_insert(string_tokens, token)
-    end
-  end
+function make_string_table(string_tokens)
   quick_sort(string_tokens, 1, #string_tokens, compare_string_index3)
 
   local string_table = {}
@@ -1315,7 +1307,7 @@ function solve_result_table(result_table, function_table)
   end
 end
 
-function process1(ctx, proto_table, function_table, proto, u, v)
+function process1(ctx, string_tokens, proto_table, function_table, proto, u, v)
   local kind = get_kind(v)
   local items = get_items(v)
 
@@ -1323,11 +1315,13 @@ function process1(ctx, proto_table, function_table, proto, u, v)
     proto = items[1]
     add_fun(ctx, proto_table, proto, -1)
     table_insert(function_table, v)
+  elseif string_compare(kind, "String") == 0 then
+    table_insert(string_tokens, v)
   end
 
   if items ~= nil then
     for i = 1, #items do
-      process1(ctx, proto_table, function_table, proto, v, items[i])
+      process1(ctx, string_tokens, proto_table, function_table, proto, v, items[i])
     end
   end
 end
@@ -1853,12 +1847,8 @@ function write_proto_table(proto_table)
   S")\n"
 end
 
-function compiler(tokens, chunk)
+function compiler(chunk)
   compiler_initialize()
-
-  local string_table, string_end = make_string_table(tokens)
-  local heap_pointer = roundup(string_end, 1024)
-  local memory_size = roundup(heap_pointer, 65536) >> 16
 
   local ctx = new_ctx()
   local proto_table = {}
@@ -1879,14 +1869,19 @@ function compiler(tokens, chunk)
   add_wasi(ctx, proto_table, new_name "__fd_prestat_dir_name", 1, "fd_prestat_dir_name", "(param i32 i32 i32)")
   add_wasi(ctx, proto_table, new_name "__args_sizes_get", 1, "args_sizes_get", "(param i32 i32)")
   add_wasi(ctx, proto_table, new_name "__args_get", 1, "args_get", "(param i32 i32)")
-  S"(memory " I(memory_size) S")\n"
-  S'(export "memory" (memory 0))\n'
 
+  local string_tokens = {}
   local function_table = {}
   local chunk_block = get_items(chunk)[1]
-  process1(ctx, proto_table, function_table, nil, chunk, chunk_block)
+  process1(ctx, string_tokens, proto_table, function_table, nil, chunk, chunk_block)
 
+  local string_table, string_end = make_string_table(string_tokens)
+  local heap_pointer = roundup(string_end, 1024)
+  local memory_size = roundup(heap_pointer, 65536) >> 16
   local heap_pointer_id = add_global(ctx, var_table, scope, new_name "__heap_pointer")
+
+  S"(memory " I(memory_size) S")\n"
+  S'(export "memory" (memory 0))\n'
 
   local result_table = new_result_table(proto_table)
   process2(ctx, proto_table, var_table, result_table, nil, scope, scope, nil, chunk, chunk_block)
@@ -1919,9 +1914,7 @@ function lexer_parser(source_file)
 
   local source = file_read_all(result)
   file_close(result)
-
-  local tokens = lexer(source)
-  return tokens, parser(tokens)
+  return parser(lexer(source))
 end
 
 function main()
