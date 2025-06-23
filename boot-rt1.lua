@@ -125,8 +125,8 @@ function __unpack_table(t)
 end
 
 function error(message)
-  io_write_string_impl(2, message)
-  io_write_string_impl(2, "\n")
+  __write_string_impl(2, message)
+  __write_string_impl(2, "\n")
   __unreachable()
 end
 
@@ -292,6 +292,41 @@ function __get_atcwd()
   return __atcwd
 end
 
+function __read_all_impl(fd)
+  local item = __new(8)
+  local out = __new(4)
+  local result = ""
+
+  while true do
+    local n = 4096
+    local data = __new(n)
+    __i32_store(item, data)
+    __i32_store(item + 4, n - 1)
+    local errno = __fd_read(fd, item, 1, out)
+    if errno ~= 0 then
+      error("io read error: "..integer_to_string(errno))
+    end
+    local size = __i32_load(out)
+    if size == 0 then
+      break
+    end
+    __i32_store8(data + size, 0x00)
+    result = result..__pack_string(size, data)
+  end
+
+  return result
+end
+
+function __write_string_impl(fd, s)
+  local size, data = __unpack_string(s)
+  local item = __new(8)
+  __i32_store(item, data)
+  __i32_store(item + 4, size)
+  local out = __new(4)
+  __i32_store(out, 0)
+  __fd_write(fd, item, 1, out)
+end
+
 -- rights
 -- 1<<0 = 0x01: fd_datasync
 -- 1<<1 = 0x02: fd_read
@@ -327,50 +362,15 @@ function file_close(fd)
 end
 
 function file_read_all(fd)
-  return read_all_impl(fd)
-end
-
-function read_all_impl(fd)
-  local item = __new(8)
-  local out = __new(4)
-  local result = ""
-
-  while true do
-    local n = 4096
-    local data = __new(n)
-    __i32_store(item, data)
-    __i32_store(item + 4, n - 1)
-    local errno = __fd_read(fd, item, 1, out)
-    if errno ~= 0 then
-      error("io read error: "..integer_to_string(errno))
-    end
-    local size = __i32_load(out)
-    if size == 0 then
-      break
-    end
-    __i32_store8(data + size, 0x00)
-    result = result..__pack_string(size, data)
-  end
-
-  return result
+  return __read_all_impl(fd)
 end
 
 function io_read_all()
-  return read_all_impl(0)
-end
-
-function io_write_string_impl(fd, s)
-  local size, data = __unpack_string(s)
-  local item = __new(8)
-  __i32_store(item, data)
-  __i32_store(item + 4, size)
-  local out = __new(4)
-  __i32_store(out, 0)
-  __fd_write(fd, item, 1, out)
+  return __read_all_impl(0)
 end
 
 function io_write_string(s)
-  io_write_string_impl(1, s)
+  __write_string_impl(1, s)
 end
 
 function io_write_integer(v)
@@ -380,7 +380,7 @@ end
 function string_byte(s, i)
   local size, data = __unpack_string(s)
   if i > size then
-    return 0
+    error "out of bounds"
   else
     return __i32_load8(data + (i - 1))
   end
@@ -413,8 +413,10 @@ function string_compare(a, b)
     end
   end
 
-  -- a == bなはずだけど
-  return a_size - b_size
+  if a_size ~= b_size then
+    error "invalid size"
+  end
+  return 0
 end
 
 function string_sub(s, i, j)
@@ -428,7 +430,6 @@ function string_sub(s, i, j)
   local data = __new(size + 1)
   __memory_copy(data, s_data + i - 1, size)
   __i32_store8(data + size, 0x00)
-
   return __pack_string(size, data)
 end
 
