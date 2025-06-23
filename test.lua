@@ -219,13 +219,22 @@ function test9()
 end
 
 function test_file()
-  local path = "README.md"
-  local r, f = io_open_read(path)
-  if not r then
-    error("cannot open file "..path..": "..f)
+  local path = "test.dat"
+  local result, w = io_open_write(path)
+  if not result then
+    error("cannot open file "..path..": "..w)
   end
-  io_write_string(file_read_all(f))
-  file_close(f)
+  file_write_string(w, "日本語")
+  file_write_integer(w, 42)
+  file_write_string(w, "\n")
+  file_close(w)
+
+  local result, r = io_open_read(path)
+  if not r then
+    error("cannot open file "..path..": "..r)
+  end
+  io_write_string(file_read_all(r))
+  file_close(r)
 end
 
 __export_start(main)

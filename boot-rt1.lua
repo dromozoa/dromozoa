@@ -357,12 +357,40 @@ function io_open_read(path)
   end
 end
 
+function io_open_write(path)
+  local size, data = __unpack_string(path)
+  local fd = __new(4)
+  local errno = __path_open(
+    __get_atcwd(),     -- dirfd
+    0,                 -- dirflags
+    data,              -- path
+    size,              -- path_len
+    0,                 -- o_flags
+    __i64_const(0x64), -- fs_rights_base
+    __i64_const(0x00), -- fs_rights_inheriting
+    0,                 -- fs_flags
+    fd)                -- fd
+  if errno == 0 then
+    return true, __i32_load(fd)
+  else
+    return false, __errno_to_string(errno)
+  end
+end
+
 function file_close(fd)
   __fd_close(fd)
 end
 
 function file_read_all(fd)
   return __read_all_impl(fd)
+end
+
+function file_write_string(fd, s)
+  __write_string_impl(fd, s)
+end
+
+function file_write_integer(fd, v)
+  __write_string_impl(fd, integer_to_string(v))
 end
 
 function io_read_all()

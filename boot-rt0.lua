@@ -40,6 +40,15 @@ function io_open_read(path)
   end
 end
 
+function io_open_write(path)
+  local file, message = io.open(path, "wb")
+  if file then
+    return true, file
+  else
+    return false, message
+  end
+end
+
 function file_close(file)
   io.close(file)
 end
@@ -48,18 +57,28 @@ function file_read_all(file)
   return file:read "a"
 end
 
-function io_read_all()
-  return io.read "a"
+function file_write_string(file, s)
+  assert(type(s) == "string")
+  file:write(s)
 end
 
-function io_write_integer(v)
+function file_write_integer(file, v)
   assert(math.type(v) == "integer")
-  io.write(v)
+  file:write(v)
+end
+
+function io_read_all()
+  return io.read "a"
 end
 
 function io_write_string(s)
   assert(type(s) == "string")
   io.write(s)
+end
+
+function io_write_integer(v)
+  assert(math.type(v) == "integer")
+  io.write(v)
 end
 
 function string_byte(s, i)
