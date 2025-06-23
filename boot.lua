@@ -205,7 +205,6 @@ function lexer_initialize()
       "+";
       ",";
       "-";
-      "/";
       ";";
       "<";
       "=";
@@ -624,7 +623,6 @@ function parser_initialize()
   table_insert(parser_led, { "+",   bp, led_left   })
   table_insert(parser_led, { "-",   bp, led_left   }) bp = bp + 10
   table_insert(parser_led, { "*",   bp, led_left   })
-  table_insert(parser_led, { "/",   bp, led_left   })
   table_insert(parser_led, { "//",  bp, led_left   })
   table_insert(parser_led, { "%",   bp, led_left   }) bp = bp + 10
   parser_prefix_lbp = bp                              bp = bp + 10
@@ -1027,7 +1025,6 @@ function compiler_initialize()
     { "+",     "(i32.add)"                 };
     { "-",     "(i32.sub)"                 };
     { "*",     "(i32.mul)"                 };
-    { "/",     "(i32.div_s)"               };
     { "//",    "(i32.div_s)"               };
     { "%",     "(i32.rem_s)"               };
   }
