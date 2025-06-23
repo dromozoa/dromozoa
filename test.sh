@@ -30,8 +30,8 @@ wat2wasm test-stage2.wat
 cmp test-stage0.wat test-stage1.wat
 cmp test-stage0.wat test-stage2.wat
 
-printf foobarbaz | lua -l boot-rt0 test.lua >test-stage0.dat
-printf foobarbaz | $wasm1 test-stage1.wasm >test-stage1.dat
-printf foobarbaz | $wasm2 test-stage2.wasm >test-stage2.dat
+printf foobarbaz | lua -l boot-rt0 test.lua foo bar baz >test-stage0.dat
+printf foobarbaz | $wasm1 test-stage1.wasm foo bar baz >test-stage1.dat
+printf foobarbaz | $wasm2 test-stage2.wasm foo bar baz >test-stage2.dat
 cmp test-stage0.dat test-stage1.dat
 cmp test-stage0.dat test-stage2.dat

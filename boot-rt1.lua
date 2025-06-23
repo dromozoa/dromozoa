@@ -464,3 +464,21 @@ end
 function table_insert(t, v)
   t[#t + 1] = v
 end
+
+function get_args()
+  local out = __new(8)
+  __args_sizes_get(out, out + 4)
+
+  local buffer_size = __i32_load(out + 4)
+  local buffer_data = __new(buffer_size)
+  local args_size = __i32_load(out)
+  local args_data = __new(args_size * 4)
+  __args_get(args_data, buffer_data)
+
+  local result = {}
+  for i = 1, args_size - 1 do
+    local data = __i32_load(args_data + i * 4)
+    table_insert(result, __pack_string(__cstring_size(data), data))
+  end
+  return result
+end

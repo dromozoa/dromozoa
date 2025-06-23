@@ -58,6 +58,7 @@ function main()
   end
 
   test_file()
+  test_args()
 end
 
 function test1()
@@ -235,6 +236,16 @@ function test_file()
   end
   io_write_string(file_read_all(r))
   file_close(r)
+end
+
+function test_args()
+  local args = get_args()
+  io_write_integer(#args)
+  for i = 1, #args do
+    io_write_string ","
+    io_write_string(args[i])
+  end
+  io_write_string "\n"
 end
 
 __export_start(main)

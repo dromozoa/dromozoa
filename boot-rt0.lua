@@ -106,3 +106,11 @@ end
 function table_insert(t, v)
   table.insert(t, v)
 end
+
+function get_args()
+  local result = {}
+  for i = 1, #arg do
+    result[i] = arg[i]
+  end
+  return result
+end
