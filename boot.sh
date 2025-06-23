@@ -17,11 +17,14 @@
 # You should have received a copy of the GNU General Public License
 # along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
+LUA_PATH="include0/?.lua;;"
+export LUA_PATH
+
 wasm1="wasmer run --dir=."
 wasm2="wasmtime run --dir=."
 
-cat boot-rt1.lua boot.lua >boot-merged.dat
-lua -l boot-rt0 boot.lua boot-merged.dat >boot-stage0.wat
+cat include1/runtime.lua boot.lua >boot-merged.dat
+lua -l runtime boot.lua boot-merged.dat >boot-stage0.wat
 wat2wasm boot-stage0.wat
 $wasm1 boot-stage0.wasm boot-merged.dat >boot-stage1.wat
 $wasm2 boot-stage0.wasm boot-merged.dat >boot-stage2.wat
