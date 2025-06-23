@@ -212,7 +212,6 @@ function lexer_initialize()
       ">";
       "[";
       "]";
-      "^";
       "{";
       "|";
       "}";
@@ -629,7 +628,6 @@ function parser_initialize()
   table_insert(parser_led, { "//",  bp, led_left   })
   table_insert(parser_led, { "%",   bp, led_left   }) bp = bp + 10
   parser_prefix_lbp = bp                              bp = bp + 10
-  table_insert(parser_led, { "^",   bp, led_right  }) bp = bp + 10
   table_insert(parser_led, { "(",   bp, led_call   })
   table_insert(parser_led, { "[",   bp, led_index  })
   parser_max_lbp = bp
@@ -1143,10 +1141,9 @@ local ctx_id        = 1
 local ctx_address   = 2
 local ctx_length    = 3
 local ctx_concat    = 4
-local ctx_power     = 5
-local ctx_new_table = 6
-local ctx_set_table = 7
-local ctx_get_table = 8
+local ctx_new_table = 5
+local ctx_set_table = 6
+local ctx_get_table = 7
 
 function make_id(ctx)
   local id = ctx[ctx_id] + 1
@@ -1782,9 +1779,6 @@ function process3(ctx, proto, u, v)
   elseif string_compare(kind, "..") == 0 then
     S"(call $" I(get_attr(ctx[ctx_concat], attr_id)) S") (; __concat ;)\n"
 
-  elseif string_compare(kind, "^") == 0 then
-    S"(call $" I(get_attr(ctx[ctx_power], attr_id)) S") (; __power ;)\n"
-
   elseif string_compare(kind, "index") == 0 then
     if string_compare(get_attr(v, attr_resolver), "set") ~= 0 then
       S"(call $" I(get_attr(ctx[ctx_get_table], attr_id)) S") (; __get_table ;)\n"
@@ -1901,7 +1895,6 @@ function compiler(tokens, chunk)
 
   ctx[ctx_length]    = resolve_name(proto_table, scope, new_name "__length")
   ctx[ctx_concat]    = resolve_name(proto_table, scope, new_name "__concat")
-  ctx[ctx_power]     = resolve_name(proto_table, scope, new_name "__power")
   ctx[ctx_new_table] = resolve_name(proto_table, scope, new_name "__new_table")
   ctx[ctx_set_table] = resolve_name(proto_table, scope, new_name "__set_table")
   ctx[ctx_get_table] = resolve_name(proto_table, scope, new_name "__get_table")

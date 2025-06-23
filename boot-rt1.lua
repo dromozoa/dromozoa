@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-function __roundup(n, a)
+function __ceil_mul(n, a)
   local r = n % a
   if r == 0 then
     return n
@@ -34,11 +34,11 @@ end
 
 function __new(n)
   local pointer = __heap_pointer
-  __heap_pointer = pointer + __roundup(n, 8)
+  __heap_pointer = pointer + __ceil_mul(n, 8)
 
   local memory_size = __memory_size() * 65536
   if __heap_pointer >= memory_size then
-    __memory_grow(__roundup(__heap_pointer, 65536) >> 16)
+    __memory_grow(__ceil_mul(__heap_pointer, 65536) >> 16)
   end
 
   return pointer
@@ -46,26 +46,6 @@ end
 
 function __length(p)
   return __i32_load(p)
-end
-
-function __unpack_string(s)
-  local size = __i32_load(s)
-  local data = __i32_load(s + 4)
-  return size, data
-end
-
-function __pack_string(size, data)
-  local this = __new(8)
-  __i32_store(this, size)
-  __i32_store(this + 4, data)
-  return this
-end
-
-function __unpack_table(t)
-  local size = __i32_load(t)
-  local capacity = __i32_load(t + 4)
-  local data = __i32_load(t + 8)
-  return size, capacity, data
 end
 
 function __concat(a, b)
@@ -79,18 +59,6 @@ function __concat(a, b)
   __i32_store8(data + size, 0x00)
 
   return __pack_string(size, data)
-end
-
-function __power(v, n)
-  if n < 1 then
-    return 1
-  else
-    local result = 1
-    for i = 1, n do
-      result = result * v
-    end
-    return result
-  end
 end
 
 function __new_table(size)
@@ -134,6 +102,26 @@ function __get_table(t, i)
   else
     return __i32_load(data + (i - 1) * 4)
   end
+end
+
+function __unpack_string(s)
+  local size = __i32_load(s)
+  local data = __i32_load(s + 4)
+  return size, data
+end
+
+function __pack_string(size, data)
+  local this = __new(8)
+  __i32_store(this, size)
+  __i32_store(this + 4, data)
+  return this
+end
+
+function __unpack_table(t)
+  local size = __i32_load(t)
+  local capacity = __i32_load(t + 4)
+  local data = __i32_load(t + 8)
+  return size, capacity, data
 end
 
 function error(message)

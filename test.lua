@@ -128,10 +128,6 @@ function test5()
 end
 
 function test6()
-  if 3^3 ~= 27 then
-    error("3^3 ~= 27")
-  end
-
   io_write_integer(0x7FFFFFFF & ~0xDEAD)
   io_write_string("\n")
   io_write_integer(0x1234 ~ 0xFEDC)
