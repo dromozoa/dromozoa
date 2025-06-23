@@ -163,7 +163,6 @@ function __cstring_size(data)
   return n
 end
 
-
 local __atcwd = -1
 
 function __get_atcwd()
