@@ -167,7 +167,114 @@ function integer_to_string(v)
   return __pack_string(b + 15 - p, p)
 end
 
-function io_read_all()
+--[[
+  rights
+  0: fd_datasync
+  1: fd_read
+  2: fd_seek（fd_tellをimplyする）
+  3: fd_fdstat_set_flags
+  4: fd_sync
+  5: fd_tell
+  6: fd_write
+
+  fd_read  | fd_seek | fd_tell = 0x02 | 0x04 | 0x20 = 0x26
+  fd_write | fd_seek | fd_tell = 0x40 | 0x04 | 0x20 = 0x64
+
+]]
+
+local atcwd = -1
+
+function strlen(data)
+  local n = 0
+  while true do
+    local c = __i32_load8(data + n)
+    if c == 0 then
+      return n
+    end
+    n = n + 1
+  end
+end
+
+function __prestat()
+  local fd = 3
+  while true do
+    local out = __new(8)
+    local errno = __fd_prestat_get(fd, out)
+    if errno == 0 then
+      local tag = __i32_load(out)
+      local len = __i32_load(out + 4)
+      -- io_write_string "fd: "
+      -- io_write_integer(fd)
+      -- io_write_string ", tag: "
+      -- io_write_integer(tag)
+      -- io_write_string ", len: "
+      -- io_write_integer(len)
+      -- io_write_string "\n"
+
+      -- len
+      --   wasmtime: NULを含まない
+      --   wasmer:   NULを含む
+
+      local buffer = __new(len + 1)
+      local errno = __fd_prestat_dir_name(fd, buffer, len)
+      if errno == 0 then
+        __i32_store8(buffer + len, 0x00)
+        local dir = __pack_string(strlen(buffer), buffer)
+        -- io_write_string "dir: "
+        -- io_write_string(dir)
+        -- io_write_string "\n"
+
+        if string_compare(dir, ".") == 0 then
+          atcwd = fd
+          break
+        end
+      end
+    else
+      break
+    end
+    fd = fd + 1
+  end
+end
+
+function file_open_read(path)
+  if atcwd == -1 then
+    __prestat()
+  end
+
+  -- io_write_string "atcwd: "
+  -- io_write_integer(atcwd)
+  -- io_write_string "\n"
+
+  local size, data = __unpack_string(path)
+  local out = __new(4)
+  local errno = __path_open(
+    atcwd, -- fd(dirfd)
+    0, -- dirflags
+    data, -- path
+    size, -- pathlen
+    0, -- oflags
+    __i64_const(0x26), -- fs_rights_base
+    __i64_const(0x00), -- fs_rights_inheriting
+    0, -- fs_flags
+    out)
+  if errno == 0 then
+    return true, __i32_load(out)
+  else
+    io_write_integer(errno)
+    io_write_string "\n"
+    return false, -1
+  end
+end
+
+function file_close(fd)
+  __fd_close(fd)
+end
+
+function file_read_all(fd)
+  return read_all_impl(fd)
+end
+
+function read_all_impl(fd)
   local item = __new(8)
   local out = __new(4)
   local result = ""
@@ -177,7 +284,7 @@ function io_read_all()
     local data = __new(n)
     __i32_store(item, data)
     __i32_store(item + 4, n - 1)
-    local errno = __fd_read(0, item, 1, out)
+    local errno = __fd_read(fd, item, 1, out)
     if errno ~= 0 then
       error("io read error: "..integer_to_string(errno))
     end
@@ -190,6 +297,10 @@ function io_read_all()
   end
 
   return result
+end
+
+function io_read_all()
+  return read_all_impl(0)
 end
 
 function io_write_string_impl(fd, s)

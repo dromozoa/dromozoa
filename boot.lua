@@ -983,6 +983,12 @@ function compiler_initialize()
     S'(export "_start" (func $' I(get_attr(get_attr(args[1], attr_ref), attr_id)) S"))\n"
   end
 
+  local leave_i64_const = function (ctx, proto, u)
+    local items = get_items(u)
+    local args = get_items(items[2])
+    S"(i64.const " S(get_value(args[1])) S") (; Integer ;)\n"
+  end
+
   asm_table = {
     { "__call_indirect0", 0, nil,             true,  leave_call_indirect };
     { "__call_indirect1", 1, nil,             true,  leave_call_indirect };
@@ -1001,6 +1007,7 @@ function compiler_initialize()
     { "__memory_copy",    0, "(memory.copy)", false, nil                 };
     { "__memory_fill",    0, "(memory.fill)", false, nil                 };
     { "__export_start",   0, nil,             true,  leave_export_start  };
+    { "__i64_const",      1, nil,             true,  leave_i64_const     };
   }
   quick_sort(asm_table, 1, #asm_table, compare_string_index1)
 
@@ -1873,8 +1880,12 @@ function compiler(tokens, chunk)
   local scope = new_scope(nil)
 
   S"(module\n"
-  add_wasi(ctx, proto_table, new_name "__fd_read",  1, "fd_read",  "(param i32 i32 i32 i32)")
+  add_wasi(ctx, proto_table, new_name "__fd_read", 1, "fd_read", "(param i32 i32 i32 i32)")
   add_wasi(ctx, proto_table, new_name "__fd_write", 1, "fd_write", "(param i32 i32 i32 i32)")
+  add_wasi(ctx, proto_table, new_name "__path_open", 1, "path_open", "(param i32 i32 i32 i32 i32 i64 i64 i32 i32)")
+  add_wasi(ctx, proto_table, new_name "__fd_close", 1, "fd_close", "(param i32)")
+  add_wasi(ctx, proto_table, new_name "__fd_prestat_get", 1, "fd_prestat_get", "(param i32 i32)")
+  add_wasi(ctx, proto_table, new_name "__fd_prestat_dir_name", 1, "fd_prestat_dir_name", "(param i32 i32 i32)")
   S"(memory " I(memory_size) S")\n"
   S'(export "memory" (memory 0))\n'
 

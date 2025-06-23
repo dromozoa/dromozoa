@@ -32,8 +32,25 @@ function integer_to_string(v)
   return tostring(v)
 end
 
+function file_open_read(path)
+  local file, message = io.open(path, "rb")
+  if file then
+    return true, file
+  else
+    return false, nil
+  end
+end
+
+function file_close(file)
+  io.close(file)
+end
+
+function file_read_all(file)
+  return file:read "a"
+end
+
 function io_read_all()
-  return io.read("a")
+  return io.read "a"
 end
 
 function io_write_integer(v)

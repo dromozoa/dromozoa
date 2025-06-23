@@ -56,6 +56,8 @@ function main()
   for i = 1, #tests do
     __call_indirect0(tests[i])
   end
+
+  test_file()
 end
 
 function test1()
@@ -218,6 +220,16 @@ function test9()
   -- compiler error
   -- local a, b, c = f2(0, 0)
   -- a, b, a = f2(0, 0)
+end
+
+function test_file()
+  local path = "README.md"
+  local r, f = file_open_read(path)
+  if not r then
+    error("cannot open file "..path)
+  end
+  io_write_string(file_read_all(f))
+  file_close(f)
 end
 
 __export_start(main)
