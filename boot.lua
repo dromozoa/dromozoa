@@ -780,7 +780,7 @@ function parser_stat(parser)
         if string_compare(get_value(token), "require") == 0 then
           local arg = get_items(args)[1]
           if string_compare(get_kind(arg), "String") == 0 then
-            local chunk = lexer_parser("include1/"..get_value(arg)..".lua")
+            local chunk = lexer_parser("include-wasm/"..get_value(arg)..".lua")
             return get_items(chunk)[1]
           end
         end
