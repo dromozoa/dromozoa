@@ -159,7 +159,7 @@ function get_position(u)
   return u[4]
 end
 
-function compare_string_index1(a, b)
+function string_compare_first(a, b)
   return string_compare(a[1], b[1])
 end
 
@@ -627,8 +627,8 @@ function parser_initialize()
   table_insert(parser_led, { "[",   bp, led_index  })
   parser_max_lbp = bp
 
-  quick_sort(parser_nud, compare_string_index1)
-  quick_sort(parser_led, compare_string_index1)
+  quick_sort(parser_nud, string_compare_first)
+  quick_sort(parser_led, string_compare_first)
 end
 
 function parser_error(token)
@@ -636,7 +636,7 @@ function parser_error(token)
 end
 
 function parser_item_search(t, item)
-  local i = binary_search(t, compare_string_index1, item)
+  local i = binary_search(t, string_compare_first, item)
   if i == 0 then
     return nil
   else
@@ -1008,7 +1008,7 @@ function compiler_initialize()
     { "__export_start",   0, nil,             true,  leave_export_start  };
     { "__i64_const",      1, nil,             true,  leave_i64_const     };
   }
-  quick_sort(asm_table, compare_string_index1)
+  quick_sort(asm_table, string_compare_first)
 
   op_table = {
     { "nil",   "(i32.const 0) (; nil ;)"   };
@@ -1031,7 +1031,7 @@ function compiler_initialize()
     { "//",    "(i32.div_s)"               };
     { "%",     "(i32.rem_s)"               };
   }
-  quick_sort(op_table, compare_string_index1)
+  quick_sort(op_table, string_compare_first)
 end
 
 function roundup(n, a)
@@ -1471,7 +1471,7 @@ function process3(ctx, proto, u, v)
     local ref = get_attr(items[1], attr_ref)
     if string_compare(get_attr(ref, attr_resolver), "asm") == 0 then
       local name = get_value(ref)
-      local i = binary_search(asm_table, compare_string_index1, { name })
+      local i = binary_search(asm_table, string_compare_first, { name })
       if i == 0 then
         error("compiler error: cannot resolve <"..name..">")
       end
@@ -1629,7 +1629,7 @@ function process3(ctx, proto, u, v)
     end
   end
 
-  local i = binary_search(op_table, compare_string_index1, { kind })
+  local i = binary_search(op_table, string_compare_first, { kind })
   if i ~= 0 then
     S(op_table[i][2])
     S"\n"
@@ -1666,7 +1666,7 @@ function process3(ctx, proto, u, v)
     local ref = get_attr(items[1], attr_ref)
     local name = get_value(ref)
     if string_compare(get_attr(ref, attr_resolver), "asm") == 0 then
-      local i = binary_search(asm_table, compare_string_index1, { name })
+      local i = binary_search(asm_table, string_compare_first, { name })
       local asm = asm_table[i]
       if asm[5] ~= nil then
         __call_indirect0(asm[5], ctx, proto, v)
