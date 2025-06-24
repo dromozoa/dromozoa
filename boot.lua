@@ -112,6 +112,8 @@ local attr_is_exp    = 6 -- 関数定義または関数呼び出しが式であ�
 local attr_is_global = 7 -- 大域変数である
 local attr_ref       = 8 -- 各種の参照または変数テーブル
 
+-- local source_info_from_items
+
 function new_attrs(class)
   return { class, "", 0, 0, -1, false, false, nil }
 end
@@ -125,7 +127,7 @@ function new_name(name)
 end
 
 function new_node(kind, items)
-  return { kind, new_attrs "node", items, 0 }
+  return { kind, new_attrs "node", items, "", 0 }
 end
 
 function get_kind(u)
