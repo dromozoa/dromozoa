@@ -98,10 +98,8 @@ end
       value = string|integer
       items = table<node>
     }
-    source = {
-      file = string
-      position = integer
-    }
+    source_file = string
+    source_position = integer
   }
 ]]
 
@@ -118,12 +116,12 @@ function new_attrs(class)
   return { class, "", 0, 0, -1, false, false, nil }
 end
 
-function new_token(kind, value, position)
-  return { kind, new_attrs "token", value, position }
+function new_token(kind, value, source_file, source_position)
+  return { kind, new_attrs "token", value, source_file, source_position }
 end
 
 function new_name(name)
-  return new_token("Name", name, 0)
+  return new_token("Name", name, "(internal)", 0)
 end
 
 function new_node(kind, items)
@@ -158,8 +156,12 @@ function get_items(u)
   end
 end
 
-function get_position(u)
+function get_source_file(u)
   return u[4]
+end
+
+function get_source_position(u)
+  return u[5]
 end
 
 function string_compare_first(a, b)
@@ -348,9 +350,9 @@ function lexer_rule_keyword_or_name(source_file, source, position)
   local v = string_sub(source, position, p - 1)
   local i = binary_search(lexer_keywords, string_compare, v)
   if i ~= 0 then
-    return p, new_token(v, v, position)
+    return p, new_token(v, v, source_file, position)
   end
-  return p, new_token("Name", v, position)
+  return p, new_token("Name", v, source_file, position)
 end
 
 function lexer_rule_symbol(source_file, source, position)
@@ -359,7 +361,7 @@ function lexer_rule_symbol(source_file, source, position)
     local v = string_sub(source, position, position + i - 1)
     local j = binary_search(symbols, string_compare, v)
     if j ~= 0 then
-      return position + i, new_token(v, v, position)
+      return position + i, new_token(v, v, source_file, position)
     end
   end
   return 0, nil
@@ -380,7 +382,7 @@ function lexer_rule_string(source_file, source, position)
     local c = string_byte(source, p)
     p = p + 1
     if c == quote then
-      return p, new_token("String", string_char(t), position)
+      return p, new_token("String", string_char(t), source_file, position)
     elseif c == 0x5C then
       if p > n then
         lexer_error(source_file, p)
@@ -462,7 +464,7 @@ function lexer_rule_integer(source_file, source, position)
   if p == q then
     return 0, nil
   else
-    return p, new_token("Integer", string_char(t), position)
+    return p, new_token("Integer", string_char(t), source_file, position)
   end
 end
 
@@ -493,7 +495,7 @@ function lexer(source_file, source)
     end
   end
 
-  table_insert(tokens, new_token("EOF", "EOF", p))
+  table_insert(tokens, new_token("EOF", "EOF", source_file, p))
   return tokens
 end
 
@@ -554,7 +556,7 @@ end
 function nud_negate(parser, token)
   local exp = parser_exp(parser, parser_prefix_lbp)
   if string_compare(get_kind(exp), "Integer") == 0 then
-    return new_token("Integer", "-"..get_value(exp), get_position(token))
+    return new_token("Integer", "-"..get_value(exp), get_source_file(token), get_source_position(token))
   else
     return new_node(get_kind(token), { exp })
   end
@@ -639,7 +641,7 @@ function parser_initialize()
 end
 
 function parser_error(token)
-  error("parser error at token <"..get_kind(token).."> position "..integer_to_string(get_position(token)))
+  error("parser error at token <"..get_kind(token).."> position "..integer_to_string(get_source_position(token)))
 end
 
 function parser_item_search(t, item)
@@ -836,7 +838,8 @@ function parser_stat(parser)
       parser_read(parser)
       exp3 = parser_exp(parser, 0)
     else
-      exp3 = new_token("Integer", "1", 0)
+      -- TODO 場所を考える
+      exp3 = new_token("Integer", "1", get_source_file(name), 0)
     end
     parser_expect(parser, "do")
     local block = parser_block(parser)
