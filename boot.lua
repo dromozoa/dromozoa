@@ -125,7 +125,17 @@ function new_name(name)
 end
 
 function new_node(kind, items)
-  return { kind, new_attrs "node", items, "", 0 }
+  local source_file = "(internal)"
+  local source_position = 0
+  for i = 1, #items do
+    local item = items[i]
+    local p = get_source_position(item)
+    if source_position == 0 or source_position > p then
+      source_file = get_source_file(item)
+      source_position = p
+    end
+  end
+  return { kind, new_attrs "node", items, source_file, source_position }
 end
 
 function get_kind(u)
@@ -243,7 +253,7 @@ function lexer_initialize()
 end
 
 function lexer_error(file, position)
-  error("lexer error at ["..file..":"..integer_to_string(position).."]")
+  error("lexer error at position ["..file..":"..integer_to_string(position).."]")
 end
 
 function lexer_char_to_integer_hex(c, v)
@@ -640,8 +650,8 @@ function parser_initialize()
   quick_sort(parser_led, string_compare_first)
 end
 
-function parser_error(token)
-  error("parser error at token <"..get_kind(token).."> position "..integer_to_string(get_source_position(token)))
+function parser_error(node)
+  error("parser error at node ["..get_kind(node).."] position ["..get_source_file(node)..":"..integer_to_string(get_source_position(node)).."]")
 end
 
 function parser_item_search(t, item)
