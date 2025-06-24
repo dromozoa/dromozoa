@@ -848,8 +848,7 @@ function parser_stat(parser)
       parser_read(parser)
       exp3 = parser_exp(parser, 0)
     else
-      -- TODO 場所を考える
-      exp3 = new_token("Integer", "1", get_source_file(name), 0)
+      exp3 = new_token("Integer", "1", get_source_file(exp2), get_source_position(exp2))
     end
     parser_expect(parser, "do")
     local block = parser_block(parser)
