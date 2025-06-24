@@ -1956,7 +1956,11 @@ function main()
   if #args < 1 then
     error "Usage: source_file"
   end
-  compiler(lexer_parser(args[1]))
+  -- show_memory_usage()
+  local chunk = lexer_parser(args[1])
+  -- show_memory_usage()
+  compiler(chunk)
+  -- show_memory_usage()
 end
 
 __export_start(main)

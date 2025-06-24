@@ -482,3 +482,9 @@ function get_args()
   end
   return result
 end
+
+function show_memory_usage()
+  __write_string_impl(2, "memory usage: ")
+  __write_string_impl(2, integer_to_string(__heap_pointer))
+  __write_string_impl(2, "\n")
+end

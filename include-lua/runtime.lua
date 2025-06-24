@@ -114,3 +114,8 @@ function get_args()
   end
   return result
 end
+
+function show_memory_usage()
+  local usage = collectgarbage "count" * 1024
+  io.stderr:write("memory usage: ", usage, "\n")
+end
