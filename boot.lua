@@ -98,7 +98,10 @@ end
       value = string|integer
       items = table<node>
     }
-    position = integer?
+    source = {
+      file = string
+      position = integer
+    }
   }
 ]]
 
@@ -249,7 +252,7 @@ function lexer_char_to_integer_hex(c, v)
   end
 end
 
-function lexer_rule_space(source, position)
+function lexer_rule_space(source_file, source, position)
   local p = position
   local n = #source
 
@@ -268,7 +271,7 @@ function lexer_rule_space(source, position)
   end
 end
 
-function lexer_rule_comment(source, position)
+function lexer_rule_comment(source_file, source, position)
   local p = position
   local n = #source
 
@@ -320,7 +323,7 @@ function lexer_rule_comment(source, position)
   return p, nil
 end
 
-function lexer_rule_keyword_or_name(source, position)
+function lexer_rule_keyword_or_name(source_file, source, position)
   local p = position
   local n = #source
 
@@ -346,7 +349,7 @@ function lexer_rule_keyword_or_name(source, position)
   return p, new_token("Name", v, position)
 end
 
-function lexer_rule_symbol(source, position)
+function lexer_rule_symbol(source_file, source, position)
   for i = #lexer_symbols, 1, -1 do
     local symbols = lexer_symbols[i]
     local v = string_sub(source, position, position + i - 1)
@@ -358,7 +361,7 @@ function lexer_rule_symbol(source, position)
   return 0, nil
 end
 
-function lexer_rule_string(source, position)
+function lexer_rule_string(source_file, source, position)
   local p = position
   local n = #source
   local t = {}
@@ -418,7 +421,7 @@ function lexer_rule_string(source, position)
   error("lexer error at position "..integer_to_string(p))
 end
 
-function lexer_rule_integer(source, position)
+function lexer_rule_integer(source_file, source, position)
   local p = position
   local n = #source
   local q = position
@@ -470,7 +473,7 @@ function lexer(source_file, source)
     local token = nil
 
     for i = 1, #lexer_rules do
-      q, token = __call_indirect2(lexer_rules[i], source, p)
+      q, token = __call_indirect2(lexer_rules[i], source_file, source, p)
       if q ~= 0 then
         break
       end
