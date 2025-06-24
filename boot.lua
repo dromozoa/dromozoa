@@ -240,6 +240,10 @@ function lexer_initialize()
   }
 end
 
+function lexer_error(file, position)
+  error("lexer error at ["..file..":"..integer_to_string(position).."]")
+end
+
 function lexer_char_to_integer_hex(c, v)
   if 0x30 <= c and c <= 0x39 then
     return true, v * 16 + c - 0x30
@@ -308,7 +312,7 @@ function lexer_rule_comment(source_file, source, position)
         end
         q = q + 1
       end
-      error("lexer error at position "..integer_to_string(q))
+      lexer_error(source_file, q)
     end
   end
 
@@ -379,7 +383,7 @@ function lexer_rule_string(source_file, source, position)
       return p, new_token("String", string_char(t), position)
     elseif c == 0x5C then
       if p > n then
-        error("lexer error at position "..integer_to_string(p))
+        lexer_error(source_file, p)
       end
       local c = string_byte(source, p)
       p = p + 1
@@ -395,30 +399,30 @@ function lexer_rule_string(source_file, source, position)
       elseif c == 0x5C then table_insert(t, 0x5C) -- \\
       elseif c == 0x78 then -- \xXX
         if p + 1 > n then
-          error("lexer error at position "..integer_to_string(p))
+          lexer_error(source_file, p)
         end
         local r = false
         local v = 0
         r, v = lexer_char_to_integer_hex(string_byte(source, p), v)
         if not r then
-          error("lexer error at position "..integer_to_string(p))
+          lexer_error(source_file, p)
         end
         p = p + 1
         r, v = lexer_char_to_integer_hex(string_byte(source, p), v)
         if not r then
-          error("lexer error at position "..integer_to_string(p))
+          lexer_error(source_file, p)
         end
         p = p + 1
         table_insert(t, v)
       else
-        error("lexer error at position "..integer_to_string(p - 1))
+        lexer_error(source_file, p - 1)
       end
     else
       table_insert(t, c)
     end
   end
 
-  error("lexer error at position "..integer_to_string(p))
+  lexer_error(source_file, p)
 end
 
 function lexer_rule_integer(source_file, source, position)
@@ -480,7 +484,7 @@ function lexer(source_file, source)
     end
 
     if q == 0 then
-      error("lexer error at position "..integer_to_string(p))
+      lexer_error(source_file, p)
     end
     p = q
 
