@@ -174,6 +174,10 @@ function get_source_position(u)
   return u[5]
 end
 
+function get_at_string(u)
+  return "at node ["..get_kind(u).."] position ["..get_source_file(u)..":"..integer_to_string(get_source_position(u)).."]"
+end
+
 function string_compare_first(a, b)
   return string_compare(a[1], b[1])
 end
@@ -651,7 +655,7 @@ function parser_initialize()
 end
 
 function parser_error(node)
-  error("parser error at node ["..get_kind(node).."] position ["..get_source_file(node)..":"..integer_to_string(get_source_position(node)).."]")
+  error("parser error "..get_at_string(node))
 end
 
 function parser_item_search(t, item)
@@ -1053,6 +1057,10 @@ function compiler_initialize()
   quick_sort(op_table, string_compare_first)
 end
 
+function compiler_error(message, u)
+  error("compiler error: "..message.." "..get_at_string(u))
+end
+
 function roundup(n, a)
   local r = n % a
   if r == 0 then
@@ -1248,7 +1256,7 @@ function resolve_name_impl(proto_table, scope, u, resolver)
     end
   end
 
-  error("compiler error: cannot resolve <"..get_value(u)..">")
+  compiler_error("cannot resolve <"..get_value(u)..">", u)
 end
 
 function resolve_name(proto_table, scope, u)
@@ -1372,7 +1380,7 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
 
   elseif string_compare(kind, "break") == 0 then
     if loop == nil then
-      error "compiler error: invalid loop"
+      compiler_error("invalid loop", v)
     end
     set_attr(v, attr_id, loop[loop_block])
 
@@ -1459,7 +1467,7 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
         if r[1] == -1 then
           result_table[address] = q
         elseif #q == 1 and r[1] ~= q[1] then
-          error("compiler error: invalid result <"..get_value(proto)..">")
+          compiler_error("invalid result <"..get_value(proto)..">", v)
         end
       else
         result_table[address] = q
@@ -1483,7 +1491,7 @@ function process3(ctx, proto, u, v)
 
   elseif string_compare(kind, "call") == 0 then
     if string_compare(get_kind(items[1]), "Name") ~= 0 then
-      error "compiler error: invalid name"
+      compiler_error("invalid callee", items[1])
     end
     range_i = 2
 
@@ -1492,7 +1500,7 @@ function process3(ctx, proto, u, v)
       local name = get_value(ref)
       local i = binary_search(asm_table, string_compare_first, { name })
       if i == 0 then
-        error("compiler error: cannot resolve <"..name..">")
+        compiler_error("cannot resolve <"..get_value(name)..">", name)
       end
       if asm_table[i][4] then
         range_j = 0
@@ -1578,7 +1586,7 @@ function process3(ctx, proto, u, v)
       local explist = get_items(items[1])
       local namelist = get_items(items[2])
       if #namelist ~= #explist then
-        error "compiler error: invalid result"
+        compiler_error("invalid result", v)
       end
 
       for i = 1, #explist do
@@ -1659,7 +1667,7 @@ function process3(ctx, proto, u, v)
 
     local result = get_attr(items[1], attr_result)
     if result < #varlist then
-      error "compiler error: invalid result"
+      compiler_error("invalid result", v)
     end
     SR(result - #varlist, "(drop)\n")
 
@@ -1677,7 +1685,7 @@ function process3(ctx, proto, u, v)
         process3(ctx, proto, varlist, var)
         S"(call $" I(get_attr(ctx[ctx_set_table], attr_id)) S") (; __set_table ;)\n"
       else
-        error("compiler error: invalid assign <"..get_kind(var)..">")
+        compiler_error("invalid assign <"..get_kind(var)..">", var)
       end
     end
 
@@ -1703,7 +1711,7 @@ function process3(ctx, proto, u, v)
         or string_compare(get_kind(u), "table") == 0 then
         set_attr(u, attr_result, get_attr(u, attr_result) + result - 1)
       elseif result == 0 then
-        error "compiler error: invalid result"
+        compiler_error("invalid result", v)
       else
         SR(result - 1, "(drop)\n")
       end
@@ -1748,7 +1756,7 @@ function process3(ctx, proto, u, v)
 
       local result = get_attr(items[1], attr_result)
       if result < #namelist then
-        error "compiler error: invalid result"
+        compiler_error("invalid result", v)
       end
       SR(result - #namelist, "(drop)\n")
 

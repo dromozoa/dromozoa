@@ -135,6 +135,7 @@ function test6()
   io_write_string("\n")
   io_write_integer(0x1234 ~ 0xFEDC)
   io_write_string("\n")
+  -- local x = test6()
 end
 
 function write(s)
