@@ -21,6 +21,14 @@ require "table"
 
 --------------------------------------------------------------------------------
 
+function __cstring_size(data)
+  local n = -1
+  repeat
+    n = n + 1
+  until __i32_load8(data + n) == 0x00
+  return n
+end
+
 local __errno_table = nil
 
 function __errno_to_string(errno)
