@@ -16,8 +16,8 @@
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
 require "core"
-require "string"
-require "table"
+require "core-string"
+require "core-table"
 
 --------------------------------------------------------------------------------
 
