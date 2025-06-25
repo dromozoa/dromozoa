@@ -36,8 +36,7 @@ function __new(n)
   local pointer = __heap_pointer
   __heap_pointer = pointer + __ceil_mul(n, 8)
 
-  local memory_size = __memory_size() * 65536
-  if __heap_pointer >= memory_size then
+  if __heap_pointer >= __memory_size() * 65536 then
     __memory_grow(__ceil_mul(__heap_pointer, 65536) >> 16)
   end
 
