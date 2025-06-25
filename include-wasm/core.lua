@@ -15,12 +15,12 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-function __ceil_mul(n, a)
-  local r = n % a
+function __ceil_mul(v, a)
+  local r = v % a
   if r == 0 then
-    return n
+    return v
   else
-    return n + a - r
+    return v + a - r
   end
 end
 
