@@ -1167,8 +1167,8 @@ local ctx_address   = 2
 local ctx_length    = 3
 local ctx_concat    = 4
 local ctx_new_table = 5
-local ctx_set_table = 6
-local ctx_get_table = 7
+local ctx_set_index = 6
+local ctx_get_index = 7
 
 function make_id(ctx)
   local id = ctx[ctx_id] + 1
@@ -1687,7 +1687,7 @@ function process3(ctx, proto, u, v)
         I(get_attr(ref, attr_id)) S") (; " S(get_value(var)) S" ;)\n"
       elseif string_compare(get_kind(var), "index") == 0 then
         process3(ctx, proto, varlist, var)
-        S"(call $" I(get_attr(ctx[ctx_set_table], attr_id)) S") (; __set_table ;)\n"
+        S"(call $" I(get_attr(ctx[ctx_set_index], attr_id)) S") (; __set_index ;)\n"
       else
         compiler_error("invalid assign <"..get_kind(var)..">", var)
       end
@@ -1782,7 +1782,7 @@ function process3(ctx, proto, u, v)
     for i = result, 1, -1 do
       S"(local.get $" I(get_attr(v, attr_id)) S")\n"
       S"(i32.const " I(i) S")\n"
-      S"(call $" I(get_attr(ctx[ctx_set_table], attr_id)) S") (; __set_table ;)\n"
+      S"(call $" I(get_attr(ctx[ctx_set_index], attr_id)) S") (; __set_index ;)\n"
     end
 
   elseif string_compare(kind, "#") == 0 then
@@ -1808,7 +1808,7 @@ function process3(ctx, proto, u, v)
 
   elseif string_compare(kind, "index") == 0 then
     if string_compare(get_attr(v, attr_resolver), "set") ~= 0 then
-      S"(call $" I(get_attr(ctx[ctx_get_table], attr_id)) S") (; __get_table ;)\n"
+      S"(call $" I(get_attr(ctx[ctx_get_index], attr_id)) S") (; __get_index ;)\n"
     end
   end
 end
@@ -1924,8 +1924,8 @@ function compiler(chunk)
   ctx[ctx_length]    = resolve_name(proto_table, scope, new_name "__length")
   ctx[ctx_concat]    = resolve_name(proto_table, scope, new_name "__concat")
   ctx[ctx_new_table] = resolve_name(proto_table, scope, new_name "__new_table")
-  ctx[ctx_set_table] = resolve_name(proto_table, scope, new_name "__set_table")
-  ctx[ctx_get_table] = resolve_name(proto_table, scope, new_name "__get_table")
+  ctx[ctx_set_index] = resolve_name(proto_table, scope, new_name "__set_index")
+  ctx[ctx_get_index] = resolve_name(proto_table, scope, new_name "__get_index")
 
   write_function_table(ctx, function_table)
   write_proto_table(proto_table)

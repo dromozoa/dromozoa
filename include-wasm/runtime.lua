@@ -44,36 +44,17 @@ function __new(n)
   return pointer
 end
 
-function __length(p)
-  return __i32_load(p)
-end
-
-function __concat(a, b)
-  local a_size, a_data = __unpack_string(a)
-  local b_size, b_data = __unpack_string(b)
-
-  local size = a_size + b_size
-  local data = __new(size + 1)
-  __memory_copy(data, a_data, a_size)
-  __memory_copy(data + a_size, b_data, b_size)
-  __i32_store8(data + size, 0x00)
-
-  return __pack_string(size, data)
-end
-
 function __new_table(size)
   local capacity = __ceil_pow2(size)
-  local data = __new(capacity * 4)
-
   local t = __new(12)
   __i32_store(t, size)
   __i32_store(t + 4, capacity)
-  __i32_store(t + 8, data)
+  __i32_store(t + 8, __new(capacity * 4))
   return t
 end
 
 -- スタック操作の都合により、直感と異なる引数順にしている
-function __set_table(v, t, i)
+function __set_index(v, t, i)
   local size, capacity, data = __unpack_table(t)
 
   if i > capacity then
@@ -95,13 +76,33 @@ function __set_table(v, t, i)
   __i32_store(data + (i - 1) * 4, v)
 end
 
-function __get_table(t, i)
+function __get_index(t, i)
   local size, capacity, data = __unpack_table(t)
   if i > size then
     return nil
   else
     return __i32_load(data + (i - 1) * 4)
   end
+end
+
+
+--------------------------------------------------------------------------------
+
+function __length(p)
+  return __i32_load(p)
+end
+
+function __concat(a, b)
+  local a_size, a_data = __unpack_string(a)
+  local b_size, b_data = __unpack_string(b)
+
+  local size = a_size + b_size
+  local data = __new(size + 1)
+  __memory_copy(data, a_data, a_size)
+  __memory_copy(data + a_size, b_data, b_size)
+  __i32_store8(data + size, 0x00)
+
+  return __pack_string(size, data)
 end
 
 function __unpack_string(s)
