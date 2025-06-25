@@ -804,8 +804,21 @@ function parser_stat(parser)
         if string_compare(get_value(token), "require") == 0 then
           local arg = get_items(args)[1]
           if string_compare(get_kind(arg), "String") == 0 then
-            local chunk = lexer_parser("include-wasm/"..get_value(arg)..".lua")
-            return get_items(chunk)[1]
+            local loaded = parser[3]
+            local name = get_value(arg)
+            local found = false
+            for i = 1, #loaded do
+              if string_compare(loaded[i], name) == 0 then
+                found = true
+              end
+            end
+            if found then
+              return new_empty_node(";", token)
+            else
+              local chunk = lexer_parser("include-wasm/"..name..".lua", loaded)
+              table_insert(loaded, name)
+              return get_items(chunk)[1]
+            end
           end
         end
         return new_node("call", { token, args })
@@ -964,8 +977,8 @@ function parser_name(parser)
   end
 end
 
-function parser(tokens)
-  local parser = { tokens, 1 }
+function parser(tokens, loaded)
+  local parser = { tokens, 1, loaded }
   local block = parser_block(parser)
 
   local token = parser_peek(parser)
@@ -1940,7 +1953,7 @@ end
 
 --------------------------------------------------------------------------------
 
-function lexer_parser(source_file)
+function lexer_parser(source_file, loaded)
   local status, result = io_open_read(source_file)
   if not status then
     error("cannot open "..source_file..": "..result)
@@ -1948,7 +1961,7 @@ function lexer_parser(source_file)
 
   local source = file_read_all(result)
   file_close(result)
-  return parser(lexer(source_file, source))
+  return parser(lexer(source_file, source), loaded)
 end
 
 function main()
@@ -1960,8 +1973,9 @@ function main()
   if #args < 1 then
     error "Usage: source_file"
   end
+
   -- show_memory_usage()
-  local chunk = lexer_parser(args[1])
+  local chunk = lexer_parser(args[1], {})
   -- show_memory_usage()
   compiler(chunk)
   -- show_memory_usage()
