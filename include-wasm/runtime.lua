@@ -15,76 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-function __ceil_mul(n, a)
-  local r = n % a
-  if r == 0 then
-    return n
-  else
-    return n + a - r
-  end
-end
-
-function __ceil_pow2(v)
-  if v <= 1 then
-    return 1
-  else
-    return 1 << 32 - __i32_clz(v - 1)
-  end
-end
-
-function __new(n)
-  local pointer = __heap_pointer
-  __heap_pointer = pointer + __ceil_mul(n, 8)
-
-  local memory_size = __memory_size() * 65536
-  if __heap_pointer >= memory_size then
-    __memory_grow(__ceil_mul(__heap_pointer, 65536) >> 16)
-  end
-
-  return pointer
-end
-
-function __new_table(size)
-  local capacity = __ceil_pow2(size)
-  local t = __new(12)
-  __i32_store(t, size)
-  __i32_store(t + 4, capacity)
-  __i32_store(t + 8, __new(capacity * 4))
-  return t
-end
-
--- スタック操作の都合により、直感と異なる引数順にしている
-function __set_index(v, t, i)
-  local size, capacity, data = __unpack_table(t)
-
-  if i > capacity then
-    capacity = __ceil_pow2(i)
-
-    local new_data = __new(capacity * 4)
-    __memory_copy(new_data, data, size * 4)
-    __memory_fill(new_data + size * 4, 0x00, (capacity - size) * 4)
-    data = new_data
-
-    __i32_store(t + 4, capacity)
-    __i32_store(t + 8, data)
-  end
-
-  if i > size then
-    __i32_store(t, i)
-  end
-
-  __i32_store(data + (i - 1) * 4, v)
-end
-
-function __get_index(t, i)
-  local size, capacity, data = __unpack_table(t)
-  if i > size then
-    return nil
-  else
-    return __i32_load(data + (i - 1) * 4)
-  end
-end
-
+require "core"
 
 --------------------------------------------------------------------------------
 
@@ -116,13 +47,6 @@ function __pack_string(size, data)
   __i32_store(s, size)
   __i32_store(s + 4, data)
   return s
-end
-
-function __unpack_table(t)
-  local size = __i32_load(t)
-  local capacity = __i32_load(t + 4)
-  local data = __i32_load(t + 8)
-  return size, capacity, data
 end
 
 function __cstring_size(data)
