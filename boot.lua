@@ -138,6 +138,10 @@ function new_node(kind, items)
   return { kind, new_attrs "node", items, source_file, source_position }
 end
 
+function new_empty_node(kind, token)
+  return { kind, new_attrs "node", {}, get_source_file(token), get_source_position(token) }
+end
+
 function get_kind(u)
   return u[1]
 end
@@ -766,7 +770,7 @@ function parser_stat_if(parser)
     else_block = parser_block(parser)
   else
     parser_unread(parser)
-    else_block = new_node("block", {})
+    else_block = new_empty_node("block", token)
   end
 
   return new_node("if", { exp, then_block, else_block })
@@ -775,7 +779,7 @@ end
 function parser_stat(parser)
   local token = parser_read(parser)
   if string_compare(get_kind(token), ";") == 0 then
-    return new_node(";", {})
+    return new_empty_node(";", token)
 
   elseif string_compare(get_kind(token), "Name") == 0 then
     -- var ::= Name
@@ -816,7 +820,7 @@ function parser_stat(parser)
     return parser_stat_assign(parser)
 
   elseif string_compare(get_kind(token), "break") == 0 then
-    return new_node("break", {})
+    return new_empty_node("break", token)
 
   elseif string_compare(get_kind(token), "do") == 0 then
     local block = parser_block(parser)
