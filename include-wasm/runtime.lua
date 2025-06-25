@@ -20,10 +20,6 @@ require "table"
 
 --------------------------------------------------------------------------------
 
-function __length(p)
-  return __i32_load(p)
-end
-
 function __concat(a, b)
   local a_size, a_data = __unpack_string(a)
   local b_size, b_data = __unpack_string(b)

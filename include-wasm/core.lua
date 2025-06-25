@@ -43,3 +43,7 @@ function __new(n)
 
   return pointer
 end
+
+function __length(p)
+  return __i32_load(p)
+end
