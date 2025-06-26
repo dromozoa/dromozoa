@@ -39,7 +39,12 @@ function show_memory_usage()
 end
 
 function io_open(path, mode)
-  return assert(io.open(path, mode))
+  local file, message = io.open(path, mode)
+  if file then
+    return true, file
+  else
+    return false, message
+  end
 end
 
 function io_read_all()

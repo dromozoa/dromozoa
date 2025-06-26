@@ -225,17 +225,22 @@ end
 
 function test_file()
   local path = "test.dat"
-  local f = io_open(path, "wb")
+  local r, f = io_open(path, "wb")
+  assert(r)
   file_write_string(f, "日本語")
   file_write_integer(f, 42)
   file_write_string(f, "\n")
   file_close(f)
 
-  local f = io_open(path, "rb")
+  local r, f = io_open(path, "rb")
+  assert(r)
   io_write_string(file_read_all(f))
   file_close(f)
 
-  -- io_open("no-such-file.txt", "rb")
+  local r, f = io_open("no-such-file.txt", "rb")
+  assert(not r)
+  -- io_stderr_write_string(f)
+  -- io_stderr_write_string "\n"
 end
 
 function test_args()

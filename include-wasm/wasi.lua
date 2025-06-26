@@ -160,10 +160,11 @@ function __open(path, rights)
     __i64_const(0),           -- fs_rights_inheriting
     0,                        -- fs_flags
     fd)                       -- fd
-  if errno ~= 0 then
-    error("io error: "..__errno_to_string(errno))
+  if errno == 0 then
+    return true, __i32_load(fd)
+  else
+    return false, "io error: "..__errno_to_string(errno)
   end
-  return __i32_load(fd)
 end
 
 function __close(fd)
