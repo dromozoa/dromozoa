@@ -26,31 +26,44 @@ function __call_indirect2(f, ...) return __check_result(2, f(...)) end
 function __call_indirect3(f, ...) return __check_result(3, f(...)) end
 function __export_start(f) return __check_result(0, f()) end
 
-function integer_to_string(v)
-  assert(math.type(v) == "integer")
-  return tostring(v)
+function get_args()
+  local args = {}
+  for i = 1, #arg do
+    args[i] = arg[i]
+  end
+  return args
+end
+
+function show_memory_usage()
+  io.stderr:write("memory usage: ", collectgarbage "count" * 1024, "\n")
 end
 
 function io_open(path, mode)
   return assert(io.open(path, mode))
 end
 
-function io_open_read(path)
-  local file, message = io.open(path, "rb")
-  if file then
-    return true, file
-  else
-    return false, message
-  end
+function io_read_all()
+  return io.read "a"
 end
 
-function io_open_write(path)
-  local file, message = io.open(path, "wb")
-  if file then
-    return true, file
-  else
-    return false, message
-  end
+function io_write_string(s)
+  assert(type(s) == "string")
+  io.write(s)
+end
+
+function io_write_integer(v)
+  assert(math.type(v) == "integer")
+  io.write(v)
+end
+
+function io_stderr_write_string(s)
+  assert(type(s) == "string")
+  io.stderr:write(s)
+end
+
+function io_stderr_write_integer(v)
+  assert(math.type(v) == "integer")
+  io.stderr:write(v)
 end
 
 function file_close(file)
@@ -71,18 +84,9 @@ function file_write_integer(file, v)
   file:write(v)
 end
 
-function io_read_all()
-  return io.read "a"
-end
-
-function io_write_string(s)
-  assert(type(s) == "string")
-  io.write(s)
-end
-
-function io_write_integer(v)
+function integer_to_string(v)
   assert(math.type(v) == "integer")
-  io.write(v)
+  return tostring(v)
 end
 
 function string_byte(s, i)
@@ -109,17 +113,4 @@ end
 
 function table_insert(t, v)
   table.insert(t, v)
-end
-
-function get_args()
-  local result = {}
-  for i = 1, #arg do
-    result[i] = arg[i]
-  end
-  return result
-end
-
-function show_memory_usage()
-  local usage = collectgarbage "count" * 1024
-  io.stderr:write("memory usage: ", usage, "\n")
 end

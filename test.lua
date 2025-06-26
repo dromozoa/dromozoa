@@ -82,7 +82,7 @@ function test2()
   local c = "baz"
 
   io_write_string(a..integer_to_string(42)..b..c.."\n")
-  -- error("ERROR!")
+  -- error "ERROR!"
 end
 
 function test3()
