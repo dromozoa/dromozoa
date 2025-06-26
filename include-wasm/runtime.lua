@@ -290,20 +290,6 @@ function io_write_integer(v)
   __write_string_impl(1, integer_to_string(v))
 end
 
-function string_sub(s, i, j)
-  local s_size, s_data = __unpack_string(s)
-
-  if j > s_size then
-    j = s_size
-  end
-
-  local size = j - i + 1
-  local data = __new(size + 1)
-  __memory_copy(data, s_data + i - 1, size)
-  __i32_store8(data + size, 0x00)
-  return __pack_string(size, data)
-end
-
 function table_insert(t, v)
   t[#t + 1] = v
 end

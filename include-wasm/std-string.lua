@@ -51,3 +51,18 @@ function string_compare(a, b)
   assert(a_size == b_size)
   return 0
 end
+
+function string_sub(s, i, j)
+  local size, data = __unpack_string(s)
+  if j > size then
+    j = size
+  end
+
+  local m = i - 1
+  local n = j - m
+
+  local new_data = __new(n + 1)
+  __memory_copy(new_data, data + m, n)
+  __i32_store8(new_data + n, 0x00)
+  return __pack_string(n, new_data)
+end
