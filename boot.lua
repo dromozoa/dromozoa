@@ -103,21 +103,19 @@ end
   }
 ]]
 
-local attr_class     = 1 -- "token" | "node"
-local attr_resolver  = 2 -- "fun" | "asm" | "par" | "var" | "call" | "ref" | "set" | "key"
-local attr_address   = 3 -- 文字列または関数の静的アドレス
-local attr_id        = 4 -- 大域ID
-local attr_index     = 5 -- インデックス
-local attr_result    = 6 -- 返り値の個数
-local attr_is_exp    = 7 -- 関数定義または関数呼び出しが式である
-local attr_is_global = 8 -- 大域変数である
-local attr_ref       = 9 -- 各種の参照または変数テーブル
+local attr_resolver  = 1 -- "fun" | "asm" | "par" | "var" | "call" | "ref" | "set" | "key"
+local attr_address   = 2 -- 文字列または関数の静的アドレス
+local attr_id        = 3 -- 大域ID
+local attr_index     = 4 -- インデックス
+local attr_result    = 5 -- 返り値の個数
+local attr_is_exp    = 6 -- 関数定義または関数呼び出しが式である
+local attr_is_global = 7 -- 大域変数である
+local attr_ref       = 8 -- 各種の参照または変数テーブル
 
 function new_token(kind, value, source_file, source_position)
   return {
     kind = kind;
 
-    class = "token";
     resolver = "";
     address = 0;
     id = 0;
@@ -152,7 +150,6 @@ function new_node(kind, items)
   return {
     kind = kind;
 
-    class = "node";
     resolver = "";
     address = 0;
     id = 0;
@@ -173,7 +170,6 @@ function new_empty_node(kind, token)
   return {
     kind = kind;
 
-    class = "node";
     resolver = "";
     address = 0;
     id = 0;
@@ -195,9 +191,7 @@ function get_kind(u)
 end
 
 function get_attr(u, key)
-  if key == attr_class then
-    return u.class
-  elseif key == attr_resolver then
+  if key == attr_resolver then
     return u.resolver
   elseif key == attr_address then
     return u.address
@@ -219,9 +213,7 @@ function get_attr(u, key)
 end
 
 function set_attr(u, key, value)
-  if key == attr_class then
-    u.class = value
-  elseif key == attr_resolver then
+  if key == attr_resolver then
     u.resolver = value
   elseif key == attr_address then
     u.address = value
