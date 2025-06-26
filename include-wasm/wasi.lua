@@ -106,3 +106,100 @@ function __errno_to_string(errno)
     return s
   end
 end
+
+local __at_fdcwd = -1
+
+function __get_at_fdcwd()
+  if __at_fdcwd == -1 then
+    local prestat = __new(8)
+    local fd = 3
+    while true do
+      if __fd_prestat_get(fd, prestat) ~= 0 then
+        break
+      end
+      local tag = __i32_load(prestat)
+      if tag == 0 then
+        -- wasmer:   NUL終端された文字列を返す
+        -- wasmtime: NUL終端されていない文字列を返す
+        local size = __i32_load(prestat + 4)
+        local data = __new(size + 1)
+        if __fd_prestat_dir_name(fd, data, size) == 0 then
+          __i32_store8(data + size, 0x00)
+          if string_compare(__pack_string(__cstring_size(data), data), ".") == 0 then
+            __at_fdcwd = fd
+            break
+          end
+        end
+      end
+      fd = fd + 1
+    end
+  end
+  assert(__at_fdcwd ~= -1)
+  return __at_fdcwd
+end
+
+local __right_fd_datasync         = 0x01
+local __right_fd_read             = 0x02
+local __right_fd_seek             = 0x04 -- implies __right_fd_tell
+local __right_fd_fdstat_set_flags = 0x08
+local __right_fd_sync             = 0x10
+local __right_fd_tell             = 0x20
+local __right_fd_write            = 0x40
+local __right_fd_advice           = 0x80
+
+function __open(path, rights)
+  local size, data = __unpack_string(path)
+  local fd = __new(4)
+  local errno = __path_open(
+    __get_at_fdcwd(),         -- dirfd
+    0,                        -- dirflags
+    data,                     -- path
+    size,                     -- path_len
+    0,                        -- o_flags
+    __i64_extend_i32(rights), -- fs_rights_base
+    __i64_const(0),           -- fs_rights_inheriting
+    0,                        -- fs_flags
+    fd)                       -- fd
+  if errno == 0 then
+    return true, __i32_load(fd)
+  else
+    return false, __errno_to_string(errno)
+  end
+end
+
+function __read_all(fd)
+  local size = 4096
+  local data = __new(size)
+  local iovs = __new(8)
+  __i32_store(iovs, data)
+  __i32_store(iovs + 4, size - 1)
+  local nread = __new(4)
+  local result = ""
+
+  while true do
+    local errno = __fd_read(fd, iovs, 1, nread)
+    if errno ~= 0 then
+      error("io error: "..integer_to_string(errno))
+    end
+    local size = __i32_load(nread)
+    if size == 0 then
+      break
+    end
+    __i32_store8(data + size, 0x00)
+    result = result..__pack_string(size, data)
+  end
+
+  return result
+end
+
+function __write_string(fd, s)
+  local size, data = __unpack_string(s)
+  local iovs = __new(8)
+  __i32_store(iovs, data)
+  __i32_store(iovs + 4, size)
+  local nwrite = __new(4)
+  local errno = __fd_write(fd, iovs, 1, nwrite)
+  if errno ~= 0 then
+    error("io error: "..integer_to_string(errno))
+  end
+end

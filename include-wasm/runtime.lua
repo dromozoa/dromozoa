@@ -24,126 +24,12 @@ require "wasi"
 
 --------------------------------------------------------------------------------
 
-local __atcwd = -1
-
-function __get_atcwd()
-  if __atcwd ~= -1 then
-    return __atcwd
-  end
-
-  local fd = 3
-  local prestat = __new(8)
-  while true do
-    local errno = __fd_prestat_get(fd, prestat)
-    if errno == 0 then
-      local tag = __i32_load(prestat)
-      if tag == 0 then
-        -- wasmer:   NULを含む
-        -- wasmtime: NULを含まない
-        local size = __i32_load(prestat + 4)
-        local data = __new(size + 1)
-        local errno = __fd_prestat_dir_name(fd, data, size)
-        if errno == 0 then
-          __i32_store8(data + size, 0x00)
-          local dir = __pack_string(__cstring_size(data), data)
-          if string_compare(dir, ".") == 0 then
-            __atcwd = fd
-            break
-          end
-        end
-      end
-    else
-      break
-    end
-    fd = fd + 1
-  end
-
-  return __atcwd
-end
-
-function __read_all_impl(fd)
-  local item = __new(8)
-  local out = __new(4)
-  local result = ""
-
-  while true do
-    local n = 4096
-    local data = __new(n)
-    __i32_store(item, data)
-    __i32_store(item + 4, n - 1)
-    local errno = __fd_read(fd, item, 1, out)
-    if errno ~= 0 then
-      error("io read error: "..integer_to_string(errno))
-    end
-    local size = __i32_load(out)
-    if size == 0 then
-      break
-    end
-    __i32_store8(data + size, 0x00)
-    result = result..__pack_string(size, data)
-  end
-
-  return result
-end
-
-function __write_string_impl(fd, s)
-  local size, data = __unpack_string(s)
-  local item = __new(8)
-  __i32_store(item, data)
-  __i32_store(item + 4, size)
-  local out = __new(4)
-  __i32_store(out, 0)
-  __fd_write(fd, item, 1, out)
-end
-
--- rights
--- 1<<0 = 0x01: fd_datasync
--- 1<<1 = 0x02: fd_read
--- 1<<2 = 0x04: fd_seek (implies fd_tell)
--- 1<<3 = 0x08: fd_fdstat_set_flags
--- 1<<4 = 0x10: fd_sync
--- 1<<5 = 0x20: fd_tell
--- 1<<6 = 0x40: fd_write
---  :
-
 function io_open_read(path)
-  local size, data = __unpack_string(path)
-  local fd = __new(4)
-  local errno = __path_open(
-    __get_atcwd(),     -- dirfd
-    0,                 -- dirflags
-    data,              -- path
-    size,              -- path_len
-    0,                 -- o_flags
-    __i64_const(0x26), -- fs_rights_base
-    __i64_const(0x00), -- fs_rights_inheriting
-    0,                 -- fs_flags
-    fd)                -- fd
-  if errno == 0 then
-    return true, __i32_load(fd)
-  else
-    return false, __errno_to_string(errno)
-  end
+  return __open(path, __right_fd_read | __right_fd_seek | __right_fd_tell)
 end
 
 function io_open_write(path)
-  local size, data = __unpack_string(path)
-  local fd = __new(4)
-  local errno = __path_open(
-    __get_atcwd(),     -- dirfd
-    0,                 -- dirflags
-    data,              -- path
-    size,              -- path_len
-    0,                 -- o_flags
-    __i64_const(0x64), -- fs_rights_base
-    __i64_const(0x00), -- fs_rights_inheriting
-    0,                 -- fs_flags
-    fd)                -- fd
-  if errno == 0 then
-    return true, __i32_load(fd)
-  else
-    return false, __errno_to_string(errno)
-  end
+  return __open(path, __right_fd_write | __right_fd_seek | __right_fd_tell)
 end
 
 function file_close(fd)
@@ -151,27 +37,27 @@ function file_close(fd)
 end
 
 function file_read_all(fd)
-  return __read_all_impl(fd)
+  return __read_all(fd)
 end
 
 function file_write_string(fd, s)
-  __write_string_impl(fd, s)
+  __write_string(fd, s)
 end
 
 function file_write_integer(fd, v)
-  __write_string_impl(fd, integer_to_string(v))
+  __write_string(fd, integer_to_string(v))
 end
 
 function io_read_all()
-  return __read_all_impl(0)
+  return __read_all(0)
 end
 
 function io_write_string(s)
-  __write_string_impl(1, s)
+  __write_string(1, s)
 end
 
 function io_write_integer(v)
-  __write_string_impl(1, integer_to_string(v))
+  __write_string(1, integer_to_string(v))
 end
 
 function table_insert(t, v)
@@ -197,7 +83,7 @@ function get_args()
 end
 
 function show_memory_usage()
-  __write_string_impl(2, "memory usage: ")
-  __write_string_impl(2, integer_to_string(__heap_pointer))
-  __write_string_impl(2, "\n")
+  __write_string(2, "memory usage: ")
+  __write_string(2, integer_to_string(__heap_pointer))
+  __write_string(2, "\n")
 end

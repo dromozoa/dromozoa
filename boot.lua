@@ -1050,24 +1050,25 @@ function compiler_initialize()
   end
 
   asm_table = {
-    { "__call_indirect0", 0, nil,             true,  leave_call_indirect };
-    { "__call_indirect1", 1, nil,             true,  leave_call_indirect };
-    { "__call_indirect2", 2, nil,             true,  leave_call_indirect };
-    { "__call_indirect3", 3, nil,             true,  leave_call_indirect };
-    { "__i32_load",       1, "(i32.load)",    false, nil                 };
-    { "__i32_load8",      1, "(i32.load8_u)", false, nil                 };
-    { "__i32_store",      0, "(i32.store)",   false, nil                 };
-    { "__i32_store8",     0, "(i32.store8)",  false, nil                 };
-    { "__i32_clz",        1, "(i32.clz)",     false, nil                 };
-    { "__i32_ctz",        1, "(i32.ctz)",     false, nil                 };
-    { "__i32_popcnt",     1, "(i32.popcnt)",  false, nil                 };
-    { "__unreachable",    0, "(unreachable)", false, nil                 };
-    { "__memory_size",    1, "(memory.size)", false, nil                 };
-    { "__memory_grow",    1, "(memory.grow)", false, nil                 };
-    { "__memory_copy",    0, "(memory.copy)", false, nil                 };
-    { "__memory_fill",    0, "(memory.fill)", false, nil                 };
-    { "__export_start",   0, nil,             true,  leave_export_start  };
-    { "__i64_const",      1, nil,             true,  leave_i64_const     };
+    { "__call_indirect0", 0, nil,                  true,  leave_call_indirect };
+    { "__call_indirect1", 1, nil,                  true,  leave_call_indirect };
+    { "__call_indirect2", 2, nil,                  true,  leave_call_indirect };
+    { "__call_indirect3", 3, nil,                  true,  leave_call_indirect };
+    { "__i32_load",       1, "(i32.load)",         false, nil                 };
+    { "__i32_load8",      1, "(i32.load8_u)",      false, nil                 };
+    { "__i32_store",      0, "(i32.store)",        false, nil                 };
+    { "__i32_store8",     0, "(i32.store8)",       false, nil                 };
+    { "__i32_clz",        1, "(i32.clz)",          false, nil                 };
+    { "__i32_ctz",        1, "(i32.ctz)",          false, nil                 };
+    { "__i32_popcnt",     1, "(i32.popcnt)",       false, nil                 };
+    { "__unreachable",    0, "(unreachable)",      false, nil                 };
+    { "__memory_size",    1, "(memory.size)",      false, nil                 };
+    { "__memory_grow",    1, "(memory.grow)",      false, nil                 };
+    { "__memory_copy",    0, "(memory.copy)",      false, nil                 };
+    { "__memory_fill",    0, "(memory.fill)",      false, nil                 };
+    { "__export_start",   0, nil,                  true,  leave_export_start  };
+    { "__i64_const",      1, nil,                  true,  leave_i64_const     };
+    { "__i64_extend_i32", 1, "(i64.extend_i32_s)", false, nil                 };
   }
   quick_sort(asm_table, string_compare_first)
 

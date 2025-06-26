@@ -22,7 +22,7 @@ function assert(condition)
 end
 
 function error(message)
-  __write_string_impl(2, message)
-  __write_string_impl(2, "\n")
+  __write_string(2, message)
+  __write_string(2, "\n")
   __unreachable()
 end
