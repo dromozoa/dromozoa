@@ -158,28 +158,6 @@ function new_empty_node(kind, token)
   return new_node_impl(kind, nil, {}, token.source_file, token.source_position)
 end
 
-function set_attr(u, key, value)
-  if key == attr_resolver then
-    u.resolver = value
-  elseif key == attr_address then
-    u.address = value
-  elseif key == attr_id then
-    u.id = value
-  elseif key == attr_index then
-    u.index = value
-  elseif key == attr_result then
-    u.result = value
-  elseif key == attr_is_exp then
-    u.is_exp = value
-  elseif key == attr_is_global then
-    u.is_global = value
-  elseif key == attr_ref then
-    u.ref = value
-  else
-    error("unknown attr key "..key)
-  end
-end
-
 function get_at_string(u)
   return "at node ["..u.kind.."] position ["..u.source_file..":"..integer_to_string(u.source_position).."]"
 end
@@ -541,7 +519,7 @@ function nud_name(parser, token)
   if string_compare(parser_peek(parser).kind, "String") == 0 then
     local args = new_node("args", { parser_read(parser) })
     local result = new_node("call", { token, args })
-    set_attr(result, attr_is_exp, true)
+    result.is_exp = true
     return result
   else
     return token
@@ -560,7 +538,7 @@ function nud_table(parser, token)
     if string_compare(parser_peek(parser).kind, "=") == 0 then
       local items = {}
       while true do
-        set_attr(name, attr_resolver, "key")
+        name.resolver = "key"
         parser_expect(parser, "=")
         table_insert(items, new_node("field", { name, parser_exp(parser, 0) }))
         local token = parser_peek(parser)
@@ -616,7 +594,7 @@ function nud_function(parser, token)
   local block = parser_block(parser)
   parser_expect(parser, "end")
   local result = new_node("function", { new_name "(unnamed)", parlist, block })
-  set_attr(result, attr_is_exp, true)
+  result.is_exp = true
   return result
 end
 
@@ -631,7 +609,7 @@ end
 function led_call(parser, lbp, token, node)
   local args = parser_list(parser, "args", parser_exp_or_nil, ",", ")")
   local result = new_node("call", { node, args })
-  set_attr(result, attr_is_exp, true)
+  result.is_exp = true
   return result
 end
 
@@ -645,7 +623,7 @@ function led_key(parser, lbp, token, node)
   local result = led_left(parser, lbp, token, node)
   local name = result.items[2]
   if string_compare(name.kind, "Name") == 0 then
-    set_attr(name, attr_resolver, "key")
+    name.resolver = "key"
   end
   return result
 end
@@ -941,12 +919,12 @@ function parser_var(parser)
       parser_read(parser)
       local args = parser_list(parser, "args", parser_exp_or_nil, ",", ")")
       node = new_node("call", { token, args })
-      set_attr(node, attr_is_exp, true)
+      node.is_exp = true
     elseif string_compare(next_token.kind, "String") == 0 then
       parser_read(parser)
       local args = new_node("args", { next_token })
       node = new_node("call", { token, args })
-      set_attr(node, attr_is_exp, true)
+      node.is_exp = true
     elseif string_compare(next_token.kind, "[") ~= 0
       and string_compare(next_token.kind, ".") ~= 0 then
       return token
@@ -1142,7 +1120,7 @@ function make_string_table(string_tokens)
       value = token.value
       table_insert(string_table, { value, 0 })
     end
-    set_attr(token, attr_address, #string_table * 8)
+    token.address = #string_table * 8
   end
 
   local address = (#string_table + 1) * 8
@@ -1245,11 +1223,11 @@ end
 local scope_data = 1
 local scope_parent = 2
 
-function add_var_impl(ctx, var_table, scope, u, resolver, global)
+function add_var_impl(ctx, var_table, scope, u, resolver, is_global)
   local id = make_id(ctx)
-  set_attr(u, attr_resolver, resolver)
-  set_attr(u, attr_id, id)
-  set_attr(u, attr_is_global, global)
+  u.resolver = resolver
+  u.id = id
+  u.is_global = is_global
   table_insert(var_table, u)
   table_insert(scope[scope_data], u)
   return id
@@ -1270,18 +1248,18 @@ end
 function add_fun(ctx, proto_table, u, result)
   table_insert(proto_table, u)
   local id = make_id(ctx)
-  set_attr(u, attr_resolver, "fun")
-  set_attr(u, attr_address, make_address(ctx))
-  set_attr(u, attr_id, id)
-  set_attr(u, attr_result, result)
-  set_attr(u, attr_ref, {})
+  u.resolver = "fun"
+  u.address = make_address(ctx)
+  u.id = id
+  u.result = result
+  u.ref = {}
   return id
 end
 
 function add_asm(ctx, proto_table, u, result)
   table_insert(proto_table, u)
-  set_attr(u, attr_resolver, "asm")
-  set_attr(u, attr_result, result)
+  u.resolver = "asm"
+  u.result = result
 end
 
 function add_wasi(ctx, proto_table, u, result, name, param)
@@ -1299,8 +1277,8 @@ function resolve_name_impl(proto_table, scope, u, resolver)
     for i = #data, 1, -1 do
       local v = data[i]
       if string_compare(u.value, v.value) == 0 then
-        set_attr(u, attr_resolver, resolver)
-        set_attr(u, attr_ref, v)
+        u.resolver = resolver
+        u.ref = v
         return v
       end
     end
@@ -1310,8 +1288,8 @@ function resolve_name_impl(proto_table, scope, u, resolver)
   for i = 1, #proto_table do
     local v = proto_table[i]
     if string_compare(u.value, v.value) == 0 then
-      set_attr(u, attr_resolver, resolver)
-      set_attr(u, attr_ref, v)
+      u.resolver = resolver
+      u.ref = v
       return v
     end
   end
@@ -1329,7 +1307,7 @@ end
 
 function new_loop(ctx, u)
   local loop = { make_id(ctx), make_id(ctx) }
-  set_attr(u, attr_ref, loop)
+  u.ref = loop
   return loop
 end
 
@@ -1394,7 +1372,7 @@ function solve_result_table(result_table, function_table)
     local proto = function_table[i].items[1]
     local r = result_table[proto.address]
     if proto.result == -1 then
-      set_attr(proto, attr_result, r[1])
+      proto.result = r[1]
     end
   end
 end
@@ -1439,14 +1417,14 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
       if string_compare(var.kind, "Name") == 0 then
         resolve_name(proto_table, scope, var)
       end
-      set_attr(var, attr_resolver, "set")
+      var.resolver = "set"
     end
 
   elseif string_compare(kind, "break") == 0 then
     if loop == nil then
       compiler_error("invalid loop", v)
     end
-    set_attr(v, attr_id, loop[loop_block])
+    v.id = loop[loop_block]
 
   elseif string_compare(kind, "do") == 0 then
     scope = new_scope(scope)
@@ -1463,7 +1441,7 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
     loop = new_loop(ctx, v)
     scope = new_scope(scope)
 
-    set_attr(v, attr_id, add_var(ctx, var_table, scope, new_name "(var)"))
+    v.id = add_var(ctx, var_table, scope, new_name "(var)")
     add_var(ctx, var_table, scope, new_name "(limit)")
     add_var(ctx, var_table, scope, new_name "(step)")
 
@@ -1494,19 +1472,19 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
     end
 
   elseif string_compare(kind, "explist") == 0 or string_compare(kind, "args") == 0 then
-    set_attr(v, attr_result, #items)
+    v.result = #items
 
   elseif string_compare(kind, "array") == 0 then
-    set_attr(v, attr_id, add_var(ctx, var_table, scope, new_name "(array)"))
-    set_attr(v, attr_result, #items)
+    v.id = add_var(ctx, var_table, scope, new_name "(array)")
+    v.result = #items
 
   elseif string_compare(kind, "table") == 0 then
-    set_attr(v, attr_id, add_var(ctx, var_table, scope, new_name "(table)"))
-    set_attr(v, attr_result, #items)
+    v.id = add_var(ctx, var_table, scope, new_name "(table)")
+    v.result = #items
 
   elseif string_compare(kind, "field") == 0 then
-    set_attr(v, attr_id, add_var(ctx, var_table, scope, new_name "(field)"))
-    set_attr(v, attr_result, #items)
+    v.id = add_var(ctx, var_table, scope, new_name "(field)")
+    v.result = #items
   end
 
   if items ~= nil then
@@ -1801,7 +1779,7 @@ function process3(ctx, proto, u, v)
       if string_compare(u.kind, "explist") == 0
         or string_compare(u.kind, "args") == 0
         or string_compare(u.kind, "array") == 0 then
-        set_attr(u, attr_result, u.result + result - 1)
+        u.result = u.result + result - 1
       elseif result == 0 then
         compiler_error("invalid result", v)
       else
@@ -1882,7 +1860,7 @@ function process3(ctx, proto, u, v)
     quick_sort(keys, string_compare_value)
     for i = 1, #keys do
       local key = keys[i]
-      set_attr(key, attr_index, i)
+      key.index = i
     end
 
     for i = #items, 1, -1 do
