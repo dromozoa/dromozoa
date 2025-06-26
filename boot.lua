@@ -247,7 +247,7 @@ function lexer_error(file, position)
   error("lexer error at position ["..file..":"..integer_to_string(position).."]")
 end
 
-function lexer_char_to_integer_hex(c, v)
+function hex_char_to_integer(c, v)
   if 0x30 <= c and c <= 0x39 then
     return true, v * 16 + c - 0x30
   elseif 0x41 <= c and c <= 0x46 then
@@ -406,12 +406,12 @@ function lexer_rule_string(source_file, source, position)
         end
         local r = false
         local v = 0
-        r, v = lexer_char_to_integer_hex(string_byte(source, p), v)
+        r, v = hex_char_to_integer(string_byte(source, p), v)
         if not r then
           lexer_error(source_file, p)
         end
         p = p + 1
-        r, v = lexer_char_to_integer_hex(string_byte(source, p), v)
+        r, v = hex_char_to_integer(string_byte(source, p), v)
         if not r then
           lexer_error(source_file, p)
         end
