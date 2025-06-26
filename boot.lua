@@ -94,11 +94,29 @@ function new_node_impl(kind, value, items, source_file, source_position)
   return {
     kind = kind;
 
-    resolver = "";
+    -- asm:  アセンブラ定義
+    -- fun:  関数定義
+    -- par:  仮引数
+    -- var:  変数
+    -- call: 関数呼び出し（関数参照）
+    -- ref:  変数参照
+    -- key:  テーブルの文字列キー
+    -- set:  変数代入
+    mode = "";
+
+    -- 文字列リテラルのメモリアドレス
+    -- 関数参照のアドレス（関数ポインタ）
     address = 0;
+
+    -- 大域ID（WATで$で表記する）
     id = 0;
+
+    -- テーブルコンストラクタで使うインデックス
     index = 0;
+
+    -- 返り値の個数
     result = -1;
+
     is_exp = false;
     is_global = false;
     ref = nil;
@@ -516,7 +534,7 @@ function nud_table(parser, token)
     if string_compare(parser_peek(parser).kind, "=") == 0 then
       local items = {}
       while true do
-        name.resolver = "key"
+        name.mode = "key"
         parser_expect(parser, "=")
         table_insert(items, new_node("field", { name, parser_exp(parser, 0) }))
         local token = parser_peek(parser)
@@ -601,7 +619,7 @@ function led_key(parser, lbp, token, node)
   local result = led_left(parser, lbp, token, node)
   local name = result.items[2]
   if string_compare(name.kind, "Name") == 0 then
-    name.resolver = "key"
+    name.mode = "key"
   end
   return result
 end
@@ -1202,9 +1220,9 @@ end
 local scope_data = 1
 local scope_parent = 2
 
-function add_var_impl(ctx, var_table, scope, u, resolver, is_global)
+function add_var_impl(ctx, var_table, scope, u, mode, is_global)
   local id = make_id(ctx)
-  u.resolver = resolver
+  u.mode = mode
   u.id = id
   u.is_global = is_global
   table_insert(var_table, u)
@@ -1227,7 +1245,7 @@ end
 function add_fun(ctx, proto_table, u, result)
   table_insert(proto_table, u)
   local id = make_id(ctx)
-  u.resolver = "fun"
+  u.mode = "fun"
   u.address = make_address(ctx)
   u.id = id
   u.result = result
@@ -1237,7 +1255,7 @@ end
 
 function add_asm(ctx, proto_table, u, result)
   table_insert(proto_table, u)
-  u.resolver = "asm"
+  u.mode = "asm"
   u.result = result
 end
 
@@ -1250,13 +1268,13 @@ function add_wasi(ctx, proto_table, u, result, name, param)
   S"))\n"
 end
 
-function resolve_name_impl(proto_table, scope, u, resolver)
+function resolve_name_impl(proto_table, scope, u, mode)
   while scope ~= nil do
     local data = scope[scope_data]
     for i = #data, 1, -1 do
       local v = data[i]
       if string_compare(u.value, v.value) == 0 then
-        u.resolver = resolver
+        u.mode = mode
         u.ref = v
         return v
       end
@@ -1267,7 +1285,7 @@ function resolve_name_impl(proto_table, scope, u, resolver)
   for i = 1, #proto_table do
     local v = proto_table[i]
     if string_compare(u.value, v.value) == 0 then
-      u.resolver = resolver
+      u.mode = mode
       u.ref = v
       return v
     end
@@ -1297,7 +1315,7 @@ function new_result_table(proto_table)
   local result_table = {}
   for i = 1, #proto_table do
     local proto = proto_table[i]
-    if string_compare(proto.resolver, "fun") == 0 then
+    if string_compare(proto.mode, "fun") == 0 then
       table_insert(result_table, { proto.result })
       if proto.address ~= #result_table then
         error "compiler error: invalid address"
@@ -1365,7 +1383,7 @@ function process1(ctx, string_tokens, proto_table, function_table, proto, u, v)
     add_fun(ctx, proto_table, proto, -1)
     table_insert(function_table, v)
   elseif string_compare(kind, "Name") == 0 then
-    if string_compare(v.resolver, "key") == 0 then
+    if string_compare(v.mode, "key") == 0 then
       table_insert(string_tokens, v)
     end
   elseif string_compare(kind, "String") == 0 then
@@ -1396,7 +1414,7 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
       if string_compare(var.kind, "Name") == 0 then
         resolve_name(proto_table, scope, var)
       end
-      var.resolver = "set"
+      var.mode = "set"
     end
 
   elseif string_compare(kind, "break") == 0 then
@@ -1442,7 +1460,7 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
       add_par(ctx, var_table, scope, v)
     end
 
-    if string_compare(v.resolver, "") == 0 then
+    if string_compare(v.mode, "") == 0 then
       if string_compare(u.kind, "call") == 0 then
         resolve_call(proto_table, scope, v)
       else
@@ -1525,7 +1543,7 @@ function process3(ctx, proto, u, v)
     range_i = 2
 
     local ref = items[1].ref
-    if string_compare(ref.resolver, "asm") == 0 then
+    if string_compare(ref.mode, "asm") == 0 then
       local name = ref.value
       local i = binary_search(asm_table, string_compare_first, { name })
       if i == 0 then
@@ -1631,9 +1649,9 @@ function process3(ctx, proto, u, v)
     end
 
   elseif string_compare(kind, "Name") == 0 then
-    if string_compare(v.resolver, "ref") == 0 then
+    if string_compare(v.mode, "ref") == 0 then
       local ref = v.ref
-      if string_compare(ref.resolver, "fun") == 0 then
+      if string_compare(ref.mode, "fun") == 0 then
         S"(i32.const " I(ref.address) S") (; "
       else
         if ref.is_global then
@@ -1741,7 +1759,7 @@ function process3(ctx, proto, u, v)
   elseif string_compare(kind, "call") == 0 then
     local ref = items[1].ref
     local name = ref.value
-    if string_compare(ref.resolver, "asm") == 0 then
+    if string_compare(ref.mode, "asm") == 0 then
       local i = binary_search(asm_table, string_compare_first, { name })
       local asm = asm_table[i]
       if asm[5] ~= nil then
@@ -1878,12 +1896,12 @@ function process3(ctx, proto, u, v)
     S"(call $" I(ctx.concat.id) S") (; __concat ;)\n"
 
   elseif string_compare(kind, "index") == 0 then
-    if string_compare(v.resolver, "set") ~= 0 then
+    if string_compare(v.mode, "set") ~= 0 then
       S"(call $" I(ctx.get_index.id) S") (; __get_index ;)\n"
     end
 
   elseif string_compare(kind, ".") == 0 then
-    if string_compare(v.resolver, "set") ~= 0 then
+    if string_compare(v.mode, "set") ~= 0 then
       S"(i32.const " I(items[2].address) S") (; key ;)\n"
       S"(call $" I(ctx.get_table.id) S") (; __get_table ;)\n"
     end
@@ -1912,7 +1930,7 @@ function write_function_table(ctx, function_table)
     local var_table = proto.ref
     for i = 1, #var_table do
       local var = var_table[i]
-      if string_compare(var.resolver, "var") == 0 then
+      if string_compare(var.mode, "var") == 0 then
         S"(local $" I(var.id) S" i32) (; " S(var.value) S" ;)\n"
       end
     end
@@ -1944,7 +1962,7 @@ function write_proto_table(proto_table)
   local n = 0
   for i = 1, #proto_table do
     local proto = proto_table[i]
-    if string_compare(proto.resolver, "fun") == 0 then
+    if string_compare(proto.mode, "fun") == 0 then
       n = n + 1
     end
   end
@@ -1953,7 +1971,7 @@ function write_proto_table(proto_table)
   S"(elem (i32.const 1)"
   for i = 1, #proto_table do
     local proto = proto_table[i]
-    if string_compare(proto.resolver, "fun") == 0 then
+    if string_compare(proto.mode, "fun") == 0 then
       S" $" I(proto.id)
     end
   end
