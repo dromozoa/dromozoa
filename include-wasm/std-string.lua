@@ -15,36 +15,44 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-function __cstring_size(data)
-  local n = -1
-  repeat
-    n = n + 1
-  until __i32_load8(data + n) == 0x00
-  return n
+function string_byte(s, i)
+  local size, data = __unpack_string(s)
+  if i > size then
+    error "out of bounds"
+  else
+    return __i32_load8(data + i - 1)
+  end
 end
 
-function __pack_string(size, data)
-  local s = __new(8)
-  __i32_store(s, size)
-  __i32_store(s + 4, data)
-  return s
+function string_char(t)
+  local size = #t
+  local data = __new(size + 1)
+  for i = 1, size do
+    __i32_store8(data + i - 1, t[i])
+  end
+  __i32_store8(data + size, 0x00)
+  return __pack_string(size, data)
 end
 
-function __unpack_string(s)
-  local size = __i32_load(s)
-  local data = __i32_load(s + 4)
-  return size, data
-end
-
-function __concat(a, b)
+function string_compare(a, b)
   local a_size, a_data = __unpack_string(a)
   local b_size, b_data = __unpack_string(b)
 
-  local size = a_size + b_size
-  local data = __new(size + 1)
-  __memory_copy(data, a_data, a_size)
-  __memory_copy(data + a_size, b_data, b_size)
-  __i32_store8(data + size, 0x00)
+  local size = a_size
+  if size > b_size then
+    size = b_size
+  end
 
-  return __pack_string(size, data)
+  for i = 0, size do
+    local a_byte = __i32_load8(a_data + i)
+    local b_byte = __i32_load8(b_data + i)
+    if a_byte ~= b_byte then
+      return a_byte - b_byte
+    end
+  end
+
+  if a_size ~= b_size then
+    error "invalid size"
+  end
+  return 0
 end

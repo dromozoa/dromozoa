@@ -18,16 +18,9 @@
 require "core"
 require "core-string"
 require "core-table"
+require "std-string"
 
 --------------------------------------------------------------------------------
-
-function __cstring_size(data)
-  local n = -1
-  repeat
-    n = n + 1
-  until __i32_load8(data + n) == 0x00
-  return n
-end
 
 local __errno_table = nil
 
@@ -300,48 +293,6 @@ end
 
 function io_write_integer(v)
   __write_string_impl(1, integer_to_string(v))
-end
-
-function string_byte(s, i)
-  local size, data = __unpack_string(s)
-  if i > size then
-    error "out of bounds"
-  else
-    return __i32_load8(data + (i - 1))
-  end
-end
-
-function string_char(t)
-  local size = #t
-  local data = __new(size + 1)
-  for i = 1, size do
-    __i32_store8(data + (i - 1), t[i])
-  end
-  __i32_store8(data + size, 0x00)
-  return __pack_string(size, data)
-end
-
-function string_compare(a, b)
-  local a_size, a_data = __unpack_string(a)
-  local b_size, b_data = __unpack_string(b)
-
-  local size = a_size
-  if size > b_size then
-    size = b_size
-  end
-
-  for i = 0, size do
-    local a_byte = __i32_load8(a_data + i)
-    local b_byte = __i32_load8(b_data + i)
-    if a_byte ~= b_byte then
-      return a_byte - b_byte
-    end
-  end
-
-  if a_size ~= b_size then
-    error "invalid size"
-  end
-  return 0
 end
 
 function string_sub(s, i, j)
