@@ -202,10 +202,6 @@ function set_attr(u, key, value)
   end
 end
 
-function get_items(u)
-  return u.items
-end
-
 function get_source_file(u)
   return u.source_file
 end
@@ -677,7 +673,7 @@ end
 
 function led_key(parser, lbp, token, node)
   local result = led_left(parser, lbp, token, node)
-  local name = get_items(result)[2]
+  local name = result.items[2]
   if string_compare(name.kind, "Name") == 0 then
     set_attr(name, attr_resolver, "key")
   end
@@ -867,7 +863,7 @@ function parser_stat(parser)
         and string_compare(parser_peek(parser).kind, ".") ~= 0 then
         -- 関数呼び出し文のrequireだけ特別扱いする
         if string_compare(token.value, "require") == 0 then
-          local arg = get_items(args)[1]
+          local arg = args.items[1]
           if string_compare(arg.kind, "String") == 0 then
             local loaded = parser.loaded
             local name = arg.value
@@ -882,7 +878,7 @@ function parser_stat(parser)
             else
               local chunk = lexer_parser("include-wasm/"..name..".lua", loaded)
               table_insert(loaded, name)
-              return get_items(chunk)[1]
+              return chunk.items[1]
             end
           end
         end
@@ -1073,8 +1069,8 @@ local op_table = nil
 
 function compiler_initialize()
   local leave_call_indirect = function (ctx, proto, u)
-    local items = get_items(u)
-    local args = get_items(items[2])
+    local items = u.items
+    local args = items[2].items
     for i = 2, #args do
       process3(ctx, proto, items[2], args[i])
     end
@@ -1094,14 +1090,14 @@ function compiler_initialize()
   end
 
   local leave_export_start = function (ctx, proto, u)
-    local items = get_items(u)
-    local args = get_items(items[2])
+    local items = u.items
+    local args = items[2].items
     S'(export "_start" (func $' I(get_attr(get_attr(args[1], attr_ref), attr_id)) S"))\n"
   end
 
   local leave_i64_const = function (ctx, proto, u)
-    local items = get_items(u)
-    local args = get_items(items[2])
+    local items = u.items
+    local args = items[2].items
     S"(i64.const " S(args[1].value) S") (; Integer ;)\n"
   end
 
@@ -1425,7 +1421,7 @@ function solve_result_table(result_table, function_table)
   end
 
   for i = 1, #function_table do
-    local proto = get_items(function_table[i])[1]
+    local proto = function_table[i].items[1]
     local r = result_table[get_attr(proto, attr_address)]
     if get_attr(proto, attr_result) == -1 then
       set_attr(proto, attr_result, r[1])
@@ -1435,7 +1431,7 @@ end
 
 function process1(ctx, string_tokens, proto_table, function_table, proto, u, v)
   local kind = v.kind
-  local items = get_items(v)
+  local items = v.items
 
   if string_compare(kind, "function") == 0 then
     proto = items[1]
@@ -1458,7 +1454,7 @@ end
 
 function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope, scope, loop, u, v)
   local kind = v.kind
-  local items = get_items(v)
+  local items = v.items
 
   if string_compare(kind, "block") == 0 then
     -- then blockとelse blockにスコープを割り当てる
@@ -1467,7 +1463,7 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
     end
 
   elseif string_compare(kind, "assign") == 0 then
-    local varlist = get_items(items[2])
+    local varlist = items[2].items
     for i = 1, #varlist do
       local var = varlist[i]
       if string_compare(var.kind, "Name") == 0 then
@@ -1555,7 +1551,7 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
       for i = 1, #items do
         local item = items[i]
         if string_compare(item.kind, "call") == 0 then
-          local ref = get_attr(get_items(item)[1], attr_ref)
+          local ref = get_attr(item.items[1], attr_ref)
           local result = get_attr(ref, attr_result)
           if result == -1 then
             table_insert(q, get_attr(ref, attr_address))
@@ -1584,7 +1580,7 @@ end
 
 function process3(ctx, proto, u, v)
   local kind = v.kind
-  local items = get_items(v)
+  local items = v.items
 
   local range_i = 1
   local range_j = 0
@@ -1682,15 +1678,15 @@ function process3(ctx, proto, u, v)
   elseif string_compare(kind, "function") == 0 then
     range_j = 0
     if get_attr(v, attr_is_exp) then
-      S"(i32.const " I(get_attr(get_items(v)[1], attr_address)) S")\n"
+      S"(i32.const " I(get_attr(v.items[1], attr_address)) S")\n"
     end
 
   elseif string_compare(kind, "local") == 0 then
     if proto == nil then
       range_j = 0
 
-      local explist = get_items(items[1])
-      local namelist = get_items(items[2])
+      local explist = items[1].items
+      local namelist = items[2].items
       if #namelist ~= #explist then
         compiler_error("invalid result", v)
       end
@@ -1763,7 +1759,7 @@ function process3(ctx, proto, u, v)
     S"if (result i32)\n"
 
   elseif string_compare(kind, "-") == 0 then
-    if #get_items(v) == 1 then
+    if #v.items == 1 then
       S"(i32.const 0)\n"
     end
 
@@ -1783,8 +1779,8 @@ function process3(ctx, proto, u, v)
     S"\n"
 
   elseif string_compare(kind, "assign") == 0 then
-    local explist = get_items(items[1])
-    local varlist = get_items(items[2])
+    local explist = items[1].items
+    local varlist = items[2].items
 
     local result = get_attr(items[1], attr_result)
     if result < #varlist then
@@ -1807,7 +1803,7 @@ function process3(ctx, proto, u, v)
         S"(call $" I(get_attr(ctx[ctx_set_index], attr_id)) S") (; __set_index ;)\n"
       elseif string_compare(var.kind, ".") == 0 then
         process3(ctx, proto, items[2], var)
-        S"(i32.const " I(get_attr(get_items(var)[2], attr_address)) S") (; key ;)\n"
+        S"(i32.const " I(get_attr(var.items[2], attr_address)) S") (; key ;)\n"
         S"(call $" I(get_attr(ctx[ctx_set_table], attr_id)) S") (; __set_table ;)\n"
 
       else
@@ -1877,8 +1873,8 @@ function process3(ctx, proto, u, v)
 
   elseif string_compare(kind, "local") == 0 then
     if proto ~= nil then
-      local explist = get_items(items[1])
-      local namelist = get_items(items[2])
+      local explist = items[1].items
+      local namelist = items[2].items
 
       local result = get_attr(items[1], attr_result)
       if result < #namelist then
@@ -1910,7 +1906,7 @@ function process3(ctx, proto, u, v)
   elseif string_compare(kind, "table") == 0 then
     local keys = {}
     for i = 1, #items do
-      local key = get_items(items[i])[1]
+      local key = items[i].items[1]
       table_insert(keys, key)
     end
     quick_sort(keys, string_compare_value)
@@ -1920,7 +1916,7 @@ function process3(ctx, proto, u, v)
     end
 
     for i = #items, 1, -1 do
-      local key = get_items(items[i])[1]
+      local key = items[i].items[1]
       S"(local.get $" I(get_attr(v, attr_id)) S")\n"
       S"(i32.const " I(get_attr(key, attr_index)) S")\n"
       S"(call $" I(get_attr(ctx[ctx_set_index], attr_id)) S") (; __set_index ;)\n"
@@ -1946,7 +1942,7 @@ function process3(ctx, proto, u, v)
 
   elseif string_compare(kind, "~") == 0 then
     -- bnot or bxor
-    if #get_items(v) == 1 then
+    if #v.items == 1 then
       S"(i32.const -1)\n"
     end
     S"(i32.xor)\n"
@@ -1970,12 +1966,12 @@ end
 function write_function_table(ctx, function_table)
   for i = 1, #function_table do
     local u = function_table[i]
-    local items = get_items(u)
+    local items = u.items
 
     local proto = items[1]
     S"(func $" I(get_attr(proto, attr_id)) S" (; " S(proto.value) S" ;)\n"
 
-    local parlist = get_items(items[2])
+    local parlist = items[2].items
     for i = 1, #parlist do
       local par = parlist[i]
       S"(param $" I(get_attr(par, attr_id)) S" i32) (; " S(par.value) S" ;)\n"
@@ -2060,7 +2056,7 @@ function compiler(chunk)
 
   local string_tokens = {}
   local function_table = {}
-  local chunk_block = get_items(chunk)[1]
+  local chunk_block = chunk.items[1]
   process1(ctx, string_tokens, proto_table, function_table, nil, chunk, chunk_block)
 
   local string_table, string_end = make_string_table(string_tokens)
