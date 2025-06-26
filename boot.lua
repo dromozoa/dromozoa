@@ -112,7 +112,7 @@ local attr_is_exp    = 6 -- 関数定義または関数呼び出しが式であ�
 local attr_is_global = 7 -- 大域変数である
 local attr_ref       = 8 -- 各種の参照または変数テーブル
 
-function new_token(kind, value, source_file, source_position)
+function new_node_impl(kind, value, items, source_file, source_position)
   return {
     kind = kind;
 
@@ -126,10 +126,14 @@ function new_token(kind, value, source_file, source_position)
     ref = nil;
 
     value = value;
-    items = nil;
+    items = items;
     source_file = source_file;
     source_position = source_position;
   }
+end
+
+function new_token(kind, value, source_file, source_position)
+  return new_node_impl(kind, value, nil, source_file, source_position)
 end
 
 function new_name(name)
@@ -147,43 +151,11 @@ function new_node(kind, items)
       source_position = p
     end
   end
-  return {
-    kind = kind;
-
-    resolver = "";
-    address = 0;
-    id = 0;
-    index = 0;
-    result = -1;
-    is_exp = false;
-    is_global = false;
-    ref = nil;
-
-    value = nil;
-    items = items;
-    source_file = source_file;
-    source_position = source_position;
-  }
+  return new_node_impl(kind, nil, items, source_file, source_position)
 end
 
 function new_empty_node(kind, token)
-  return {
-    kind = kind;
-
-    resolver = "";
-    address = 0;
-    id = 0;
-    index = 0;
-    result = -1;
-    is_exp = false;
-    is_global = false;
-    ref = nil;
-
-    value = nil;
-    items = {};
-    source_file = get_source_file(token);
-    source_position = get_source_position(token);
-  }
+  return new_node_impl(kind, nil, {}, get_source_file(token), get_source_position(token))
 end
 
 function get_kind(u)
