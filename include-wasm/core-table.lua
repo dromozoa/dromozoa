@@ -87,18 +87,12 @@ end
 
 function __set_table(v, t, k)
   local i = __binary_search(t, k)
-  if i == 0 then
-    error("invalid key "..k)
-  else
-    t[i][2] = v
-  end
+  assert(i > 0)
+  t[i][2] = v
 end
 
 function __get_table(t, k)
   local i = __binary_search(t, k)
-  if i == 0 then
-    error("invalid key "..k)
-  else
-    return t[i][2]
-  end
+  assert(i > 0)
+  return t[i][2]
 end

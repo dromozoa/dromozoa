@@ -15,32 +15,14 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-function __ceil_mul(v, a)
-  local r = v % a
-  if r == 0 then
-    return v
-  else
-    return v + a - r
+function assert(condition)
+  if not condition then
+    error "assertion failed!"
   end
 end
 
-function __ceil_pow2(v)
-  if v <= 1 then
-    return 1
-  else
-    return 1 << 32 - __i32_clz(v - 1)
-  end
-end
-
-function __new(n)
-  local pointer = __heap_pointer
-  __heap_pointer = pointer + __ceil_mul(n, 8)
-  if __heap_pointer >= __memory_size() * 65536 then
-    __memory_grow(__ceil_mul(__heap_pointer, 65536) >> 16)
-  end
-  return pointer
-end
-
-function __length(p)
-  return __i32_load(p)
+function error(message)
+  __write_string_impl(2, message)
+  __write_string_impl(2, "\n")
+  __unreachable()
 end

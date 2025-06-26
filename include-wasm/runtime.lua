@@ -18,6 +18,7 @@
 require "core"
 require "core-string"
 require "core-table"
+require "std"
 require "std-string"
 
 --------------------------------------------------------------------------------
@@ -184,12 +185,6 @@ function __write_string_impl(fd, s)
   local out = __new(4)
   __i32_store(out, 0)
   __fd_write(fd, item, 1, out)
-end
-
-function error(message)
-  __write_string_impl(2, message)
-  __write_string_impl(2, "\n")
-  __unreachable()
 end
 
 function integer_to_string(v)

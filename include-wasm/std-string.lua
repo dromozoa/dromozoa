@@ -17,11 +17,8 @@
 
 function string_byte(s, i)
   local size, data = __unpack_string(s)
-  if i > size then
-    error "out of bounds"
-  else
-    return __i32_load8(data + i - 1)
-  end
+  assert(i <= size)
+  return __i32_load8(data + i - 1)
 end
 
 function string_char(t)
@@ -51,8 +48,6 @@ function string_compare(a, b)
     end
   end
 
-  if a_size ~= b_size then
-    error "invalid size"
-  end
+  assert(a_size == b_size)
   return 0
 end
