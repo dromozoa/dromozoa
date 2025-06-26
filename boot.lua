@@ -1306,13 +1306,13 @@ function resolve_call(proto_table, scope, u)
 end
 
 function new_loop(ctx, u)
-  local loop = { make_id(ctx), make_id(ctx) }
+  local loop = {
+    block = make_id(ctx);
+    loop = make_id(ctx);
+  }
   u.ref = loop
   return loop
 end
-
-local loop_block = 1
-local loop_loop = 2
 
 function new_result_table(proto_table)
   local result_table = {}
@@ -1424,7 +1424,7 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
     if loop == nil then
       compiler_error("invalid loop", v)
     end
-    v.id = loop[loop_block]
+    v.id = loop.block
 
   elseif string_compare(kind, "do") == 0 then
     scope = new_scope(scope)
@@ -1564,24 +1564,24 @@ function process3(ctx, proto, u, v)
     range_i = 2
 
     local loop = v.ref
-    S"block $" I(loop[loop_block]) S"\n"
-    S"loop $" I(loop[loop_loop]) S"\n"
+    S"block $" I(loop.block) S"\n"
+    S"loop $" I(loop.loop) S"\n"
 
     process3(ctx, proto, v, items[1])
 
     S"(i32.eqz)\n"
-    S"(br_if $" I(loop[loop_block]) S")\n"
+    S"(br_if $" I(loop.block) S")\n"
 
   elseif string_compare(kind, "repeat") == 0 then
     local loop = v.ref
-    S"block $" I(loop[loop_block]) S"\n"
-    S"loop $" I(loop[loop_loop]) S"\n"
+    S"block $" I(loop.block) S"\n"
+    S"loop $" I(loop.loop) S"\n"
 
   elseif string_compare(kind, "for") == 0 then
     range_i = 5
 
     local loop = v.ref
-    S"block $" I(loop[loop_block]) S"\n"
+    S"block $" I(loop.block) S"\n"
 
     process3(ctx, proto, v, items[1])
     process3(ctx, proto, v, items[2])
@@ -1597,7 +1597,7 @@ function process3(ctx, proto, u, v)
     S"(i32.sub)\n"
     S"(local.set $" I(var + 0) S")\n"
 
-    S"loop $" I(loop[loop_loop]) S"\n"
+    S"loop $" I(loop.loop) S"\n"
 
     S"(local.get $" I(var + 0) S")\n"
     S"(local.get $" I(var + 2) S")\n"
@@ -1612,12 +1612,12 @@ function process3(ctx, proto, u, v)
       S"(local.get $" I(var + 0) S")\n"
       S"(local.get $" I(var + 1) S")\n"
       S"(i32.gt_s)\n"
-      S"(br_if $" I(loop[loop_block]) S")\n"
+      S"(br_if $" I(loop.block) S")\n"
     S"else\n"
       S"(local.get $" I(var + 0) S")\n"
       S"(local.get $" I(var + 1) S")\n"
       S"(i32.lt_s)\n"
-      S"(br_if $" I(loop[loop_block]) S")\n"
+      S"(br_if $" I(loop.block) S")\n"
     S"end\n"
 
     S"(local.get $" I(var + 0) S")\n"
@@ -1802,20 +1802,20 @@ function process3(ctx, proto, u, v)
 
   elseif string_compare(kind, "while") == 0 then
     local loop = v.ref
-    S"(br $" I(loop[loop_loop]) S")\n"
+    S"(br $" I(loop.loop) S")\n"
     S"end\n"
     S"end\n"
 
   elseif string_compare(kind, "repeat") == 0 then
     local loop = v.ref
     S"(i32.eqz)\n"
-    S"(br_if $" I(loop[loop_loop]) S")\n"
+    S"(br_if $" I(loop.loop) S")\n"
     S"end\n"
     S"end\n"
 
   elseif string_compare(kind, "for") == 0 then
     local loop = v.ref
-    S"(br $" I(loop[loop_loop]) S")\n"
+    S"(br $" I(loop.loop) S")\n"
     S"end\n"
     S"end\n"
 
