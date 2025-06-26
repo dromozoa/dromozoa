@@ -104,7 +104,7 @@ end
 ]]
 
 local attr_class     = 1 -- "token" | "node"
-local attr_resolver  = 2 -- "fun" | "asm" | "par" | "var" | "call" | "ref" | "set"
+local attr_resolver  = 2 -- "fun" | "asm" | "par" | "var" | "call" | "ref" | "set" | "field"
 local attr_address   = 3 -- 文字列または関数の静的アドレス
 local attr_id        = 4 -- 大域ID
 local attr_result    = 5 -- 返り値の個数
@@ -546,25 +546,46 @@ function nud_group(parser, token)
 end
 
 function nud_table(parser, token)
-  local items = {}
+  if string_compare(get_kind(parser_peek(parser)), "Name") == 0 then
+    local name = parser_read(parser)
+    if string_compare(get_kind(parser_peek(parser)), "=") == 0 then
+      local items = {}
+      while true do
+        set_attr(name, attr_resolver, "field")
+        parser_expect(parser, "=")
+        table_insert(items, new_node("field", { name, parser_exp(parser, 0) }))
+        local token = parser_peek(parser)
+        if string_compare(get_kind(token), ",") == 0
+          or string_compare(get_kind(token), ";") == 0 then
+          parser_read(parser)
+          token = parser_peek(parser)
+        end
+        if string_compare(get_kind(token), "}") == 0 then
+          break
+        end
+        name = parser_expect(parser, "Name")
+      end
+      parser_expect(parser, "}")
+      return new_node("table", items)
+    end
+    parser_unread(parser)
+  end
 
+  local items = {}
   while true do
     local node = parser_exp_or_nil(parser)
     if node == nil then
       break
     end
     table_insert(items, node)
-
     local token = parser_peek(parser)
     if string_compare(get_kind(token), "}") == 0 then
       break
     end
-
     parser_expect2(parser, ",", ";")
   end
   parser_expect(parser, "}")
-
-  return new_node("table", items)
+  return new_node("array", items)
 end
 
 function nud_prefix(parser, token)
@@ -1449,8 +1470,8 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
   elseif string_compare(kind, "explist") == 0 or string_compare(kind, "args") == 0 then
     set_attr(v, attr_result, #items)
 
-  elseif string_compare(kind, "table") == 0 then
-    set_attr(v, attr_id, add_var(ctx, var_table, scope, new_name "(table)"))
+  elseif string_compare(kind, "array") == 0 then
+    set_attr(v, attr_id, add_var(ctx, var_table, scope, new_name "(array)"))
     set_attr(v, attr_result, #items)
   end
 
@@ -1640,7 +1661,7 @@ function process3(ctx, proto, u, v)
   elseif string_compare(kind, "String") == 0 then
     S"(i32.const " I(get_attr(v, attr_address)) S") (; String ;)\n"
 
-  elseif string_compare(kind, "table") == 0 then
+  elseif string_compare(kind, "array") == 0 then
     S"(i32.const " I(get_attr(v, attr_result)) S")\n"
     S"(call $" I(get_attr(ctx[ctx_new_table], attr_id)) S") (; __new_table ;)\n"
     S"(local.tee $" I(get_attr(v, attr_id)) S")\n"
@@ -1718,14 +1739,14 @@ function process3(ctx, proto, u, v)
         S(asm[3]) S"\n"
       end
     else
-      S"(call $" I(get_attr(ref, attr_id)) S") (; " S(name) S";)\n"
+      S"(call $" I(get_attr(ref, attr_id)) S") (; " S(name) S" ;)\n"
     end
 
     local result = get_attr(ref, attr_result)
     if get_attr(v, attr_is_exp) then
       if string_compare(get_kind(u), "explist") == 0
         or string_compare(get_kind(u), "args") == 0
-        or string_compare(get_kind(u), "table") == 0 then
+        or string_compare(get_kind(u), "array") == 0 then
         set_attr(u, attr_result, get_attr(u, attr_result) + result - 1)
       elseif result == 0 then
         compiler_error("invalid result", v)
@@ -1790,7 +1811,7 @@ function process3(ctx, proto, u, v)
     end
     S"(br $main)\n"
 
-  elseif string_compare(kind, "table") == 0 then
+  elseif string_compare(kind, "array") == 0 then
     local result = get_attr(v, attr_result)
     for i = result, 1, -1 do
       S"(local.get $" I(get_attr(v, attr_id)) S")\n"
