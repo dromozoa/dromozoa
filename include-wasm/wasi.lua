@@ -210,3 +210,7 @@ function __write_string(fd, s)
     error("io error: "..__errno_to_string(errno))
   end
 end
+
+function __exit(code)
+  __proc_exit(code)
+end

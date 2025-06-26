@@ -24,7 +24,7 @@ end
 function error(message)
   io_stderr_write_string(message)
   io_stderr_write_string "\n"
-  __unreachable()
+  __exit(1)
 end
 
 function get_args()

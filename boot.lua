@@ -2002,6 +2002,7 @@ function compiler(chunk)
   add_wasi(ctx, proto_table, new_name "__fd_prestat_dir_name", 1, "fd_prestat_dir_name", "(param i32 i32 i32)")
   add_wasi(ctx, proto_table, new_name "__args_sizes_get", 1, "args_sizes_get", "(param i32 i32)")
   add_wasi(ctx, proto_table, new_name "__args_get", 1, "args_get", "(param i32 i32)")
+  add_wasi(ctx, proto_table, new_name "__proc_exit", 0, "proc_exit", "(param i32)")
 
   local string_tokens = {}
   local function_table = {}
