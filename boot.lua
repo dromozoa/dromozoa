@@ -709,45 +709,35 @@ function parser_item_search(t, item)
 end
 
 function parser_peek(parser)
-  local tokens = parser.tokens
-  local index = parser.index
-  return tokens[index]
+  return parser.tokens[parser.index]
 end
 
 function parser_read(parser)
-  local tokens = parser.tokens
-  local index = parser.index
-  local token = tokens[index]
-  parser.index = index + 1
+  local token = parser.tokens[parser.index]
+  parser.index = parser.index + 1
   return token
 end
 
 function parser_unread(parser)
-  local tokens = parser.tokens
-  local index = parser.index
-  parser.index = index - 1
+  parser.index = parser.index - 1
 end
 
 function parser_expect(parser, kind)
-  local tokens = parser.tokens
-  local index = parser.index
-  local token = tokens[index]
+  local token = parser.tokens[parser.index]
   if string_compare(get_kind(token), kind) ~= 0 then
     parser_error(token)
   end
-  parser.index = index + 1
+  parser.index = parser.index + 1
   return token
 end
 
 function parser_expect2(parser, kind1, kind2)
-  local tokens = parser.tokens
-  local index = parser.index
-  local token = tokens[index]
+  local token = parser.tokens[parser.index]
   local kind = get_kind(token)
   if not (string_compare(kind, kind1) == 0 or string_compare(kind, kind2) == 0) then
     parser_error(token)
   end
-  parser.index = index + 1
+  parser.index = parser.index + 1
   return token
 end
 
