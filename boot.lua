@@ -158,10 +158,6 @@ function new_empty_node(kind, token)
   return new_node_impl(kind, nil, {}, get_source_file(token), get_source_position(token))
 end
 
-function get_kind(u)
-  return u.kind
-end
-
 function get_attr(u, key)
   if key == attr_resolver then
     return u.resolver
@@ -223,7 +219,7 @@ function get_source_position(u)
 end
 
 function get_at_string(u)
-  return "at node ["..get_kind(u).."] position ["..get_source_file(u)..":"..integer_to_string(get_source_position(u)).."]"
+  return "at node ["..u.kind.."] position ["..get_source_file(u)..":"..integer_to_string(get_source_position(u)).."]"
 end
 
 --------------------------------------------------------------------------------
@@ -580,7 +576,7 @@ function nud_token(parser, token)
 end
 
 function nud_name(parser, token)
-  if string_compare(get_kind(parser_peek(parser)), "String") == 0 then
+  if string_compare(parser_peek(parser).kind, "String") == 0 then
     local args = new_node("args", { parser_read(parser) })
     local result = new_node("call", { token, args })
     set_attr(result, attr_is_exp, true)
@@ -597,21 +593,21 @@ function nud_group(parser, token)
 end
 
 function nud_table(parser, token)
-  if string_compare(get_kind(parser_peek(parser)), "Name") == 0 then
+  if string_compare(parser_peek(parser).kind, "Name") == 0 then
     local name = parser_read(parser)
-    if string_compare(get_kind(parser_peek(parser)), "=") == 0 then
+    if string_compare(parser_peek(parser).kind, "=") == 0 then
       local items = {}
       while true do
         set_attr(name, attr_resolver, "key")
         parser_expect(parser, "=")
         table_insert(items, new_node("field", { name, parser_exp(parser, 0) }))
         local token = parser_peek(parser)
-        if string_compare(get_kind(token), ",") == 0
-          or string_compare(get_kind(token), ";") == 0 then
+        if string_compare(token.kind, ",") == 0
+          or string_compare(token.kind, ";") == 0 then
           parser_read(parser)
           token = parser_peek(parser)
         end
-        if string_compare(get_kind(token), "}") == 0 then
+        if string_compare(token.kind, "}") == 0 then
           break
         end
         name = parser_expect(parser, "Name")
@@ -630,7 +626,7 @@ function nud_table(parser, token)
     end
     table_insert(items, node)
     local token = parser_peek(parser)
-    if string_compare(get_kind(token), "}") == 0 then
+    if string_compare(token.kind, "}") == 0 then
       break
     end
     parser_expect2(parser, ",", ";")
@@ -640,15 +636,15 @@ function nud_table(parser, token)
 end
 
 function nud_prefix(parser, token)
-  return new_node(get_kind(token), { parser_exp(parser, parser_prefix_lbp) })
+  return new_node(token.kind, { parser_exp(parser, parser_prefix_lbp) })
 end
 
 function nud_negate(parser, token)
   local exp = parser_exp(parser, parser_prefix_lbp)
-  if string_compare(get_kind(exp), "Integer") == 0 then
+  if string_compare(exp.kind, "Integer") == 0 then
     return new_token("Integer", "-"..get_value(exp), get_source_file(token), get_source_position(token))
   else
-    return new_node(get_kind(token), { exp })
+    return new_node(token.kind, { exp })
   end
 end
 
@@ -663,11 +659,11 @@ function nud_function(parser, token)
 end
 
 function led_left(parser, lbp, token, node)
-  return new_node(get_kind(token), { node, parser_exp(parser, lbp) })
+  return new_node(token.kind, { node, parser_exp(parser, lbp) })
 end
 
 function led_right(parser, lbp, token, node)
-  return new_node(get_kind(token), { node, parser_exp(parser, lbp - 1) })
+  return new_node(token.kind, { node, parser_exp(parser, lbp - 1) })
 end
 
 function led_call(parser, lbp, token, node)
@@ -686,7 +682,7 @@ end
 function led_key(parser, lbp, token, node)
   local result = led_left(parser, lbp, token, node)
   local name = get_items(result)[2]
-  if string_compare(get_kind(name), "Name") == 0 then
+  if string_compare(name.kind, "Name") == 0 then
     set_attr(name, attr_resolver, "key")
   end
   return result
@@ -769,7 +765,7 @@ end
 
 function parser_expect(parser, kind)
   local token = parser.tokens[parser.index]
-  if string_compare(get_kind(token), kind) ~= 0 then
+  if string_compare(token.kind, kind) ~= 0 then
     parser_error(token)
   end
   parser.index = parser.index + 1
@@ -778,7 +774,7 @@ end
 
 function parser_expect2(parser, kind1, kind2)
   local token = parser.tokens[parser.index]
-  local kind = get_kind(token)
+  local kind = token.kind
   if not (string_compare(kind, kind1) == 0 or string_compare(kind, kind2) == 0) then
     parser_error(token)
   end
@@ -792,7 +788,7 @@ function parser_list(parser, kind, parse, separator, close)
   local i = 0
   while true do
     if i > 0 and separator ~= nil then
-      if string_compare(get_kind(parser_peek(parser)), separator) == 0 then
+      if string_compare(parser_peek(parser).kind, separator) == 0 then
         parser_read(parser)
       else
         break
@@ -836,9 +832,9 @@ function parser_stat_if(parser)
   local else_block = nil
 
   local token = parser_read(parser)
-  if string_compare(get_kind(token), "elseif") == 0 then
+  if string_compare(token.kind, "elseif") == 0 then
     else_block = new_node("block", { parser_stat_if(parser) })
-  elseif string_compare(get_kind(token), "else") == 0 then
+  elseif string_compare(token.kind, "else") == 0 then
     else_block = parser_block(parser)
   else
     parser_unread(parser)
@@ -850,10 +846,10 @@ end
 
 function parser_stat(parser)
   local token = parser_read(parser)
-  if string_compare(get_kind(token), ";") == 0 then
+  if string_compare(token.kind, ";") == 0 then
     return new_empty_node(";", token)
 
-  elseif string_compare(get_kind(token), "Name") == 0 then
+  elseif string_compare(token.kind, "Name") == 0 then
     -- var ::= Name
     --       | Name       '[' exp ']' { '[' exp ']' }
     --       | Name args  '[' exp ']' { '[' exp ']' }
@@ -861,22 +857,22 @@ function parser_stat(parser)
     -- args ::= '(' ... ')'
     --        | String
     local next_token = parser_peek(parser)
-    if string_compare(get_kind(next_token), "(") == 0
-      or string_compare(get_kind(next_token), "String") == 0 then
+    if string_compare(next_token.kind, "(") == 0
+      or string_compare(next_token.kind, "String") == 0 then
       local index = parser.index
       parser_read(parser)
       local args = nil
-      if string_compare(get_kind(next_token), "(") == 0 then
+      if string_compare(next_token.kind, "(") == 0 then
         args = parser_list(parser, "args", parser_exp_or_nil, ",", ")")
       else
         args = new_node("args", { next_token })
       end
-      if string_compare(get_kind(parser_peek(parser)), "[") ~= 0
-        and string_compare(get_kind(parser_peek(parser)), ".") ~= 0 then
+      if string_compare(parser_peek(parser).kind, "[") ~= 0
+        and string_compare(parser_peek(parser).kind, ".") ~= 0 then
         -- 関数呼び出し文のrequireだけ特別扱いする
         if string_compare(get_value(token), "require") == 0 then
           local arg = get_items(args)[1]
-          if string_compare(get_kind(arg), "String") == 0 then
+          if string_compare(arg.kind, "String") == 0 then
             local loaded = parser.loaded
             local name = get_value(arg)
             local found = false
@@ -901,44 +897,44 @@ function parser_stat(parser)
     parser_unread(parser)
     return parser_stat_assign(parser)
 
-  elseif string_compare(get_kind(token), "(") == 0 then
+  elseif string_compare(token.kind, "(") == 0 then
     parser_unread(parser)
     return parser_stat_assign(parser)
 
-  elseif string_compare(get_kind(token), "break") == 0 then
+  elseif string_compare(token.kind, "break") == 0 then
     return new_empty_node("break", token)
 
-  elseif string_compare(get_kind(token), "do") == 0 then
+  elseif string_compare(token.kind, "do") == 0 then
     local block = parser_block(parser)
     parser_expect(parser, "end")
     return new_node("do", { block })
 
-  elseif string_compare(get_kind(token), "while") == 0 then
+  elseif string_compare(token.kind, "while") == 0 then
     local exp = parser_exp(parser, 0)
     parser_expect(parser, "do")
     local block = parser_block(parser)
     parser_expect(parser, "end")
     return new_node("while", { exp, block })
 
-  elseif string_compare(get_kind(token), "repeat") == 0 then
+  elseif string_compare(token.kind, "repeat") == 0 then
     local block = parser_block(parser)
     parser_expect(parser, "until")
     local exp = parser_exp(parser, 0)
     return new_node("repeat", { block, exp })
 
-  elseif string_compare(get_kind(token), "if") == 0 then
+  elseif string_compare(token.kind, "if") == 0 then
     local result = parser_stat_if(parser)
     parser_expect(parser, "end")
     return result
 
-  elseif string_compare(get_kind(token), "for") == 0 then
+  elseif string_compare(token.kind, "for") == 0 then
     local name = parser_expect(parser, "Name")
     parser_expect(parser, "=")
     local exp1 = parser_exp(parser, 0)
     parser_expect(parser, ",")
     local exp2 = parser_exp(parser, 0)
     local exp3 = nil
-    if string_compare(get_kind(parser_peek(parser)), ",") == 0 then
+    if string_compare(parser_peek(parser).kind, ",") == 0 then
       parser_read(parser)
       exp3 = parser_exp(parser, 0)
     else
@@ -949,7 +945,7 @@ function parser_stat(parser)
     parser_expect(parser, "end")
     return new_node("for", { exp1, exp2, exp3, name, block })
 
-  elseif string_compare(get_kind(token), "function") == 0 then
+  elseif string_compare(token.kind, "function") == 0 then
     local name = parser_expect(parser, "Name")
     parser_expect(parser, "(")
     local parlist = parser_list(parser, "parlist", parser_name, ",", ")")
@@ -957,13 +953,13 @@ function parser_stat(parser)
     parser_expect(parser, "end")
     return new_node("function", { name, parlist, block })
 
-  elseif string_compare(get_kind(token), "local") == 0 then
+  elseif string_compare(token.kind, "local") == 0 then
     -- 初期化無しのローカルは許可しない
     local namelist = parser_list(parser, "namelist", parser_name, ",", "=")
     local explist = parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
     return new_node("local", { explist, namelist })
 
-  elseif string_compare(get_kind(token), "return") == 0 then
+  elseif string_compare(token.kind, "return") == 0 then
     local explist = parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
     return new_node("return", { explist })
 
@@ -977,25 +973,25 @@ function parser_var(parser)
   local node = nil
 
   local token = parser_read(parser)
-  if string_compare(get_kind(token), "Name") == 0 then
+  if string_compare(token.kind, "Name") == 0 then
     local next_token = parser_peek(parser)
-    if string_compare(get_kind(next_token), "(") == 0 then
+    if string_compare(next_token.kind, "(") == 0 then
       parser_read(parser)
       local args = parser_list(parser, "args", parser_exp_or_nil, ",", ")")
       node = new_node("call", { token, args })
       set_attr(node, attr_is_exp, true)
-    elseif string_compare(get_kind(next_token), "String") == 0 then
+    elseif string_compare(next_token.kind, "String") == 0 then
       parser_read(parser)
       local args = new_node("args", { next_token })
       node = new_node("call", { token, args })
       set_attr(node, attr_is_exp, true)
-    elseif string_compare(get_kind(next_token), "[") ~= 0
-      and string_compare(get_kind(next_token), ".") ~= 0 then
+    elseif string_compare(next_token.kind, "[") ~= 0
+      and string_compare(next_token.kind, ".") ~= 0 then
       return token
     else
       node = token
     end
-  elseif string_compare(get_kind(token), "(") then
+  elseif string_compare(token.kind, "(") then
     node = nud_group(parser, token)
   else
     parser_unread(parser)
@@ -1004,13 +1000,13 @@ function parser_var(parser)
 
   repeat
     local token = parser_expect2(parser, "[", ".")
-    if string_compare(get_kind(token), "[") == 0 then
+    if string_compare(token.kind, "[") == 0 then
       node = led_index(parser, parser_max_lbp, token, node)
     else
       node = led_key(parser, parser_max_lbp, token, node)
     end
-  until string_compare(get_kind(parser_peek(parser)), "[") ~= 0
-    and string_compare(get_kind(parser_peek(parser)), ".") ~= 0
+  until string_compare(parser_peek(parser).kind, "[") ~= 0
+    and string_compare(parser_peek(parser).kind, ".") ~= 0
 
   return node
 end
@@ -1050,7 +1046,7 @@ function parser_exp_or_nil(parser)
 end
 
 function parser_name(parser)
-  if string_compare(get_kind(parser_peek(parser)), "Name") == 0 then
+  if string_compare(parser_peek(parser).kind, "Name") == 0 then
     return parser_read(parser)
   else
     return nil
@@ -1067,7 +1063,7 @@ function parser(tokens, loaded)
   local block = parser_block(parser)
 
   local token = parser_peek(parser)
-  if string_compare(get_kind(token), "EOF") ~= 0 then
+  if string_compare(token.kind, "EOF") ~= 0 then
     parser_error(token)
   end
 
@@ -1442,7 +1438,7 @@ function solve_result_table(result_table, function_table)
 end
 
 function process1(ctx, string_tokens, proto_table, function_table, proto, u, v)
-  local kind = get_kind(v)
+  local kind = v.kind
   local items = get_items(v)
 
   if string_compare(kind, "function") == 0 then
@@ -1465,12 +1461,12 @@ function process1(ctx, string_tokens, proto_table, function_table, proto, u, v)
 end
 
 function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope, scope, loop, u, v)
-  local kind = get_kind(v)
+  local kind = v.kind
   local items = get_items(v)
 
   if string_compare(kind, "block") == 0 then
     -- then blockとelse blockにスコープを割り当てる
-    if string_compare(get_kind(u), "if") == 0 then
+    if string_compare(u.kind, "if") == 0 then
       scope = new_scope(scope)
     end
 
@@ -1478,7 +1474,7 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
     local varlist = get_items(items[2])
     for i = 1, #varlist do
       local var = varlist[i]
-      if string_compare(get_kind(var), "Name") == 0 then
+      if string_compare(var.kind, "Name") == 0 then
         resolve_name(proto_table, scope, var)
       end
       set_attr(var, attr_resolver, "set")
@@ -1517,18 +1513,18 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
     scope = new_scope(chunk_scope)
 
   elseif string_compare(kind, "Name") == 0 then
-    if string_compare(get_kind(u), "namelist") == 0 then
+    if string_compare(u.kind, "namelist") == 0 then
       if proto == nil then
         add_global(ctx, var_table, scope, v)
       else
         add_var(ctx, var_table, scope, v)
       end
-    elseif string_compare(get_kind(u), "parlist") == 0 then
+    elseif string_compare(u.kind, "parlist") == 0 then
       add_par(ctx, var_table, scope, v)
     end
 
     if string_compare(get_attr(v, attr_resolver), "") == 0 then
-      if string_compare(get_kind(u), "call") == 0 then
+      if string_compare(u.kind, "call") == 0 then
         resolve_call(proto_table, scope, v)
       else
         resolve_name(proto_table, scope, v)
@@ -1558,11 +1554,11 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
   end
 
   if string_compare(kind, "explist") == 0 then
-    if string_compare(get_kind(u), "return") == 0 then
+    if string_compare(u.kind, "return") == 0 then
       local q = { 0 }
       for i = 1, #items do
         local item = items[i]
-        if string_compare(get_kind(item), "call") == 0 then
+        if string_compare(item.kind, "call") == 0 then
           local ref = get_attr(get_items(item)[1], attr_ref)
           local result = get_attr(ref, attr_result)
           if result == -1 then
@@ -1591,7 +1587,7 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
 end
 
 function process3(ctx, proto, u, v)
-  local kind = get_kind(v)
+  local kind = v.kind
   local items = get_items(v)
 
   local range_i = 1
@@ -1604,7 +1600,7 @@ function process3(ctx, proto, u, v)
     range_j = 1
 
   elseif string_compare(kind, "call") == 0 then
-    if string_compare(get_kind(items[1]), "Name") ~= 0 then
+    if string_compare(items[1].kind, "Name") ~= 0 then
       compiler_error("invalid callee", items[1])
     end
     range_i = 2
@@ -1802,7 +1798,7 @@ function process3(ctx, proto, u, v)
 
     for i = #varlist, 1, -1 do
       local var = varlist[i]
-      if string_compare(get_kind(var), "Name") == 0 then
+      if string_compare(var.kind, "Name") == 0 then
         local ref = get_attr(var, attr_ref)
         if get_attr(ref, attr_is_global) then
           S"(global.set $"
@@ -1810,16 +1806,16 @@ function process3(ctx, proto, u, v)
           S"(local.set $"
         end
         I(get_attr(ref, attr_id)) S") (; " S(get_value(var)) S" ;)\n"
-      elseif string_compare(get_kind(var), "index") == 0 then
+      elseif string_compare(var.kind, "index") == 0 then
         process3(ctx, proto, items[2], var)
         S"(call $" I(get_attr(ctx[ctx_set_index], attr_id)) S") (; __set_index ;)\n"
-      elseif string_compare(get_kind(var), ".") == 0 then
+      elseif string_compare(var.kind, ".") == 0 then
         process3(ctx, proto, items[2], var)
         S"(i32.const " I(get_attr(get_items(var)[2], attr_address)) S") (; key ;)\n"
         S"(call $" I(get_attr(ctx[ctx_set_table], attr_id)) S") (; __set_table ;)\n"
 
       else
-        compiler_error("invalid assign <"..get_kind(var)..">", var)
+        compiler_error("invalid assign <"..var.kind..">", var)
       end
     end
 
@@ -1840,9 +1836,9 @@ function process3(ctx, proto, u, v)
 
     local result = get_attr(ref, attr_result)
     if get_attr(v, attr_is_exp) then
-      if string_compare(get_kind(u), "explist") == 0
-        or string_compare(get_kind(u), "args") == 0
-        or string_compare(get_kind(u), "array") == 0 then
+      if string_compare(u.kind, "explist") == 0
+        or string_compare(u.kind, "args") == 0
+        or string_compare(u.kind, "array") == 0 then
         set_attr(u, attr_result, get_attr(u, attr_result) + result - 1)
       elseif result == 0 then
         compiler_error("invalid result", v)
