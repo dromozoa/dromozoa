@@ -292,6 +292,7 @@ function test_table()
   io_write_integer(t.foo)
   io_write_integer(t.bar)
   io_write_integer(t.baz)
+  io_write_string "\n"
 end
 
 __export_start(main)
