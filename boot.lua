@@ -90,28 +90,6 @@ end
 
 --------------------------------------------------------------------------------
 
---[[
-  struct node {
-    kind = string;
-    attrs = attrs
-    union {
-      value = string|integer
-      items = table<node>
-    }
-    source_file = string
-    source_position = integer
-  }
-]]
-
-local attr_resolver  = 1 -- "fun" | "asm" | "par" | "var" | "call" | "ref" | "set" | "key"
-local attr_address   = 2 -- 文字列または関数の静的アドレス
-local attr_id        = 3 -- 大域ID
-local attr_index     = 4 -- インデックス
-local attr_result    = 5 -- 返り値の個数
-local attr_is_exp    = 6 -- 関数定義または関数呼び出しが式である
-local attr_is_global = 7 -- 大域変数である
-local attr_ref       = 8 -- 各種の参照または変数テーブル
-
 function new_node_impl(kind, value, items, source_file, source_position)
   return {
     kind = kind;
