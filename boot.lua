@@ -129,7 +129,14 @@ function new_attrs(class)
 end
 
 function new_token(kind, value, source_file, source_position)
-  return { kind, new_attrs "token", value, source_file, source_position }
+  return {
+    kind = kind;
+    attrs = new_attrs "token";
+    value = value;
+    items = nil;
+    source_file = source_file;
+    source_position = source_position;
+  }
 end
 
 function new_name(name)
@@ -147,101 +154,107 @@ function new_node(kind, items)
       source_position = p
     end
   end
-  return { kind, new_attrs "node", items, source_file, source_position }
+  return {
+    kind = kind;
+    attrs = new_attrs "node";
+    value = nil;
+    items = items;
+    source_file = source_file;
+    source_position = source_position;
+  }
 end
 
 function new_empty_node(kind, token)
-  return { kind, new_attrs "node", {}, get_source_file(token), get_source_position(token) }
+  return {
+    kind = kind;
+    attrs = new_attrs "node";
+    value = nil;
+    items = {};
+    source_file = get_source_file(token);
+    source_position = get_source_position(token);
+  }
 end
 
 function get_kind(u)
-  return u[1]
+  return u.kind
 end
 
 function get_attr(u, key)
   if key == attr_class then
-    return u[2].class
+    return u.attrs.class
   elseif key == attr_resolver then
-    return u[2].resolver
+    return u.attrs.resolver
   elseif key == attr_address then
-    return u[2].address
+    return u.attrs.address
   elseif key == attr_id then
-    return u[2].id
+    return u.attrs.id
   elseif key == attr_index then
-    return u[2].index
+    return u.attrs.index
   elseif key == attr_result then
-    return u[2].result
+    return u.attrs.result
   elseif key == attr_is_exp then
-    return u[2].is_exp
+    return u.attrs.is_exp
   elseif key == attr_is_global then
-    return u[2].is_global
+    return u.attrs.is_global
   elseif key == attr_ref then
-    return u[2].ref
+    return u.attrs.ref
   else
     error("unknown attr key "..key)
   end
-  -- return u[2][key]
 end
 
 function set_attr(u, key, value)
   if key == attr_class then
-    u[2].class = value
+    u.attrs.class = value
   elseif key == attr_resolver then
-    u[2].resolver = value
+    u.attrs.resolver = value
   elseif key == attr_address then
-    u[2].address = value
+    u.attrs.address = value
   elseif key == attr_id then
-    u[2].id = value
+    u.attrs.id = value
   elseif key == attr_index then
-    u[2].index = value
+    u.attrs.index = value
   elseif key == attr_result then
-    u[2].result = value
+    u.attrs.result = value
   elseif key == attr_is_exp then
-    u[2].is_exp = value
+    u.attrs.is_exp = value
   elseif key == attr_is_global then
-    u[2].is_global = value
+    u.attrs.is_global = value
   elseif key == attr_ref then
-    u[2].ref = value
+    u.attrs.ref = value
   else
     error("unknown attr key "..key)
   end
-  -- u[2][key] = value
 end
 
 function get_value(u)
-  if string_compare(get_attr(u, attr_class), "token") == 0 then
-    return u[3]
-  else
-    return nil
-  end
+  return u.value
 end
 
 function get_items(u)
-  if string_compare(get_attr(u, attr_class), "node") == 0 then
-    return u[3]
-  else
-    return nil
-  end
+  return u.items
 end
 
 function get_source_file(u)
-  return u[4]
+  return u.source_file
 end
 
 function get_source_position(u)
-  return u[5]
+  return u.source_position
 end
 
 function get_at_string(u)
   return "at node ["..get_kind(u).."] position ["..get_source_file(u)..":"..integer_to_string(get_source_position(u)).."]"
 end
 
+--------------------------------------------------------------------------------
+
 function string_compare_first(a, b)
   return string_compare(a[1], b[1])
 end
 
-function string_compare_third(a, b)
-  return string_compare(a[3], b[3])
+function string_compare_value(a, b)
+  return string_compare(a.value, b.value)
 end
 
 --------------------------------------------------------------------------------
@@ -753,7 +766,7 @@ function parser_error(node)
 end
 
 function parser_item_search(t, item)
-  local i = binary_search(t, string_compare_first, item)
+  local i = binary_search(t, string_compare_first, { item.kind })
   if i == 0 then
     return nil
   else
@@ -1181,7 +1194,7 @@ function roundup(n, a)
 end
 
 function make_string_table(string_tokens)
-  quick_sort(string_tokens, string_compare_third)
+  quick_sort(string_tokens, string_compare_value)
 
   local string_table = {}
   local value = nil
@@ -1929,7 +1942,7 @@ function process3(ctx, proto, u, v)
       local key = get_items(items[i])[1]
       table_insert(keys, key)
     end
-    quick_sort(keys, string_compare_third)
+    quick_sort(keys, string_compare_value)
     for i = 1, #keys do
       local key = keys[i]
       set_attr(key, attr_index, i)
