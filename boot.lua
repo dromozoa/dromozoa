@@ -232,6 +232,7 @@ function lexer_initialize()
       "+";
       ",";
       "-";
+      ".";
       ";";
       "<";
       "=";
@@ -637,6 +638,15 @@ function led_index(parser, lbp, token, node)
   return new_node("index", items)
 end
 
+function led_key(parser, lbp, token, node)
+  local result = led_left(parser, lbp, token, node)
+  local name = get_items(result)[2]
+  if string_compare(get_kind(name), "Name") == 0 then
+    set_attr(name, attr_resolver, "key")
+  end
+  return result
+end
+
 function parser_initialize()
   parser_nud = {}
   parser_led = {}
@@ -678,6 +688,7 @@ function parser_initialize()
   parser_prefix_lbp = bp                              bp = bp + 10
   table_insert(parser_led, { "(",   bp, led_call   })
   table_insert(parser_led, { "[",   bp, led_index  })
+  table_insert(parser_led, { ".",   bp, led_key    })
   parser_max_lbp = bp
 
   quick_sort(parser_nud, string_compare_first)
@@ -825,7 +836,8 @@ function parser_stat(parser)
       else
         args = new_node("args", { next_token })
       end
-      if string_compare(get_kind(parser_peek(parser)), "[") ~= 0 then
+      if string_compare(get_kind(parser_peek(parser)), "[") ~= 0
+        and string_compare(get_kind(parser_peek(parser)), ".") ~= 0 then
         -- 関数呼び出し文のrequireだけ特別扱いする
         if string_compare(get_value(token), "require") == 0 then
           local arg = get_items(args)[1]
@@ -942,7 +954,8 @@ function parser_var(parser)
       local args = new_node("args", { next_token })
       node = new_node("call", { token, args })
       set_attr(node, attr_is_exp, true)
-    elseif string_compare(get_kind(next_token), "[") ~= 0 then
+    elseif string_compare(get_kind(next_token), "[") ~= 0
+      and string_compare(get_kind(next_token), ".") ~= 0 then
       return token
     else
       node = token
@@ -955,8 +968,14 @@ function parser_var(parser)
   end
 
   repeat
-    node = led_index(parser, parser_max_lbp, parser_expect(parser, "["), node)
+    local token = parser_expect2(parser, "[", ".")
+    if string_compare(get_kind(token), "[") == 0 then
+      node = led_index(parser, parser_max_lbp, token, node)
+    else
+      node = led_key(parser, parser_max_lbp, token, node)
+    end
   until string_compare(get_kind(parser_peek(parser)), "[") ~= 0
+    and string_compare(get_kind(parser_peek(parser)), ".") ~= 0
 
   return node
 end
@@ -1206,6 +1225,8 @@ local ctx_concat    = 4
 local ctx_new_table = 5
 local ctx_set_index = 6
 local ctx_get_index = 7
+local ctx_set_table = 8
+local ctx_get_table = 9
 
 function make_id(ctx)
   local id = ctx[ctx_id] + 1
@@ -1713,6 +1734,9 @@ function process3(ctx, proto, u, v)
     if #get_items(v) == 1 then
       S"(i32.const 0)\n"
     end
+
+  elseif string_compare(kind, ".") == 0 then
+    range_j = 1
   end
 
   if items ~= nil then
@@ -1897,6 +1921,12 @@ function process3(ctx, proto, u, v)
     if string_compare(get_attr(v, attr_resolver), "set") ~= 0 then
       S"(call $" I(get_attr(ctx[ctx_get_index], attr_id)) S") (; __get_index ;)\n"
     end
+
+  elseif string_compare(kind, ".") == 0 then
+    if string_compare(get_attr(v, attr_resolver), "set") ~= 0 then
+      S"(i32.const " I(get_attr(items[2], attr_address)) S") (; key ;)\n"
+      S"(call $" I(get_attr(ctx[ctx_get_table], attr_id)) S") (; __get_table ;)\n"
+    end
   end
 end
 
@@ -2013,6 +2043,8 @@ function compiler(chunk)
   ctx[ctx_new_table] = resolve_name(proto_table, scope, new_name "__new_table")
   ctx[ctx_set_index] = resolve_name(proto_table, scope, new_name "__set_index")
   ctx[ctx_get_index] = resolve_name(proto_table, scope, new_name "__get_index")
+  ctx[ctx_set_table] = resolve_name(proto_table, scope, new_name "__set_table")
+  ctx[ctx_get_table] = resolve_name(proto_table, scope, new_name "__get_table")
 
   write_function_table(ctx, function_table)
   write_proto_table(proto_table)

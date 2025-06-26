@@ -259,14 +259,20 @@ function test_table()
     baz = 3;
     qux = 4;
   }
-  for i = 1, #t do
-    io_write_integer(i)
-    io_write_string ","
-    io_write_string(t[i][1])
-    io_write_string ","
-    io_write_integer(t[i][2])
-    io_write_string "\n"
-  end
+  io_write_integer(t.foo)
+  io_write_integer(t.bar)
+  io_write_integer(t.baz)
+  io_write_integer(t.qux)
+  io_write_string "\n"
+
+  -- for i = 1, #t do
+  --   io_write_integer(i)
+  --   io_write_string ","
+  --   io_write_string(t[i][1])
+  --   io_write_string ","
+  --   io_write_integer(t[i][2])
+  --   io_write_string "\n"
+  -- end
 end
 
 __export_start(main)

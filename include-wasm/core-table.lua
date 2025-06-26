@@ -31,6 +31,25 @@ function __unpack_table(t)
   return size, capacity, data
 end
 
+function __binary_search(t, k)
+  local i = 1
+  local n = #t
+  while n > 0 do
+    local step = n >> 1
+    local m = i + step
+    local r = string_compare(t[m][1], k)
+    if r == 0 then
+      return m
+    elseif r < 0 then
+      i = m + 1
+      n = n - step - 1
+    else
+      n = step
+    end
+  end
+  return 0
+end
+
 -- テーブルコンストラクタのスタック順序に合わせるため、直感と異なる引数順にしている
 function __set_index(v, t, i)
   local size, capacity, data = __unpack_table(t)
@@ -63,5 +82,23 @@ function __get_index(t, i)
     return nil
   else
     return __i32_load(data + (i - 1) * 4)
+  end
+end
+
+function __set_table(v, t, k)
+  local i = __binary_search(t, k)
+  if i == 0 then
+    error("invalid key "..k)
+  else
+    t[i][2] = v
+  end
+end
+
+function __get_table(t, k)
+  local i = __binary_search(t, k)
+  if i == 0 then
+    error("invalid key "..k)
+  else
+    return t[i][2]
   end
 end
