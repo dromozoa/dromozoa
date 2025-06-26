@@ -113,9 +113,11 @@ local attr_is_exp    = 7 -- 関数定義または関数呼び出しが式であ�
 local attr_is_global = 8 -- 大域変数である
 local attr_ref       = 9 -- 各種の参照または変数テーブル
 
-function new_attrs(class)
+function new_token(kind, value, source_file, source_position)
   return {
-    class = class;
+    kind = kind;
+
+    class = "token";
     resolver = "";
     address = 0;
     id = 0;
@@ -123,15 +125,8 @@ function new_attrs(class)
     result = -1;
     is_exp = false;
     is_global = false;
-    ref = nil
-  }
-  -- return { class, "", 0, 0, 0, -1, false, false, nil }
-end
+    ref = nil;
 
-function new_token(kind, value, source_file, source_position)
-  return {
-    kind = kind;
-    attrs = new_attrs "token";
     value = value;
     items = nil;
     source_file = source_file;
@@ -156,7 +151,17 @@ function new_node(kind, items)
   end
   return {
     kind = kind;
-    attrs = new_attrs "node";
+
+    class = "node";
+    resolver = "";
+    address = 0;
+    id = 0;
+    index = 0;
+    result = -1;
+    is_exp = false;
+    is_global = false;
+    ref = nil;
+
     value = nil;
     items = items;
     source_file = source_file;
@@ -167,7 +172,17 @@ end
 function new_empty_node(kind, token)
   return {
     kind = kind;
-    attrs = new_attrs "node";
+
+    class = "node";
+    resolver = "";
+    address = 0;
+    id = 0;
+    index = 0;
+    result = -1;
+    is_exp = false;
+    is_global = false;
+    ref = nil;
+
     value = nil;
     items = {};
     source_file = get_source_file(token);
@@ -181,23 +196,23 @@ end
 
 function get_attr(u, key)
   if key == attr_class then
-    return u.attrs.class
+    return u.class
   elseif key == attr_resolver then
-    return u.attrs.resolver
+    return u.resolver
   elseif key == attr_address then
-    return u.attrs.address
+    return u.address
   elseif key == attr_id then
-    return u.attrs.id
+    return u.id
   elseif key == attr_index then
-    return u.attrs.index
+    return u.index
   elseif key == attr_result then
-    return u.attrs.result
+    return u.result
   elseif key == attr_is_exp then
-    return u.attrs.is_exp
+    return u.is_exp
   elseif key == attr_is_global then
-    return u.attrs.is_global
+    return u.is_global
   elseif key == attr_ref then
-    return u.attrs.ref
+    return u.ref
   else
     error("unknown attr key "..key)
   end
@@ -205,23 +220,23 @@ end
 
 function set_attr(u, key, value)
   if key == attr_class then
-    u.attrs.class = value
+    u.class = value
   elseif key == attr_resolver then
-    u.attrs.resolver = value
+    u.resolver = value
   elseif key == attr_address then
-    u.attrs.address = value
+    u.address = value
   elseif key == attr_id then
-    u.attrs.id = value
+    u.id = value
   elseif key == attr_index then
-    u.attrs.index = value
+    u.index = value
   elseif key == attr_result then
-    u.attrs.result = value
+    u.result = value
   elseif key == attr_is_exp then
-    u.attrs.is_exp = value
+    u.is_exp = value
   elseif key == attr_is_global then
-    u.attrs.is_global = value
+    u.is_global = value
   elseif key == attr_ref then
-    u.attrs.ref = value
+    u.ref = value
   else
     error("unknown attr key "..key)
   end
