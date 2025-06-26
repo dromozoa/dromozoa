@@ -709,45 +709,45 @@ function parser_item_search(t, item)
 end
 
 function parser_peek(parser)
-  local tokens = parser[1]
-  local index = parser[2]
+  local tokens = parser.tokens
+  local index = parser.index
   return tokens[index]
 end
 
 function parser_read(parser)
-  local tokens = parser[1]
-  local index = parser[2]
+  local tokens = parser.tokens
+  local index = parser.index
   local token = tokens[index]
-  parser[2] = index + 1
+  parser.index = index + 1
   return token
 end
 
 function parser_unread(parser)
-  local tokens = parser[1]
-  local index = parser[2]
-  parser[2] = index - 1
+  local tokens = parser.tokens
+  local index = parser.index
+  parser.index = index - 1
 end
 
 function parser_expect(parser, kind)
-  local tokens = parser[1]
-  local index = parser[2]
+  local tokens = parser.tokens
+  local index = parser.index
   local token = tokens[index]
   if string_compare(get_kind(token), kind) ~= 0 then
     parser_error(token)
   end
-  parser[2] = index + 1
+  parser.index = index + 1
   return token
 end
 
 function parser_expect2(parser, kind1, kind2)
-  local tokens = parser[1]
-  local index = parser[2]
+  local tokens = parser.tokens
+  local index = parser.index
   local token = tokens[index]
   local kind = get_kind(token)
   if not (string_compare(kind, kind1) == 0 or string_compare(kind, kind2) == 0) then
     parser_error(token)
   end
-  parser[2] = index + 1
+  parser.index = index + 1
   return token
 end
 
@@ -828,7 +828,7 @@ function parser_stat(parser)
     local next_token = parser_peek(parser)
     if string_compare(get_kind(next_token), "(") == 0
       or string_compare(get_kind(next_token), "String") == 0 then
-      local index = parser[2]
+      local index = parser.index
       parser_read(parser)
       local args = nil
       if string_compare(get_kind(next_token), "(") == 0 then
@@ -842,7 +842,7 @@ function parser_stat(parser)
         if string_compare(get_value(token), "require") == 0 then
           local arg = get_items(args)[1]
           if string_compare(get_kind(arg), "String") == 0 then
-            local loaded = parser[3]
+            local loaded = parser.loaded
             local name = get_value(arg)
             local found = false
             for i = 1, #loaded do
@@ -861,7 +861,7 @@ function parser_stat(parser)
         end
         return new_node("call", { token, args })
       end
-      parser[2] = index
+      parser.index = index
     end
     parser_unread(parser)
     return parser_stat_assign(parser)
@@ -1023,7 +1023,12 @@ function parser_name(parser)
 end
 
 function parser(tokens, loaded)
-  local parser = { tokens, 1, loaded }
+  local parser = {
+    tokens = tokens;
+    index  = 1;
+    loaded = loaded;
+  }
+
   local block = parser_block(parser)
 
   local token = parser_peek(parser)
