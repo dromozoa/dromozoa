@@ -114,7 +114,18 @@ local attr_is_global = 8 -- 大域変数である
 local attr_ref       = 9 -- 各種の参照または変数テーブル
 
 function new_attrs(class)
-  return { class, "", 0, 0, 0, -1, false, false, nil }
+  return {
+    class = class;
+    resolver = "";
+    address = 0;
+    id = 0;
+    index = 0;
+    result = -1;
+    is_exp = false;
+    is_global = false;
+    ref = nil
+  }
+  -- return { class, "", 0, 0, 0, -1, false, false, nil }
 end
 
 function new_token(kind, value, source_file, source_position)
@@ -148,11 +159,53 @@ function get_kind(u)
 end
 
 function get_attr(u, key)
-  return u[2][key]
+  if key == attr_class then
+    return u[2].class
+  elseif key == attr_resolver then
+    return u[2].resolver
+  elseif key == attr_address then
+    return u[2].address
+  elseif key == attr_id then
+    return u[2].id
+  elseif key == attr_index then
+    return u[2].index
+  elseif key == attr_result then
+    return u[2].result
+  elseif key == attr_is_exp then
+    return u[2].is_exp
+  elseif key == attr_is_global then
+    return u[2].is_global
+  elseif key == attr_ref then
+    return u[2].ref
+  else
+    error("unknown attr key "..key)
+  end
+  -- return u[2][key]
 end
 
 function set_attr(u, key, value)
-  u[2][key] = value
+  if key == attr_class then
+    u[2].class = value
+  elseif key == attr_resolver then
+    u[2].resolver = value
+  elseif key == attr_address then
+    u[2].address = value
+  elseif key == attr_id then
+    u[2].id = value
+  elseif key == attr_index then
+    u[2].index = value
+  elseif key == attr_result then
+    u[2].result = value
+  elseif key == attr_is_exp then
+    u[2].is_exp = value
+  elseif key == attr_is_global then
+    u[2].is_global = value
+  elseif key == attr_ref then
+    u[2].ref = value
+  else
+    error("unknown attr key "..key)
+  end
+  -- u[2][key] = value
 end
 
 function get_value(u)
