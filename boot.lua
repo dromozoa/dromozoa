@@ -158,28 +158,6 @@ function new_empty_node(kind, token)
   return new_node_impl(kind, nil, {}, token.source_file, token.source_position)
 end
 
-function get_attr(u, key)
-  if key == attr_resolver then
-    return u.resolver
-  elseif key == attr_address then
-    return u.address
-  elseif key == attr_id then
-    return u.id
-  elseif key == attr_index then
-    return u.index
-  elseif key == attr_result then
-    return u.result
-  elseif key == attr_is_exp then
-    return u.is_exp
-  elseif key == attr_is_global then
-    return u.is_global
-  elseif key == attr_ref then
-    return u.ref
-  else
-    error("unknown attr key "..key)
-  end
-end
-
 function set_attr(u, key, value)
   if key == attr_resolver then
     u.resolver = value
@@ -1073,7 +1051,7 @@ function compiler_initialize()
       S" (param" SR(#args - 1, " i32") S")"
     end
 
-    local result = get_attr(get_attr(items[1], attr_ref), attr_result)
+    local result = items[1].ref.result
     if result > 0 then
       S" (result" SR(result, " i32") S")"
     end
@@ -1084,7 +1062,7 @@ function compiler_initialize()
   local leave_export_start = function (ctx, proto, u)
     local items = u.items
     local args = items[2].items
-    S'(export "_start" (func $' I(get_attr(get_attr(args[1], attr_ref), attr_id)) S"))\n"
+    S'(export "_start" (func $' I(args[1].ref.id) S"))\n"
   end
 
   local leave_i64_const = function (ctx, proto, u)
@@ -1362,9 +1340,9 @@ function new_result_table(proto_table)
   local result_table = {}
   for i = 1, #proto_table do
     local proto = proto_table[i]
-    if string_compare(get_attr(proto, attr_resolver), "fun") == 0 then
-      table_insert(result_table, { get_attr(proto, attr_result) })
-      if get_attr(proto, attr_address) ~= #result_table then
+    if string_compare(proto.resolver, "fun") == 0 then
+      table_insert(result_table, { proto.result })
+      if proto.address ~= #result_table then
         error "compiler error: invalid address"
       end
     end
@@ -1414,8 +1392,8 @@ function solve_result_table(result_table, function_table)
 
   for i = 1, #function_table do
     local proto = function_table[i].items[1]
-    local r = result_table[get_attr(proto, attr_address)]
-    if get_attr(proto, attr_result) == -1 then
+    local r = result_table[proto.address]
+    if proto.result == -1 then
       set_attr(proto, attr_result, r[1])
     end
   end
@@ -1430,7 +1408,7 @@ function process1(ctx, string_tokens, proto_table, function_table, proto, u, v)
     add_fun(ctx, proto_table, proto, -1)
     table_insert(function_table, v)
   elseif string_compare(kind, "Name") == 0 then
-    if string_compare(get_attr(v, attr_resolver), "key") == 0 then
+    if string_compare(v.resolver, "key") == 0 then
       table_insert(string_tokens, v)
     end
   elseif string_compare(kind, "String") == 0 then
@@ -1493,7 +1471,7 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
 
   elseif string_compare(kind, "function") == 0 then
     proto = items[1]
-    var_table = get_attr(proto, attr_ref)
+    var_table = proto.ref
     scope = new_scope(chunk_scope)
 
   elseif string_compare(kind, "Name") == 0 then
@@ -1507,7 +1485,7 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
       add_par(ctx, var_table, scope, v)
     end
 
-    if string_compare(get_attr(v, attr_resolver), "") == 0 then
+    if string_compare(v.resolver, "") == 0 then
       if string_compare(u.kind, "call") == 0 then
         resolve_call(proto_table, scope, v)
       else
@@ -1543,10 +1521,10 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
       for i = 1, #items do
         local item = items[i]
         if string_compare(item.kind, "call") == 0 then
-          local ref = get_attr(item.items[1], attr_ref)
-          local result = get_attr(ref, attr_result)
+          local ref = item.items[1].ref
+          local result = ref.result
           if result == -1 then
-            table_insert(q, get_attr(ref, attr_address))
+            table_insert(q, ref.address)
           else
             q[1] = q[1] + result
           end
@@ -1555,7 +1533,7 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
         end
       end
 
-      local address = get_attr(proto, attr_address)
+      local address = proto.address
       local r = result_table[address]
       if #r == 1 then
         if r[1] == -1 then
@@ -1589,8 +1567,8 @@ function process3(ctx, proto, u, v)
     end
     range_i = 2
 
-    local ref = get_attr(items[1], attr_ref)
-    if string_compare(get_attr(ref, attr_resolver), "asm") == 0 then
+    local ref = items[1].ref
+    if string_compare(ref.resolver, "asm") == 0 then
       local name = ref.value
       local i = binary_search(asm_table, string_compare_first, { name })
       if i == 0 then
@@ -1607,7 +1585,7 @@ function process3(ctx, proto, u, v)
   elseif string_compare(kind, "while") == 0 then
     range_i = 2
 
-    local loop = get_attr(v, attr_ref)
+    local loop = v.ref
     S"block $" I(loop[loop_block]) S"\n"
     S"loop $" I(loop[loop_loop]) S"\n"
 
@@ -1617,21 +1595,21 @@ function process3(ctx, proto, u, v)
     S"(br_if $" I(loop[loop_block]) S")\n"
 
   elseif string_compare(kind, "repeat") == 0 then
-    local loop = get_attr(v, attr_ref)
+    local loop = v.ref
     S"block $" I(loop[loop_block]) S"\n"
     S"loop $" I(loop[loop_loop]) S"\n"
 
   elseif string_compare(kind, "for") == 0 then
     range_i = 5
 
-    local loop = get_attr(v, attr_ref)
+    local loop = v.ref
     S"block $" I(loop[loop_block]) S"\n"
 
     process3(ctx, proto, v, items[1])
     process3(ctx, proto, v, items[2])
     process3(ctx, proto, v, items[3])
 
-    local var = get_attr(v, attr_id)
+    local var = v.id
     S"(local.set $" I(var + 2) S")\n"
     S"(local.set $" I(var + 1) S")\n"
     S"(local.set $" I(var + 0) S")\n"
@@ -1665,12 +1643,12 @@ function process3(ctx, proto, u, v)
     S"end\n"
 
     S"(local.get $" I(var + 0) S")\n"
-    S"(local.set $" I(get_attr(items[4], attr_id)) S")\n"
+    S"(local.set $" I(items[4].id) S")\n"
 
   elseif string_compare(kind, "function") == 0 then
     range_j = 0
-    if get_attr(v, attr_is_exp) then
-      S"(i32.const " I(get_attr(v.items[1], attr_address)) S")\n"
+    if v.is_exp then
+      S"(i32.const " I(v.items[1].address) S")\n"
     end
 
   elseif string_compare(kind, "local") == 0 then
@@ -1687,7 +1665,7 @@ function process3(ctx, proto, u, v)
         local exp = explist[i]
         local name = namelist[i]
 
-        S"(global $" I(get_attr(name, attr_id)) S" (mut i32)\n"
+        S"(global $" I(name.id) S" (mut i32)\n"
         process3(ctx, proto, explist, exp)
         S") (; " S(name.value) S" ;)\n"
       end
@@ -1696,17 +1674,17 @@ function process3(ctx, proto, u, v)
     end
 
   elseif string_compare(kind, "Name") == 0 then
-    if string_compare(get_attr(v, attr_resolver), "ref") == 0 then
-      local ref = get_attr(v, attr_ref)
-      if string_compare(get_attr(ref, attr_resolver), "fun") == 0 then
-        S"(i32.const " I(get_attr(ref, attr_address)) S") (; "
+    if string_compare(v.resolver, "ref") == 0 then
+      local ref = v.ref
+      if string_compare(ref.resolver, "fun") == 0 then
+        S"(i32.const " I(ref.address) S") (; "
       else
-        if get_attr(ref, attr_is_global) then
+        if ref.is_global then
           S"(global.get $"
         else
           S"(local.get $"
         end
-        I(get_attr(ref, attr_id)) S") (; "
+        I(ref.id) S") (; "
       end
       S(v.value) S" ;)\n"
     end
@@ -1715,24 +1693,24 @@ function process3(ctx, proto, u, v)
     S"(i32.const " S(v.value) S") (; Integer ;)\n"
 
   elseif string_compare(kind, "String") == 0 then
-    S"(i32.const " I(get_attr(v, attr_address)) S") (; String ;)\n"
+    S"(i32.const " I(v.address) S") (; String ;)\n"
 
   elseif string_compare(kind, "array") == 0 then
-    S"(i32.const " I(get_attr(v, attr_result)) S")\n"
-    S"(call $" I(get_attr(ctx[ctx_new_table], attr_id)) S") (; __new_table ;)\n"
-    S"(local.tee $" I(get_attr(v, attr_id)) S")\n"
+    S"(i32.const " I(v.result) S")\n"
+    S"(call $" I(ctx[ctx_new_table].id) S") (; __new_table ;)\n"
+    S"(local.tee $" I(v.id) S")\n"
 
   elseif string_compare(kind, "table") == 0 then
     S"(i32.const " I(#items) S")\n"
-    S"(call $" I(get_attr(ctx[ctx_new_table], attr_id)) S") (; __new_table ;)\n"
-    S"(local.tee $" I(get_attr(v, attr_id)) S")\n"
+    S"(call $" I(ctx[ctx_new_table].id) S") (; __new_table ;)\n"
+    S"(local.tee $" I(v.id) S")\n"
 
   elseif string_compare(kind, "field") == 0 then
     range_i = 2
     S"(i32.const 2)\n"
-    S"(call $" I(get_attr(ctx[ctx_new_table], attr_id)) S") (; __new_table ;)\n"
-    S"(local.tee $" I(get_attr(v, attr_id)) S")\n"
-    S"(i32.const " I(get_attr(items[1], attr_address)) S") (; key ;)\n"
+    S"(call $" I(ctx[ctx_new_table].id) S") (; __new_table ;)\n"
+    S"(local.tee $" I(v.id) S")\n"
+    S"(i32.const " I(items[1].address) S") (; key ;)\n"
 
   elseif string_compare(kind, "or") == 0 then
     range_i = 2
@@ -1774,7 +1752,7 @@ function process3(ctx, proto, u, v)
     local explist = items[1].items
     local varlist = items[2].items
 
-    local result = get_attr(items[1], attr_result)
+    local result = items[1].result
     if result < #varlist then
       compiler_error("invalid result", v)
     end
@@ -1783,20 +1761,20 @@ function process3(ctx, proto, u, v)
     for i = #varlist, 1, -1 do
       local var = varlist[i]
       if string_compare(var.kind, "Name") == 0 then
-        local ref = get_attr(var, attr_ref)
-        if get_attr(ref, attr_is_global) then
+        local ref = var.ref
+        if ref.is_global then
           S"(global.set $"
         else
           S"(local.set $"
         end
-        I(get_attr(ref, attr_id)) S") (; " S(var.value) S" ;)\n"
+        I(ref.id) S") (; " S(var.value) S" ;)\n"
       elseif string_compare(var.kind, "index") == 0 then
         process3(ctx, proto, items[2], var)
-        S"(call $" I(get_attr(ctx[ctx_set_index], attr_id)) S") (; __set_index ;)\n"
+        S"(call $" I(ctx[ctx_set_index].id) S") (; __set_index ;)\n"
       elseif string_compare(var.kind, ".") == 0 then
         process3(ctx, proto, items[2], var)
-        S"(i32.const " I(get_attr(var.items[2], attr_address)) S") (; key ;)\n"
-        S"(call $" I(get_attr(ctx[ctx_set_table], attr_id)) S") (; __set_table ;)\n"
+        S"(i32.const " I(var.items[2].address) S") (; key ;)\n"
+        S"(call $" I(ctx[ctx_set_table].id) S") (; __set_table ;)\n"
 
       else
         compiler_error("invalid assign <"..var.kind..">", var)
@@ -1804,9 +1782,9 @@ function process3(ctx, proto, u, v)
     end
 
   elseif string_compare(kind, "call") == 0 then
-    local ref = get_attr(items[1], attr_ref)
+    local ref = items[1].ref
     local name = ref.value
-    if string_compare(get_attr(ref, attr_resolver), "asm") == 0 then
+    if string_compare(ref.resolver, "asm") == 0 then
       local i = binary_search(asm_table, string_compare_first, { name })
       local asm = asm_table[i]
       if asm[5] ~= nil then
@@ -1815,15 +1793,15 @@ function process3(ctx, proto, u, v)
         S(asm[3]) S"\n"
       end
     else
-      S"(call $" I(get_attr(ref, attr_id)) S") (; " S(name) S" ;)\n"
+      S"(call $" I(ref.id) S") (; " S(name) S" ;)\n"
     end
 
-    local result = get_attr(ref, attr_result)
-    if get_attr(v, attr_is_exp) then
+    local result = ref.result
+    if v.is_exp then
       if string_compare(u.kind, "explist") == 0
         or string_compare(u.kind, "args") == 0
         or string_compare(u.kind, "array") == 0 then
-        set_attr(u, attr_result, get_attr(u, attr_result) + result - 1)
+        set_attr(u, attr_result, u.result + result - 1)
       elseif result == 0 then
         compiler_error("invalid result", v)
       else
@@ -1842,23 +1820,23 @@ function process3(ctx, proto, u, v)
     S"end\n"
 
   elseif string_compare(kind, "break") == 0 then
-    S"(br $" I(get_attr(v, attr_id)) S")\n"
+    S"(br $" I(v.id) S")\n"
 
   elseif string_compare(kind, "while") == 0 then
-    local loop = get_attr(v, attr_ref)
+    local loop = v.ref
     S"(br $" I(loop[loop_loop]) S")\n"
     S"end\n"
     S"end\n"
 
   elseif string_compare(kind, "repeat") == 0 then
-    local loop = get_attr(v, attr_ref)
+    local loop = v.ref
     S"(i32.eqz)\n"
     S"(br_if $" I(loop[loop_loop]) S")\n"
     S"end\n"
     S"end\n"
 
   elseif string_compare(kind, "for") == 0 then
-    local loop = get_attr(v, attr_ref)
+    local loop = v.ref
     S"(br $" I(loop[loop_loop]) S")\n"
     S"end\n"
     S"end\n"
@@ -1868,7 +1846,7 @@ function process3(ctx, proto, u, v)
       local explist = items[1].items
       local namelist = items[2].items
 
-      local result = get_attr(items[1], attr_result)
+      local result = items[1].result
       if result < #namelist then
         compiler_error("invalid result", v)
       end
@@ -1876,23 +1854,23 @@ function process3(ctx, proto, u, v)
 
       for i = #namelist, 1, -1 do
         local var = namelist[i]
-        S"(local.set $" I(get_attr(var, attr_id)) S") (; " S(var.value) S" ;)\n"
+        S"(local.set $" I(var.id) S") (; " S(var.value) S" ;)\n"
       end
     end
 
   elseif string_compare(kind, "return") == 0 then
-    local result = get_attr(proto, attr_result)
+    local result = proto.result
     for i = result, 1, -1 do
       S"(local.set $r" I(i) S")\n"
     end
     S"(br $main)\n"
 
   elseif string_compare(kind, "array") == 0 then
-    local result = get_attr(v, attr_result)
+    local result = v.result
     for i = result, 1, -1 do
-      S"(local.get $" I(get_attr(v, attr_id)) S")\n"
+      S"(local.get $" I(v.id) S")\n"
       S"(i32.const " I(i) S")\n"
-      S"(call $" I(get_attr(ctx[ctx_set_index], attr_id)) S") (; __set_index ;)\n"
+      S"(call $" I(ctx[ctx_set_index].id) S") (; __set_index ;)\n"
     end
 
   elseif string_compare(kind, "table") == 0 then
@@ -1909,20 +1887,20 @@ function process3(ctx, proto, u, v)
 
     for i = #items, 1, -1 do
       local key = items[i].items[1]
-      S"(local.get $" I(get_attr(v, attr_id)) S")\n"
-      S"(i32.const " I(get_attr(key, attr_index)) S")\n"
-      S"(call $" I(get_attr(ctx[ctx_set_index], attr_id)) S") (; __set_index ;)\n"
+      S"(local.get $" I(v.id) S")\n"
+      S"(i32.const " I(key.index) S")\n"
+      S"(call $" I(ctx[ctx_set_index].id) S") (; __set_index ;)\n"
     end
 
   elseif string_compare(kind, "field") == 0 then
     for i = 2, 1, -1 do
-      S"(local.get $" I(get_attr(v, attr_id)) S")\n"
+      S"(local.get $" I(v.id) S")\n"
       S"(i32.const " I(i) S")\n"
-      S"(call $" I(get_attr(ctx[ctx_set_index], attr_id)) S") (; __set_index ;)\n"
+      S"(call $" I(ctx[ctx_set_index].id) S") (; __set_index ;)\n"
     end
 
   elseif string_compare(kind, "#") == 0 then
-    S"(call $" I(get_attr(ctx[ctx_length], attr_id)) S") (; __length ;)\n"
+    S"(call $" I(ctx[ctx_length].id) S") (; __length ;)\n"
 
   elseif string_compare(kind, "or") == 0 then
     S"end\n"
@@ -1940,17 +1918,17 @@ function process3(ctx, proto, u, v)
     S"(i32.xor)\n"
 
   elseif string_compare(kind, "..") == 0 then
-    S"(call $" I(get_attr(ctx[ctx_concat], attr_id)) S") (; __concat ;)\n"
+    S"(call $" I(ctx[ctx_concat].id) S") (; __concat ;)\n"
 
   elseif string_compare(kind, "index") == 0 then
-    if string_compare(get_attr(v, attr_resolver), "set") ~= 0 then
-      S"(call $" I(get_attr(ctx[ctx_get_index], attr_id)) S") (; __get_index ;)\n"
+    if string_compare(v.resolver, "set") ~= 0 then
+      S"(call $" I(ctx[ctx_get_index].id) S") (; __get_index ;)\n"
     end
 
   elseif string_compare(kind, ".") == 0 then
-    if string_compare(get_attr(v, attr_resolver), "set") ~= 0 then
-      S"(i32.const " I(get_attr(items[2], attr_address)) S") (; key ;)\n"
-      S"(call $" I(get_attr(ctx[ctx_get_table], attr_id)) S") (; __get_table ;)\n"
+    if string_compare(v.resolver, "set") ~= 0 then
+      S"(i32.const " I(items[2].address) S") (; key ;)\n"
+      S"(call $" I(ctx[ctx_get_table].id) S") (; __get_table ;)\n"
     end
   end
 end
@@ -1961,24 +1939,24 @@ function write_function_table(ctx, function_table)
     local items = u.items
 
     local proto = items[1]
-    S"(func $" I(get_attr(proto, attr_id)) S" (; " S(proto.value) S" ;)\n"
+    S"(func $" I(proto.id) S" (; " S(proto.value) S" ;)\n"
 
     local parlist = items[2].items
     for i = 1, #parlist do
       local par = parlist[i]
-      S"(param $" I(get_attr(par, attr_id)) S" i32) (; " S(par.value) S" ;)\n"
+      S"(param $" I(par.id) S" i32) (; " S(par.value) S" ;)\n"
     end
 
-    local result = get_attr(proto, attr_result)
+    local result = proto.result
     if result > 0 then
       S"(result" SR(result, " i32") S")\n"
     end
 
-    local var_table = get_attr(proto, attr_ref)
+    local var_table = proto.ref
     for i = 1, #var_table do
       local var = var_table[i]
-      if string_compare(get_attr(var, attr_resolver), "var") == 0 then
-        S"(local $" I(get_attr(var, attr_id)) S" i32) (; " S(var.value) S" ;)\n"
+      if string_compare(var.resolver, "var") == 0 then
+        S"(local $" I(var.id) S" i32) (; " S(var.value) S" ;)\n"
       end
     end
     for i = 1, result do
@@ -2009,7 +1987,7 @@ function write_proto_table(proto_table)
   local n = 0
   for i = 1, #proto_table do
     local proto = proto_table[i]
-    if string_compare(get_attr(proto, attr_resolver), "fun") == 0 then
+    if string_compare(proto.resolver, "fun") == 0 then
       n = n + 1
     end
   end
@@ -2018,8 +1996,8 @@ function write_proto_table(proto_table)
   S"(elem (i32.const 1)"
   for i = 1, #proto_table do
     local proto = proto_table[i]
-    if string_compare(get_attr(proto, attr_resolver), "fun") == 0 then
-      S" $" I(get_attr(proto, attr_id))
+    if string_compare(proto.resolver, "fun") == 0 then
+      S" $" I(proto.id)
     end
   end
   S")\n"
