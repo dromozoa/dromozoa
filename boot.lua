@@ -145,9 +145,9 @@ function new_node(kind, items)
   local source_position = 0
   for i = 1, #items do
     local item = items[i]
-    local p = get_source_position(item)
+    local p = item.source_position
     if source_position == 0 or source_position > p then
-      source_file = get_source_file(item)
+      source_file = item.source_file
       source_position = p
     end
   end
@@ -155,7 +155,7 @@ function new_node(kind, items)
 end
 
 function new_empty_node(kind, token)
-  return new_node_impl(kind, nil, {}, get_source_file(token), get_source_position(token))
+  return new_node_impl(kind, nil, {}, token.source_file, token.source_position)
 end
 
 function get_attr(u, key)
@@ -202,16 +202,8 @@ function set_attr(u, key, value)
   end
 end
 
-function get_source_file(u)
-  return u.source_file
-end
-
-function get_source_position(u)
-  return u.source_position
-end
-
 function get_at_string(u)
-  return "at node ["..u.kind.."] position ["..get_source_file(u)..":"..integer_to_string(get_source_position(u)).."]"
+  return "at node ["..u.kind.."] position ["..u.source_file..":"..integer_to_string(u.source_position).."]"
 end
 
 --------------------------------------------------------------------------------
@@ -634,7 +626,7 @@ end
 function nud_negate(parser, token)
   local exp = parser_exp(parser, parser_prefix_lbp)
   if string_compare(exp.kind, "Integer") == 0 then
-    return new_token("Integer", "-"..exp.value, get_source_file(token), get_source_position(token))
+    return new_token("Integer", "-"..exp.value, token.source_file, token.source_position)
   else
     return new_node(token.kind, { exp })
   end
@@ -930,7 +922,7 @@ function parser_stat(parser)
       parser_read(parser)
       exp3 = parser_exp(parser, 0)
     else
-      exp3 = new_token("Integer", "1", get_source_file(exp2), get_source_position(exp2))
+      exp3 = new_token("Integer", "1", exp2.source_file, exp2.source_position)
     end
     parser_expect(parser, "do")
     local block = parser_block(parser)
