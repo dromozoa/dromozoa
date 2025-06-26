@@ -265,14 +265,33 @@ function test_table()
   io_write_integer(t.qux)
   io_write_string "\n"
 
-  -- for i = 1, #t do
-  --   io_write_integer(i)
-  --   io_write_string ","
-  --   io_write_string(t[i][1])
-  --   io_write_string ","
-  --   io_write_integer(t[i][2])
-  --   io_write_string "\n"
-  -- end
+  t.qux = 42
+
+  io_write_integer(t.foo)
+  io_write_integer(t.bar)
+  io_write_integer(t.baz)
+  io_write_integer(t.qux)
+  io_write_string "\n"
+
+  t.qux = t
+
+  io_write_integer(t.foo)
+  io_write_integer(t.bar)
+  io_write_integer(t.baz)
+  io_write_integer(t.qux.foo)
+  io_write_integer(t.qux.bar)
+  io_write_integer(t.qux.baz)
+  io_write_integer(t.qux.qux.foo)
+  io_write_integer(t.qux.qux.bar)
+  io_write_integer(t.qux.qux.baz)
+  io_write_string "\n"
+
+  t.qux.foo = 17
+  t.qux.qux.bar, t.qux.qux.qux.baz = 23, 37
+
+  io_write_integer(t.foo)
+  io_write_integer(t.bar)
+  io_write_integer(t.baz)
 end
 
 __export_start(main)

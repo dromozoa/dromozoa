@@ -1771,8 +1771,13 @@ function process3(ctx, proto, u, v)
         end
         I(get_attr(ref, attr_id)) S") (; " S(get_value(var)) S" ;)\n"
       elseif string_compare(get_kind(var), "index") == 0 then
-        process3(ctx, proto, varlist, var)
+        process3(ctx, proto, items[2], var)
         S"(call $" I(get_attr(ctx[ctx_set_index], attr_id)) S") (; __set_index ;)\n"
+      elseif string_compare(get_kind(var), ".") == 0 then
+        process3(ctx, proto, items[2], var)
+        S"(i32.const " I(get_attr(get_items(var)[2], attr_address)) S") (; key ;)\n"
+        S"(call $" I(get_attr(ctx[ctx_set_table], attr_id)) S") (; __set_table ;)\n"
+
       else
         compiler_error("invalid assign <"..get_kind(var)..">", var)
       end
