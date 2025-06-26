@@ -1191,28 +1191,28 @@ function write_string_table(string_table)
 end
 
 function new_ctx()
-  return { 0, 0 }
+  return {
+    id = 0;
+    address = 0;
+    length = nil;
+    concat = nil;
+    new_table = nil;
+    set_index = nil;
+    get_index = nil;
+    set_table = nil;
+    get_table = nil;
+  }
 end
 
-local ctx_id        = 1
-local ctx_address   = 2
-local ctx_length    = 3
-local ctx_concat    = 4
-local ctx_new_table = 5
-local ctx_set_index = 6
-local ctx_get_index = 7
-local ctx_set_table = 8
-local ctx_get_table = 9
-
 function make_id(ctx)
-  local id = ctx[ctx_id] + 1
-  ctx[ctx_id] = id
+  local id = ctx.id + 1
+  ctx.id = id
   return id
 end
 
 function make_address(ctx)
-  local address = ctx[ctx_address] + 1
-  ctx[ctx_address] = address
+  local address = ctx.address + 1
+  ctx.address = address
   return address
 end
 
@@ -1675,18 +1675,18 @@ function process3(ctx, proto, u, v)
 
   elseif string_compare(kind, "array") == 0 then
     S"(i32.const " I(v.result) S")\n"
-    S"(call $" I(ctx[ctx_new_table].id) S") (; __new_table ;)\n"
+    S"(call $" I(ctx.new_table.id) S") (; __new_table ;)\n"
     S"(local.tee $" I(v.id) S")\n"
 
   elseif string_compare(kind, "table") == 0 then
     S"(i32.const " I(#items) S")\n"
-    S"(call $" I(ctx[ctx_new_table].id) S") (; __new_table ;)\n"
+    S"(call $" I(ctx.new_table.id) S") (; __new_table ;)\n"
     S"(local.tee $" I(v.id) S")\n"
 
   elseif string_compare(kind, "field") == 0 then
     range_i = 2
     S"(i32.const 2)\n"
-    S"(call $" I(ctx[ctx_new_table].id) S") (; __new_table ;)\n"
+    S"(call $" I(ctx.new_table.id) S") (; __new_table ;)\n"
     S"(local.tee $" I(v.id) S")\n"
     S"(i32.const " I(items[1].address) S") (; key ;)\n"
 
@@ -1748,11 +1748,11 @@ function process3(ctx, proto, u, v)
         I(ref.id) S") (; " S(var.value) S" ;)\n"
       elseif string_compare(var.kind, "index") == 0 then
         process3(ctx, proto, items[2], var)
-        S"(call $" I(ctx[ctx_set_index].id) S") (; __set_index ;)\n"
+        S"(call $" I(ctx.set_index.id) S") (; __set_index ;)\n"
       elseif string_compare(var.kind, ".") == 0 then
         process3(ctx, proto, items[2], var)
         S"(i32.const " I(var.items[2].address) S") (; key ;)\n"
-        S"(call $" I(ctx[ctx_set_table].id) S") (; __set_table ;)\n"
+        S"(call $" I(ctx.set_table.id) S") (; __set_table ;)\n"
 
       else
         compiler_error("invalid assign <"..var.kind..">", var)
@@ -1848,7 +1848,7 @@ function process3(ctx, proto, u, v)
     for i = result, 1, -1 do
       S"(local.get $" I(v.id) S")\n"
       S"(i32.const " I(i) S")\n"
-      S"(call $" I(ctx[ctx_set_index].id) S") (; __set_index ;)\n"
+      S"(call $" I(ctx.set_index.id) S") (; __set_index ;)\n"
     end
 
   elseif string_compare(kind, "table") == 0 then
@@ -1867,18 +1867,18 @@ function process3(ctx, proto, u, v)
       local key = items[i].items[1]
       S"(local.get $" I(v.id) S")\n"
       S"(i32.const " I(key.index) S")\n"
-      S"(call $" I(ctx[ctx_set_index].id) S") (; __set_index ;)\n"
+      S"(call $" I(ctx.set_index.id) S") (; __set_index ;)\n"
     end
 
   elseif string_compare(kind, "field") == 0 then
     for i = 2, 1, -1 do
       S"(local.get $" I(v.id) S")\n"
       S"(i32.const " I(i) S")\n"
-      S"(call $" I(ctx[ctx_set_index].id) S") (; __set_index ;)\n"
+      S"(call $" I(ctx.set_index.id) S") (; __set_index ;)\n"
     end
 
   elseif string_compare(kind, "#") == 0 then
-    S"(call $" I(ctx[ctx_length].id) S") (; __length ;)\n"
+    S"(call $" I(ctx.length.id) S") (; __length ;)\n"
 
   elseif string_compare(kind, "or") == 0 then
     S"end\n"
@@ -1896,17 +1896,17 @@ function process3(ctx, proto, u, v)
     S"(i32.xor)\n"
 
   elseif string_compare(kind, "..") == 0 then
-    S"(call $" I(ctx[ctx_concat].id) S") (; __concat ;)\n"
+    S"(call $" I(ctx.concat.id) S") (; __concat ;)\n"
 
   elseif string_compare(kind, "index") == 0 then
     if string_compare(v.resolver, "set") ~= 0 then
-      S"(call $" I(ctx[ctx_get_index].id) S") (; __get_index ;)\n"
+      S"(call $" I(ctx.get_index.id) S") (; __get_index ;)\n"
     end
 
   elseif string_compare(kind, ".") == 0 then
     if string_compare(v.resolver, "set") ~= 0 then
       S"(i32.const " I(items[2].address) S") (; key ;)\n"
-      S"(call $" I(ctx[ctx_get_table].id) S") (; __get_table ;)\n"
+      S"(call $" I(ctx.get_table.id) S") (; __get_table ;)\n"
     end
   end
 end
@@ -2019,13 +2019,13 @@ function compiler(chunk)
   process2(ctx, proto_table, var_table, result_table, nil, scope, scope, nil, chunk, chunk_block)
   solve_result_table(result_table, function_table)
 
-  ctx[ctx_length]    = resolve_name(proto_table, scope, new_name "__length")
-  ctx[ctx_concat]    = resolve_name(proto_table, scope, new_name "__concat")
-  ctx[ctx_new_table] = resolve_name(proto_table, scope, new_name "__new_table")
-  ctx[ctx_set_index] = resolve_name(proto_table, scope, new_name "__set_index")
-  ctx[ctx_get_index] = resolve_name(proto_table, scope, new_name "__get_index")
-  ctx[ctx_set_table] = resolve_name(proto_table, scope, new_name "__set_table")
-  ctx[ctx_get_table] = resolve_name(proto_table, scope, new_name "__get_table")
+  ctx.length    = resolve_name(proto_table, scope, new_name "__length")
+  ctx.concat    = resolve_name(proto_table, scope, new_name "__concat")
+  ctx.new_table = resolve_name(proto_table, scope, new_name "__new_table")
+  ctx.set_index = resolve_name(proto_table, scope, new_name "__set_index")
+  ctx.get_index = resolve_name(proto_table, scope, new_name "__get_index")
+  ctx.set_table = resolve_name(proto_table, scope, new_name "__set_table")
+  ctx.get_table = resolve_name(proto_table, scope, new_name "__get_table")
 
   write_function_table(ctx, function_table)
   write_proto_table(proto_table)
