@@ -225,21 +225,17 @@ end
 
 function test_file()
   local path = "test.dat"
-  local result, w = io_open_write(path)
-  if not result then
-    error("cannot open file "..path..": "..w)
-  end
-  file_write_string(w, "日本語")
-  file_write_integer(w, 42)
-  file_write_string(w, "\n")
-  file_close(w)
+  local f = io_open(path, "wb")
+  file_write_string(f, "日本語")
+  file_write_integer(f, 42)
+  file_write_string(f, "\n")
+  file_close(f)
 
-  local result, r = io_open_read(path)
-  if not r then
-    error("cannot open file "..path..": "..r)
-  end
-  io_write_string(file_read_all(r))
-  file_close(r)
+  local f = io_open(path, "rb")
+  io_write_string(file_read_all(f))
+  file_close(f)
+
+  -- io_open("no-such-file.txt", "rb")
 end
 
 function test_args()

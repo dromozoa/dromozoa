@@ -160,10 +160,16 @@ function __open(path, rights)
     __i64_const(0),           -- fs_rights_inheriting
     0,                        -- fs_flags
     fd)                       -- fd
-  if errno == 0 then
-    return true, __i32_load(fd)
-  else
-    return false, __errno_to_string(errno)
+  if errno ~= 0 then
+    error("io error: "..__errno_to_string(errno))
+  end
+  return __i32_load(fd)
+end
+
+function __close(fd)
+  local errno = __fd_close(fd)
+  if errno ~= 0 then
+    error("io error: "..__errno_to_string(errno))
   end
 end
 
@@ -179,7 +185,7 @@ function __read_all(fd)
   while true do
     local errno = __fd_read(fd, iovs, 1, nread)
     if errno ~= 0 then
-      error("io error: "..integer_to_string(errno))
+      error("io error: "..__errno_to_string(errno))
     end
     local size = __i32_load(nread)
     if size == 0 then
@@ -200,6 +206,6 @@ function __write_string(fd, s)
   local nwrite = __new(4)
   local errno = __fd_write(fd, iovs, 1, nwrite)
   if errno ~= 0 then
-    error("io error: "..integer_to_string(errno))
+    error("io error: "..__errno_to_string(errno))
   end
 end

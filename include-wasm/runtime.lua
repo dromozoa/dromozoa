@@ -18,47 +18,12 @@
 require "core"
 require "core-string"
 require "core-table"
-require "std"
-require "std-string"
 require "wasi"
+require "std"
+require "std-io"
+require "std-string"
 
 --------------------------------------------------------------------------------
-
-function io_open_read(path)
-  return __open(path, __right_fd_read | __right_fd_seek | __right_fd_tell)
-end
-
-function io_open_write(path)
-  return __open(path, __right_fd_write | __right_fd_seek | __right_fd_tell)
-end
-
-function file_close(fd)
-  __fd_close(fd)
-end
-
-function file_read_all(fd)
-  return __read_all(fd)
-end
-
-function file_write_string(fd, s)
-  __write_string(fd, s)
-end
-
-function file_write_integer(fd, v)
-  __write_string(fd, integer_to_string(v))
-end
-
-function io_read_all()
-  return __read_all(0)
-end
-
-function io_write_string(s)
-  __write_string(1, s)
-end
-
-function io_write_integer(v)
-  __write_string(1, integer_to_string(v))
-end
 
 function table_insert(t, v)
   t[#t + 1] = v

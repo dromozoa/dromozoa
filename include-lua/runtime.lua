@@ -31,6 +31,10 @@ function integer_to_string(v)
   return tostring(v)
 end
 
+function io_open(path, mode)
+  return assert(io.open(path, mode))
+end
+
 function io_open_read(path)
   local file, message = io.open(path, "rb")
   if file then

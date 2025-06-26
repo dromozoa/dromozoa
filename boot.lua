@@ -2042,13 +2042,9 @@ end
 --------------------------------------------------------------------------------
 
 function lexer_parser(source_file, loaded)
-  local status, result = io_open_read(source_file)
-  if not status then
-    error("cannot open "..source_file..": "..result)
-  end
-
-  local source = file_read_all(result)
-  file_close(result)
+  local f = io_open(source_file, "rb")
+  local source = file_read_all(f)
+  file_close(f)
   return parser(lexer(source_file, source), loaded)
 end
 
