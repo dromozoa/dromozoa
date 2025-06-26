@@ -50,7 +50,6 @@ function __binary_search(t, k)
   return 0
 end
 
--- テーブルコンストラクタのスタック順序に合わせるため、直感と異なる引数順にしている
 function __set_index(v, t, i)
   local size, capacity, data = __unpack_table(t)
 
