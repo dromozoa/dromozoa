@@ -211,6 +211,24 @@ function __write_string(fd, s)
   end
 end
 
-function __exit(code)
+function get_args()
+  local sizes = __new(8)
+  __args_sizes_get(sizes, sizes + 4)
+
+  local args_size = __i32_load(sizes)
+  local args_data = __new(args_size * 4)
+  local buffer_size = __i32_load(sizes + 4)
+  local buffer_data = __new(buffer_size)
+  __args_get(args_data, buffer_data)
+
+  local args = {}
+  for i = 1, args_size - 1 do
+    local data = __i32_load(args_data + i * 4)
+    table_insert(args, __pack_string(__cstring_size(data), data))
+  end
+  return args
+end
+
+function os_exit(code)
   __proc_exit(code)
 end

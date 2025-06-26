@@ -34,6 +34,10 @@ function get_args()
   return args
 end
 
+function os_exit(code)
+  return os.exit(code)
+end
+
 function show_memory_usage()
   io.stderr:write("memory usage: ", collectgarbage "count" * 1024, "\n")
 end
