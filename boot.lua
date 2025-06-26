@@ -202,10 +202,6 @@ function set_attr(u, key, value)
   end
 end
 
-function get_value(u)
-  return u.value
-end
-
 function get_items(u)
   return u.items
 end
@@ -642,7 +638,7 @@ end
 function nud_negate(parser, token)
   local exp = parser_exp(parser, parser_prefix_lbp)
   if string_compare(exp.kind, "Integer") == 0 then
-    return new_token("Integer", "-"..get_value(exp), get_source_file(token), get_source_position(token))
+    return new_token("Integer", "-"..exp.value, get_source_file(token), get_source_position(token))
   else
     return new_node(token.kind, { exp })
   end
@@ -870,11 +866,11 @@ function parser_stat(parser)
       if string_compare(parser_peek(parser).kind, "[") ~= 0
         and string_compare(parser_peek(parser).kind, ".") ~= 0 then
         -- 関数呼び出し文のrequireだけ特別扱いする
-        if string_compare(get_value(token), "require") == 0 then
+        if string_compare(token.value, "require") == 0 then
           local arg = get_items(args)[1]
           if string_compare(arg.kind, "String") == 0 then
             local loaded = parser.loaded
-            local name = get_value(arg)
+            local name = arg.value
             local found = false
             for i = 1, #loaded do
               if string_compare(loaded[i], name) == 0 then
@@ -1106,7 +1102,7 @@ function compiler_initialize()
   local leave_i64_const = function (ctx, proto, u)
     local items = get_items(u)
     local args = get_items(items[2])
-    S"(i64.const " S(get_value(args[1])) S") (; Integer ;)\n"
+    S"(i64.const " S(args[1].value) S") (; Integer ;)\n"
   end
 
   asm_table = {
@@ -1176,8 +1172,8 @@ function make_string_table(string_tokens)
 
   for i = 1, #string_tokens do
     local token = string_tokens[i]
-    if value == nil or string_compare(value, get_value(token)) ~= 0 then
-      value = get_value(token)
+    if value == nil or string_compare(value, token.value) ~= 0 then
+      value = token.value
       table_insert(string_table, { value, 0 })
     end
     set_attr(token, attr_address, #string_table * 8)
@@ -1336,7 +1332,7 @@ function resolve_name_impl(proto_table, scope, u, resolver)
     local data = scope[scope_data]
     for i = #data, 1, -1 do
       local v = data[i]
-      if string_compare(get_value(u), get_value(v)) == 0 then
+      if string_compare(u.value, v.value) == 0 then
         set_attr(u, attr_resolver, resolver)
         set_attr(u, attr_ref, v)
         return v
@@ -1347,14 +1343,14 @@ function resolve_name_impl(proto_table, scope, u, resolver)
 
   for i = 1, #proto_table do
     local v = proto_table[i]
-    if string_compare(get_value(u), get_value(v)) == 0 then
+    if string_compare(u.value, v.value) == 0 then
       set_attr(u, attr_resolver, resolver)
       set_attr(u, attr_ref, v)
       return v
     end
   end
 
-  compiler_error("cannot resolve <"..get_value(u)..">", u)
+  compiler_error("cannot resolve <"..u.value..">", u)
 end
 
 function resolve_name(proto_table, scope, u)
@@ -1577,7 +1573,7 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
         if r[1] == -1 then
           result_table[address] = q
         elseif #q == 1 and r[1] ~= q[1] then
-          compiler_error("invalid result <"..get_value(proto)..">", v)
+          compiler_error("invalid result <"..proto.value..">", v)
         end
       else
         result_table[address] = q
@@ -1607,10 +1603,10 @@ function process3(ctx, proto, u, v)
 
     local ref = get_attr(items[1], attr_ref)
     if string_compare(get_attr(ref, attr_resolver), "asm") == 0 then
-      local name = get_value(ref)
+      local name = ref.value
       local i = binary_search(asm_table, string_compare_first, { name })
       if i == 0 then
-        compiler_error("cannot resolve <"..get_value(name)..">", name)
+        compiler_error("cannot resolve <"..name.value..">", name)
       end
       if asm_table[i][4] then
         range_j = 0
@@ -1705,7 +1701,7 @@ function process3(ctx, proto, u, v)
 
         S"(global $" I(get_attr(name, attr_id)) S" (mut i32)\n"
         process3(ctx, proto, explist, exp)
-        S") (; " S(get_value(name)) S" ;)\n"
+        S") (; " S(name.value) S" ;)\n"
       end
     else
       range_j = 1
@@ -1724,11 +1720,11 @@ function process3(ctx, proto, u, v)
         end
         I(get_attr(ref, attr_id)) S") (; "
       end
-      S(get_value(v)) S" ;)\n"
+      S(v.value) S" ;)\n"
     end
 
   elseif string_compare(kind, "Integer") == 0 then
-    S"(i32.const " S(get_value(v)) S") (; Integer ;)\n"
+    S"(i32.const " S(v.value) S") (; Integer ;)\n"
 
   elseif string_compare(kind, "String") == 0 then
     S"(i32.const " I(get_attr(v, attr_address)) S") (; String ;)\n"
@@ -1805,7 +1801,7 @@ function process3(ctx, proto, u, v)
         else
           S"(local.set $"
         end
-        I(get_attr(ref, attr_id)) S") (; " S(get_value(var)) S" ;)\n"
+        I(get_attr(ref, attr_id)) S") (; " S(var.value) S" ;)\n"
       elseif string_compare(var.kind, "index") == 0 then
         process3(ctx, proto, items[2], var)
         S"(call $" I(get_attr(ctx[ctx_set_index], attr_id)) S") (; __set_index ;)\n"
@@ -1821,7 +1817,7 @@ function process3(ctx, proto, u, v)
 
   elseif string_compare(kind, "call") == 0 then
     local ref = get_attr(items[1], attr_ref)
-    local name = get_value(ref)
+    local name = ref.value
     if string_compare(get_attr(ref, attr_resolver), "asm") == 0 then
       local i = binary_search(asm_table, string_compare_first, { name })
       local asm = asm_table[i]
@@ -1892,7 +1888,7 @@ function process3(ctx, proto, u, v)
 
       for i = #namelist, 1, -1 do
         local var = namelist[i]
-        S"(local.set $" I(get_attr(var, attr_id)) S") (; " S(get_value(var)) S" ;)\n"
+        S"(local.set $" I(get_attr(var, attr_id)) S") (; " S(var.value) S" ;)\n"
       end
     end
 
@@ -1977,12 +1973,12 @@ function write_function_table(ctx, function_table)
     local items = get_items(u)
 
     local proto = items[1]
-    S"(func $" I(get_attr(proto, attr_id)) S" (; " S(get_value(proto)) S" ;)\n"
+    S"(func $" I(get_attr(proto, attr_id)) S" (; " S(proto.value) S" ;)\n"
 
     local parlist = get_items(items[2])
     for i = 1, #parlist do
       local par = parlist[i]
-      S"(param $" I(get_attr(par, attr_id)) S" i32) (; " S(get_value(par)) S" ;)\n"
+      S"(param $" I(get_attr(par, attr_id)) S" i32) (; " S(par.value) S" ;)\n"
     end
 
     local result = get_attr(proto, attr_result)
@@ -1994,7 +1990,7 @@ function write_function_table(ctx, function_table)
     for i = 1, #var_table do
       local var = var_table[i]
       if string_compare(get_attr(var, attr_resolver), "var") == 0 then
-        S"(local $" I(get_attr(var, attr_id)) S" i32) (; " S(get_value(var)) S" ;)\n"
+        S"(local $" I(get_attr(var, attr_id)) S" i32) (; " S(var.value) S" ;)\n"
       end
     end
     for i = 1, result do
