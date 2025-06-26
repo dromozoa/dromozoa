@@ -61,6 +61,7 @@ function main()
 
   test_file()
   test_args()
+  test_table()
 end
 
 function test1()
@@ -249,6 +250,23 @@ function test_args()
     io_write_string(args[i])
   end
   io_write_string "\n"
+end
+
+function test_table()
+  local t = {
+    foo = 1;
+    bar = 2;
+    baz = 3;
+    qux = 4;
+  }
+  for i = 1, #t do
+    io_write_integer(i)
+    io_write_string ","
+    io_write_string(t[i][1])
+    io_write_string ","
+    io_write_integer(t[i][2])
+    io_write_string "\n"
+  end
 end
 
 __export_start(main)

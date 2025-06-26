@@ -104,16 +104,17 @@ end
 ]]
 
 local attr_class     = 1 -- "token" | "node"
-local attr_resolver  = 2 -- "fun" | "asm" | "par" | "var" | "call" | "ref" | "set" | "field"
+local attr_resolver  = 2 -- "fun" | "asm" | "par" | "var" | "call" | "ref" | "set" | "key"
 local attr_address   = 3 -- 文字列または関数の静的アドレス
 local attr_id        = 4 -- 大域ID
-local attr_result    = 5 -- 返り値の個数
-local attr_is_exp    = 6 -- 関数定義または関数呼び出しが式である
-local attr_is_global = 7 -- 大域変数である
-local attr_ref       = 8 -- 各種の参照または変数テーブル
+local attr_index     = 5 -- インデックス
+local attr_result    = 6 -- 返り値の個数
+local attr_is_exp    = 7 -- 関数定義または関数呼び出しが式である
+local attr_is_global = 8 -- 大域変数である
+local attr_ref       = 9 -- 各種の参照または変数テーブル
 
 function new_attrs(class)
-  return { class, "", 0, 0, -1, false, false, nil }
+  return { class, "", 0, 0, 0, -1, false, false, nil }
 end
 
 function new_token(kind, value, source_file, source_position)
@@ -184,6 +185,10 @@ end
 
 function string_compare_first(a, b)
   return string_compare(a[1], b[1])
+end
+
+function string_compare_third(a, b)
+  return string_compare(a[3], b[3])
 end
 
 --------------------------------------------------------------------------------
@@ -551,7 +556,7 @@ function nud_table(parser, token)
     if string_compare(get_kind(parser_peek(parser)), "=") == 0 then
       local items = {}
       while true do
-        set_attr(name, attr_resolver, "field")
+        set_attr(name, attr_resolver, "key")
         parser_expect(parser, "=")
         table_insert(items, new_node("field", { name, parser_exp(parser, 0) }))
         local token = parser_peek(parser)
@@ -1109,9 +1114,7 @@ function roundup(n, a)
 end
 
 function make_string_table(string_tokens)
-  quick_sort(string_tokens, function (a, b)
-    return string_compare(a[3], b[3])
-  end)
+  quick_sort(string_tokens, string_compare_third)
 
   local string_table = {}
   local value = nil
@@ -1385,6 +1388,10 @@ function process1(ctx, string_tokens, proto_table, function_table, proto, u, v)
     proto = items[1]
     add_fun(ctx, proto_table, proto, -1)
     table_insert(function_table, v)
+  elseif string_compare(kind, "Name") == 0 then
+    if string_compare(get_attr(v, attr_resolver), "key") == 0 then
+      table_insert(string_tokens, v)
+    end
   elseif string_compare(kind, "String") == 0 then
     table_insert(string_tokens, v)
   end
@@ -1472,6 +1479,14 @@ function process2(ctx, proto_table, var_table, result_table, proto, chunk_scope,
 
   elseif string_compare(kind, "array") == 0 then
     set_attr(v, attr_id, add_var(ctx, var_table, scope, new_name "(array)"))
+    set_attr(v, attr_result, #items)
+
+  elseif string_compare(kind, "table") == 0 then
+    set_attr(v, attr_id, add_var(ctx, var_table, scope, new_name "(table)"))
+    set_attr(v, attr_result, #items)
+
+  elseif string_compare(kind, "field") == 0 then
+    set_attr(v, attr_id, add_var(ctx, var_table, scope, new_name "(field)"))
     set_attr(v, attr_result, #items)
   end
 
@@ -1666,6 +1681,18 @@ function process3(ctx, proto, u, v)
     S"(call $" I(get_attr(ctx[ctx_new_table], attr_id)) S") (; __new_table ;)\n"
     S"(local.tee $" I(get_attr(v, attr_id)) S")\n"
 
+  elseif string_compare(kind, "table") == 0 then
+    S"(i32.const " I(#items) S")\n"
+    S"(call $" I(get_attr(ctx[ctx_new_table], attr_id)) S") (; __new_table ;)\n"
+    S"(local.tee $" I(get_attr(v, attr_id)) S")\n"
+
+  elseif string_compare(kind, "field") == 0 then
+    range_i = 2
+    S"(i32.const 2)\n"
+    S"(call $" I(get_attr(ctx[ctx_new_table], attr_id)) S") (; __new_table ;)\n"
+    S"(local.tee $" I(get_attr(v, attr_id)) S")\n"
+    S"(i32.const " I(get_attr(items[1], attr_address)) S") (; key ;)\n"
+
   elseif string_compare(kind, "or") == 0 then
     range_i = 2
 
@@ -1814,6 +1841,32 @@ function process3(ctx, proto, u, v)
   elseif string_compare(kind, "array") == 0 then
     local result = get_attr(v, attr_result)
     for i = result, 1, -1 do
+      S"(local.get $" I(get_attr(v, attr_id)) S")\n"
+      S"(i32.const " I(i) S")\n"
+      S"(call $" I(get_attr(ctx[ctx_set_index], attr_id)) S") (; __set_index ;)\n"
+    end
+
+  elseif string_compare(kind, "table") == 0 then
+    local keys = {}
+    for i = 1, #items do
+      local key = get_items(items[i])[1]
+      table_insert(keys, key)
+    end
+    quick_sort(keys, string_compare_third)
+    for i = 1, #keys do
+      local key = keys[i]
+      set_attr(key, attr_index, i)
+    end
+
+    for i = #items, 1, -1 do
+      local key = get_items(items[i])[1]
+      S"(local.get $" I(get_attr(v, attr_id)) S")\n"
+      S"(i32.const " I(get_attr(key, attr_index)) S")\n"
+      S"(call $" I(get_attr(ctx[ctx_set_index], attr_id)) S") (; __set_index ;)\n"
+    end
+
+  elseif string_compare(kind, "field") == 0 then
+    for i = 2, 1, -1 do
       S"(local.get $" I(get_attr(v, attr_id)) S")\n"
       S"(i32.const " I(i) S")\n"
       S"(call $" I(get_attr(ctx[ctx_set_index], attr_id)) S") (; __set_index ;)\n"
