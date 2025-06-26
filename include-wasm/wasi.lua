@@ -17,7 +17,7 @@
 
 local __errno_table = nil
 
-function errno_to_string(errno)
+function __errno_to_string(errno)
   if __errno_table == nil then
     __errno_table = {
       "E2BIG: Argument list too long.";
@@ -106,6 +106,3 @@ function errno_to_string(errno)
     return s
   end
 end
-
-
-

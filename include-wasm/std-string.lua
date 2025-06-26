@@ -15,6 +15,31 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
+function integer_to_string(v)
+  local b = __new(16)
+  local p = b + 15
+  __i32_store8(p, 0x00)
+
+  local neg = v < 0
+  if neg then
+    v = -v
+  end
+
+  repeat
+    local r = v % 10
+    v = v // 10
+    p = p - 1
+    __i32_store8(p, r + 0x30)
+  until v == 0
+
+  if neg then
+    p = p - 1
+    __i32_store8(p, 0x2D)
+  end
+
+  return __pack_string(b + 15 - p, p)
+end
+
 function string_byte(s, i)
   local size, data = __unpack_string(s)
   assert(i <= size)

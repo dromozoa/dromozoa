@@ -96,31 +96,6 @@ function __write_string_impl(fd, s)
   __fd_write(fd, item, 1, out)
 end
 
-function integer_to_string(v)
-  local b = __new(16)
-  local p = b + 15
-  __i32_store8(p, 0x00)
-
-  local neg = v < 0
-  if neg then
-    v = -v
-  end
-
-  repeat
-    local r = v % 10
-    v = v // 10
-    p = p - 1
-    __i32_store8(p, r + 0x30)
-  until v == 0
-
-  if neg then
-    p = p - 1
-    __i32_store8(p, 0x2D)
-  end
-
-  return __pack_string(b + 15 - p, p)
-end
-
 -- rights
 -- 1<<0 = 0x01: fd_datasync
 -- 1<<1 = 0x02: fd_read
@@ -147,7 +122,7 @@ function io_open_read(path)
   if errno == 0 then
     return true, __i32_load(fd)
   else
-    return false, errno_to_string(errno)
+    return false, __errno_to_string(errno)
   end
 end
 
@@ -167,7 +142,7 @@ function io_open_write(path)
   if errno == 0 then
     return true, __i32_load(fd)
   else
-    return false, errno_to_string(errno)
+    return false, __errno_to_string(errno)
   end
 end
 
