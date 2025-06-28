@@ -506,6 +506,8 @@ local parser_nud = nil
 local parser_led = nil
 local parser_prefix_lbp = 0
 local parser_max_lbp = 0
+local parser_nud_prefixexp = nil
+local parser_led_prefixexp = nil
 
 function nud_token(parser, token)
   return token
@@ -624,52 +626,70 @@ function led_key(parser, lbp, token, node)
   return result
 end
 
+function insert_nud(item, prefixexp)
+  table_insert(parser_nud, item)
+  if prefixexp then
+    table_insert(parser_nud_prefixexp, item)
+  end
+end
+
+function insert_led(item, prefixexp)
+  table_insert(parser_led, item)
+  if prefixexp then
+    table_insert(parser_led_prefixexp, item)
+  end
+end
+
 function parser_initialize()
   parser_nud = {}
   parser_led = {}
+  parser_nud_prefixexp = {}
+  parser_led_prefixexp = {}
 
-  table_insert(parser_nud, { "false",    nud_token    })
-  table_insert(parser_nud, { "nil",      nud_token    })
-  table_insert(parser_nud, { "true",     nud_token    })
-  table_insert(parser_nud, { "Name",     nud_name     })
-  table_insert(parser_nud, { "String",   nud_token    })
-  table_insert(parser_nud, { "Integer",  nud_token    })
-  table_insert(parser_nud, { "(",        nud_group    })
-  table_insert(parser_nud, { "{",        nud_table    })
-  table_insert(parser_nud, { "not",      nud_prefix   })
-  table_insert(parser_nud, { "#",        nud_prefix   })
-  table_insert(parser_nud, { "-",        nud_negate   })
-  table_insert(parser_nud, { "~",        nud_prefix   })
-  table_insert(parser_nud, { "function", nud_function })
+  insert_nud({ "false",    nud_token    }, false)
+  insert_nud({ "nil",      nud_token    }, false)
+  insert_nud({ "true",     nud_token    }, false)
+  insert_nud({ "Name",     nud_name     }, true)
+  insert_nud({ "String",   nud_token    }, false)
+  insert_nud({ "Integer",  nud_token    }, false)
+  insert_nud({ "(",        nud_group    }, true)
+  insert_nud({ "{",        nud_table    }, false)
+  insert_nud({ "not",      nud_prefix   }, false)
+  insert_nud({ "#",        nud_prefix   }, false)
+  insert_nud({ "-",        nud_negate   }, false)
+  insert_nud({ "~",        nud_prefix   }, false)
+  insert_nud({ "function", nud_function }, false)
 
   local bp = 10
-  table_insert(parser_led, { "or",  bp, led_left   }) bp = bp + 10
-  table_insert(parser_led, { "and", bp, led_left   }) bp = bp + 10
-  table_insert(parser_led, { "<",   bp, led_left   })
-  table_insert(parser_led, { ">",   bp, led_left   })
-  table_insert(parser_led, { "<=",  bp, led_left   })
-  table_insert(parser_led, { ">=",  bp, led_left   })
-  table_insert(parser_led, { "~=",  bp, led_left   })
-  table_insert(parser_led, { "==",  bp, led_left   }) bp = bp + 10
-  table_insert(parser_led, { "|",   bp, led_left   }) bp = bp + 10
-  table_insert(parser_led, { "~",   bp, led_left   }) bp = bp + 10
-  table_insert(parser_led, { "&",   bp, led_left   }) bp = bp + 10
-  table_insert(parser_led, { "<<",  bp, led_left   })
-  table_insert(parser_led, { ">>",  bp, led_left   }) bp = bp + 10
-  table_insert(parser_led, { "..",  bp, led_right  }) bp = bp + 10
-  table_insert(parser_led, { "+",   bp, led_left   })
-  table_insert(parser_led, { "-",   bp, led_left   }) bp = bp + 10
-  table_insert(parser_led, { "*",   bp, led_left   })
-  table_insert(parser_led, { "//",  bp, led_left   })
-  table_insert(parser_led, { "%",   bp, led_left   }) bp = bp + 10
-  parser_prefix_lbp = bp                              bp = bp + 10
-  table_insert(parser_led, { "(",   bp, led_call   })
-  table_insert(parser_led, { "[",   bp, led_index  })
-  table_insert(parser_led, { ".",   bp, led_key    })
+  insert_led({ "or",  bp, led_left   }, false) bp = bp + 10
+  insert_led({ "and", bp, led_left   }, false) bp = bp + 10
+  insert_led({ "<",   bp, led_left   }, false)
+  insert_led({ ">",   bp, led_left   }, false)
+  insert_led({ "<=",  bp, led_left   }, false)
+  insert_led({ ">=",  bp, led_left   }, false)
+  insert_led({ "~=",  bp, led_left   }, false)
+  insert_led({ "==",  bp, led_left   }, false) bp = bp + 10
+  insert_led({ "|",   bp, led_left   }, false) bp = bp + 10
+  insert_led({ "~",   bp, led_left   }, false) bp = bp + 10
+  insert_led({ "&",   bp, led_left   }, false) bp = bp + 10
+  insert_led({ "<<",  bp, led_left   }, false)
+  insert_led({ ">>",  bp, led_left   }, false) bp = bp + 10
+  insert_led({ "..",  bp, led_right  }, false) bp = bp + 10
+  insert_led({ "+",   bp, led_left   }, false)
+  insert_led({ "-",   bp, led_left   }, false) bp = bp + 10
+  insert_led({ "*",   bp, led_left   }, false)
+  insert_led({ "//",  bp, led_left   }, false)
+  insert_led({ "%",   bp, led_left   }, false) bp = bp + 10
+  parser_prefix_lbp = bp                       bp = bp + 10
+  insert_led({ "(",   bp, led_call   }, true)
+  insert_led({ "[",   bp, led_index  }, true)
+  insert_led({ ".",   bp, led_key    }, true)
   parser_max_lbp = bp
 
   quick_sort(parser_nud, string_compare_first)
   quick_sort(parser_led, string_compare_first)
+  quick_sort(parser_nud_prefixexp, string_compare_first)
+  quick_sort(parser_led_prefixexp, string_compare_first)
 end
 
 function parser_error(node)
@@ -786,28 +806,20 @@ function parser_stat(parser)
     return new_empty_node(";", token)
 
   elseif string_compare(token.kind, "Name") == 0 then
-    -- var ::= Name
-    --       | Name       '[' exp ']' { '[' exp ']' }
-    --       | Name args  '[' exp ']' { '[' exp ']' }
-    --       | '(' exp ') '[' exp ']' { '[' exp ']' }
-    -- args ::= '(' ... ')'
-    --        | String
-    local next_token = parser_peek(parser)
-    if string_compare(next_token.kind, "(") == 0
-      or string_compare(next_token.kind, "String") == 0 then
-      local index = parser.index
-      parser_read(parser)
-      local args = nil
-      if string_compare(next_token.kind, "(") == 0 then
-        args = parser_list(parser, "args", parser_exp_or_nil, ",", ")")
-      else
-        args = new_node("args", { next_token })
-      end
-      if string_compare(parser_peek(parser).kind, "[") ~= 0
-        and string_compare(parser_peek(parser).kind, ".") ~= 0 then
+    parser_unread(parser)
+
+    local index = parser.index
+    local prefixexp = parser_prefixexp_or_nil(parser)
+    if prefixexp ~= nil then
+      if string_compare(parser_peek(parser).kind, "=") ~= 0
+        and string_compare(parser_peek(parser).kind, ",") ~= 0 then
+        -- 厳密には文法的に正しくない文法をパースできてしまう
+        assert(string_compare(prefixexp.kind, "call") == 0)
+        prefixexp.is_exp = false
+
         -- 関数呼び出し文のrequireだけ特別扱いする
-        if string_compare(token.value, "require") == 0 then
-          local arg = args.items[1]
+        if string_compare(prefixexp.items[1].value, "require") == 0 then
+          local arg = prefixexp.items[2].items[1]
           if string_compare(arg.kind, "String") == 0 then
             local loaded = parser.loaded
             local name = arg.value
@@ -826,11 +838,11 @@ function parser_stat(parser)
             end
           end
         end
-        return new_node("call", { token, args })
+
+        return prefixexp
       end
-      parser.index = index
     end
-    parser_unread(parser)
+    parser.index = index
     return parser_stat_assign(parser)
 
   elseif string_compare(token.kind, "(") == 0 then
@@ -906,48 +918,11 @@ function parser_stat(parser)
 end
 
 function parser_var(parser)
-  local node = nil
-
-  local token = parser_read(parser)
-  if string_compare(token.kind, "Name") == 0 then
-    local next_token = parser_peek(parser)
-    if string_compare(next_token.kind, "(") == 0 then
-      parser_read(parser)
-      local args = parser_list(parser, "args", parser_exp_or_nil, ",", ")")
-      node = new_node("call", { token, args })
-      node.is_exp = true
-    elseif string_compare(next_token.kind, "String") == 0 then
-      parser_read(parser)
-      local args = new_node("args", { next_token })
-      node = new_node("call", { token, args })
-      node.is_exp = true
-    elseif string_compare(next_token.kind, "[") ~= 0
-      and string_compare(next_token.kind, ".") ~= 0 then
-      return token
-    else
-      node = token
-    end
-  elseif string_compare(token.kind, "(") then
-    node = nud_group(parser, token)
-  else
-    parser_unread(parser)
-    return nil
-  end
-
-  repeat
-    local token = parser_expect2(parser, "[", ".")
-    if string_compare(token.kind, "[") == 0 then
-      node = led_index(parser, parser_max_lbp, token, node)
-    else
-      node = led_key(parser, parser_max_lbp, token, node)
-    end
-  until string_compare(parser_peek(parser).kind, "[") ~= 0
-    and string_compare(parser_peek(parser).kind, ".") ~= 0
-
-  return node
+  -- 厳密には文法的に正しくない文法をパースできてしまう
+  return parser_prefixexp_or_nil(parser)
 end
 
-function parser_exp_impl(parser, rbp, return_if_nud_is_nil)
+function parser_exp_impl(parser, rbp, return_if_nud_is_nil, parser_nud, parser_led)
   local token = parser_read(parser)
   local nud = parser_item_search(parser_nud, token)
   if nud == nil then
@@ -974,11 +949,15 @@ function parser_exp_impl(parser, rbp, return_if_nud_is_nil)
 end
 
 function parser_exp(parser, rbp)
-  return parser_exp_impl(parser, rbp, false)
+  return parser_exp_impl(parser, rbp, false, parser_nud, parser_led)
 end
 
 function parser_exp_or_nil(parser)
-  return parser_exp_impl(parser, 0, true)
+  return parser_exp_impl(parser, 0, true, parser_nud, parser_led)
+end
+
+function parser_prefixexp_or_nil(parser)
+  return parser_exp_impl(parser, 0, true, parser_nud_prefixexp, parser_led_prefixexp)
 end
 
 function parser_name(parser)
