@@ -813,7 +813,6 @@ function parser_stat(parser)
     if prefixexp ~= nil then
       if string_compare(parser_peek(parser).kind, "=") ~= 0
         and string_compare(parser_peek(parser).kind, ",") ~= 0 then
-        -- 厳密には文法的に正しくない文法をパースできてしまう
         assert(string_compare(prefixexp.kind, "call") == 0)
         prefixexp.is_exp = false
 
@@ -919,6 +918,7 @@ end
 
 function parser_var(parser)
   -- 厳密には文法的に正しくない文法をパースできてしまう
+  -- トップのkindを調べればよいはず
   return parser_prefixexp_or_nil(parser)
 end
 
