@@ -15,12 +15,4 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-require "core"
-require "core-string"
-require "core-table"
-require "wasi"
-require "std"
-require "std-io"
-require "std-string"
-require "std-table"
-require "common-string"
+

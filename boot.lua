@@ -800,6 +800,31 @@ function parser_stat_if(parser)
   return new_node("if", { exp, then_block, else_block })
 end
 
+function parser_require(parser, module, token)
+  local loaded = parser.loaded
+  local found = false
+  for i = 1, #loaded do
+    if string_compare(loaded[i], module) == 0 then
+      found = true
+    end
+  end
+  if found then
+    return new_empty_node(";", token)
+  else
+    local result, chunk = lexer_parser("include-wasm/"..module..".lua", loaded)
+    if result then
+      table_insert(loaded, module)
+      return chunk.items[1]
+    end
+    local result, chunk = lexer_parser("include/"..module..".lua", loaded)
+    if result then
+      table_insert(loaded, module)
+      return chunk.items[1]
+    end
+    error(chunk)
+  end
+end
+
 function parser_stat(parser)
   local token = parser_read(parser)
   if string_compare(token.kind, ";") == 0 then
@@ -820,21 +845,7 @@ function parser_stat(parser)
         if string_compare(prefixexp.items[1].value, "require") == 0 then
           local arg = prefixexp.items[2].items[1]
           if string_compare(arg.kind, "String") == 0 then
-            local loaded = parser.loaded
-            local name = arg.value
-            local found = false
-            for i = 1, #loaded do
-              if string_compare(loaded[i], name) == 0 then
-                found = true
-              end
-            end
-            if found then
-              return new_empty_node(";", token)
-            else
-              local chunk = lexer_parser("include-wasm/"..name..".lua", loaded)
-              table_insert(loaded, name)
-              return chunk.items[1]
-            end
+            return parser_require(parser, arg.value, token)
           end
         end
 
@@ -2020,12 +2031,11 @@ end
 function lexer_parser(source_file, loaded)
   local result, file = io_open(source_file, "rb")
   if not result then
-    local message = file
-    error(message)
+    return result, file
   end
   local source = file_read_all(file)
   file_close(file)
-  return parser(lexer(source_file, source), loaded)
+  return true, parser(lexer(source_file, source), loaded)
 end
 
 function main()
@@ -2039,7 +2049,10 @@ function main()
   end
 
   -- show_memory_usage()
-  local chunk = lexer_parser(args[1], {})
+  local result, chunk = lexer_parser(args[1], {})
+  if not result then
+    error(chunk)
+  end
   -- show_memory_usage()
   compiler(chunk)
   -- show_memory_usage()

@@ -15,6 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
+require "common-string"
+
 function __check_result(n, ...)
   assert(select("#", ...) == n)
   return ...

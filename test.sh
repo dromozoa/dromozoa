@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-LUA_PATH="include-lua/?.lua;;"
+LUA_PATH="include-lua/?.lua;include/?.lua;;"
 export LUA_PATH
 
 wasm1="wasmer run --dir=."
