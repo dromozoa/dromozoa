@@ -282,7 +282,7 @@ function lexer_rule_comment(source_file, source, position)
   local p = position
   local n = #source
 
-  if string_compare(string_sub(source, p, p + 1), "--") ~= 0 then
+  if not string_starts_with(source, p, "--") then
     return 0, nil
   end
   p = p + 2
@@ -310,7 +310,7 @@ function lexer_rule_comment(source_file, source, position)
     if q ~= 0 then
       local e = string_char(t)
       while q <= n do
-        if string_compare(string_sub(source, q, q + #e - 1), e) == 0 then
+        if string_starts_with(source, q, e) then
           return q + #e, nil
         end
         q = q + 1
@@ -438,8 +438,7 @@ function lexer_rule_integer(source_file, source, position)
     return 0x30 <= c and c <= 0x39
   end
 
-  local prefix = string_sub(source, p, p + 1)
-  if string_compare(prefix, "0X") == 0 or string_compare(prefix, "0x") == 0 then
+  if string_starts_with(source, p, "0X") or string_starts_with(source, p, "0x") then
     p = p + 2
     q = q + 2
 

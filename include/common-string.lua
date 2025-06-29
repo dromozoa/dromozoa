@@ -15,4 +15,13 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-
+function string_starts_with(s, p, t)
+  for i = 1, #t do
+    local c = string_byte(s, p + i - 1)
+    local d = string_byte(t, i)
+    if c ~= d then
+      return false
+    end
+  end
+  return true
+end
