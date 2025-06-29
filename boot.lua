@@ -832,24 +832,24 @@ function parser_stat(parser)
   elseif string_compare(token.kind, "Name") == 0 then
     parser_unread(parser)
 
+    -- TODO prefixexpをバックトラックするのは非効率なので修正する
     local index = parser.index
     local prefixexp = parser_prefixexp_or_nil(parser)
-    if prefixexp ~= nil then
-      if string_compare(parser_peek(parser).kind, "=") ~= 0
-        and string_compare(parser_peek(parser).kind, ",") ~= 0 then
-        assert(string_compare(prefixexp.kind, "call") == 0)
-        prefixexp.is_exp = false
+    assert(prefixexp ~= nil)
+    if string_compare(parser_peek(parser).kind, "=") ~= 0
+      and string_compare(parser_peek(parser).kind, ",") ~= 0 then
+      assert(string_compare(prefixexp.kind, "call") == 0)
+      prefixexp.is_exp = false
 
-        -- 関数呼び出し文のrequireだけ特別扱いする
-        if string_compare(prefixexp.items[1].value, "require") == 0 then
-          local arg = prefixexp.items[2].items[1]
-          if string_compare(arg.kind, "String") == 0 then
-            return parser_require(parser, arg.value, token)
-          end
+      -- 関数呼び出し文のrequireだけ特別扱いする
+      if string_compare(prefixexp.items[1].value, "require") == 0 then
+        local arg = prefixexp.items[2].items[1]
+        if string_compare(arg.kind, "String") == 0 then
+          return parser_require(parser, arg.value, token)
         end
-
-        return prefixexp
       end
+
+      return prefixexp
     end
     parser.index = index
     return parser_stat_assign(parser)
