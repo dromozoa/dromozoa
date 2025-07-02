@@ -774,8 +774,31 @@ function parser_block(parser)
   return parser_list(parser, "block", parser_stat, nil, nil)
 end
 
-function parser_stat_assign(parser)
-  local varlist = parser_list(parser, "varlist", parser_var, ",", "=")
+function check_prefixexp_is_var(prefixexp)
+  -- 変数名かインデックスアクセスのときのみ、左辺値になりうる
+  return string_compare(prefixexp.kind, "Name") == 0
+    or string_compare(prefixexp.kind, "index") == 0
+    or string_compare(prefixexp.kind, ".") == 0
+end
+
+function parser_stat_assign(parser, prefixexp)
+  assert(check_prefixexp_is_var(prefixexp))
+  local items = { prefixexp }
+  while true do
+    if string_compare(parser_peek(parser).kind, ",") == 0 then
+      parser_read(parser)
+    else
+      break
+    end
+
+    local prefixexp = parser_prefixexp_or_nil(parser)
+    assert(prefixexp ~= nil)
+    assert(check_prefixexp_is_var(prefixexp))
+    table_insert(items, prefixexp)
+  end
+  parser_expect(parser, "=")
+
+  local varlist = new_node("varlist", items)
   local explist = parser_list(parser, "explist", parser_exp_or_nil, ",", nil)
   return new_node("assign", { explist, varlist })
 end
@@ -832,8 +855,6 @@ function parser_stat(parser)
   elseif string_compare(token.kind, "Name") == 0 then
     parser_unread(parser)
 
-    -- TODO prefixexpをバックトラックするのは非効率なので修正する
-    local index = parser.index
     local prefixexp = parser_prefixexp_or_nil(parser)
     assert(prefixexp ~= nil)
     if string_compare(parser_peek(parser).kind, "=") ~= 0
@@ -851,12 +872,12 @@ function parser_stat(parser)
 
       return prefixexp
     end
-    parser.index = index
-    return parser_stat_assign(parser)
+    return parser_stat_assign(parser, prefixexp)
 
   elseif string_compare(token.kind, "(") == 0 then
     parser_unread(parser)
-    return parser_stat_assign(parser)
+    local prefixexp = parser_prefixexp_or_nil(parser)
+    return parser_stat_assign(parser, prefixexp)
 
   elseif string_compare(token.kind, "break") == 0 then
     return new_empty_node("break", token)
@@ -924,12 +945,6 @@ function parser_stat(parser)
     parser_unread(parser)
     return nil
   end
-end
-
-function parser_var(parser)
-  -- 厳密には文法的に正しくない文法をパースできてしまう
-  -- トップのkindを調べればよいはず
-  return parser_prefixexp_or_nil(parser)
 end
 
 function parser_exp_impl(parser, rbp, return_if_nud_is_nil, parser_nud, parser_led)
