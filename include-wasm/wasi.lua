@@ -149,7 +149,7 @@ local __right_fd_advice           = 0x80
 
 function __open(path, rights)
   local size, data = __unpack_string(path)
-  local fd = __new(4)
+  local fd = __new_stack(4)
   local errno = __path_open(
     __get_at_fdcwd(),         -- dirfd
     0,                        -- dirflags
@@ -201,10 +201,22 @@ end
 
 function __write_string(fd, s)
   local size, data = __unpack_string(s)
-  local iovs = __new(8)
+  local iovs = __new_stack(8)
   __i32_store(iovs, data)
   __i32_store(iovs + 4, size)
-  local nwrite = __new(4)
+  local nwrite = __new_stack(4)
+  local errno = __fd_write(fd, iovs, 1, nwrite)
+  if errno ~= 0 then
+    error("io error: "..__errno_to_string(errno))
+  end
+end
+
+function __write_integer(fd, v)
+  local size, data = __integer_to_string(v, __new_stack(16))
+  local iovs = __new_stack(8)
+  __i32_store(iovs, data)
+  __i32_store(iovs + 4, size)
+  local nwrite = __new_stack(4)
   local errno = __fd_write(fd, iovs, 1, nwrite)
   if errno ~= 0 then
     error("io error: "..__errno_to_string(errno))

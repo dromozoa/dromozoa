@@ -41,6 +41,15 @@ function __new(n)
   return pointer
 end
 
+function __new_stack(n)
+  local pointer = __stack_pointer + __ceil_mul(n, 8)
+  if pointer >= __stack_end then
+    error "stack overflow"
+  end
+  __stack_pointer = pointer
+  return pointer
+end
+
 function __length(p)
   return __i32_load(p)
 end

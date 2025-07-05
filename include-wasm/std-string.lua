@@ -15,8 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-function integer_to_string(v)
-  local b = __new(16)
+function __integer_to_string(v, b)
   local p = b + 15
   __i32_store8(p, 0x00)
 
@@ -37,7 +36,11 @@ function integer_to_string(v)
     __i32_store8(p, 0x2D)
   end
 
-  return __pack_string(b + 15 - p, p)
+  return b + 15 - p, p
+end
+
+function integer_to_string(v)
+  return __pack_string(__integer_to_string(v, __new(16)))
 end
 
 function string_byte(s, i)
