@@ -1195,6 +1195,7 @@ function new_ctx()
   return {
     id = 0;
     address = 0;
+    stack_pointer = nil;
     length = nil;
     concat = nil;
     new_table = nil;
@@ -1281,6 +1282,7 @@ function add_global_address(ctx, var_table, scope, u, mutable, value)
     S" i32"
   end
   S" (i32.const " I(value) S")) (; " S(u.value) S" ;)\n"
+  return id
 end
 
 function resolve_name_impl(proto_table, scope, u, mode)
@@ -1942,6 +1944,7 @@ function write_function_table(ctx, function_table)
       S"(result" SR(result, " i32") S")\n"
     end
 
+    S"(local $sp i32)\n"
     local var_table = proto.ref
     for i = 1, #var_table do
       local var = var_table[i]
@@ -1954,6 +1957,9 @@ function write_function_table(ctx, function_table)
     end
     S"(local $dup i32)\n"
 
+    S"(global.get $" I(ctx.stack_pointer) S")\n"
+    S"(local.set $sp)\n"
+
     S"block $main\n"
     for i = 3, #items do
       process3(ctx, proto, u, items[i])
@@ -1962,6 +1968,9 @@ function write_function_table(ctx, function_table)
       S"(unreachable)\n"
     end
     S"end\n"
+
+    S"(local.get $sp)\n"
+    S"(global.set $" I(ctx.stack_pointer) S")\n"
 
     for i = 1, result do
       S"(local.get $r" I(i) S")\n"
@@ -2026,7 +2035,7 @@ function compiler(chunk)
   local heap_pointer = stack_end
   local memory_size = roundup(heap_pointer, 65536) >> 16
 
-  add_global_address(ctx, var_table, scope, new_name "__stack_pointer", true, stack_pointer)
+  ctx.stack_pointer = add_global_address(ctx, var_table, scope, new_name "__stack_pointer", true, stack_pointer)
   add_global_address(ctx, var_table, scope, new_name "__stack_end", false, stack_end)
   add_global_address(ctx, var_table, scope, new_name "__heap_pointer", true, heap_pointer)
 
