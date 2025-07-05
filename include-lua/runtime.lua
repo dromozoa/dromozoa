@@ -41,7 +41,7 @@ function os_exit(code)
 end
 
 function show_memory_usage()
-  io.stderr:write("memory usage: ", collectgarbage "count" * 1024, "\n")
+  io.stderr:write("collectgarbage count: ", collectgarbage "count" * 1024, "\n")
 end
 
 function io_open(path, mode)

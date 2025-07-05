@@ -36,7 +36,7 @@ function io_write_string(s)
 end
 
 function io_write_integer(v)
-  __write_string(1, integer_to_string(v))
+  __write_integer(1, v)
 end
 
 function io_stderr_write_string(s)
@@ -44,7 +44,7 @@ function io_stderr_write_string(s)
 end
 
 function io_stderr_write_integer(v)
-  __write_string(2, integer_to_string(v))
+  __write_integer(2, v)
 end
 
 function file_close(fd)
@@ -60,5 +60,5 @@ function file_write_string(fd, s)
 end
 
 function file_write_integer(fd, v)
-  __write_string(fd, integer_to_string(v))
+  __write_integer(fd, v)
 end

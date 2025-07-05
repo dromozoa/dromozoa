@@ -28,7 +28,10 @@ function error(message)
 end
 
 function show_memory_usage()
-  io_stderr_write_string "memory usage: "
-  io_stderr_write_string(integer_to_string(__heap_pointer))
+  io_stderr_write_string "stack_pointer: "
+  io_stderr_write_integer(__stack_pointer)
+  io_stderr_write_string ", "
+  io_stderr_write_string "heap_pointer: "
+  io_stderr_write_integer(__heap_pointer)
   io_stderr_write_string "\n"
 end
