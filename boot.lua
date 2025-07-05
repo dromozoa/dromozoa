@@ -2024,6 +2024,8 @@ function compiler(chunk)
   add_wasi(ctx, proto_table, new_name "__args_get", 1, "args_get", "(param i32 i32)")
   add_wasi(ctx, proto_table, new_name "__proc_exit", 0, "proc_exit", "(param i32)")
 
+  S"(type $string (array i8))\n"
+
   local string_tokens = {}
   local function_table = {}
   local chunk_block = chunk.items[1]

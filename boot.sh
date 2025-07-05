@@ -20,12 +20,10 @@
 LUA_PATH="include-lua/?.lua;include/?.lua;;"
 export LUA_PATH
 
-wasm1="wasmer run --dir=."
-wasm2="wasmtime run --dir=."
+wat2wasm="wasm-tools parse"
+wasmtime="wasmtime run --dir=. -W gc"
 
 lua boot.lua boot.lua >boot-stage0.wat
-wat2wasm boot-stage0.wat
-$wasm1 boot-stage0.wasm boot.lua >boot-stage1.wat
-$wasm2 boot-stage0.wasm boot.lua >boot-stage2.wat
+$wat2wasm boot-stage0.wat >boot-stage0.wasm
+$wasmtime boot-stage0.wasm boot.lua >boot-stage1.wat
 cmp boot-stage0.wat boot-stage1.wat
-cmp boot-stage0.wat boot-stage2.wat
