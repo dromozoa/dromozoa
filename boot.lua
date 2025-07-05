@@ -1272,6 +1272,17 @@ function add_wasi(ctx, proto_table, u, result, name, param)
   S"))\n"
 end
 
+function add_global_address(ctx, var_table, scope, u, mutable, value)
+  local id = add_global(ctx, var_table, scope, u)
+  S"(global $" I(id)
+  if mutable then
+    S" (mut i32)"
+  else
+    S" i32"
+  end
+  S" (i32.const " I(value) S")) (; " S(u.value) S" ;)\n"
+end
+
 function resolve_name_impl(proto_table, scope, u, mode)
   while scope ~= nil do
     local data = scope[scope_data]
@@ -2010,9 +2021,14 @@ function compiler(chunk)
   process1(ctx, string_tokens, proto_table, function_table, nil, chunk, chunk_block)
 
   local string_table, string_end = make_string_table(string_tokens)
-  local heap_pointer = roundup(string_end, 1024)
+  local stack_pointer = roundup(string_end, 1024)
+  local stack_end = stack_pointer + 65536
+  local heap_pointer = stack_end
   local memory_size = roundup(heap_pointer, 65536) >> 16
-  local heap_pointer_id = add_global(ctx, var_table, scope, new_name "__heap_pointer")
+
+  add_global_address(ctx, var_table, scope, new_name "__stack_pointer", true, stack_pointer)
+  add_global_address(ctx, var_table, scope, new_name "__stack_end", false, stack_end)
+  add_global_address(ctx, var_table, scope, new_name "__heap_pointer", true, heap_pointer)
 
   S"(memory " I(memory_size) S")\n"
   S'(export "memory" (memory 0))\n'
@@ -2031,8 +2047,6 @@ function compiler(chunk)
 
   write_function_table(ctx, function_table)
   write_proto_table(proto_table)
-
-  S"(global $" I(heap_pointer_id) S" (mut i32) (i32.const " I(heap_pointer) S")) (; __heap_pointer ;)\n"
 
   process3(ctx, nil, chunk, chunk_block)
   write_string_table(string_table)
