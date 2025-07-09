@@ -17,8 +17,102 @@
 
 require "runtime"
 
+--------------------------------------------------------------------------------
+
+local keywords
+local symbols1
+local symbols2
+local symbols3
+
+function lexer_initialize()
+  keywords = {
+    "and";
+    "break";
+    "do";
+    "else";
+    "elseif";
+    "end";
+    "false";
+    "for";
+    "function";
+    "goto";
+    "if";
+    "in";
+    "local";
+    "nil";
+    "not";
+    "or";
+    "repeat";
+    "return";
+    "then";
+    "true";
+    "until";
+    "while";
+  }
+
+  symbols1 = {
+    "#";
+    "%";
+    "&";
+    "(";
+    ")";
+    "*";
+    "+";
+    ",";
+    "-";
+    ".";
+    "/";
+    ":";
+    ";";
+    "<";
+    "=";
+    ">";
+    "[";
+    "]";
+    "^";
+    "{";
+    "|";
+    "}";
+    "~";
+  }
+
+  symbols2 = {
+    "..";
+    "//";
+    "::";
+    "<<";
+    "<=";
+    "==";
+    ">=";
+    ">>";
+    "~=";
+  }
+
+  symbols3 = {
+    "...";
+  }
+end
+
+--------------------------------------------------------------------------------
+
+function parse(parser, source_file)
+  local source = read_file(source_file)
+  local lexer = {
+    source_file = source_file;
+    source      = source;
+    position    = 1;
+  }
+
+
+end
+
+--------------------------------------------------------------------------------
+
 function main()
-  print "main"
+  lexer_initialize()
+
+  local parser = {}
+  local tree = parse(parser, arg[1])
 end
 
 export_start(main)

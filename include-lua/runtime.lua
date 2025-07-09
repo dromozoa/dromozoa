@@ -18,3 +18,18 @@
 function export_start(f)
   assert(select("#", f()) == 0)
 end
+
+function read_file(path)
+  local handle <close> = assert(io.open(path))
+  return handle:read "a"
+end
+
+function write_string(s)
+  assert(type(s) == "string")
+  io.write(s)
+end
+
+function write_integer(v)
+  assert(math.type(v) == "integer")
+  io.write(v)
+end
