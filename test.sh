@@ -17,4 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-cat boot.lua | lua run.lua "$@"
+LUA_PATH="include-lua/?.lua;;"
+export LUA_PATH
+
+lua boot.lua
