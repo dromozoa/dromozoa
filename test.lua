@@ -16,9 +16,3 @@
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
 require "runtime"
-
-function main()
-  print "main"
-end
-
-export_start(main)
