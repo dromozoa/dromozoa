@@ -57,6 +57,24 @@ function match_literal(s, p, t)
   return p
 end
 
+function match_end_of_line(s, p, t)
+  local u = string_byte(s, p)
+  if u == 0x0A then
+    local v = string_byte(s, p + 1)
+    if v == 0x0D then
+      return p + 2
+    end
+    return p + 1
+  elseif u == 0x0D then
+    local v = string_byte(s, p + 1)
+    if v == 0x0A then
+      return p + 2
+    end
+    return p + 1
+  end
+  return 0
+end
+
 function match_char_set(s, p, t)
   local u = string_byte(s, p)
   for i = 1, #t do
@@ -180,16 +198,27 @@ function lexer_token(lexer, kind, value)
   }
 end
 
+function lexer_update(lexer, position)
+  local p = lexer.position
+  local q = position
+
+  local l = lexer.line
+  local c = lexer.column
+
+  -- TODO なんか良い感じに実装する
+end
+
 function lexer_error(lexer)
   error(lexer.file..":"..integer_to_string(lexer.line)..":"..integer_to_string(lexer.column)..": lexer error")
 end
 
-function lexer_rule_space(lexer, s, p)
-  local q = match_repeat(match_char_set, s, p, "\t\n\v\f\r ")
-  if q == p then
+function lexer_rule_space(lexer, source, position)
+  local p = match_repeat(match_char_set, source, position, "\t\n\v\f\r ")
+  if p == position then
     return 0, nil
   end
-  return q, nil
+  -- lexer_update(lexer, p)
+  return p, nil
 end
 
 function lexer_rule_comment(lexer, s, p)
@@ -232,6 +261,10 @@ function lexer_rule_word(lexer, s, p)
   end
 end
 
+function lexer_rule_number()
+  -- 浮動小数点数リテラルは%.%dになりうる
+end
+
 function lexer_rule_string(lexer, s, p)
   local q = match_char_set(s, p, "\"\'")
   if q == 0 then
@@ -244,19 +277,35 @@ end
 
 function lexer(file)
   local lexer = {
-    file = file;
-    line = 1;
-    column = 1;
+    file     = file;
+    source   = io_read_file(file);
+    position = 1;
+    line     = 1;
+    column   = 1;
   }
 
+--[[
   local tokens = {}
+  while lexer.position <= #lexer.source do
+    local p = 0
+    local token = nil
+
+    for i = 1, #lexer_rules do
+      p, token = lexer_rules[i](lexer)
+      if p ~= 0 then
+        break
+      end
+    end
+
+
+  end
+]]
 
   local s = io_read_file(file)
   local p = 1
-
-  -- 浮動小数点数リテラルは%.%dになりうる
-
   local n = #s
+  local tokens = {}
+
   while p <= n do
     local q = 0
     local token = nil
@@ -275,17 +324,14 @@ function lexer(file)
     local line = lexer.line
     local column = lexer.column
     while p < q do
-      if match_literal(s, p, "\r\n") ~= 0 or match_literal(s, p, "\n\r") ~= 0 then
-        line = line + 1
-        column = 1
-        p = p + 2
-      elseif match_char_set(s, p, "\n\r") ~= 0 then
-        line = line + 1
-        column = 1
-        p = p + 1
-      else
+      local r = match_end_of_line(s, p, nil)
+      if r == 0 then
         column = column + 1
         p = p + 1
+      else
+        line = line + 1
+        column = 1
+        p = r
       end
     end
 
