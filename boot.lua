@@ -16,6 +16,7 @@
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
 require "runtime"
+local json = require "dromozoa.commons.json"
 
 --------------------------------------------------------------------------------
 
@@ -109,6 +110,29 @@ function match_search(match, s, p, t)
   return 0
 end
 
+function binary_search(t, k, v)
+  local i = 1
+  local n = #t
+  while n > 0 do
+    local step = n >> 1
+    local m = i + step
+    local u = t[m]
+    if k > 0 then
+      u = u[k]
+    end
+    local r = string_compare(u, v)
+    if r == 0 then
+      return m
+    elseif r < 0 then
+      i = m + 1
+      n = n - step - 1
+    else
+      n = step
+    end
+  end
+  return 0
+end
+
 --------------------------------------------------------------------------------
 
 function new_info(file, position, line, column)
@@ -138,7 +162,7 @@ function lexer_initialize()
   lexer_rules = {
     lexer_rule_space;
     lexer_rule_comment;
-    -- lexer_rule_word;
+    lexer_rule_word;
     -- lexer_rule_number;
     -- lexer_rule_integer;
     -- lexer_rule_string;
@@ -156,8 +180,8 @@ function lexer_token(lexer, kind, value)
   }
 end
 
-function lexer_error(lexer, message)
-  error(lexer.file..":"..integer_to_string(lexer.line)..":"..integer_to_string(lexer.column)..": lexer error: "..message)
+function lexer_error(lexer)
+  error(lexer.file..":"..integer_to_string(lexer.line)..":"..integer_to_string(lexer.column)..": lexer error")
 end
 
 function lexer_rule_space(lexer, s, p)
@@ -183,7 +207,7 @@ function lexer_rule_comment(lexer, s, p)
       local t = "]"..string_sub(s, p + 1, q - 2).."]"
       q = match_search(match_literal, s, q, t)
       if q == 0 then
-        lexer_error(lexer, "unfinished comment")
+        lexer_error(lexer)
       end
       return q, nil
     end
@@ -193,6 +217,29 @@ function lexer_rule_comment(lexer, s, p)
 end
 
 function lexer_rule_word(lexer, s, p)
+  local q = match_char_range(s, p, "AZaz__")
+  if q == 0 then
+    return 0, nil
+  end
+  q = match_repeat(match_char_range, s, q, "09AZaz__")
+
+  local v = string_sub(s, p, q - 1)
+  local i = binary_search(lexer_keywords, 0, v)
+  if i == 0 then
+    return q, lexer_token(lexer, "Name", v)
+  else
+    return q, lexer_token(lexer, v, v)
+  end
+end
+
+function lexer_rule_string(lexer, s, p)
+  local q = match_char_set(s, p, "\"\'")
+  if q == 0 then
+    return 0, nil
+  end
+  local quote = string_sub(s, p, p)
+
+  return 0, nil
 end
 
 function lexer(file)
@@ -222,7 +269,7 @@ function lexer(file)
     end
 
     if q == 0 then
-      lexer_error(lexer, "invalid char")
+      lexer_error(lexer)
     end
 
     local line = lexer.line
@@ -258,7 +305,8 @@ end
 --------------------------------------------------------------------------------
 
 function parse(parser, source_file)
-  lexer(source_file)
+  local tokens = lexer(source_file)
+  print(json.encode(tokens, { pretty = true, stable = true }))
 end
 
 --------------------------------------------------------------------------------
