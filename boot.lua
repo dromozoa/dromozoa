@@ -199,13 +199,17 @@ function lexer_token(lexer, kind, value)
 end
 
 function lexer_update(lexer, position)
-  local p = lexer.position
-  local q = position
-
-  local l = lexer.line
-  local c = lexer.column
-
-  -- TODO なんか良い感じに実装する
+  while lexer.position < position do
+    local p = match_end_of_line(lexer.source, lexer.position, nil)
+    if p == 0 then
+      lexer.position = lexer.position + 1
+      lexer.column = lexer.column + 1
+    else
+      lexer.position = p
+      lexer.line = lexer.line + 1
+      lexer.column = 1
+    end
+  end
 end
 
 function lexer_error(lexer)
@@ -217,7 +221,7 @@ function lexer_rule_space(lexer, source, position)
   if p == position then
     return 0, nil
   end
-  -- lexer_update(lexer, p)
+  lexer_update(lexer, p)
   return p, nil
 end
 
@@ -238,11 +242,14 @@ function lexer_rule_comment(lexer, s, p)
       if q == 0 then
         lexer_error(lexer)
       end
+      lexer_update(lexer, q)
       return q, nil
     end
   end
 
-  return match_repeat(match_negative_char_set, s, p, "\n\r"), nil
+  local q = match_repeat(match_negative_char_set, s, p, "\n\r")
+  lexer_update(lexer, q)
+  return q, nil
 end
 
 function lexer_rule_word(lexer, s, p)
@@ -254,11 +261,14 @@ function lexer_rule_word(lexer, s, p)
 
   local v = string_sub(s, p, q - 1)
   local i = binary_search(lexer_keywords, 0, v)
+  local token = nil
   if i == 0 then
-    return q, lexer_token(lexer, "Name", v)
+    token = lexer_token(lexer, "Name", v)
   else
-    return q, lexer_token(lexer, v, v)
+    token = lexer_token(lexer, v, v)
   end
+  lexer_update(lexer, q)
+  return q, token
 end
 
 function lexer_rule_number()
@@ -321,24 +331,9 @@ function lexer(file)
       lexer_error(lexer)
     end
 
-    local line = lexer.line
-    local column = lexer.column
-    while p < q do
-      local r = match_end_of_line(s, p, nil)
-      if r == 0 then
-        column = column + 1
-        p = p + 1
-      else
-        line = line + 1
-        column = 1
-        p = r
-      end
-    end
-
-    lexer.line = line
-    lexer.column = column
-
-    p = q
+    -- lexer.position = p
+    -- lexer_update(lexer, q)
+    p = lexer.position
     if token ~= nil then
       tokens[#tokens + 1] = token
     end
