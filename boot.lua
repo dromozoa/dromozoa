@@ -38,7 +38,10 @@ end
 function string_sub(s, i, j)
   local t = {}
   for i = i, j do
-    t[#t + 1] = string_byte(s, i, i)
+    local v = string_byte(s, i)
+    if v ~= -1 then
+      t[#t + 1] = v
+    end
   end
   return string_char(t)
 end
@@ -57,57 +60,48 @@ function match_literal(s, p, t)
   return p
 end
 
-function match_end_of_line(s, p, t)
-  local u = string_byte(s, p)
-  if u == 0x0A then
-    local v = string_byte(s, p + 1)
-    if v == 0x0D then
-      return p + 2
-    end
-    return p + 1
-  elseif u == 0x0D then
-    local v = string_byte(s, p + 1)
-    if v == 0x0A then
-      return p + 2
-    end
-    return p + 1
-  end
-  return 0
-end
-
-function match_char_set(s, p, t)
+function match_char_set(s, p, t, c)
   local u = string_byte(s, p)
   for i = 1, #t do
     if u == string_byte(t, i) then
+      if c ~= nil then
+        c[#c + 1] = u
+      end
       return p + 1
     end
   end
   return 0
 end
 
-function match_negative_char_set(s, p, t)
+function match_char_negative_set(s, p, t, c)
   local u = string_byte(s, p)
   for i = 1, #t do
     if u == string_byte(t, i) then
       return 0
     end
   end
+  if c ~= nil then
+    c[#c + 1] = u
+  end
   return p + 1
 end
 
-function match_char_range(s, p, t)
+function match_char_range(s, p, t, c)
   local u = string_byte(s, p)
   for i = 1, #t, 2 do
     if string_byte(t, i) <= u and u <= string_byte(t, i + 1) then
+      if c ~= nil then
+        c[#c + 1] = u
+      end
       return p + 1
     end
   end
   return 0
 end
 
-function match_repeat(match, s, p, t)
+function match_repeat(match, s, p, t, c)
   while true do
-    local q = match(s, p, t)
+    local q = match(s, p, t, c)
     if q == 0 then
       break
     end
@@ -128,17 +122,31 @@ function match_search(match, s, p, t)
   return 0
 end
 
-function binary_search(t, k, v)
+function match_end_of_line(s, p, t)
+  local u = string_byte(s, p)
+  if u == 0x0A then
+    local v = string_byte(s, p + 1)
+    if v == 0x0D then
+      return p + 2
+    end
+    return p + 1
+  elseif u == 0x0D then
+    local v = string_byte(s, p + 1)
+    if v == 0x0A then
+      return p + 2
+    end
+    return p + 1
+  end
+  return 0
+end
+
+function binary_search(t, v)
   local i = 1
   local n = #t
   while n > 0 do
     local step = n >> 1
     local m = i + step
-    local u = t[m]
-    if k > 0 then
-      u = u[k]
-    end
-    local r = string_compare(u, v)
+    local r = string_compare(t[m], v)
     if r == 0 then
       return m
     elseif r < 0 then
@@ -247,7 +255,7 @@ function lexer_rule_comment(lexer, s, p)
     end
   end
 
-  local q = match_repeat(match_negative_char_set, s, p, "\n\r")
+  local q = match_repeat(match_char_negative_set, s, p, "\n\r")
   lexer_update(lexer, q)
   return q, nil
 end
@@ -260,7 +268,7 @@ function lexer_rule_word(lexer, s, p)
   q = match_repeat(match_char_range, s, q, "09AZaz__")
 
   local v = string_sub(s, p, q - 1)
-  local i = binary_search(lexer_keywords, 0, v)
+  local i = binary_search(lexer_keywords, v)
   local token = nil
   if i == 0 then
     token = lexer_token(lexer, "Name", v)
