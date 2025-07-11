@@ -19,17 +19,34 @@ function export_start(f)
   assert(select("#", f()) == 0)
 end
 
-function read_file(path)
+function io_read_file(path)
   local handle <close> = assert(io.open(path))
   return handle:read "a"
 end
 
-function write_string(s)
+function io_write_string(s)
   assert(type(s) == "string")
   io.write(s)
 end
 
-function write_integer(v)
+function io_write_integer(v)
   assert(math.type(v) == "integer")
   io.write(v)
+end
+
+function string_byte(s, i)
+  if 1 <= i and i <= #s then
+    return string.byte(s, i)
+  else
+    return -1
+  end
+end
+
+function string_char(t)
+  return string.char(table.unpack(t))
+end
+
+function integer_to_string(v)
+  assert(math.type(v) == "integer")
+  return tostring(v)
 end
