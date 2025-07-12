@@ -60,6 +60,20 @@ function match_literal(s, p, t)
   return p
 end
 
+function match_search(match, s, p, t)
+  local n = #s
+  while p <= n do
+    local q = match(s, p, t)
+    if q ~= 0 then
+      return q
+    end
+    p = p + 1
+  end
+  return 0
+end
+
+--------------------------------------------------------------------------------
+
 function match_char_set(s, p, t, c)
   local u = string_byte(s, p)
   for i = 1, #t do
@@ -110,19 +124,7 @@ function match_repeat(match, s, p, t, c)
   return p
 end
 
-function match_search(match, s, p, t)
-  local n = #s
-  while p <= n do
-    local q = match(s, p, t)
-    if q ~= 0 then
-      return q
-    end
-    p = p + 1
-  end
-  return 0
-end
-
-function match_end_of_line(s, p, t)
+function match_end_of_line(s, p)
   local u = string_byte(s, p)
   if u == 0x0A then
     local v = string_byte(s, p + 1)
@@ -208,7 +210,7 @@ end
 
 function lexer_update(lexer, position)
   while lexer.position < position do
-    local p = match_end_of_line(lexer.source, lexer.position, nil)
+    local p = match_end_of_line(lexer.source, lexer.position)
     if p == 0 then
       lexer.position = lexer.position + 1
       lexer.column = lexer.column + 1
@@ -242,10 +244,11 @@ function lexer_rule_comment(lexer, s, p)
 
   q = match_char_set(s, p, "[")
   if q ~= 0 then
-    q = match_repeat(match_char_set, s, q, "=")
+    local capture = {}
+    q = match_repeat(match_char_set, s, q, "=", capture)
     q = match_char_set(s, q, "[")
     if q ~= 0 then
-      local t = "]"..string_sub(s, p + 1, q - 2).."]"
+      local t = "]"..string_char(capture).."]"
       q = match_search(match_literal, s, q, t)
       if q == 0 then
         lexer_error(lexer)
