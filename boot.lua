@@ -60,21 +60,9 @@ function match_literal(s, p, t)
   return p
 end
 
-function match_search(match, s, p, t)
-  local n = #s
-  while p <= n do
-    local q = match(s, p, t)
-    if q ~= 0 then
-      return q
-    end
-    p = p + 1
-  end
-  return 0
-end
-
 --------------------------------------------------------------------------------
 
-function match_char_set(s, p, t, c)
+function match_charset(s, p, t, c)
   local u = string_byte(s, p)
   for i = 1, #t do
     if u == string_byte(t, i) then
@@ -87,7 +75,7 @@ function match_char_set(s, p, t, c)
   return 0
 end
 
-function match_char_negative_set(s, p, t, c)
+function match_nagative_charset(s, p, t, c)
   local u = string_byte(s, p)
   for i = 1, #t do
     if u == string_byte(t, i) then
@@ -100,7 +88,7 @@ function match_char_negative_set(s, p, t, c)
   return p + 1
 end
 
-function match_char_range(s, p, t, c)
+function match_range(s, p, t, c)
   local u = string_byte(s, p)
   for i = 1, #t, 2 do
     if string_byte(t, i) <= u and u <= string_byte(t, i + 1) then
@@ -122,6 +110,18 @@ function match_repeat(match, s, p, t, c)
     p = q
   end
   return p
+end
+
+function match_search(match, s, p, t)
+  local n = #s
+  while p <= n do
+    local q = match(s, p, t)
+    if q ~= 0 then
+      return q
+    end
+    p = p + 1
+  end
+  return 0
 end
 
 function match_end_of_line(s, p)
@@ -198,16 +198,6 @@ function lexer_initialize()
   }
 end
 
-function lexer_token(lexer, kind, value)
-  return {
-    kind   = kind;
-    value  = value;
-    file   = lexer.file;
-    line   = lexer.line;
-    column = lexer.column;
-  }
-end
-
 function lexer_update(lexer, position)
   while lexer.position < position do
     local p = match_end_of_line(lexer.source, lexer.position)
@@ -222,12 +212,22 @@ function lexer_update(lexer, position)
   end
 end
 
+function lexer_token(lexer, kind, value)
+  return {
+    kind   = kind;
+    value  = value;
+    file   = lexer.file;
+    line   = lexer.line;
+    column = lexer.column;
+  }
+end
+
 function lexer_error(lexer)
   error(lexer.file..":"..integer_to_string(lexer.line)..":"..integer_to_string(lexer.column)..": lexer error")
 end
 
 function lexer_rule_space(lexer, source, position)
-  local p = match_repeat(match_char_set, source, position, "\t\n\v\f\r ")
+  local p = match_repeat(match_charset, source, position, "\t\n\v\f\r ")
   if p == position then
     return 0, nil
   end
@@ -242,11 +242,11 @@ function lexer_rule_comment(lexer, s, p)
   end
   p = q
 
-  q = match_char_set(s, p, "[")
+  q = match_charset(s, p, "[")
   if q ~= 0 then
     local capture = {}
-    q = match_repeat(match_char_set, s, q, "=", capture)
-    q = match_char_set(s, q, "[")
+    q = match_repeat(match_charset, s, q, "=", capture)
+    q = match_charset(s, q, "[")
     if q ~= 0 then
       local t = "]"..string_char(capture).."]"
       q = match_search(match_literal, s, q, t)
@@ -258,17 +258,17 @@ function lexer_rule_comment(lexer, s, p)
     end
   end
 
-  local q = match_repeat(match_char_negative_set, s, p, "\n\r")
+  local q = match_repeat(match_nagative_charset, s, p, "\n\r")
   lexer_update(lexer, q)
   return q, nil
 end
 
 function lexer_rule_word(lexer, s, p)
-  local q = match_char_range(s, p, "AZaz__")
+  local q = match_range(s, p, "AZaz__")
   if q == 0 then
     return 0, nil
   end
-  q = match_repeat(match_char_range, s, q, "09AZaz__")
+  q = match_repeat(match_range, s, q, "09AZaz__")
 
   local v = string_sub(s, p, q - 1)
   local i = binary_search(lexer_keywords, v)
@@ -287,7 +287,7 @@ function lexer_rule_number()
 end
 
 function lexer_rule_string(lexer, s, p)
-  local q = match_char_set(s, p, "\"\'")
+  local q = match_charset(s, p, "\"\'")
   if q == 0 then
     return 0, nil
   end
