@@ -183,15 +183,9 @@ end
 function lexer_update(lexer, position)
   while lexer.position < position do
     local u = string_byte(lexer.source, lexer.position)
-    local v = string_byte(lexer.source, lexer.position + 1)
-    if u == 0x0A then
-      if string_byte(lexer.source, lexer.position + 1) == 0x0D then
-        lexer.position = lexer.position + 1
-      end
-      lexer.line = lexer.line + 1
-      lexer.column = 1
-    elseif u == 0x0D then
-      if string_byte(lexer.source, lexer.position + 1) == 0x0A then
+    lexer.position = lexer.position + 1
+    if u == 0x0A or u == 0x0D then
+      if string_byte(lexer.source, lexer.position) == 0x17 - u then
         lexer.position = lexer.position + 1
       end
       lexer.line = lexer.line + 1
@@ -199,18 +193,18 @@ function lexer_update(lexer, position)
     else
       lexer.column = lexer.column + 1
     end
-    lexer.position = lexer.position + 1
   end
 end
 
 function lexer_token(lexer, kind, value)
-  return {
+  local token = {
     kind   = kind;
     value  = value;
     file   = lexer.file;
     line   = lexer.line;
     column = lexer.column;
   }
+  return token
 end
 
 function lexer_error(lexer)
