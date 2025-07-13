@@ -72,24 +72,6 @@ function match_search(s, p, t)
   return 0
 end
 
-function match_endl(s, p)
-  local u = string_byte(s, p)
-  if u == 0x0A then
-    local v = string_byte(s, p + 1)
-    if v == 0x0D then
-      return p + 2
-    end
-    return p + 1
-  elseif u == 0x0D then
-    local v = string_byte(s, p + 1)
-    if v == 0x0A then
-      return p + 2
-    end
-    return p + 1
-  end
-  return 0
-end
-
 --------------------------------------------------------------------------------
 
 function match_charset(s, p, t, c)
@@ -200,15 +182,24 @@ end
 
 function lexer_update(lexer, position)
   while lexer.position < position do
-    local p = match_endl(lexer.source, lexer.position)
-    if p == 0 then
-      lexer.position = lexer.position + 1
-      lexer.column = lexer.column + 1
-    else
-      lexer.position = p
+    local u = string_byte(lexer.source, lexer.position)
+    local v = string_byte(lexer.source, lexer.position + 1)
+    if u == 0x0A then
+      if string_byte(lexer.source, lexer.position + 1) == 0x0D then
+        lexer.position = lexer.position + 1
+      end
       lexer.line = lexer.line + 1
       lexer.column = 1
+    elseif u == 0x0D then
+      if string_byte(lexer.source, lexer.position + 1) == 0x0A then
+        lexer.position = lexer.position + 1
+      end
+      lexer.line = lexer.line + 1
+      lexer.column = 1
+    else
+      lexer.column = lexer.column + 1
     end
+    lexer.position = lexer.position + 1
   end
 end
 
