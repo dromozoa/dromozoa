@@ -196,14 +196,16 @@ function lexer_update(lexer, position)
   end
 end
 
-function lexer_token(lexer, kind, value)
+function lexer_token(lexer, kind, value, position)
   local token = {
-    kind   = kind;
-    value  = value;
-    file   = lexer.file;
-    line   = lexer.line;
-    column = lexer.column;
+    kind     = kind;
+    value    = value;
+    file     = lexer.file;
+    position = lexer.position;
+    line     = lexer.line;
+    column   = lexer.column;
   }
+  lexer_update(lexer, position)
   return token
 end
 
@@ -259,11 +261,10 @@ function lexer_rule_word(lexer, s, p)
   local i = binary_search(lexer_keywords, v)
   local token = nil
   if i == 0 then
-    token = lexer_token(lexer, "Name", v)
+    token = lexer_token(lexer, "Name", v, q)
   else
-    token = lexer_token(lexer, v, v)
+    token = lexer_token(lexer, v, v, q)
   end
-  lexer_update(lexer, q)
   return q, token
 end
 
@@ -290,50 +291,28 @@ function lexer(file)
     column   = 1;
   }
 
---[[
+  local s = io_read_file(file)
+  local n = #s
   local tokens = {}
-  while lexer.position <= #lexer.source do
+
+  while lexer.position <= n do
     local p = 0
     local token = nil
 
     for i = 1, #lexer_rules do
-      p, token = lexer_rules[i](lexer)
+      p, token = lexer_rules[i](lexer, s, lexer.position)
       if p ~= 0 then
         break
       end
     end
 
-
-  end
-]]
-
-  local s = io_read_file(file)
-  local p = 1
-  local n = #s
-  local tokens = {}
-
-  while p <= n do
-    local q = 0
-    local token = nil
-
-    for i = 1, #lexer_rules do
-      q, token = lexer_rules[i](lexer, s, p)
-      if q ~= 0 then
-        break
-      end
-    end
-
-    if q == 0 then
+    if p == 0 then
       lexer_error(lexer)
     end
 
-    -- lexer.position = p
-    -- lexer_update(lexer, q)
-    p = lexer.position
     if token ~= nil then
       tokens[#tokens + 1] = token
     end
-
   end
 
   return tokens
