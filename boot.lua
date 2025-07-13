@@ -60,12 +60,15 @@ function match_literal(s, p, t)
   return p
 end
 
-function match_search(s, p, t)
+function match_search(s, p, t, c)
   local n = #s
   while p <= n do
     local q = match_literal(s, p, t)
     if q ~= 0 then
       return q
+    end
+    if c ~= nil then
+      c[#c + 1] = string_byte(s, p)
     end
     p = p + 1
   end
@@ -214,18 +217,18 @@ function lexer_error(lexer)
 end
 
 function lexer_rule_space(lexer, source, position)
-  local p = match_repeat(match_charset, source, position, "\t\n\v\f\r ")
+  local capture = {}
+  local p = match_repeat(match_charset, source, position, "\t\n\v\f\r ", capture)
   if p == position then
-    return 0, nil
+    return nil
   end
-  lexer_update(lexer, p)
-  return p, nil
+  return lexer_token(lexer, "space", string_char(capture), p)
 end
 
 function lexer_rule_comment(lexer, s, p)
   local q = match_literal(s, p, "--")
   if q == 0 then
-    return 0, nil
+    return nil
   end
   p = q
 
@@ -236,24 +239,28 @@ function lexer_rule_comment(lexer, s, p)
     q = match_charset(s, q, "[")
     if q ~= 0 then
       local t = "]"..string_char(capture).."]"
-      q = match_search(s, q, t)
+      local capture = {}
+      q = match_search(s, q, t, capture)
       if q == 0 then
         lexer_error(lexer)
       end
-      lexer_update(lexer, q)
-      return q, nil
+      return lexer_token(lexer, "comment", string_char(capture), q)
+      -- lexer_update(lexer, q)
+      -- return q, nil
     end
   end
 
-  local q = match_repeat(match_nagative_charset, s, p, "\n\r")
-  lexer_update(lexer, q)
-  return q, nil
+  local capture = {}
+  local q = match_repeat(match_nagative_charset, s, p, "\n\r", capture)
+  return lexer_token(lexer, "comment", string_char(capture), q)
+  -- lexer_update(lexer, q)
+  -- return q, nil
 end
 
 function lexer_rule_word(lexer, s, p)
   local q = match_range(s, p, "AZaz__")
   if q == 0 then
-    return 0, nil
+    return nil
   end
   q = match_repeat(match_range, s, q, "09AZaz__")
 
@@ -265,7 +272,7 @@ function lexer_rule_word(lexer, s, p)
   else
     token = lexer_token(lexer, v, v, q)
   end
-  return q, token
+  return token
 end
 
 function lexer_rule_number()
@@ -296,17 +303,16 @@ function lexer(file)
   local tokens = {}
 
   while lexer.position <= n do
-    local p = 0
     local token = nil
 
     for i = 1, #lexer_rules do
-      p, token = lexer_rules[i](lexer, s, lexer.position)
-      if p ~= 0 then
+      token = lexer_rules[i](lexer, s, lexer.position)
+      if token ~= nil then
         break
       end
     end
 
-    if p == 0 then
+    if token == nil then
       lexer_error(lexer)
     end
 
