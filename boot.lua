@@ -35,17 +35,6 @@ function string_compare(a, b)
   return 0
 end
 
-function string_sub(s, i, j)
-  local t = {}
-  for i = i, j do
-    local v = string_byte(s, i)
-    if v ~= -1 then
-      t[#t + 1] = v
-    end
-  end
-  return string_char(t)
-end
-
 --------------------------------------------------------------------------------
 
 function match_literal(s, p, t)
@@ -245,26 +234,23 @@ function lexer_rule_comment(lexer, s, p)
         lexer_error(lexer)
       end
       return lexer_token(lexer, "comment", string_char(capture), q)
-      -- lexer_update(lexer, q)
-      -- return q, nil
     end
   end
 
   local capture = {}
   local q = match_repeat(match_nagative_charset, s, p, "\n\r", capture)
   return lexer_token(lexer, "comment", string_char(capture), q)
-  -- lexer_update(lexer, q)
-  -- return q, nil
 end
 
 function lexer_rule_word(lexer, s, p)
-  local q = match_range(s, p, "AZaz__")
+  local capture = {}
+  local q = match_range(s, p, "AZaz__", capture)
   if q == 0 then
     return nil
   end
-  q = match_repeat(match_range, s, q, "09AZaz__")
+  q = match_repeat(match_range, s, q, "09AZaz__", capture)
 
-  local v = string_sub(s, p, q - 1)
+  local v = string_char(capture)
   local i = binary_search(lexer_keywords, v)
   local token = nil
   if i == 0 then
@@ -280,11 +266,12 @@ function lexer_rule_number()
 end
 
 function lexer_rule_string(lexer, s, p)
-  local q = match_charset(s, p, "\"\'")
+  local capture = {}
+  local q = match_charset(s, p, "\"\'", capture)
   if q == 0 then
     return 0, nil
   end
-  local quote = string_sub(s, p, p)
+  local quote = string_char(capture)
 
   return 0, nil
 end

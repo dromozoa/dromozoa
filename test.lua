@@ -15,10 +15,14 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-require "runtime"
+--[=[ test ]=]
 
+require do end -- "runtime"
+
+--[[
 function main()
   write_string "test\n"
 end
 
 export_start(main)
+]]
