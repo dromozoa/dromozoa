@@ -243,17 +243,17 @@ end
 
 function lexer_rule_word(lexer, source, position)
   local capture = {}
-  local q = match_range(source, position, "AZaz__", capture)
-  if q == 0 then
+  local p = match_range(source, position, "AZaz__", capture)
+  if p == 0 then
     return nil
   end
-  q = match_repeat(match_range, source, q, "09AZaz__", capture)
+  p = match_repeat(match_range, source, p, "09AZaz__", capture)
 
   local v = string_char(capture)
   if binary_search(lexer_keywords, v) == 0 then
-    return lexer_token(lexer, "Name", v, q)
+    return lexer_token(lexer, "Name", v, p)
   else
-    return lexer_token(lexer, v, v, q)
+    return lexer_token(lexer, v, v, p)
   end
 end
 
@@ -263,11 +263,16 @@ end
 
 function lexer_rule_string(lexer, source, position)
   local capture = {}
-  local q = match_charset(source, position, "\"\'", capture)
-  if q == 0 then
+  local p = match_charset(source, position, "\"\'", capture)
+  if p == 0 then
     return 0, nil
   end
   local quote = string_char(capture)
+
+
+
+
+
 
   return 0, nil
 end
