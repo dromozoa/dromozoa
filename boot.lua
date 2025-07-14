@@ -42,22 +42,22 @@ function match_literal(s, p, t)
     local u = string_byte(s, p)
     local v = string_byte(t, i)
     if u ~= v then
-      return 0
+      return 0, u
     end
     p = p + 1
   end
-  return p
+  return p, -1
 end
 
 function match_search(s, p, t, c)
   local n = #s
   while p <= n do
-    local q = match_literal(s, p, t)
+    local q, u = match_literal(s, p, t)
     if q ~= 0 then
       return q
     end
     if c ~= nil then
-      c[#c + 1] = string_byte(s, p)
+      c[#c + 1] = u
     end
     p = p + 1
   end
@@ -211,63 +211,59 @@ function lexer_rule_space(lexer, source, position)
   if p == position then
     return nil
   end
-  return lexer_token(lexer, "space", string_char(capture), p)
+  return lexer_token(lexer, "[space]", string_char(capture), p)
 end
 
-function lexer_rule_comment(lexer, s, p)
-  local q = match_literal(s, p, "--")
-  if q == 0 then
+function lexer_rule_comment(lexer, source, position)
+  local p = match_literal(source, position, "--")
+  if p == 0 then
     return nil
   end
-  p = q
 
-  q = match_charset(s, p, "[")
+  local q = match_charset(source, p, "[")
   if q ~= 0 then
     local capture = {}
-    q = match_repeat(match_charset, s, q, "=", capture)
-    q = match_charset(s, q, "[")
+    q = match_repeat(match_charset, source, q, "=", capture)
+    q = match_charset(source, q, "[")
     if q ~= 0 then
       local t = "]"..string_char(capture).."]"
       local capture = {}
-      q = match_search(s, q, t, capture)
+      q = match_search(source, q, t, capture)
       if q == 0 then
         lexer_error(lexer)
       end
-      return lexer_token(lexer, "comment", string_char(capture), q)
+      return lexer_token(lexer, "[comment]", string_char(capture), q)
     end
   end
 
   local capture = {}
-  local q = match_repeat(match_nagative_charset, s, p, "\n\r", capture)
-  return lexer_token(lexer, "comment", string_char(capture), q)
+  q = match_repeat(match_nagative_charset, source, p, "\n\r", capture)
+  return lexer_token(lexer, "[comment]", string_char(capture), q)
 end
 
-function lexer_rule_word(lexer, s, p)
+function lexer_rule_word(lexer, source, position)
   local capture = {}
-  local q = match_range(s, p, "AZaz__", capture)
+  local q = match_range(source, position, "AZaz__", capture)
   if q == 0 then
     return nil
   end
-  q = match_repeat(match_range, s, q, "09AZaz__", capture)
+  q = match_repeat(match_range, source, q, "09AZaz__", capture)
 
   local v = string_char(capture)
-  local i = binary_search(lexer_keywords, v)
-  local token = nil
-  if i == 0 then
-    token = lexer_token(lexer, "Name", v, q)
+  if binary_search(lexer_keywords, v) == 0 then
+    return lexer_token(lexer, "Name", v, q)
   else
-    token = lexer_token(lexer, v, v, q)
+    return lexer_token(lexer, v, v, q)
   end
-  return token
 end
 
 function lexer_rule_number()
   -- 浮動小数点数リテラルは%.%dになりうる
 end
 
-function lexer_rule_string(lexer, s, p)
+function lexer_rule_string(lexer, source, position)
   local capture = {}
-  local q = match_charset(s, p, "\"\'", capture)
+  local q = match_charset(source, position, "\"\'", capture)
   if q == 0 then
     return 0, nil
   end
@@ -285,15 +281,13 @@ function lexer(file)
     column   = 1;
   }
 
-  local s = io_read_file(file)
-  local n = #s
   local tokens = {}
 
-  while lexer.position <= n do
+  while lexer.position <= #lexer.source do
     local token = nil
 
     for i = 1, #lexer_rules do
-      token = lexer_rules[i](lexer, s, lexer.position)
+      token = lexer_rules[i](lexer, lexer.source, lexer.position)
       if token ~= nil then
         break
       end
@@ -303,11 +297,12 @@ function lexer(file)
       lexer_error(lexer)
     end
 
-    if token ~= nil then
+    if match_literal(token.kind, 1, "[") == 0 then
       tokens[#tokens + 1] = token
     end
   end
 
+  tokens[#tokens + 1] = lexer_token(lexer, "[eof]", "[eof]", lexer.position)
   return tokens
 end
 
