@@ -20,6 +20,59 @@ local json = require "dromozoa.commons.json"
 
 --------------------------------------------------------------------------------
 
+function quick_sort_impl(t, i, j, compare)
+  local n = j - i + 1
+  if n <= 1 then
+    return
+  end
+
+  local pivot = t[i + (n >> 1)]
+  local a = i
+  local b = j
+
+  while a <= b do
+    while compare(t[a], pivot) < 0 do
+      a = a + 1
+    end
+    while compare(t[b], pivot) > 0 do
+      b = b - 1
+    end
+    if a <= b then
+      t[a], t[b] = t[b], t[a]
+      a = a + 1
+      b = b - 1
+    end
+  end
+
+  quick_sort_impl(t, i, b, compare)
+  quick_sort_impl(t, a, j, compare)
+end
+
+function quick_sort(t, compare)
+  quick_sort_impl(t, 1, #t, compare)
+end
+
+function binary_search(t, compare, v)
+  local i = 1
+  local n = #t
+  while n > 0 do
+    local step = n >> 1
+    local m = i + step
+    local r = compare(t[m], v)
+    if r == 0 then
+      return m
+    elseif r < 0 then
+      i = m + 1
+      n = n - step - 1
+    else
+      n = step
+    end
+  end
+  return 0
+end
+
+--------------------------------------------------------------------------------
+
 function string_compare(a, b)
   local n = #a
   if n > #b then
@@ -118,78 +171,6 @@ end
 
 --------------------------------------------------------------------------------
 
-function map_quick_sort_impl(map, i, j)
-  local n = j - i + 1
-  if n <= 1 then
-    return
-  end
-
-  local pivot = map[i + (n >> 1)]
-  local a = i
-  local b = j
-
-  while a <= b do
-    while string_compare(map[a][1], pivot[1]) < 0 do
-      a = a + 1
-    end
-    while string_compare(map[b][1], pivot[1]) > 0 do
-      b = b - 1
-    end
-    if a <= b then
-      map[a], map[b] = map[b], map[a]
-      a = a + 1
-      b = b - 1
-    end
-  end
-
-  map_quick_sort_impl(map, i, b)
-  map_quick_sort_impl(map, a, j)
-end
-
-function map_quick_sort(map)
-  map_quick_sort_impl(map, 1, #map)
-end
-
-function map_binary_search(map, v)
-  local i = 1
-  local n = #map
-  while n > 0 do
-    local step = n >> 1
-    local m = i + step
-    local r = string_compare(map[m][1], v)
-    if r == 0 then
-      return m[2]
-    elseif r < 0 then
-      i = m + 1
-      n = n - step - 1
-    else
-      n = step
-    end
-  end
-  return 0
-end
-
-function binary_search(t, v)
-  local i = 1
-  local n = #t
-  while n > 0 do
-    local step = n >> 1
-    local m = i + step
-    local r = string_compare(t[m], v)
-    if r == 0 then
-      return m
-    elseif r < 0 then
-      i = m + 1
-      n = n - step - 1
-    else
-      n = step
-    end
-  end
-  return 0
-end
-
---------------------------------------------------------------------------------
-
 function new_info(file, position, line, column)
 end
 
@@ -201,14 +182,11 @@ end
 
 local lexer_keywords
 local lexer_symbols
-local lexer_escape_sequence_map
 local lexer_escape_sequences
 local lexer_rules
 
 function lexer_escape_sequence(key, s, f)
-  local index = #lexer_escape_sequence_map + 1
-  lexer_escape_sequence_map[index] = { key, index }
-  lexer_escape_sequences[index] = { s = s, f = f }
+  lexer_escape_sequences[#lexer_escape_sequences + 1] = { key = key, s = s, f = f }
 end
 
 function lexer_initialize()
@@ -222,7 +200,6 @@ function lexer_initialize()
     { "..." };
   }
 
-  lexer_escape_sequence_map = {}
   lexer_escape_sequences = {}
   lexer_escape_sequence("a",  "\a", nil)
   lexer_escape_sequence("b",  "\b", nil)
@@ -234,7 +211,7 @@ function lexer_initialize()
   lexer_escape_sequence("\\", "\\", nil)
   lexer_escape_sequence("\"", "\"", nil)
   lexer_escape_sequence("'",  "'",  nil)
-  map_quick_sort(lexer_escape_sequence_map)
+  quick_sort(lexer_escape_sequences, function (a, b) return string_compare(a.key, b.key) end)
 
   lexer_rules = {
     lexer_rule_space;
@@ -325,7 +302,7 @@ function lexer_rule_word(lexer, source, position)
   p = match_repeat(match_range, source, p, "09AZaz__", capture)
 
   local v = string_char(capture)
-  if binary_search(lexer_keywords, v) == 0 then
+  if binary_search(lexer_keywords, string_compare, v) == 0 then
     return lexer_token(lexer, "Name", v, p)
   else
     return lexer_token(lexer, v, v, p)
