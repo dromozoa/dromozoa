@@ -116,6 +116,59 @@ function match_repeat(match, s, p, t, c)
   return p
 end
 
+--------------------------------------------------------------------------------
+
+function map_quick_sort_impl(map, i, j)
+  local n = j - i + 1
+  if n <= 1 then
+    return
+  end
+
+  local pivot = map[i + (n >> 1)]
+  local a = i
+  local b = j
+
+  while a <= b do
+    while string_compare(map[a][1], pivot[1]) < 0 do
+      a = a + 1
+    end
+    while string_compare(map[b][1], pivot[1]) > 0 do
+      b = b - 1
+    end
+    if a <= b then
+      map[a], map[b] = map[b], map[a]
+      a = a + 1
+      b = b - 1
+    end
+  end
+
+  map_quick_sort_impl(map, i, b)
+  map_quick_sort_impl(map, a, j)
+end
+
+function map_quick_sort(map)
+  map_quick_sort_impl(map, 1, #map)
+end
+
+function map_binary_search(map, v)
+  local i = 1
+  local n = #map
+  while n > 0 do
+    local step = n >> 1
+    local m = i + step
+    local r = string_compare(map[m][1], v)
+    if r == 0 then
+      return m[2]
+    elseif r < 0 then
+      i = m + 1
+      n = n - step - 1
+    else
+      n = step
+    end
+  end
+  return 0
+end
+
 function binary_search(t, v)
   local i = 1
   local n = #t
@@ -148,7 +201,15 @@ end
 
 local lexer_keywords
 local lexer_symbols
+local lexer_escape_sequence_map
+local lexer_escape_sequences
 local lexer_rules
+
+function lexer_escape_sequence(key, s, f)
+  local index = #lexer_escape_sequence_map + 1
+  lexer_escape_sequence_map[index] = { key, index }
+  lexer_escape_sequences[index] = { s = s, f = f }
+end
 
 function lexer_initialize()
   lexer_keywords = {
@@ -161,14 +222,28 @@ function lexer_initialize()
     { "..." };
   }
 
+  lexer_escape_sequence_map = {}
+  lexer_escape_sequences = {}
+  lexer_escape_sequence("a",  "\a", nil)
+  lexer_escape_sequence("b",  "\b", nil)
+  lexer_escape_sequence("f",  "\f", nil)
+  lexer_escape_sequence("n",  "\n", nil)
+  lexer_escape_sequence("r",  "\r", nil)
+  lexer_escape_sequence("t",  "\t", nil)
+  lexer_escape_sequence("v",  "\v", nil)
+  lexer_escape_sequence("\\", "\\", nil)
+  lexer_escape_sequence("\"", "\"", nil)
+  lexer_escape_sequence("'",  "'",  nil)
+  map_quick_sort(lexer_escape_sequence_map)
+
   lexer_rules = {
     lexer_rule_space;
     lexer_rule_comment;
     lexer_rule_word;
     -- lexer_rule_number;
     -- lexer_rule_integer;
-    -- lexer_rule_string;
-    -- lexer_rule_symbol;
+    lexer_rule_string;
+    lexer_rule_symbol;
   }
 end
 
@@ -265,16 +340,41 @@ function lexer_rule_string(lexer, source, position)
   local capture = {}
   local p = match_charset(source, position, "\"\'", capture)
   if p == 0 then
-    return 0, nil
+    return nil
   end
-  local quote = string_char(capture)
+  local quote = capture[1]
 
+  local capture = {}
+  while p <= #source do
+    local u = string_byte(source, p)
+    p = p + 1
+    if u == quote then
+      return lexer_token(lexer, "String", string_char(capture), p)
+    elseif u == 0x5C then
+      u = string_byte(source, p)
+      p = p + 1
+      if     u == 0x61 then capture[#capture + 1] = 0x07 -- \a
+      elseif u == 0x62 then capture[#capture + 1] = 0x08 -- \b
+      elseif u == 0x74 then capture[#capture + 1] = 0x09 -- \t
+      elseif u == 0x6E then capture[#capture + 1] = 0x0A -- \n
+      elseif u == 0x76 then capture[#capture + 1] = 0x0B -- \v
+      elseif u == 0x66 then capture[#capture + 1] = 0x0C -- \f
+      elseif u == 0x72 then capture[#capture + 1] = 0x0D -- \r
+      elseif u == 0x22 then capture[#capture + 1] = 0x22 -- \"
+      elseif u == 0x27 then capture[#capture + 1] = 0x27 -- \'
+      elseif u == 0x5C then capture[#capture + 1] = 0x5C -- \\
+      else
+        lexer_error(lexer)
+      end
+    else
+      capture[#capture + 1] = u
+    end
+    lexer_update(lexer, p)
+  end
+end
 
-
-
-
-
-  return 0, nil
+function lexer_rule_symbol(lexer, source, position)
+  return nil
 end
 
 function lexer(file)
