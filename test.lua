@@ -17,12 +17,10 @@
 
 --[=[ test ]=]
 
-require do end -- "runtime"
+require "runtime"
 
---[[
 function main()
   write_string "test\n"
 end
 
 export_start(main)
-]]

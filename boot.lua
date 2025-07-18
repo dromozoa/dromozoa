@@ -352,7 +352,18 @@ function lexer_rule_string(lexer, source, position)
 end
 
 function lexer_rule_symbol(lexer, source, position)
-  return nil
+  for i = #lexer_symbols, 1, -1 do
+    -- local s = 
+    local symbols = lexer_symbols[i]
+    for j = 1, #symbols do
+      local symbol = symbols[j]
+      local p = match_literal(source, position, symbol)
+      if p ~= 0 then
+        return lexer_token(lexer, symbol, symbol, p)
+      end
+    end
+  end
+  lexer_error(lexer)
 end
 
 function lexer(file)
