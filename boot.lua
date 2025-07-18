@@ -20,13 +20,30 @@ local json = require "dromozoa.commons.json"
 
 --------------------------------------------------------------------------------
 
+function string_compare(a, b)
+  local n = #a
+  if n > #b then
+    n = #b
+  end
+  for i = 1, n + 1 do
+    local u = string_byte(a, i)
+    local v = string_byte(b, i)
+    if u ~= v then
+      return u - v
+    end
+  end
+  return 0
+end
+
+--------------------------------------------------------------------------------
+
 function quick_sort_impl(t, i, j, compare)
   local n = j - i + 1
   if n <= 1 then
     return
   end
 
-  local pivot = t[i + (n >> 1)]
+  local pivot = t[i + n // 2]
   local a = i
   local b = j
 
@@ -66,23 +83,6 @@ function binary_search(t, compare, v)
       n = n - step - 1
     else
       n = step
-    end
-  end
-  return 0
-end
-
---------------------------------------------------------------------------------
-
-function string_compare(a, b)
-  local n = #a
-  if n > #b then
-    n = #b
-  end
-  for i = 1, n + 1 do
-    local u = string_byte(a, i)
-    local v = string_byte(b, i)
-    if u ~= v then
-      return u - v
     end
   end
   return 0
@@ -185,8 +185,16 @@ local lexer_symbols
 local lexer_escape_sequences
 local lexer_rules
 
-function lexer_escape_sequence(key, s, f)
-  lexer_escape_sequences[#lexer_escape_sequences + 1] = { key = key, s = s, f = f }
+function lexer_escape_sequence(key, rep, rule)
+  local item = {
+    key  = string_byte(key, 1);
+    rep  = nil;
+    rule = rule;
+  }
+  if rep ~= nil then
+    item.rep = string_byte(rep, 1)
+  end
+  lexer_escape_sequences[#lexer_escape_sequences + 1] = item
 end
 
 function lexer_initialize()
@@ -211,7 +219,7 @@ function lexer_initialize()
   lexer_escape_sequence("\\", "\\", nil)
   lexer_escape_sequence("\"", "\"", nil)
   lexer_escape_sequence("'",  "'",  nil)
-  quick_sort(lexer_escape_sequences, function (a, b) return string_compare(a.key, b.key) end)
+  quick_sort(lexer_escape_sequences, function (a, b) return a.key - b.key end)
 
   lexer_rules = {
     lexer_rule_space;
@@ -272,11 +280,11 @@ function lexer_rule_comment(lexer, source, position)
     return nil
   end
 
-  local q = match_charset(source, p, "[")
+  local q = match_charset(source, p, "[", nil)
   if q ~= 0 then
     local capture = {}
     q = match_repeat(match_charset, source, q, "=", capture)
-    q = match_charset(source, q, "[")
+    q = match_charset(source, q, "[", nil)
     if q ~= 0 then
       local t = "]"..string_char(capture).."]"
       local capture = {}
@@ -330,19 +338,12 @@ function lexer_rule_string(lexer, source, position)
     elseif u == 0x5C then
       u = string_byte(source, p)
       p = p + 1
-      if     u == 0x61 then capture[#capture + 1] = 0x07 -- \a
-      elseif u == 0x62 then capture[#capture + 1] = 0x08 -- \b
-      elseif u == 0x74 then capture[#capture + 1] = 0x09 -- \t
-      elseif u == 0x6E then capture[#capture + 1] = 0x0A -- \n
-      elseif u == 0x76 then capture[#capture + 1] = 0x0B -- \v
-      elseif u == 0x66 then capture[#capture + 1] = 0x0C -- \f
-      elseif u == 0x72 then capture[#capture + 1] = 0x0D -- \r
-      elseif u == 0x22 then capture[#capture + 1] = 0x22 -- \"
-      elseif u == 0x27 then capture[#capture + 1] = 0x27 -- \'
-      elseif u == 0x5C then capture[#capture + 1] = 0x5C -- \\
-      else
+      local index = binary_search(lexer_escape_sequences, function (a, b) return a.key - b end, u)
+      if index == 0 then
         lexer_error(lexer)
       end
+      local item = lexer_escape_sequences[index]
+      capture[#capture + 1] = item.rep
     else
       capture[#capture + 1] = u
     end
