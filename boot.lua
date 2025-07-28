@@ -20,12 +20,16 @@ local json = require "dromozoa.commons.json"
 
 --------------------------------------------------------------------------------
 
-function string_compare(a, b)
-  local n = #a
-  if n > #b then
-    n = #b
+function math_min(a, b)
+  if a < b then
+    return a
+  else
+    return b
   end
-  for i = 1, n + 1 do
+end
+
+function string_compare(a, b)
+  for i = 1, math_min(#a, #b) + 1 do
     local u = string_byte(a, i)
     local v = string_byte(b, i)
     if u ~= v then
@@ -73,7 +77,7 @@ function binary_search(t, compare, v)
   local i = 1
   local n = #t
   while n > 0 do
-    local step = n >> 1
+    local step = n // 2
     local m = i + step
     local r = compare(t[m], v)
     if r == 0 then
@@ -319,6 +323,10 @@ end
 
 function lexer_rule_number()
   -- 浮動小数点数リテラルは%.%dになりうる
+end
+
+function lexer_rule_integer(lexer, source, position)
+
 end
 
 function lexer_rule_string(lexer, source, position)
