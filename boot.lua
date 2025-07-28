@@ -229,8 +229,8 @@ function lexer_initialize()
     lexer_rule_space;
     lexer_rule_comment;
     lexer_rule_word;
-    -- lexer_rule_number;
-    -- lexer_rule_integer;
+    lexer_rule_number;
+    lexer_rule_integer;
     lexer_rule_string;
     lexer_rule_symbol;
   }
@@ -326,7 +326,22 @@ function lexer_rule_number()
 end
 
 function lexer_rule_integer(lexer, source, position)
+  local p = match_literal(source, position, "0x")
+  if p ~= 0 then
+    local capture = {}
+    local q = match_repeat(match_range, source, p, "09AFaf", capture)
+    if p == q then
+      lexer_error(lexer)
+    end
+    return lexer_token(lexer, "Integer", "0x"..string_char(capture), q)
+  end
 
+  local capture = {}
+  local p = match_repeat(match_range, source, position, "09", capture)
+  if p == position then
+    return nil
+  end
+  return lexer_token(lexer, "Integer", string_char(capture), p)
 end
 
 function lexer_rule_string(lexer, source, position)
@@ -361,7 +376,6 @@ end
 
 function lexer_rule_symbol(lexer, source, position)
   for i = #lexer_symbols, 1, -1 do
-    -- local s = 
     local symbols = lexer_symbols[i]
     for j = 1, #symbols do
       local symbol = symbols[j]
