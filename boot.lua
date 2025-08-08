@@ -424,15 +424,66 @@ end
 
 --------------------------------------------------------------------------------
 
+local parser_nud
+local parser_nud_prefix_expr
+
+local parser_led
+local parser_led_prefix_expr
+
+function nud_token(parser, token)
+  return token
+end
+
+function nud_name(parser, token)
+  -- リテラル呼び出しを実装する
+  return token
+end
+
+function nud_group(parser, token)
+
+
+
+
+
+end
+
+function insert_nud(kind, nud, prefix_expr)
+  local item = { kind = kind, nud = nud }
+  parser_nud[#parser_nud + 1] = item
+  if prefix_expr then
+    parser_nud_prefix_expr[#parser_nud_prefix_expr + 1] = item
+  end
+end
+
+function parser_initialize()
+  parser_nud = {}
+  parser_nud_prefix_expr = {}
+
+  insert_nud("false",   nud_token, false)
+  insert_nud("nil",     nud_token, false)
+  insert_nud("true",    nud_token, false)
+  insert_nud("Name",    nud_name,  true)
+  insert_nud("String",  nud_token, false)
+  insert_nud("Integer", nud_token, false)
+  insert_nud("(",       nud_group, true)
+
+  parser_led = {}
+  parser_led_prefix_expr = {}
+
+end
+
+--------------------------------------------------------------------------------
+
 function parse(parser, source_file)
   local tokens = lexer(source_file)
-  print(json.encode(tokens, { pretty = true, stable = true }))
+  -- print(json.encode(tokens, { pretty = true, stable = true }))
 end
 
 --------------------------------------------------------------------------------
 
 function main()
   lexer_initialize()
+  parser_initialize()
 
   local parser = {}
   local tree = parse(parser, arg[1])
