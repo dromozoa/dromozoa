@@ -16,3 +16,8 @@
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
 -- 目的: Lua 5.5のサブセットでWITのパーサーを書く。
+
+-- TODO: Lua 5.5のvim syntax対応
+
+global function lexer_initialize()
+end
