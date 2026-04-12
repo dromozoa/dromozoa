@@ -15,9 +15,18 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
----@param main fun(): integer
+---@param main fun()
 function export_start(main)
   main()
+end
+
+---@return string[]
+function get_arguments()
+  local result = {}
+  for i = 1, #arg do
+    table.insert(result, arg[i])
+  end
+  return result
 end
 
 ---@param filename string

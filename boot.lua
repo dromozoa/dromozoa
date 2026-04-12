@@ -18,8 +18,10 @@
 require "runtime"
 
 function main()
-  print "foo"
-  return 0
+  local arguments = get_arguments()
+  for i = 1, #arguments do
+    print(arguments[i])
+  end
 end
 
 export_start(main)
