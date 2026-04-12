@@ -1,0 +1,193 @@
+[
+    {
+        "DOC": "/Users/moyu/Workspace/dromozoa",
+        "defines": [],
+        "fields": [],
+        "name": "LuaLS",
+        "type": "luals.config"
+    },
+    {
+        "defines": [
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                18,
+                                26
+                            ],
+                            "name": "main",
+                            "start": [
+                                18,
+                                22
+                            ],
+                            "type": "local",
+                            "view": "fun()"
+                        }
+                    ],
+                    "finish": [
+                        20,
+                        3
+                    ],
+                    "start": [
+                        18,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "function export_start(main: fun())"
+                },
+                "file": "include-lua/runtime.lua",
+                "finish": [
+                    18,
+                    21
+                ],
+                "start": [
+                    18,
+                    9
+                ],
+                "type": "setglobal",
+                "view": "function",
+                "visible": "public"
+            }
+        ],
+        "name": "export_start",
+        "type": "variable",
+        "view": "unknown"
+    },
+    {
+        "defines": [
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [],
+                    "finish": [
+                        29,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "string[]"
+                        }
+                    ],
+                    "start": [
+                        23,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "function get_arguments()\n  -> string[]"
+                },
+                "file": "include-lua/runtime.lua",
+                "finish": [
+                    23,
+                    22
+                ],
+                "start": [
+                    23,
+                    9
+                ],
+                "type": "setglobal",
+                "view": "function",
+                "visible": "public"
+            }
+        ],
+        "name": "get_arguments",
+        "type": "variable",
+        "view": "unknown"
+    },
+    {
+        "defines": [
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [],
+                    "finish": [
+                        24,
+                        3
+                    ],
+                    "start": [
+                        19,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "function main()"
+                },
+                "file": "boot.lua",
+                "finish": [
+                    19,
+                    13
+                ],
+                "start": [
+                    19,
+                    9
+                ],
+                "type": "setglobal",
+                "view": "function",
+                "visible": "public"
+            }
+        ],
+        "name": "main",
+        "type": "variable",
+        "view": "unknown"
+    },
+    {
+        "defines": [
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                33,
+                                27
+                            ],
+                            "name": "filename",
+                            "start": [
+                                33,
+                                19
+                            ],
+                            "type": "local",
+                            "view": "string"
+                        }
+                    ],
+                    "finish": [
+                        36,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "string"
+                        }
+                    ],
+                    "start": [
+                        33,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "function read_file(filename: string)\n  -> string"
+                },
+                "file": "include-lua/runtime.lua",
+                "finish": [
+                    33,
+                    18
+                ],
+                "start": [
+                    33,
+                    9
+                ],
+                "type": "setglobal",
+                "view": "function",
+                "visible": "public"
+            }
+        ],
+        "name": "read_file",
+        "type": "variable",
+        "view": "unknown"
+    }
+]
