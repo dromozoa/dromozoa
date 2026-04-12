@@ -15,3 +15,14 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
+---@param main fun(): integer
+function export_start(main)
+  main()
+end
+
+---@param filename string
+---@return string
+function read_file(filename)
+  local handle <close> = assert(io.open(filename, "rb"))
+  return handle:read "a"
+end

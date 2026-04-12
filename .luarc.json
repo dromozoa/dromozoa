@@ -1,0 +1,9 @@
+{
+  "runtime.path": [
+    "include-lua/?.lua"
+  ],
+  "workspace.ignoreDir": [
+    "boot2",
+    "boot3"
+  ]
+}
