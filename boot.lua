@@ -18,9 +18,9 @@
 require "runtime"
 
 function main()
-  local arguments = get_arguments()
-  for i = 1, #arguments do
-    print(arguments[i])
+  local args = get_arguments()
+  for i = 1, #args do
+    print(args[i])
   end
 end
 
