@@ -1,0 +1,8 @@
+package dromozoa:test;
+
+world test3 {
+  import wasi:cli/environment@0.2.6;
+  import wasi:cli/stdout@0.2.6;
+  import wasi:io/streams@0.2.6;
+  export wasi:cli/run@0.2.6;
+}
