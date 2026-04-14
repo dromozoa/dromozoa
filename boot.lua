@@ -17,17 +17,34 @@
 
 require "runtime"
 
----@class node
----@field kind integer
+---@class Node
+---@field kind string
 ---@field value string
 ---@field file string
 ---@field position integer
 
+---@param kind string
+---@param value string
+---@param file string
+---@param position integer
+---@return Node
+function new_token(kind, value, file, position)
+  return {
+    kind = kind;
+    value = value;
+    file = file;
+    position = position;
+  }
+end
+
 ---@param filename string
 ---@param source string
+---@return Node[]
 function lexer(filename, source)
+  local result = {}
   print(filename)
   print(source)
+  return result
 end
 
 ---@param filename string

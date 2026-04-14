@@ -11,6 +11,203 @@
             {
                 "async": false,
                 "deprecated": false,
+                "file": "boot.lua",
+                "finish": [
+                    19,
+                    14
+                ],
+                "start": [
+                    19,
+                    10
+                ],
+                "type": "doc.class",
+                "view": "Node",
+                "visible": "public"
+            }
+        ],
+        "fields": [
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "finish": [
+                        22,
+                        21
+                    ],
+                    "start": [
+                        22,
+                        15
+                    ],
+                    "type": "doc.type",
+                    "types": [
+                        {
+                            "finish": [
+                                22,
+                                21
+                            ],
+                            "start": [
+                                22,
+                                15
+                            ],
+                            "type": "doc.type.name",
+                            "view": "string"
+                        }
+                    ],
+                    "view": "string"
+                },
+                "file": "boot.lua",
+                "finish": [
+                    22,
+                    21
+                ],
+                "name": "file",
+                "start": [
+                    22,
+                    10
+                ],
+                "type": "doc.field",
+                "view": "string",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "finish": [
+                        20,
+                        21
+                    ],
+                    "start": [
+                        20,
+                        15
+                    ],
+                    "type": "doc.type",
+                    "types": [
+                        {
+                            "finish": [
+                                20,
+                                21
+                            ],
+                            "start": [
+                                20,
+                                15
+                            ],
+                            "type": "doc.type.name",
+                            "view": "string"
+                        }
+                    ],
+                    "view": "string"
+                },
+                "file": "boot.lua",
+                "finish": [
+                    20,
+                    21
+                ],
+                "name": "kind",
+                "start": [
+                    20,
+                    10
+                ],
+                "type": "doc.field",
+                "view": "string",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "finish": [
+                        23,
+                        26
+                    ],
+                    "start": [
+                        23,
+                        19
+                    ],
+                    "type": "doc.type",
+                    "types": [
+                        {
+                            "finish": [
+                                23,
+                                26
+                            ],
+                            "start": [
+                                23,
+                                19
+                            ],
+                            "type": "doc.type.name",
+                            "view": "integer"
+                        }
+                    ],
+                    "view": "integer"
+                },
+                "file": "boot.lua",
+                "finish": [
+                    23,
+                    26
+                ],
+                "name": "position",
+                "start": [
+                    23,
+                    10
+                ],
+                "type": "doc.field",
+                "view": "integer",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "finish": [
+                        21,
+                        22
+                    ],
+                    "start": [
+                        21,
+                        16
+                    ],
+                    "type": "doc.type",
+                    "types": [
+                        {
+                            "finish": [
+                                21,
+                                22
+                            ],
+                            "start": [
+                                21,
+                                16
+                            ],
+                            "type": "doc.type.name",
+                            "view": "string"
+                        }
+                    ],
+                    "view": "string"
+                },
+                "file": "boot.lua",
+                "finish": [
+                    21,
+                    22
+                ],
+                "name": "value",
+                "start": [
+                    21,
+                    10
+                ],
+                "type": "doc.field",
+                "view": "string",
+                "visible": "public"
+            }
+        ],
+        "name": "Node",
+        "type": "type",
+        "view": "Node"
+    },
+    {
+        "defines": [
+            {
+                "async": false,
+                "deprecated": false,
                 "extends": {
                     "args": [
                         {
@@ -107,12 +304,12 @@
                     "args": [
                         {
                             "finish": [
-                                27,
+                                42,
                                 23
                             ],
                             "name": "filename",
                             "start": [
-                                27,
+                                42,
                                 15
                             ],
                             "type": "local",
@@ -120,12 +317,12 @@
                         },
                         {
                             "finish": [
-                                27,
+                                42,
                                 31
                             ],
                             "name": "source",
                             "start": [
-                                27,
+                                42,
                                 25
                             ],
                             "type": "local",
@@ -133,23 +330,29 @@
                         }
                     ],
                     "finish": [
-                        30,
+                        47,
                         3
                     ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "Node[]"
+                        }
+                    ],
                     "start": [
-                        27,
+                        42,
                         0
                     ],
                     "type": "function",
-                    "view": "function lexer(filename: string, source: string)"
+                    "view": "function lexer(filename: string, source: string)\n  -> Node[]"
                 },
                 "file": "boot.lua",
                 "finish": [
-                    27,
+                    42,
                     14
                 ],
                 "start": [
-                    27,
+                    42,
                     9
                 ],
                 "type": "setglobal",
@@ -169,7 +372,7 @@
                 "extends": {
                     "args": [],
                     "finish": [
-                        43,
+                        60,
                         3
                     ],
                     "returns": [
@@ -179,7 +382,7 @@
                         }
                     ],
                     "start": [
-                        39,
+                        56,
                         0
                     ],
                     "type": "function",
@@ -187,11 +390,11 @@
                 },
                 "file": "boot.lua",
                 "finish": [
-                    39,
+                    56,
                     13
                 ],
                 "start": [
-                    39,
+                    56,
                     9
                 ],
                 "type": "setglobal",
@@ -208,197 +411,95 @@
             {
                 "async": false,
                 "deprecated": false,
-                "file": "boot.lua",
-                "finish": [
-                    19,
-                    14
-                ],
-                "start": [
-                    19,
-                    10
-                ],
-                "type": "doc.class",
-                "view": "node",
-                "visible": "public"
-            }
-        ],
-        "fields": [
-            {
-                "async": false,
-                "deprecated": false,
                 "extends": {
-                    "finish": [
-                        22,
-                        21
-                    ],
-                    "start": [
-                        22,
-                        15
-                    ],
-                    "type": "doc.type",
-                    "types": [
+                    "args": [
                         {
                             "finish": [
-                                22,
-                                21
+                                30,
+                                23
                             ],
+                            "name": "kind",
                             "start": [
-                                22,
-                                15
-                            ],
-                            "type": "doc.type.name",
-                            "view": "string"
-                        }
-                    ],
-                    "view": "string"
-                },
-                "file": "boot.lua",
-                "finish": [
-                    22,
-                    21
-                ],
-                "name": "file",
-                "start": [
-                    22,
-                    10
-                ],
-                "type": "doc.field",
-                "view": "string",
-                "visible": "public"
-            },
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "finish": [
-                        20,
-                        22
-                    ],
-                    "start": [
-                        20,
-                        15
-                    ],
-                    "type": "doc.type",
-                    "types": [
-                        {
-                            "finish": [
-                                20,
-                                22
-                            ],
-                            "start": [
-                                20,
-                                15
-                            ],
-                            "type": "doc.type.name",
-                            "view": "integer"
-                        }
-                    ],
-                    "view": "integer"
-                },
-                "file": "boot.lua",
-                "finish": [
-                    20,
-                    22
-                ],
-                "name": "kind",
-                "start": [
-                    20,
-                    10
-                ],
-                "type": "doc.field",
-                "view": "integer",
-                "visible": "public"
-            },
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "finish": [
-                        23,
-                        26
-                    ],
-                    "start": [
-                        23,
-                        19
-                    ],
-                    "type": "doc.type",
-                    "types": [
-                        {
-                            "finish": [
-                                23,
-                                26
-                            ],
-                            "start": [
-                                23,
+                                30,
                                 19
                             ],
-                            "type": "doc.type.name",
+                            "type": "local",
+                            "view": "string"
+                        },
+                        {
+                            "finish": [
+                                30,
+                                30
+                            ],
+                            "name": "value",
+                            "start": [
+                                30,
+                                25
+                            ],
+                            "type": "local",
+                            "view": "string"
+                        },
+                        {
+                            "finish": [
+                                30,
+                                36
+                            ],
+                            "name": "file",
+                            "start": [
+                                30,
+                                32
+                            ],
+                            "type": "local",
+                            "view": "string"
+                        },
+                        {
+                            "finish": [
+                                30,
+                                46
+                            ],
+                            "name": "position",
+                            "start": [
+                                30,
+                                38
+                            ],
+                            "type": "local",
                             "view": "integer"
                         }
                     ],
-                    "view": "integer"
-                },
-                "file": "boot.lua",
-                "finish": [
-                    23,
-                    26
-                ],
-                "name": "position",
-                "start": [
-                    23,
-                    10
-                ],
-                "type": "doc.field",
-                "view": "integer",
-                "visible": "public"
-            },
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
                     "finish": [
-                        21,
-                        22
+                        37,
+                        3
                     ],
-                    "start": [
-                        21,
-                        16
-                    ],
-                    "type": "doc.type",
-                    "types": [
+                    "returns": [
                         {
-                            "finish": [
-                                21,
-                                22
-                            ],
-                            "start": [
-                                21,
-                                16
-                            ],
-                            "type": "doc.type.name",
-                            "view": "string"
+                            "type": "function.return",
+                            "view": "Node"
                         }
                     ],
-                    "view": "string"
+                    "start": [
+                        30,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "function new_token(kind: string, value: string, file: string, position: integer)\n  -> Node"
                 },
                 "file": "boot.lua",
                 "finish": [
-                    21,
-                    22
+                    30,
+                    18
                 ],
-                "name": "value",
                 "start": [
-                    21,
-                    10
+                    30,
+                    9
                 ],
-                "type": "doc.field",
-                "view": "string",
+                "type": "setglobal",
+                "view": "function",
                 "visible": "public"
             }
         ],
-        "name": "node",
-        "type": "type",
-        "view": "node"
+        "name": "new_token",
+        "type": "variable",
+        "view": "unknown"
     },
     {
         "defines": [
@@ -409,12 +510,12 @@
                     "args": [
                         {
                             "finish": [
-                                33,
+                                50,
                                 28
                             ],
                             "name": "filename",
                             "start": [
-                                33,
+                                50,
                                 20
                             ],
                             "type": "local",
@@ -422,11 +523,11 @@
                         }
                     ],
                     "finish": [
-                        37,
+                        54,
                         3
                     ],
                     "start": [
-                        33,
+                        50,
                         0
                     ],
                     "type": "function",
@@ -434,11 +535,11 @@
                 },
                 "file": "boot.lua",
                 "finish": [
-                    33,
+                    50,
                     19
                 ],
                 "start": [
-                    33,
+                    50,
                     9
                 ],
                 "type": "setglobal",

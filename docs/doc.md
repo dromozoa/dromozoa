@@ -3,6 +3,39 @@
 
 ---
 
+# Node
+
+## file
+
+
+```lua
+string
+```
+
+## kind
+
+
+```lua
+string
+```
+
+## position
+
+
+```lua
+integer
+```
+
+## value
+
+
+```lua
+string
+```
+
+
+---
+
 # export_start
 
 
@@ -29,6 +62,7 @@ function get_arguments()
 
 ```lua
 function lexer(filename: string, source: string)
+  -> Node[]
 ```
 
 
@@ -45,34 +79,12 @@ function main()
 
 ---
 
-# node
-
-## file
+# new_token
 
 
 ```lua
-string
-```
-
-## kind
-
-
-```lua
-integer
-```
-
-## position
-
-
-```lua
-integer
-```
-
-## value
-
-
-```lua
-string
+function new_token(kind: string, value: string, file: string, position: integer)
+  -> Node
 ```
 
 
