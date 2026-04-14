@@ -29,7 +29,7 @@ function get_arguments()
 
 ```lua
 function main()
-  -> integer
+  -> result
 ```
 
 
@@ -42,8 +42,3 @@ function main()
 function read_file(filename: string)
   -> string
 ```
-
-
----
-
-# result

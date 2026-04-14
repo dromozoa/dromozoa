@@ -15,12 +15,12 @@
                     "args": [
                         {
                             "finish": [
-                                22,
+                                18,
                                 26
                             ],
                             "name": "main",
                             "start": [
-                                22,
+                                18,
                                 22
                             ],
                             "type": "local",
@@ -28,11 +28,11 @@
                         }
                     ],
                     "finish": [
-                        25,
+                        21,
                         3
                     ],
                     "start": [
-                        22,
+                        18,
                         0
                     ],
                     "type": "function",
@@ -40,11 +40,11 @@
                 },
                 "file": "include-lua/runtime.lua",
                 "finish": [
-                    22,
+                    18,
                     21
                 ],
                 "start": [
-                    22,
+                    18,
                     9
                 ],
                 "type": "setglobal",
@@ -64,7 +64,7 @@
                 "extends": {
                     "args": [],
                     "finish": [
-                        34,
+                        30,
                         3
                     ],
                     "returns": [
@@ -74,7 +74,7 @@
                         }
                     ],
                     "start": [
-                        28,
+                        24,
                         0
                     ],
                     "type": "function",
@@ -82,11 +82,11 @@
                 },
                 "file": "include-lua/runtime.lua",
                 "finish": [
-                    28,
+                    24,
                     22
                 ],
                 "start": [
-                    28,
+                    24,
                     9
                 ],
                 "type": "setglobal",
@@ -106,29 +106,29 @@
                 "extends": {
                     "args": [],
                     "finish": [
-                        25,
+                        26,
                         3
                     ],
                     "returns": [
                         {
                             "type": "function.return",
-                            "view": "integer"
+                            "view": "result"
                         }
                     ],
                     "start": [
-                        19,
+                        20,
                         0
                     ],
                     "type": "function",
-                    "view": "function main()\n  -> integer"
+                    "view": "function main()\n  -> result"
                 },
                 "file": "boot.lua",
                 "finish": [
-                    19,
+                    20,
                     13
                 ],
                 "start": [
-                    19,
+                    20,
                     9
                 ],
                 "type": "setglobal",
@@ -149,12 +149,12 @@
                     "args": [
                         {
                             "finish": [
-                                38,
+                                34,
                                 27
                             ],
                             "name": "filename",
                             "start": [
-                                38,
+                                34,
                                 19
                             ],
                             "type": "local",
@@ -162,7 +162,7 @@
                         }
                     ],
                     "finish": [
-                        41,
+                        37,
                         3
                     ],
                     "returns": [
@@ -172,7 +172,7 @@
                         }
                     ],
                     "start": [
-                        38,
+                        34,
                         0
                     ],
                     "type": "function",
@@ -180,11 +180,11 @@
                 },
                 "file": "include-lua/runtime.lua",
                 "finish": [
-                    38,
+                    34,
                     18
                 ],
                 "start": [
-                    38,
+                    34,
                     9
                 ],
                 "type": "setglobal",
@@ -195,28 +195,5 @@
         "name": "read_file",
         "type": "variable",
         "view": "unknown"
-    },
-    {
-        "defines": [
-            {
-                "desc": "```lua\nresult:\n    | 0 -- ok\n    | 1 -- err\n```",
-                "file": "include-lua/runtime.lua",
-                "finish": [
-                    19,
-                    5
-                ],
-                "rawdesc": "```lua\nresult:\n    | 0 -- ok\n    | 1 -- err\n```",
-                "start": [
-                    17,
-                    10
-                ],
-                "type": "doc.alias",
-                "view": "0|1"
-            }
-        ],
-        "fields": [],
-        "name": "result",
-        "type": "type",
-        "view": "result"
     }
 ]

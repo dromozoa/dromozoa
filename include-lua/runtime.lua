@@ -15,11 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
----@alias result
----|0 # ok
----|1 # err
-
----@param main fun(): result
+---@param main fun(): 0|1
 function export_start(main)
   local code = main()
   os.exit(code)
