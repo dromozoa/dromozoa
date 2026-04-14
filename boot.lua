@@ -17,12 +17,29 @@
 
 require "runtime"
 
----@return result
+---@class node
+---@field kind integer
+---@field value string
+---@field file string
+---@field position integer
+
+---@param filename string
+---@param source string
+function lexer(filename, source)
+  print(filename)
+  print(source)
+end
+
+---@param filename string
+function parse_file(filename)
+  local source = read_file(filename)
+  local tokens = lexer(filename, source)
+  print(tokens)
+end
+
 function main()
   local args = get_arguments()
-  for i = 1, #args do
-    print(args[i])
-  end
+  parse_file(args[1])
   return 0
 end
 

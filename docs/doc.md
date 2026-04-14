@@ -24,12 +24,65 @@ function get_arguments()
 
 ---
 
+# lexer
+
+
+```lua
+function lexer(filename: string, source: string)
+```
+
+
+---
+
 # main
 
 
 ```lua
 function main()
-  -> result
+  -> integer
+```
+
+
+---
+
+# node
+
+## file
+
+
+```lua
+string
+```
+
+## kind
+
+
+```lua
+integer
+```
+
+## position
+
+
+```lua
+integer
+```
+
+## value
+
+
+```lua
+string
+```
+
+
+---
+
+# parse_file
+
+
+```lua
+function parse_file(filename: string)
 ```
 
 
