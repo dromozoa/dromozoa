@@ -7,7 +7,7 @@
 
 
 ```lua
-function export_start(main: fun())
+function export_start(main: fun():0|1)
 ```
 
 
@@ -29,6 +29,7 @@ function get_arguments()
 
 ```lua
 function main()
+  -> integer
 ```
 
 
@@ -41,3 +42,8 @@ function main()
 function read_file(filename: string)
   -> string
 ```
+
+
+---
+
+# result

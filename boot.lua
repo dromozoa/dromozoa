@@ -22,6 +22,7 @@ function main()
   for i = 1, #args do
     print(args[i])
   end
+  return 0
 end
 
 export_start(main)

@@ -20,4 +20,4 @@
 LUA_PATH="include-lua/?.lua;;"
 export LUA_PATH
 
-lua boot.lua "$@"
+exec lua boot.lua "$@"
