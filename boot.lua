@@ -17,13 +17,18 @@
 
 require "runtime"
 
+---@enum Kind
+local Kind = {
+  Name = 1;
+}
+
 ---@class Node
----@field kind string
+---@field kind Kind
 ---@field value string
 ---@field file string
 ---@field position integer
 
----@param kind string
+---@param kind Kind
 ---@param value string
 ---@param file string
 ---@param position integer
@@ -41,7 +46,17 @@ end
 ---@param source string
 ---@return Node[]
 function lexer(filename, source)
+  local p = 1
+  local n = #source
   local result = {}
+
+  while p <= n do
+    local q = 0
+    local token
+  end
+
+
+  result[1] = new_token(Kind.Name, "x", filename, 1)
   print(filename)
   print(source)
   return result
