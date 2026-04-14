@@ -1,0 +1,10 @@
+// namespace:nameのようだけど、この指定で正しい？
+// 名前のつけかたは？
+// バージョンは？
+package local:test1;
+
+// worldの名前のつけかたは？
+world test1 {
+  // wasm-toolsでcomponent embedしようとするとエラーになる
+  export wasi:cli/run@0.2.6;
+}
