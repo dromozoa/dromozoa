@@ -1,5 +1,5 @@
-package dromozoa:test1;
+package dromozoa:test;
 
-world command {
+world test1 {
   export wasi:cli/run@0.2.6;
 }
