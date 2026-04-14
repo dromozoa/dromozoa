@@ -27,11 +27,11 @@ end
 
 ---@return string[]
 function get_arguments()
-  local result = {}
+  local args = {}
   for i = 1, #arg do
-    table.insert(result, arg[i])
+    table.insert(args, arg[i])
   end
-  return result
+  return args
 end
 
 ---@param filename string

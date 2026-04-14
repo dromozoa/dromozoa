@@ -17,6 +17,7 @@
 
 require "runtime"
 
+---@return result
 function main()
   local args = get_arguments()
   for i = 1, #args do
