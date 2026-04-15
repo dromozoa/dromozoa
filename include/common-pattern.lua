@@ -65,6 +65,8 @@ function pattern_set(self, set)
   return self
 end
 
+---@param self char_class
+---@return char_class
 function pattern_negate(self)
   for i = 1, 8 do
     self[i] = self[i] ~ 0xFFFFFFFF
