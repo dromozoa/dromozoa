@@ -22,3 +22,8 @@ assert(string_compare(string_sub(s, 4, 6), "bar") == 0)
 assert(string_compare("bar", "baz") < 0)
 assert(string_compare("foo", "foobar") < 0)
 assert(string_compare("barbaz", "bar") > 0)
+
+assert(string_starts_with("foobarbaz", "bar", 4))
+assert(not string_starts_with("foobarbaz", "baz", 4))
+assert(not string_starts_with("foobar", "barbaz", 4))
+assert(not string_starts_with("foobar", "baz", 4))

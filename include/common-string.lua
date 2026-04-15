@@ -41,3 +41,23 @@ function string_compare(a, b)
     return 1
   end
 end
+
+---@param s string
+---@param pattern string
+---@param position integer
+---@return boolean
+function string_starts_with(s, pattern, position)
+  local n = string_len(s)
+  for i = 1, string_len(pattern) do
+    local j = position + i - 1
+    if j > n then
+      return false
+    end
+    local x = string_byte(s, j)
+    local y = string_byte(pattern, i)
+    if x ~= y then
+      return false
+    end
+  end
+  return true
+end
