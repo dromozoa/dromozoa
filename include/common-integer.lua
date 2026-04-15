@@ -15,29 +15,13 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-require "common-integer"
-require "std-string"
-
----@param a string
----@param b string
+---@param a integer
+---@param b integer
 ---@return integer
-function string_compare(a, b)
-  local m = string_len(a)
-  local n = string_len(b)
-
-  for i = 1, integer_min(m, n) do
-    local x = string_byte(a, i)
-    local y = string_byte(b, i)
-    if x ~= y then
-      return x - y
-    end
-  end
-
-  if m == n then
-    return 0
-  elseif m < n then
-    return -1
+function integer_min(a, b)
+  if a < b then
+    return a
   else
-    return 1
+    return b
   end
 end
