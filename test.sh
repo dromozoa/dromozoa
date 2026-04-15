@@ -20,4 +20,7 @@
 LUA_PATH="include/?.lua;include-lua/?.lua;;"
 export LUA_PATH
 
-exec lua boot.lua "$@"
+for i in test/test*.lua
+do
+  lua "$i"
+done

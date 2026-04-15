@@ -1,5 +1,6 @@
 {
   "runtime.path": [
+    "include/?.lua",
     "include-lua/?.lua"
   ],
   "workspace.ignoreDir": [

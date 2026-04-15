@@ -15,26 +15,33 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-require "string"
+require "std-string"
 
----@param main fun(): 0|1
-function export_start(main)
-  local code = main()
-  os.exit(code)
-end
+---@param a string
+---@param b string
+---@return integer
+function string_compare(a, b)
+  local m = string_len(a)
+  local n = string_len(b)
 
----@return string[]
-function get_arguments()
-  local args = {}
-  for i = 1, #arg do
-    table.insert(args, arg[i])
+  local min = m
+  if min > n then
+    min = n
   end
-  return args
-end
 
----@param filename string
----@return string
-function read_file(filename)
-  local handle <close> = assert(io.open(filename, "rb"))
-  return handle:read "a"
+  for i = 1, min do
+    local x = string_byte(a, i)
+    local y = string_byte(b, i)
+    if x ~= y then
+      return x - y
+    end
+  end
+
+  if m == n then
+    return 0
+  elseif m < n then
+    return -1
+  else
+    return 1
+  end
 end

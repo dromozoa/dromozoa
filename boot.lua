@@ -55,7 +55,6 @@ function lexer(filename, source)
     local token
   end
 
-
   result[1] = new_token(Kind.Name, "x", filename, 1)
   print(filename)
   print(source)
