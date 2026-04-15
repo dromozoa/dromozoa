@@ -41,6 +41,43 @@ string
 
 ---
 
+# char_class
+
+
+---
+
+# char_class_new
+
+
+```lua
+function char_class_new()
+  -> integer[]
+```
+
+
+---
+
+# char_class_set
+
+
+```lua
+function char_class_set(char_class: integer[], byte: integer)
+```
+
+
+---
+
+# char_class_test
+
+
+```lua
+function char_class_test(char_class: integer[], byte: integer)
+  -> boolean
+```
+
+
+---
+
 # export_start
 
 
@@ -111,6 +148,105 @@ function new_token(kind: Kind, value: string, file: string, position: integer)
 
 ```lua
 function parse_file(filename: string)
+```
+
+
+---
+
+# pattern
+
+## char_class
+
+
+```lua
+integer[]?
+```
+
+## literal
+
+
+```lua
+string?
+```
+
+## m
+
+
+```lua
+integer
+```
+
+## n
+
+
+```lua
+integer
+```
+
+
+---
+
+# pattern_negate
+
+
+```lua
+function pattern_negate(char_class: integer[])
+  -> integer[]
+```
+
+
+---
+
+# pattern_new
+
+
+```lua
+function pattern_new(char_class?: integer[], literal?: string, m: integer, n: integer)
+  -> pattern
+```
+
+
+---
+
+# pattern_optional
+
+
+```lua
+function pattern_optional(char_class: integer[])
+  -> pattern
+```
+
+
+---
+
+# pattern_range
+
+
+```lua
+function pattern_range(char_class: integer[], range: string)
+  -> integer[]
+```
+
+
+---
+
+# pattern_repeat
+
+
+```lua
+function pattern_repeat(char_class: integer[], m: integer, n: integer)
+  -> pattern
+```
+
+
+---
+
+# pattern_set
+
+
+```lua
+function pattern_set(char_class: integer[], set: string)
+  -> integer[]
 ```
 
 
