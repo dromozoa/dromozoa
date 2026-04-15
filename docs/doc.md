@@ -1,3 +1,8 @@
+# Kind
+
+
+---
+
 # LuaLS
 
 
@@ -16,7 +21,7 @@ string
 
 
 ```lua
-string
+Kind
 ```
 
 ## position
@@ -57,6 +62,17 @@ function get_arguments()
 
 ---
 
+# integer_min
+
+
+```lua
+function integer_min(a: integer, b: integer)
+  -> integer
+```
+
+
+---
+
 # lexer
 
 
@@ -83,7 +99,7 @@ function main()
 
 
 ```lua
-function new_token(kind: string, value: string, file: string, position: integer)
+function new_token(kind: Kind, value: string, file: string, position: integer)
   -> Node
 ```
 
@@ -105,5 +121,82 @@ function parse_file(filename: string)
 
 ```lua
 function read_file(filename: string)
+  -> string
+```
+
+
+---
+
+# string_byte
+
+
+```lua
+function string_byte(s: string, i: integer)
+  -> integer
+```
+
+
+---
+
+# string_char
+
+
+```lua
+function string_char(list: integer[])
+  -> string
+```
+
+
+---
+
+# string_compare
+
+
+```lua
+function string_compare(a: string, b: string)
+  -> integer
+```
+
+
+---
+
+# string_find
+
+
+```lua
+function string_find(s: string, search: string, position: integer)
+  -> integer
+```
+
+
+---
+
+# string_len
+
+
+```lua
+function string_len(s: string)
+  -> integer
+```
+
+
+---
+
+# string_starts_with
+
+
+```lua
+function string_starts_with(s: string, search: string, position: integer)
+  -> boolean
+```
+
+
+---
+
+# string_sub
+
+
+```lua
+function string_sub(s: string, i: integer, j: integer)
   -> string
 ```

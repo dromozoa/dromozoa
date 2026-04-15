@@ -27,3 +27,19 @@ assert(string_starts_with("foobarbaz", "bar", 4))
 assert(not string_starts_with("foobarbaz", "baz", 4))
 assert(not string_starts_with("foobar", "barbaz", 4))
 assert(not string_starts_with("foobar", "baz", 4))
+
+assert(string_find("foobarbaz", "foo", 1) == 1)
+assert(string_find("foobarbaz", "foo", 4) == 0)
+assert(string_find("foobarbaz", "foo", 7) == 0)
+
+assert(string_find("foobarbaz", "bar", 1) == 4)
+assert(string_find("foobarbaz", "bar", 4) == 4)
+assert(string_find("foobarbaz", "bar", 7) == 0)
+
+assert(string_find("foobarbaz", "baz", 1) == 7)
+assert(string_find("foobarbaz", "baz", 4) == 7)
+assert(string_find("foobarbaz", "baz", 7) == 7)
+
+assert(string_find("foobarbaz", "qux", 1) == 0)
+assert(string_find("foobarbaz", "qux", 4) == 0)
+assert(string_find("foobarbaz", "qux", 7) == 0)
