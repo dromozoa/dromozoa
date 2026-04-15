@@ -47,10 +47,10 @@ end
 ---@field n integer
 
 ---constructor
----@param char_class char_class?
----@param literal string?
----@param m integer
----@param n integer
+---@param char_class char_class? 文字クラス
+---@param literal string? リテラル
+---@param m integer min
+---@param n integer max
 ---@return pattern
 function pattern_new(char_class, literal, m, n)
   return {
