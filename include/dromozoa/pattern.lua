@@ -16,29 +16,7 @@
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
 require "dromozoa.runtime.string"
-
----@alias char_class integer[]
----@return char_class
-function char_class_new()
-  return { 0, 0, 0, 0, 0, 0, 0, 0 }
-end
-
----@param char_class char_class
----@param byte integer
-function char_class_set(char_class, byte)
-  local i = (byte >> 5) + 1
-  local j = byte & 0x1F
-  char_class[i] = char_class[i] | 1 << j
-end
-
----@param char_class char_class
----@param byte integer
----@return boolean
-function char_class_test(char_class, byte)
-  local i = (byte >> 5) + 1
-  local j = byte & 0x1F
-  return char_class[i] & 1 << j ~= 0
-end
+require "dromozoa.char_class"
 
 ---@class pattern
 ---@field char_class char_class?
