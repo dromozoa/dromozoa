@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-require "common-string"
+require "dromozoa.string"
 
 local s = "foobarbaz"
 assert(string_compare(string_sub(s, 4, 6), "bar") == 0)

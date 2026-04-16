@@ -15,13 +15,17 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-require "dromozoa.pattern"
-require "dromozoa.string"
+---@param main fun(): 0|1
+function export_start(main)
+  local code = main()
+  os.exit(code)
+end
 
-local range = pattern_range(char_class_new(), "AZaz__")
-assert(char_class_test(range, string_byte("x", 1)))
-assert(not char_class_test(range, string_byte("0", 1)))
-
-local set = pattern_negate(pattern_set(char_class_new(), "02468"))
-assert(char_class_test(set, string_byte("1", 1)))
-assert(not char_class_test(set, string_byte("2", 1)))
+---@return string[]
+function get_arguments()
+  local args = {}
+  for i = 1, #arg do
+    table.insert(args, arg[i])
+  end
+  return args
+end

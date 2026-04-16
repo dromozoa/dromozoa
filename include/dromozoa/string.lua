@@ -15,8 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-require "common-integer"
-require "std-string"
+require "dromozoa.integer"
+require "dromozoa.runtime.string"
 
 ---@param a string
 ---@param b string

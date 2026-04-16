@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-require "std-string"
+require "dromozoa.runtime.string"
 
 ---@alias char_class integer[]
 ---@return char_class
