@@ -1,28 +1,5 @@
 [
     {
-        "defines": [
-            {
-                "desc": "```lua\n{\n    Name: integer = 1,\n}\n```",
-                "file": "boot.lua",
-                "finish": [
-                    19,
-                    13
-                ],
-                "rawdesc": "```lua\n{\n    Name: integer = 1,\n}\n```",
-                "start": [
-                    19,
-                    9
-                ],
-                "type": "doc.enum",
-                "view": "Kind"
-            }
-        ],
-        "fields": [],
-        "name": "Kind",
-        "type": "type",
-        "view": "Kind"
-    },
-    {
         "DOC": "/Users/moyu/Workspace/dromozoa",
         "defines": [],
         "fields": [],
@@ -36,15 +13,15 @@
                 "deprecated": false,
                 "file": "boot.lua",
                 "finish": [
-                    24,
-                    14
+                    26,
+                    19
                 ],
                 "start": [
-                    24,
+                    26,
                     10
                 ],
                 "type": "doc.class",
-                "view": "Node",
+                "view": "lua_lexer",
                 "visible": "public"
             }
         ],
@@ -55,335 +32,117 @@
                 "extends": {
                     "finish": [
                         27,
-                        21
+                        25
                     ],
                     "start": [
                         27,
-                        15
-                    ],
-                    "type": "doc.type",
-                    "types": [
-                        {
-                            "finish": [
-                                27,
-                                21
-                            ],
-                            "start": [
-                                27,
-                                15
-                            ],
-                            "type": "doc.type.name",
-                            "view": "string"
-                        }
-                    ],
-                    "view": "string"
-                },
-                "file": "boot.lua",
-                "finish": [
-                    27,
-                    21
-                ],
-                "name": "file",
-                "start": [
-                    27,
-                    10
-                ],
-                "type": "doc.field",
-                "view": "string",
-                "visible": "public"
-            },
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "finish": [
-                        25,
-                        19
-                    ],
-                    "start": [
-                        25,
-                        15
-                    ],
-                    "type": "doc.type",
-                    "types": [
-                        {
-                            "finish": [
-                                25,
-                                19
-                            ],
-                            "start": [
-                                25,
-                                15
-                            ],
-                            "type": "doc.type.name",
-                            "view": "Kind"
-                        }
-                    ],
-                    "view": "Kind"
-                },
-                "file": "boot.lua",
-                "finish": [
-                    25,
-                    19
-                ],
-                "name": "kind",
-                "start": [
-                    25,
-                    10
-                ],
-                "type": "doc.field",
-                "view": "Kind",
-                "visible": "public"
-            },
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "finish": [
-                        28,
-                        26
-                    ],
-                    "start": [
-                        28,
                         19
                     ],
                     "type": "doc.type",
                     "types": [
                         {
                             "finish": [
-                                28,
-                                26
-                            ],
-                            "start": [
-                                28,
-                                19
-                            ],
-                            "type": "doc.type.name",
-                            "view": "integer"
-                        }
-                    ],
-                    "view": "integer"
-                },
-                "file": "boot.lua",
-                "finish": [
-                    28,
-                    26
-                ],
-                "name": "position",
-                "start": [
-                    28,
-                    10
-                ],
-                "type": "doc.field",
-                "view": "integer",
-                "visible": "public"
-            },
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "finish": [
-                        26,
-                        22
-                    ],
-                    "start": [
-                        26,
-                        16
-                    ],
-                    "type": "doc.type",
-                    "types": [
-                        {
-                            "finish": [
-                                26,
-                                22
-                            ],
-                            "start": [
-                                26,
-                                16
-                            ],
-                            "type": "doc.type.name",
-                            "view": "string"
-                        }
-                    ],
-                    "view": "string"
-                },
-                "file": "boot.lua",
-                "finish": [
-                    26,
-                    22
-                ],
-                "name": "value",
-                "start": [
-                    26,
-                    10
-                ],
-                "type": "doc.field",
-                "view": "string",
-                "visible": "public"
-            }
-        ],
-        "name": "Node",
-        "type": "type",
-        "view": "Node"
-    },
-    {
-        "defines": [
-            {
-                "file": "include/common-pattern.lua",
-                "finish": [
-                    19,
-                    30
-                ],
-                "start": [
-                    19,
-                    10
-                ],
-                "type": "doc.alias",
-                "view": "integer[]"
-            }
-        ],
-        "fields": [],
-        "name": "char_class",
-        "type": "type",
-        "view": "char_class"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "args": [],
-                    "finish": [
-                        23,
-                        3
-                    ],
-                    "returns": [
-                        {
-                            "type": "function.return",
-                            "view": "integer[]"
-                        }
-                    ],
-                    "start": [
-                        21,
-                        0
-                    ],
-                    "type": "function",
-                    "view": "function char_class_new()\n  -> integer[]"
-                },
-                "file": "include/common-pattern.lua",
-                "finish": [
-                    21,
-                    23
-                ],
-                "start": [
-                    21,
-                    9
-                ],
-                "type": "setglobal",
-                "view": "function",
-                "visible": "public"
-            }
-        ],
-        "name": "char_class_new",
-        "type": "variable",
-        "view": "unknown"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "args": [
-                        {
-                            "finish": [
                                 27,
-                                34
-                            ],
-                            "name": "char_class",
-                            "start": [
-                                27,
-                                24
-                            ],
-                            "type": "local",
-                            "view": "integer[]"
-                        },
-                        {
-                            "finish": [
-                                27,
-                                40
-                            ],
-                            "name": "byte",
-                            "start": [
-                                27,
-                                36
-                            ],
-                            "type": "local",
-                            "view": "integer"
-                        }
-                    ],
-                    "finish": [
-                        31,
-                        3
-                    ],
-                    "start": [
-                        27,
-                        0
-                    ],
-                    "type": "function",
-                    "view": "function char_class_set(char_class: integer[], byte: integer)"
-                },
-                "file": "include/common-pattern.lua",
-                "finish": [
-                    27,
-                    23
-                ],
-                "start": [
-                    27,
-                    9
-                ],
-                "type": "setglobal",
-                "view": "function",
-                "visible": "public"
-            }
-        ],
-        "name": "char_class_set",
-        "type": "variable",
-        "view": "unknown"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "args": [
-                        {
-                            "finish": [
-                                36,
-                                35
-                            ],
-                            "name": "char_class",
-                            "start": [
-                                36,
                                 25
                             ],
+                            "start": [
+                                27,
+                                19
+                            ],
+                            "type": "doc.type.name",
+                            "view": "string"
+                        }
+                    ],
+                    "view": "string"
+                },
+                "file": "boot.lua",
+                "finish": [
+                    27,
+                    25
+                ],
+                "name": "filename",
+                "start": [
+                    27,
+                    10
+                ],
+                "type": "doc.field",
+                "view": "string",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                42,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                42,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "lua_lexer"
+                        }
+                    ],
+                    "finish": [
+                        44,
+                        3
+                    ],
+                    "start": [
+                        42,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) lua_lexer:lex()"
+                },
+                "file": "boot.lua",
+                "finish": [
+                    42,
+                    22
+                ],
+                "name": "lex",
+                "start": [
+                    42,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                35,
+                                31
+                            ],
+                            "name": "filename",
+                            "start": [
+                                35,
+                                23
+                            ],
                             "type": "local",
-                            "view": "integer[]"
+                            "view": "string"
                         },
                         {
                             "finish": [
-                                36,
-                                41
+                                35,
+                                39
                             ],
-                            "name": "byte",
+                            "name": "source",
                             "start": [
-                                36,
-                                37
+                                35,
+                                33
                             ],
                             "type": "local",
-                            "view": "integer"
+                            "view": "string"
                         }
                     ],
                     "finish": [
@@ -393,374 +152,7 @@
                     "returns": [
                         {
                             "type": "function.return",
-                            "view": "boolean"
-                        }
-                    ],
-                    "start": [
-                        36,
-                        0
-                    ],
-                    "type": "function",
-                    "view": "function char_class_test(char_class: integer[], byte: integer)\n  -> boolean"
-                },
-                "file": "include/common-pattern.lua",
-                "finish": [
-                    36,
-                    24
-                ],
-                "start": [
-                    36,
-                    9
-                ],
-                "type": "setglobal",
-                "view": "function",
-                "visible": "public"
-            }
-        ],
-        "name": "char_class_test",
-        "type": "variable",
-        "view": "unknown"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "args": [
-                        {
-                            "finish": [
-                                20,
-                                26
-                            ],
-                            "name": "main",
-                            "start": [
-                                20,
-                                22
-                            ],
-                            "type": "local",
-                            "view": "fun():0|1"
-                        }
-                    ],
-                    "finish": [
-                        23,
-                        3
-                    ],
-                    "start": [
-                        20,
-                        0
-                    ],
-                    "type": "function",
-                    "view": "function export_start(main: fun():0|1)"
-                },
-                "file": "include-lua/runtime.lua",
-                "finish": [
-                    20,
-                    21
-                ],
-                "start": [
-                    20,
-                    9
-                ],
-                "type": "setglobal",
-                "view": "function",
-                "visible": "public"
-            }
-        ],
-        "name": "export_start",
-        "type": "variable",
-        "view": "unknown"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "args": [],
-                    "finish": [
-                        32,
-                        3
-                    ],
-                    "returns": [
-                        {
-                            "type": "function.return",
-                            "view": "string[]"
-                        }
-                    ],
-                    "start": [
-                        26,
-                        0
-                    ],
-                    "type": "function",
-                    "view": "function get_arguments()\n  -> string[]"
-                },
-                "file": "include-lua/runtime.lua",
-                "finish": [
-                    26,
-                    22
-                ],
-                "start": [
-                    26,
-                    9
-                ],
-                "type": "setglobal",
-                "view": "function",
-                "visible": "public"
-            }
-        ],
-        "name": "get_arguments",
-        "type": "variable",
-        "view": "unknown"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "args": [
-                        {
-                            "finish": [
-                                20,
-                                22
-                            ],
-                            "name": "a",
-                            "start": [
-                                20,
-                                21
-                            ],
-                            "type": "local",
-                            "view": "integer"
-                        },
-                        {
-                            "finish": [
-                                20,
-                                25
-                            ],
-                            "name": "b",
-                            "start": [
-                                20,
-                                24
-                            ],
-                            "type": "local",
-                            "view": "integer"
-                        }
-                    ],
-                    "finish": [
-                        26,
-                        3
-                    ],
-                    "returns": [
-                        {
-                            "type": "function.return",
-                            "view": "integer"
-                        }
-                    ],
-                    "start": [
-                        20,
-                        0
-                    ],
-                    "type": "function",
-                    "view": "function integer_min(a: integer, b: integer)\n  -> integer"
-                },
-                "file": "include/common-integer.lua",
-                "finish": [
-                    20,
-                    20
-                ],
-                "start": [
-                    20,
-                    9
-                ],
-                "type": "setglobal",
-                "view": "function",
-                "visible": "public"
-            }
-        ],
-        "name": "integer_min",
-        "type": "variable",
-        "view": "unknown"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "args": [
-                        {
-                            "finish": [
-                                47,
-                                23
-                            ],
-                            "name": "filename",
-                            "start": [
-                                47,
-                                15
-                            ],
-                            "type": "local",
-                            "view": "string"
-                        },
-                        {
-                            "finish": [
-                                47,
-                                31
-                            ],
-                            "name": "source",
-                            "start": [
-                                47,
-                                25
-                            ],
-                            "type": "local",
-                            "view": "string"
-                        }
-                    ],
-                    "finish": [
-                        61,
-                        3
-                    ],
-                    "returns": [
-                        {
-                            "type": "function.return",
-                            "view": "Node[]"
-                        }
-                    ],
-                    "start": [
-                        47,
-                        0
-                    ],
-                    "type": "function",
-                    "view": "function lexer(filename: string, source: string)\n  -> Node[]"
-                },
-                "file": "boot.lua",
-                "finish": [
-                    47,
-                    14
-                ],
-                "start": [
-                    47,
-                    9
-                ],
-                "type": "setglobal",
-                "view": "function",
-                "visible": "public"
-            }
-        ],
-        "name": "lexer",
-        "type": "variable",
-        "view": "unknown"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "args": [],
-                    "finish": [
-                        74,
-                        3
-                    ],
-                    "returns": [
-                        {
-                            "type": "function.return",
-                            "view": "integer"
-                        }
-                    ],
-                    "start": [
-                        70,
-                        0
-                    ],
-                    "type": "function",
-                    "view": "function main()\n  -> integer"
-                },
-                "file": "boot.lua",
-                "finish": [
-                    70,
-                    13
-                ],
-                "start": [
-                    70,
-                    9
-                ],
-                "type": "setglobal",
-                "view": "function",
-                "visible": "public"
-            }
-        ],
-        "name": "main",
-        "type": "variable",
-        "view": "unknown"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "args": [
-                        {
-                            "finish": [
-                                35,
-                                23
-                            ],
-                            "name": "kind",
-                            "start": [
-                                35,
-                                19
-                            ],
-                            "type": "local",
-                            "view": "Kind"
-                        },
-                        {
-                            "finish": [
-                                35,
-                                30
-                            ],
-                            "name": "value",
-                            "start": [
-                                35,
-                                25
-                            ],
-                            "type": "local",
-                            "view": "string"
-                        },
-                        {
-                            "finish": [
-                                35,
-                                36
-                            ],
-                            "name": "file",
-                            "start": [
-                                35,
-                                32
-                            ],
-                            "type": "local",
-                            "view": "string"
-                        },
-                        {
-                            "finish": [
-                                35,
-                                46
-                            ],
-                            "name": "position",
-                            "start": [
-                                35,
-                                38
-                            ],
-                            "type": "local",
-                            "view": "integer"
-                        }
-                    ],
-                    "finish": [
-                        42,
-                        3
-                    ],
-                    "returns": [
-                        {
-                            "type": "function.return",
-                            "view": "Node"
+                            "view": "lua_lexer"
                         }
                     ],
                     "start": [
@@ -768,1254 +160,68 @@
                         0
                     ],
                     "type": "function",
-                    "view": "function new_token(kind: Kind, value: string, file: string, position: integer)\n  -> Node"
+                    "view": "function lua_lexer.new(filename: string, source: string)\n  -> lua_lexer"
                 },
                 "file": "boot.lua",
                 "finish": [
                     35,
-                    18
-                ],
-                "start": [
-                    35,
-                    9
-                ],
-                "type": "setglobal",
-                "view": "function",
-                "visible": "public"
-            }
-        ],
-        "name": "new_token",
-        "type": "variable",
-        "view": "unknown"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "args": [
-                        {
-                            "finish": [
-                                64,
-                                28
-                            ],
-                            "name": "filename",
-                            "start": [
-                                64,
-                                20
-                            ],
-                            "type": "local",
-                            "view": "string"
-                        }
-                    ],
-                    "finish": [
-                        68,
-                        3
-                    ],
-                    "start": [
-                        64,
-                        0
-                    ],
-                    "type": "function",
-                    "view": "function parse_file(filename: string)"
-                },
-                "file": "boot.lua",
-                "finish": [
-                    64,
-                    19
-                ],
-                "start": [
-                    64,
-                    9
-                ],
-                "type": "setglobal",
-                "view": "function",
-                "visible": "public"
-            }
-        ],
-        "name": "parse_file",
-        "type": "variable",
-        "view": "unknown"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "file": "include/common-pattern.lua",
-                "finish": [
-                    42,
-                    17
-                ],
-                "start": [
-                    42,
-                    10
-                ],
-                "type": "doc.class",
-                "view": "pattern",
-                "visible": "public"
-            }
-        ],
-        "fields": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "finish": [
-                        43,
-                        32
-                    ],
-                    "start": [
-                        43,
-                        21
-                    ],
-                    "type": "doc.type",
-                    "types": [
-                        {
-                            "finish": [
-                                43,
-                                31
-                            ],
-                            "start": [
-                                43,
-                                21
-                            ],
-                            "type": "doc.type.name",
-                            "view": "integer[]"
-                        }
-                    ],
-                    "view": "integer[]?"
-                },
-                "file": "include/common-pattern.lua",
-                "finish": [
-                    43,
-                    32
-                ],
-                "name": "char_class",
-                "start": [
-                    43,
-                    10
-                ],
-                "type": "doc.field",
-                "view": "integer[]?",
-                "visible": "public"
-            },
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "finish": [
-                        44,
-                        25
-                    ],
-                    "start": [
-                        44,
-                        18
-                    ],
-                    "type": "doc.type",
-                    "types": [
-                        {
-                            "finish": [
-                                44,
-                                24
-                            ],
-                            "start": [
-                                44,
-                                18
-                            ],
-                            "type": "doc.type.name",
-                            "view": "string"
-                        }
-                    ],
-                    "view": "string?"
-                },
-                "file": "include/common-pattern.lua",
-                "finish": [
-                    44,
-                    25
-                ],
-                "name": "literal",
-                "start": [
-                    44,
-                    10
-                ],
-                "type": "doc.field",
-                "view": "string?",
-                "visible": "public"
-            },
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "finish": [
-                        45,
-                        19
-                    ],
-                    "start": [
-                        45,
-                        12
-                    ],
-                    "type": "doc.type",
-                    "types": [
-                        {
-                            "finish": [
-                                45,
-                                19
-                            ],
-                            "start": [
-                                45,
-                                12
-                            ],
-                            "type": "doc.type.name",
-                            "view": "integer"
-                        }
-                    ],
-                    "view": "integer"
-                },
-                "file": "include/common-pattern.lua",
-                "finish": [
-                    45,
-                    19
-                ],
-                "name": "m",
-                "start": [
-                    45,
-                    10
-                ],
-                "type": "doc.field",
-                "view": "integer",
-                "visible": "public"
-            },
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "finish": [
-                        46,
-                        19
-                    ],
-                    "start": [
-                        46,
-                        12
-                    ],
-                    "type": "doc.type",
-                    "types": [
-                        {
-                            "finish": [
-                                46,
-                                19
-                            ],
-                            "start": [
-                                46,
-                                12
-                            ],
-                            "type": "doc.type.name",
-                            "view": "integer"
-                        }
-                    ],
-                    "view": "integer"
-                },
-                "file": "include/common-pattern.lua",
-                "finish": [
-                    46,
-                    19
-                ],
-                "name": "n",
-                "start": [
-                    46,
-                    10
-                ],
-                "type": "doc.field",
-                "view": "integer",
-                "visible": "public"
-            }
-        ],
-        "name": "pattern",
-        "type": "type",
-        "view": "pattern"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "args": [
-                        {
-                            "finish": [
-                                89,
-                                34
-                            ],
-                            "name": "char_class",
-                            "start": [
-                                89,
-                                24
-                            ],
-                            "type": "local",
-                            "view": "integer[]"
-                        }
-                    ],
-                    "finish": [
-                        94,
-                        3
-                    ],
-                    "returns": [
-                        {
-                            "type": "function.return",
-                            "view": "integer[]"
-                        }
-                    ],
-                    "start": [
-                        89,
-                        0
-                    ],
-                    "type": "function",
-                    "view": "function pattern_negate(char_class: integer[])\n  -> integer[]"
-                },
-                "file": "include/common-pattern.lua",
-                "finish": [
-                    89,
-                    23
-                ],
-                "start": [
-                    89,
-                    9
-                ],
-                "type": "setglobal",
-                "view": "function",
-                "visible": "public"
-            }
-        ],
-        "name": "pattern_negate",
-        "type": "variable",
-        "view": "unknown"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "desc": "constructor",
-                "extends": {
-                    "args": [
-                        {
-                            "finish": [
-                                54,
-                                31
-                            ],
-                            "name": "char_class",
-                            "start": [
-                                54,
-                                21
-                            ],
-                            "type": "local",
-                            "view": "integer[]?"
-                        },
-                        {
-                            "finish": [
-                                54,
-                                40
-                            ],
-                            "name": "literal",
-                            "start": [
-                                54,
-                                33
-                            ],
-                            "type": "local",
-                            "view": "string?"
-                        },
-                        {
-                            "finish": [
-                                54,
-                                43
-                            ],
-                            "name": "m",
-                            "start": [
-                                54,
-                                42
-                            ],
-                            "type": "local",
-                            "view": "integer"
-                        },
-                        {
-                            "finish": [
-                                54,
-                                46
-                            ],
-                            "name": "n",
-                            "start": [
-                                54,
-                                45
-                            ],
-                            "type": "local",
-                            "view": "integer"
-                        }
-                    ],
-                    "desc": "constructor",
-                    "finish": [
-                        61,
-                        3
-                    ],
-                    "rawdesc": "constructor",
-                    "returns": [
-                        {
-                            "type": "function.return",
-                            "view": "pattern"
-                        }
-                    ],
-                    "start": [
-                        54,
-                        0
-                    ],
-                    "type": "function",
-                    "view": "function pattern_new(char_class?: integer[], literal?: string, m: integer, n: integer)\n  -> pattern"
-                },
-                "file": "include/common-pattern.lua",
-                "finish": [
-                    54,
-                    20
-                ],
-                "rawdesc": "constructor",
-                "start": [
-                    54,
-                    9
-                ],
-                "type": "setglobal",
-                "view": "function",
-                "visible": "public"
-            }
-        ],
-        "name": "pattern_new",
-        "type": "variable",
-        "view": "unknown"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "args": [
-                        {
-                            "finish": [
-                                106,
-                                36
-                            ],
-                            "name": "char_class",
-                            "start": [
-                                106,
-                                26
-                            ],
-                            "type": "local",
-                            "view": "integer[]"
-                        }
-                    ],
-                    "finish": [
-                        108,
-                        3
-                    ],
-                    "returns": [
-                        {
-                            "type": "function.return",
-                            "view": "pattern"
-                        }
-                    ],
-                    "start": [
-                        106,
-                        0
-                    ],
-                    "type": "function",
-                    "view": "function pattern_optional(char_class: integer[])\n  -> pattern"
-                },
-                "file": "include/common-pattern.lua",
-                "finish": [
-                    106,
-                    25
-                ],
-                "start": [
-                    106,
-                    9
-                ],
-                "type": "setglobal",
-                "view": "function",
-                "visible": "public"
-            }
-        ],
-        "name": "pattern_optional",
-        "type": "variable",
-        "view": "unknown"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "args": [
-                        {
-                            "finish": [
-                                66,
-                                33
-                            ],
-                            "name": "char_class",
-                            "start": [
-                                66,
-                                23
-                            ],
-                            "type": "local",
-                            "view": "integer[]"
-                        },
-                        {
-                            "finish": [
-                                66,
-                                40
-                            ],
-                            "name": "range",
-                            "start": [
-                                66,
-                                35
-                            ],
-                            "type": "local",
-                            "view": "string"
-                        }
-                    ],
-                    "finish": [
-                        75,
-                        3
-                    ],
-                    "returns": [
-                        {
-                            "type": "function.return",
-                            "view": "integer[]"
-                        }
-                    ],
-                    "start": [
-                        66,
-                        0
-                    ],
-                    "type": "function",
-                    "view": "function pattern_range(char_class: integer[], range: string)\n  -> integer[]"
-                },
-                "file": "include/common-pattern.lua",
-                "finish": [
-                    66,
                     22
                 ],
+                "name": "new",
                 "start": [
-                    66,
+                    35,
                     9
                 ],
-                "type": "setglobal",
+                "type": "setfield",
                 "view": "function",
                 "visible": "public"
-            }
-        ],
-        "name": "pattern_range",
-        "type": "variable",
-        "view": "unknown"
-    },
-    {
-        "defines": [
+            },
             {
                 "async": false,
                 "deprecated": false,
                 "extends": {
-                    "args": [
-                        {
-                            "finish": [
-                                100,
-                                34
-                            ],
-                            "name": "char_class",
-                            "start": [
-                                100,
-                                24
-                            ],
-                            "type": "local",
-                            "view": "integer[]"
-                        },
-                        {
-                            "finish": [
-                                100,
-                                37
-                            ],
-                            "name": "m",
-                            "start": [
-                                100,
-                                36
-                            ],
-                            "type": "local",
-                            "view": "integer"
-                        },
-                        {
-                            "finish": [
-                                100,
-                                40
-                            ],
-                            "name": "n",
-                            "start": [
-                                100,
-                                39
-                            ],
-                            "type": "local",
-                            "view": "integer"
-                        }
-                    ],
                     "finish": [
-                        102,
-                        3
-                    ],
-                    "returns": [
-                        {
-                            "type": "function.return",
-                            "view": "pattern"
-                        }
+                        28,
+                        23
                     ],
                     "start": [
-                        100,
-                        0
+                        28,
+                        17
                     ],
-                    "type": "function",
-                    "view": "function pattern_repeat(char_class: integer[], m: integer, n: integer)\n  -> pattern"
-                },
-                "file": "include/common-pattern.lua",
-                "finish": [
-                    100,
-                    23
-                ],
-                "start": [
-                    100,
-                    9
-                ],
-                "type": "setglobal",
-                "view": "function",
-                "visible": "public"
-            }
-        ],
-        "name": "pattern_repeat",
-        "type": "variable",
-        "view": "unknown"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "args": [
+                    "type": "doc.type",
+                    "types": [
                         {
                             "finish": [
-                                80,
-                                31
-                            ],
-                            "name": "char_class",
-                            "start": [
-                                80,
-                                21
-                            ],
-                            "type": "local",
-                            "view": "integer[]"
-                        },
-                        {
-                            "finish": [
-                                80,
-                                36
-                            ],
-                            "name": "set",
-                            "start": [
-                                80,
-                                33
-                            ],
-                            "type": "local",
-                            "view": "string"
-                        }
-                    ],
-                    "finish": [
-                        85,
-                        3
-                    ],
-                    "returns": [
-                        {
-                            "type": "function.return",
-                            "view": "integer[]"
-                        }
-                    ],
-                    "start": [
-                        80,
-                        0
-                    ],
-                    "type": "function",
-                    "view": "function pattern_set(char_class: integer[], set: string)\n  -> integer[]"
-                },
-                "file": "include/common-pattern.lua",
-                "finish": [
-                    80,
-                    20
-                ],
-                "start": [
-                    80,
-                    9
-                ],
-                "type": "setglobal",
-                "view": "function",
-                "visible": "public"
-            }
-        ],
-        "name": "pattern_set",
-        "type": "variable",
-        "view": "unknown"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "args": [
-                        {
-                            "finish": [
-                                36,
-                                27
-                            ],
-                            "name": "filename",
-                            "start": [
-                                36,
-                                19
-                            ],
-                            "type": "local",
-                            "view": "string"
-                        }
-                    ],
-                    "finish": [
-                        39,
-                        3
-                    ],
-                    "returns": [
-                        {
-                            "type": "function.return",
-                            "view": "string"
-                        }
-                    ],
-                    "start": [
-                        36,
-                        0
-                    ],
-                    "type": "function",
-                    "view": "function read_file(filename: string)\n  -> string"
-                },
-                "file": "include-lua/runtime.lua",
-                "finish": [
-                    36,
-                    18
-                ],
-                "start": [
-                    36,
-                    9
-                ],
-                "type": "setglobal",
-                "view": "function",
-                "visible": "public"
-            }
-        ],
-        "name": "read_file",
-        "type": "variable",
-        "view": "unknown"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "args": [
-                        {
-                            "finish": [
-                                19,
-                                22
-                            ],
-                            "name": "s",
-                            "start": [
-                                19,
-                                21
-                            ],
-                            "type": "local",
-                            "view": "string"
-                        },
-                        {
-                            "finish": [
-                                19,
-                                25
-                            ],
-                            "name": "i",
-                            "start": [
-                                19,
-                                24
-                            ],
-                            "type": "local",
-                            "view": "integer"
-                        }
-                    ],
-                    "finish": [
-                        21,
-                        3
-                    ],
-                    "returns": [
-                        {
-                            "type": "function.return",
-                            "view": "integer"
-                        }
-                    ],
-                    "start": [
-                        19,
-                        0
-                    ],
-                    "type": "function",
-                    "view": "function string_byte(s: string, i: integer)\n  -> integer"
-                },
-                "file": "include-lua/std-string.lua",
-                "finish": [
-                    19,
-                    20
-                ],
-                "start": [
-                    19,
-                    9
-                ],
-                "type": "setglobal",
-                "view": "function",
-                "visible": "public"
-            }
-        ],
-        "name": "string_byte",
-        "type": "variable",
-        "view": "unknown"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "args": [
-                        {
-                            "finish": [
-                                24,
-                                25
-                            ],
-                            "name": "list",
-                            "start": [
-                                24,
-                                21
-                            ],
-                            "type": "local",
-                            "view": "integer[]"
-                        }
-                    ],
-                    "finish": [
-                        26,
-                        3
-                    ],
-                    "returns": [
-                        {
-                            "type": "function.return",
-                            "view": "string"
-                        }
-                    ],
-                    "start": [
-                        24,
-                        0
-                    ],
-                    "type": "function",
-                    "view": "function string_char(list: integer[])\n  -> string"
-                },
-                "file": "include-lua/std-string.lua",
-                "finish": [
-                    24,
-                    20
-                ],
-                "start": [
-                    24,
-                    9
-                ],
-                "type": "setglobal",
-                "view": "function",
-                "visible": "public"
-            }
-        ],
-        "name": "string_char",
-        "type": "variable",
-        "view": "unknown"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "args": [
-                        {
-                            "finish": [
-                                23,
-                                25
-                            ],
-                            "name": "a",
-                            "start": [
-                                23,
-                                24
-                            ],
-                            "type": "local",
-                            "view": "string"
-                        },
-                        {
-                            "finish": [
-                                23,
-                                28
-                            ],
-                            "name": "b",
-                            "start": [
-                                23,
-                                27
-                            ],
-                            "type": "local",
-                            "view": "string"
-                        }
-                    ],
-                    "finish": [
-                        42,
-                        3
-                    ],
-                    "returns": [
-                        {
-                            "type": "function.return",
-                            "view": "integer"
-                        }
-                    ],
-                    "start": [
-                        23,
-                        0
-                    ],
-                    "type": "function",
-                    "view": "function string_compare(a: string, b: string)\n  -> integer"
-                },
-                "file": "include/common-string.lua",
-                "finish": [
-                    23,
-                    23
-                ],
-                "start": [
-                    23,
-                    9
-                ],
-                "type": "setglobal",
-                "view": "function",
-                "visible": "public"
-            }
-        ],
-        "name": "string_compare",
-        "type": "variable",
-        "view": "unknown"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "args": [
-                        {
-                            "finish": [
-                                68,
-                                22
-                            ],
-                            "name": "s",
-                            "start": [
-                                68,
-                                21
-                            ],
-                            "type": "local",
-                            "view": "string"
-                        },
-                        {
-                            "finish": [
-                                68,
-                                30
-                            ],
-                            "name": "search",
-                            "start": [
-                                68,
-                                24
-                            ],
-                            "type": "local",
-                            "view": "string"
-                        },
-                        {
-                            "finish": [
-                                68,
-                                40
-                            ],
-                            "name": "position",
-                            "start": [
-                                68,
-                                32
-                            ],
-                            "type": "local",
-                            "view": "integer"
-                        }
-                    ],
-                    "finish": [
-                        75,
-                        3
-                    ],
-                    "returns": [
-                        {
-                            "type": "function.return",
-                            "view": "integer"
-                        }
-                    ],
-                    "start": [
-                        68,
-                        0
-                    ],
-                    "type": "function",
-                    "view": "function string_find(s: string, search: string, position: integer)\n  -> integer"
-                },
-                "file": "include/common-string.lua",
-                "finish": [
-                    68,
-                    20
-                ],
-                "start": [
-                    68,
-                    9
-                ],
-                "type": "setglobal",
-                "view": "function",
-                "visible": "public"
-            }
-        ],
-        "name": "string_find",
-        "type": "variable",
-        "view": "unknown"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "args": [
-                        {
-                            "finish": [
-                                29,
-                                21
-                            ],
-                            "name": "s",
-                            "start": [
-                                29,
-                                20
-                            ],
-                            "type": "local",
-                            "view": "string"
-                        }
-                    ],
-                    "finish": [
-                        31,
-                        3
-                    ],
-                    "returns": [
-                        {
-                            "type": "function.return",
-                            "view": "integer"
-                        }
-                    ],
-                    "start": [
-                        29,
-                        0
-                    ],
-                    "type": "function",
-                    "view": "function string_len(s: string)\n  -> integer"
-                },
-                "file": "include-lua/std-string.lua",
-                "finish": [
-                    29,
-                    19
-                ],
-                "start": [
-                    29,
-                    9
-                ],
-                "type": "setglobal",
-                "view": "function",
-                "visible": "public"
-            }
-        ],
-        "name": "string_len",
-        "type": "variable",
-        "view": "unknown"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "args": [
-                        {
-                            "finish": [
-                                48,
-                                29
-                            ],
-                            "name": "s",
-                            "start": [
-                                48,
-                                28
-                            ],
-                            "type": "local",
-                            "view": "string"
-                        },
-                        {
-                            "finish": [
-                                48,
-                                37
-                            ],
-                            "name": "search",
-                            "start": [
-                                48,
-                                31
-                            ],
-                            "type": "local",
-                            "view": "string"
-                        },
-                        {
-                            "finish": [
-                                48,
-                                47
-                            ],
-                            "name": "position",
-                            "start": [
-                                48,
-                                39
-                            ],
-                            "type": "local",
-                            "view": "integer"
-                        }
-                    ],
-                    "finish": [
-                        62,
-                        3
-                    ],
-                    "returns": [
-                        {
-                            "type": "function.return",
-                            "view": "boolean"
-                        }
-                    ],
-                    "start": [
-                        48,
-                        0
-                    ],
-                    "type": "function",
-                    "view": "function string_starts_with(s: string, search: string, position: integer)\n  -> boolean"
-                },
-                "file": "include/common-string.lua",
-                "finish": [
-                    48,
-                    27
-                ],
-                "start": [
-                    48,
-                    9
-                ],
-                "type": "setglobal",
-                "view": "function",
-                "visible": "public"
-            }
-        ],
-        "name": "string_starts_with",
-        "type": "variable",
-        "view": "unknown"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "args": [
-                        {
-                            "finish": [
-                                36,
-                                21
-                            ],
-                            "name": "s",
-                            "start": [
-                                36,
-                                20
-                            ],
-                            "type": "local",
-                            "view": "string"
-                        },
-                        {
-                            "finish": [
-                                36,
-                                24
-                            ],
-                            "name": "i",
-                            "start": [
-                                36,
+                                28,
                                 23
                             ],
-                            "type": "local",
-                            "view": "integer"
-                        },
-                        {
-                            "finish": [
-                                36,
-                                27
-                            ],
-                            "name": "j",
                             "start": [
-                                36,
-                                26
+                                28,
+                                17
                             ],
-                            "type": "local",
-                            "view": "integer"
-                        }
-                    ],
-                    "finish": [
-                        38,
-                        3
-                    ],
-                    "returns": [
-                        {
-                            "type": "function.return",
+                            "type": "doc.type.name",
                             "view": "string"
                         }
                     ],
-                    "start": [
-                        36,
-                        0
-                    ],
-                    "type": "function",
-                    "view": "function string_sub(s: string, i: integer, j: integer)\n  -> string"
+                    "view": "string"
                 },
-                "file": "include-lua/std-string.lua",
+                "file": "boot.lua",
                 "finish": [
-                    36,
-                    19
+                    28,
+                    23
                 ],
+                "name": "source",
                 "start": [
-                    36,
-                    9
+                    28,
+                    10
                 ],
-                "type": "setglobal",
-                "view": "function",
+                "type": "doc.field",
+                "view": "string",
                 "visible": "public"
             }
         ],
-        "name": "string_sub",
-        "type": "variable",
-        "view": "unknown"
+        "name": "lua_lexer",
+        "type": "type",
+        "view": "lua_lexer"
     }
 ]
