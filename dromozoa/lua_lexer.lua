@@ -15,8 +15,28 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-local lua_lexer = require "dromozoa.lua_lexer"
+local util = require "dromozoa.util"
 
-local filename = "boot.lua"
-local lexer = lua_lexer.new(filename)
-lexer:lex()
+---@class dromozoa.lua_lexer
+---@field filename string
+---@field source string
+local class = {}
+local metatable = {
+  __index = class;
+  __name = "dromozoa.lua_lexer";
+}
+
+---@return dromozoa.lua_lexer
+---@param filename string
+function class.new(filename)
+  return setmetatable({
+    filename = filename;
+    source = util.normalize_eol(util.read_file(filename));
+  }, metatable)
+end
+
+function class:lex()
+  print(#self.source)
+end
+
+return class
