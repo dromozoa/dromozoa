@@ -3,6 +3,27 @@
 
 ---
 
+# dromozoa.util
+
+## normalize_eol
+
+
+```lua
+function dromozoa.util.normalize_eol(s: string)
+  -> string
+```
+
+## read_file
+
+
+```lua
+function dromozoa.util.read_file(filename: string)
+  -> string
+```
+
+
+---
+
 # lua_lexer
 
 ## filename

@@ -11,6 +11,131 @@
             {
                 "async": false,
                 "deprecated": false,
+                "file": "dromozoa/util.lua",
+                "finish": [
+                    17,
+                    23
+                ],
+                "start": [
+                    17,
+                    10
+                ],
+                "type": "doc.class",
+                "view": "dromozoa.util",
+                "visible": "public"
+            }
+        ],
+        "fields": [
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                22,
+                                30
+                            ],
+                            "name": "s",
+                            "start": [
+                                22,
+                                29
+                            ],
+                            "type": "local",
+                            "view": "string"
+                        }
+                    ],
+                    "finish": [
+                        24,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "string"
+                        }
+                    ],
+                    "start": [
+                        22,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "function dromozoa.util.normalize_eol(s: string)\n  -> string"
+                },
+                "file": "dromozoa/util.lua",
+                "finish": [
+                    22,
+                    28
+                ],
+                "name": "normalize_eol",
+                "start": [
+                    22,
+                    9
+                ],
+                "type": "setfield",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                28,
+                                33
+                            ],
+                            "name": "filename",
+                            "start": [
+                                28,
+                                25
+                            ],
+                            "type": "local",
+                            "view": "string"
+                        }
+                    ],
+                    "finish": [
+                        31,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "string"
+                        }
+                    ],
+                    "start": [
+                        28,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "function dromozoa.util.read_file(filename: string)\n  -> string"
+                },
+                "file": "dromozoa/util.lua",
+                "finish": [
+                    28,
+                    24
+                ],
+                "name": "read_file",
+                "start": [
+                    28,
+                    9
+                ],
+                "type": "setfield",
+                "view": "function",
+                "visible": "public"
+            }
+        ],
+        "name": "dromozoa.util",
+        "type": "type",
+        "view": "dromozoa.util"
+    },
+    {
+        "defines": [
+            {
+                "async": false,
+                "deprecated": false,
                 "file": "boot.lua",
                 "finish": [
                     26,
