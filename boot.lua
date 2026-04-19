@@ -18,5 +18,5 @@
 local lua_lexer = require "dromozoa.lua_lexer"
 
 local filename = "boot.lua"
-local lexer = lua_lexer.new(filename)
+local lexer = lua_lexer.from_file(filename)
 lexer:lex()

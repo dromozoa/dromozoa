@@ -28,7 +28,7 @@ local metatable = {
 
 ---@return dromozoa.lua_lexer
 ---@param filename string
-function class.new(filename)
+function class.from_file(filename)
   return setmetatable({
     filename = filename;
     source = util.normalize_eol(util.read_file(filename));
