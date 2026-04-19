@@ -22,16 +22,16 @@ local util = require "dromozoa.util"
 ---@field source string
 local class = {}
 local metatable = {
-  __index = class;
-  __name = "dromozoa.lua_lexer";
+  __index = class,
+  __name = "dromozoa.lua_lexer",
 }
 
 ---@return dromozoa.lua_lexer
 ---@param filename string
 function class.from_file(filename)
   return setmetatable({
-    filename = filename;
-    source = util.normalize_eol(util.read_file(filename));
+    filename = filename,
+    source = util.normalize_eol(util.read_file(filename)),
   }, metatable)
 end
 
