@@ -17,9 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-LUA_PATH="include/?.lua;include-lua/?.lua;;"
-export LUA_PATH
-
 for i in test/test*.lua
 do
   lua "$i"
