@@ -15,38 +15,26 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-local token = require "dromozoa.token"
-local util = require "dromozoa.util"
-
----@class dromozoa.lua_lexer
----@field source string
+---@class dromozoa.token
+---@field kind string
 ---@field file string?
+---@field line integer
+---@field column integer
 local class = {}
 local metatable = {
   __index = class,
-  __name = "dromozoa.lua_lexer",
+  __name = "dromozoa.token",
 }
 
----@param source string
----@param file string?
-function class.from_source(source, file)
+---@param kind string
+---@return dromozoa.token
+function class.new(kind)
   return setmetatable({
-    source = source,
-    file = file,
+    kind = kind,
+    filename = nil,
+    line = 0,
+    column = 0,
   }, metatable)
-end
-
----@param file string
----@return dromozoa.lua_lexer
-function class.from_file(file)
-  return class.from_source(util.normalize_eol(util.read_file(file)), file)
-end
-
----@return dromozoa.token[]
-function class:lex()
-  local result = {}
-  table.insert(result, token.new "EOF")
-  return result
 end
 
 return class

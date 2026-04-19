@@ -23,3 +23,4 @@ assert(util.normalize_eol "foo\r\n\r\n\r\nbar\r\n" == "foo\n\n\nbar\n")
 assert(util.normalize_eol "foo\n\r\n\r\n\rbar\n\r" == "foo\n\n\nbar\n")
 
 util.read_file(arg[0])
+assert(not pcall(util.read_file, "no-such-file.txt"))

@@ -18,16 +18,16 @@
 ---@class dromozoa.util
 local class = {}
 
----@param s string
+---@param source string
 ---@return string
-function class.normalize_eol(s)
-  return (s:gsub("\n\r", "\n"):gsub("\r\n?", "\n"))
+function class.normalize_eol(source)
+  return (source:gsub("\n\r", "\n"):gsub("\r\n?", "\n"))
 end
 
----@param filename string
+---@param file string
 ---@return string
-function class.read_file(filename)
-  local handle <close> = assert(io.open(filename, "rb"))
+function class.read_file(file)
+  local handle <close> = assert(io.open(file, "rb"))
   return handle:read "a"
 end
 
