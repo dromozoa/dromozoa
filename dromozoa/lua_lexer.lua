@@ -18,6 +18,7 @@
 local token = require "dromozoa.token"
 local source_location = require "dromozoa.source_location"
 
+---@type string[]
 local keywords = {
   "and",
   "break",
@@ -44,11 +45,13 @@ local keywords = {
   "while",
 }
 
+---@type table<string, boolean>
 local keyword_set = {}
 for _, keyword in ipairs(keywords) do
   keyword_set[keyword] = true
 end
 
+---@type string[]
 local punctuators = {
   "+",
   "-",
@@ -86,12 +89,14 @@ local punctuators = {
 }
 
 local punctuator_max_length = 0
+---@type table<string, boolean>
 local punctuator_set = {}
 for _, punctuator in ipairs(punctuators) do
   punctuator_max_length = math.max(punctuator_max_length, #punctuator)
   punctuator_set[punctuator] = true
 end
 
+---@type table<string, string>
 local escape_sequences = {
   ["a"] = "\a",
   ["b"] = "\b",
@@ -104,6 +109,12 @@ local escape_sequences = {
   ["\""] = "\"",
   ["\'"] = "\'",
 }
+
+local escape_sequence_char_class = "["
+for c in pairs(escape_sequences) do
+  escape_sequence_char_class = escape_sequence_char_class .. c
+end
+escape_sequence_char_class = escape_sequence_char_class .. "]"
 
 ---@class dromozoa.lua_lexer
 ---@field filename string
@@ -215,17 +226,31 @@ function class:lex()
       while not self:match(quote) do
         if self:match(unescaped) then
           value = value .. self._0
-        elseif self:match "\\(.)" then
-          local c = self._1
-          if escape_sequences[c] then
-            value = value .. escape_sequences[c]
-          else
-            error("lexer error at " .. srcloc:to_string())
-          end
+        elseif self:match "\\(" .. escape_sequence_char_class .. ")" then
+          value = value .. escape_sequences[self._1]
+        elseif self:match "\\x(%x%x)" then
+          value = value .. string.char(tonumber(self._1, 16))
+        elseif self:match "\\(%d%d?%d?)" then
+          value = value .. string.char(tonumber(self._1, 10))
+        elseif self:match "\\u{(%x+)}" then
+          value = value .. utf8.char(tonumber(self._1, 16))
         else
           error("lexer error at " .. srcloc:to_string())
         end
       end
+    elseif self:match "%[(=*)%[" then
+      if not self:match("\n?(.-)%]" .. self._1 .. "%]") then
+        error("lexer error at " .. srcloc:to_string())
+      end
+      kind = "string"
+      value = self._1
+    elseif self:match "" then
+    elseif self:match "%d+" then
+      kind = "integer"
+      value = tonumber(self._0, 10)
+    elseif self:match "0[Xx](%x+)" then
+      kind = "integer"
+      value = tonumber(self._1, 16)
     else
       error("lexer error at " .. srcloc:to_string())
     end
