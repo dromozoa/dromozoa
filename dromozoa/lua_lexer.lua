@@ -92,6 +92,19 @@ for _, punctuator in ipairs(punctuators) do
   punctuator_set[punctuator] = true
 end
 
+local escape_sequences = {
+  ["a"] = "\a",
+  ["b"] = "\b",
+  ["f"] = "\f",
+  ["n"] = "\n",
+  ["r"] = "\r",
+  ["t"] = "\t",
+  ["v"] = "\v",
+  ["\\"] = "\\",
+  ["\""] = "\"",
+  ["\'"] = "\'",
+}
+
 ---@class dromozoa.lua_lexer
 ---@field filename string
 ---@field source string
@@ -193,6 +206,26 @@ function class:lex()
     elseif self:punctuator() then
       kind = self._0
       value = kind
+    elseif self:match "['\"]" then
+      local quote = self._0
+      local unescaped = "[^\\" .. quote .. "]+"
+
+      kind = "string"
+      value = ""
+      while not self:match(quote) do
+        if self:match(unescaped) then
+          value = value .. self._0
+        elseif self:match "\\(.)" then
+          local c = self._1
+          if escape_sequences[c] then
+            value = value .. escape_sequences[c]
+          else
+            error("lexer error at " .. srcloc:to_string())
+          end
+        else
+          error("lexer error at " .. srcloc:to_string())
+        end
+      end
     else
       error("lexer error at " .. srcloc:to_string())
     end

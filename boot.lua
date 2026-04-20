@@ -23,6 +23,6 @@ local source = util.normalize_eol(util.read_file(filename))
 
 local lexer = lua_lexer.new(filename, source)
 local tokens = lexer:lex()
-for _, token in ipairs(tokens) do
-  print(token.kind, token.value)
+for i, token in ipairs(tokens) do
+  print(i, token.kind, token.value)
 end
