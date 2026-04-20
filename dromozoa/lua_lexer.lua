@@ -16,36 +16,33 @@
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
 local token = require "dromozoa.token"
-local util = require "dromozoa.util"
+local source_location = require "dromozoa.source_location"
 
 ---@class dromozoa.lua_lexer
+---@field filename string
 ---@field source string
----@field file string?
+---@field srcloc dromozoa.source_location
 local class = {}
 local metatable = {
   __index = class,
   __name = "dromozoa.lua_lexer",
 }
 
+---@param filename string
 ---@param source string
----@param file string?
-function class.from_source(source, file)
-  return setmetatable({
-    source = source,
-    file = file,
-  }, metatable)
-end
-
----@param file string
 ---@return dromozoa.lua_lexer
-function class.from_file(file)
-  return class.from_source(util.normalize_eol(util.read_file(file)), file)
+function class.new(filename, source)
+  return setmetatable({
+    filename = filename,
+    source = source,
+    srcloc = source_location.new(filename),
+  }, metatable)
 end
 
 ---@return dromozoa.token[]
 function class:lex()
   local result = {}
-  table.insert(result, token.new "EOF")
+  table.insert(result, token.new("EOF", "EOF", self.srcloc:clone()))
   return result
 end
 
