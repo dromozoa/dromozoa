@@ -15,26 +15,33 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
----@class dromozoa.token
----@field kind string
----@field value string|integer
----@field srcloc dromozoa.source_location
-local class = {}
-local metatable = {
-  __index = class,
-  __name = "dromozoa.token",
-}
+local source_location = require "dromozoa.source_location"
 
----@param kind string
----@param value string|integer
----@param srcloc dromozoa.source_location
----@return dromozoa.token
-function class.new(kind, value, srcloc)
-  return setmetatable({
-    kind = kind,
-    value = value,
-    srcloc = srcloc,
-  }, metatable)
-end
+local srcloc = source_location.new ""
 
-return class
+assert(srcloc.position == 1)
+assert(srcloc.line == 1)
+assert(srcloc.column == 1)
+
+srcloc:update "foo"
+
+assert(srcloc.position == 4)
+assert(srcloc.line == 1)
+assert(srcloc.column == 4)
+
+local srcloc2 = srcloc:clone()
+srcloc:update "bar\n"
+
+assert(srcloc.position == 8)
+assert(srcloc.line == 2)
+assert(srcloc.column == 1)
+
+assert(srcloc2.position == 4)
+assert(srcloc2.line == 1)
+assert(srcloc2.column == 4)
+
+srcloc:update "baz\nqux"
+
+assert(srcloc.position == 15)
+assert(srcloc.line == 3)
+assert(srcloc.column == 4)

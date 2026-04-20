@@ -24,11 +24,24 @@ function class.normalize_eol(source)
   return (source:gsub("\n\r", "\n"):gsub("\r\n?", "\n"))
 end
 
----@param file string
+---@param filename string
 ---@return string
-function class.read_file(file)
-  local handle <close> = assert(io.open(file, "rb"))
+function class.read_file(filename)
+  local handle <close> = assert(io.open(filename, "rb"))
   return handle:read "a"
+end
+
+---@param source table
+---@return table
+function class.clone(source)
+  local result = {}
+  for index, value in next, source, nil do
+    rawset(
+      result,
+      type(index) == "table" and class.clone(index) or index,
+      type(value) == "table" and class.clone(value) or value)
+  end
+  return setmetatable(result, getmetatable(source))
 end
 
 return class

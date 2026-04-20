@@ -1,0 +1,69 @@
+-- Copyright (C) 2026 Tomoyuki Fujimori <moyu@dromozoa.com>
+--
+-- This file is part of dromozoa.
+--
+-- dromozoa is free software: you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License as published by
+-- the Free Software Foundation, either version 3 of the License, or
+-- (at your option) any later version.
+--
+-- dromozoa is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
+
+local util = require "dromozoa.util"
+
+---@class dromozoa.source_location
+---@field filename string
+---@field position integer
+---@field line integer
+---@field column integer
+local class = {}
+local metatable = {
+  __index = class,
+  __name = "dromozoa.source_location",
+}
+
+---@param filename string
+---@return dromozoa.source_location
+function class.new(filename)
+  return setmetatable({
+    filename = filename,
+    position = 1,
+    line = 1,
+    column = 1,
+  }, metatable)
+end
+
+---@return dromozoa.source_location
+function class:clone()
+  return util.clone(self)
+end
+
+---@param source string
+---@return dromozoa.source_location
+function class:update(source)
+  local n = #source
+  local p = 1
+
+  while true do
+    local i, j = source:find("\n", p, true)
+    if not i then
+      break
+    end
+    p = j + 1
+    self.line = self.line + 1
+    self.column = 1
+  end
+
+  self.position = self.position + n
+  self.column = self.column + n - p + 1
+
+  return self
+end
+
+return class
