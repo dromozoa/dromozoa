@@ -44,14 +44,14 @@ function class:clone()
   return util.clone(self)
 end
 
----@param source string
+---@param text string
 ---@return dromozoa.source_location
-function class:update(source)
-  local n = #source
+function class:update(text)
+  local n = #text
   local p = 1
 
   while true do
-    local i, j = source:find("\n", p, true)
+    local i, j = text:find("\n", p, true)
     if not i then
       break
     end
@@ -64,6 +64,11 @@ function class:update(source)
   self.column = self.column + n - p + 1
 
   return self
+end
+
+---@return string
+function class:to_string()
+  return self.filename .. ":" .. self.line .. ":" .. self.column
 end
 
 return class
