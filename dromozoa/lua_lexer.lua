@@ -179,14 +179,21 @@ end
 function class:lex()
   local result = {}
 
+  --TODO なんかリセットしたりするか検討する
   --TODO エラーをなんとかする
-  --TODO #!対応
+
+  local srcloc = self.srcloc:clone()
+  if self:match "#!(.-)\n" then
+    table.insert(result, token.new("comment", self._1, self._0, srcloc))
+  end
 
   repeat
-    local srcloc = self.srcloc:clone()
+    ---@type string
     local kind
     ---@type string|number
     local value
+
+    srcloc = self.srcloc:clone()
 
     if self:match "%s+" then
       kind = "space"
