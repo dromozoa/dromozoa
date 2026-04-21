@@ -27,8 +27,10 @@ end
 ---@param filename string
 ---@return string
 function class.read_file(filename)
-  local handle <close> = assert(io.open(filename, "rb"))
-  return handle:read "a"
+  local handle = assert(io.open(filename, "rb"))
+  local result = handle:read "a"
+  handle:close()
+  return result
 end
 
 ---@param source table

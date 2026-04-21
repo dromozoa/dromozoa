@@ -45,7 +45,6 @@ function class:clone()
 end
 
 ---@param text string
----@return dromozoa.source_location
 function class:update(text)
   local n = #text
   local p = 1
@@ -62,8 +61,6 @@ function class:update(text)
 
   self.position = self.position + n
   self.column = self.column + n - p + 1
-
-  return self
 end
 
 ---@return string
