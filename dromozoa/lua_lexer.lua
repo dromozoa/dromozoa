@@ -213,9 +213,6 @@ function class:lex()
         kind = "name"
       end
       value = self._0
-    elseif self:punctuator() then
-      kind = self._0
-      value = self._0
     elseif self:match "['\"]" then
       local quote = self._0
       local unescaped = "[^\\" .. quote .. "]+"
@@ -244,6 +241,9 @@ function class:lex()
       end
       kind = "string"
       value = self._1
+    elseif self:punctuator() then
+      kind = self._0
+      value = self._0
     elseif self:match "0[xX]%x*%.%x+" or self:match "0[xX]%x+%." then
       local v = self._0
       if self:match "[pP][+%-]?%d+" then

@@ -17,4 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
+here=`dirname "$0"`
+cd "$here"
+
 lua case_lexer_string.lua >case_lexer_string.exp
