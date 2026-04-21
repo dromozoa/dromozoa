@@ -18,7 +18,7 @@
 ---@class dromozoa.token
 ---@field kind string
 ---@field text string
----@field value string|integer
+---@field value string|integer|number
 ---@field srcloc dromozoa.source_location
 local class = {}
 local metatable = {
@@ -28,7 +28,7 @@ local metatable = {
 
 ---@param kind string
 ---@param text string
----@param value string|integer
+---@param value string|integer|number
 ---@param srcloc dromozoa.source_location
 ---@return dromozoa.token
 function class.new(kind, text, value, srcloc)

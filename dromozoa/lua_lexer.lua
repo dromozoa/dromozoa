@@ -88,12 +88,19 @@ local punctuators = {
   "...",
 }
 
-local punctuator_max_length = 0
----@type table<string, boolean>
-local punctuator_set = {}
-for _, punctuator in ipairs(punctuators) do
-  punctuator_max_length = math.max(punctuator_max_length, #punctuator)
-  punctuator_set[punctuator] = true
+-- 最長一致のために文字列長の降順で並びかえる。
+table.sort(punctuators, function (a, b)
+  if #a == #b then
+    return a < b
+  else
+    return #a > #b
+  end
+end)
+
+---@type string[]
+local punctuator_patterns = {}
+for i, punctuator in ipairs(punctuators) do
+  punctuator_patterns[i] = punctuator:gsub("%W", "%%%0")
 end
 
 ---@type table<string, string>
@@ -108,11 +115,12 @@ local escape_sequences = {
   ["\\"] = "\\",
   ["\""] = "\"",
   ["\'"] = "\'",
+  ["\n"] = "\n",
 }
 
 local escape_sequence_pattern = "\\(["
-for c in pairs(escape_sequences) do
-  escape_sequence_pattern = escape_sequence_pattern .. c
+for char in pairs(escape_sequences) do
+  escape_sequence_pattern = escape_sequence_pattern .. char:gsub("%W", "%%%0")
 end
 escape_sequence_pattern = escape_sequence_pattern .. "])"
 
@@ -144,34 +152,26 @@ end
 ---@param pattern string
 ---@result boolean
 function class:match(pattern)
-  local i, j, x = self.source:find("^" .. pattern, self.srcloc.position)
+  local i, j, value = self.source:find("^" .. pattern, self.srcloc.position)
   if i then
     local text = self.source:sub(i, j)
     self.srcloc:update(text)
     self._0 = text
-    self._1 = x
+    self._1 = value
     return true
-  else
-    self._0 = ""
-    self._1 = ""
-    return false
   end
+  self._0 = ""
+  self._1 = ""
+  return false
 end
 
 ---@result boolean
 function class:punctuator()
-  for n = punctuator_max_length, 1, -1 do
-    local text = self.source:sub(self.srcloc.position, self.srcloc.position + n - 1)
-    if punctuator_set[text] then
-      self.srcloc:update(text)
-      self._0 = text
-      self._1 = ""
+  for _, pattern in ipairs(punctuator_patterns) do
+    if self:match(pattern) then
       return true
     end
   end
-
-  self._0 = ""
-  self._1 = ""
   return false
 end
 
@@ -179,15 +179,18 @@ end
 function class:lex()
   local result = {}
 
+  --TODO エラーをなんとかする
   --TODO #!対応
 
   repeat
     local srcloc = self.srcloc:clone()
     local kind
+    ---@type string|number
     local value
 
     if self:match "%s+" then
       kind = "space"
+      value = self._0
     elseif self:match "%-%-%[(=*)%[" then
       if not self:match("(.-)%]" .. self._1 .. "%]") then
         error("lexer error at " .. srcloc:to_string())
@@ -210,7 +213,6 @@ function class:lex()
     elseif self:match "['\"]" then
       local quote = self._0
       local unescaped = "[^\\" .. quote .. "]+"
-
       kind = "string"
       value = ""
       while not self:match(quote) do
@@ -218,6 +220,8 @@ function class:lex()
           value = value .. self._0
         elseif self:match(escape_sequence_pattern) then
           value = value .. escape_sequences[self._1]
+        elseif self:match "\\z%s*" then
+          -- skip
         elseif self:match "\\x(%x%x)" then
           value = value .. string.char(tonumber(self._1, 16))
         elseif self:match "\\(%d%d?%d?)" then
@@ -234,35 +238,35 @@ function class:lex()
       end
       kind = "string"
       value = self._1
-    elseif self:match "%d*%.%d+" or self:match "%d+%." then
-      local v = self._0
-      if self:match "[eE][+%-]?%d+" then
-        v = v .. self._0
-      end
-      kind = "number"
-      value = tonumber(v)
-    elseif self:match "%d+[eE][+%-]?%d+" then
-      kind = "number"
-      value = tonumber(self._0)
     elseif self:match "0[xX]%x*%.%x+" or self:match "0[xX]%x+%." then
       local v = self._0
       if self:match "[pP][+%-]?%d+" then
         v = v .. self._0
       end
       kind = "number"
-      value = tonumber(self._0)
+      value = assert(tonumber(self._0))
     elseif self:match "0[xX]%x+[pP][+%-]?%d+" then
       kind = "number"
-      value = tonumber(self._0)
+      value = assert(tonumber(self._0))
+    elseif self:match "%d*%.%d+" or self:match "%d+%." then
+      local v = self._0
+      if self:match "[eE][+%-]?%d+" then
+        v = v .. self._0
+      end
+      kind = "number"
+      value = assert(tonumber(v))
+    elseif self:match "%d+[eE][+%-]?%d+" then
+      kind = "number"
+      value = assert(tonumber(self._0))
     elseif self:match "0[xX]%x+" or self:match "%d+" then
       kind = "integer"
-      value = tonumber(self._0)
+      value = assert(tonumber(self._0))
     else
       error("lexer error at " .. srcloc:to_string())
     end
 
     local text = self.source:sub(srcloc.position, self.srcloc.position - 1)
-    table.insert(result, token.new(kind, text, value and value or text, srcloc))
+    table.insert(result, token.new(kind, text, value, srcloc))
   until self.srcloc.position > #self.source
 
   table.insert(result, token.new("eof", "", "", self.srcloc:clone()))
