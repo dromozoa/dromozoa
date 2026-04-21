@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/sh -e
 
 # Copyright (C) 2026 Tomoyuki Fujimori <moyu@dromozoa.com>
 #
@@ -17,7 +17,4 @@
 # You should have received a copy of the GNU General Public License
 # along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-lua -e 'print(--[['
-lua -e 'print "\y"'
-lua -e 'print([['
-lua -e '!'
+lua case_lexer_string.lua >case_lexer_string.exp
