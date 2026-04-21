@@ -122,8 +122,6 @@ escape_sequence_pattern = escape_sequence_pattern .. "])"
 ---@field srcloc dromozoa.source_location
 ---@field _0 string
 ---@field _1 string
----@field _2 string
----@field _3 string
 local class = {}
 local metatable = {
   __index = class,
@@ -140,28 +138,22 @@ function class.new(filename, source)
     srcloc = source_location.new(filename),
     _0 = "",
     _1 = "",
-    _2 = "",
-    _3 = "",
   }, metatable)
 end
 
 ---@param pattern string
 ---@result boolean
 function class:match(pattern)
-  local i, j, x, y, z = self.source:find("^" .. pattern, self.srcloc.position)
+  local i, j, x = self.source:find("^" .. pattern, self.srcloc.position)
   if i then
     local text = self.source:sub(i, j)
     self.srcloc:update(text)
     self._0 = text
     self._1 = x
-    self._2 = y
-    self._3 = z
     return true
   else
     self._0 = ""
     self._1 = ""
-    self._2 = ""
-    self._3 = ""
     return false
   end
 end
@@ -174,16 +166,12 @@ function class:punctuator()
       self.srcloc:update(text)
       self._0 = text
       self._1 = ""
-      self._2 = ""
-      self._3 = ""
       return true
     end
   end
 
   self._0 = ""
   self._1 = ""
-  self._2 = ""
-  self._3 = ""
   return false
 end
 
@@ -228,7 +216,7 @@ function class:lex()
       while not self:match(quote) do
         if self:match(unescaped) then
           value = value .. self._0
-        elseif self:match(escape_sequence_pattern)then
+        elseif self:match(escape_sequence_pattern) then
           value = value .. escape_sequences[self._1]
         elseif self:match "\\x(%x%x)" then
           value = value .. string.char(tonumber(self._1, 16))
@@ -246,7 +234,6 @@ function class:lex()
       end
       kind = "string"
       value = self._1
-
     elseif self:match "%d*%.%d+" or self:match "%d+%." then
       local v = self._0
       if self:match "[eE][+%-]?%d+" then
@@ -257,7 +244,6 @@ function class:lex()
     elseif self:match "%d+[eE][+%-]?%d+" then
       kind = "number"
       value = tonumber(self._0)
-
     elseif self:match "0[xX]%x*%.%x+" or self:match "0[xX]%x+%." then
       local v = self._0
       if self:match "[pP][+%-]?%d+" then
@@ -268,7 +254,6 @@ function class:lex()
     elseif self:match "0[xX]%x+[pP][+%-]?%d+" then
       kind = "number"
       value = tonumber(self._0)
-
     elseif self:match "0[xX]%x+" or self:match "%d+" then
       kind = "integer"
       value = tonumber(self._0)
