@@ -180,8 +180,6 @@ function class:lex()
   local result = {}
 
   --TODO なんかリセットしたりするか検討する
-  --TODO エラーをなんとかする
-
   local srcloc = self.srcloc:clone()
   if self:match "#!(.-)\n" then
     table.insert(result, token.new("comment", self._1, self._0, srcloc))
@@ -200,7 +198,7 @@ function class:lex()
       value = self._0
     elseif self:match "%-%-%[(=*)%[" then
       if not self:match("(.-)%]" .. self._1 .. "%]") then
-        error("lexer error at " .. srcloc:to_string())
+        error("unfinished long comment at " .. srcloc:to_string())
       end
       kind = "comment"
       value = self._1
@@ -236,12 +234,12 @@ function class:lex()
         elseif self:match "\\u{(%x+)}" then
           value = value .. utf8.char(tonumber(self._1, 16))
         else
-          error("lexer error at " .. srcloc:to_string())
+          error("invalid escape sequence at " .. srcloc:to_string())
         end
       end
     elseif self:match "%[(=*)%[" then
       if not self:match("\n?(.-)%]" .. self._1 .. "%]") then
-        error("lexer error at " .. srcloc:to_string())
+        error("unfinished long string at " .. srcloc:to_string())
       end
       kind = "string"
       value = self._1
@@ -269,7 +267,7 @@ function class:lex()
       kind = "integer"
       value = assert(tonumber(self._0))
     else
-      error("lexer error at " .. srcloc:to_string())
+      error("unexpected symbol at " .. srcloc:to_string())
     end
 
     local text = self.source:sub(srcloc.position, self.srcloc.position - 1)
