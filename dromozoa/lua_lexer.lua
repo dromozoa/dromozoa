@@ -110,11 +110,11 @@ local escape_sequences = {
   ["\'"] = "\'",
 }
 
-local escape_sequence_char_class = "["
+local escape_sequence_pattern = "\\(["
 for c in pairs(escape_sequences) do
-  escape_sequence_char_class = escape_sequence_char_class .. c
+  escape_sequence_pattern = escape_sequence_pattern .. c
 end
-escape_sequence_char_class = escape_sequence_char_class .. "]"
+escape_sequence_pattern = escape_sequence_pattern .. "])"
 
 ---@class dromozoa.lua_lexer
 ---@field filename string
@@ -191,6 +191,8 @@ end
 function class:lex()
   local result = {}
 
+  --TODO #!対応
+
   repeat
     local srcloc = self.srcloc:clone()
     local kind
@@ -226,7 +228,7 @@ function class:lex()
       while not self:match(quote) do
         if self:match(unescaped) then
           value = value .. self._0
-        elseif self:match "\\(" .. escape_sequence_char_class .. ")" then
+        elseif self:match(escape_sequence_pattern)then
           value = value .. escape_sequences[self._1]
         elseif self:match "\\x(%x%x)" then
           value = value .. string.char(tonumber(self._1, 16))
