@@ -88,8 +88,8 @@ local punctuators = {
   "...",
 }
 
--- 最長一致のために文字列長の降順で並びかえる。
-table.sort(punctuators, function (a, b)
+-- 最長一致するため文字列長の降順で並びかえる。
+table.sort(punctuators, function(a, b)
   if #a == #b then
     return a < b
   else
@@ -125,11 +125,11 @@ end
 escape_sequence_pattern = escape_sequence_pattern .. "])"
 
 ---@class dromozoa.lua_lexer
----@field filename string
----@field source string
----@field srcloc dromozoa.source_location
----@field _0 string
----@field _1 string
+---@field private filename string
+---@field private source string
+---@field private srcloc dromozoa.source_location
+---@field private _0 string
+---@field private _1 string
 local class = {}
 local metatable = {
   __index = class,
@@ -149,6 +149,7 @@ function class.new(filename, source)
   }, metatable)
 end
 
+---@private
 ---@param pattern string
 ---@result boolean
 function class:match(pattern)
@@ -165,6 +166,7 @@ function class:match(pattern)
   return false
 end
 
+---@private
 ---@result boolean
 function class:punctuator()
   for _, pattern in ipairs(punctuator_patterns) do
@@ -177,21 +179,20 @@ end
 
 ---@return dromozoa.token[]
 function class:lex()
+  local srcloc = self.srcloc:clone()
   local result = {}
 
-  --TODO なんかリセットしたりするか検討する
-  local srcloc = self.srcloc:clone()
   if self:match "#!(.-)\n" then
     table.insert(result, token.new("comment", self._1, self._0, srcloc))
   end
 
   repeat
+    srcloc = self.srcloc:clone()
+
     ---@type string
     local kind
     ---@type string|number
     local value
-
-    srcloc = self.srcloc:clone()
 
     if self:match "%s+" then
       kind = "space"
@@ -206,15 +207,15 @@ function class:lex()
       kind = "comment"
       value = self._1
     elseif self:match "[%a_][%w_]*" then
-      value = self._0
-      if keyword_set[value] then
-        kind = value
+      if keyword_set[self._0] then
+        kind = self._0
       else
         kind = "name"
       end
+      value = self._0
     elseif self:punctuator() then
       kind = self._0
-      value = kind
+      value = self._0
     elseif self:match "['\"]" then
       local quote = self._0
       local unescaped = "[^\\" .. quote .. "]+"
