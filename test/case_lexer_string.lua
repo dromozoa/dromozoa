@@ -15,10 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-local filename = ...
-local handle = assert(io.open(filename, "wb"))
-
-handle:write(
+io.write(
   "",
   "\a\b\f\n\r\t\v\\\"\'",
   '\a\b\f\n\r\t\v\\\"\'',
@@ -41,5 +38,3 @@ bar
 ]],
   [=[]]]=]
 )
-
-handle:close()
