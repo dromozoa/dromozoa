@@ -244,13 +244,32 @@ function class:lex()
       end
       kind = "string"
       value = self._1
-    elseif self:match "" then
-    elseif self:match "%d+" then
+
+    elseif self:match "%d*%.%d+" or self:match "%d+%." then
+      local v = self._0
+      if self:match "[eE][+%-]?%d+" then
+        v = v .. self._0
+      end
+      kind = "number"
+      value = tonumber(v)
+    elseif self:match "%d+[eE][+%-]?%d+" then
+      kind = "number"
+      value = tonumber(self._0)
+
+    elseif self:match "0[xX]%x*%.%x+" or self:match "0[xX]%x+%." then
+      local v = self._0
+      if self:match "[pP][+%-]?%d+" then
+        v = v .. self._0
+      end
+      kind = "number"
+      value = tonumber(self._0)
+    elseif self:match "0[xX]%x+[pP][+%-]?%d+" then
+      kind = "number"
+      value = tonumber(self._0)
+
+    elseif self:match "0[xX]%x+" or self:match "%d+" then
       kind = "integer"
-      value = tonumber(self._0, 10)
-    elseif self:match "0[Xx](%x+)" then
-      kind = "integer"
-      value = tonumber(self._1, 16)
+      value = tonumber(self._0)
     else
       error("lexer error at " .. srcloc:to_string())
     end
