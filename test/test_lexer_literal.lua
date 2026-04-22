@@ -15,6 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
+--BEGIN--
+
 local expect = {
   3,
   345,
@@ -89,9 +91,12 @@ foo
 bar
 ]],
   [=[]]]=],
+
+  true,
+  false,
 }
 
---END
+--END--
 
 local lua_lexer = require "dromozoa.lua_lexer"
 local util = require "dromozoa.util"
@@ -100,19 +105,41 @@ local lexer = lua_lexer.new(arg[0], util.read_file(arg[0]))
 local tokens = lexer:lex()
 
 local i = 0
+local state = 1
 for _, token in ipairs(tokens) do
-  if token.kind == "Integer" or token.kind == "Float" then
+  local u = token.value
+  if state == 1 and token.kind == "Comment" and u == "BEGIN--" then
+    state = 2
+  elseif state == 2 then
+    if token.kind == "Comment" and u == "END--" then
+      state = 3
+      break
+    end
+
     i = i + 1
-    local u = token.value
     local v = expect[i]
-    assert(math.type(u) == math.type(v))
-    assert(u == v)
-  elseif token.kind == "String" then
-    i = i + 1
-    local u = token.value
-    local v = expect[i]
-    assert(u == v)
-  elseif token.kind == "Comment" and token.value == "END" then
-    break
+
+    if token.kind == "Integer" then
+      assert(math.type(u) == "integer")
+      assert(math.type(v) == "integer")
+      assert(u == v)
+    elseif token.kind == "Float" then
+      assert(math.type(u) == "float")
+      assert(math.type(v) == "float")
+      assert(u == v)
+    elseif token.kind == "String" then
+      assert(u == v)
+    elseif token.kind == "true" then
+      assert(u == "true")
+      assert(v == true)
+    elseif token.kind == "false" then
+      assert(u == "false")
+      assert(v == false)
+    else
+      i = i - 1
+    end
   end
 end
+
+assert(i == #expect)
+assert(state == 3)
