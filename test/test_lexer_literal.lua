@@ -15,13 +15,88 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
+local expect = {
+  3,
+  345,
+  0xff,
+  0xBEBADA,
+  3.0,
+  3.1416,
+  314.16e-2,
+  0.31416E1,
+  34e1,
+  0x0.1E,
+  0xA23p-4,
+  0X1.921FB54442D18P+1,
+
+  0x.CD,
+  0xAB.CD,
+  0xAB.,
+  0x.CDp1,
+  0xAB.CDp1,
+  0xAB.p1,
+  0x.CDp-1,
+  0xAB.CDp-1,
+  0xAB.p-1,
+  0xABp1,
+  0xABp-1,
+
+  .34,
+  12.34,
+  12.,
+  .34e1,
+  12.34e1,
+  12.e1,
+  .34e-1,
+  12.34e-1,
+  12.e-1,
+  12e1,
+  12e-1,
+
+  0xABCD,
+  1234,
+
+  'alo\n123"',
+  "alo\n123\"",
+  '\97lo\10\04923"',
+  [[alo
+123"]],
+  [==[
+alo
+123"]==],
+
+  "",
+  "\a\b\f\n\r\t\v\\\"\'",
+  '\a\b\f\n\r\t\v\\\"\'',
+  "a\
+b\zc\z d\z
+e\z
+ f",
+
+  "\x00\xfe\xeD\xFa\xCE",
+  "\0\01\0234",
+
+  "\u{41}\u{00000041}\u{0000000000000041}",
+  "\u{2262}\u{0391}\u{002e}",
+  "\u{D55C}\u{AD6D}\u{C5B4}",
+  "\u{65e5}\u{672c}\u{8a9e}",
+  "\u{FEFF}\u{0233B4}",
+
+  [[foo
+bar]],
+  [[
+foo
+bar
+]],
+  [=[]]]=],
+}
+
+--END
+
 local lua_lexer = require "dromozoa.lua_lexer"
 local util = require "dromozoa.util"
 
-local expect = require "case_lexer_literal"
-
-local filename = "case_lexer_literal.lua"
-local lexer = lua_lexer.new(filename, util.read_file(filename))
+local lexer = lua_lexer.new(arg[0], util.read_file(arg[0]))
 local tokens = lexer:lex()
 
 local i = 0
@@ -37,5 +112,7 @@ for _, token in ipairs(tokens) do
     local u = token.value
     local v = expect[i]
     assert(u == v)
+  elseif token.kind == "Comment" and token.value == "END" then
+    break
   end
 end
