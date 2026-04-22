@@ -162,3 +162,8 @@ end
 assert(i == #expect)
 assert(state == 3)
 assert(table.concat(buffer) == source)
+
+assert(not pcall(lua_lexer.lex, "print(--[[", "=test"))
+assert(not pcall(lua_lexer.lex, [[print "\y"]], "=test"))
+assert(not pcall(lua_lexer.lex, "print([[", "=test"))
+assert(not pcall(lua_lexer.lex, "!", "=test"))

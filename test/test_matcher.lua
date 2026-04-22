@@ -20,7 +20,7 @@ local matcher = require "dromozoa.matcher"
 local m = matcher.new([[
 foobar
   bazqux
-]], "test.txt")
+]], "=test")
 
 assert(m.srcloc.position == 1)
 assert(m.srcloc.line == 1)

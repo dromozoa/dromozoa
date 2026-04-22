@@ -17,7 +17,6 @@
 
 local matcher = require "dromozoa.matcher"
 local token = require "dromozoa.token"
-local source_location = require "dromozoa.source_location"
 
 ---@type string[]
 local keywords = {
@@ -128,24 +127,14 @@ escape_sequence_pattern = escape_sequence_pattern .. "])"
 ---@class dromozoa.lua_lexer
 local class = {}
 
-local function punctuator(m)
-  for _, pattern in ipairs(punctuator_patterns) do
-    if m:match(pattern) then
-      return true
-    end
-  end
-  return false
-end
-
 ---@return dromozoa.token[]
 function class.lex(source, filename)
-  local m = matcher.new(source, filename)
-
-  local srcloc = m.srcloc:clone()
+  local that = matcher.new(source, filename)
+  local srcloc = that.srcloc:clone()
   local result = {}
 
-  if m:match "#(.-)\n" then
-    table.insert(result, token.new("Comment", "Shebang", m._1, m._0, srcloc))
+  if that:match "#(.-)\n" then
+    table.insert(result, token.new("Comment", "Shebang", that._1, that._0, srcloc))
   end
 
   repeat
@@ -156,93 +145,99 @@ function class.lex(source, filename)
     ---@type (string|number)?
     local value
 
-    srcloc = m.srcloc:clone()
-    if m:match "%s+" then
+    srcloc = that.srcloc:clone()
+    if that:match "%s+" then
       kind = "Space"
-      value = m._0
-    elseif m:match "0[xX]%x*%.%x+" or m:match "0[xX]%x+%." then
-      local v = m._0
-      if m:match "[pP][+%-]?%d+" then
-        v = v .. m._0
+      value = that._0
+    elseif that:match "0[xX]%x*%.%x+" or that:match "0[xX]%x+%." then
+      local v = that._0
+      if that:match "[pP][+%-]?%d+" then
+        v = v .. that._0
       end
       kind = "Float"
       value = tonumber(v)
-    elseif m:match "0[xX]%x+[pP][+%-]?%d+" then
+    elseif that:match "0[xX]%x+[pP][+%-]?%d+" then
       kind = "Float"
-      value = tonumber(m._0)
-    elseif m:match "%d*%.%d+" or m:match "%d+%." then
-      local v = m._0
-      if m:match "[eE][+%-]?%d+" then
-        v = v .. m._0
+      value = tonumber(that._0)
+    elseif that:match "%d*%.%d+" or that:match "%d+%." then
+      local v = that._0
+      if that:match "[eE][+%-]?%d+" then
+        v = v .. that._0
       end
       kind = "Float"
       value = tonumber(v)
-    elseif m:match "%d+[eE][+%-]?%d+" then
+    elseif that:match "%d+[eE][+%-]?%d+" then
       kind = "Float"
-      value = tonumber(m._0)
-    elseif m:match "0[xX]%x+" or m:match "%d+" then
+      value = tonumber(that._0)
+    elseif that:match "0[xX]%x+" or that:match "%d+" then
       kind = "Integer"
-      value = tonumber(m._0)
-    elseif m:match "[%a_][%w_]*" then
-      if keyword_set[m._0] then
-        kind = m._0
+      value = tonumber(that._0)
+    elseif that:match "[%a_][%w_]*" then
+      if keyword_set[that._0] then
+        kind = that._0
       else
         kind = "Name"
       end
-      value = m._0
-    elseif m:match "%-%-%[(=*)%[" then
-      if not m:match("(.-)%]" .. m._1 .. "%]") then
+      value = that._0
+    elseif that:match "%-%-%[(=*)%[" then
+      if not that:match("(.-)%]" .. that._1 .. "%]") then
         error("unfinished long comment at " .. srcloc:to_string())
       end
       kind = "Comment"
       subkind = "Long"
-      value = m._1
-    elseif m:match "%-%-(.-)\n" then
+      value = that._1
+    elseif that:match "%-%-(.-)\n" then
       kind = "Comment"
       subkind = "Short"
-      value = m._1
-    elseif m:match "%[(=*)%[" then
-      if not m:match("\n?(.-)%]" .. m._1 .. "%]") then
+      value = that._1
+    elseif that:match "%[(=*)%[" then
+      if not that:match("\n?(.-)%]" .. that._1 .. "%]") then
         error("unfinished long string at " .. srcloc:to_string())
       end
       kind = "String"
       subkind = "Long"
-      value = m._1
-    elseif m:match "['\"]" then
-      local quote = assert(m._0)
+      value = that._1
+    elseif that:match "['\"]" then
+      local quote = assert(that._0)
       local unescaped = "[^\\" .. quote .. "]+"
       kind = "String"
       subkind = "Short"
       value = ""
-      while not m:match(quote) do
-        if m:match(unescaped) then
-          value = value .. m._0
-        elseif m:match(escape_sequence_pattern) then
-          value = value .. escape_sequences[m._1]
-        elseif m:match "\\z%s*" then
+      while not that:match(quote) do
+        if that:match(unescaped) then
+          value = value .. that._0
+        elseif that:match(escape_sequence_pattern) then
+          value = value .. escape_sequences[that._1]
+        elseif that:match "\\z%s*" then
           -- skip
-        elseif m:match "\\x(%x%x)" then
-          value = value .. string.char(tonumber(m._1, 16))
-        elseif m:match "\\(%d%d?%d?)" then
-          value = value .. string.char(tonumber(m._1, 10))
-        elseif m:match "\\u{(%x+)}" then
-          value = value .. utf8.char(tonumber(m._1, 16))
+        elseif that:match "\\x(%x%x)" then
+          value = value .. string.char(tonumber(that._1, 16))
+        elseif that:match "\\(%d%d?%d?)" then
+          value = value .. string.char(tonumber(that._1, 10))
+        elseif that:match "\\u{(%x+)}" then
+          value = value .. utf8.char(tonumber(that._1, 16))
         else
           error("invalid escape sequence at " .. srcloc:to_string())
         end
       end
-    elseif punctuator(m) then
-      kind = m._0
-      value = m._0
     else
-      error("unexpected symbol at " .. srcloc:to_string())
+      for _, pattern in ipairs(punctuator_patterns) do
+        if that:match(pattern) then
+          kind = that._0
+          value = that._0
+          break
+        end
+      end
+      if not kind then
+        error("unexpected symbol at " .. srcloc:to_string())
+      end
     end
 
-    local text = m.source:sub(srcloc.position, m.srcloc.position - 1)
+    local text = that.source:sub(srcloc.position, that.srcloc.position - 1)
     table.insert(result, token.new(assert(kind), subkind, text, assert(value), srcloc))
-  until m:eof()
+  until that:eof()
 
-  table.insert(result, token.new("EOF", nil, "", "", m.srcloc:clone()))
+  table.insert(result, token.new("EOF", nil, "", "", that.srcloc:clone()))
   return result
 end
 
