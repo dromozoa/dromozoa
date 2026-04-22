@@ -128,8 +128,8 @@ escape_sequence_pattern = escape_sequence_pattern .. "])"
 ---@field private filename string
 ---@field private source string
 ---@field private srcloc dromozoa.source_location
----@field private _0 string
----@field private _1 string
+---@field private _0 string?
+---@field private _1 string?
 local class = {}
 local metatable = {
   __index = class,
@@ -144,8 +144,8 @@ function class.new(filename, source)
     filename = filename,
     source = source,
     srcloc = source_location.new(filename),
-    _0 = "",
-    _1 = "",
+    _0 = nil,
+    _1 = nil,
   }, metatable)
 end
 
@@ -161,8 +161,8 @@ function class:match(pattern)
     self._1 = value
     return true
   end
-  self._0 = ""
-  self._1 = ""
+  self._0 = nil
+  self._1 = nil
   return false
 end
 
@@ -187,9 +187,9 @@ function class:lex()
   end
 
   repeat
-    ---@type string
+    ---@type string?
     local kind
-    ---@type string|number
+    ---@type (string|number)?
     local value
 
     srcloc = self.srcloc:clone()
@@ -202,23 +202,23 @@ function class:lex()
         v = v .. self._0
       end
       kind = "Float"
-      value = assert(tonumber(v))
+      value = tonumber(v)
     elseif self:match "0[xX]%x+[pP][+%-]?%d+" then
       kind = "Float"
-      value = assert(tonumber(self._0))
+      value = tonumber(self._0)
     elseif self:match "%d*%.%d+" or self:match "%d+%." then
       local v = self._0
       if self:match "[eE][+%-]?%d+" then
         v = v .. self._0
       end
       kind = "Float"
-      value = assert(tonumber(v))
+      value = tonumber(v)
     elseif self:match "%d+[eE][+%-]?%d+" then
       kind = "Float"
-      value = assert(tonumber(self._0))
+      value = tonumber(self._0)
     elseif self:match "0[xX]%x+" or self:match "%d+" then
       kind = "Integer"
-      value = assert(tonumber(self._0))
+      value = tonumber(self._0)
     elseif self:match "[%a_][%w_]*" then
       if keyword_set[self._0] then
         kind = self._0
@@ -242,7 +242,7 @@ function class:lex()
       kind = "String"
       value = self._1
     elseif self:match "['\"]" then
-      local quote = self._0
+      local quote = assert(self._0)
       local unescaped = "[^\\" .. quote .. "]+"
       kind = "String"
       value = ""
@@ -271,10 +271,10 @@ function class:lex()
     end
 
     local text = self.source:sub(srcloc.position, self.srcloc.position - 1)
-    table.insert(result, token.new(kind, text, value, srcloc))
+    table.insert(result, token.new(assert(kind), text, assert(value), srcloc))
   until self.srcloc.position > #self.source
 
-  table.insert(result, token.new("eof", "", "", self.srcloc:clone()))
+  table.insert(result, token.new("EOF", "", "", self.srcloc:clone()))
 
   return result
 end
