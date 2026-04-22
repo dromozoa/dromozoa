@@ -281,7 +281,6 @@ function class:lex()
   until self.srcloc.position > #self.source
 
   table.insert(result, token.new("EOF", nil, "", "", self.srcloc:clone()))
-
   return result
 end
 
