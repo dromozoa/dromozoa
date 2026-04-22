@@ -17,6 +17,9 @@
 
 --BEGIN--
 
+--SRCLOC:748,20,1--
+; --SRCLOC:770,21,3--
+
 local expect = {
   3,
   345,
@@ -107,46 +110,52 @@ local tokens = lexer:lex()
 
 local i = 0
 local state = 1
+local buffer = {}
 for _, token in ipairs(tokens) do
   local u = token.value
-  if state == 1 and token.kind == "Comment" and u == "BEGIN--" then
-    state = 2
-  elseif state == 2 then
-    if token.kind == "Comment" and u == "END--" then
-      state = 3
-      break
+  if state == 1 then
+    if token.kind == "Comment" and u == "BEGIN--" then
+      state = 2
     end
-
-    i = i + 1
-    local v = expect[i]
-
-    if token.kind == "Integer" then
-      assert(math.type(u) == "integer")
-      assert(math.type(v) == "integer")
-      assert(u == v)
-    elseif token.kind == "Float" then
-      assert(math.type(u) == "float")
-      assert(math.type(v) == "float")
-      assert(u == v)
-    elseif token.kind == "String" then
-      assert(u == v)
-    elseif token.kind == "true" then
-      assert(u == "true")
-      assert(v == true)
-    elseif token.kind == "false" then
-      assert(u == "false")
-      assert(v == false)
+  elseif state == 2 then
+    if token.kind == "Comment" then
+      if u == "END--" then
+        state = 3
+      else
+        local position, line, column = u:match "^SRCLOC:(%d+),(%d+),(%d+)%-%-$"
+        if position then
+          assert(token.srcloc.position == tonumber(position))
+          assert(token.srcloc.line == tonumber(line))
+          assert(token.srcloc.column== tonumber(column))
+        end
+      end
     else
-      i = i - 1
+      i = i + 1
+      local v = expect[i]
+      if token.kind == "Integer" then
+        assert(math.type(u) == "integer")
+        assert(math.type(v) == "integer")
+        assert(u == v)
+      elseif token.kind == "Float" then
+        assert(math.type(u) == "float")
+        assert(math.type(v) == "float")
+        assert(u == v)
+      elseif token.kind == "String" then
+        assert(u == v)
+      elseif token.kind == "true" then
+        assert(u == "true")
+        assert(v == true)
+      elseif token.kind == "false" then
+        assert(u == "false")
+        assert(v == false)
+      else
+        i = i - 1
+      end
     end
   end
+  table.insert(buffer, token.text)
 end
 
 assert(i == #expect)
 assert(state == 3)
-
-local buffer = {}
-for _, token in ipairs(tokens) do
-  table.insert(buffer, token.text)
-end
 assert(table.concat(buffer) == source)
