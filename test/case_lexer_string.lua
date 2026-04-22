@@ -15,26 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-io.write(
-  "",
-  "\a\b\f\n\r\t\v\\\"\'",
-  '\a\b\f\n\r\t\v\\\"\'',
-  "a\
-b\zc\z d\z
-e\z
- f",
-  "\x00\xfe\xeD\xFa\xCE",
-  "\0\01\0234",
-  "\u{41}\u{00000041}\u{0000000000000041}",
-  "\u{2262}\u{0391}\u{002e}",
-  "\u{D55C}\u{AD6D}\u{C5B4}",
-  "\u{65e5}\u{672c}\u{8a9e}",
-  "\u{FEFF}\u{0233B4}",
-  [[foo
-bar]],
-  [[
-foo
-bar
-]],
-  [=[]]]=]
-)
+return {
+
+}

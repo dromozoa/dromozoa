@@ -18,20 +18,24 @@
 local lua_lexer = require "dromozoa.lua_lexer"
 local util = require "dromozoa.util"
 
-local lua_filename = "case_lexer_number.lua"
-local exp_filename = "case_lexer_number.exp"
+local expect = require "case_lexer_literal"
 
-local lexer = lua_lexer.new(lua_filename, util.read_file(lua_filename))
+local filename = "case_lexer_literal.lua"
+local lexer = lua_lexer.new(filename, util.read_file(filename))
 local tokens = lexer:lex()
 
-local result = ""
+local i = 0
 for _, token in ipairs(tokens) do
-  if token.kind == "Integer" then
-    result = result..("integer: %d\n"):format(token.value)
-  elseif token.kind == "Float" then
-    result = result..("float: %A\n"):format(token.value)
+  if token.kind == "Integer" or token.kind == "Float" then
+    i = i + 1
+    local u = token.value
+    local v = expect[i]
+    assert(math.type(u) == math.type(v))
+    assert(u == v)
+  elseif token.kind == "String" then
+    i = i + 1
+    local u = token.value
+    local v = expect[i]
+    assert(u == v)
   end
 end
-local expect = util.read_file(exp_filename)
-
-assert(result == expect)

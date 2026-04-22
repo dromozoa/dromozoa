@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-local numbers = {
+return {
   3,
   345,
   0xff,
@@ -55,12 +55,38 @@ local numbers = {
 
   0xABCD,
   1234,
-}
 
-for _, v in ipairs(numbers) do
-  if math.type(v) == "integer" then
-    io.write(("integer: %d\n"):format(v))
-  else
-    io.write(("float: %A\n"):format(v))
-  end
-end
+  'alo\n123"',
+  "alo\n123\"",
+  '\97lo\10\04923"',
+  [[alo
+123"]],
+  [==[
+alo
+123"]==],
+
+  "",
+  "\a\b\f\n\r\t\v\\\"\'",
+  '\a\b\f\n\r\t\v\\\"\'',
+  "a\
+b\zc\z d\z
+e\z
+ f",
+
+  "\x00\xfe\xeD\xFa\xCE",
+  "\0\01\0234",
+
+  "\u{41}\u{00000041}\u{0000000000000041}",
+  "\u{2262}\u{0391}\u{002e}",
+  "\u{D55C}\u{AD6D}\u{C5B4}",
+  "\u{65e5}\u{672c}\u{8a9e}",
+  "\u{FEFF}\u{0233B4}",
+
+  [[foo
+bar]],
+  [[
+foo
+bar
+]],
+  [=[]]]=],
+}
