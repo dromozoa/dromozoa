@@ -101,7 +101,8 @@ bar
 local lua_lexer = require "dromozoa.lua_lexer"
 local util = require "dromozoa.util"
 
-local lexer = lua_lexer.new(arg[0], util.read_file(arg[0]))
+local source = util.read_file(arg[0])
+local lexer = lua_lexer.new(arg[0], source)
 local tokens = lexer:lex()
 
 local i = 0
@@ -143,3 +144,9 @@ end
 
 assert(i == #expect)
 assert(state == 3)
+
+local buffer = {}
+for _, token in ipairs(tokens) do
+  table.insert(buffer, token.text)
+end
+assert(table.concat(buffer) == source)
