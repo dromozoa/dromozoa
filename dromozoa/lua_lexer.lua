@@ -194,57 +194,57 @@ function class:lex()
 
     srcloc = self.srcloc:clone()
     if self:match "%s+" then
-      kind = "space"
+      kind = "Space"
       value = self._0
     elseif self:match "0[xX]%x*%.%x+" or self:match "0[xX]%x+%." then
       local v = self._0
       if self:match "[pP][+%-]?%d+" then
         v = v .. self._0
       end
-      kind = "number"
+      kind = "Float"
       value = assert(tonumber(self._0))
     elseif self:match "0[xX]%x+[pP][+%-]?%d+" then
-      kind = "number"
+      kind = "Float"
       value = assert(tonumber(self._0))
     elseif self:match "%d*%.%d+" or self:match "%d+%." then
       local v = self._0
       if self:match "[eE][+%-]?%d+" then
         v = v .. self._0
       end
-      kind = "number"
+      kind = "Float"
       value = assert(tonumber(v))
     elseif self:match "%d+[eE][+%-]?%d+" then
-      kind = "number"
+      kind = "Float"
       value = assert(tonumber(self._0))
     elseif self:match "0[xX]%x+" or self:match "%d+" then
-      kind = "integer"
+      kind = "Integer"
       value = assert(tonumber(self._0))
     elseif self:match "[%a_][%w_]*" then
       if keyword_set[self._0] then
         kind = self._0
       else
-        kind = "name"
+        kind = "Name"
       end
       value = self._0
     elseif self:match "%-%-%[(=*)%[" then
       if not self:match("(.-)%]" .. self._1 .. "%]") then
         error("unfinished long comment at " .. srcloc:to_string())
       end
-      kind = "comment"
+      kind = "Comment"
       value = self._1
     elseif self:match "%-%-(.-)\n" then
-      kind = "comment"
+      kind = "Comment"
       value = self._1
     elseif self:match "%[(=*)%[" then
       if not self:match("\n?(.-)%]" .. self._1 .. "%]") then
         error("unfinished long string at " .. srcloc:to_string())
       end
-      kind = "string"
+      kind = "String"
       value = self._1
     elseif self:match "['\"]" then
       local quote = self._0
       local unescaped = "[^\\" .. quote .. "]+"
-      kind = "string"
+      kind = "String"
       value = ""
       while not self:match(quote) do
         if self:match(unescaped) then

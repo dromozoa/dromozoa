@@ -18,15 +18,15 @@
 local lua_lexer = require "dromozoa.lua_lexer"
 local util = require "dromozoa.util"
 
-local lua_filename = "test/case_lexer_string.lua"
-local exp_filename = "test/case_lexer_string.exp"
+local lua_filename = "case_lexer_string.lua"
+local exp_filename = "case_lexer_string.exp"
 
 local lexer = lua_lexer.new(lua_filename, util.read_file(lua_filename))
 local tokens = lexer:lex()
 
 local result = ""
 for _, token in ipairs(tokens) do
-  if token.kind == "string" then
+  if token.kind == "String" then
     result = result..token.value
   end
 end
