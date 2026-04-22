@@ -109,8 +109,7 @@ local lua_lexer = require "dromozoa.lua_lexer"
 local util = require "dromozoa.util"
 
 local source = util.read_file(arg[0])
-local lexer = lua_lexer.new(arg[0], source)
-local tokens = lexer:lex()
+local tokens = lua_lexer.lex(source, arg[0])
 
 local i = 0
 local state = 1

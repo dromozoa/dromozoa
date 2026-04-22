@@ -20,9 +20,7 @@ local util = require "dromozoa.util"
 
 local filename = ...
 local source = util.normalize_eol(util.read_file(filename))
-
-local lexer = lua_lexer.new(filename, source)
-local tokens = lexer:lex()
+local tokens = lua_lexer.lex(source, filename)
 for i, token in ipairs(tokens) do
   print(i, token.kind, token.value)
 end

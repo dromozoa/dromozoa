@@ -15,6 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
+local matcher = require "dromozoa.matcher"
 local token = require "dromozoa.token"
 local source_location = require "dromozoa.source_location"
 
@@ -125,52 +126,11 @@ end
 escape_sequence_pattern = escape_sequence_pattern .. "])"
 
 ---@class dromozoa.lua_lexer
----@field private filename string
----@field private source string
----@field private srcloc dromozoa.source_location
----@field private _0 string?
----@field private _1 string?
 local class = {}
-local metatable = {
-  __index = class,
-  __name = "dromozoa.lua_lexer",
-}
 
----@param filename string
----@param source string
----@return dromozoa.lua_lexer
-function class.new(filename, source)
-  return setmetatable({
-    filename = filename,
-    source = source,
-    srcloc = source_location.new(filename),
-    _0 = nil,
-    _1 = nil,
-  }, metatable)
-end
-
----@private
----@param pattern string
----@result boolean
-function class:match(pattern)
-  local i, j, value = self.source:find("^" .. pattern, self.srcloc.position)
-  if i then
-    local text = self.source:sub(i, j)
-    self.srcloc:update(text)
-    self._0 = text
-    self._1 = value
-    return true
-  end
-  self._0 = nil
-  self._1 = nil
-  return false
-end
-
----@private
----@result boolean
-function class:punctuator()
+local function punctuator(m)
   for _, pattern in ipairs(punctuator_patterns) do
-    if self:match(pattern) then
+    if m:match(pattern) then
       return true
     end
   end
@@ -178,12 +138,14 @@ function class:punctuator()
 end
 
 ---@return dromozoa.token[]
-function class:lex()
-  local srcloc = self.srcloc:clone()
+function class.lex(source, filename)
+  local m = matcher.new(source, filename)
+
+  local srcloc = m.srcloc:clone()
   local result = {}
 
-  if self:match "#(.-)\n" then
-    table.insert(result, token.new("Comment", "Shebang", self._1, self._0, srcloc))
+  if m:match "#(.-)\n" then
+    table.insert(result, token.new("Comment", "Shebang", m._1, m._0, srcloc))
   end
 
   repeat
@@ -194,93 +156,93 @@ function class:lex()
     ---@type (string|number)?
     local value
 
-    srcloc = self.srcloc:clone()
-    if self:match "%s+" then
+    srcloc = m.srcloc:clone()
+    if m:match "%s+" then
       kind = "Space"
-      value = self._0
-    elseif self:match "0[xX]%x*%.%x+" or self:match "0[xX]%x+%." then
-      local v = self._0
-      if self:match "[pP][+%-]?%d+" then
-        v = v .. self._0
+      value = m._0
+    elseif m:match "0[xX]%x*%.%x+" or m:match "0[xX]%x+%." then
+      local v = m._0
+      if m:match "[pP][+%-]?%d+" then
+        v = v .. m._0
       end
       kind = "Float"
       value = tonumber(v)
-    elseif self:match "0[xX]%x+[pP][+%-]?%d+" then
+    elseif m:match "0[xX]%x+[pP][+%-]?%d+" then
       kind = "Float"
-      value = tonumber(self._0)
-    elseif self:match "%d*%.%d+" or self:match "%d+%." then
-      local v = self._0
-      if self:match "[eE][+%-]?%d+" then
-        v = v .. self._0
+      value = tonumber(m._0)
+    elseif m:match "%d*%.%d+" or m:match "%d+%." then
+      local v = m._0
+      if m:match "[eE][+%-]?%d+" then
+        v = v .. m._0
       end
       kind = "Float"
       value = tonumber(v)
-    elseif self:match "%d+[eE][+%-]?%d+" then
+    elseif m:match "%d+[eE][+%-]?%d+" then
       kind = "Float"
-      value = tonumber(self._0)
-    elseif self:match "0[xX]%x+" or self:match "%d+" then
+      value = tonumber(m._0)
+    elseif m:match "0[xX]%x+" or m:match "%d+" then
       kind = "Integer"
-      value = tonumber(self._0)
-    elseif self:match "[%a_][%w_]*" then
-      if keyword_set[self._0] then
-        kind = self._0
+      value = tonumber(m._0)
+    elseif m:match "[%a_][%w_]*" then
+      if keyword_set[m._0] then
+        kind = m._0
       else
         kind = "Name"
       end
-      value = self._0
-    elseif self:match "%-%-%[(=*)%[" then
-      if not self:match("(.-)%]" .. self._1 .. "%]") then
+      value = m._0
+    elseif m:match "%-%-%[(=*)%[" then
+      if not m:match("(.-)%]" .. m._1 .. "%]") then
         error("unfinished long comment at " .. srcloc:to_string())
       end
       kind = "Comment"
       subkind = "Long"
-      value = self._1
-    elseif self:match "%-%-(.-)\n" then
+      value = m._1
+    elseif m:match "%-%-(.-)\n" then
       kind = "Comment"
       subkind = "Short"
-      value = self._1
-    elseif self:match "%[(=*)%[" then
-      if not self:match("\n?(.-)%]" .. self._1 .. "%]") then
+      value = m._1
+    elseif m:match "%[(=*)%[" then
+      if not m:match("\n?(.-)%]" .. m._1 .. "%]") then
         error("unfinished long string at " .. srcloc:to_string())
       end
       kind = "String"
       subkind = "Long"
-      value = self._1
-    elseif self:match "['\"]" then
-      local quote = assert(self._0)
+      value = m._1
+    elseif m:match "['\"]" then
+      local quote = assert(m._0)
       local unescaped = "[^\\" .. quote .. "]+"
       kind = "String"
       subkind = "Short"
       value = ""
-      while not self:match(quote) do
-        if self:match(unescaped) then
-          value = value .. self._0
-        elseif self:match(escape_sequence_pattern) then
-          value = value .. escape_sequences[self._1]
-        elseif self:match "\\z%s*" then
+      while not m:match(quote) do
+        if m:match(unescaped) then
+          value = value .. m._0
+        elseif m:match(escape_sequence_pattern) then
+          value = value .. escape_sequences[m._1]
+        elseif m:match "\\z%s*" then
           -- skip
-        elseif self:match "\\x(%x%x)" then
-          value = value .. string.char(tonumber(self._1, 16))
-        elseif self:match "\\(%d%d?%d?)" then
-          value = value .. string.char(tonumber(self._1, 10))
-        elseif self:match "\\u{(%x+)}" then
-          value = value .. utf8.char(tonumber(self._1, 16))
+        elseif m:match "\\x(%x%x)" then
+          value = value .. string.char(tonumber(m._1, 16))
+        elseif m:match "\\(%d%d?%d?)" then
+          value = value .. string.char(tonumber(m._1, 10))
+        elseif m:match "\\u{(%x+)}" then
+          value = value .. utf8.char(tonumber(m._1, 16))
         else
           error("invalid escape sequence at " .. srcloc:to_string())
         end
       end
-    elseif self:punctuator() then
-      kind = self._0
-      value = self._0
+    elseif punctuator(m) then
+      kind = m._0
+      value = m._0
     else
       error("unexpected symbol at " .. srcloc:to_string())
     end
 
-    local text = self.source:sub(srcloc.position, self.srcloc.position - 1)
+    local text = m.source:sub(srcloc.position, m.srcloc.position - 1)
     table.insert(result, token.new(assert(kind), subkind, text, assert(value), srcloc))
-  until self.srcloc.position > #self.source
+  until m:eof()
 
-  table.insert(result, token.new("EOF", nil, "", "", self.srcloc:clone()))
+  table.insert(result, token.new("EOF", nil, "", "", m.srcloc:clone()))
   return result
 end
 
