@@ -136,10 +136,10 @@ function class.lex(source, filename)
   local result = {}
 
   if that:match "#(.-)\n" then
-    table.insert(result, token.new("Comment", "Shebang", that._1, that._0, srcloc))
+    table.insert(result, token.new("Comment", "Shebang", that._0, that._1, srcloc))
   end
 
-  repeat
+  while not that:eof() do
     ---@type string?
     local kind
     ---@type string?
@@ -237,7 +237,7 @@ function class.lex(source, filename)
 
     local text = that.source:sub(srcloc.position, that.srcloc.position - 1)
     table.insert(result, token.new(assert(kind), subkind, text, assert(value), srcloc))
-  until that:eof()
+  end
 
   table.insert(result, token.new("EOF", nil, "", "", that.srcloc:clone()))
   return result

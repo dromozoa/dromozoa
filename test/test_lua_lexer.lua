@@ -167,3 +167,16 @@ assert(not pcall(lua_lexer.lex, "print(--[[", "=test"))
 assert(not pcall(lua_lexer.lex, [[print "\y"]], "=test"))
 assert(not pcall(lua_lexer.lex, "print([[", "=test"))
 assert(not pcall(lua_lexer.lex, "!", "=test"))
+
+do
+  local token = lua_lexer.lex("", "=test")[1]
+  assert(token.kind == "EOF")
+end
+
+do
+  local token = lua_lexer.lex("#! /usr/bin/env lua\n", "=test")[1]
+  assert(token.kind == "Comment")
+  assert(token.subkind == "Shebang")
+  assert(token.text == "#! /usr/bin/env lua\n")
+  assert(token.value == "! /usr/bin/env lua")
+end
