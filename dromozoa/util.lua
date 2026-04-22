@@ -38,10 +38,15 @@ end
 function class.clone(source)
   local result = {}
   for index, value in next, source, nil do
-    rawset(
-      result,
-      type(index) == "table" and class.clone(index) or index,
-      type(value) == "table" and class.clone(value) or value)
+    local index = index
+    if type(index) == "table" then
+      index = class.clone(index)
+    end
+    local value = value
+    if type(value) == "table" then
+      value = class.clone(value)
+    end
+    rawset(result, index, value)
   end
   return setmetatable(result, getmetatable(source))
 end
