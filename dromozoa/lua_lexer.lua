@@ -88,7 +88,7 @@ local punctuators = {
   "...",
 }
 
--- 最長一致するため文字列長の降順で並びかえる。
+-- 最長一致させるために文字列長の降順で並びかえる。
 table.sort(punctuators, function(a, b)
   if #a == #b then
     return a < b
@@ -187,62 +187,14 @@ function class:lex()
   end
 
   repeat
-    srcloc = self.srcloc:clone()
-
     ---@type string
     local kind
     ---@type string|number
     local value
 
+    srcloc = self.srcloc:clone()
     if self:match "%s+" then
       kind = "space"
-      value = self._0
-    elseif self:match "%-%-%[(=*)%[" then
-      if not self:match("(.-)%]" .. self._1 .. "%]") then
-        error("unfinished long comment at " .. srcloc:to_string())
-      end
-      kind = "comment"
-      value = self._1
-    elseif self:match "%-%-(.-)\n" then
-      kind = "comment"
-      value = self._1
-    elseif self:match "[%a_][%w_]*" then
-      if keyword_set[self._0] then
-        kind = self._0
-      else
-        kind = "name"
-      end
-      value = self._0
-    elseif self:match "['\"]" then
-      local quote = self._0
-      local unescaped = "[^\\" .. quote .. "]+"
-      kind = "string"
-      value = ""
-      while not self:match(quote) do
-        if self:match(unescaped) then
-          value = value .. self._0
-        elseif self:match(escape_sequence_pattern) then
-          value = value .. escape_sequences[self._1]
-        elseif self:match "\\z%s*" then
-          -- skip
-        elseif self:match "\\x(%x%x)" then
-          value = value .. string.char(tonumber(self._1, 16))
-        elseif self:match "\\(%d%d?%d?)" then
-          value = value .. string.char(tonumber(self._1, 10))
-        elseif self:match "\\u{(%x+)}" then
-          value = value .. utf8.char(tonumber(self._1, 16))
-        else
-          error("invalid escape sequence at " .. srcloc:to_string())
-        end
-      end
-    elseif self:match "%[(=*)%[" then
-      if not self:match("\n?(.-)%]" .. self._1 .. "%]") then
-        error("unfinished long string at " .. srcloc:to_string())
-      end
-      kind = "string"
-      value = self._1
-    elseif self:punctuator() then
-      kind = self._0
       value = self._0
     elseif self:match "0[xX]%x*%.%x+" or self:match "0[xX]%x+%." then
       local v = self._0
@@ -267,6 +219,53 @@ function class:lex()
     elseif self:match "0[xX]%x+" or self:match "%d+" then
       kind = "integer"
       value = assert(tonumber(self._0))
+    elseif self:match "[%a_][%w_]*" then
+      if keyword_set[self._0] then
+        kind = self._0
+      else
+        kind = "name"
+      end
+      value = self._0
+    elseif self:match "%-%-%[(=*)%[" then
+      if not self:match("(.-)%]" .. self._1 .. "%]") then
+        error("unfinished long comment at " .. srcloc:to_string())
+      end
+      kind = "comment"
+      value = self._1
+    elseif self:match "%-%-(.-)\n" then
+      kind = "comment"
+      value = self._1
+    elseif self:match "%[(=*)%[" then
+      if not self:match("\n?(.-)%]" .. self._1 .. "%]") then
+        error("unfinished long string at " .. srcloc:to_string())
+      end
+      kind = "string"
+      value = self._1
+    elseif self:match "['\"]" then
+      local quote = self._0
+      local unescaped = "[^\\" .. quote .. "]+"
+      kind = "string"
+      value = ""
+      while not self:match(quote) do
+        if self:match(unescaped) then
+          value = value .. self._0
+        elseif self:match(escape_sequence_pattern) then
+          value = value .. escape_sequences[self._1]
+        elseif self:match "\\z%s*" then
+          -- skip
+        elseif self:match "\\x(%x%x)" then
+          value = value .. string.char(tonumber(self._1, 16))
+        elseif self:match "\\(%d%d?%d?)" then
+          value = value .. string.char(tonumber(self._1, 10))
+        elseif self:match "\\u{(%x+)}" then
+          value = value .. utf8.char(tonumber(self._1, 16))
+        else
+          error("invalid escape sequence at " .. srcloc:to_string())
+        end
+      end
+    elseif self:punctuator() then
+      kind = self._0
+      value = self._0
     else
       error("unexpected symbol at " .. srcloc:to_string())
     end
