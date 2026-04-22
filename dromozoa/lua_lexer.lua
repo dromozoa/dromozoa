@@ -202,7 +202,7 @@ function class:lex()
         v = v .. self._0
       end
       kind = "Float"
-      value = assert(tonumber(self._0))
+      value = assert(tonumber(v))
     elseif self:match "0[xX]%x+[pP][+%-]?%d+" then
       kind = "Float"
       value = assert(tonumber(self._0))

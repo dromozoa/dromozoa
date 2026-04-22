@@ -21,3 +21,4 @@ here=`dirname "$0"`
 cd "$here"
 
 lua case_lexer_string.lua >case_lexer_string.exp
+lua case_lexer_number.lua >case_lexer_number.exp
