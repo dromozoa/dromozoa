@@ -19,6 +19,10 @@
 
 --SRCLOC:748,20,1--
 ; --SRCLOC:770,21,3--
+--[[
+foo
+bar
+baz]] --SRCLOC:809,25,7--
 
 local expect = {
   3,
@@ -126,7 +130,7 @@ for _, token in ipairs(tokens) do
         if position then
           assert(token.srcloc.position == tonumber(position))
           assert(token.srcloc.line == tonumber(line))
-          assert(token.srcloc.column== tonumber(column))
+          assert(token.srcloc.column == tonumber(column))
         end
       end
     else
