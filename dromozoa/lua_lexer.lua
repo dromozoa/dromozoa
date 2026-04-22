@@ -182,13 +182,15 @@ function class:lex()
   local srcloc = self.srcloc:clone()
   local result = {}
 
-  if self:match "#!(.-)\n" then
-    table.insert(result, token.new("comment", self._1, self._0, srcloc))
+  if self:match "#(.-)\n" then
+    table.insert(result, token.new("Comment", "Shebang", self._1, self._0, srcloc))
   end
 
   repeat
     ---@type string?
     local kind
+    ---@type string?
+    local subkind
     ---@type (string|number)?
     local value
 
@@ -231,20 +233,24 @@ function class:lex()
         error("unfinished long comment at " .. srcloc:to_string())
       end
       kind = "Comment"
+      subkind = "Long"
       value = self._1
     elseif self:match "%-%-(.-)\n" then
       kind = "Comment"
+      subkind = "Short"
       value = self._1
     elseif self:match "%[(=*)%[" then
       if not self:match("\n?(.-)%]" .. self._1 .. "%]") then
         error("unfinished long string at " .. srcloc:to_string())
       end
       kind = "String"
+      subkind = "Long"
       value = self._1
     elseif self:match "['\"]" then
       local quote = assert(self._0)
       local unescaped = "[^\\" .. quote .. "]+"
       kind = "String"
+      subkind = "Short"
       value = ""
       while not self:match(quote) do
         if self:match(unescaped) then
@@ -271,10 +277,10 @@ function class:lex()
     end
 
     local text = self.source:sub(srcloc.position, self.srcloc.position - 1)
-    table.insert(result, token.new(assert(kind), text, assert(value), srcloc))
+    table.insert(result, token.new(assert(kind), subkind, text, assert(value), srcloc))
   until self.srcloc.position > #self.source
 
-  table.insert(result, token.new("EOF", "", "", self.srcloc:clone()))
+  table.insert(result, token.new("EOF", nil, "", "", self.srcloc:clone()))
 
   return result
 end

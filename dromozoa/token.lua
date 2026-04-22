@@ -17,6 +17,7 @@
 
 ---@class dromozoa.token
 ---@field kind string
+---@field subkind string?
 ---@field text string
 ---@field value string|number
 ---@field srcloc dromozoa.source_location
@@ -27,13 +28,15 @@ local metatable = {
 }
 
 ---@param kind string
+---@param subkind string?
 ---@param text string
 ---@param value string|number
 ---@param srcloc dromozoa.source_location
 ---@return dromozoa.token
-function class.new(kind, text, value, srcloc)
+function class.new(kind, subkind, text, value, srcloc)
   return setmetatable({
     kind = kind,
+    subkind = subkind,
     text = text,
     value = value,
     srcloc = srcloc,
