@@ -28,6 +28,33 @@ local numbers = {
   0x0.1E,
   0xA23p-4,
   0X1.921FB54442D18P+1,
+
+  0x.CD,
+  0xAB.CD,
+  0xAB.,
+  0x.CDp1,
+  0xAB.CDp1,
+  0xAB.p1,
+  0x.CDp-1,
+  0xAB.CDp-1,
+  0xAB.p-1,
+  0xABp1,
+  0xABp-1,
+
+  .34,
+  12.34,
+  12.,
+  .34e1,
+  12.34e1,
+  12.e1,
+  .34e-1,
+  12.34e-1,
+  12.e-1,
+  12e1,
+  12e-1,
+
+  0xABCD,
+  1234,
 }
 
 for _, v in ipairs(numbers) do
