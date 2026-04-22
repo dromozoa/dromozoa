@@ -127,6 +127,8 @@ escape_sequence_pattern = escape_sequence_pattern .. "])"
 ---@class dromozoa.lua_lexer
 local class = {}
 
+---@param source string
+---@param filename string
 ---@return dromozoa.token[]
 function class.lex(source, filename)
   local that = matcher.new(source, filename)
