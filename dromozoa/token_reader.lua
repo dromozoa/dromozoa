@@ -15,25 +15,50 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
----@class dromozoa.node
----@field kind string
----@field token dromozoa.token?
----@field nodes dromozoa.node[]
+---@class dromozoa.token_reader
+---@field tokens dromozoa.token[]
+---@field index integer
 local class = {}
 local metatable = {
   __index = class,
-  __name = "dromozoa.node",
+  __name = "dromozoa.token_reader",
 }
 
----@param kind string
----@param token dromozoa.token?
----@return dromozoa.node
-function class.new(kind, token)
+---@param tokens dromozoa.token[]
+---@return dromozoa.token_reader
+function class.new(tokens)
   return setmetatable({
-    kind = kind,
-    token = token,
-    nodes = {},
+    tokens = tokens,
+    index = 1,
   }, metatable)
+end
+
+---@return dromozoa.token
+function class:peek()
+  return self.tokens[self.index]
+end
+
+---@return dromozoa.token
+function class:read()
+  local token = self.tokens[self.index]
+  self.index = self.index + 1
+  return token
+end
+
+function class:unread()
+  self.index = self.index + 1
+end
+
+---@param ... string
+function class:expect(...)
+  local token = self.tokens[self.index]
+  for _, kind in ipairs { ... } do
+    if token.kind == kind then
+      self.index = self.index + 1
+      return token
+    end
+  end
+  error("unexpected symbol at " .. token.srcloc:to_string())
 end
 
 return class

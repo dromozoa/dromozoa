@@ -16,11 +16,10 @@
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
 local lua_lexer = require "dromozoa.lua_lexer"
+local lua_parser = require "dromozoa.lua_parser"
 local util = require "dromozoa.util"
 
 local filename = ...
 local source = util.normalize_eol(util.read_file(filename))
 local tokens = lua_lexer.lex(source, filename)
-for i, token in ipairs(tokens) do
-  print(i, token.kind, token.value)
-end
+lua_parser.parse(tokens)

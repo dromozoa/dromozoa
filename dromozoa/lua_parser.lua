@@ -17,18 +17,18 @@
 
 ---@class dromozoa.lua_parser
 local class = {}
-local metatable = {
-  __index = class,
-  __name = "dromozoa.lua_parser",
-}
 
----@return dromozoa.lua_parser
-function class.new()
-  return setmetatable({
-  }, metatable)
-end
+---@param tokens dromozoa.token[]
+function class.parse(tokens)
 
-function class:parse()
+
+
+
+
+
+  for _, token in ipairs(tokens) do
+    io.write(token.text)
+  end
 end
 
 return class
