@@ -16,19 +16,43 @@
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
 ---@class dromozoa.lua_parser
+---@field tokens dromozoa.token[]?
+---@field index integer
 local class = {}
+local metatable = {
+  __index = class,
+  __name = "dromozoa.lua_parser",
+}
+
+---@return dromozoa.lua_parser
+function class.new()
+  return setmetatable({
+    tokens = nil,
+    index = 1,
+  }, metatable)
+end
+
+---@return dromozoa.token
+function class:peek()
+  return self.tokens[self.index]
+end
+
+---@return dromozoa.token
+function class:read()
+  local token = self:peek()
+  self.index = self.index + 1
+  return token
+end
+
+function class:unread()
+  self.index = self.index - 1
+end
 
 ---@param tokens dromozoa.token[]
-function class.parse(tokens)
+function class:parse(tokens)
+  self.tokens = tokens
+  self.index = 1
 
-
-
-
-
-
-  for _, token in ipairs(tokens) do
-    io.write(token.text)
-  end
 end
 
 return class

@@ -46,19 +46,7 @@ function class:read()
 end
 
 function class:unread()
-  self.index = self.index + 1
-end
-
----@param ... string
-function class:expect(...)
-  local token = self.tokens[self.index]
-  for _, kind in ipairs { ... } do
-    if token.kind == kind then
-      self.index = self.index + 1
-      return token
-    end
-  end
-  error("unexpected symbol at " .. token.srcloc:to_string())
+  self.index = self.index - 1
 end
 
 return class
