@@ -15,34 +15,12 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
----@class dromozoa.node
----@field kind string
----@field token dromozoa.token?
----@field nodes dromozoa.node[]
-local class = {}
-local metatable = {
-  __index = class,
-  __name = "dromozoa.node",
-}
+local json = require "dromozoa.commons.json"
 
----@param kind string
----@param token dromozoa.token?
----@return dromozoa.node
-function class.new(kind, token)
-  return setmetatable({
-    kind = kind,
-    token = token,
-    nodes = {},
-  }, metatable)
-end
+local lua_lexer = require "dromozoa.lua_lexer"
+local lua_parser = require "dromozoa.lua_parser"
 
----@param nodes dromozoa.node[]
----@return dromozoa.node
-function class:append(nodes)
-  for _, node in ipairs(nodes) do
-    table.insert(self.nodes, node)
-  end
-  return self
-end
+local parser = lua_parser.new()
 
-return class
+local tree = parser:parse(lua_lexer.lex("1 + 2", "=test"))
+print(json.encode(tree, { pretty = true, stable = true }))

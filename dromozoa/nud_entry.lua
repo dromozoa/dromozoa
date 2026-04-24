@@ -15,34 +15,23 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
----@class dromozoa.node
----@field kind string
----@field token dromozoa.token?
----@field nodes dromozoa.node[]
+---@class dromozoa.nud_entry
+---@field denotion fun(self: dromozoa.lua_parser, token: dromozoa.token): dromozoa.node
+---@field prefixexp boolean
 local class = {}
 local metatable = {
   __index = class,
-  __name = "dromozoa.node",
+  __name = "dromozoa.nud_entry",
 }
 
----@param kind string
----@param token dromozoa.token?
----@return dromozoa.node
-function class.new(kind, token)
+---@param denotion fun(self: dromozoa.lua_parser, token: dromozoa.token): dromozoa.node
+---@param prefixexp boolean
+---@return dromozoa.nud_entry
+function class.new(denotion, prefixexp)
   return setmetatable({
-    kind = kind,
-    token = token,
-    nodes = {},
+    denotion = denotion,
+    prefixexp = prefixexp,
   }, metatable)
-end
-
----@param nodes dromozoa.node[]
----@return dromozoa.node
-function class:append(nodes)
-  for _, node in ipairs(nodes) do
-    table.insert(self.nodes, node)
-  end
-  return self
 end
 
 return class
