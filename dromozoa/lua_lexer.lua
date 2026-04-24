@@ -103,6 +103,17 @@ for i, punctuator in ipairs(punctuators) do
   punctuator_patterns[i] = punctuator:gsub("%W", "%%%0")
 end
 
+---@param matcher dromozoa.matcher
+---@return boolean
+local function punctuator(matcher)
+  for _, pattern in ipairs(punctuator_patterns) do
+    if matcher:match(pattern) then
+      return true
+    end
+  end
+  return false
+end
+
 ---@type table<string, string>
 local escape_sequences = {
   ["a"] = "\a",
@@ -222,14 +233,10 @@ function class.lex(source, filename)
           error("invalid escape sequence at " .. srcloc:to_string())
         end
       end
+    elseif punctuator(matcher) then
+      kind = matcher._0
+      value = matcher._0
     else
-      for _, pattern in ipairs(punctuator_patterns) do
-        if matcher:match(pattern) then
-          kind = matcher._0
-          value = matcher._0
-          break
-        end
-      end
       if not kind then
         error("unexpected symbol at " .. srcloc:to_string())
       end
