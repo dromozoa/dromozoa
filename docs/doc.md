@@ -5,35 +5,75 @@
 
 # dromozoa.lua_lexer
 
-## file
+## lex
+
+
+```lua
+function dromozoa.lua_lexer.lex(source: string, filename: string)
+  -> dromozoa.token[]
+```
+
+
+---
+
+# dromozoa.lua_parser
+
+## new
+
+
+```lua
+function dromozoa.lua_parser.new()
+  -> dromozoa.lua_parser
+```
+
+## parse
+
+
+```lua
+(method) dromozoa.lua_parser:parse()
+```
+
+
+---
+
+# dromozoa.matcher
+
+## _0
 
 
 ```lua
 string?
 ```
 
-## from_file
+## _1
 
 
 ```lua
-function dromozoa.lua_lexer.from_file(file: string)
-  -> dromozoa.lua_lexer
+string?
 ```
 
-## from_source
+## eof
 
 
 ```lua
-function dromozoa.lua_lexer.from_source(source: string, file?: string)
-  -> dromozoa.lua_lexer
+(method) dromozoa.matcher:eof()
+  -> boolean
 ```
 
-## lex
+## match
 
 
 ```lua
-(method) dromozoa.lua_lexer:lex()
-  -> dromozoa.token[]
+(method) dromozoa.matcher:match(pattern: string)
+  -> boolean
+```
+
+## new
+
+
+```lua
+function dromozoa.matcher.new(source: string, filename: string)
+  -> dromozoa.matcher
 ```
 
 ## source
@@ -41,6 +81,26 @@ function dromozoa.lua_lexer.from_source(source: string, file?: string)
 
 ```lua
 string
+```
+
+## srcloc
+
+
+```lua
+dromozoa.source_location
+```
+
+
+---
+
+# dromozoa.node
+
+## new
+
+
+```lua
+function dromozoa.node.new()
+  -> dromozoa.node
 ```
 
 
@@ -92,12 +152,19 @@ function dromozoa.source_location.new(filename: string)
 integer
 ```
 
+## to_string
+
+
+```lua
+(method) dromozoa.source_location:to_string()
+  -> string
+```
+
 ## update
 
 
 ```lua
-(method) dromozoa.source_location:update(source: string)
-  -> dromozoa.source_location
+(method) dromozoa.source_location:update(text: string)
 ```
 
 
@@ -116,7 +183,7 @@ string
 
 
 ```lua
-function dromozoa.token.new(kind: string, value: string|integer, srcloc: dromozoa.source_location)
+function dromozoa.token.new(kind: string, subkind?: string, text: string, value: string|number, srcloc: dromozoa.source_location)
   -> dromozoa.token
 ```
 
@@ -127,11 +194,25 @@ function dromozoa.token.new(kind: string, value: string|integer, srcloc: dromozo
 dromozoa.source_location
 ```
 
+## subkind
+
+
+```lua
+string?
+```
+
+## text
+
+
+```lua
+string
+```
+
 ## value
 
 
 ```lua
-string|integer
+string|number
 ```
 
 
