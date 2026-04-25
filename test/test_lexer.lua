@@ -105,11 +105,11 @@ bar
 
 --END--
 
-local lua_lexer = require "dromozoa.lua_lexer"
+local lexer = require "dromozoa.lexer"
 local util = require "dromozoa.util"
 
 local source = util.read_file(arg[0])
-local tokens = lua_lexer.lex(source, arg[0])
+local tokens = lexer.lex(source, arg[0])
 
 local i = 0
 local state = 1
@@ -163,19 +163,19 @@ assert(i == #expect)
 assert(state == 3)
 assert(table.concat(buffer) == source)
 
-assert(not pcall(lua_lexer.lex, "print(--[[", "=test"))
-assert(not pcall(lua_lexer.lex, [[print "\y"]], "=test"))
-assert(not pcall(lua_lexer.lex, "print([[", "=test"))
-assert(not pcall(lua_lexer.lex, "!", "=test"))
+assert(not pcall(lexer.lex, "print(--[[", "=test"))
+assert(not pcall(lexer.lex, [[print "\y"]], "=test"))
+assert(not pcall(lexer.lex, "print([[", "=test"))
+assert(not pcall(lexer.lex, "!", "=test"))
 
 
-local tokens = lua_lexer.lex("", "=test")
+local tokens = lexer.lex("", "=test")
 assert(#tokens == 1)
 
 local token = tokens[1]
 assert(token.kind == "EOF")
 
-local tokens = lua_lexer.lex("#! /usr/bin/env lua\n", "=test")
+local tokens = lexer.lex("#! /usr/bin/env lua\n", "=test")
 assert(#tokens == 2)
 
 local token = tokens[1]

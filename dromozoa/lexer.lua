@@ -135,7 +135,7 @@ for char in pairs(escape_sequences) do
 end
 escape_sequence_pattern = escape_sequence_pattern .. "])"
 
----@class dromozoa.lua_lexer
+---@class dromozoa.lexer
 local class = {}
 
 ---@param source string

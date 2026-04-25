@@ -15,11 +15,11 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-local lua_lexer = require "dromozoa.lua_lexer"
+local lexer = require "dromozoa.lexer"
 local lua_parser = require "dromozoa.lua_parser"
 local util = require "dromozoa.util"
 
 local filename = ...
 local source = util.normalize_eol(util.read_file(filename))
-local tokens = lua_lexer.lex(source, filename)
-lua_parser.parse(tokens)
+local tokens = lexer.lex(source, filename)
+lua_parser.new():parse(tokens)

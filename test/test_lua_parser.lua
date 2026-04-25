@@ -17,10 +17,10 @@
 
 local json = require "dromozoa.commons.json"
 
-local lua_lexer = require "dromozoa.lua_lexer"
+local lexer = require "dromozoa.lexer"
 local lua_parser = require "dromozoa.lua_parser"
 
 local parser = lua_parser.new()
 
-local tree = parser:parse(lua_lexer.lex("1 + 2", "=test"))
+local tree = parser:parse(lexer.lex("1 + 2", "=test"))
 print(json.encode(tree, { pretty = true, stable = true }))
