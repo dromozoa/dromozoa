@@ -16,7 +16,7 @@
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
 ---@class dromozoa.null_denotation
----@field denotation fun(self: dromozoa.parser, token: dromozoa.token): dromozoa.node
+---@field fn fun(parser: dromozoa.parser, token: dromozoa.token): dromozoa.node
 ---@field prefixexp boolean
 local class = {}
 local metatable = {
@@ -24,14 +24,21 @@ local metatable = {
   __name = "dromozoa.null_denotation",
 }
 
----@param denotation fun(self: dromozoa.parser, token: dromozoa.token): dromozoa.node
+---@param fn fun(parser: dromozoa.parser, token: dromozoa.token): dromozoa.node
 ---@param prefixexp boolean
 ---@return dromozoa.null_denotation
-function class.new(denotation, prefixexp)
+function class.new(fn, prefixexp)
   return setmetatable({
-    denotation = denotation,
+    fn = fn,
     prefixexp = prefixexp,
   }, metatable)
+end
+
+---@param parser dromozoa.parser
+---@param token dromozoa.token
+---@return dromozoa.node
+function class:nud(parser, token)
+  return self.fn(parser, token)
 end
 
 return class

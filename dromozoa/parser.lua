@@ -68,42 +68,42 @@ end
 
 ---@param left dromozoa.node
 ---@param token dromozoa.token
----@param min_bp integer
+---@param rbp integer
 ---@return dromozoa.node
-function class:led_left(left, token, min_bp)
+function class:led_left(left, token, rbp)
   return node.new(token.kind, token):append {
     left,
-    self:parse_exp(min_bp),
+    self:parse_exp(rbp),
   }
 end
 
 ---@param left dromozoa.node
 ---@param token dromozoa.token
----@param min_bp integer
+---@param rbp integer
 ---@return dromozoa.node
-function class:led_right(left, token, min_bp)
+function class:led_right(left, token, rbp)
   return node.new(token.kind, token):append {
     left,
-    self:parse_exp(min_bp - 1),
+    self:parse_exp(rbp - 1),
   }
 end
 
----@param min_bp integer
-function class:parse_exp(min_bp)
+---@param rbp integer
+function class:parse_exp(rbp)
   local token = self:read()
   local nud = nud_table[token.kind]
   if not nud then
     error("parser error at " .. token.srcloc:to_string())
   end
-  local left = nud.denotation(self, token)
+  local left = nud:nud(self, token)
   while true do
     local token = self:peek()
     local led = led_table[token.kind]
-    if not led or led.bp <= min_bp then
+    if not led or led.lbp <= rbp then
       break
     end
     self:read()
-    left = led.denotation(self, left, token, led.bp)
+    left = led:led(self, left, token)
   end
   return left
 end
@@ -123,9 +123,9 @@ do
 end
 
 do
-  local bp = 10
-  led_table["+"] = left_denotation.new(bp, class.led_left, false)
-  led_table["-"] = left_denotation.new(bp, class.led_left, false)
+  local lbp = 10
+  led_table["+"] = left_denotation.new(lbp, class.led_left, false)
+  led_table["-"] = left_denotation.new(lbp, class.led_left, false)
 end
 
 return class

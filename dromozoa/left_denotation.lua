@@ -16,8 +16,8 @@
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
 ---@class dromozoa.left_denotation
----@field bp integer
----@field denotation fun(self: dromozoa.parser, left: dromozoa.node, token: dromozoa.token, min_bp: integer): dromozoa.node
+---@field lbp integer
+---@field fn fun(self: dromozoa.parser, left: dromozoa.node, token: dromozoa.token, rbp: integer): dromozoa.node
 ---@field prefixexp boolean
 local class = {}
 local metatable = {
@@ -25,16 +25,24 @@ local metatable = {
   __name = "dromozoa.left_denotation",
 }
 
----@param bp integer
----@param denotation fun(self: dromozoa.parser, left: dromozoa.node, token: dromozoa.token, min_bp: integer): dromozoa.node
+---@param lbp integer
+---@param fn fun(self: dromozoa.parser, left: dromozoa.node, token: dromozoa.token, rbp: integer): dromozoa.node
 ---@param prefixexp boolean
 ---@return dromozoa.left_denotation
-function class.new(bp, denotation, prefixexp)
+function class.new(lbp, fn, prefixexp)
   return setmetatable({
-    bp = bp,
-    denotation = denotation,
+    lbp = lbp,
+    fn = fn,
     prefixexp = prefixexp,
   }, metatable)
+end
+
+---@param parser dromozoa.parser
+---@param left dromozoa.node
+---@param token dromozoa.token
+---@return dromozoa.node
+function class:led(parser, left, token)
+  return self.fn(parser, left, token, self.lbp)
 end
 
 return class
