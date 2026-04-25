@@ -17,7 +17,7 @@
 
 ---@class dromozoa.left_denotion
 ---@field bp integer
----@field denotion fun(self: dromozoa.lua_parser, token: dromozoa.token, left: dromozoa.node, min_bp: integer): dromozoa.node
+---@field denotion fun(self: dromozoa.parser, left: dromozoa.node, token: dromozoa.token, min_bp: integer): dromozoa.node
 ---@field prefixexp boolean
 local class = {}
 local metatable = {
@@ -26,7 +26,7 @@ local metatable = {
 }
 
 ---@param bp integer
----@param denotion fun(self: dromozoa.lua_parser, token: dromozoa.token, left: dromozoa.node, min_bp: integer): dromozoa.node
+---@param denotion fun(self: dromozoa.parser, left: dromozoa.node, token: dromozoa.token, min_bp: integer): dromozoa.node
 ---@param prefixexp boolean
 ---@return dromozoa.left_denotion
 function class.new(bp, denotion, prefixexp)

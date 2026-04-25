@@ -18,6 +18,7 @@
 local source_location = require "dromozoa.source_location"
 local token = require "dromozoa.token"
 
+-- https://www.lua.org/manual/5.5/manual.html#3.1
 ---@type string[]
 local keywords = {
   "and",
@@ -51,6 +52,7 @@ for _, keyword in ipairs(keywords) do
   keyword_set[keyword] = true
 end
 
+-- https://www.lua.org/manual/5.5/manual.html#3.1
 ---@type string[]
 local punctuators = {
   "+",
@@ -103,6 +105,7 @@ for i, punctuator in ipairs(punctuators) do
   punctuator_patterns[i] = punctuator:gsub("%W", "%%%0")
 end
 
+-- https://www.lua.org/manual/5.5/manual.html#3.1
 ---@type table<string, string>
 local escape_sequences = {
   ["a"] = "\a",
@@ -146,7 +149,7 @@ function class.new()
 end
 
 ---@param pattern string
----@result boolean
+---@return boolean
 function class:match(pattern)
   local i, j, value = self.source:find("^" .. pattern, self.srcloc.position)
   if i then
@@ -159,6 +162,11 @@ function class:match(pattern)
   self._0 = nil
   self._1 = nil
   return false
+end
+
+---@return boolean
+function class:eof()
+  return self.srcloc.position > #self.source
 end
 
 ---@return boolean
@@ -187,7 +195,7 @@ function class:lex(source, filename)
     table.insert(result, token.new("Comment", "Shebang", self._0, self._1, srcloc))
   end
 
-  while self.srcloc.position <= #self.source do
+  while not self:eof() do
     ---@type string?
     local kind
     ---@type string?

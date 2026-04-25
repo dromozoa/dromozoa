@@ -66,22 +66,22 @@ function class:nud_token(token)
   return node.new(token.kind, token)
 end
 
----@param token dromozoa.token
 ---@param left dromozoa.node
+---@param token dromozoa.token
 ---@param min_bp integer
 ---@return dromozoa.node
-function class:led_left(token, left, min_bp)
+function class:led_left(left, token, min_bp)
   return node.new(token.kind, token):append {
     left,
     self:parse_exp(min_bp),
   }
 end
 
----@param token dromozoa.token
 ---@param left dromozoa.node
+---@param token dromozoa.token
 ---@param min_bp integer
 ---@return dromozoa.node
-function class:led_right(token, left, min_bp)
+function class:led_right(left, token, min_bp)
   return node.new(token.kind, token):append {
     left,
     self:parse_exp(min_bp - 1),
@@ -90,7 +90,6 @@ end
 
 ---@param min_bp integer
 function class:parse_exp(min_bp)
-  print("parse_exp", min_bp)
   local token = self:read()
   local nud = nud_table[token.kind]
   if not nud then
@@ -104,7 +103,7 @@ function class:parse_exp(min_bp)
       break
     end
     self:read()
-    result = led.denotion(self, token, result, led.bp)
+    result = led.denotion(self, result, token, led.bp)
   end
   return result
 end
