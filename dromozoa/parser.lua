@@ -15,14 +15,14 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-local left_denotion = require "dromozoa.left_denotion"
+local left_denotation = require "dromozoa.left_denotation"
 local node = require "dromozoa.node"
-local null_denotion = require "dromozoa.null_denotion"
+local null_denotation = require "dromozoa.null_denotation"
 
----@type table<string, dromozoa.null_denotion>
+---@type table<string, dromozoa.null_denotation>
 local nud_table = {}
 
----@type table<string, dromozoa.left_denotion>
+---@type table<string, dromozoa.left_denotation>
 local led_table = {}
 
 ---@class dromozoa.parser
@@ -95,7 +95,7 @@ function class:parse_exp(min_bp)
   if not nud then
     error("parser error at " .. token.srcloc:to_string())
   end
-  local left = nud.denotion(self, token)
+  local left = nud.denotation(self, token)
   while true do
     local token = self:peek()
     local led = led_table[token.kind]
@@ -103,7 +103,7 @@ function class:parse_exp(min_bp)
       break
     end
     self:read()
-    left = led.denotion(self, left, token, led.bp)
+    left = led.denotation(self, left, token, led.bp)
   end
   return left
 end
@@ -116,16 +116,16 @@ function class:parse(tokens)
 end
 
 do
-  nud_table["false"]   = null_denotion.new(class.nud_token, false)
-  nud_table["nil"]     = null_denotion.new(class.nud_token, false)
-  nud_table["true"]    = null_denotion.new(class.nud_token, false)
-  nud_table["Integer"] = null_denotion.new(class.nud_token, false)
+  nud_table["false"]   = null_denotation.new(class.nud_token, false)
+  nud_table["nil"]     = null_denotation.new(class.nud_token, false)
+  nud_table["true"]    = null_denotation.new(class.nud_token, false)
+  nud_table["Integer"] = null_denotation.new(class.nud_token, false)
 end
 
 do
   local bp = 10
-  led_table["+"] = left_denotion.new(bp, class.led_left, false)
-  led_table["-"] = left_denotion.new(bp, class.led_left, false)
+  led_table["+"] = left_denotation.new(bp, class.led_left, false)
+  led_table["-"] = left_denotation.new(bp, class.led_left, false)
 end
 
 return class

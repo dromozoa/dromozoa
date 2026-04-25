@@ -15,24 +15,21 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
----@class dromozoa.left_denotion
----@field bp integer
----@field denotion fun(self: dromozoa.parser, left: dromozoa.node, token: dromozoa.token, min_bp: integer): dromozoa.node
+---@class dromozoa.null_denotation
+---@field denotation fun(self: dromozoa.parser, token: dromozoa.token): dromozoa.node
 ---@field prefixexp boolean
 local class = {}
 local metatable = {
   __index = class,
-  __name = "dromozoa.left_denotion",
+  __name = "dromozoa.null_denotation",
 }
 
----@param bp integer
----@param denotion fun(self: dromozoa.parser, left: dromozoa.node, token: dromozoa.token, min_bp: integer): dromozoa.node
+---@param denotation fun(self: dromozoa.parser, token: dromozoa.token): dromozoa.node
 ---@param prefixexp boolean
----@return dromozoa.left_denotion
-function class.new(bp, denotion, prefixexp)
+---@return dromozoa.null_denotation
+function class.new(denotation, prefixexp)
   return setmetatable({
-    bp = bp,
-    denotion = denotion,
+    denotation = denotation,
     prefixexp = prefixexp,
   }, metatable)
 end
