@@ -15,32 +15,32 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-local matcher = require "dromozoa.matcher"
+local lexer = require "dromozoa.lexer"
+local source_location = require "dromozoa.source_location"
 
-local m = matcher.new([[
+local that = lexer.new()
+that.source = [[
 foobar
   bazqux
-]], "=test")
+]]
+that.srcloc = source_location.new "=test"
 
-assert(m.srcloc.position == 1)
-assert(m.srcloc.line == 1)
-assert(m.srcloc.column == 1)
-assert(m._0 == nil)
-assert(m._1 == nil)
-assert(not m:eof())
+assert(that.srcloc.position == 1)
+assert(that.srcloc.line == 1)
+assert(that.srcloc.column == 1)
+assert(that._0 == nil)
+assert(that._1 == nil)
 
-assert(m:match "%a-%s+")
-assert(m.srcloc.position == 10)
-assert(m.srcloc.line == 2)
-assert(m.srcloc.column == 3)
-assert(m._0 == "foobar\n  ")
-assert(m._1 == nil)
-assert(not m:eof())
+assert(that:match "%a-%s+")
+assert(that.srcloc.position == 10)
+assert(that.srcloc.line == 2)
+assert(that.srcloc.column == 3)
+assert(that._0 == "foobar\n  ")
+assert(that._1 == nil)
 
-assert(m:match "%a(%a-)%a%s+")
-assert(m.srcloc.position == 17)
-assert(m.srcloc.line == 3)
-assert(m.srcloc.column == 1)
-assert(m._0 == "bazqux\n")
-assert(m._1 == "azqu")
-assert(m:eof())
+assert(that:match "%a(%a-)%a%s+")
+assert(that.srcloc.position == 17)
+assert(that.srcloc.line == 3)
+assert(that.srcloc.column == 1)
+assert(that._0 == "bazqux\n")
+assert(that._1 == "azqu")

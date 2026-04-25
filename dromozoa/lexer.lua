@@ -161,13 +161,8 @@ function class:match(pattern)
   return false
 end
 
----@result boolean
-function class:eof()
-  return self.srcloc.position > #self.source
-end
-
 ---@return boolean
-function class:punctuator()
+function class:lex_punctuator()
   for _, pattern in ipairs(punctuator_patterns) do
     if self:match(pattern) then
       return true
@@ -275,7 +270,7 @@ function class:lex(source, filename)
           error("invalid escape sequence at " .. srcloc:to_string())
         end
       end
-    elseif self:punctuator() then
+    elseif self:lex_punctuator() then
       kind = self._0
       value = self._0
     else
