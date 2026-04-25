@@ -109,7 +109,7 @@ local lexer = require "dromozoa.lexer"
 local util = require "dromozoa.util"
 
 local source = util.read_file(arg[0])
-local tokens = lexer.lex(source, arg[0])
+local tokens = lexer.new():lex(source, arg[0])
 
 local i = 0
 local state = 1
@@ -169,13 +169,13 @@ assert(not pcall(lexer.lex, "print([[", "=test"))
 assert(not pcall(lexer.lex, "!", "=test"))
 
 
-local tokens = lexer.lex("", "=test")
+local tokens = lexer.new():lex("", "=test")
 assert(#tokens == 1)
 
 local token = tokens[1]
 assert(token.kind == "EOF")
 
-local tokens = lexer.lex("#! /usr/bin/env lua\n", "=test")
+local tokens = lexer.new():lex("#! /usr/bin/env lua\n", "=test")
 assert(#tokens == 2)
 
 local token = tokens[1]
