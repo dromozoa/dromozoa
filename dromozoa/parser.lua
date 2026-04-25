@@ -88,6 +88,15 @@ function class:led_right(left, token, rbp)
   }
 end
 
+-- function class:led_call(left, token, rbp)
+-- end
+--
+-- function class:led_subscript(left, token, rbp)
+-- end
+--
+-- function class:led_field(left, token, rbp)
+-- end
+
 ---@param rbp integer
 function class:parse_exp(rbp)
   local token = self:read()
@@ -115,17 +124,42 @@ function class:parse(tokens)
   return self:parse_exp(0)
 end
 
+-- https://www.lua.org/manual/5.5/manual.html#9
 do
-  nud_table["false"]   = null_denotation.new(class.nud_token, false)
   nud_table["nil"]     = null_denotation.new(class.nud_token, false)
+  nud_table["false"]   = null_denotation.new(class.nud_token, false)
   nud_table["true"]    = null_denotation.new(class.nud_token, false)
   nud_table["Integer"] = null_denotation.new(class.nud_token, false)
 end
 
+
+-- https://www.lua.org/manual/5.5/manual.html#3.4.8
 do
-  local lbp = 10
-  led_table["+"] = left_denotation.new(lbp, class.led_left, false)
-  led_table["-"] = left_denotation.new(lbp, class.led_left, false)
+  led_table["or"]  = left_denotation.new(100, class.led_left, false)
+  led_table["and"] = left_denotation.new(110, class.led_left, false)
+  led_table["<"]   = left_denotation.new(120, class.led_left, false)
+  led_table[">"]   = left_denotation.new(120, class.led_left, false)
+  led_table["<="]  = left_denotation.new(120, class.led_left, false)
+  led_table[">="]  = left_denotation.new(120, class.led_left, false)
+  led_table["~="]  = left_denotation.new(120, class.led_left, false)
+  led_table["=="]  = left_denotation.new(120, class.led_left, false)
+  led_table["|"]   = left_denotation.new(130, class.led_left, false)
+  led_table["~"]   = left_denotation.new(140, class.led_left, false)
+  led_table["&"]   = left_denotation.new(150, class.led_left, false)
+  led_table["~"]   = left_denotation.new(160, class.led_left, false)
+  led_table["<<"]  = left_denotation.new(170, class.led_left, false)
+  led_table[">>"]  = left_denotation.new(170, class.led_left, false)
+  led_table[".."]  = left_denotation.new(180, class.led_right, false)
+  led_table["+"]   = left_denotation.new(190, class.led_left, false)
+  led_table["-"]   = left_denotation.new(190, class.led_left, false)
+  led_table["*"]   = left_denotation.new(200, class.led_left, false)
+  led_table["/"]   = left_denotation.new(200, class.led_left, false)
+  led_table["//"]  = left_denotation.new(200, class.led_left, false)
+  led_table["%"]   = left_denotation.new(200, class.led_left, false)
+  led_table["^"]   = left_denotation.new(210, class.led_left, false)
+  -- led_table["("]   = left_denotation.new(900, class.led_call, true)
+  -- led_table["["]   = left_denotation.new(900, class.led_subscript, true)
+  -- led_table["."]   = left_denotation.new(900, class.led_field, true)
 end
 
 return class
