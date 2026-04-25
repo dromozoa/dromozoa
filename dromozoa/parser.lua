@@ -95,7 +95,7 @@ function class:parse_exp(min_bp)
   if not nud then
     error("parser error at " .. token.srcloc:to_string())
   end
-  local result = nud.denotion(self, token)
+  local left = nud.denotion(self, token)
   while true do
     local token = self:peek()
     local led = led_table[token.kind]
@@ -103,9 +103,9 @@ function class:parse_exp(min_bp)
       break
     end
     self:read()
-    result = led.denotion(self, result, token, led.bp)
+    left = led.denotion(self, left, token, led.bp)
   end
-  return result
+  return left
 end
 
 ---@param tokens dromozoa.token[]
