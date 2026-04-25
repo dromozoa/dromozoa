@@ -25,16 +25,16 @@ local nud_table = {}
 ---@type table<string, dromozoa.left_denotion>
 local led_table = {}
 
----@class dromozoa.lua_parser
+---@class dromozoa.parser
 ---@field tokens dromozoa.token[]?
 ---@field index integer
 local class = {}
 local metatable = {
   __index = class,
-  __name = "dromozoa.lua_parser",
+  __name = "dromozoa.parser",
 }
 
----@return dromozoa.lua_parser
+---@return dromozoa.parser
 function class.new()
   return setmetatable({
     tokens = nil,
