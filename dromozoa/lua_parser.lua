@@ -15,14 +15,14 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-local led_entry = require "dromozoa.led_entry"
+local left_denotion = require "dromozoa.left_denotion"
 local node = require "dromozoa.node"
-local nud_entry = require "dromozoa.nud_entry"
+local null_denotion = require "dromozoa.null_denotion"
 
----@type table<string, dromozoa.nud_entry>
+---@type table<string, dromozoa.null_denotion>
 local nud_table = {}
 
----@type table<string, dromozoa.led_entry>
+---@type table<string, dromozoa.left_denotion>
 local led_table = {}
 
 ---@class dromozoa.lua_parser
@@ -117,16 +117,16 @@ function class:parse(tokens)
 end
 
 do
-  nud_table["false"]   = nud_entry.new(class.nud_token, false)
-  nud_table["nil"]     = nud_entry.new(class.nud_token, false)
-  nud_table["true"]    = nud_entry.new(class.nud_token, false)
-  nud_table["Integer"] = nud_entry.new(class.nud_token, false)
+  nud_table["false"]   = null_denotion.new(class.nud_token, false)
+  nud_table["nil"]     = null_denotion.new(class.nud_token, false)
+  nud_table["true"]    = null_denotion.new(class.nud_token, false)
+  nud_table["Integer"] = null_denotion.new(class.nud_token, false)
 end
 
 do
   local bp = 10
-  led_table["+"] = led_entry.new(bp, class.led_left, false)
-  led_table["-"] = led_entry.new(bp, class.led_left, false)
+  led_table["+"] = left_denotion.new(bp, class.led_left, false)
+  led_table["-"] = left_denotion.new(bp, class.led_left, false)
 end
 
 return class

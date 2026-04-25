@@ -15,18 +15,18 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
----@class dromozoa.nud_entry
+---@class dromozoa.null_denotion
 ---@field denotion fun(self: dromozoa.lua_parser, token: dromozoa.token): dromozoa.node
 ---@field prefixexp boolean
 local class = {}
 local metatable = {
   __index = class,
-  __name = "dromozoa.nud_entry",
+  __name = "dromozoa.null_denotion",
 }
 
 ---@param denotion fun(self: dromozoa.lua_parser, token: dromozoa.token): dromozoa.node
 ---@param prefixexp boolean
----@return dromozoa.nud_entry
+---@return dromozoa.null_denotion
 function class.new(denotion, prefixexp)
   return setmetatable({
     denotion = denotion,
