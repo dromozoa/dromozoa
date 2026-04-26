@@ -22,14 +22,14 @@ local node = require "dromozoa.node"
 ---@alias dromozoa.led { lbp: integer, fn: dromozoa.led_function }
 
 ---@type table<string, dromozoa.nud>
-local exp_nuds
+local exp_nud_table
 ---@type table<string, dromozoa.led>
-local exp_leds
+local exp_led_table
 
 ---@type table<string, dromozoa.nud>
-local prefixexp_nuds
+local prefixexp_nud_table
 ---@type table<string, dromozoa.led>
-local prefixexp_leds
+local prefixexp_led_table
 
 ---@class dromozoa.parser
 ---@field tokens dromozoa.token[]?
@@ -50,13 +50,15 @@ end
 
 ---@return dromozoa.token
 function class:peek()
-  while true do
-    local token = self.tokens[self.index]
+  for i = self.index, #self.tokens do
+    local token = self.tokens[i]
     if token.kind ~= "Space" and token.kind ~= "Comment" then
+      self.index = i
       return token
     end
-    self.index = self.index + 1
   end
+  self.index = #self.tokens
+  return self.tokens[self.index]
 end
 
 ---@return dromozoa.token
@@ -64,6 +66,10 @@ function class:read()
   local token = self:peek()
   self.index = self.index + 1
   return token
+end
+
+function class:unread()
+  self.index = self.index - 1
 end
 
 ---@param token dromozoa.token
@@ -131,35 +137,46 @@ function class:led_self(left, token, rbp)
 end
 
 ---@param rbp integer
----@param nuds table<string, dromozoa.nud>
----@param leds table<string, dromozoa.led>
-function class:parse_exp_impl(rbp, nuds, leds)
+---@param nud_table table<string, dromozoa.nud>
+---@param led_table table<string, dromozoa.led>
+---@return dromozoa.node?
+---@return string?
+function class:parse_exp_impl(rbp, nud_table, led_table)
   local token = self:read()
-  local nud = nuds[token.kind]
+  local nud = nud_table[token.kind]
   if not nud then
-    error("parser error at " .. token.srcloc:to_string())
+    self:unread()
+    return nil, "parser error at " .. token.srcloc:to_string()
   end
-  local left = nud(self, token)
+  local result = nud(self, token)
   while true do
     local token = self:peek()
-    local led = leds[token.kind]
+    local led = led_table[token.kind]
     if not led or led.lbp <= rbp then
       break
     end
     self:read()
-    left = led.fn(self, left, token, led.lbp)
+    result = led.fn(self, result, token, led.lbp)
   end
-  return left
+  return result
 end
 
 ---@param rbp integer
-function class:parse_prefixexp(rbp)
-  return self:parse_exp_impl(rbp, prefixexp_nuds, prefixexp_leds)
-end
-
----@param rbp integer
+---@return dromozoa.node?
+---@return string?
 function class:parse_exp(rbp)
-  return self:parse_exp_impl(rbp, exp_nuds, exp_leds)
+  local result = self:parse_prefixexp(rbp)
+  if result then
+    return result
+  end
+  return self:parse_exp_impl(rbp, exp_nud_table, exp_led_table)
+end
+
+---@param rbp integer
+---@return dromozoa.node?
+---@return string?
+function class:parse_prefixexp(rbp)
+  return self:parse_exp_impl(rbp, prefixexp_nud_table, prefixexp_led_table)
 end
 
 ---@param tokens dromozoa.token[]
@@ -169,7 +186,7 @@ function class:parse(tokens)
   return self:parse_exp(0)
 end
 
-exp_nuds = {
+exp_nud_table = {
   ["nil"]      = class.nud_token,
   ["false"]    = class.nud_token,
   ["true"]     = class.nud_token,
@@ -184,7 +201,7 @@ exp_nuds = {
   ["~"]        = class.nud_prefix,
 }
 
-exp_leds = {
+exp_led_table = {
   ["or"]  = { lbp = 100, fn = class.led_left },
   ["and"] = { lbp = 110, fn = class.led_left },
   ["<"]   = { lbp = 120, fn = class.led_left },
@@ -208,18 +225,18 @@ exp_leds = {
   ["^"]   = { lbp = 200, fn = class.led_right },
 }
 
-prefixexp_nuds = {
+prefixexp_nud_table = {
   ["Name"] = class.nud_name,
   ["("]    = class.nud_group,
 }
 
-prefixexp_leds = {
-  ["["]      = { lbp = 900, fn = class.led_subscript },
-  ["."]      = { lbp = 900, fn = class.led_field },
-  ["("]      = { lbp = 900, fn = class.led_call },
-  ["{"]      = { lbp = 900, fn = class.led_call },
-  ["String"] = { lbp = 900, fn = class.led_call },
-  [":"]      = { lbp = 900, fn = class.led_self },
+prefixexp_led_table = {
+  ["["]      = { lbp = 100, fn = class.led_subscript },
+  ["."]      = { lbp = 100, fn = class.led_field },
+  ["("]      = { lbp = 100, fn = class.led_call },
+  ["{"]      = { lbp = 100, fn = class.led_call },
+  ["String"] = { lbp = 100, fn = class.led_call },
+  [":"]      = { lbp = 100, fn = class.led_self },
 }
 
 return class
