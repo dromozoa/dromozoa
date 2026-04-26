@@ -2,7 +2,7 @@
 
 ## Lua 5.5のEBNF
 
-https://www.lua.org/manual/5.5/manual.html#9
+- https://www.lua.org/manual/5.5/manual.html#9
 
 ```
 chunk ::= block
@@ -79,7 +79,9 @@ binop ::= '+' | '-' | '*' | '/' | '//' | '^' | '%' |
 unop ::= '-' | 'not' | '#' | '~'
 ```
 
-## Lua 5.5の優先順位
+## Lua 5.5の演算子と優先順位
+
+- https://www.lua.org/manual/5.5/manual.html#3.4.8
 
 ```
 or
@@ -96,14 +98,19 @@ unary operators (not   #     -     ~)
 ^
 ```
 
-- 文法規則`var`, `prefixexp`, `functioncall`を演算子で表現する
-- これらの演算子は`^`よりも高い優先順位を持ち、左結合である
-- 文法的に不正な結合は行わないように注意する
+## prefixexp
 
-```
-a()   function call
-aS    function call (LiteralString)
-a{}   function call (tableconstructor)
-a[]   subscript
-a.b   field access
-```
+- `prefixexp`の文法は左再帰が循環して扱いにくいので演算子で整理する。
+- `prefixexp`は`Name`か`'(' exp ')'`で開始する。
+- どの演算子も左結合で同じ優先順位を持つ。
+
+| 表現     | 文法                                     | 説明                   |
+|----------|------------------------------------------|------------------------|
+| `a[b]`   | `prefixexp '[' exp ']'`                  | subscript              |
+| `a.b`    | `prefixexp '.' Name`                     | field access           |
+| `a(b)`   | `prefixexp '(' [explist] ')'`            | function call          |
+| `a{b}`   | `prefixexp '{' [fieldlist] '}'`          | function call (table)  |
+| `a"b"`   | `prefixexp LiteralString`                | function call (string) |
+| `a:b(c)` | `prefixexp ':' Name '(' [explist] ')'`   | method call            |
+| `a:b{c}` | `prefixexp ':' Name '{' [fieldlist] '}'` | method call (table)    |
+| `a:b"c"` | `prefixexp ':' Name LiteralString`       | method call (string)   |
