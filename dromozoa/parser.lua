@@ -88,10 +88,6 @@ function class:nud_name(token)
   print(token)
 end
 
-function class:nud_group(token)
-  print(token)
-end
-
 function class:nud_table(token)
   print(token)
 end
@@ -100,6 +96,10 @@ function class:nud_prefix(token)
   return node.new(token.kind, token):append {
     self:parse_exp(prefix_lbp)
   }
+end
+
+function class:nud_group(token)
+  print(token)
 end
 
 ---@param left dromozoa.node
