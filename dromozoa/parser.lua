@@ -208,12 +208,6 @@ function class:parse_prefixexp(rbp)
   return self:parse_led(left, rbp, prefixexp_led_table)
 end
 
----@param rbp integer
----@return dromozoa.node?
----@return string?
-function class:parse_args(rbp)
-end
-
 ---@param tokens dromozoa.token[]
 function class:parse(tokens)
   self.tokens = tokens
