@@ -25,6 +25,8 @@ local node = require "dromozoa.node"
 local exp_nud_table
 ---@type table<string, dromozoa.led>
 local exp_led_table
+---@type integer
+local prefix_lbp
 
 ---@type table<string, dromozoa.nud>
 local prefixexp_nud_table
@@ -95,7 +97,9 @@ function class:nud_table(token)
 end
 
 function class:nud_prefix(token)
-  print(token)
+  return node.new(token.kind, token):append {
+    self:parse_exp(prefix_lbp)
+  }
 end
 
 ---@param left dromozoa.node
@@ -222,11 +226,14 @@ exp_led_table = {
   ["/"]   = { lbp = 190, fn = class.led_left },
   ["//"]  = { lbp = 190, fn = class.led_left },
   ["%"]   = { lbp = 190, fn = class.led_left },
-  ["^"]   = { lbp = 200, fn = class.led_right },
+  ["^"]   = { lbp = 210, fn = class.led_right },
 }
 
+-- 前置演算子の優先順位は(* / // %)と^の間
+prefix_lbp = 200
+
 prefixexp_nud_table = {
-  ["Name"] = class.nud_name,
+  ["Name"] = class.nud_token,
   ["("]    = class.nud_group,
 }
 

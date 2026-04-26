@@ -25,7 +25,7 @@ local function dump(u, buffer)
   if n > 0 then
     table.insert(buffer, "(")
   end
-  if u.kind == "Integer" then
+  if u.kind == "Integer" or u.kind == "Name" then
     table.insert(buffer, tostring(u.token.value))
   else
     table.insert(buffer, u.kind)
@@ -55,3 +55,7 @@ test_parse_exp("1 and 2 or 3", "(or (and 1 2) 3)")
 test_parse_exp("1 or 2 and 3", "(or 1 (and 2 3))")
 test_parse_exp("1 + 2 + 3", "(+ (+ 1 2) 3)")
 test_parse_exp("1 ^ 2 ^ 3", "(^ 1 (^ 2 3))")
+
+test_parse_exp("- 1 + 2 - 3", "(- (+ (- 1) 2) 3)")
+test_parse_exp("- 1 ^ 2 ^ 3", "(- (^ 1 (^ 2 3)))")
+test_parse_exp("not a or b", "(or (not a) b)")
