@@ -22,14 +22,14 @@ local node = require "dromozoa.node"
 ---@alias dromozoa.led { lbp: integer, fn: dromozoa.led_function }
 
 ---@type table<string, dromozoa.nud>
-local prefixexp_nuds = {}
+local exp_nuds
 ---@type table<string, dromozoa.led>
-local prefixexp_leds = {}
+local exp_leds
 
 ---@type table<string, dromozoa.nud>
-local exp_nuds = {}
+local prefixexp_nuds
 ---@type table<string, dromozoa.led>
-local exp_leds = {}
+local prefixexp_leds
 
 ---@class dromozoa.parser
 ---@field tokens dromozoa.token[]?
@@ -114,15 +114,19 @@ function class:led_right(left, token, rbp)
   }
 end
 
-function class:led_call(left, token, rbp)
-  print(left, token, rbp)
-end
-
 function class:led_subscript(left, token, rbp)
   print(left, token, rbp)
 end
 
 function class:led_field(left, token, rbp)
+  print(left, token, rbp)
+end
+
+function class:led_call(left, token, rbp)
+  print(left, token, rbp)
+end
+
+function class:led_self(left, token, rbp)
   print(left, token, rbp)
 end
 
@@ -165,55 +169,57 @@ function class:parse(tokens)
   return self:parse_exp(0)
 end
 
-do
-  prefixexp_nuds["Name"] = class.nud_name
-  prefixexp_nuds["("]    = class.nud_group
-end
+exp_nuds = {
+  ["nil"]      = class.nud_token,
+  ["false"]    = class.nud_token,
+  ["true"]     = class.nud_token,
+  ["Integer"]  = class.nud_token,
+  ["String"]   = class.nud_token,
+  ["..."]      = class.nud_token,
+  ["function"] = class.nud_function,
+  ["{"]        = class.nud_table,
+  ["-"]        = class.nud_prefix,
+  ["not"]      = class.nud_prefix,
+  ["#"]        = class.nud_prefix,
+  ["~"]        = class.nud_prefix,
+}
 
-do
-  exp_nuds["nil"]      = class.nud_token
-  exp_nuds["false"]    = class.nud_token
-  exp_nuds["true"]     = class.nud_token
-  exp_nuds["Integer"]  = class.nud_token
-  exp_nuds["String"]   = class.nud_token
-  exp_nuds["..."]      = class.nud_token
-  exp_nuds["function"] = class.nud_function
-  exp_nuds["{"]        = class.nud_table
-  exp_nuds["-"]        = class.nud_prefix
-  exp_nuds["not"]      = class.nud_prefix
-  exp_nuds["#"]        = class.nud_prefix
-  exp_nuds["~"]        = class.nud_prefix
-end
+exp_leds = {
+  ["or"]  = { lbp = 100, fn = class.led_left },
+  ["and"] = { lbp = 110, fn = class.led_left },
+  ["<"]   = { lbp = 120, fn = class.led_left },
+  [">"]   = { lbp = 120, fn = class.led_left },
+  ["<="]  = { lbp = 120, fn = class.led_left },
+  [">="]  = { lbp = 120, fn = class.led_left },
+  ["~="]  = { lbp = 120, fn = class.led_left },
+  ["=="]  = { lbp = 120, fn = class.led_left },
+  ["|"]   = { lbp = 130, fn = class.led_left },
+  ["~"]   = { lbp = 140, fn = class.led_left },
+  ["&"]   = { lbp = 150, fn = class.led_left },
+  ["<<"]  = { lbp = 160, fn = class.led_left },
+  [">>"]  = { lbp = 160, fn = class.led_left },
+  [".."]  = { lbp = 170, fn = class.led_right },
+  ["+"]   = { lbp = 180, fn = class.led_left },
+  ["-"]   = { lbp = 180, fn = class.led_left },
+  ["*"]   = { lbp = 190, fn = class.led_left },
+  ["/"]   = { lbp = 190, fn = class.led_left },
+  ["//"]  = { lbp = 190, fn = class.led_left },
+  ["%"]   = { lbp = 190, fn = class.led_left },
+  ["^"]   = { lbp = 200, fn = class.led_right },
+}
 
-do
-  exp_leds["or"]  = { lbp = 100, fn = class.led_left }
-  exp_leds["and"] = { lbp = 110, fn = class.led_left }
-  exp_leds["<"]   = { lbp = 120, fn = class.led_left }
-  exp_leds[">"]   = { lbp = 120, fn = class.led_left }
-  exp_leds["<="]  = { lbp = 120, fn = class.led_left }
-  exp_leds[">="]  = { lbp = 120, fn = class.led_left }
-  exp_leds["~="]  = { lbp = 120, fn = class.led_left }
-  exp_leds["=="]  = { lbp = 120, fn = class.led_left }
-  exp_leds["|"]   = { lbp = 130, fn = class.led_left }
-  exp_leds["~"]   = { lbp = 140, fn = class.led_left }
-  exp_leds["&"]   = { lbp = 150, fn = class.led_left }
-  exp_leds["~"]   = { lbp = 160, fn = class.led_left }
-  exp_leds["<<"]  = { lbp = 170, fn = class.led_left }
-  exp_leds[">>"]  = { lbp = 170, fn = class.led_left }
-  exp_leds[".."]  = { lbp = 180, fn = class.led_right }
-  exp_leds["+"]   = { lbp = 190, fn = class.led_left }
-  exp_leds["-"]   = { lbp = 190, fn = class.led_left }
-  exp_leds["*"]   = { lbp = 200, fn = class.led_left }
-  exp_leds["/"]   = { lbp = 200, fn = class.led_left }
-  exp_leds["//"]  = { lbp = 200, fn = class.led_left }
-  exp_leds["%"]   = { lbp = 200, fn = class.led_left }
-  exp_leds["^"]   = { lbp = 210, fn = class.led_right }
-end
+prefixexp_nuds = {
+  ["Name"] = class.nud_name,
+  ["("]    = class.nud_group,
+}
 
-do
-  prefixexp_leds["("] = { lbp = 900, fn = class.led_call }
-  prefixexp_leds["["] = { lbp = 900, fn = class.led_subscript }
-  prefixexp_leds["."] = { lbp = 900, fn = class.led_field }
-end
+prefixexp_leds = {
+  ["["]      = { lbp = 900, fn = class.led_subscript },
+  ["."]      = { lbp = 900, fn = class.led_field },
+  ["("]      = { lbp = 900, fn = class.led_call },
+  ["{"]      = { lbp = 900, fn = class.led_call },
+  ["String"] = { lbp = 900, fn = class.led_call },
+  [":"]      = { lbp = 900, fn = class.led_self },
+}
 
 return class

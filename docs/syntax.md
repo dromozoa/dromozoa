@@ -104,13 +104,14 @@ unary operators (not   #     -     ~)
 - `prefixexp`は`Name`か`'(' exp ')'`で開始する。
 - どの演算子も左結合で同じ優先順位を持つ。
 
-| 表現     | 文法                                     | 説明                   |
-|----------|------------------------------------------|------------------------|
-| `a[b]`   | `prefixexp '[' exp ']'`                  | subscript              |
-| `a.b`    | `prefixexp '.' Name`                     | field access           |
-| `a(b)`   | `prefixexp '(' [explist] ')'`            | function call          |
-| `a{b}`   | `prefixexp '{' [fieldlist] '}'`          | function call (table)  |
-| `a"b"`   | `prefixexp LiteralString`                | function call (string) |
-| `a:b(c)` | `prefixexp ':' Name '(' [explist] ')'`   | method call            |
-| `a:b{c}` | `prefixexp ':' Name '{' [fieldlist] '}'` | method call (table)    |
-| `a:b"c"` | `prefixexp ':' Name LiteralString`       | method call (string)   |
+| 表現     | 文法                                     | 名前      | 説明                   |
+|----------|------------------------------------------|-----------|------------------------|
+| `a[b]`   | `prefixexp '[' exp ']'`                  | subscript | subscript              |
+| `a.b`    | `prefixexp '.' Name`                     | field     | field access           |
+| `a(b)`   | `prefixexp '(' [explist] ')'`            | call      | function call          |
+| `a{b}`   | `prefixexp '{' [fieldlist] '}'`          | call      | function call (table)  |
+| `a"b"`   | `prefixexp LiteralString`                | call      | function call (string) |
+| `a:b(c)` | `prefixexp ':' Name '(' [explist] ')'`   | self      | method call            |
+| `a:b{c}` | `prefixexp ':' Name '{' [fieldlist] '}'` | self      | method call (table)    |
+| `a:b"c"` | `prefixexp ':' Name LiteralString`       | self      | method call (string)   |
+
