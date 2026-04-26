@@ -2,7 +2,7 @@
 
 ## Lua 5.5のEBNF
 
-- https://www.lua.org/manual/5.5/manual.html#9
+https://www.lua.org/manual/5.5/manual.html#9
 
 ```
 chunk ::= block
@@ -79,16 +79,31 @@ binop ::= '+' | '-' | '*' | '/' | '//' | '^' | '%' |
 unop ::= '-' | 'not' | '#' | '~'
 ```
 
-## 左再帰の除去
+## Lua 5.5の優先順位
 
 ```
-var ::= Name |
-    prefixexp '[' exp ']' |
-    prefixexp '.' Name
+or
+and
+<     >     <=    >=    ~=    ==
+|
+~
+&
+<<    >>
+..
++     -
+*     /     //    %
+unary operators (not   #     -     ~)
+^
+```
 
-prefixexp ::= var | functioncall | '(' exp ')'
+- 文法規則`var`, `prefixexp`, `functioncall`を演算子で表現する
+- これらの演算子は`^`よりも高い優先順位を持ち、左結合である
+- 文法的に不正な結合は行わないように注意する
 
-functioncall ::=
-    prefixexp args |
-    prefixexp ':' Name args
+```
+a() function call
+aS  function call (LiteralString)
+a{} function call (tableconstructor)
+a[] subscript
+a.b field access
 ```
