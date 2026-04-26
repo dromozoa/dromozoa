@@ -90,6 +90,8 @@ function class:nud_table(token)
   error "not implemented"
 end
 
+---@param token dromozoa.token
+---@return dromozoa.node
 function class:nud_prefix(token)
   return node.new(token.kind, token):append {
     assert(self:parse_exp(prefix_lbp))
@@ -129,7 +131,7 @@ end
 
 ---@diagnostic disable-next-line: unused-local
 function class:led_subscript(left, token, rbp)
-  local result = node.new("subscript", token):append {
+  local result = node.new("[]", token):append {
     left,
     assert(self:parse_exp(0)),
   }
@@ -138,8 +140,8 @@ function class:led_subscript(left, token, rbp)
 end
 
 ---@diagnostic disable-next-line: unused-local
-function class:led_field(left, token, rbp)
-  return node.new("field", token):append {
+function class:led_field_access(left, token, rbp)
+  return node.new(token.kind, token):append {
     left,
     self:nud_token(self:read():expect "Name"),
   }
@@ -170,12 +172,12 @@ end
 
 function class:parse_led(left, rbp, led_table)
   while true do
-    local token = self:peek()
+    local token = self:read()
     local led = led_table[token.kind]
     if not led or led.lbp <= rbp then
+      self:unread()
       break
     end
-    self:read()
     left = led.fn(self, left, token, led.lbp)
   end
   return left
@@ -185,13 +187,12 @@ end
 ---@return dromozoa.node?
 ---@return string?
 function class:parse_exp(rbp)
-  -- TODO prefixexpではbpチェックは不要
-  local left, message = self:parse_prefixexp(rbp)
+  local left, message = self:parse_prefixexp(0)
   if not left then
     left, message = self:parse_nud(exp_nud_table)
-    if not left then
-      return left, message
-    end
+  end
+  if not left then
+    return nil, message
   end
   return self:parse_led(left, rbp, exp_led_table)
 end
@@ -205,6 +206,12 @@ function class:parse_prefixexp(rbp)
     return nil, message
   end
   return self:parse_led(left, rbp, prefixexp_led_table)
+end
+
+---@param rbp integer
+---@return dromozoa.node?
+---@return string?
+function class:parse_args(rbp)
 end
 
 ---@param tokens dromozoa.token[]
@@ -262,12 +269,12 @@ prefixexp_nud_table = {
 }
 
 prefixexp_led_table = {
-  ["["]      = { lbp = 100, fn = class.led_subscript },
-  ["."]      = { lbp = 100, fn = class.led_field },
-  ["("]      = { lbp = 100, fn = class.led_call },
-  ["{"]      = { lbp = 100, fn = class.led_call },
-  ["String"] = { lbp = 100, fn = class.led_call },
-  [":"]      = { lbp = 100, fn = class.led_self },
+  ["["]      = { lbp = 900, fn = class.led_subscript },
+  ["."]      = { lbp = 900, fn = class.led_field_access },
+  ["("]      = { lbp = 900, fn = class.led_call },
+  ["{"]      = { lbp = 900, fn = class.led_call },
+  ["String"] = { lbp = 900, fn = class.led_call },
+  [":"]      = { lbp = 900, fn = class.led_self },
 }
 
 return class

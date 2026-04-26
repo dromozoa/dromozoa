@@ -64,9 +64,9 @@ test_parse_exp("1 + 2 * 3", "(+ 1 (* 2 3))")
 test_parse_exp("(1 + 2) * 3", "(* (+ 1 2) 3)")
 
 test_parse_exp("a", "a")
-test_parse_exp("a[1 + 2]", "(subscript a (+ 1 2))")
-test_parse_exp("a.b", "(field a b)")
-test_parse_exp("a.b.c", "(field (field a b) c)")
+test_parse_exp("a[1 + 2]", "([] a (+ 1 2))")
+test_parse_exp("a.b", "(. a b)")
+test_parse_exp("a.b.c", "(. (. a b) c)")
 
 ---@param source string
 local function test_parse_exp_error(source)
