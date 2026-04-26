@@ -43,4 +43,14 @@ function class.new(kind, subkind, text, value, srcloc)
   }, metatable)
 end
 
+---@param ... string
+function class:expect(...)
+  for _, kind in ipairs { ... } do
+    if self.kind == kind then
+      return
+    end
+  end
+  error("unexpected symbol at " .. self.srcloc:to_string())
+end
+
 return class

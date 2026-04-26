@@ -164,16 +164,16 @@ assert(state == 3)
 assert(table.concat(buffer) == source)
 
 ---@param source string
-local function test_lexer_error(source)
+local function test_lex_error(source)
   local result, message = pcall(function() lexer.new():lex(source, "=test") end)
   assert(not result)
   assert(assert(message):find "=test:1:", ("{ message = %q }"):format(message))
 end
 
-test_lexer_error "print(--[["
-test_lexer_error [[print "\y"]]
-test_lexer_error "print([["
-test_lexer_error "!"
+test_lex_error "print(--[["
+test_lex_error [[print "\y"]]
+test_lex_error "print([["
+test_lex_error "!"
 
 local tokens = assert(lexer.new():lex("", "=test"))
 assert(#tokens == 1)

@@ -98,8 +98,10 @@ function class:nud_prefix(token)
   }
 end
 
-function class:nud_group(token)
-  print(token)
+function class:nud_group(_)
+  local result = self:parse_exp(0)
+  self:read():expect ")"
+  return result
 end
 
 ---@param left dromozoa.node
