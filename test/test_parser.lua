@@ -18,27 +18,29 @@
 local lexer = require "dromozoa.lexer"
 local parser = require "dromozoa.parser"
 
-local function dump(node, buffer)
-  if #node.nodes == 0 then
-    table.insert(buffer, node.kind)
+local function dump(u, buffer)
+  if #u.nodes == 0 then
+    table.insert(buffer, u.kind)
   else
     table.insert(buffer, "(")
-    table.insert(buffer, node.kind)
-    for _, node in ipairs(node.nodes) do
+    table.insert(buffer, u.kind)
+    for _, v in ipairs(u.nodes) do
       table.insert(buffer, " ")
-      dump(node, buffer)
+      dump(v, buffer)
     end
     table.insert(buffer, ")")
-    return buffer
   end
+  return buffer
 end
 
-local function test(source)
+local function test_parse_exp(source, expect)
   local root = assert(parser.new():parse(lexer.new():lex(source, "=test")))
-  return table.concat(dump(root, {}))
+  local result = table.concat(dump(root, {}))
+  assert(result == expect, ("{ source = %q, result = %q, expect = %q }"):format(source, result, expect))
+  return result
 end
 
-print(test "1 and 2 or 3")
-print(test "1 or 2 and 3")
-print(test "1 + 2 + 3")
-print(test "1 ^ 2 ^ 3")
+test_parse_exp( "1 and 2 or 3", "(or (and Integer Integer) Integer)")
+test_parse_exp( "1 or 2 and 3", "(or Integer (and Integer Integer))")
+test_parse_exp( "1 + 2 + 3", "(+ (+ Integer Integer) Integer)")
+test_parse_exp( "1 ^ 2 ^ 3", "(^ Integer (^ Integer Integer))")
