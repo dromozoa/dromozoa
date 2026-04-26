@@ -100,7 +100,7 @@ unary operators (not   #     -     ~)
 
 ## prefixexp
 
-- `prefixexp`の文法は左再帰が循環して扱いにくいので演算子で整理する。
+- `prefixexp`は左再帰が循環して扱いにくいので演算子で整理する。
 - `prefixexp`は`Name`か`'(' exp ')'`で開始する。
 - どの演算子も左結合で同じ優先順位を持つ。
 
