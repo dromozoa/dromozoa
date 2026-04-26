@@ -101,9 +101,9 @@ unary operators (not   #     -     ~)
 - 文法的に不正な結合は行わないように注意する
 
 ```
-a() function call
-aS  function call (LiteralString)
-a{} function call (tableconstructor)
-a[] subscript
-a.b field access
+a()   function call
+aS    function call (LiteralString)
+a{}   function call (tableconstructor)
+a[]   subscript
+a.b   field access
 ```
