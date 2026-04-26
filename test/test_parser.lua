@@ -59,5 +59,24 @@ test_parse_exp("1 ^ 2 ^ 3", "(^ 1 (^ 2 3))")
 test_parse_exp("- 1 + 2 - 3", "(- (+ (- 1) 2) 3)")
 test_parse_exp("- 1 ^ 2 ^ 3", "(- (^ 1 (^ 2 3)))")
 test_parse_exp("not a or b", "(or (not a) b)")
+
 test_parse_exp("1 + 2 * 3", "(+ 1 (* 2 3))")
 test_parse_exp("(1 + 2) * 3", "(* (+ 1 2) 3)")
+
+test_parse_exp("a", "a")
+test_parse_exp("a[1 + 2]", "(subscript a (+ 1 2))")
+test_parse_exp("a.b", "(field a b)")
+test_parse_exp("a.b.c", "(field (field a b) c)")
+
+---@param source string
+local function test_parse_exp_error(source)
+  local p = parser.new()
+  p.tokens = assert(lexer.new():lex(source, "=test"))
+  p.index = 1
+  local result, message = pcall(function() p:parse_exp(0) end)
+  assert(not result)
+  assert(assert(message):find "=test:1:", ("{ message = %q }"):format(message))
+end
+
+test_parse_exp_error "()"
+test_parse_exp_error "- +"

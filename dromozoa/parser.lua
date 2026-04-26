@@ -80,26 +80,27 @@ function class:nud_token(token)
   return node.new(token.kind, token)
 end
 
+---@diagnostic disable-next-line: unused-local
 function class:nud_function(token)
-  print(token)
+  error "not implemented"
 end
 
-function class:nud_name(token)
-  print(token)
-end
-
+---@diagnostic disable-next-line: unused-local
 function class:nud_table(token)
-  print(token)
+  error "not implemented"
 end
 
 function class:nud_prefix(token)
   return node.new(token.kind, token):append {
-    self:parse_exp(prefix_lbp)
+    assert(self:parse_exp(prefix_lbp))
   }
 end
 
-function class:nud_group(_)
-  local result = self:parse_exp(0)
+---@param token dromozoa.token
+---@return dromozoa.node
+---@diagnostic disable-next-line: unused-local
+function class:nud_group(token)
+  local result = assert(self:parse_exp(0))
   self:read():expect ")"
   return result
 end
@@ -111,7 +112,7 @@ end
 function class:led_left(left, token, rbp)
   return node.new(token.kind, token):append {
     left,
-    self:parse_exp(rbp),
+    assert(self:parse_exp(rbp)),
   }
 end
 
@@ -122,39 +123,52 @@ end
 function class:led_right(left, token, rbp)
   return node.new(token.kind, token):append {
     left,
-    self:parse_exp(rbp - 1),
+    assert(self:parse_exp(rbp - 1)),
   }
 end
 
+---@diagnostic disable-next-line: unused-local
 function class:led_subscript(left, token, rbp)
-  print(left, token, rbp)
+  local result = node.new("subscript", token):append {
+    left,
+    assert(self:parse_exp(0)),
+  }
+  self:read():expect "]"
+  return result
 end
 
+---@diagnostic disable-next-line: unused-local
 function class:led_field(left, token, rbp)
-  print(left, token, rbp)
+  return node.new("field", token):append {
+    left,
+    self:nud_token(self:read():expect "Name"),
+  }
 end
 
+---@diagnostic disable-next-line: unused-local
 function class:led_call(left, token, rbp)
-  print(left, token, rbp)
+  error "not implemented"
 end
 
+---@diagnostic disable-next-line: unused-local
 function class:led_self(left, token, rbp)
-  print(left, token, rbp)
+  error "not implemented"
 end
 
----@param rbp integer
 ---@param nud_table table<string, dromozoa.nud>
----@param led_table table<string, dromozoa.led>
 ---@return dromozoa.node?
 ---@return string?
-function class:parse_exp_impl(rbp, nud_table, led_table)
+function class:parse_nud(nud_table)
   local token = self:read()
   local nud = nud_table[token.kind]
   if not nud then
     self:unread()
     return nil, "parser error at " .. token.srcloc:to_string()
   end
-  local result = nud(self, token)
+  return nud(self, token)
+end
+
+function class:parse_led(left, rbp, led_table)
   while true do
     local token = self:peek()
     local led = led_table[token.kind]
@@ -162,27 +176,35 @@ function class:parse_exp_impl(rbp, nud_table, led_table)
       break
     end
     self:read()
-    result = led.fn(self, result, token, led.lbp)
+    left = led.fn(self, left, token, led.lbp)
   end
-  return result
+  return left
 end
 
 ---@param rbp integer
 ---@return dromozoa.node?
 ---@return string?
 function class:parse_exp(rbp)
-  local result = self:parse_prefixexp(rbp)
-  if result then
-    return result
+  -- TODO prefixexpではbpチェックは不要
+  local left, message = self:parse_prefixexp(rbp)
+  if not left then
+    left, message = self:parse_nud(exp_nud_table)
+    if not left then
+      return left, message
+    end
   end
-  return self:parse_exp_impl(rbp, exp_nud_table, exp_led_table)
+  return self:parse_led(left, rbp, exp_led_table)
 end
 
 ---@param rbp integer
 ---@return dromozoa.node?
 ---@return string?
 function class:parse_prefixexp(rbp)
-  return self:parse_exp_impl(rbp, prefixexp_nud_table, prefixexp_led_table)
+  local left, message = self:parse_nud(prefixexp_nud_table)
+  if not left then
+    return nil, message
+  end
+  return self:parse_led(left, rbp, prefixexp_led_table)
 end
 
 ---@param tokens dromozoa.token[]
