@@ -181,8 +181,7 @@ end
 
 ---@param source string
 ---@param filename string
----@return dromozoa.token[]?
----@return string?
+---@return dromozoa.token[]
 function class:lex(source, filename)
   self.source = source
   self.srcloc = source_location.new(filename)
@@ -240,7 +239,7 @@ function class:lex(source, filename)
       value = self._0
     elseif self:match "%-%-%[(=*)%[" then
       if not self:match("(.-)%]" .. self._1 .. "%]") then
-        return nil, "unfinished long comment at " .. srcloc:to_string()
+        error("unfinished long comment at " .. srcloc:to_string())
       end
       kind = "Comment"
       subkind = "Long"
@@ -251,7 +250,7 @@ function class:lex(source, filename)
       value = self._1
     elseif self:match "%[(=*)%[" then
       if not self:match("\n?(.-)%]" .. self._1 .. "%]") then
-        return nil, "unfinished long string at " .. srcloc:to_string()
+        error("unfinished long string at " .. srcloc:to_string())
       end
       kind = "String"
       subkind = "Long"
@@ -276,7 +275,7 @@ function class:lex(source, filename)
         elseif self:match "\\u{(%x+)}" then
           value = value .. utf8.char(tonumber(self._1, 16))
         else
-          return nil, "invalid escape sequence at " .. srcloc:to_string()
+          error("invalid escape sequence at " .. srcloc:to_string())
         end
       end
     elseif self:lex_punctuator() then
@@ -284,7 +283,7 @@ function class:lex(source, filename)
       value = self._0
     else
       if not kind then
-        return nil, "unexpected symbol at " .. srcloc:to_string()
+        error("unexpected symbol at " .. srcloc:to_string())
       end
     end
 

@@ -163,10 +163,17 @@ assert(i == #expect)
 assert(state == 3)
 assert(table.concat(buffer) == source)
 
-assert(not lexer.new():lex("print(--[[", "=test"))
-assert(not lexer.new():lex([[print "\y"]], "=test"))
-assert(not lexer.new():lex("print([[", "=test"))
-assert(not lexer.new():lex("!", "=test"))
+---@param source string
+local function test_lexer_error(source)
+  local result, message = pcall(function() lexer.new():lex(source, "=test") end)
+  assert(not result)
+  assert(assert(message):find "=test:1:", ("{ message = %q }"):format(message))
+end
+
+test_lexer_error "print(--[["
+test_lexer_error [[print "\y"]]
+test_lexer_error "print([["
+test_lexer_error "!"
 
 local tokens = assert(lexer.new():lex("", "=test"))
 assert(#tokens == 1)
