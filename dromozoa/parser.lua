@@ -72,8 +72,17 @@ function class:read()
   return token
 end
 
+---@return dromozoa.token
 function class:unread()
-  self.index = self.index - 1
+  for i = self.index - 1, 1, -1 do
+    local token = self.tokens[i]
+    if token.kind ~= "Space" and token.kind ~= "Comment" then
+      self.index = i
+      return token
+    end
+  end
+  self.index = 1
+  return self.tokens[self.index]
 end
 
 --=========================================================================
@@ -91,7 +100,26 @@ end
 
 ---@diagnostic disable-next-line: unused-local
 function class:nud_table(token)
-  error "not implemented"
+  local fields = {}
+
+  while true do
+    local field = self:parse_field()
+    if not field then
+      break
+    end
+    table.insert(fields, field)
+
+    local token = self:read()
+    if token:check "}" then
+      self:unread()
+      break
+    end
+    token:require(",", ";")
+  end
+
+  self:read():require "}"
+
+  return node.new("table", token):append(fields)
 end
 
 ---@param token dromozoa.token
@@ -107,9 +135,11 @@ end
 ---@diagnostic disable-next-line: unused-local
 function class:nud_group(token)
   local result = assert(self:parse_exp(0))
-  self:read():expect ")"
+  self:read():require ")"
   return result
 end
+
+--=========================================================================
 
 ---@param left dromozoa.node
 ---@param token dromozoa.token
@@ -134,20 +164,20 @@ function class:led_right(left, token, rbp)
 end
 
 ---@diagnostic disable-next-line: unused-local
-function class:led_subscript(left, token, rbp)
+function class:led_index(left, token, rbp)
   local result = node.new("index", token):append {
     left,
     assert(self:parse_exp(0)),
   }
-  self:read():expect "]"
+  self:read():require "]"
   return result
 end
 
 ---@diagnostic disable-next-line: unused-local
-function class:led_field_access(left, token, rbp)
-  return node.new(token.kind, token):append {
+function class:led_property(left, token, rbp)
+  return node.new("property", token):append {
     left,
-    self:nud_token(self:read():expect "Name"),
+    self:nud_token(self:read():require "Name"),
   }
 end
 
@@ -160,6 +190,8 @@ end
 function class:led_self(left, token, rbp)
   error "not implemented"
 end
+
+--=========================================================================
 
 ---@param nud_table table<string, dromozoa.nud>
 ---@return dromozoa.node?
@@ -213,6 +245,36 @@ function class:parse_prefixexp(rbp)
   end
   return self:parse_led(left, rbp, prefixexp_led_table)
 end
+
+---@return dromozoa.node?
+---@return string?
+function class:parse_field()
+  local token = self:read()
+  if token.kind == "[" then
+    -- field: '[' exp ']' = exp
+    local index = assert(self:parse_exp(0))
+    self:read():require "]"
+    self:read():require "="
+    local value = assert(self:parse_exp(0))
+    return node.new("index_field", token):append { index, value }
+  elseif token.kind == "Name" and self:peek().kind == "=" then
+    -- field: Name '=' exp
+    local index = node.new(token.kind, token)
+    self:read()
+    local value = assert(self:parse_exp(0))
+    return node.new("property_field", token):append { index, value }
+  else
+    -- field: exp
+    self:unread()
+    local value, message = self:parse_exp(0)
+    if not value then
+      return nil, message
+    end
+    return node.new("list_field", token):append { value }
+  end
+end
+
+--=========================================================================
 
 ---@param tokens dromozoa.token[]
 function class:parse(tokens)
@@ -271,8 +333,8 @@ prefixexp_nud_table = {
 }
 
 prefixexp_led_table = {
-  ["["]      = { lbp = 900, fn = class.led_subscript },
-  ["."]      = { lbp = 900, fn = class.led_field_access },
+  ["["]      = { lbp = 900, fn = class.led_index },
+  ["."]      = { lbp = 900, fn = class.led_property },
   ["("]      = { lbp = 900, fn = class.led_call },
   ["{"]      = { lbp = 900, fn = class.led_call },
   ["String"] = { lbp = 900, fn = class.led_call },

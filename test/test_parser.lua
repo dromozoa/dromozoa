@@ -18,6 +18,44 @@
 local lexer = require "dromozoa.lexer"
 local parser = require "dromozoa.parser"
 
+local p = parser.new()
+p.tokens = lexer.new():lex([[
+--[1]
+local--[3]
+--[4]
+x--[6]
+--[7]
+=--[9]
+--[10]
+1--[12]
+]], "=test")
+p.index = 1
+assert(#p.tokens == 13)
+
+assert(p:peek().kind == "local")
+assert(p:read().kind == "local")
+assert(p:peek().kind == "Name")
+assert(p:read().kind == "Name")
+p:unread()
+assert(p:peek().kind == "Name")
+assert(p:read().kind == "Name")
+p:unread()
+p:unread()
+assert(p:peek().kind == "local")
+assert(p:peek().kind == "local")
+assert(p:read().kind == "local")
+assert(p:read().kind == "Name")
+assert(p:peek().kind == "=")
+p:unread()
+p:unread()
+assert(p:peek().kind == "local")
+assert(p:read().kind == "local")
+assert(p:read().kind == "Name")
+assert(p:read().kind == "=")
+assert(p:read().kind == "Integer")
+assert(p:read().kind == "EOF")
+assert(p:read().kind == "EOF")
+
 ---@param u dromozoa.node
 ---@param buffer string[]
 local function dump(u, buffer)
@@ -44,7 +82,7 @@ end
 ---@param expect string
 local function test_parse_exp(source, expect)
   local p = parser.new()
-  p.tokens = assert(lexer.new():lex(source, "=test"))
+  p.tokens = lexer.new():lex(source, "=test")
   p.index = 1
   local root = assert(p:parse_exp(0))
   local result = table.concat(dump(root, {}))
@@ -65,13 +103,22 @@ test_parse_exp("(1 + 2) * 3", "(* (+ 1 2) 3)")
 
 test_parse_exp("a", "a")
 test_parse_exp("a[1 + 2]", "(index a (+ 1 2))")
-test_parse_exp("a.b", "(. a b)")
-test_parse_exp("a.b.c", "(. (. a b) c)")
+test_parse_exp("a.b", "(property a b)")
+test_parse_exp("a.b.c", "(property (property a b) c)")
+
+test_parse_exp("{}", "table")
+test_parse_exp("{1}", "(table (list_field 1))")
+test_parse_exp("{1,}", "(table (list_field 1))")
+test_parse_exp("{1,2}", "(table (list_field 1) (list_field 2))")
+test_parse_exp("{1,2,}", "(table (list_field 1) (list_field 2))")
+test_parse_exp("{1,2,3}", "(table (list_field 1) (list_field 2) (list_field 3))")
+test_parse_exp("{1,2,3,}", "(table (list_field 1) (list_field 2) (list_field 3))")
+test_parse_exp("{a=b,c}", "(table (property_field a b) (list_field c))")
 
 ---@param source string
 local function test_parse_exp_error(source)
   local p = parser.new()
-  p.tokens = assert(lexer.new():lex(source, "=test"))
+  p.tokens = lexer.new():lex(source, "=test")
   p.index = 1
   local result, message = pcall(function() p:parse_exp(0) end)
   assert(not result)
@@ -80,3 +127,5 @@ end
 
 test_parse_exp_error "()"
 test_parse_exp_error "- +"
+test_parse_exp_error "{,}"
+test_parse_exp_error "{1,,}"

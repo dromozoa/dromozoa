@@ -44,12 +44,21 @@ function class.new(kind, subkind, text, value, srcloc)
 end
 
 ---@param ... string
----@return dromozoa.token
-function class:expect(...)
+---@return boolean
+function class:check(...)
   for _, kind in ipairs { ... } do
     if self.kind == kind then
-      return self
+      return true
     end
+  end
+  return false
+end
+
+---@param ... string
+---@return dromozoa.token
+function class:require(...)
+  if self:check(...) then
+    return self
   end
   error("unexpected symbol at " .. self.srcloc:to_string())
 end
