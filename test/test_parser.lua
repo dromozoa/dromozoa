@@ -115,6 +115,21 @@ test_parse_exp("{1,2,3}", "(table (list_field 1) (list_field 2) (list_field 3))"
 test_parse_exp("{1,2,3,}", "(table (list_field 1) (list_field 2) (list_field 3))")
 test_parse_exp("{a=b,c}", "(table (property_field a b) (list_field c))")
 
+test_parse_exp("f()", "(call f args)")
+test_parse_exp("f(a)", "(call f (args a))")
+test_parse_exp("f(a,b)", "(call f (args a b))")
+test_parse_exp("f{}", "(call f (args table))")
+test_parse_exp("f{a}", "(call f (args (table (list_field a))))")
+test_parse_exp("f{a,b}", "(call f (args (table (list_field a) (list_field b))))")
+test_parse_exp("f[[a]]", "(call f (args String))")
+
+test_parse_exp("x:f()", "(self x f args)")
+test_parse_exp("x:f(a)", "(self x f (args a))")
+test_parse_exp("x:f(a,b)", "(self x f (args a b))")
+
+test_parse_exp("x.y.f(1,2,3)", "(call (property (property x y) f) (args 1 2 3))")
+test_parse_exp("x.y:f(1,2,3)", "(self (property x y) f (args 1 2 3))")
+
 ---@param source string
 local function test_parse_exp_error(source)
   local p = parser.new()
@@ -129,3 +144,4 @@ test_parse_exp_error "()"
 test_parse_exp_error "- +"
 test_parse_exp_error "{,}"
 test_parse_exp_error "{1,,}"
+test_parse_exp_error "f(,)"

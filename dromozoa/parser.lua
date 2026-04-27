@@ -183,12 +183,19 @@ end
 
 ---@diagnostic disable-next-line: unused-local
 function class:led_call(left, token, rbp)
-  error "not implemented"
+  return node.new("call", token):append {
+    left,
+    assert(self:parse_args(token))
+  }
 end
 
 ---@diagnostic disable-next-line: unused-local
 function class:led_self(left, token, rbp)
-  error "not implemented"
+  return node.new("self", token):append {
+    left,
+    self:read():require "Name":to_node(),
+    assert(self:parse_args(self:read()))
+  }
 end
 
 --=========================================================================
@@ -206,6 +213,9 @@ function class:parse_nud(nud_table)
   return nud(self, token)
 end
 
+---@param left dromozoa.node
+---@param rbp integer
+---@param led_table table<string, dromozoa.led>
 function class:parse_led(left, rbp, led_table)
   while true do
     local token = self:read()
@@ -220,6 +230,34 @@ function class:parse_led(left, rbp, led_table)
 end
 
 --=========================================================================
+
+function class:parse_explist(kind, token, min)
+  local result = node.new(kind, token)
+
+  while true do
+    local exp, message = self:parse_exp(0)
+    if not exp then
+      if #result.nodes < min then
+        return nil, message
+      else
+        break
+      end
+    end
+    table.insert(result.nodes, exp)
+
+    local token = self:read()
+    if #result.nodes < min then
+      token:require ","
+    else
+      if not token:check "," then
+        self:unread()
+        break
+      end
+    end
+  end
+
+  return result
+end
 
 ---@param rbp integer
 ---@return dromozoa.node?
@@ -244,6 +282,24 @@ function class:parse_prefixexp(rbp)
     return nil, message
   end
   return self:parse_led(left, rbp, prefixexp_led_table)
+end
+
+function class:parse_args(token)
+  if token:check "(" then
+    local result = assert(self:parse_explist("args", token, 0))
+    self:read():require ")"
+    return result
+  elseif token:check "{" then
+    return node.new("args", nil):append {
+      self:nud_table(token)
+    }
+  elseif token:check "String" then
+    return node.new("args", nil):append {
+      self:nud_token(token)
+    }
+  else
+    return nil, "unexpected symbol at " .. token.srcloc:to_string()
+  end
 end
 
 ---@return dromozoa.node?
