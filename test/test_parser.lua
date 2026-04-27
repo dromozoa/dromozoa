@@ -99,7 +99,7 @@ test_parse_exp("- 1 ^ 2 ^ 3", "(- (^ 1 (^ 2 3)))")
 test_parse_exp("not a or b", "(or (not a) b)")
 
 test_parse_exp("1 + 2 * 3", "(+ 1 (* 2 3))")
-test_parse_exp("(1 + 2) * 3", "(* (+ 1 2) 3)")
+test_parse_exp("(1 + 2) * 3", "(* (group (+ 1 2)) 3)")
 
 test_parse_exp("a", "a")
 test_parse_exp("a[1 + 2]", "(index a (+ 1 2))")

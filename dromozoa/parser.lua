@@ -134,7 +134,9 @@ end
 ---@return dromozoa.node
 ---@diagnostic disable-next-line: unused-local
 function class:nud_group(token)
-  local result = assert(self:parse_exp(0))
+  local result = node.new("group", token):append {
+    assert(self:parse_exp(0)),
+  }
   self:read():require ")"
   return result
 end
