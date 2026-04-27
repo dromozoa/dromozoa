@@ -98,16 +98,17 @@ function class:nud_function(token)
   error "not implemented"
 end
 
----@diagnostic disable-next-line: unused-local
+---@param token dromozoa.token
+---@return dromozoa.node
 function class:nud_table(token)
-  local fields = {}
+  local result = node.new("table", token)
 
   while true do
     local field = self:parse_field()
     if not field then
       break
     end
-    table.insert(fields, field)
+    table.insert(result.nodes, field)
 
     local token = self:read()
     if token:check "}" then
@@ -118,8 +119,7 @@ function class:nud_table(token)
   end
 
   self:read():require "}"
-
-  return node.new("table", token):append(fields)
+  return result
 end
 
 ---@param token dromozoa.token
