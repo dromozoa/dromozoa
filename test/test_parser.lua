@@ -64,7 +64,7 @@ test_parse_exp("1 + 2 * 3", "(+ 1 (* 2 3))")
 test_parse_exp("(1 + 2) * 3", "(* (+ 1 2) 3)")
 
 test_parse_exp("a", "a")
-test_parse_exp("a[1 + 2]", "([] a (+ 1 2))")
+test_parse_exp("a[1 + 2]", "(index a (+ 1 2))")
 test_parse_exp("a.b", "(. a b)")
 test_parse_exp("a.b.c", "(. (. a b) c)")
 

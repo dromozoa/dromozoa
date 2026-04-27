@@ -33,6 +33,8 @@ local prefixexp_nud_table
 ---@type table<string, dromozoa.led>
 local prefixexp_led_table
 
+--=========================================================================
+
 ---@class dromozoa.parser
 ---@field tokens dromozoa.token[]?
 ---@field index integer
@@ -73,6 +75,8 @@ end
 function class:unread()
   self.index = self.index - 1
 end
+
+--=========================================================================
 
 ---@param token dromozoa.token
 ---@return dromozoa.node
@@ -131,7 +135,7 @@ end
 
 ---@diagnostic disable-next-line: unused-local
 function class:led_subscript(left, token, rbp)
-  local result = node.new("[]", token):append {
+  local result = node.new("index", token):append {
     left,
     assert(self:parse_exp(0)),
   }
@@ -183,6 +187,8 @@ function class:parse_led(left, rbp, led_table)
   return left
 end
 
+--=========================================================================
+
 ---@param rbp integer
 ---@return dromozoa.node?
 ---@return string?
@@ -214,6 +220,8 @@ function class:parse(tokens)
   self.index = 1
   return self:parse_exp(0)
 end
+
+--=========================================================================
 
 exp_nud_table = {
   ["nil"]      = class.nud_token,
