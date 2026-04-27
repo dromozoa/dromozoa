@@ -15,6 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
+local node = require "dromozoa.node"
+
 ---@class dromozoa.token
 ---@field kind string
 ---@field subkind string?
@@ -61,6 +63,11 @@ function class:require(...)
     return self
   end
   error("unexpected symbol at " .. self.srcloc:to_string())
+end
+
+---@return dromozoa.node
+function class:to_node()
+  return node.new(self.kind, self)
 end
 
 return class

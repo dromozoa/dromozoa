@@ -56,7 +56,7 @@ end
 function class:peek()
   for i = self.index, #self.tokens do
     local token = self.tokens[i]
-    if token.kind ~= "Space" and token.kind ~= "Comment" then
+    if not token:check("Space", "Comment") then
       self.index = i
       return token
     end
@@ -76,7 +76,7 @@ end
 function class:unread()
   for i = self.index - 1, 1, -1 do
     local token = self.tokens[i]
-    if token.kind ~= "Space" and token.kind ~= "Comment" then
+    if not token:check("Space", "Comment") then
       self.index = i
       return token
     end
@@ -90,7 +90,7 @@ end
 ---@param token dromozoa.token
 ---@return dromozoa.node
 function class:nud_token(token)
-  return node.new(token.kind, token)
+  return token:to_node()
 end
 
 ---@diagnostic disable-next-line: unused-local
@@ -125,7 +125,7 @@ end
 ---@param token dromozoa.token
 ---@return dromozoa.node
 function class:nud_prefix(token)
-  return node.new(token.kind, token):append {
+  return token:to_node():append {
     assert(self:parse_exp(prefix_lbp))
   }
 end
@@ -146,7 +146,7 @@ end
 ---@param rbp integer
 ---@return dromozoa.node
 function class:led_left(left, token, rbp)
-  return node.new(token.kind, token):append {
+  return token:to_node():append {
     left,
     assert(self:parse_exp(rbp)),
   }
@@ -157,7 +157,7 @@ end
 ---@param rbp integer
 ---@return dromozoa.node
 function class:led_right(left, token, rbp)
-  return node.new(token.kind, token):append {
+  return token:to_node():append {
     left,
     assert(self:parse_exp(rbp - 1)),
   }
@@ -177,7 +177,7 @@ end
 function class:led_property(left, token, rbp)
   return node.new("property", token):append {
     left,
-    self:nud_token(self:read():require "Name"),
+    self:read():require "Name":to_node(),
   }
 end
 
@@ -250,16 +250,16 @@ end
 ---@return string?
 function class:parse_field()
   local token = self:read()
-  if token.kind == "[" then
+  if token:check "[" then
     -- field: '[' exp ']' = exp
     local index = assert(self:parse_exp(0))
     self:read():require "]"
     self:read():require "="
     local value = assert(self:parse_exp(0))
     return node.new("index_field", token):append { index, value }
-  elseif token.kind == "Name" and self:peek().kind == "=" then
+  elseif token:check "Name" and self:peek():check "=" then
     -- field: Name '=' exp
-    local index = node.new(token.kind, token)
+    local index = token:to_node()
     self:read()
     local value = assert(self:parse_exp(0))
     return node.new("property_field", token):append { index, value }
