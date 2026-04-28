@@ -1,0 +1,23 @@
+digraph syntax {
+	rankdir=LR;
+	node [ shape = point ];
+	ENTRY;
+	en_5;
+	en_1;
+	node [ shape = circle, height = 0.2 ];
+	node [ fixedsize = true, height = 0.65, shape = doublecircle ];
+	6;
+	7;
+	node [ shape = circle ];
+	1 -> 2 [ label = "'('" ];
+	2 -> 6 [ label = "')'" ];
+	2 -> 3 [ label = "'e'" ];
+	3 -> 6 [ label = "')'" ];
+	3 -> 4 [ label = "','" ];
+	4 -> 3 [ label = "'e'" ];
+	5 -> 7 [ label = "'e'" ];
+	7 -> 5 [ label = "','" ];
+	ENTRY -> 1 [ label = "IN" ];
+	en_5 -> 5 [ label = "explist" ];
+	en_1 -> 1 [ label = "args" ];
+}
