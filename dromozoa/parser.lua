@@ -109,7 +109,7 @@ function class:nud_table(token)
       self:read():require "}"
       break
     end
-    table.insert(result.nodes, field)
+    result:append(field)
 
     local token = self:read()
     if token:check "}" then
@@ -124,7 +124,7 @@ end
 ---@param token dromozoa.token
 ---@return dromozoa.node
 function class:nud_prefix(token)
-  return token:to_node():append {
+  return token:to_node():extend {
     assert(self:parse_exp(prefix_lbp))
   }
 end
@@ -132,7 +132,7 @@ end
 ---@param token dromozoa.token
 ---@return dromozoa.node
 function class:nud_group(token)
-  local result = node.new("group", token):append {
+  local result = node.new("group", token):extend {
     assert(self:parse_exp(0)),
   }
   self:read():require ")"
@@ -146,7 +146,7 @@ end
 ---@param rbp integer
 ---@return dromozoa.node
 function class:led_left(left, token, rbp)
-  return token:to_node():append {
+  return token:to_node():extend {
     left,
     assert(self:parse_exp(rbp)),
   }
@@ -157,7 +157,7 @@ end
 ---@param rbp integer
 ---@return dromozoa.node
 function class:led_right(left, token, rbp)
-  return token:to_node():append {
+  return token:to_node():extend {
     left,
     assert(self:parse_exp(rbp - 1)),
   }
@@ -165,7 +165,7 @@ end
 
 ---@diagnostic disable-next-line: unused-local
 function class:led_index(left, token, rbp)
-  local result = node.new("index", token):append {
+  local result = node.new("index", token):extend {
     left,
     assert(self:parse_exp(0)),
   }
@@ -175,7 +175,7 @@ end
 
 ---@diagnostic disable-next-line: unused-local
 function class:led_property(left, token, rbp)
-  return node.new("property", token):append {
+  return node.new("property", token):extend {
     left,
     self:read():require "Name":to_node(),
   }
@@ -183,7 +183,7 @@ end
 
 ---@diagnostic disable-next-line: unused-local
 function class:led_call(left, token, rbp)
-  return node.new("call", token):append {
+  return node.new("call", token):extend {
     left,
     assert(self:parse_args(token))
   }
@@ -191,7 +191,7 @@ end
 
 ---@diagnostic disable-next-line: unused-local
 function class:led_self(left, token, rbp)
-  return node.new("self", token):append {
+  return node.new("self", token):extend {
     left,
     self:read():require "Name":to_node(),
     assert(self:parse_args(self:read()))
@@ -256,54 +256,26 @@ end
 
 --=========================================================================
 
-function class:parse_explist(kind, token, min)
-  local result = node.new(kind, token)
-
-  while true do
-    local exp, message = self:parse_exp(0)
-    if not exp then
-      if #result.nodes < min then
-        return nil, message
-      else
-        break
-      end
-    end
-    table.insert(result.nodes, exp)
-
-    local token = self:read()
-    if #result.nodes < min then
-      token:require ","
-    else
-      if not token:check "," then
-        self:unread()
-        break
-      end
-    end
-  end
-
-  return result
-end
-
 function class:parse_args(token)
   if token:check "(" then
     local result = node.new("args", token)
     if self:peek():check ")" then
       return result
     end
-    table.insert(result.nodes, assert(self:parse_exp(0)))
+    result:append(assert(self:parse_exp(0)))
     while true do
       if self:peek():check ")" then
         return result
       end
       self:read():require ","
-      table.insert(result.nodes, assert(self:parse_exp(0)))
+      result:append(assert(self:parse_exp(0)))
     end
   elseif token:check "{" then
-    return node.new("args", nil):append {
+    return node.new("args", nil):extend {
       self:nud_table(token)
     }
   elseif token:check "String" then
-    return node.new("args", nil):append {
+    return node.new("args", nil):extend {
       self:nud_token(token)
     }
   else
@@ -321,13 +293,13 @@ function class:parse_field()
     self:read():require "]"
     self:read():require "="
     local value = assert(self:parse_exp(0))
-    return node.new("index_field", token):append { index, value }
+    return node.new("index_field", token):extend { index, value }
   elseif token:check "Name" and self:peek():check "=" then
     -- field: Name '=' exp
     local index = token:to_node()
     self:read()
     local value = assert(self:parse_exp(0))
-    return node.new("property_field", token):append { index, value }
+    return node.new("property_field", token):extend { index, value }
   else
     -- field: exp
     self:unread()
@@ -335,7 +307,7 @@ function class:parse_field()
     if not value then
       return nil, message
     end
-    return node.new("list_field", token):append { value }
+    return node.new("list_field", token):extend { value }
   end
 end
 

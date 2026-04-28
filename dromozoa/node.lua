@@ -36,11 +36,18 @@ function class.new(kind, token)
   }, metatable)
 end
 
+---@param node dromozoa.node
+---@return dromozoa.node
+function class:append(node)
+  table.insert(self.nodes, node)
+  return self
+end
+
 ---@param nodes dromozoa.node[]
 ---@return dromozoa.node
-function class:append(nodes)
+function class:extend(nodes)
   for _, node in ipairs(nodes) do
-    table.insert(self.nodes, node)
+    self:append(node)
   end
   return self
 end
