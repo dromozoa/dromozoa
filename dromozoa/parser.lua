@@ -254,7 +254,6 @@ function class:parse_prefixexp(rbp)
   return self:parse_led(left, rbp, prefixexp_led_table)
 end
 
-
 --=========================================================================
 
 function class:parse_explist(kind, token, min)
@@ -287,9 +286,18 @@ end
 
 function class:parse_args(token)
   if token:check "(" then
-    local result = assert(self:parse_explist("args", token, 0))
-    self:read():require ")"
-    return result
+    local result = node.new("args", token)
+    if self:peek():check ")" then
+      return result
+    end
+    table.insert(result.nodes, assert(self:parse_exp(0)))
+    while true do
+      if self:peek():check ")" then
+        return result
+      end
+      self:read():require ","
+      table.insert(result.nodes, assert(self:parse_exp(0)))
+    end
   elseif token:check "{" then
     return node.new("args", nil):append {
       self:nud_table(token)
