@@ -1,5 +1,5 @@
 // vim: syntax=ragel:
-
+// ragel -p -V syntax.rl -o /dev/stdout | grep -v '^[[:space:]]*ENTRY' | dot -Tsvg >syntax.svg
 %%{
   machine syntax;
 

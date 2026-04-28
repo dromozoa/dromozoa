@@ -114,3 +114,7 @@ unary operators (not   #     -     ~)
 | `a:b(c)` | `prefixexp ':' Name '(' [explist] ')'`   | self     |
 | `a:b{c}` | `prefixexp ':' Name '{' [fieldlist] '}'` | self     |
 | `a:b"c"` | `prefixexp ':' Name LiteralString`       | self     |
+
+## 文法規則のDFA
+
+![文法規則のDFA](syntax.svg)
