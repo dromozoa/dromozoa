@@ -106,19 +106,18 @@ function class:nud_table(token)
   while true do
     local field = self:parse_field()
     if not field then
+      self:read():require "}"
       break
     end
     table.insert(result.nodes, field)
 
     local token = self:read()
     if token:check "}" then
-      self:unread()
       break
     end
     token:require(",", ";")
   end
 
-  self:read():require "}"
   return result
 end
 
