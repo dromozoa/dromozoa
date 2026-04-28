@@ -1,23 +1,19 @@
 // vim: syntax=ragel:
 
-/*
-  field = 'f';
-  fieldsep = [,;];
-  fieldlist = field (fieldsep field)* fieldsep?;
-  main := '{' fieldlist? '}';
-*/
-
 %%{
   machine syntax;
+
+  Name = 'N';
 
   exp = 'e';
   explist_ = exp (',' exp)*;
 
-  field = 'f';
+  field_ = 'f';
   fieldsep = [,;];
-  fieldlist = field (fieldsep field)* fieldsep?;
+  fieldlist = field_ (fieldsep field_)* fieldsep?;
 
   explist := explist_;
   args := '(' explist_? ')';
   tableconstructor := '{' fieldlist? '}';
+  field := '[' exp ']' '=' exp | Name '=' exp | exp;
 }%%
