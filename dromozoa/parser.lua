@@ -132,7 +132,6 @@ end
 
 ---@param token dromozoa.token
 ---@return dromozoa.node
----@diagnostic disable-next-line: unused-local
 function class:nud_group(token)
   local result = node.new("group", token):append {
     assert(self:parse_exp(0)),
@@ -231,6 +230,32 @@ function class:parse_led(left, rbp, led_table)
   return left
 end
 
+---@param rbp integer
+---@return dromozoa.node?
+---@return string?
+function class:parse_exp(rbp)
+  local left, message = self:parse_prefixexp(0)
+  if not left then
+    left, message = self:parse_nud(exp_nud_table)
+  end
+  if not left then
+    return nil, message
+  end
+  return self:parse_led(left, rbp, exp_led_table)
+end
+
+---@param rbp integer
+---@return dromozoa.node?
+---@return string?
+function class:parse_prefixexp(rbp)
+  local left, message = self:parse_nud(prefixexp_nud_table)
+  if not left then
+    return nil, message
+  end
+  return self:parse_led(left, rbp, prefixexp_led_table)
+end
+
+
 --=========================================================================
 
 function class:parse_explist(kind, token, min)
@@ -259,31 +284,6 @@ function class:parse_explist(kind, token, min)
   end
 
   return result
-end
-
----@param rbp integer
----@return dromozoa.node?
----@return string?
-function class:parse_exp(rbp)
-  local left, message = self:parse_prefixexp(0)
-  if not left then
-    left, message = self:parse_nud(exp_nud_table)
-  end
-  if not left then
-    return nil, message
-  end
-  return self:parse_led(left, rbp, exp_led_table)
-end
-
----@param rbp integer
----@return dromozoa.node?
----@return string?
-function class:parse_prefixexp(rbp)
-  local left, message = self:parse_nud(prefixexp_nud_table)
-  if not left then
-    return nil, message
-  end
-  return self:parse_led(left, rbp, prefixexp_led_table)
 end
 
 function class:parse_args(token)
