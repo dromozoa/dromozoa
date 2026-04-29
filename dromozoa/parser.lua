@@ -101,24 +101,7 @@ end
 ---@param token dromozoa.token
 ---@return dromozoa.node
 function class:nud_table(token)
-  local result = node.new("table", token)
-
-  while true do
-    local field = self:parse_field()
-    if not field then
-      self:read():require "}"
-      break
-    end
-    result:append(field)
-
-    local token = self:read()
-    if token:check "}" then
-      break
-    end
-    token:require(",", ";")
-  end
-
-  return result
+  return self:parse_table(token)
 end
 
 ---@param token dromozoa.token
@@ -272,15 +255,38 @@ function class:parse_args(token)
     end
   elseif token:check "{" then
     return node.new("args", nil):extend {
-      self:nud_table(token)
+      self:parse_table(token),
     }
   elseif token:check "String" then
     return node.new("args", nil):extend {
-      self:nud_token(token)
+      token:to_node(),
     }
   else
     return nil, "unexpected symbol at " .. token.srcloc:to_string()
   end
+end
+
+---@param token dromozoa.token
+---@return dromozoa.node
+function class:parse_table(token)
+  local result = node.new("table", token)
+
+  while true do
+    local field = self:parse_field()
+    if not field then
+      self:read():require "}"
+      break
+    end
+    result:append(field)
+
+    local token = self:read()
+    if token:check "}" then
+      break
+    end
+    token:require(",", ";")
+  end
+
+  return result
 end
 
 ---@return dromozoa.node?
