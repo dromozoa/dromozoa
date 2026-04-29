@@ -85,6 +85,7 @@ local function test_parse_exp(source, expect)
   p.tokens = lexer.new():lex(source, "=test")
   p.index = 1
   local root = assert(p:parse_exp(0))
+  p:peek():require "EOF"
   local result = table.concat(dump(root, {}))
   assert(result == expect, ("{ source = %q, result = %q, expect = %q }"):format(source, result, expect))
 end

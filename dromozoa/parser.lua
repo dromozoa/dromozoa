@@ -239,11 +239,13 @@ function class:parse_args(token)
   if token:check "(" then
     local result = node.new("args", token)
     if self:peek():check ")" then
+      self:read()
       return result
     end
     result:append(self:parse_exp(0))
     while true do
       if self:peek():check ")" then
+        self:read()
         return result
       end
       self:read():require ","
@@ -266,15 +268,11 @@ function class:parse_table(token)
   local result = node.new("table", token)
 
   while true do
-    if self:peek():check "}" then
+    if self:read():check "}" then
       break
     end
-    local field = self:parse_field()
-    -- if not field then
-    --   self:read():require "}"
-    --   break
-    -- end
-    result:append(field)
+    self:unread()
+    result:append(self:parse_field())
 
     local token = self:read()
     if token:check "}" then
