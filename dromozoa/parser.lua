@@ -107,17 +107,13 @@ end
 ---@param token dromozoa.token
 ---@return dromozoa.node
 function class:nud_prefix(token)
-  return token:to_node():extend {
-    self:parse_exp(prefix_lbp),
-  }
+  return token:to_node():append(self:parse_exp(prefix_lbp))
 end
 
 ---@param token dromozoa.token
 ---@return dromozoa.node
 function class:nud_group(token)
-  local result = node.new("group", token):extend {
-    self:parse_exp(0),
-  }
+  local result = node.new("group", token):append(self:parse_exp(0))
   self:read():require ")"
   return result
 end
@@ -146,6 +142,10 @@ function class:led_right(left, token, rbp)
   }
 end
 
+---@param left dromozoa.node
+---@param token dromozoa.token
+---@param rbp integer
+---@return dromozoa.node
 ---@diagnostic disable-next-line: unused-local
 function class:led_index(left, token, rbp)
   local result = node.new("index", token):extend {
@@ -156,6 +156,10 @@ function class:led_index(left, token, rbp)
   return result
 end
 
+---@param left dromozoa.node
+---@param token dromozoa.token
+---@param rbp integer
+---@return dromozoa.node
 ---@diagnostic disable-next-line: unused-local
 function class:led_property(left, token, rbp)
   return node.new("property", token):extend {
@@ -164,6 +168,10 @@ function class:led_property(left, token, rbp)
   }
 end
 
+---@param left dromozoa.node
+---@param token dromozoa.token
+---@param rbp integer
+---@return dromozoa.node
 ---@diagnostic disable-next-line: unused-local
 function class:led_call(left, token, rbp)
   return node.new("call", token):extend {
@@ -172,6 +180,10 @@ function class:led_call(left, token, rbp)
   }
 end
 
+---@param left dromozoa.node
+---@param token dromozoa.token
+---@param rbp integer
+---@return dromozoa.node
 ---@diagnostic disable-next-line: unused-local
 function class:led_self(left, token, rbp)
   return node.new("self", token):extend {
@@ -216,19 +228,20 @@ end
 ---@param rbp integer
 ---@return dromozoa.node
 function class:parse_exp(rbp)
-  local exp = self:parse_nud(prefixexp_nud_table)
-  if exp then
-    exp = self:parse_led(exp, 0, prefixexp_led_table)
+  local left = self:parse_nud(prefixexp_nud_table)
+  if left then
+    left = self:parse_led(left, 0, prefixexp_led_table)
   else
-    exp = assert(self:parse_nud(exp_nud_table))
+    left = assert(self:parse_nud(exp_nud_table))
   end
-  return self:parse_led(exp, rbp, exp_led_table)
+  return self:parse_led(left, rbp, exp_led_table)
 end
 
+---@param rbp integer
 ---@return dromozoa.node
-function class:parse_prefixexp()
-  local exp = assert(self:parse_nud(prefixexp_nud_table))
-  return self:parse_led(exp, 0, prefixexp_led_table)
+function class:parse_prefixexp(rbp)
+  local left = assert(self:parse_nud(prefixexp_nud_table))
+  return self:parse_led(left, rbp, prefixexp_led_table)
 end
 
 --=========================================================================

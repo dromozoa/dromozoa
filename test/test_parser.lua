@@ -131,6 +131,10 @@ test_parse_exp("x:f(a,b)", "(self x f (args a b))")
 test_parse_exp("x.y.f(1,2,3)", "(call (property (property x y) f) (args 1 2 3))")
 test_parse_exp("x.y:f(1,2,3)", "(self (property x y) f (args 1 2 3))")
 
+test_parse_exp("1 + - - 2", "(+ 1 (- (- 2)))")
+test_parse_exp("- - 1 + 2", "(+ (- (- 1)) 2)")
+test_parse_exp("1 + - 2 ^ 3", "(+ 1 (- (^ 2 3)))")
+
 ---@param source string
 local function test_parse_exp_error(source)
   local p = parser.new()
