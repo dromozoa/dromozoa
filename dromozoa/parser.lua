@@ -303,13 +303,7 @@ function class:parse_field()
   else
     -- field: exp
     self:unread()
-    local value = self:parse_exp(0)
-    -- if not value then
-    --   return nil, message
-    -- end
-    return node.new("list_field", token):extend {
-      value,
-    }
+    return node.new("list_field"):append(self:parse_exp(0))
   end
 end
 
