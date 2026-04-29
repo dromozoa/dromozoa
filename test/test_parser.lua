@@ -151,3 +151,30 @@ test_parse_exp_error "{,}"
 test_parse_exp_error "{1,,}"
 test_parse_exp_error "f(,)"
 test_parse_exp_error "x:f 42"
+
+---@param source string
+---@param expect string
+local function test_parse_stat(source, expect)
+  local p = parser.new()
+  p.tokens = lexer.new():lex(source, "=test")
+  p.index = 1
+  local root = assert(p:parse_stat())
+  p:peek():require "EOF"
+  local result = table.concat(dump(root, {}))
+  assert(result == expect, ("{ source = %q, result = %q, expect = %q }"):format(source, result, expect))
+end
+
+test_parse_stat(";", ";")
+test_parse_stat(" :: L :: ", "(label L)")
+
+---@param source string
+local function test_parse_stat_error(source)
+  local p = parser.new()
+  p.tokens = lexer.new():lex(source, "=test")
+  p.index = 1
+  local result, message = pcall(function() p:parse_stat() end)
+  assert(not result)
+  assert(assert(message):find "=test:1:", ("{ message = %q }"):format(message))
+end
+
+test_parse_stat_error "::1::"

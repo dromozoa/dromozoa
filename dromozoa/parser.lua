@@ -225,6 +225,20 @@ function class:parse_led(left, rbp, led_table)
   return left
 end
 
+--=========================================================================
+
+function class:parse_stat()
+  local token = self:read()
+  if token:check ";" then
+    return token:to_node()
+  elseif token:check "::" then
+    local result = node.new("label", token):append(self:read():require "Name":to_node())
+    self:read():require "::"
+    return result
+  end
+  error "not implemented"
+end
+
 ---@param rbp integer
 ---@return dromozoa.node
 function class:parse_exp(rbp)
@@ -244,7 +258,6 @@ function class:parse_prefixexp(rbp)
   return self:parse_led(left, rbp, prefixexp_led_table)
 end
 
---=========================================================================
 
 ---@param token dromozoa.token
 ---@return dromozoa.node
