@@ -108,7 +108,7 @@ end
 ---@return dromozoa.node
 function class:nud_prefix(token)
   return token:to_node():extend {
-    assert(self:parse_exp(prefix_lbp))
+    self:parse_exp(prefix_lbp),
   }
 end
 
@@ -116,7 +116,7 @@ end
 ---@return dromozoa.node
 function class:nud_group(token)
   local result = node.new("group", token):extend {
-    assert(self:parse_exp(0)),
+    self:parse_exp(0),
   }
   self:read():require ")"
   return result
@@ -131,7 +131,7 @@ end
 function class:led_left(left, token, rbp)
   return token:to_node():extend {
     left,
-    assert(self:parse_exp(rbp)),
+    self:parse_exp(rbp),
   }
 end
 
@@ -142,7 +142,7 @@ end
 function class:led_right(left, token, rbp)
   return token:to_node():extend {
     left,
-    assert(self:parse_exp(rbp - 1)),
+    self:parse_exp(rbp - 1),
   }
 end
 
@@ -150,7 +150,7 @@ end
 function class:led_index(left, token, rbp)
   local result = node.new("index", token):extend {
     left,
-    assert(self:parse_exp(0)),
+    self:parse_exp(0),
   }
   self:read():require "]"
   return result
@@ -168,7 +168,7 @@ end
 function class:led_call(left, token, rbp)
   return node.new("call", token):extend {
     left,
-    assert(self:parse_args(token))
+    self:parse_args(token),
   }
 end
 
@@ -177,7 +177,7 @@ function class:led_self(left, token, rbp)
   return node.new("self", token):extend {
     left,
     self:read():require "Name":to_node(),
-    assert(self:parse_args(self:read()))
+    self:parse_args(self:read()),
   }
 end
 
@@ -199,6 +199,7 @@ end
 ---@param left dromozoa.node
 ---@param rbp integer
 ---@param led_table table<string, dromozoa.led>
+---@return dromozoa.node
 function class:parse_led(left, rbp, led_table)
   while true do
     local token = self:read()
@@ -213,57 +214,50 @@ function class:parse_led(left, rbp, led_table)
 end
 
 ---@param rbp integer
----@return dromozoa.node?
----@return string?
+---@return dromozoa.node
 function class:parse_exp(rbp)
-  local left, message = self:parse_prefixexp(0)
-  if not left then
-    left, message = self:parse_nud(exp_nud_table)
+  local exp = self:parse_nud(prefixexp_nud_table)
+  if exp then
+    exp = self:parse_led(exp, 0, prefixexp_led_table)
+  else
+    exp = assert(self:parse_nud(exp_nud_table))
   end
-  if not left then
-    return nil, message
-  end
-  return self:parse_led(left, rbp, exp_led_table)
+  return self:parse_led(exp, rbp, exp_led_table)
 end
 
----@param rbp integer
----@return dromozoa.node?
----@return string?
-function class:parse_prefixexp(rbp)
-  local left, message = self:parse_nud(prefixexp_nud_table)
-  if not left then
-    return nil, message
-  end
-  return self:parse_led(left, rbp, prefixexp_led_table)
+---@return dromozoa.node
+function class:parse_prefixexp()
+  local exp = assert(self:parse_nud(prefixexp_nud_table))
+  return self:parse_led(exp, 0, prefixexp_led_table)
 end
 
 --=========================================================================
 
+---@param token dromozoa.token
+---@return dromozoa.node
 function class:parse_args(token)
   if token:check "(" then
     local result = node.new("args", token)
     if self:peek():check ")" then
       return result
     end
-    result:append(assert(self:parse_exp(0)))
+    result:append(self:parse_exp(0))
     while true do
       if self:peek():check ")" then
         return result
       end
       self:read():require ","
-      result:append(assert(self:parse_exp(0)))
+      result:append(self:parse_exp(0))
     end
-  elseif token:check "{" then
-    return node.new("args", nil):extend {
-      self:parse_table(token),
-    }
-  elseif token:check "String" then
-    return node.new("args", nil):extend {
-      token:to_node(),
-    }
-  else
-    return nil, "unexpected symbol at " .. token.srcloc:to_string()
   end
+
+  local result = node.new("args")
+  if token:check "{" then
+    result:append(self:parse_table(token))
+  elseif token:require "String" then
+    result:append(token:to_node())
+  end
+  return result
 end
 
 ---@param token dromozoa.token
@@ -272,11 +266,14 @@ function class:parse_table(token)
   local result = node.new("table", token)
 
   while true do
-    local field = self:parse_field()
-    if not field then
-      self:read():require "}"
+    if self:peek():check "}" then
       break
     end
+    local field = self:parse_field()
+    -- if not field then
+    --   self:read():require "}"
+    --   break
+    -- end
     result:append(field)
 
     local token = self:read()
@@ -289,31 +286,32 @@ function class:parse_table(token)
   return result
 end
 
----@return dromozoa.node?
----@return string?
+---@return dromozoa.node
 function class:parse_field()
   local token = self:read()
   if token:check "[" then
     -- field: '[' exp ']' = exp
-    local index = assert(self:parse_exp(0))
+    local index = self:parse_exp(0)
     self:read():require "]"
     self:read():require "="
-    local value = assert(self:parse_exp(0))
+    local value = self:parse_exp(0)
     return node.new("index_field", token):extend { index, value }
   elseif token:check "Name" and self:peek():check "=" then
     -- field: Name '=' exp
     local index = token:to_node()
     self:read()
-    local value = assert(self:parse_exp(0))
+    local value = self:parse_exp(0)
     return node.new("property_field", token):extend { index, value }
   else
     -- field: exp
     self:unread()
-    local value, message = self:parse_exp(0)
-    if not value then
-      return nil, message
-    end
-    return node.new("list_field", token):extend { value }
+    local value = self:parse_exp(0)
+    -- if not value then
+    --   return nil, message
+    -- end
+    return node.new("list_field", token):extend {
+      value,
+    }
   end
 end
 
