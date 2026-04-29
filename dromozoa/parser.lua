@@ -257,66 +257,60 @@ function class:parse_args(token)
     end
     result:append(self:parse_exp(0))
     while true do
-      if self:peek():check ")" then
-        self:read()
+      local token = self:read()
+      if token:check ")" then
         return result
       end
-      self:read():require ","
+      token:require ","
       result:append(self:parse_exp(0))
     end
+  elseif token:check "{" then
+    return node.new "args":append(self:parse_table(token))
+  else
+    token:require "String"
+    return node.new "args":append(token:to_node())
   end
-
-  local result = node.new("args")
-  if token:check "{" then
-    result:append(self:parse_table(token))
-  elseif token:require "String" then
-    result:append(token:to_node())
-  end
-  return result
 end
 
 ---@param token dromozoa.token
 ---@return dromozoa.node
 function class:parse_table(token)
   local result = node.new("table", token)
-
   while true do
-    if self:read():check "}" then
-      break
+    if self:peek():check "}" then
+      self:read()
+      return result
     end
-    self:unread()
     result:append(self:parse_field())
-
     local token = self:read()
     if token:check "}" then
-      break
+      return result
     end
     token:require(",", ";")
   end
-
-  return result
 end
 
 ---@return dromozoa.node
 function class:parse_field()
   local token = self:read()
   if token:check "[" then
-    -- field: '[' exp ']' = exp
     local index = self:parse_exp(0)
     self:read():require "]"
     self:read():require "="
-    local value = self:parse_exp(0)
-    return node.new("index_field", token):extend { index, value }
+    return node.new("index_field", token):extend {
+      index,
+      self:parse_exp(0),
+    }
   elseif token:check "Name" and self:peek():check "=" then
-    -- field: Name '=' exp
     local index = token:to_node()
     self:read()
-    local value = self:parse_exp(0)
-    return node.new("property_field", token):extend { index, value }
+    return node.new("property_field", token):extend {
+      index,
+      self:parse_exp(0),
+    }
   else
-    -- field: exp
     self:unread()
-    return node.new("list_field"):append(self:parse_exp(0))
+    return node.new "list_field":append(self:parse_exp(0))
   end
 end
 
