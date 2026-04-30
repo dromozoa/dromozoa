@@ -18,6 +18,8 @@
 local lexer = require "dromozoa.lexer"
 local parser = require "dromozoa.parser"
 
+local verbose = os.getenv "VERBOSE"
+
 local p = parser.new()
 p.tokens = lexer.new():lex([[
 --[1]
@@ -142,6 +144,9 @@ local function test_parse_exp_error(source)
   p.index = 1
   local result, message = pcall(function() p:parse_exp(0) end)
   assert(not result)
+  if verbose then
+    print(message)
+  end
   assert(assert(message):find "=test:1:", ("{ message = %q }"):format(message))
 end
 
@@ -165,7 +170,9 @@ local function test_parse_stat(source, expect)
 end
 
 test_parse_stat(";", ";")
-test_parse_stat(" :: L :: ", "(label L)")
+test_parse_stat("break", "break")
+test_parse_stat("::L123::", "(label L123)")
+test_parse_stat("goto L123", "(goto L123)")
 
 ---@param source string
 local function test_parse_stat_error(source)
@@ -174,7 +181,11 @@ local function test_parse_stat_error(source)
   p.index = 1
   local result, message = pcall(function() p:parse_stat() end)
   assert(not result)
+  if verbose then
+    print(message)
+  end
   assert(assert(message):find "=test:1:", ("{ message = %q }"):format(message))
 end
 
 test_parse_stat_error "::1::"
+test_parse_stat_error "goto 1"

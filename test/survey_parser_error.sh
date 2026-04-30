@@ -18,3 +18,5 @@
 # along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
 lua -e 'local x = ='
+lua -e 'x = { f = function () end } x:f 42'
+lua -e 'function f() end f() = 42'

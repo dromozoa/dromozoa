@@ -108,6 +108,8 @@ bar
 local lexer = require "dromozoa.lexer"
 local util = require "dromozoa.util"
 
+local verbose = os.getenv "VERBOSE"
+
 local source = util.read_file(arg[0])
 local tokens = lexer.new():lex(source, arg[0])
 
@@ -167,6 +169,9 @@ assert(table.concat(buffer) == source)
 local function test_lex_error(source)
   local result, message = pcall(function() lexer.new():lex(source, "=test") end)
   assert(not result)
+  if verbose then
+    print(message)
+  end
   assert(assert(message):find "=test:1:", ("{ message = %q }"):format(message))
 end
 

@@ -203,7 +203,7 @@ function class:parse_nud(nud_table)
   local nud = nud_table[token.kind]
   if not nud then
     self:unread()
-    return nil, "parser error at " .. token.srcloc:to_string()
+    return nil, "syntax error at " .. token.srcloc:to_string()
   end
   return nud(self, token)
 end
@@ -229,14 +229,21 @@ end
 
 function class:parse_stat()
   local token = self:read()
-  if token:check ";" then
+  if token:check ";" or token:check "break" then
     return token:to_node()
   elseif token:check "::" then
     local result = node.new("label", token):append(self:read():require "Name":to_node())
     self:read():require "::"
     return result
+  elseif token:check "goto" then
+    return token:to_node():append(self:read():require "Name":to_node())
+  else
+    local prefixexp = self:parse_prefixexp(0)
+    -- if prefixexp:check("call", "self") then
+    --   return prefixexp
+    -- end
+
   end
-  error "not implemented"
 end
 
 ---@param rbp integer
@@ -257,7 +264,6 @@ function class:parse_prefixexp(rbp)
   local left = assert(self:parse_nud(prefixexp_nud_table))
   return self:parse_led(left, rbp, prefixexp_led_table)
 end
-
 
 ---@param token dromozoa.token
 ---@return dromozoa.node
