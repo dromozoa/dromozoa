@@ -103,9 +103,9 @@ unary operators (not   #     -     ~)
 - `prefixexp`は左再帰が循環して扱いにくいので演算子で整理する。
 - `prefixexp`は`Name`か`'(' exp ')'`で開始する。
 - どの演算子も左結合で同じ優先順位を持つ。
-- 文の先頭に出現する`prefixexp`は`var`か`functioncall`である。
+- 文が期待される場所に出現する`prefixexp`は`var`か`functioncall`である。
     - `var`ならば代入文である。
-        - ただし、`'='`か`','`が続かなければならない。
+        - `var`の後に`'='`か`','`が続かなければならない。
     - `functioncall`ならば関数呼び出し文である。
     - `'(' exp ')'`は拒否される。
 
