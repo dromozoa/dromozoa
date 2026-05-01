@@ -229,6 +229,27 @@ end
 
 --=========================================================================
 
+---@return string ...
+local function stat_terminals()
+  return "end", "until", "elseif", "else", "EOF"
+end
+
+function class:parse_block()
+  local result = new_node "block"
+  while true do
+    local token = self:read()
+    if token:check "return" then
+      error "not implemented"
+    elseif token:check(stat_terminals()) then
+      self:unread()
+      return result
+    end
+
+    self:unread()
+    result:append(self:parse_stat())
+  end
+end
+
 function class:parse_stat()
   local token = self:read()
   if token:check ";" or token:check "break" then

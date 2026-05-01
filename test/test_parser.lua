@@ -82,14 +82,37 @@ end
 
 ---@param source string
 ---@param expect string
-local function test_parse_exp(source, expect)
+---@param fn fun(p: dromozoa.parser): dromozoa.node
+local function test_parse(source, expect, fn)
   local p = parser.new()
   p.tokens = lexer.new():lex(source, "=(test)")
   p.index = 1
-  local root = assert(p:parse_exp(0))
+  local root = fn(p)
   p:peek():require "EOF"
   local result = table.concat(dump(root, {}))
   assert(result == expect, ("{ source = %q, result = %q, expect = %q }"):format(source, result, expect))
+end
+
+---@param source string
+---@param fn fun(p: dromozoa.parser): dromozoa.node
+local function test_parse_error(source, fn)
+  local p = parser.new()
+  p.tokens = lexer.new():lex(source, "=(test)")
+  p.index = 1
+  local result, message = pcall(fn, p)
+  assert(not result)
+  if verbose then
+    print(message)
+  end
+  assert(tostring(message):find "=%(test%):1:", ("{ message = %q }"):format(message))
+end
+
+---@param source string
+---@param expect string
+local function test_parse_exp(source, expect)
+  test_parse(source, expect, function(p)
+    return p:parse_exp(0)
+  end)
 end
 
 test_parse_exp("1 and 2 or 3", "(or (and 1 2) 3)")
@@ -139,15 +162,9 @@ test_parse_exp("1 + - 2 ^ 3", "(+ 1 (- (^ 2 3)))")
 
 ---@param source string
 local function test_parse_exp_error(source)
-  local p = parser.new()
-  p.tokens = lexer.new():lex(source, "=(test)")
-  p.index = 1
-  local result, message = pcall(function() p:parse_exp(0) end)
-  assert(not result)
-  if verbose then
-    print(message)
-  end
-  assert(assert(message):find "=%(test%):1:", ("{ message = %q }"):format(message))
+  test_parse_error(source, function(p)
+    return p:parse_exp(0)
+  end)
 end
 
 test_parse_exp_error "()"
@@ -160,13 +177,9 @@ test_parse_exp_error "x:f 42"
 ---@param source string
 ---@param expect string
 local function test_parse_stat(source, expect)
-  local p = parser.new()
-  p.tokens = lexer.new():lex(source, "=(test)")
-  p.index = 1
-  local root = assert(p:parse_stat())
-  p:peek():require "EOF"
-  local result = table.concat(dump(root, {}))
-  assert(result == expect, ("{ source = %q, result = %q, expect = %q }"):format(source, result, expect))
+  test_parse(source,expect, function (p)
+    return p:parse_stat()
+  end)
 end
 
 test_parse_stat(";", ";")
@@ -179,15 +192,9 @@ test_parse_stat("a.b = 42", "(= (varlist (property a b)) (explist 42))")
 
 ---@param source string
 local function test_parse_stat_error(source)
-  local p = parser.new()
-  p.tokens = lexer.new():lex(source, "=(test)")
-  p.index = 1
-  local result, message = pcall(function() p:parse_stat() end)
-  assert(not result)
-  if verbose then
-    print(message)
-  end
-  assert(assert(message):find "=%(test%):1:", ("{ message = %q }"):format(message))
+  test_parse_error(source, function (p)
+    return p:parse_stat()
+  end)
 end
 
 test_parse_stat_error "::1::"
