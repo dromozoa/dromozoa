@@ -17,7 +17,13 @@
 # You should have received a copy of the GNU General Public License
 # along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-lua -e 'print(--[['
-lua -e 'print "\y"'
-lua -e 'print([['
-lua -e '!'
+separator=================================================================================
+t() {
+  printf '%s\ncode: %s\n' "$separator" "$1"
+  lua -e "$1"
+}
+
+t 'print(--[['
+t 'print "\y"'
+t 'print([['
+t '!'

@@ -17,6 +17,12 @@
 # You should have received a copy of the GNU General Public License
 # along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-lua -e 'local x = ='
-lua -e 'x = { f = function () end } x:f 42'
-lua -e 'function f() end f() = 42'
+separator=================================================================================
+t() {
+  printf '%s\ncode: %s\n' "$separator" "$1"
+  lua -e "$1"
+}
+
+t 'local x = ='
+t 'x = { f = function () end } x:f 42'
+t 'function f() end f() = 42'
