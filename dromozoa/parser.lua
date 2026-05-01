@@ -113,7 +113,7 @@ end
 ---@param token dromozoa.token
 ---@return dromozoa.node
 function class:nud_group(token)
-  local result = node.new("group", token):append(self:parse_exp(0))
+  local result = token:to_node "group":append(self:parse_exp(0))
   self:read():require ")"
   return result
 end
@@ -148,7 +148,7 @@ end
 ---@return dromozoa.node
 ---@diagnostic disable-next-line: unused-local
 function class:led_index(left, token, rbp)
-  local result = node.new("index", token):extend {
+  local result = token:to_node "index":extend {
     left,
     self:parse_exp(0),
   }
@@ -162,7 +162,7 @@ end
 ---@return dromozoa.node
 ---@diagnostic disable-next-line: unused-local
 function class:led_property(left, token, rbp)
-  return node.new("property", token):extend {
+  return token:to_node "property":extend {
     left,
     self:read():require "Name":to_node(),
   }
@@ -174,7 +174,7 @@ end
 ---@return dromozoa.node
 ---@diagnostic disable-next-line: unused-local
 function class:led_call(left, token, rbp)
-  return node.new("call", token):extend {
+  return token:to_node "call":extend {
     left,
     self:parse_args(token),
   }
@@ -186,7 +186,7 @@ end
 ---@return dromozoa.node
 ---@diagnostic disable-next-line: unused-local
 function class:led_self(left, token, rbp)
-  return node.new("self", token):extend {
+  return token:to_node "self":extend {
     left,
     self:read():require "Name":to_node(),
     self:parse_args(self:read()),
@@ -232,7 +232,7 @@ function class:parse_stat()
   if token:check ";" or token:check "break" then
     return token:to_node()
   elseif token:check "::" then
-    local result = node.new("label", token):append(self:read():require "Name":to_node())
+    local result = token:to_node "label":append(self:read():require "Name":to_node())
     self:read():require "::"
     return result
   elseif token:check "goto" then
@@ -242,7 +242,6 @@ function class:parse_stat()
     -- if prefixexp:check("call", "self") then
     --   return prefixexp
     -- end
-
   end
 end
 
@@ -269,7 +268,7 @@ end
 ---@return dromozoa.node
 function class:parse_args(token)
   if token:check "(" then
-    local result = node.new("args", token)
+    local result = token:to_node "args"
     if self:peek():check ")" then
       self:read()
       return result
@@ -294,7 +293,7 @@ end
 ---@param token dromozoa.token
 ---@return dromozoa.node
 function class:parse_table(token)
-  local result = node.new("table", token)
+  local result = token:to_node "table"
   while true do
     if self:peek():check "}" then
       self:read()
@@ -316,14 +315,14 @@ function class:parse_field()
     local index = self:parse_exp(0)
     self:read():require "]"
     self:read():require "="
-    return node.new("index_field", token):extend {
+    return token:to_node "index_field":extend {
       index,
       self:parse_exp(0),
     }
   elseif token:check "Name" and self:peek():check "=" then
     local index = token:to_node()
     self:read()
-    return node.new("property_field", token):extend {
+    return token:to_node "property_field":extend {
       index,
       self:parse_exp(0),
     }

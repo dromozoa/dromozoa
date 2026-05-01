@@ -65,7 +65,7 @@ function class:require(...)
   error("unexpected symbol at " .. self.srcloc:to_string())
 end
 
----@param kind string
+---@param kind string?
 ---@return dromozoa.node
 function class:to_node(kind)
   if not kind then
