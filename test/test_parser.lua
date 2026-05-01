@@ -177,7 +177,7 @@ test_parse_exp_error "x:f 42"
 ---@param source string
 ---@param expect string
 local function test_parse_stat(source, expect)
-  test_parse(source,expect, function (p)
+  test_parse(source, expect, function(p)
     return p:parse_stat()
   end)
 end
@@ -192,7 +192,7 @@ test_parse_stat("a.b = 42", "(= (varlist (property a b)) (explist 42))")
 
 ---@param source string
 local function test_parse_stat_error(source)
-  test_parse_error(source, function (p)
+  test_parse_error(source, function(p)
     return p:parse_stat()
   end)
 end
