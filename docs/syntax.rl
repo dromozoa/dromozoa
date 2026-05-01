@@ -5,6 +5,9 @@
 
   Name = 'N';
 
+  var = 'v';
+  varlist = var (',' var)*;
+
   exp = 'e';
   explist_ = exp (',' exp)*;
 
@@ -12,6 +15,7 @@
   fieldsep = [,;];
   fieldlist = field_ (fieldsep field_)* fieldsep?;
 
+  assign := varlist '=' explist_;
   explist := explist_;
   args := '(' explist_? ')';
   tableconstructor := '{' fieldlist? '}';

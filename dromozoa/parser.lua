@@ -240,14 +240,35 @@ function class:parse_stat()
   elseif token:check "goto" then
     return token:new_node():append(self:read():require "Name":new_node())
   else
+    self:unread()
     local prefixexp = self:parse_prefixexp(0)
     if prefixexp:check("call", "self") then
-      return new_node "functioncall" :append(prefixexp)
+      return new_node "functioncall":append(prefixexp)
     else
       prefixexp:require("Name", "index", "property")
-      -- varlist
-      -- self:peek():require(",", "=")
-      error "not implemented"
+
+      local token
+      local varlist = new_node "varlist":append(prefixexp)
+      while true do
+        token = self:read()
+        if token:check "=" then
+          break
+        end
+        token:require ","
+        local var = self:parse_prefixexp(0)
+        varlist:append(var:require("Name", "index", "property"))
+      end
+
+      local explist = new_node "explist"
+      while true do
+        explist:append(self:parse_exp(0))
+        if not self:read():check "," then
+          self:unread()
+          break
+        end
+      end
+
+      return token:new_node():extend { varlist, explist }
     end
   end
 end

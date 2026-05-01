@@ -173,6 +173,9 @@ test_parse_stat(";", ";")
 test_parse_stat("break", "break")
 test_parse_stat("::L123::", "(label L123)")
 test_parse_stat("goto L123", "(goto L123)")
+test_parse_stat("f()", "(functioncall (call f args))")
+test_parse_stat("x:f()", "(functioncall (self x f args))")
+test_parse_stat("a.b = 42", "(= (varlist (property a b)) (explist 42))")
 
 ---@param source string
 local function test_parse_stat_error(source)
