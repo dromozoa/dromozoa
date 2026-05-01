@@ -203,3 +203,14 @@ end
 
 test_parse_stat_error "::1::"
 test_parse_stat_error "goto 1"
+
+---@param source string
+---@param expect string
+local function test_parse_block(source, expect)
+  test_parse(source, expect, function(p)
+    return p:parse_block()
+  end)
+end
+
+test_parse_block("::L1::", "(block (label L1))")
+test_parse_block("::L1::::L2::", "(block (label L1) (label L2))")
