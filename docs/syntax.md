@@ -105,7 +105,7 @@ unary operators (not   #     -     ~)
 - どの演算子も左結合で同じ優先順位を持つ。
 - 文が期待される場所に出現する`prefixexp`は`var`か`functioncall`である。
     - `var`ならば代入文である。
-        - `var`の後に`'='`か`','`が続かなければならない。
+        - `var`の後に`'='`か`','`が続く。
     - `functioncall`ならば関数呼び出し文である。
     - `'(' exp ')'`は拒否される。
 
@@ -119,6 +119,11 @@ unary operators (not   #     -     ~)
 | `a:b(c)` | `prefixexp ':' Name '(' [explist] ')'`   | self     |
 | `a:b{c}` | `prefixexp ':' Name '{' [fieldlist] '}'` | self     |
 | `a:b"c"` | `prefixexp ':' Name LiteralString`       | self     |
+
+## block
+
+- `block`は`end`, `until`, `elseif`, `else`, `EOF`によって終端される。
+- `{stat}`はこれに加えて`return`によっても終端される。
 
 ## 文法規則のDFA
 
