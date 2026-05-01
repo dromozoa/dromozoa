@@ -102,6 +102,10 @@ local function test_parse_error(source, fn)
   local result, message = pcall(fn, p)
   assert(not result)
   if verbose then
+    print(("="):rep(80))
+    print(message)
+    local result, message = load(source)
+    assert(not result)
     print(message)
   end
   assert(tostring(message):find "=%(test%):1:", ("{ message = %q }"):format(message))
