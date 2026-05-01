@@ -67,7 +67,7 @@ end
 
 ---@param kind string?
 ---@return dromozoa.node
-function class:to_node(kind)
+function class:new_node(kind)
   if not kind then
     kind = self.kind
   end

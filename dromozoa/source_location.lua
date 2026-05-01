@@ -63,9 +63,14 @@ function class:update(text)
   self.column = self.column + n - p + 1
 end
 
+---@param self dromozoa.source_location?
 ---@return string
-function class:to_string()
-  return self.filename .. ":" .. self.line .. ":" .. self.column
+function class.to_string(self)
+  if self then
+    return self.filename .. ":" .. self.line .. ":" .. self.column
+  else
+    return "=(unknown):0:0"
+  end
 end
 
 return class

@@ -15,6 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
+local source_location = require "dromozoa.source_location"
+
 ---@class dromozoa.node
 ---@field kind string
 ---@field token dromozoa.token?
@@ -50,6 +52,37 @@ function class:extend(nodes)
     self:append(node)
   end
   return self
+end
+
+---@return dromozoa.source_location?
+function class:srcloc()
+  if self.token then
+    return self.token.srcloc
+  elseif #self.nodes > 0 then
+    return self.nodes[1]:srcloc()
+  else
+    return nil
+  end
+end
+
+---@param ... string
+---@return boolean
+function class:check(...kinds)
+  for _, kind in ipairs(kinds) do
+    if self.kind == kind then
+      return true
+    end
+  end
+  return false
+end
+
+---@param ... string
+---@return dromozoa.node
+function class:require(...)
+  if self:check(...) then
+    return self
+  end
+  error("syntax error at " .. source_location.to_string(self:srcloc()))
 end
 
 return class
