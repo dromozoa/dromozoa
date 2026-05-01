@@ -47,8 +47,8 @@ end
 
 ---@param ... string
 ---@return boolean
-function class:check(...)
-  for _, kind in ipairs { ... } do
+function class:check(...kinds)
+  for _, kind in ipairs(kinds) do
     if self.kind == kind then
       return true
     end
@@ -65,9 +65,13 @@ function class:require(...)
   error("unexpected symbol at " .. self.srcloc:to_string())
 end
 
+---@param kind string
 ---@return dromozoa.node
-function class:to_node()
-  return node.new(self.kind, self)
+function class:to_node(kind)
+  if not kind then
+    kind = self.kind
+  end
+  return node.new(kind, self)
 end
 
 return class
