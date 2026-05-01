@@ -167,12 +167,16 @@ assert(table.concat(buffer) == source)
 
 ---@param source string
 local function test_lex_error(source)
-  local result, message = pcall(function() lexer.new():lex(source, "=test") end)
+  local result, message = pcall(function() lexer.new():lex(source, "=(test)") end)
   assert(not result)
   if verbose then
+    print(("="):rep(80))
+    print(message)
+    local result, message = load(source)
+    assert(not result)
     print(message)
   end
-  assert(assert(message):find "=test:1:", ("{ message = %q }"):format(message))
+  assert(assert(message):find "=%(test%):1:", ("{ message = %q }"):format(message))
 end
 
 test_lex_error "print(--[["
@@ -180,13 +184,13 @@ test_lex_error [[print "\y"]]
 test_lex_error "print([["
 test_lex_error "!"
 
-local tokens = lexer.new():lex("", "=test")
+local tokens = lexer.new():lex("", "=(test)")
 assert(#tokens == 1)
 
 local token = tokens[1]
 assert(token.kind == "EOF")
 
-local tokens = lexer.new():lex("#! /usr/bin/env lua\n", "=test")
+local tokens = lexer.new():lex("#! /usr/bin/env lua\n", "=(test)")
 assert(#tokens == 2)
 
 local token = tokens[1]

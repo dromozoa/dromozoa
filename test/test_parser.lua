@@ -30,7 +30,7 @@ x--[6]
 =--[9]
 --[10]
 1--[12]
-]], "=test")
+]], "=(test)")
 p.index = 1
 assert(#p.tokens == 13)
 
@@ -84,7 +84,7 @@ end
 ---@param expect string
 local function test_parse_exp(source, expect)
   local p = parser.new()
-  p.tokens = lexer.new():lex(source, "=test")
+  p.tokens = lexer.new():lex(source, "=(test)")
   p.index = 1
   local root = assert(p:parse_exp(0))
   p:peek():require "EOF"
@@ -140,14 +140,14 @@ test_parse_exp("1 + - 2 ^ 3", "(+ 1 (- (^ 2 3)))")
 ---@param source string
 local function test_parse_exp_error(source)
   local p = parser.new()
-  p.tokens = lexer.new():lex(source, "=test")
+  p.tokens = lexer.new():lex(source, "=(test)")
   p.index = 1
   local result, message = pcall(function() p:parse_exp(0) end)
   assert(not result)
   if verbose then
     print(message)
   end
-  assert(assert(message):find "=test:1:", ("{ message = %q }"):format(message))
+  assert(assert(message):find "=%(test%):1:", ("{ message = %q }"):format(message))
 end
 
 test_parse_exp_error "()"
@@ -161,7 +161,7 @@ test_parse_exp_error "x:f 42"
 ---@param expect string
 local function test_parse_stat(source, expect)
   local p = parser.new()
-  p.tokens = lexer.new():lex(source, "=test")
+  p.tokens = lexer.new():lex(source, "=(test)")
   p.index = 1
   local root = assert(p:parse_stat())
   p:peek():require "EOF"
@@ -177,14 +177,14 @@ test_parse_stat("goto L123", "(goto L123)")
 ---@param source string
 local function test_parse_stat_error(source)
   local p = parser.new()
-  p.tokens = lexer.new():lex(source, "=test")
+  p.tokens = lexer.new():lex(source, "=(test)")
   p.index = 1
   local result, message = pcall(function() p:parse_stat() end)
   assert(not result)
   if verbose then
     print(message)
   end
-  assert(assert(message):find "=test:1:", ("{ message = %q }"):format(message))
+  assert(assert(message):find "=%(test%):1:", ("{ message = %q }"):format(message))
 end
 
 test_parse_stat_error "::1::"
