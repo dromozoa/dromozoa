@@ -202,6 +202,41 @@ test_parse_stat(
 test_parse_stat(
   "repeat print(42) until false",
   "(repeat (block (functioncall (call print (args 42)))) false)")
+test_parse_stat("if 1 then end", "(if 1 block)")
+test_parse_stat("if 1 then ; end", "(if 1 (block ;))")
+test_parse_stat(
+  "if 1 then ::L1:: else ::L2:: end",
+  "(if 1 (block (label L1)) (block (label L2)))")
+test_parse_stat(
+  "if 1 then ::L1:: elseif 2 then ::L2:: end",
+  "\z
+    (if 1 \z
+      (block (label L1)) \z
+      (elseif 2 \z
+        (block (label L2))\z
+      )\z
+    )\z
+  ")
+test_parse_stat(
+  "if 1 then ::L1:: elseif 2 then ::L2:: else ::L3:: end",
+  "\z
+    (if 1 \z
+      (block (label L1)) \z
+      (elseif 2 \z
+        (block (label L2)) \z
+        (block (label L3))\z
+      )\z
+    )\z
+  ")
+test_parse_stat(
+  "for i = 1, 10 do print(i) end",
+  "\z
+    (numeric_for i (explist 1 10) \z
+      (block \z
+        (functioncall (call print (args i)))\z
+      )\z
+    )\z
+  ")
 
 ---@param source string
 local function test_parse_stat_error(source)

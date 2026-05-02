@@ -277,6 +277,30 @@ function class:parse_stat()
     self:read():require "until"
     result:append(self:parse_exp(0))
     return result
+  elseif token:check "if" then
+    local result = self:parse_if(token)
+    self:read():require "end"
+    return result
+  elseif token:check "for" then
+    local name = self:read():require "Name"
+    if self:peek():check "=" then
+      self:read()
+      local result = token:new_node "numeric_for":append(name:new_node())
+      local explist = new_node "explist"
+      explist:append(self:parse_exp(0))
+      self:read():require ","
+      explist:append(self:parse_exp(0))
+      local token = self:read()
+      if token:check "," then
+        explist:append(self:parse_exp(0))
+        token = self:read()
+      end
+      token:require "do"
+      result:extend { explist, self:parse_block() }
+      self:read():require "end"
+      return result
+    end
+    error "not implemented"
   else
     self:unread()
     local prefixexp = self:parse_prefixexp(0)
@@ -309,6 +333,20 @@ function class:parse_stat()
       return token:new_node():extend { varlist, explist }
     end
   end
+end
+
+function class:parse_if(token)
+  local result = token:new_node():append(self:parse_exp(0))
+  self:read():require "then"
+  result:append(self:parse_block())
+  local token = self:read()
+  if token:check "elseif" then
+    return result:append(self:parse_if(token))
+  elseif token:check "else" then
+    return result:append(self:parse_block())
+  end
+  self:unread()
+  return result
 end
 
 function class:parse_retstat(token)
