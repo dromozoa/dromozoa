@@ -258,8 +258,25 @@ function class:parse_stat()
     local result = token:new_node "label":append(self:read():require "Name":new_node())
     self:read():require "::"
     return result
+  elseif token:check "break" then
+    return token:new_node()
   elseif token:check "goto" then
     return token:new_node():append(self:read():require "Name":new_node())
+  elseif token:check "do" then
+    local result = token:new_node():append(self:parse_block())
+    self:read():require "end"
+    return result
+  elseif token:check "while" then
+    local result = token:new_node():append(self:parse_exp(0))
+    self:read():require "do"
+    result:append(self:parse_block())
+    self:read():require "end"
+    return result
+  elseif token:check "repeat" then
+    local result = token:new_node():append(self:parse_block())
+    self:read():require "until"
+    result:append(self:parse_exp(0))
+    return result
   else
     self:unread()
     local prefixexp = self:parse_prefixexp(0)

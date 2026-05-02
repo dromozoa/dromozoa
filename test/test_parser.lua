@@ -193,6 +193,15 @@ test_parse_stat("goto L123", "(goto L123)")
 test_parse_stat("f()", "(functioncall (call f args))")
 test_parse_stat("x:f()", "(functioncall (self x f args))")
 test_parse_stat("a.b = 42", "(= (varlist (property a b)) (explist 42))")
+test_parse_stat(
+  "do a = 1 b = 2 end",
+  "(do (block (= (varlist a) (explist 1)) (= (varlist b) (explist 2))))")
+test_parse_stat(
+  "while true do print(42) end",
+  "(while true (block (functioncall (call print (args 42)))))")
+test_parse_stat(
+  "repeat print(42) until false",
+  "(repeat (block (functioncall (call print (args 42)))) false)")
 
 ---@param source string
 local function test_parse_stat_error(source)
