@@ -24,6 +24,7 @@
 
   block := stat* retstat_? end;
   retstat := explist_? ';'? end;
+  funcname := Name ('.' Name)* (':' Name)?;
   assign := varlist '=' explist_;
   explist := explist_;
   args := '(' explist_? ')';
