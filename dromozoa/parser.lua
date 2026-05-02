@@ -388,7 +388,6 @@ function class:parse_retstat(token)
     self:unread()
     return result
   end
-
   self:unread()
   result:append(self:parse_exp(0))
 
@@ -402,6 +401,7 @@ function class:parse_retstat(token)
       return result
     end
     token:require ","
+    result:append(self:parse_exp(0))
   end
 end
 

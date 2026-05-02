@@ -278,7 +278,12 @@ end
 
 test_parse_block("::L1::", "(block (label L1))")
 test_parse_block("::L1::::L2::", "(block (label L1) (label L2))")
-test_parse_block(";return 42;", "(block ; (return 42))")
+test_parse_block(";return", "(block ; return)")
+test_parse_block(";return;", "(block ; return)")
+test_parse_block(";return 1", "(block ; (return 1))")
+test_parse_block(";return 1;", "(block ; (return 1))")
+test_parse_block(";return 1,2", "(block ; (return 1 2))")
+test_parse_block(";return 1,2;", "(block ; (return 1 2))")
 
 ---@param source string
 local function test_parse_block_error(source)
