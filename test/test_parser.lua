@@ -237,6 +237,16 @@ test_parse_stat(
       )\z
     )\z
   ")
+test_parse_stat(
+  "for i = 10, 1, -1 do print(i) end",
+  "\z
+    (numeric_for i (explist 10 1 (- 1)) \z
+      (block \z
+        (functioncall (call print (args i)))\z
+      )\z
+    )\z
+  ")
+
 
 ---@param source string
 local function test_parse_stat_error(source)
@@ -247,6 +257,8 @@ end
 
 test_parse_stat_error "::1::"
 test_parse_stat_error "goto 1"
+test_parse_stat_error "for i = 1 do print(i) end"
+test_parse_stat_error "for i = 1, 2, 3, 4 do print(i) end"
 
 ---@param source string
 ---@param expect string
