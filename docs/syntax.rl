@@ -6,7 +6,7 @@
   Name = 'N';
 
   stat = 's';
-  retstat = 'r';
+  retstat_ = 'r';
   end = '$';
 
   var = 'v';
@@ -19,7 +19,8 @@
   fieldsep = [,;];
   fieldlist = field_ (fieldsep field_)* fieldsep?;
 
-  block := stat* retstat? end;
+  block := stat* retstat_? end;
+  retstat := explist_? ';'? end;
   assign := varlist '=' explist_;
   explist := explist_;
   args := '(' explist_? ')';

@@ -214,3 +214,13 @@ end
 
 test_parse_block("::L1::", "(block (label L1))")
 test_parse_block("::L1::::L2::", "(block (label L1) (label L2))")
+test_parse_block(";return 42;", "(block ; (return 42))")
+
+---@param source string
+local function test_parse_block_error(source)
+  test_parse_error(source, function(p)
+    return p:parse_block()
+  end)
+end
+
+test_parse_block_error "return 42;;"

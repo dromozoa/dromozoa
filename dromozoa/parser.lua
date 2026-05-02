@@ -239,7 +239,7 @@ function class:parse_block()
   while true do
     local token = self:read()
     if token:check "return" then
-      error "not implemented"
+      return result:append(self:parse_retstat(token))
     elseif token:check(stat_terminals()) then
       self:unread()
       return result
@@ -291,6 +291,34 @@ function class:parse_stat()
 
       return token:new_node():extend { varlist, explist }
     end
+  end
+end
+
+function class:parse_retstat(token)
+  local result = token:new_node()
+
+  local token = self:read()
+  if token:check ";" then
+    self:peek():require(stat_terminals())
+    return result
+  elseif token:check(stat_terminals()) then
+    self:unread()
+    return result
+  end
+
+  self:unread()
+  result:append(self:parse_exp(0))
+
+  while true do
+    local token = self:read()
+    if token:check ";" then
+      self:peek():require(stat_terminals())
+      return result
+    elseif token:check(stat_terminals()) then
+      self:unread()
+      return result
+    end
+    token:require ","
   end
 end
 
