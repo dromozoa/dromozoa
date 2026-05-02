@@ -281,10 +281,8 @@ function class:lex(source, filename)
     elseif self:lex_punctuator() then
       kind = self._0
       value = self._0
-    else
-      if not kind then
-        error("unexpected symbol at " .. srcloc:to_string())
-      end
+    elseif not kind then
+      error("unexpected symbol at " .. srcloc:to_string())
     end
 
     local text = self.source:sub(srcloc.position, self.srcloc.position - 1)
