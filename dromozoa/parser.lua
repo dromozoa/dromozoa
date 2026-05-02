@@ -285,7 +285,6 @@ function class:parse_stat()
     local name = self:read():require "Name"
     if self:peek():check "=" then
       self:read()
-      local result = token:new_node "numeric_for":append(name:new_node())
       local explist = new_node "explist"
       explist:append(self:parse_exp(0))
       self:read():require ","
@@ -296,11 +295,40 @@ function class:parse_stat()
         token = self:read()
       end
       token:require "do"
-      result:extend { explist, self:parse_block() }
+      local result = token:new_node "numeric_for":extend {
+        name:new_node(),
+        explist,
+        self:parse_block(),
+      }
+      self:read():require "end"
+      return result
+    else
+      local namelist = new_node "namelist":append(name:new_node())
+      while true do
+        local token = self:read()
+        if token:check "in" then
+          break
+        end
+        token:require ","
+        namelist:append(self:read():require "Name":new_node())
+      end
+      local explist = new_node "explist":append(self:parse_exp(0))
+      while true do
+        local token = self:read()
+        if token:check "do" then
+          break
+        end
+        token:require ","
+        explist:append(self:parse_exp(0))
+      end
+      local result = token:new_node "generic_for":extend {
+        namelist,
+        explist,
+        self:parse_block(),
+      }
       self:read():require "end"
       return result
     end
-    error "not implemented"
   else
     self:unread()
     local prefixexp = self:parse_prefixexp(0)

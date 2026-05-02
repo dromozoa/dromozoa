@@ -246,7 +246,15 @@ test_parse_stat(
       )\z
     )\z
   ")
-
+test_parse_stat(
+  "for k, v in pairs(t) do print(k, v) end",
+  "\z
+    (generic_for (namelist k v) (explist (call pairs (args t))) \z
+      (block \z
+        (functioncall (call print (args k v)))\z
+      )\z
+    )\z
+  ")
 
 ---@param source string
 local function test_parse_stat_error(source)
