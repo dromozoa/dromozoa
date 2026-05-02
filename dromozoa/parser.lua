@@ -452,9 +452,46 @@ end
 
 ---@return dromozoa.node
 function class:parse_funcbody()
-  local result = new_node "funcbody"
+  self:read():require "("
 
   local parlist = new_node "parlist"
+
+  local x = self:read()
+  if not x:check("...", ")") then
+    while true do
+      parlist:append(x:require "Name":new_node())
+      local y = self:read()
+      if y:check ")" then
+        x = y
+        break
+      end
+      y:require ","
+      x = self:read()
+      if x:check "..." then
+        break
+      end
+    end
+  end
+
+  if x:check "..." then
+    local u = x:new_node()
+    local y = self:read()
+    if y:check "Name" then
+      u:append(y:new_node())
+      x = self:read()
+    else
+      x = y
+    end
+    parlist:append(u)
+  end
+
+  x:require ")"
+
+  local result = new_node "funcbody"  :extend {
+    parlist,
+    self:parse_block(),
+  }
+  self:read():require "end"
 
   return result
 end
