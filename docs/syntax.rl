@@ -15,6 +15,9 @@
   exp = 'e';
   explist_ = exp (',' exp)*;
 
+  varargparam = '.' Name?;
+  parlist = (Name (',' Name)*) (',' varargparam)? | varargparam;
+
   field_ = 'f';
   fieldsep = [,;];
   fieldlist = field_ (fieldsep field_)* fieldsep?;
@@ -24,6 +27,7 @@
   assign := varlist '=' explist_;
   explist := explist_;
   args := '(' explist_? ')';
+  params := '(' parlist? ')';
   tableconstructor := '{' fieldlist? '}';
   field := '[' exp ']' '=' exp | Name '=' exp | exp;
 }%%

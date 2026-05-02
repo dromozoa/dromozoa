@@ -97,7 +97,7 @@ end
 
 ---@diagnostic disable-next-line: unused-local
 function class:nud_function(token)
-  error "not implemented"
+  return token:new_node():append(self:parse_funcbody())
 end
 
 ---@param token dromozoa.token
@@ -448,6 +448,15 @@ function class:parse_args(token)
     token:require "String"
     return new_node "args":append(token:new_node())
   end
+end
+
+---@return dromozoa.node
+function class:parse_funcbody()
+  local result = new_node "funcbody"
+
+  local parlist = new_node "parlist"
+
+  return result
 end
 
 ---@param token dromozoa.token
