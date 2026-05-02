@@ -166,25 +166,25 @@ test_parse_exp("1 + - 2 ^ 3", "(+ 1 (- (^ 2 3)))")
 
 test_parse_exp(
   "function () end",
-  "(function (funcbody parlist block))")
+  "(functiondef (funcbody parlist block))")
 test_parse_exp(
   "function (a) end",
-  "(function (funcbody (parlist a) block))")
+  "(functiondef (funcbody (parlist a) block))")
 test_parse_exp(
   "function (a, b) end",
-  "(function (funcbody (parlist a b) block))")
+  "(functiondef (funcbody (parlist a b) block))")
 test_parse_exp(
   "function (a, b, ...) end",
-  "(function (funcbody (parlist a b ...) block))")
+  "(functiondef (funcbody (parlist a b ...) block))")
 test_parse_exp(
   "function (a, b, ...t) end",
-  "(function (funcbody (parlist a b (... t)) block))")
+  "(functiondef (funcbody (parlist a b (... t)) block))")
 test_parse_exp(
   "function (...) end",
-  "(function (funcbody (parlist ...) block))")
+  "(functiondef (funcbody (parlist ...) block))")
 test_parse_exp(
   "function (...t) end",
-  "(function (funcbody (parlist (... t)) block))")
+  "(functiondef (funcbody (parlist (... t)) block))")
 
 ---@param source string
 local function test_parse_exp_error(source)
@@ -278,6 +278,22 @@ test_parse_stat(
     )\z
   ")
 
+test_parse_stat(
+  "function f() end",
+  "(function f (funcbody parlist block))")
+test_parse_stat(
+  "function x.f() end",
+  "(function (. x f) (funcbody parlist block))")
+test_parse_stat(
+  "function x:f() end",
+  "(function (: x f) (funcbody parlist block))")
+test_parse_stat(
+  "function x.y.f() end",
+  "(function (. (. x y) f) (funcbody parlist block))")
+test_parse_stat(
+  "function x.y:f() end",
+  "(function (: (. x y) f) (funcbody parlist block))")
+
 ---@param source string
 local function test_parse_stat_error(source)
   test_parse_error(source, function(p)
@@ -289,6 +305,7 @@ test_parse_stat_error "::1::"
 test_parse_stat_error "goto 1"
 test_parse_stat_error "for i = 1 do print(i) end"
 test_parse_stat_error "for i = 1, 2, 3, 4 do print(i) end"
+test_parse_stat_error "function x:y:f() end"
 
 ---@param source string
 ---@param expect string

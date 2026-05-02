@@ -97,7 +97,7 @@ end
 
 ---@diagnostic disable-next-line: unused-local
 function class:nud_function(token)
-  return token:new_node():append(self:parse_funcbody())
+  return token:new_node "functiondef":append(self:parse_funcbody())
 end
 
 ---@param token dromozoa.token
@@ -329,6 +329,26 @@ function class:parse_stat()
       self:read():require "end"
       return result
     end
+  elseif token:check "function" then
+    local u = self:read():require "Name":new_node()
+    while true do
+      local x = self:read()
+      if x:check "." then
+        u = x:new_node():extend { u, self:read():require "Name":new_node() }
+      elseif x:check ":" then
+        u = x:new_node():extend { u, self:read():require "Name":new_node() }
+        self:peek():require "("
+        break
+      else
+        x:require "("
+        self:unread()
+        break
+      end
+    end
+    return token:new_node():extend {
+      u,
+      self:parse_funcbody(),
+    }
   else
     self:unread()
     local prefixexp = self:parse_prefixexp(0)
@@ -487,7 +507,7 @@ function class:parse_funcbody()
 
   x:require ")"
 
-  local result = new_node "funcbody"  :extend {
+  local result = new_node "funcbody":extend {
     parlist,
     self:parse_block(),
   }
