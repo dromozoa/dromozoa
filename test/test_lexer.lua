@@ -198,3 +198,6 @@ assert(token.kind == "Comment")
 assert(token.subkind == "Shebang")
 assert(token.text == "#! /usr/bin/env lua\n")
 assert(token.value == "! /usr/bin/env lua")
+
+local tokens = lexer.new():lex("---@alias x integer", "=(test)")
+assert(#tokens == 2)

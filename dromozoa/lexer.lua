@@ -244,7 +244,7 @@ function class:lex(source, filename)
       kind = "Comment"
       subkind = "Long"
       value = self._1
-    elseif self:match "%-%-(.-)\n" then
+    elseif self:match "%-%-([^\n]*)\n?" then
       kind = "Comment"
       subkind = "Short"
       value = self._1
