@@ -17,8 +17,12 @@
 
 local source_location = require "dromozoa.source_location"
 
+---@alias dromozoa.category "block" | "statement" | "expression" | "list" | "auxiliary"
+
 ---@class dromozoa.node
+---@field category dromozoa.category
 ---@field kind string
+---@field subkind string?
 ---@field token dromozoa.token?
 ---@field nodes dromozoa.node[]
 local class = {}
@@ -32,7 +36,24 @@ local metatable = {
 ---@return dromozoa.node
 function class.new(kind, token)
   return setmetatable({
+    category = nil,
     kind = kind,
+    subkind = nil,
+    token = token,
+    nodes = {},
+  }, metatable)
+end
+
+---@param category dromozoa.category
+---@param kind string
+---@param subkind string?
+---@param token dromozoa.token?
+---@return dromozoa.node
+function class.new2(category, kind, subkind, token)
+  return setmetatable({
+    category = category,
+    kind = kind,
+    subkind = subkind,
     token = token,
     nodes = {},
   }, metatable)

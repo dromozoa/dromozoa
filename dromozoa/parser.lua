@@ -17,7 +17,32 @@
 
 local node = require "dromozoa.node"
 
-local new_node = node.new
+--=========================================================================
+
+---@param kind string
+---@return dromozoa.node
+local function new_block_node(kind)
+  return node.new2("block", kind)
+end
+
+---@param kind string
+---@return dromozoa.node
+local function new_statement_node(kind)
+  return node.new2("statement", kind)
+end
+
+---@param kind string
+---@return dromozoa.node
+local function new_list_node(kind)
+  return node.new2("list", kind)
+end
+
+
+---@param kind string
+---@return dromozoa.node
+local function new_auxiliary_node(kind)
+  return node.new2("auxiliary", kind)
+end
 
 ---@alias dromozoa.nud fun(parser: dromozoa.parser, token: dromozoa.token): dromozoa.node
 ---@alias dromozoa.led_function fun(parser: dromozoa.parser, left: dromozoa.node, token: dromozoa.token, rbp: integer): dromozoa.node
@@ -235,7 +260,7 @@ local function stat_terminals()
 end
 
 function class:parse_block()
-  local result = new_node "block"
+  local result = new_block_node "block"
   while true do
     local token = self:read()
     if token:check "return" then
@@ -285,7 +310,7 @@ function class:parse_stat()
     local name = self:read():require "Name"
     if self:peek():check "=" then
       self:read()
-      local explist = new_node "explist"
+      local explist = new_list_node "explist"
       explist:append(self:parse_exp(0))
       self:read():require ","
       explist:append(self:parse_exp(0))
@@ -303,7 +328,7 @@ function class:parse_stat()
       self:read():require "end"
       return result
     else
-      local namelist = new_node "namelist":append(name:new_node())
+      local namelist = new_list_node "namelist":append(name:new_node())
       while true do
         local token = self:read()
         if token:check "in" then
@@ -312,7 +337,7 @@ function class:parse_stat()
         token:require ","
         namelist:append(self:read():require "Name":new_node())
       end
-      local explist = new_node "explist":append(self:parse_exp(0))
+      local explist = new_list_node "explist":append(self:parse_exp(0))
       while true do
         local token = self:read()
         if token:check "do" then
@@ -353,12 +378,12 @@ function class:parse_stat()
     self:unread()
     local prefixexp = self:parse_prefixexp(0)
     if prefixexp:check("call", "self") then
-      return new_node "functioncall":append(prefixexp)
+      return new_statement_node "call":append(prefixexp)
     else
       prefixexp:require("Name", "index", "property")
 
       local token
-      local varlist = new_node "varlist":append(prefixexp)
+      local varlist = new_list_node "varlist":append(prefixexp)
       while true do
         token = self:read()
         if token:check "=" then
@@ -369,7 +394,7 @@ function class:parse_stat()
         varlist:append(var:require("Name", "index", "property"))
       end
 
-      local explist = new_node "explist"
+      local explist = new_list_node "explist"
       while true do
         explist:append(self:parse_exp(0))
         if not self:read():check "," then
@@ -463,10 +488,10 @@ function class:parse_args(token)
       result:append(self:parse_exp(0))
     end
   elseif token:check "{" then
-    return new_node "args":append(self:parse_table(token))
+    return new_list_node "args":append(self:parse_table(token))
   else
     token:require "String"
-    return new_node "args":append(token:new_node())
+    return new_list_node "args":append(token:new_node())
   end
 end
 
@@ -474,7 +499,7 @@ end
 function class:parse_funcbody()
   self:read():require "("
 
-  local parlist = new_node "parlist"
+  local parlist = new_list_node "parlist"
 
   local x = self:read()
   if not x:check("...", ")") then
@@ -507,7 +532,7 @@ function class:parse_funcbody()
 
   x:require ")"
 
-  local result = new_node "funcbody":extend {
+  local result = new_auxiliary_node "funcbody":extend {
     parlist,
     self:parse_block(),
   }
@@ -554,7 +579,7 @@ function class:parse_field()
     }
   else
     self:unread()
-    return new_node "list_field":append(self:parse_exp(0))
+    return new_auxiliary_node "list_field":append(self:parse_exp(0))
   end
 end
 

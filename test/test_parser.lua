@@ -212,18 +212,18 @@ test_parse_stat(";", ";")
 test_parse_stat("break", "break")
 test_parse_stat("::L123::", "(label L123)")
 test_parse_stat("goto L123", "(goto L123)")
-test_parse_stat("f()", "(functioncall (call f args))")
-test_parse_stat("x:f()", "(functioncall (self x f args))")
+test_parse_stat("f()", "(call (call f args))")
+test_parse_stat("x:f()", "(call (self x f args))")
 test_parse_stat("a.b = 42", "(= (varlist (property a b)) (explist 42))")
 test_parse_stat(
   "do a = 1 b = 2 end",
   "(do (block (= (varlist a) (explist 1)) (= (varlist b) (explist 2))))")
 test_parse_stat(
   "while true do print(42) end",
-  "(while true (block (functioncall (call print (args 42)))))")
+  "(while true (block (call (call print (args 42)))))")
 test_parse_stat(
   "repeat print(42) until false",
-  "(repeat (block (functioncall (call print (args 42)))) false)")
+  "(repeat (block (call (call print (args 42)))) false)")
 test_parse_stat("if 1 then end", "(if 1 block)")
 test_parse_stat("if 1 then ; end", "(if 1 (block ;))")
 test_parse_stat(
@@ -255,7 +255,7 @@ test_parse_stat(
   "\z
     (numeric_for i (explist 1 10) \z
       (block \z
-        (functioncall (call print (args i)))\z
+        (call (call print (args i)))\z
       )\z
     )\z
   ")
@@ -264,7 +264,7 @@ test_parse_stat(
   "\z
     (numeric_for i (explist 10 1 (- 1)) \z
       (block \z
-        (functioncall (call print (args i)))\z
+        (call (call print (args i)))\z
       )\z
     )\z
   ")
@@ -273,7 +273,7 @@ test_parse_stat(
   "\z
     (generic_for (namelist k v) (explist (call pairs (args t))) \z
       (block \z
-        (functioncall (call print (args k v)))\z
+        (call (call print (args k v)))\z
       )\z
     )\z
   ")
