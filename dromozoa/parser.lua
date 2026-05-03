@@ -109,56 +109,58 @@ end
 
 --=========================================================================
 
----@param token dromozoa.token
+---@param x dromozoa.token
 ---@return dromozoa.node
-function class:nud_token(token)
-  return token:new_expression_node()
+function class:nud_token(x)
+  return x:new_expression_node()
 end
 
-function class:nud_function(token)
-  return token:new_expression_node "function":append(self:parse_funcbody())
+---@param x dromozoa.token
+---@return dromozoa.node
+function class:nud_function(x)
+  return x:new_expression_node "function":append(self:parse_funcbody())
 end
 
----@param token dromozoa.token
+---@param x dromozoa.token
 ---@return dromozoa.node
-function class:nud_table(token)
-  return self:parse_table(token)
+function class:nud_table(x)
+  return self:parse_table(x)
 end
 
----@param token dromozoa.token
+---@param x dromozoa.token
 ---@return dromozoa.node
-function class:nud_prefix(token)
-  return token:new_expression_node():append(self:parse_exp(prefix_lbp))
+function class:nud_prefix(x)
+  return x:new_expression_node():append(self:parse_exp(prefix_lbp))
 end
 
----@param token dromozoa.token
+---@param x dromozoa.token
 ---@return dromozoa.node
-function class:nud_group(token)
-  local result = token:new_expression_node "group":append(self:parse_exp())
+function class:nud_group(x)
+  local u = x:new_expression_node "group":append(self:parse_exp())
   self:read():require ")"
-  return result
+  return u
 end
 
 --=========================================================================
 
----@param left dromozoa.node
----@param token dromozoa.token
+---@param u dromozoa.node
+---@param x dromozoa.token
 ---@param rbp integer
 ---@return dromozoa.node
-function class:led_left(left, token, rbp)
-  return token:new_expression_node():extend {
-    left,
+function class:led_left(u, x, rbp)
+  return x:new_expression_node():extend {
+    u,
     self:parse_exp(rbp),
   }
 end
 
----@param left dromozoa.node
----@param token dromozoa.token
+---@param u dromozoa.node
+---@param x dromozoa.token
 ---@param rbp integer
 ---@return dromozoa.node
-function class:led_right(left, token, rbp)
-  return token:new_expression_node():extend {
-    left,
+function class:led_right(u, x, rbp)
+  return x:new_expression_node():extend {
+    u,
     self:parse_exp(rbp - 1),
   }
 end
