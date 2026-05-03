@@ -145,20 +145,20 @@ test_parse_exp("{1,2,3}", "(table (list_field 1) (list_field 2) (list_field 3))"
 test_parse_exp("{1,2,3,}", "(table (list_field 1) (list_field 2) (list_field 3))")
 test_parse_exp("{a=b,c}", "(table (member_field a b) (list_field c))")
 
-test_parse_exp("f()", "(call f args)")
-test_parse_exp("f(a)", "(call f (args a))")
-test_parse_exp("f(a,b)", "(call f (args a b))")
-test_parse_exp("f{}", "(call f (args table))")
-test_parse_exp("f{a}", "(call f (args (table (list_field a))))")
-test_parse_exp("f{a,b}", "(call f (args (table (list_field a) (list_field b))))")
-test_parse_exp("f[[a]]", "(call f (args String))")
+test_parse_exp("f()", "(call f arguments)")
+test_parse_exp("f(a)", "(call f (arguments a))")
+test_parse_exp("f(a,b)", "(call f (arguments a b))")
+test_parse_exp("f{}", "(call f (arguments table))")
+test_parse_exp("f{a}", "(call f (arguments (table (list_field a))))")
+test_parse_exp("f{a,b}", "(call f (arguments (table (list_field a) (list_field b))))")
+test_parse_exp("f[[a]]", "(call f (arguments String))")
 
-test_parse_exp("x:f()", "(self x f args)")
-test_parse_exp("x:f(a)", "(self x f (args a))")
-test_parse_exp("x:f(a,b)", "(self x f (args a b))")
+test_parse_exp("x:f()", "(self x f arguments)")
+test_parse_exp("x:f(a)", "(self x f (arguments a))")
+test_parse_exp("x:f(a,b)", "(self x f (arguments a b))")
 
-test_parse_exp("x.y.f(1,2,3)", "(call (member (member x y) f) (args 1 2 3))")
-test_parse_exp("x.y:f(1,2,3)", "(self (member x y) f (args 1 2 3))")
+test_parse_exp("x.y.f(1,2,3)", "(call (member (member x y) f) (arguments 1 2 3))")
+test_parse_exp("x.y:f(1,2,3)", "(self (member x y) f (arguments 1 2 3))")
 
 test_parse_exp("1 + - - 2", "(+ 1 (- (- 2)))")
 test_parse_exp("- - 1 + 2", "(+ (- (- 1)) 2)")
@@ -188,7 +188,7 @@ test_parse_exp(
 
 test_parse_exp(
   "f()(1)[2][3] * 4",
-  "(* (index (index (call (call f args) (args 1)) 2) 3) 4)")
+  "(* (index (index (call (call f arguments) (arguments 1)) 2) 3) 4)")
 
 ---@param source string
 local function test_parse_exp_error(source)
@@ -216,18 +216,18 @@ test_parse_stat(";", ";")
 test_parse_stat("break", "break")
 test_parse_stat("::L123::", "(label L123)")
 test_parse_stat("goto L123", "(goto L123)")
-test_parse_stat("f()", "(call (call f args))")
-test_parse_stat("x:f()", "(call (self x f args))")
+test_parse_stat("f()", "(call (call f arguments))")
+test_parse_stat("x:f()", "(call (self x f arguments))")
 test_parse_stat("a.b = 42", "(= (varlist (member a b)) (explist 42))")
 test_parse_stat(
   "do a = 1 b = 2 end",
   "(do (block (= (varlist a) (explist 1)) (= (varlist b) (explist 2))))")
 test_parse_stat(
   "while true do print(42) end",
-  "(while true (block (call (call print (args 42)))))")
+  "(while true (block (call (call print (arguments 42)))))")
 test_parse_stat(
   "repeat print(42) until false",
-  "(repeat (block (call (call print (args 42)))) false)")
+  "(repeat (block (call (call print (arguments 42)))) false)")
 test_parse_stat("if 1 then end", "(if 1 block)")
 test_parse_stat("if 1 then ; end", "(if 1 (block ;))")
 test_parse_stat(
@@ -259,7 +259,7 @@ test_parse_stat(
   "\z
     (numeric_for i (explist 1 10) \z
       (block \z
-        (call (call print (args i)))\z
+        (call (call print (arguments i)))\z
       )\z
     )\z
   ")
@@ -268,16 +268,16 @@ test_parse_stat(
   "\z
     (numeric_for i (explist 10 1 (- 1)) \z
       (block \z
-        (call (call print (args i)))\z
+        (call (call print (arguments i)))\z
       )\z
     )\z
   ")
 test_parse_stat(
   "for k, v in pairs(t) do print(k, v) end",
   "\z
-    (generic_for (namelist k v) (explist (call pairs (args t))) \z
+    (generic_for (namelist k v) (explist (call pairs (arguments t))) \z
       (block \z
-        (call (call print (args k v)))\z
+        (call (call print (arguments k v)))\z
       )\z
     )\z
   ")

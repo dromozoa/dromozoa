@@ -460,29 +460,29 @@ function class:parse_prefixexp(rbp)
   return self:parse_led(u, rbp or 0, prefixexp_led_table)
 end
 
----@param token dromozoa.token
+---@param x dromozoa.token
 ---@return dromozoa.node
-function class:parse_args(token)
-  if token:check "(" then
-    local result = token:new_auxiliary_node "args"
-    if self:peek():check ")" then
-      self:read()
-      return result
+function class:parse_args(x)
+  if x:check "(" then
+    local u = x:new_auxiliary_node "arguments"
+    if self:read():check ")" then
+      return u
     end
-    result:append(self:parse_exp())
+    self:unread()
+    u:append(self:parse_exp())
     while true do
-      local token = self:read()
-      if token:check ")" then
-        return result
+      local x = self:read()
+      if x:check ")" then
+        return u
       end
-      token:require ","
-      result:append(self:parse_exp())
+      x:require ","
+      u:append(self:parse_exp())
     end
-  elseif token:check "{" then
-    return new_auxiliary_node "args":append(self:parse_tableconstructor(token))
+  elseif x:check "{" then
+    return new_auxiliary_node "arguments":append(self:parse_tableconstructor(x))
   else
-    token:require "String"
-    return new_auxiliary_node "args":append(token:new_auxiliary_node())
+    x:require "String"
+    return new_auxiliary_node "arguments":append(x:new_auxiliary_node())
   end
 end
 
