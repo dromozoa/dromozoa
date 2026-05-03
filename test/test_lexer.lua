@@ -176,7 +176,7 @@ local function test_lex_error(source)
     assert(not result)
     print(message)
   end
-  assert(assert(message):find "=%(test%):1:", ("{ message = %q }"):format(message))
+  assert(tostring(message):find "=%(test%):1:", ("{ message = %q }"):format(message))
 end
 
 test_lex_error "print(--[["
