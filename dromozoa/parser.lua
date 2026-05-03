@@ -642,12 +642,12 @@ prefixexp_nud_table = {
 }
 
 prefixexp_led_table = {
-  ["["]      = { lbp = 900, fn = class.led_index },
-  ["."]      = { lbp = 900, fn = class.led_property },
-  ["("]      = { lbp = 900, fn = class.led_call },
-  ["{"]      = { lbp = 900, fn = class.led_call },
-  ["String"] = { lbp = 900, fn = class.led_call },
-  [":"]      = { lbp = 900, fn = class.led_self },
+  ["["]      = { lbp = 100, fn = class.led_index },
+  ["."]      = { lbp = 100, fn = class.led_property },
+  ["("]      = { lbp = 100, fn = class.led_call },
+  ["{"]      = { lbp = 100, fn = class.led_call },
+  ["String"] = { lbp = 100, fn = class.led_call },
+  [":"]      = { lbp = 100, fn = class.led_self },
 }
 
 return class
