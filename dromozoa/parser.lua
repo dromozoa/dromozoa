@@ -44,6 +44,8 @@ local function new_auxiliary_node(kind)
   return node.new2("auxiliary", kind)
 end
 
+--=========================================================================
+
 ---@alias dromozoa.nud fun(parser: dromozoa.parser, token: dromozoa.token): dromozoa.node
 ---@alias dromozoa.led_function fun(parser: dromozoa.parser, left: dromozoa.node, token: dromozoa.token, rbp: integer): dromozoa.node
 ---@alias dromozoa.led { lbp: integer, fn: dromozoa.led_function }
@@ -117,12 +119,12 @@ end
 ---@param token dromozoa.token
 ---@return dromozoa.node
 function class:nud_token(token)
-  return token:new_node()
+  return token:new_expression_node()
 end
 
 ---@diagnostic disable-next-line: unused-local
 function class:nud_function(token)
-  return token:new_node "functiondef":append(self:parse_funcbody())
+  return token:new_expression_node "function":append(self:parse_funcbody())
 end
 
 ---@param token dromozoa.token

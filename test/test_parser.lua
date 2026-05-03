@@ -166,25 +166,25 @@ test_parse_exp("1 + - 2 ^ 3", "(+ 1 (- (^ 2 3)))")
 
 test_parse_exp(
   "function () end",
-  "(functiondef (funcbody parlist block))")
+  "(function (funcbody parlist block))")
 test_parse_exp(
   "function (a) end",
-  "(functiondef (funcbody (parlist a) block))")
+  "(function (funcbody (parlist a) block))")
 test_parse_exp(
   "function (a, b) end",
-  "(functiondef (funcbody (parlist a b) block))")
+  "(function (funcbody (parlist a b) block))")
 test_parse_exp(
   "function (a, b, ...) end",
-  "(functiondef (funcbody (parlist a b ...) block))")
+  "(function (funcbody (parlist a b ...) block))")
 test_parse_exp(
   "function (a, b, ...t) end",
-  "(functiondef (funcbody (parlist a b (... t)) block))")
+  "(function (funcbody (parlist a b (... t)) block))")
 test_parse_exp(
   "function (...) end",
-  "(functiondef (funcbody (parlist ...) block))")
+  "(function (funcbody (parlist ...) block))")
 test_parse_exp(
   "function (...t) end",
-  "(functiondef (funcbody (parlist (... t)) block))")
+  "(function (funcbody (parlist (... t)) block))")
 
 ---@param source string
 local function test_parse_exp_error(source)

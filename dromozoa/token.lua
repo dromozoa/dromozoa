@@ -74,4 +74,18 @@ function class:new_node(kind)
   return node.new(kind, self)
 end
 
+function class:new_statement_node(kind)
+  if not kind then
+    kind = self.kind
+  end
+  return node.new2("statement", kind, nil, self)
+end
+
+function class:new_expression_node(kind)
+  if not kind then
+    kind = self.kind
+  end
+  return node.new2("expression", kind, nil, self)
+end
+
 return class
