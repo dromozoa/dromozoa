@@ -134,7 +134,7 @@ end
 ---@param token dromozoa.token
 ---@return dromozoa.node
 function class:nud_group(token)
-  local result = token:new_expression_node "group":append(self:parse_exp(0))
+  local result = token:new_expression_node "group":append(self:parse_exp())
   self:read():require ")"
   return result
 end
@@ -171,7 +171,7 @@ end
 function class:led_index(left, token, rbp)
   local result = token:new_expression_node "index":extend {
     left,
-    self:parse_exp(0),
+    self:parse_exp(),
   }
   self:read():require "]"
   return result
@@ -286,7 +286,7 @@ function class:parse_stat()
     self:read():require "end"
     return result
   elseif token:check "while" then
-    local result = token:new_statement_node():append(self:parse_exp(0))
+    local result = token:new_statement_node():append(self:parse_exp())
     self:read():require "do"
     result:append(self:parse_block())
     self:read():require "end"
@@ -294,7 +294,7 @@ function class:parse_stat()
   elseif token:check "repeat" then
     local result = token:new_statement_node():append(self:parse_block())
     self:read():require "until"
-    result:append(self:parse_exp(0))
+    result:append(self:parse_exp())
     return result
   elseif token:check "if" then
     local result = self:parse_if(token)
@@ -305,12 +305,12 @@ function class:parse_stat()
     if self:peek():check "=" then
       self:read()
       local explist = new_auxiliary_node "explist"
-      explist:append(self:parse_exp(0))
+      explist:append(self:parse_exp())
       self:read():require ","
-      explist:append(self:parse_exp(0))
+      explist:append(self:parse_exp())
       local token = self:read()
       if token:check "," then
-        explist:append(self:parse_exp(0))
+        explist:append(self:parse_exp())
         token = self:read()
       end
       token:require "do"
@@ -331,14 +331,14 @@ function class:parse_stat()
         token:require ","
         namelist:append(self:read():require "Name":new_auxiliary_node())
       end
-      local explist = new_auxiliary_node "explist":append(self:parse_exp(0))
+      local explist = new_auxiliary_node "explist":append(self:parse_exp())
       while true do
         local token = self:read()
         if token:check "do" then
           break
         end
         token:require ","
-        explist:append(self:parse_exp(0))
+        explist:append(self:parse_exp())
       end
       local result = token:new_statement_node "generic_for":extend {
         namelist,
@@ -376,7 +376,7 @@ function class:parse_stat()
     }
   else
     self:unread()
-    local prefixexp = self:parse_prefixexp(0)
+    local prefixexp = self:parse_prefixexp()
     if prefixexp:check("call", "self") then
       return new_statement_node "call":append(prefixexp)
     else
@@ -390,13 +390,13 @@ function class:parse_stat()
           break
         end
         token:require ","
-        local var = self:parse_prefixexp(0)
+        local var = self:parse_prefixexp()
         varlist:append(var:require("Name", "index", "property"))
       end
 
       local explist = new_auxiliary_node "explist"
       while true do
-        explist:append(self:parse_exp(0))
+        explist:append(self:parse_exp())
         if not self:read():check "," then
           self:unread()
           break
@@ -409,7 +409,7 @@ function class:parse_stat()
 end
 
 function class:parse_if(token)
-  local result = token:new_statement_node():append(self:parse_exp(0))
+  local result = token:new_statement_node():append(self:parse_exp())
   self:read():require "then"
   result:append(self:parse_block())
   local token = self:read()
@@ -434,7 +434,7 @@ function class:parse_retstat(token)
     return result
   end
   self:unread()
-  result:append(self:parse_exp(0))
+  result:append(self:parse_exp())
 
   while true do
     local token = self:read()
@@ -446,11 +446,11 @@ function class:parse_retstat(token)
       return result
     end
     token:require ","
-    result:append(self:parse_exp(0))
+    result:append(self:parse_exp())
   end
 end
 
----@param rbp integer
+---@param rbp integer?
 ---@return dromozoa.node
 function class:parse_exp(rbp)
   local left = self:parse_nud(prefixexp_nud_table)
@@ -459,14 +459,14 @@ function class:parse_exp(rbp)
   else
     left = assert(self:parse_nud(exp_nud_table))
   end
-  return self:parse_led(left, rbp, exp_led_table)
+  return self:parse_led(left, rbp or 0, exp_led_table)
 end
 
----@param rbp integer
+---@param rbp integer?
 ---@return dromozoa.node
 function class:parse_prefixexp(rbp)
   local left = assert(self:parse_nud(prefixexp_nud_table))
-  return self:parse_led(left, rbp, prefixexp_led_table)
+  return self:parse_led(left, rbp or 0, prefixexp_led_table)
 end
 
 ---@param token dromozoa.token
@@ -478,14 +478,14 @@ function class:parse_args(token)
       self:read()
       return result
     end
-    result:append(self:parse_exp(0))
+    result:append(self:parse_exp())
     while true do
       local token = self:read()
       if token:check ")" then
         return result
       end
       token:require ","
-      result:append(self:parse_exp(0))
+      result:append(self:parse_exp())
     end
   elseif token:check "{" then
     return new_auxiliary_node "args":append(self:parse_table(token))
@@ -563,23 +563,23 @@ end
 function class:parse_field()
   local token = self:read()
   if token:check "[" then
-    local index = self:parse_exp(0)
+    local index = self:parse_exp()
     self:read():require "]"
     self:read():require "="
     return token:new_auxiliary_node "index_field":extend {
       index,
-      self:parse_exp(0),
+      self:parse_exp(),
     }
   elseif token:check "Name" and self:peek():check "=" then
     local index = token:new_auxiliary_node()
     self:read()
     return token:new_auxiliary_node "property_field":extend {
       index,
-      self:parse_exp(0),
+      self:parse_exp(),
     }
   else
     self:unread()
-    return new_auxiliary_node "list_field":append(self:parse_exp(0))
+    return new_auxiliary_node "list_field":append(self:parse_exp())
   end
 end
 
@@ -589,7 +589,7 @@ end
 function class:parse(tokens)
   self.tokens = tokens
   self.index = 1
-  return self:parse_exp(0)
+  return self:parse_block()
 end
 
 --=========================================================================
