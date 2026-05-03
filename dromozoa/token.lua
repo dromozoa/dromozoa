@@ -65,25 +65,32 @@ function class:require(...)
   error("unexpected symbol at " .. self.srcloc:to_string())
 end
 
+---@param category dromozoa.node.category
+---@param kind string?
+---@return dromozoa.node
+function class:new_node(category, kind)
+  if not kind then
+    kind = self.kind
+  end
+  return node.new(category, kind, self)
+end
+
+---@param kind string?
+---@return dromozoa.node
 function class:new_statement_node(kind)
-  if not kind then
-    kind = self.kind
-  end
-  return node.new("statement", kind, self)
+  return self:new_node("statement", kind)
 end
 
+---@param kind string?
+---@return dromozoa.node
 function class:new_expression_node(kind)
-  if not kind then
-    kind = self.kind
-  end
-  return node.new("expression", kind, self)
+  return self:new_node("expression", kind)
 end
 
+---@param kind string?
+---@return dromozoa.node
 function class:new_auxiliary_node(kind)
-  if not kind then
-    kind = self.kind
-  end
-  return node.new("auxiliary", kind, self)
+  return self:new_node("auxiliary", kind)
 end
 
 return class
