@@ -444,20 +444,20 @@ end
 ---@param rbp integer?
 ---@return dromozoa.node
 function class:parse_exp(rbp)
-  local left = self:parse_nud(prefixexp_nud_table)
-  if left then
-    left = self:parse_led(left, 0, prefixexp_led_table)
+  local u = self:parse_nud(prefixexp_nud_table)
+  if u then
+    u = self:parse_led(u, 0, prefixexp_led_table)
   else
-    left = assert(self:parse_nud(exp_nud_table))
+    u = assert(self:parse_nud(exp_nud_table))
   end
-  return self:parse_led(left, rbp or 0, exp_led_table)
+  return self:parse_led(u, rbp or 0, exp_led_table)
 end
 
 ---@param rbp integer?
 ---@return dromozoa.node
 function class:parse_prefixexp(rbp)
-  local left = assert(self:parse_nud(prefixexp_nud_table))
-  return self:parse_led(left, rbp or 0, prefixexp_led_table)
+  local u = assert(self:parse_nud(prefixexp_nud_table))
+  return self:parse_led(u, rbp or 0, prefixexp_led_table)
 end
 
 ---@param token dromozoa.token
