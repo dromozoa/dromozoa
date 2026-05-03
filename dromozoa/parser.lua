@@ -118,13 +118,13 @@ end
 ---@param x dromozoa.token
 ---@return dromozoa.node
 function class:nud_function(x)
-  return x:new_expression_node "function":append(self:parse_funcbody())
+  return x:new_expression_node():append(self:parse_funcbody())
 end
 
 ---@param x dromozoa.token
 ---@return dromozoa.node
 function class:nud_table(x)
-  return self:parse_table(x)
+  return self:parse_tableconstructor(x)
 end
 
 ---@param x dromozoa.token
@@ -479,7 +479,7 @@ function class:parse_args(token)
       result:append(self:parse_exp())
     end
   elseif token:check "{" then
-    return new_auxiliary_node "args":append(self:parse_table(token))
+    return new_auxiliary_node "args":append(self:parse_tableconstructor(token))
   else
     token:require "String"
     return new_auxiliary_node "args":append(token:new_auxiliary_node())
@@ -534,38 +534,37 @@ end
 
 ---@param token dromozoa.token
 ---@return dromozoa.node
-function class:parse_table(token)
-  local result = token:new_expression_node "table"
+function class:parse_tableconstructor(token)
+  local u = token:new_expression_node "table"
   while true do
-    if self:peek():check "}" then
-      self:read()
-      return result
+    local x = self:read()
+    if x:check "}" then
+      return u
     end
-    result:append(self:parse_field())
-    local token = self:read()
-    if token:check "}" then
-      return result
+    u:append(self:parse_field(x))
+    local x = self:read()
+    if x:check "}" then
+      return u
     end
-    token:require(",", ";")
+    x:require(",", ";")
   end
 end
 
+---@param x dromozoa.token
 ---@return dromozoa.node
-function class:parse_field()
-  local token = self:read()
-  if token:check "[" then
-    local index = self:parse_exp()
+function class:parse_field(x)
+  if x:check "[" then
+    local u = self:parse_exp()
     self:read():require "]"
     self:read():require "="
-    return token:new_auxiliary_node "index_field":extend {
-      index,
+    return x:new_auxiliary_node "index_field":extend {
+      u,
       self:parse_exp(),
     }
-  elseif token:check "Name" and self:peek():check "=" then
-    local index = token:new_auxiliary_node()
+  elseif x:check "Name" and self:peek():check "=" then
     self:read()
-    return token:new_auxiliary_node "member_field":extend {
-      index,
+    return x:new_auxiliary_node "member_field":extend {
+      x:new_auxiliary_node(),
       self:parse_exp(),
     }
   else
