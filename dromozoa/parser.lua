@@ -165,10 +165,8 @@ end
 
 ---@param u dromozoa.node
 ---@param x dromozoa.token
----@param rbp integer
 ---@return dromozoa.node
----@diagnostic disable-next-line: unused-local
-function class:led_index(u, x, rbp)
+function class:led_index(u, x)
   local v = self:parse_exp()
   self:read():require "]"
   return x:new_expression_node "index":extend { u, v }
@@ -176,32 +174,30 @@ end
 
 ---@param u dromozoa.node
 ---@param x dromozoa.token
----@param rbp integer
 ---@return dromozoa.node
----@diagnostic disable-next-line: unused-local
-function class:led_member(u, x, rbp)
-  local v = self:read():require "Name":new_expression_node()
-  return x:new_expression_node "member":extend { u, v }
+function class:led_member(u, x)
+  return x:new_expression_node "member":extend {
+    u,
+    self:read():require "Name":new_expression_node(),
+  }
 end
 
 ---@param u dromozoa.node
 ---@param x dromozoa.token
----@param rbp integer
 ---@return dromozoa.node
----@diagnostic disable-next-line: unused-local
-function class:led_call(u, x, rbp)
-  local v = self:parse_args(x)
-  return x:new_expression_node "call":extend { u, v }
+function class:led_call(u, x)
+  return x:new_expression_node "call":extend {
+    u,
+    self:parse_args(x),
+  }
 end
 
----@param left dromozoa.node
----@param token dromozoa.token
----@param rbp integer
+---@param u dromozoa.node
+---@param x dromozoa.token
 ---@return dromozoa.node
----@diagnostic disable-next-line: unused-local
-function class:led_self(left, token, rbp)
-  return token:new_expression_node "self":extend {
-    left,
+function class:led_self(u, x)
+  return x:new_expression_node "self":extend {
+    u,
     self:read():require "Name":new_expression_node(),
     self:parse_args(self:read()),
   }
