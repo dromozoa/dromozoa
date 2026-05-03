@@ -69,28 +69,21 @@ function class:new_statement_node(kind)
   if not kind then
     kind = self.kind
   end
-  return node.new("statement", kind, nil, self)
+  return node.new("statement", kind, self)
 end
 
 function class:new_expression_node(kind)
   if not kind then
     kind = self.kind
   end
-  return node.new("expression", kind, nil, self)
-end
-
-function class:new_list_node(kind)
-  if not kind then
-    kind = self.kind
-  end
-  return node.new("list", kind, nil, self)
+  return node.new("expression", kind, self)
 end
 
 function class:new_auxiliary_node(kind)
   if not kind then
     kind = self.kind
   end
-  return node.new("auxiliary", kind, nil, self)
+  return node.new("auxiliary", kind, self)
 end
 
 return class

@@ -33,13 +33,6 @@ end
 
 ---@param kind string
 ---@return dromozoa.node
-local function new_list_node(kind)
-  return node.new("list", kind)
-end
-
-
----@param kind string
----@return dromozoa.node
 local function new_auxiliary_node(kind)
   return node.new("auxiliary", kind)
 end
@@ -311,7 +304,7 @@ function class:parse_stat()
     local name = self:read():require "Name"
     if self:peek():check "=" then
       self:read()
-      local explist = new_list_node "explist"
+      local explist = new_auxiliary_node "explist"
       explist:append(self:parse_exp(0))
       self:read():require ","
       explist:append(self:parse_exp(0))
@@ -329,7 +322,7 @@ function class:parse_stat()
       self:read():require "end"
       return result
     else
-      local namelist = new_list_node "namelist":append(name:new_auxiliary_node())
+      local namelist = new_auxiliary_node "namelist":append(name:new_auxiliary_node())
       while true do
         local token = self:read()
         if token:check "in" then
@@ -338,7 +331,7 @@ function class:parse_stat()
         token:require ","
         namelist:append(self:read():require "Name":new_auxiliary_node())
       end
-      local explist = new_list_node "explist":append(self:parse_exp(0))
+      local explist = new_auxiliary_node "explist":append(self:parse_exp(0))
       while true do
         local token = self:read()
         if token:check "do" then
@@ -390,7 +383,7 @@ function class:parse_stat()
       prefixexp:require("Name", "index", "property")
 
       local token
-      local varlist = new_list_node "varlist":append(prefixexp)
+      local varlist = new_auxiliary_node "varlist":append(prefixexp)
       while true do
         token = self:read()
         if token:check "=" then
@@ -401,7 +394,7 @@ function class:parse_stat()
         varlist:append(var:require("Name", "index", "property"))
       end
 
-      local explist = new_list_node "explist"
+      local explist = new_auxiliary_node "explist"
       while true do
         explist:append(self:parse_exp(0))
         if not self:read():check "," then
@@ -480,7 +473,7 @@ end
 ---@return dromozoa.node
 function class:parse_args(token)
   if token:check "(" then
-    local result = token:new_list_node "args"
+    local result = token:new_auxiliary_node "args"
     if self:peek():check ")" then
       self:read()
       return result
@@ -495,10 +488,10 @@ function class:parse_args(token)
       result:append(self:parse_exp(0))
     end
   elseif token:check "{" then
-    return new_list_node "args":append(self:parse_table(token))
+    return new_auxiliary_node "args":append(self:parse_table(token))
   else
     token:require "String"
-    return new_list_node "args":append(token:new_auxiliary_node())
+    return new_auxiliary_node "args":append(token:new_auxiliary_node())
   end
 end
 
@@ -506,7 +499,7 @@ end
 function class:parse_funcbody()
   self:read():require "("
 
-  local parlist = new_list_node "parlist"
+  local parlist = new_auxiliary_node "parlist"
 
   local x = self:read()
   if not x:check("...", ")") then
