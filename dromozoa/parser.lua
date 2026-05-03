@@ -39,8 +39,8 @@ end
 
 --=========================================================================
 
----@alias dromozoa.nud fun(parser: dromozoa.parser, token: dromozoa.token): dromozoa.node
----@alias dromozoa.led_function fun(parser: dromozoa.parser, left: dromozoa.node, token: dromozoa.token, rbp: integer): dromozoa.node
+---@alias dromozoa.nud fun(parser: dromozoa.parser, x: dromozoa.token): dromozoa.node
+---@alias dromozoa.led_function fun(parser: dromozoa.parser, u: dromozoa.node, x: dromozoa.token, rbp: integer): dromozoa.node
 ---@alias dromozoa.led { lbp: integer, fn: dromozoa.led_function }
 
 ---@type table<string, dromozoa.nud>
@@ -211,30 +211,30 @@ end
 ---@return dromozoa.node?
 ---@return string?
 function class:parse_nud(nud_table)
-  local token = self:read()
-  local nud = nud_table[token.kind]
+  local x = self:read()
+  local nud = nud_table[x.kind]
   if not nud then
     self:unread()
-    return nil, "syntax error at " .. token.srcloc:to_string()
+    return nil, "syntax error at " .. x.srcloc:to_string()
   end
-  return nud(self, token)
+  return nud(self, x)
 end
 
----@param left dromozoa.node
+---@param u dromozoa.node
 ---@param rbp integer
 ---@param led_table table<string, dromozoa.led>
 ---@return dromozoa.node
-function class:parse_led(left, rbp, led_table)
+function class:parse_led(u, rbp, led_table)
   while true do
-    local token = self:read()
-    local led = led_table[token.kind]
+    local x = self:read()
+    local led = led_table[x.kind]
     if not led or led.lbp <= rbp then
       self:unread()
       break
     end
-    left = led.fn(self, left, token, led.lbp)
+    u = led.fn(self, u, x, led.lbp)
   end
-  return left
+  return u
 end
 
 --=========================================================================
