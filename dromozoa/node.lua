@@ -17,10 +17,10 @@
 
 local source_location = require "dromozoa.source_location"
 
----@alias dromozoa.category "block" | "statement" | "expression" | "auxiliary"
+---@alias dromozoa.node.category "block" | "statement" | "expression" | "auxiliary"
 
 ---@class dromozoa.node
----@field category dromozoa.category
+---@field category dromozoa.node.category
 ---@field kind string
 ---@field token dromozoa.token?
 ---@field nodes dromozoa.node[]
@@ -30,7 +30,7 @@ local metatable = {
   __name = "dromozoa.node",
 }
 
----@param category dromozoa.category
+---@param category dromozoa.node.category
 ---@param kind string
 ---@param token dromozoa.token?
 ---@return dromozoa.node
