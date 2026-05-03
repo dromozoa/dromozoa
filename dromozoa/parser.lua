@@ -488,14 +488,12 @@ end
 
 ---@return dromozoa.node
 function class:parse_funcbody()
-  self:read():require "("
-
-  local parlist = new_auxiliary_node "parlist"
+  local u = self:read():require "(":new_auxiliary_node "parameters"
 
   local x = self:read()
   if not x:check("...", ")") then
     while true do
-      parlist:append(x:require "Name":new_auxiliary_node())
+      u:append(x:require "Name":new_auxiliary_node())
       local y = self:read()
       if y:check ")" then
         x = y
@@ -510,21 +508,21 @@ function class:parse_funcbody()
   end
 
   if x:check "..." then
-    local u = x:new_auxiliary_node()
+    local v = x:new_auxiliary_node()
     local y = self:read()
     if y:check "Name" then
-      u:append(y:new_auxiliary_node())
+      v:append(y:new_auxiliary_node())
       x = self:read()
     else
       x = y
     end
-    parlist:append(u)
+    u:append(v)
   end
 
   x:require ")"
 
   local result = new_auxiliary_node "funcbody":extend {
-    parlist,
+    u,
     self:parse_block(),
   }
   self:read():require "end"
