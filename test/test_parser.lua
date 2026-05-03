@@ -186,6 +186,10 @@ test_parse_exp(
   "function (...t) end",
   "(function (funcbody (parlist (... t)) block))")
 
+test_parse_exp(
+  "f()(1)[2][3] * 4",
+  "(* (index (index (call (call f args) (args 1)) 2) 3) 4)")
+
 ---@param source string
 local function test_parse_exp_error(source)
   test_parse_error(source, function(p)
