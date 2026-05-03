@@ -182,8 +182,8 @@ end
 ---@param rbp integer
 ---@return dromozoa.node
 ---@diagnostic disable-next-line: unused-local
-function class:led_property(left, token, rbp)
-  return token:new_expression_node "property":extend {
+function class:led_member(left, token, rbp)
+  return token:new_expression_node "member":extend {
     left,
     self:read():require "Name":new_expression_node(),
   }
@@ -380,7 +380,7 @@ function class:parse_stat()
     if prefixexp:check("call", "self") then
       return new_statement_node "call":append(prefixexp)
     else
-      prefixexp:require("Name", "index", "property")
+      prefixexp:require("Name", "index", "member")
 
       local token
       local varlist = new_auxiliary_node "varlist":append(prefixexp)
@@ -391,7 +391,7 @@ function class:parse_stat()
         end
         token:require ","
         local var = self:parse_prefixexp()
-        varlist:append(var:require("Name", "index", "property"))
+        varlist:append(var:require("Name", "index", "member"))
       end
 
       local explist = new_auxiliary_node "explist"
@@ -573,7 +573,7 @@ function class:parse_field()
   elseif token:check "Name" and self:peek():check "=" then
     local index = token:new_auxiliary_node()
     self:read()
-    return token:new_auxiliary_node "property_field":extend {
+    return token:new_auxiliary_node "member_field":extend {
       index,
       self:parse_exp(),
     }
@@ -643,7 +643,7 @@ prefixexp_nud_table = {
 
 prefixexp_led_table = {
   ["["]      = { lbp = 100, fn = class.led_index },
-  ["."]      = { lbp = 100, fn = class.led_property },
+  ["."]      = { lbp = 100, fn = class.led_member },
   ["("]      = { lbp = 100, fn = class.led_call },
   ["{"]      = { lbp = 100, fn = class.led_call },
   ["String"] = { lbp = 100, fn = class.led_call },

@@ -109,16 +109,16 @@ unary operators (not   #     -     ~)
     - `functioncall`ならば関数呼び出し文である。
     - `'(' exp ')'`は拒否される。
 
-| 表現     | 文法                                     | 名称     |
-|----------|------------------------------------------|----------|
-| `a[b]`   | `prefixexp '[' exp ']'`                  | index    |
-| `a.b`    | `prefixexp '.' Name`                     | property |
-| `a(b)`   | `prefixexp '(' [explist] ')'`            | call     |
-| `a{b}`   | `prefixexp '{' [fieldlist] '}'`          | call     |
-| `a"b"`   | `prefixexp LiteralString`                | call     |
-| `a:b(c)` | `prefixexp ':' Name '(' [explist] ')'`   | self     |
-| `a:b{c}` | `prefixexp ':' Name '{' [fieldlist] '}'` | self     |
-| `a:b"c"` | `prefixexp ':' Name LiteralString`       | self     |
+| 表現     | 文法                                     | 名称   |
+|----------|------------------------------------------|--------|
+| `a[b]`   | `prefixexp '[' exp ']'`                  | index  |
+| `a.b`    | `prefixexp '.' Name`                     | member |
+| `a(b)`   | `prefixexp '(' [explist] ')'`            | call   |
+| `a{b}`   | `prefixexp '{' [fieldlist] '}'`          | call   |
+| `a"b"`   | `prefixexp LiteralString`                | call   |
+| `a:b(c)` | `prefixexp ':' Name '(' [explist] ')'`   | self   |
+| `a:b{c}` | `prefixexp ':' Name '{' [fieldlist] '}'` | self   |
+| `a:b"c"` | `prefixexp ':' Name LiteralString`       | self   |
 
 ## block
 
