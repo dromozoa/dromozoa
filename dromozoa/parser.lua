@@ -294,11 +294,11 @@ function class:parse_stat()
     self:read():require "end"
     return u
   elseif x:check "for" then
-    local name = self:read():require "Name"
+    local y = self:read():require "Name"
     if self:peek():check "=" then
-      return self:parse_numeric_for(x, name)
+      return self:parse_numeric_for(x, y)
     else
-      return self:parse_generic_for(x, name)
+      return self:parse_generic_for(x, y)
     end
   elseif x:check "function" then
     local u = self:read():require "Name":new_auxiliary_node()
