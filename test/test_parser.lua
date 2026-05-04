@@ -212,7 +212,7 @@ local function test_parse_stat(source, expect)
   end)
 end
 
-test_parse_stat(";", ";")
+test_parse_stat(";", "empty")
 test_parse_stat("break", "break")
 test_parse_stat("::L123::", "(label L123)")
 test_parse_stat("goto L123", "(goto L123)")
@@ -229,7 +229,7 @@ test_parse_stat(
   "repeat print(42) until false",
   "(repeat (block (call (call print (arguments 42)))) false)")
 test_parse_stat("if 1 then end", "(if 1 block)")
-test_parse_stat("if 1 then ; end", "(if 1 (block ;))")
+test_parse_stat("if 1 then ; end", "(if 1 (block empty))")
 test_parse_stat(
   "if 1 then ::L1:: else ::L2:: end",
   "(if 1 (block (label L1)) (block (label L2)))")
@@ -321,12 +321,12 @@ end
 
 test_parse_block("::L1::", "(block (label L1))")
 test_parse_block("::L1::::L2::", "(block (label L1) (label L2))")
-test_parse_block(";return", "(block ; return)")
-test_parse_block(";return;", "(block ; return)")
-test_parse_block(";return 1", "(block ; (return 1))")
-test_parse_block(";return 1;", "(block ; (return 1))")
-test_parse_block(";return 1,2", "(block ; (return 1 2))")
-test_parse_block(";return 1,2;", "(block ; (return 1 2))")
+test_parse_block(";return", "(block empty return)")
+test_parse_block(";return;", "(block empty return)")
+test_parse_block(";return 1", "(block empty (return 1))")
+test_parse_block(";return 1;", "(block empty (return 1))")
+test_parse_block(";return 1,2", "(block empty (return 1 2))")
+test_parse_block(";return 1,2;", "(block empty (return 1 2))")
 
 ---@param source string
 local function test_parse_block_error(source)

@@ -262,20 +262,20 @@ end
 
 function class:parse_stat()
   local token = self:read()
-  if token:check ";" or token:check "break" then
-    return token:new_statement_node()
+  if token:check ";" then
+    return token:new_statement_node "empty"
   elseif token:check "::" then
-    local result = token:new_statement_node "label":append(self:read():require "Name":new_auxiliary_node())
+    local u = token:new_statement_node "label":append(self:read():require "Name":new_auxiliary_node())
     self:read():require "::"
-    return result
+    return u
   elseif token:check "break" then
     return token:new_statement_node()
   elseif token:check "goto" then
     return token:new_statement_node():append(self:read():require "Name":new_auxiliary_node())
   elseif token:check "do" then
-    local result = token:new_statement_node():append(self:parse_block())
+    local u = token:new_statement_node():append(self:parse_block())
     self:read():require "end"
-    return result
+    return u
   elseif token:check "while" then
     local result = token:new_statement_node():append(self:parse_exp())
     self:read():require "do"
@@ -494,40 +494,34 @@ function class:parse_funcbody()
   if not x:check("...", ")") then
     while true do
       u:append(x:require "Name":new_auxiliary_node())
-      local y = self:read()
-      if y:check ")" then
-        x = y
+      x = self:read()
+      if x:check ")" then
         break
       end
-      y:require ","
+      x:require ","
       x = self:read()
       if x:check "..." then
         break
       end
     end
   end
-
   if x:check "..." then
     local v = x:new_auxiliary_node()
-    local y = self:read()
-    if y:check "Name" then
-      v:append(y:new_auxiliary_node())
+    x = self:read()
+    if x:check "Name" then
+      v:append(x:new_auxiliary_node())
       x = self:read()
-    else
-      x = y
     end
     u:append(v)
   end
-
   x:require ")"
 
-  local result = new_auxiliary_node "funcbody":extend {
+  local u = new_auxiliary_node "funcbody":extend {
     u,
     self:parse_block(),
   }
   self:read():require "end"
-
-  return result
+  return u
 end
 
 ---@param token dromozoa.token
