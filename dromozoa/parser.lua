@@ -261,37 +261,37 @@ function class:parse_block()
 end
 
 function class:parse_stat()
-  local token = self:read()
-  if token:check ";" then
-    return token:new_statement_node "empty"
-  elseif token:check "::" then
-    local u = token:new_statement_node "label":append(self:read():require "Name":new_auxiliary_node())
+  local x = self:read()
+  if x:check ";" then
+    return x:new_statement_node "empty"
+  elseif x:check "::" then
+    local u = x:new_statement_node "label":append(self:read():require "Name":new_auxiliary_node())
     self:read():require "::"
     return u
-  elseif token:check "break" then
-    return token:new_statement_node()
-  elseif token:check "goto" then
-    return token:new_statement_node():append(self:read():require "Name":new_auxiliary_node())
-  elseif token:check "do" then
-    local u = token:new_statement_node():append(self:parse_block())
+  elseif x:check "break" then
+    return x:new_statement_node()
+  elseif x:check "goto" then
+    return x:new_statement_node():append(self:read():require "Name":new_auxiliary_node())
+  elseif x:check "do" then
+    local u = x:new_statement_node():append(self:parse_block())
     self:read():require "end"
     return u
-  elseif token:check "while" then
-    local result = token:new_statement_node():append(self:parse_exp())
+  elseif x:check "while" then
+    local u = x:new_statement_node():append(self:parse_exp())
     self:read():require "do"
-    result:append(self:parse_block())
+    u:append(self:parse_block())
     self:read():require "end"
-    return result
-  elseif token:check "repeat" then
-    local result = token:new_statement_node():append(self:parse_block())
+    return u
+  elseif x:check "repeat" then
+    local u = x:new_statement_node():append(self:parse_block())
     self:read():require "until"
-    result:append(self:parse_exp())
-    return result
-  elseif token:check "if" then
-    local result = self:parse_if(token)
+    u:append(self:parse_exp())
+    return u
+  elseif x:check "if" then
+    local u = self:parse_if(x)
     self:read():require "end"
-    return result
-  elseif token:check "for" then
+    return u
+  elseif x:check "for" then
     local name = self:read():require "Name"
     if self:peek():check "=" then
       self:read()
@@ -331,7 +331,7 @@ function class:parse_stat()
         token:require ","
         explist:append(self:parse_exp())
       end
-      local result = token:new_statement_node "generic_for":extend {
+      local result = x:new_statement_node "generic_for":extend {
         namelist,
         explist,
         self:parse_block(),
@@ -339,7 +339,7 @@ function class:parse_stat()
       self:read():require "end"
       return result
     end
-  elseif token:check "function" then
+  elseif x:check "function" then
     local u = self:read():require "Name":new_auxiliary_node()
     while true do
       local x = self:read()
@@ -361,7 +361,7 @@ function class:parse_stat()
         break
       end
     end
-    return token:new_auxiliary_node():extend {
+    return x:new_auxiliary_node():extend {
       u,
       self:parse_funcbody(),
     }
