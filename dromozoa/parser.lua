@@ -20,24 +20,21 @@ local node = require "dromozoa.node"
 --=========================================================================
 
 ---@param kind string
----@param attribute dromozoa.token?
 ---@return dromozoa.node
-local function new_block_node(kind, attribute)
-  return node.new("block", kind, nil, attribute)
+local function new_block_node(kind)
+  return node.new("block", kind)
 end
 
 ---@param kind string
----@param attribute dromozoa.token?
 ---@return dromozoa.node
-local function new_statement_node(kind, attribute)
-  return node.new("statement", kind, nil, attribute)
+local function new_statement_node(kind)
+  return node.new("statement", kind)
 end
 
 ---@param kind string
----@param attribute dromozoa.token?
 ---@return dromozoa.node
-local function new_auxiliary_node(kind, attribute)
-  return node.new("auxiliary", kind, nil, attribute)
+local function new_auxiliary_node(kind)
+  return node.new("auxiliary", kind)
 end
 
 ---@return string ...
@@ -320,7 +317,7 @@ function class:parse_stat()
       }
     end
     self:unread()
-    local u = x:new_auxiliary_node():append(self:parse_declaration(x))
+    local u = x:new_auxiliary_node():append(self:parse_declaration(x.kind))
     if self:peek():check "=" then
       self:read()
       u:append(self:parse_explist())
@@ -401,37 +398,41 @@ function class:parse_generic_for(x, y)
   return u
 end
 
-function class:parse_declaration(x)
+---@param kind "global" | "local"
+---@return dromozoa.node
+function class:parse_declaration(kind)
   local attribute
-  local y = self:read()
-  if y:check "<" then
+
+  local x = self:read()
+  if x:check "<" then
     attribute = self:read():require "Name"
     self:read():require ">"
-    y = self:read()
+    x = self:read()
   end
 
-  if x:check "global" and y:check "*" then
-    return y:new_auxiliary_node("any", attribute)
+  if kind == "global" and x:check "*" then
+    local u = x:new_auxiliary_node "any"
+    u.attribute = attribute
+    return u
   end
 
-  local u = new_auxiliary_node ("names", attribute)
+  local u = new_auxiliary_node("names")
+  u.attribute = attribute
   while true do
-    local v = y:require "Name":new_auxiliary_node()
+    local v = x:require "Name":new_auxiliary_node()
     u:append(v)
-
-    y = self:read()
-    if y:check "<" then
+    x = self:read()
+    if x:check "<" then
       v.attribute = self:read():require "Name"
       self:read():require ">"
-      y = self:read()
+      x = self:read()
     end
-    if not y:check "," then
+    if not x:check "," then
       self:unread()
       break
     end
-    y = self:read()
+    x = self:read()
   end
-
   return u
 end
 
