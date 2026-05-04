@@ -244,6 +244,7 @@ local function stat_terminals()
   return "end", "until", "elseif", "else", "EOF"
 end
 
+---@return dromozoa.node
 function class:parse_block()
   local result = new_block_node "block"
   while true do
@@ -260,6 +261,7 @@ function class:parse_block()
   end
 end
 
+---@return dromozoa.node
 function class:parse_stat()
   local x = self:read()
   if x:check ";" then
@@ -399,18 +401,23 @@ function class:parse_stat()
   end
 end
 
-function class:parse_if(token)
-  local result = token:new_statement_node():append(self:parse_exp())
+---@param x dromozoa.token
+---@return dromozoa.node
+function class:parse_if(x)
+  local u = x:new_statement_node():append(self:parse_exp())
   self:read():require "then"
-  result:append(self:parse_block())
-  local token = self:read()
-  if token:check "elseif" then
-    return result:append(self:parse_if(token))
-  elseif token:check "else" then
-    return result:append(self:parse_block())
+  u:append(self:parse_block())
+  local x = self:read()
+  if x:check "elseif" then
+    return u:append(self:parse_if(x))
+  elseif x:check "else" then
+    return u:append(self:parse_block())
   end
   self:unread()
-  return result
+  return u
+end
+
+function class:parse_numeric_for()
 end
 
 function class:parse_retstat(token)
