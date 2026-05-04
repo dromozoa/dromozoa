@@ -218,10 +218,10 @@ test_parse_stat("::L123::", "(label L123)")
 test_parse_stat("goto L123", "(goto L123)")
 test_parse_stat("f()", "(call (call f arguments))")
 test_parse_stat("x:f()", "(call (self x f arguments))")
-test_parse_stat("a.b = 42", "(= (varlist (member a b)) (explist 42))")
+test_parse_stat("a.b = 42", "(assignment (varlist (member a b)) (explist 42))")
 test_parse_stat(
   "do a = 1 b = 2 end",
-  "(do (block (= (varlist a) (explist 1)) (= (varlist b) (explist 2))))")
+  "(do (block (assignment (varlist a) (explist 1)) (assignment (varlist b) (explist 2))))")
 test_parse_stat(
   "while true do print(42) end",
   "(while true (block (call (call print (arguments 42)))))")

@@ -244,6 +244,11 @@ local function stat_terminals()
   return "end", "until", "elseif", "else", "EOF"
 end
 
+---@return string ...
+local function var_kinds()
+  return "Name", "index", "member"
+end
+
 ---@return dromozoa.node
 function class:parse_block()
   local result = new_block_node "block"
@@ -301,40 +306,17 @@ function class:parse_stat()
       return self:parse_generic_for(x, y)
     end
   elseif x:check "function" then
-    return x:new_auxiliary_node():extend {
+    return x:new_statement_node():extend {
       self:parse_funcname(),
       self:parse_funcbody(),
     }
   else
     self:unread()
-    local prefixexp = self:parse_prefixexp()
-    if prefixexp:check("call", "self") then
-      return new_statement_node "call":append(prefixexp)
+    local u = self:parse_prefixexp()
+    if u:check("call", "self") then
+      return new_statement_node "call":append(u)
     else
-      prefixexp:require("Name", "index", "member")
-
-      local token
-      local varlist = new_auxiliary_node "varlist":append(prefixexp)
-      while true do
-        token = self:read()
-        if token:check "=" then
-          break
-        end
-        token:require ","
-        local var = self:parse_prefixexp()
-        varlist:append(var:require("Name", "index", "member"))
-      end
-
-      local explist = new_auxiliary_node "explist"
-      while true do
-        explist:append(self:parse_exp())
-        if not self:read():check "," then
-          self:unread()
-          break
-        end
-      end
-
-      return token:new_statement_node():extend { varlist, explist }
+      return self:parse_assignment(u)
     end
   end
 end
@@ -408,6 +390,34 @@ function class:parse_generic_for(x, y)
   }
   self:read():require "end"
   return u
+end
+
+---@param u dromozoa.node
+---@return dromozoa.node
+function class:parse_assignment(u)
+  local u = new_auxiliary_node "varlist":append(u:require(var_kinds()))
+
+  local x
+  while true do
+    x = self:read()
+    if x:check "=" then
+      break
+    end
+    x:require ","
+    u:append(self:parse_prefixexp():require(var_kinds()))
+  end
+  x:require "="
+
+  local v = new_auxiliary_node "explist"
+  while true do
+    v:append(self:parse_exp())
+    if not self:read():check "," then
+      self:unread()
+      break
+    end
+  end
+
+  return x:new_statement_node "assignment":extend { u, v }
 end
 
 function class:parse_retstat(token)
