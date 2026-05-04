@@ -552,7 +552,7 @@ function class:parse_funcbody()
   end
   x:require ")"
 
-  local u = new_auxiliary_node "funcbody":extend {
+  local u = new_auxiliary_node "body":extend {
     u,
     self:parse_block(),
   }
@@ -560,22 +560,24 @@ function class:parse_funcbody()
   return u
 end
 
----@param token dromozoa.token
+---@param x dromozoa.token
 ---@return dromozoa.node
-function class:parse_tableconstructor(token)
-  local u = token:new_expression_node "table"
+function class:parse_tableconstructor(x)
+  local u = x:require "{":new_expression_node "table"
   while true do
-    local x = self:read()
+    x = self:read()
     if x:check "}" then
-      return u
+      break
     end
     u:append(self:parse_field(x))
-    local x = self:read()
+    x = self:read()
     if x:check "}" then
-      return u
+      break
     end
     x:require(",", ";")
   end
+  x:require "}"
+  return u
 end
 
 ---@param x dromozoa.token

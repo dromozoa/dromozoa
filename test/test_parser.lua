@@ -166,25 +166,25 @@ test_parse_exp("1 + - 2 ^ 3", "(+ 1 (- (^ 2 3)))")
 
 test_parse_exp(
   "function () end",
-  "(function (funcbody parameters block))")
+  "(function (body parameters block))")
 test_parse_exp(
   "function (a) end",
-  "(function (funcbody (parameters a) block))")
+  "(function (body (parameters a) block))")
 test_parse_exp(
   "function (a, b) end",
-  "(function (funcbody (parameters a b) block))")
+  "(function (body (parameters a b) block))")
 test_parse_exp(
   "function (a, b, ...) end",
-  "(function (funcbody (parameters a b ...) block))")
+  "(function (body (parameters a b ...) block))")
 test_parse_exp(
   "function (a, b, ...t) end",
-  "(function (funcbody (parameters a b (... t)) block))")
+  "(function (body (parameters a b (... t)) block))")
 test_parse_exp(
   "function (...) end",
-  "(function (funcbody (parameters ...) block))")
+  "(function (body (parameters ...) block))")
 test_parse_exp(
   "function (...t) end",
-  "(function (funcbody (parameters (... t)) block))")
+  "(function (body (parameters (... t)) block))")
 
 test_parse_exp(
   "f()(1)[2][3] * 4",
@@ -293,19 +293,19 @@ test_parse_stat(
 
 test_parse_stat(
   "function f() end",
-  "(function f (funcbody parameters block))")
+  "(function f (body parameters block))")
 test_parse_stat(
   "function x.f() end",
-  "(function (member x f) (funcbody parameters block))")
+  "(function (member x f) (body parameters block))")
 test_parse_stat(
   "function x:f() end",
-  "(function (method x f) (funcbody parameters block))")
+  "(function (method x f) (body parameters block))")
 test_parse_stat(
   "function x.y.f() end",
-  "(function (member (member x y) f) (funcbody parameters block))")
+  "(function (member (member x y) f) (body parameters block))")
 test_parse_stat(
   "function x.y:f() end",
-  "(function (method (member x y) f) (funcbody parameters block))")
+  "(function (method (member x y) f) (body parameters block))")
 
 ---@param source string
 local function test_parse_stat_error(source)
