@@ -422,31 +422,29 @@ end
 ---@param x dromozoa.token
 ---@return dromozoa.node
 function class:parse_retstat(x)
-  local u = x:new_statement_node()
+  local u = x:require "return":new_statement_node()
 
   local x = self:read()
   if x:check ";" then
-    self:peek():require(stat_terminal_kinds())
-    return u
-  elseif x:check(stat_terminal_kinds()) then
+    x = self:read()
+  elseif not x:check(stat_terminal_kinds()) then
     self:unread()
-    return u
-  end
-  self:unread()
-  u:append(self:parse_exp())
-
-  while true do
-    local x = self:read()
-    if x:check ";" then
-      self:peek():require(stat_terminal_kinds())
-      return u
-    elseif x:check(stat_terminal_kinds()) then
-      self:unread()
-      return u
-    end
-    x:require ","
     u:append(self:parse_exp())
+    while true do
+      x = self:read()
+      if x:check ";" then
+        x = self:read()
+        break
+      elseif x:check(stat_terminal_kinds()) then
+        break
+      end
+      x:require ","
+      u:append(self:parse_exp())
+    end
   end
+  x:require(stat_terminal_kinds())
+  self:unread()
+  return u
 end
 
 ---@return dromozoa.node
