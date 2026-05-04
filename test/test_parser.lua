@@ -334,6 +334,28 @@ test_parse_stat(
   "local <const> x <const>, y <close>",
   "(local (names <const> (x <const>) (y <close>)))")
 
+test_parse_stat(
+  "global x",
+  "(global (names x))")
+test_parse_stat(
+  "global x <const>",
+  "(global (names (x <const>)))")
+test_parse_stat(
+  "global x <const>, y <close>",
+  "(global (names (x <const>) (y <close>)))")
+test_parse_stat(
+  "global <const> x",
+  "(global (names <const> x))")
+test_parse_stat(
+  "global <const> x <const>",
+  "(global (names <const> (x <const>)))")
+test_parse_stat(
+  "global <const> x <const>, y <close>",
+  "(global (names <const> (x <const>) (y <close>)))")
+
+test_parse_stat("global *", "(global any)")
+test_parse_stat("global <const> *", "(global (any <const>))")
+
 ---@param source string
 local function test_parse_stat_error(source)
   test_parse_error(source, function(p)
@@ -346,6 +368,8 @@ test_parse_stat_error "goto 1"
 test_parse_stat_error "for i = 1 do print(i) end"
 test_parse_stat_error "for i = 1, 2, 3, 4 do print(i) end"
 test_parse_stat_error "function x:y:f() end"
+test_parse_stat_error "local *"
+test_parse_stat_error "local <const> *"
 
 ---@param source string
 ---@param expect string
