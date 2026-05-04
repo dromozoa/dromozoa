@@ -22,4 +22,5 @@ local util = require "dromozoa.util"
 local filename = ...
 local source = util.normalize_eol(util.read_file(filename))
 local tokens = lexer.new():lex(source, filename)
-parser.new():parse(tokens)
+local chunk = parser.new():parse(tokens)
+print(chunk:srcloc():to_string())

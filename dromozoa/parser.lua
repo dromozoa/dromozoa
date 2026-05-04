@@ -661,7 +661,7 @@ end
 function class:parse(tokens)
   self.tokens = tokens
   self.index = 1
-  return self:parse_block()
+  return new_block_node "chunk":append(self:parse_block())
 end
 
 --=========================================================================
