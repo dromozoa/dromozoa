@@ -423,11 +423,14 @@ end
 ---@return dromozoa.node
 function class:parse_retstat(x)
   local u = x:require "return":new_statement_node()
-
   local x = self:read()
-  if x:check ";" then
-    x = self:read()
-  elseif not x:check(stat_terminal_kinds()) then
+  repeat
+    if x:check ";" then
+      x = self:read()
+      break
+    elseif x:check(stat_terminal_kinds()) then
+      break
+    end
     self:unread()
     u:append(self:parse_exp())
     while true do
@@ -441,7 +444,7 @@ function class:parse_retstat(x)
       x:require ","
       u:append(self:parse_exp())
     end
-  end
+  until true
   x:require(stat_terminal_kinds())
   self:unread()
   return u
