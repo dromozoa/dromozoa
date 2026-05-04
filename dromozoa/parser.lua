@@ -301,29 +301,8 @@ function class:parse_stat()
       return self:parse_generic_for(x, y)
     end
   elseif x:check "function" then
-    local u = self:read():require "Name":new_auxiliary_node()
-    while true do
-      local x = self:read()
-      if x:check "." then
-        u = x:new_expression_node():extend {
-          u,
-          self:read():require "Name":new_auxiliary_node(),
-        }
-      elseif x:check ":" then
-        u = x:new_expression_node():extend {
-          u,
-          self:read():require "Name":new_auxiliary_node(),
-        }
-        self:peek():require "("
-        break
-      else
-        x:require "("
-        self:unread()
-        break
-      end
-    end
     return x:new_auxiliary_node():extend {
-      u,
+      self:parse_funcname(),
       self:parse_funcbody(),
     }
   else
@@ -457,6 +436,33 @@ function class:parse_retstat(token)
     token:require ","
     result:append(self:parse_exp())
   end
+end
+
+---@return dromozoa.node
+function class:parse_funcname()
+  local u = self:read():require "Name":new_expression_node()
+  local x
+  while true do
+    x = self:read()
+    if x:check "." then
+      u = x:new_expression_node "member":extend {
+        u,
+        self:read():require "Name":new_expression_node(),
+      }
+    else
+      if x:check ":" then
+        u = x:new_expression_node "method":extend {
+          u,
+          self:read():require "Name":new_expression_node(),
+        }
+        x = self:read()
+      end
+      break
+    end
+  end
+  x:require "("
+  self:unread()
+  return u
 end
 
 ---@param rbp integer?

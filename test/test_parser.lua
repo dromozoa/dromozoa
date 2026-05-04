@@ -296,16 +296,16 @@ test_parse_stat(
   "(function f (funcbody parameters block))")
 test_parse_stat(
   "function x.f() end",
-  "(function (. x f) (funcbody parameters block))")
+  "(function (member x f) (funcbody parameters block))")
 test_parse_stat(
   "function x:f() end",
-  "(function (: x f) (funcbody parameters block))")
+  "(function (method x f) (funcbody parameters block))")
 test_parse_stat(
   "function x.y.f() end",
-  "(function (. (. x y) f) (funcbody parameters block))")
+  "(function (member (member x y) f) (funcbody parameters block))")
 test_parse_stat(
   "function x.y:f() end",
-  "(function (: (. x y) f) (funcbody parameters block))")
+  "(function (method (member x y) f) (funcbody parameters block))")
 
 ---@param source string
 local function test_parse_stat_error(source)
