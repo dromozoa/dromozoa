@@ -424,11 +424,11 @@ end
 function class:parse_retstat(x)
   local u = x:new_statement_node()
 
-  local token = self:read()
-  if token:check ";" then
+  local x = self:read()
+  if x:check ";" then
     self:peek():require(stat_terminal_kinds())
     return u
-  elseif token:check(stat_terminal_kinds()) then
+  elseif x:check(stat_terminal_kinds()) then
     self:unread()
     return u
   end
@@ -436,15 +436,15 @@ function class:parse_retstat(x)
   u:append(self:parse_exp())
 
   while true do
-    local token = self:read()
-    if token:check ";" then
+    local x = self:read()
+    if x:check ";" then
       self:peek():require(stat_terminal_kinds())
       return u
-    elseif token:check(stat_terminal_kinds()) then
+    elseif x:check(stat_terminal_kinds()) then
       self:unread()
       return u
     end
-    token:require ","
+    x:require ","
     u:append(self:parse_exp())
   end
 end
