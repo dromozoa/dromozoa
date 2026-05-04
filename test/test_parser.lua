@@ -123,7 +123,7 @@ end
 ---@param expect string
 local function test_parse_exp(source, expect)
   test_parse(source, expect, function(p)
-    return p:parse_exp(0)
+    return p:parse_exp()
   end)
 end
 
