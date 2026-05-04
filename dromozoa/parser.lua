@@ -37,6 +37,16 @@ local function new_auxiliary_node(kind)
   return node.new("auxiliary", kind)
 end
 
+---@return string ...
+local function stat_terminal_kinds()
+  return "end", "until", "elseif", "else", "EOF"
+end
+
+---@return string ...
+local function var_kinds()
+  return "Name", "index", "member"
+end
+
 --=========================================================================
 
 ---@alias dromozoa.nud fun(parser: dromozoa.parser, x: dromozoa.token): dromozoa.node
@@ -239,30 +249,19 @@ end
 
 --=========================================================================
 
----@return string ...
-local function stat_terminals()
-  return "end", "until", "elseif", "else", "EOF"
-end
-
----@return string ...
-local function var_kinds()
-  return "Name", "index", "member"
-end
-
 ---@return dromozoa.node
 function class:parse_block()
-  local result = new_block_node "block"
+  local u = new_block_node "block"
   while true do
-    local token = self:read()
-    if token:check "return" then
-      return result:append(self:parse_retstat(token))
-    elseif token:check(stat_terminals()) then
+    local x = self:read()
+    if x:check "return" then
+      return u:append(self:parse_retstat(x))
+    elseif x:check(stat_terminal_kinds()) then
       self:unread()
-      return result
+      return u
     end
-
     self:unread()
-    result:append(self:parse_stat())
+    u:append(self:parse_stat())
   end
 end
 
@@ -420,31 +419,33 @@ function class:parse_assignment(u)
   return x:new_statement_node "assignment":extend { u, v }
 end
 
-function class:parse_retstat(token)
-  local result = token:new_statement_node()
+---@param x dromozoa.token
+---@return dromozoa.node
+function class:parse_retstat(x)
+  local u = x:new_statement_node()
 
   local token = self:read()
   if token:check ";" then
-    self:peek():require(stat_terminals())
-    return result
-  elseif token:check(stat_terminals()) then
+    self:peek():require(stat_terminal_kinds())
+    return u
+  elseif token:check(stat_terminal_kinds()) then
     self:unread()
-    return result
+    return u
   end
   self:unread()
-  result:append(self:parse_exp())
+  u:append(self:parse_exp())
 
   while true do
     local token = self:read()
     if token:check ";" then
-      self:peek():require(stat_terminals())
-      return result
-    elseif token:check(stat_terminals()) then
+      self:peek():require(stat_terminal_kinds())
+      return u
+    elseif token:check(stat_terminal_kinds()) then
       self:unread()
-      return result
+      return u
     end
     token:require ","
-    result:append(self:parse_exp())
+    u:append(self:parse_exp())
   end
 end
 
