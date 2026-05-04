@@ -281,6 +281,15 @@ test_parse_stat(
       )\z
     )\z
   ")
+test_parse_stat(
+  "for k, v in next, t, nil do print(k, v) end",
+  "\z
+    (generic_for (namelist k v) (explist next t nil) \z
+      (block \z
+        (call (call print (arguments k v)))\z
+      )\z
+    )\z
+  ")
 
 test_parse_stat(
   "function f() end",

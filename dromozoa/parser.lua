@@ -419,8 +419,8 @@ function class:parse_generic_for(x, y)
     if x:check "do" then
       break
     end
-    token:require ","
-    explist:append(self:parse_exp())
+    x:require ","
+    v:append(self:parse_exp())
   end
   local u = x:new_statement_node "generic_for":extend {
     u,
