@@ -323,6 +323,20 @@ function class:parse_stat()
       u:append(self:parse_explist())
     end
     return u
+  elseif x:check "global" then
+    if self:read():check "function" then
+      return x:new_statement_node "global_function":extend {
+        self:read():require "Name":new_auxiliary_node(),
+        self:parse_funcbody(),
+      }
+    end
+    self:unread()
+    local u = x:new_statement_node():append(self:parse_attnamelist())
+    if self:peek():check "=" then
+      self:read()
+      u:append(self:parse_explist())
+    end
+    return u
   else
     self:unread()
     local u = self:parse_prefixexp()

@@ -3,6 +3,7 @@
 ## Lua 5.5のEBNF
 
 - https://www.lua.org/manual/5.5/manual.html#9
+- EBNFにはglobal変数宣言の初期化の記載が漏れているので注意。
 
 ```
 chunk ::= block
@@ -25,7 +26,7 @@ stat ::= ';' |
     'local' 'function' Name funcbody |
     'global' 'function' Name funcbody |
     'local' attnamelist ['=' explist] |
-    'global' attnamelist |
+    'global' attnamelist ['=' explist] |
     'global' [attrib] '*'
 
 attnamelist ::= [attrib] Name [attrib] {',' Name [attrib]}

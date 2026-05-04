@@ -9,7 +9,7 @@
   retstat_ = 'r';
   end = '$';
 
-  attrib = 'a';
+  attrib = '<' 'A' '>';
 
   var = 'v';
   varlist = var (',' var)*;
@@ -26,6 +26,7 @@
 
   block := stat* retstat_? end;
   attnamelist := attrib? Name attrib? (',' Name attrib?)*;
+  global := (attrib? Name attrib? (',' Name attrib?)* | attrib? '*');
   retstat := explist_? ';'? end;
   funcname := Name ('.' Name)* (':' Name)?;
   assign := varlist '=' explist_;
