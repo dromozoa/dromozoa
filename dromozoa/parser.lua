@@ -296,50 +296,9 @@ function class:parse_stat()
   elseif x:check "for" then
     local name = self:read():require "Name"
     if self:peek():check "=" then
-      self:read()
-      local explist = new_auxiliary_node "explist"
-      explist:append(self:parse_exp())
-      self:read():require ","
-      explist:append(self:parse_exp())
-      local token = self:read()
-      if token:check "," then
-        explist:append(self:parse_exp())
-        token = self:read()
-      end
-      token:require "do"
-      local result = token:new_statement_node "numeric_for":extend {
-        name:new_expression_node(),
-        explist,
-        self:parse_block(),
-      }
-      self:read():require "end"
-      return result
+      return self:parse_numeric_for(x, name)
     else
-      local namelist = new_auxiliary_node "namelist":append(name:new_auxiliary_node())
-      while true do
-        local token = self:read()
-        if token:check "in" then
-          break
-        end
-        token:require ","
-        namelist:append(self:read():require "Name":new_auxiliary_node())
-      end
-      local explist = new_auxiliary_node "explist":append(self:parse_exp())
-      while true do
-        local token = self:read()
-        if token:check "do" then
-          break
-        end
-        token:require ","
-        explist:append(self:parse_exp())
-      end
-      local result = x:new_statement_node "generic_for":extend {
-        namelist,
-        explist,
-        self:parse_block(),
-      }
-      self:read():require "end"
-      return result
+      return self:parse_generic_for(x, name)
     end
   elseif x:check "function" then
     local u = self:read():require "Name":new_auxiliary_node()
@@ -417,7 +376,59 @@ function class:parse_if(x)
   return u
 end
 
-function class:parse_numeric_for()
+---@param x dromozoa.token
+---@param y dromozoa.token
+---@return dromozoa.node
+function class:parse_numeric_for(x, y)
+  self:read():require "="
+  local u = new_auxiliary_node "explist"
+  u:append(self:parse_exp())
+  self:read():require ","
+  u:append(self:parse_exp())
+  local z = self:read()
+  if z:check "," then
+    u:append(self:parse_exp())
+    z = self:read()
+  end
+  z:require "do"
+  local u = x:new_statement_node "numeric_for":extend {
+    y:new_auxiliary_node(),
+    u,
+    self:parse_block(),
+  }
+  self:read():require "end"
+  return u
+end
+
+---@param x dromozoa.token
+---@param y dromozoa.token
+---@return dromozoa.node
+function class:parse_generic_for(x, y)
+  local u = new_auxiliary_node "namelist":append(y:new_auxiliary_node())
+  while true do
+    local x = self:read()
+    if x:check "in" then
+      break
+    end
+    x:require ","
+    u:append(self:read():require "Name":new_auxiliary_node())
+  end
+  local v = new_auxiliary_node "explist":append(self:parse_exp())
+  while true do
+    local x = self:read()
+    if x:check "do" then
+      break
+    end
+    token:require ","
+    explist:append(self:parse_exp())
+  end
+  local u = x:new_statement_node "generic_for":extend {
+    u,
+    v,
+    self:parse_block(),
+  }
+  self:read():require "end"
+  return u
 end
 
 function class:parse_retstat(token)
