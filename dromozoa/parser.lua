@@ -38,12 +38,12 @@ local function new_auxiliary_node(kind)
 end
 
 ---@return string ...
-local function stat_terminal_kinds()
+local function is_stat_terminal()
   return "end", "until", "elseif", "else", "EOF"
 end
 
 ---@return string ...
-local function var_kinds()
+local function is_var()
   return "Name", "index", "member"
 end
 
@@ -256,7 +256,7 @@ function class:parse_block()
     local x = self:read()
     if x:check "return" then
       return u:append(self:parse_retstat(x))
-    elseif x:check(stat_terminal_kinds()) then
+    elseif x:check(is_stat_terminal()) then
       self:unread()
       return u
     end
@@ -394,7 +394,7 @@ end
 ---@param u dromozoa.node
 ---@return dromozoa.node
 function class:parse_assignment(u)
-  local u = new_auxiliary_node "varlist":append(u:require(var_kinds()))
+  local u = new_auxiliary_node "varlist":append(u:require(is_var()))
 
   local x
   while true do
@@ -403,7 +403,7 @@ function class:parse_assignment(u)
       break
     end
     x:require ","
-    u:append(self:parse_prefixexp():require(var_kinds()))
+    u:append(self:parse_prefixexp():require(is_var()))
   end
   x:require "="
 
@@ -428,7 +428,7 @@ function class:parse_retstat(x)
     if x:check ";" then
       x = self:read()
       break
-    elseif x:check(stat_terminal_kinds()) then
+    elseif x:check(is_stat_terminal()) then
       break
     end
     self:unread()
@@ -438,14 +438,14 @@ function class:parse_retstat(x)
       if x:check ";" then
         x = self:read()
         break
-      elseif x:check(stat_terminal_kinds()) then
+      elseif x:check(is_stat_terminal()) then
         break
       end
       x:require ","
       u:append(self:parse_exp())
     end
   until true
-  x:require(stat_terminal_kinds())
+  x:require(is_stat_terminal())
   self:unread()
   return u
 end
