@@ -34,13 +34,14 @@ local metatable = {
 ---@param category dromozoa.node.category
 ---@param kind string
 ---@param token dromozoa.token?
+---@param attribute dromozoa.token?
 ---@return dromozoa.node
-function class.new(category, kind, token)
+function class.new(category, kind, token, attribute)
   return setmetatable({
     category = category,
     kind = kind,
     token = token,
-    attribute = nil,
+    attribute = attribute,
     nodes = {},
   }, metatable)
 end

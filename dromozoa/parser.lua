@@ -20,21 +20,24 @@ local node = require "dromozoa.node"
 --=========================================================================
 
 ---@param kind string
+---@param attribute dromozoa.token?
 ---@return dromozoa.node
-local function new_block_node(kind)
-  return node.new("block", kind)
+local function new_block_node(kind, attribute)
+  return node.new("block", kind, nil, attribute)
 end
 
 ---@param kind string
+---@param attribute dromozoa.token?
 ---@return dromozoa.node
-local function new_statement_node(kind)
-  return node.new("statement", kind)
+local function new_statement_node(kind, attribute)
+  return node.new("statement", kind, nil, attribute)
 end
 
 ---@param kind string
+---@param attribute dromozoa.token?
 ---@return dromozoa.node
-local function new_auxiliary_node(kind)
-  return node.new("auxiliary", kind)
+local function new_auxiliary_node(kind, attribute)
+  return node.new("auxiliary", kind, nil, attribute)
 end
 
 ---@return string ...
@@ -309,29 +312,15 @@ function class:parse_stat()
       self:parse_funcname(),
       self:parse_funcbody(),
     }
-  elseif x:check "local" then
+  elseif x:check "local" or x:check "global" then
     if self:read():check "function" then
-      return x:new_statement_node "local_function":extend {
+      return x:new_statement_node(x.kind .. "_function"):extend {
         self:read():require "Name":new_auxiliary_node(),
         self:parse_funcbody(),
       }
     end
     self:unread()
-    local u = x:new_statement_node():append(self:parse_attnamelist())
-    if self:peek():check "=" then
-      self:read()
-      u:append(self:parse_explist())
-    end
-    return u
-  elseif x:check "global" then
-    if self:read():check "function" then
-      return x:new_statement_node "global_function":extend {
-        self:read():require "Name":new_auxiliary_node(),
-        self:parse_funcbody(),
-      }
-    end
-    self:unread()
-    local u = x:new_statement_node():append(self:parse_attnamelist())
+    local u = x:new_auxiliary_node():append(self:parse_declaration(x))
     if self:peek():check "=" then
       self:read()
       u:append(self:parse_explist())
@@ -346,36 +335,6 @@ function class:parse_stat()
       return self:parse_assignment(u)
     end
   end
-end
-
----@return dromozoa.node
-function class:parse_attnamelist()
-  local u = new_auxiliary_node "names"
-
-  local x = self:read()
-  if x:check "<" then
-    u.attribute = self:read():require "Name"
-    self:read():require ">"
-    x = self:read()
-  end
-  while true do
-    local v = x:require "Name":new_auxiliary_node()
-    u:append(v)
-
-    x = self:read()
-    if x:check "<" then
-      v.attribute = self:read():require "Name"
-      self:read():require ">"
-      x = self:read()
-    end
-    if not x:check "," then
-      self:unread()
-      break
-    end
-    x = self:read()
-  end
-
-  return u
 end
 
 ---@param x dromozoa.token
@@ -439,6 +398,40 @@ function class:parse_generic_for(x, y)
     self:parse_block(),
   }
   self:read():require "end"
+  return u
+end
+
+function class:parse_declaration(x)
+  local attribute
+  local y = self:read()
+  if y:check "<" then
+    attribute = self:read():require "Name"
+    self:read():require ">"
+    y = self:read()
+  end
+
+  if x:check "global" and y:check "*" then
+    return y:new_auxiliary_node("any", attribute)
+  end
+
+  local u = new_auxiliary_node ("names", attribute)
+  while true do
+    local v = y:require "Name":new_auxiliary_node()
+    u:append(v)
+
+    y = self:read()
+    if y:check "<" then
+      v.attribute = self:read():require "Name"
+      self:read():require ">"
+      y = self:read()
+    end
+    if not y:check "," then
+      self:unread()
+      break
+    end
+    y = self:read()
+  end
+
   return u
 end
 
