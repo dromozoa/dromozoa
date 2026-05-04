@@ -341,7 +341,7 @@ end
 ---@return dromozoa.node
 function class:parse_numeric_for(x, y)
   self:read():require "="
-  local u = new_auxiliary_node "explist"
+  local u = new_auxiliary_node "expressions"
   u:append(self:parse_exp())
   self:read():require ","
   u:append(self:parse_exp())
@@ -364,7 +364,7 @@ end
 ---@param y dromozoa.token
 ---@return dromozoa.node
 function class:parse_generic_for(x, y)
-  local u = new_auxiliary_node "namelist":append(y:new_auxiliary_node())
+  local u = new_auxiliary_node "names":append(y:new_auxiliary_node())
   while true do
     local x = self:read()
     if x:check "in" then
@@ -373,7 +373,7 @@ function class:parse_generic_for(x, y)
     x:require ","
     u:append(self:read():require "Name":new_auxiliary_node())
   end
-  local v = new_auxiliary_node "explist":append(self:parse_exp())
+  local v = new_auxiliary_node "expressions":append(self:parse_exp())
   while true do
     local x = self:read()
     if x:check "do" then
@@ -394,7 +394,7 @@ end
 ---@param u dromozoa.node
 ---@return dromozoa.node
 function class:parse_assignment(u)
-  local u = new_auxiliary_node "varlist":append(u:require(is_var()))
+  local u = new_auxiliary_node "variables":append(u:require(is_var()))
 
   local x
   while true do
@@ -407,7 +407,7 @@ function class:parse_assignment(u)
   end
   x:require "="
 
-  local v = new_auxiliary_node "explist"
+  local v = new_auxiliary_node "expressions"
   while true do
     v:append(self:parse_exp())
     if not self:read():check "," then

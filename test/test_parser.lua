@@ -218,10 +218,10 @@ test_parse_stat("::L123::", "(label L123)")
 test_parse_stat("goto L123", "(goto L123)")
 test_parse_stat("f()", "(call (call f arguments))")
 test_parse_stat("x:f()", "(call (self x f arguments))")
-test_parse_stat("a.b = 42", "(assignment (varlist (member a b)) (explist 42))")
+test_parse_stat("a.b = 42", "(assignment (variables (member a b)) (expressions 42))")
 test_parse_stat(
   "do a = 1 b = 2 end",
-  "(do (block (assignment (varlist a) (explist 1)) (assignment (varlist b) (explist 2))))")
+  "(do (block (assignment (variables a) (expressions 1)) (assignment (variables b) (expressions 2))))")
 test_parse_stat(
   "while true do print(42) end",
   "(while true (block (call (call print (arguments 42)))))")
@@ -257,7 +257,7 @@ test_parse_stat(
 test_parse_stat(
   "for i = 1, 10 do print(i) end",
   "\z
-    (numeric_for i (explist 1 10) \z
+    (numeric_for i (expressions 1 10) \z
       (block \z
         (call (call print (arguments i)))\z
       )\z
@@ -266,7 +266,7 @@ test_parse_stat(
 test_parse_stat(
   "for i = 10, 1, -1 do print(i) end",
   "\z
-    (numeric_for i (explist 10 1 (- 1)) \z
+    (numeric_for i (expressions 10 1 (- 1)) \z
       (block \z
         (call (call print (arguments i)))\z
       )\z
@@ -275,7 +275,7 @@ test_parse_stat(
 test_parse_stat(
   "for k, v in pairs(t) do print(k, v) end",
   "\z
-    (generic_for (namelist k v) (explist (call pairs (arguments t))) \z
+    (generic_for (names k v) (expressions (call pairs (arguments t))) \z
       (block \z
         (call (call print (arguments k v)))\z
       )\z
@@ -284,7 +284,7 @@ test_parse_stat(
 test_parse_stat(
   "for k, v in next, t, nil do print(k, v) end",
   "\z
-    (generic_for (namelist k v) (explist next t nil) \z
+    (generic_for (names k v) (expressions next t nil) \z
       (block \z
         (call (call print (arguments k v)))\z
       )\z
