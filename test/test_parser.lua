@@ -62,6 +62,9 @@ assert(p:read().kind == "EOF")
 ---@param buffer string[]
 local function dump(u, buffer)
   local n = #u.nodes
+  if u.attribute then
+    n = n + 1
+  end
   if n > 0 then
     table.insert(buffer, "(")
   end
@@ -69,6 +72,11 @@ local function dump(u, buffer)
     table.insert(buffer, tostring(u.token.value))
   else
     table.insert(buffer, u.kind)
+  end
+  if u.attribute then
+    table.insert(buffer, " <")
+    table.insert(buffer, tostring(u.attribute.value))
+    table.insert(buffer, ">")
   end
   for _, v in ipairs(u.nodes) do
     table.insert(buffer, " ")
@@ -238,7 +246,7 @@ test_parse_stat(
   "\z
     (if 1 \z
       (block (label L1)) \z
-      (elseif 2 \z
+      (if 2 \z
         (block (label L2))\z
       )\z
     )\z
@@ -248,7 +256,7 @@ test_parse_stat(
   "\z
     (if 1 \z
       (block (label L1)) \z
-      (elseif 2 \z
+      (if 2 \z
         (block (label L2)) \z
         (block (label L3))\z
       )\z
@@ -306,6 +314,25 @@ test_parse_stat(
 test_parse_stat(
   "function x.y:f() end",
   "(function (method (member x y) f) (body parameters block))")
+
+test_parse_stat(
+  "local x",
+  "(local (names x))")
+test_parse_stat(
+  "local x <const>",
+  "(local (names (x <const>)))")
+test_parse_stat(
+  "local x <const>, y <close>",
+  "(local (names (x <const>) (y <close>)))")
+test_parse_stat(
+  "local <const> x",
+  "(local (names <const> x))")
+test_parse_stat(
+  "local <const> x <const>",
+  "(local (names <const> (x <const>)))")
+test_parse_stat(
+  "local <const> x <const>, y <close>",
+  "(local (names <const> (x <const>) (y <close>)))")
 
 ---@param source string
 local function test_parse_stat_error(source)

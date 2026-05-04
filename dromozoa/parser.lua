@@ -309,6 +309,17 @@ function class:parse_stat()
       self:parse_funcname(),
       self:parse_funcbody(),
     }
+  elseif x:check "local" then
+    if self:read():check "function" then
+      return x:new_statement_node "local_function" :extend{
+        self:read():require "Name":new_auxiliary_node(),
+        self:parse_funcbody(),
+      }
+    end
+    self:unread()
+    local u = x:new_statement_node():append(self:parse_attnamelist())
+    -- TODO ('=' explist)?
+    return u
   else
     self:unread()
     local u = self:parse_prefixexp()
@@ -320,10 +331,40 @@ function class:parse_stat()
   end
 end
 
+---@return dromozoa.node
+function class:parse_attnamelist()
+  local u = new_auxiliary_node "names"
+
+  local x = self:read()
+  if x:check "<" then
+    u.attribute = self:read():require "Name"
+    self:read():require ">"
+    x = self:read()
+  end
+  while true do
+    local v = x:require "Name":new_auxiliary_node()
+    u:append(v)
+
+    x = self:read()
+    if x:check "<" then
+      v.attribute = self:read():require "Name"
+      self:read():require ">"
+      x = self:read()
+    end
+    if not x:check "," then
+      self:unread()
+      break
+    end
+    x = self:read()
+  end
+
+  return u
+end
+
 ---@param x dromozoa.token
 ---@return dromozoa.node
 function class:parse_if(x)
-  local u = x:new_statement_node():append(self:parse_exp())
+  local u = x:new_statement_node "if":append(self:parse_exp())
   self:read():require "then"
   u:append(self:parse_block())
   local x = self:read()

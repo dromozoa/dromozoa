@@ -23,6 +23,7 @@ local source_location = require "dromozoa.source_location"
 ---@field category dromozoa.node.category
 ---@field kind string
 ---@field token dromozoa.token?
+---@field attribute dromozoa.token?
 ---@field nodes dromozoa.node[]
 local class = {}
 local metatable = {
@@ -39,6 +40,7 @@ function class.new(category, kind, token)
     category = category,
     kind = kind,
     token = token,
+    attribute = nil,
     nodes = {},
   }, metatable)
 end

@@ -9,6 +9,8 @@
   retstat_ = 'r';
   end = '$';
 
+  attrib = 'a';
+
   var = 'v';
   varlist = var (',' var)*;
 
@@ -23,6 +25,7 @@
   fieldlist = field_ (fieldsep field_)* fieldsep?;
 
   block := stat* retstat_? end;
+  attnamelist := attrib? Name attrib? (',' Name attrib?)*;
   retstat := explist_? ';'? end;
   funcname := Name ('.' Name)* (':' Name)?;
   assign := varlist '=' explist_;
