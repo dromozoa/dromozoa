@@ -311,14 +311,17 @@ function class:parse_stat()
     }
   elseif x:check "local" then
     if self:read():check "function" then
-      return x:new_statement_node "local_function" :extend{
+      return x:new_statement_node "local_function":extend {
         self:read():require "Name":new_auxiliary_node(),
         self:parse_funcbody(),
       }
     end
     self:unread()
     local u = x:new_statement_node():append(self:parse_attnamelist())
-    -- TODO ('=' explist)?
+    if self:peek():check "=" then
+      self:read()
+      u:append(self:parse_explist())
+    end
     return u
   else
     self:unread()
@@ -414,15 +417,8 @@ function class:parse_generic_for(x, y)
     x:require ","
     u:append(self:read():require "Name":new_auxiliary_node())
   end
-  local v = new_auxiliary_node "expressions":append(self:parse_exp())
-  while true do
-    local x = self:read()
-    if x:check "do" then
-      break
-    end
-    x:require ","
-    v:append(self:parse_exp())
-  end
+  local v = self:parse_explist()
+  self:read():require "do"
   local u = x:new_statement_node "generic_for":extend {
     u,
     v,
@@ -448,16 +444,10 @@ function class:parse_assignment(u)
   end
   x:require "="
 
-  local v = new_auxiliary_node "expressions"
-  while true do
-    v:append(self:parse_exp())
-    if not self:read():check "," then
-      self:unread()
-      break
-    end
-  end
-
-  return x:new_statement_node "assignment":extend { u, v }
+  return x:new_statement_node "assignment":extend {
+    u,
+    self:parse_explist(),
+  }
 end
 
 ---@param x dromozoa.token
@@ -515,6 +505,19 @@ function class:parse_funcname()
   end
   x:require "("
   self:unread()
+  return u
+end
+
+---@return dromozoa.node
+function class:parse_explist()
+  local u = new_auxiliary_node "expressions"
+  while true do
+    u:append(self:parse_exp())
+    if not self:read():check "," then
+      self:unread()
+      break
+    end
+  end
   return u
 end
 
