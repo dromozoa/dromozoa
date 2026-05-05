@@ -319,7 +319,8 @@ function class:parse_stat()
     self:unread()
     local u = x:new_auxiliary_node():append(self:parse_declaration(x.kind))
     if self:peek():check "=" then
-      u:append(self:parse_explist(self:read()))
+      self:read()
+      u:append(self:parse_explist())
     end
     return u
   else
@@ -353,8 +354,8 @@ end
 ---@param y dromozoa.token
 ---@return dromozoa.node
 function class:parse_numeric_for(x, y)
-  local z = self:read():require "="
-  local u = z:new_auxiliary_node "expressions"
+  self:read():require "="
+  local u = new_auxiliary_node "expressions"
   u:append(self:parse_exp())
   self:read():require ","
   u:append(self:parse_exp())
@@ -378,17 +379,15 @@ end
 ---@return dromozoa.node
 function class:parse_generic_for(x, y)
   local u = new_auxiliary_node "names":append(y:new_auxiliary_node())
-  local z
   while true do
-    z = self:read()
-    if z:check "in" then
+    local x = self:read()
+    if x:check "in" then
       break
     end
-    z:require ","
+    x:require ","
     u:append(self:read():require "Name":new_auxiliary_node())
   end
-  z:require "in"
-  local v = self:parse_explist(z)
+  local v = self:parse_explist()
   self:read():require "do"
   local u = x:new_statement_node "generic_for":extend {
     u,
@@ -455,7 +454,7 @@ function class:parse_assignment(u)
 
   return x:new_statement_node "assignment":extend {
     u,
-    self:parse_explist(x),
+    self:parse_explist(),
   }
 end
 
@@ -464,9 +463,9 @@ end
 function class:parse_retstat(x)
   local u = x:require "return":new_statement_node()
   if self:peek():check(";", is_stat_terminal()) then
-    u:append(x:new_auxiliary_node "expressions")
+    u:append(new_auxiliary_node "expressions")
   else
-    u:append(self:parse_explist(x))
+    u:append(self:parse_explist())
   end
   local x = self:read()
   if x:check ";" then
@@ -504,10 +503,9 @@ function class:parse_funcname()
   return u
 end
 
----@param x dromozoa.token
 ---@return dromozoa.node
-function class:parse_explist(x)
-  local u = x:new_auxiliary_node "expressions"
+function class:parse_explist()
+  local u = new_auxiliary_node "expressions"
   while true do
     u:append(self:parse_exp())
     if not self:read():check "," then
@@ -543,9 +541,9 @@ function class:parse_args(x)
   if x:check "(" then
     local u
     if self:peek():check ")" then
-      u = x:new_auxiliary_node "expressions"
+      u = new_auxiliary_node "expressions"
     else
-      u = self:parse_explist(x)
+      u = self:parse_explist()
     end
     self:read():require ")"
     return u
