@@ -191,7 +191,7 @@ function class:lex(source, filename)
   local srcloc = self.srcloc:clone()
   local result = {}
 
-  if self:match "#(.-)\n" then
+  if self:match "#([^\n]*)" then
     table.insert(result, token.new("Comment", "Shebang", self._0, self._1, srcloc))
   end
 
@@ -244,7 +244,7 @@ function class:lex(source, filename)
       kind = "Comment"
       subkind = "Long"
       value = self._1
-    elseif self:match "%-%-([^\n]*)\n?" then
+    elseif self:match "%-%-([^\n]*)" then
       kind = "Comment"
       subkind = "Short"
       value = self._1

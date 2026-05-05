@@ -186,18 +186,27 @@ test_lex_error "!"
 
 local tokens = lexer.new():lex("", "=(test)")
 assert(#tokens == 1)
-
 local token = tokens[1]
 assert(token.kind == "EOF")
 
-local tokens = lexer.new():lex("#! /usr/bin/env lua\n", "=(test)")
+local tokens = lexer.new():lex("#! /usr/bin/env lua", "=(test)")
 assert(#tokens == 2)
-
 local token = tokens[1]
 assert(token.kind == "Comment")
 assert(token.subkind == "Shebang")
-assert(token.text == "#! /usr/bin/env lua\n")
+assert(token.text == "#! /usr/bin/env lua")
+assert(token.value == "! /usr/bin/env lua")
+
+local tokens = lexer.new():lex("#! /usr/bin/env lua\n", "=(test)")
+assert(#tokens == 3)
+local token = tokens[1]
+assert(token.kind == "Comment")
+assert(token.subkind == "Shebang")
+assert(token.text == "#! /usr/bin/env lua")
 assert(token.value == "! /usr/bin/env lua")
 
 local tokens = lexer.new():lex("---@alias x integer", "=(test)")
 assert(#tokens == 2)
+
+local tokens = lexer.new():lex("---@alias x integer\n", "=(test)")
+assert(#tokens == 3)

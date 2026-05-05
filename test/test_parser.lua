@@ -21,18 +21,11 @@ local parser = require "dromozoa.parser"
 local verbose = os.getenv "VERBOSE"
 
 local p = parser.new()
-p.tokens = lexer.new():lex([[
---[1]
-local--[3]
---[4]
-x--[6]
---[7]
-=--[9]
---[10]
-1--[12]
-]], "=(test)")
+p.tokens = lexer.new():lex([=[
+--[[1]]local--[[3]]--[[4]]x--[[6]]--[[7]]=--[[9]]--[[10]]1--[[12]]
+]=], "=(test)")
 p.index = 1
-assert(#p.tokens == 13)
+assert(#p.tokens == 14)
 
 assert(p:peek().kind == "local")
 assert(p:read().kind == "local")
