@@ -139,6 +139,7 @@ end
 ---@param source string
 ---@param expect string
 ---@param fn fun(p: dromozoa.parser): dromozoa.node
+---@return dromozoa.node
 local function test_parse_impl(source, expect, fn)
   local p = parser.new()
   p.tokens = lexer.new():lex(source, "=(test)")
@@ -149,6 +150,7 @@ local function test_parse_impl(source, expect, fn)
   local expect = normalize(expect)
   assert(result == expect, ("{ source = %q, result = %q, expect = %q }"):format(source, result, expect))
   check(root)
+  return root
 end
 
 ---@param source string
@@ -172,9 +174,10 @@ end
 ---@param source string
 ---@param expect string
 local function test_parse_exp(source, expect)
-  test_parse_impl(source, expect, function(p)
+  local root = test_parse_impl(source, expect, function(p)
     return p:parse_exp()
   end)
+  assert(root.category == "expression")
 end
 
 test_parse_exp("1 and 2 or 3", "(or (and 1 2) 3)")
@@ -269,9 +272,10 @@ test_parse_exp_error "x:f 42"
 ---@param source string
 ---@param expect string
 local function test_parse_stat(source, expect)
-  test_parse_impl(source, expect, function(p)
+  local root = test_parse_impl(source, expect, function(p)
     return p:parse_stat()
   end)
+  assert(root.category == "statement")
 end
 
 test_parse_stat("f()", "(call (call f (expressions)))")
@@ -521,6 +525,8 @@ local function test_parse(source, expect)
   local result = dump(root)
   local expect = normalize(expect)
   assert(result == expect, ("{ source = %q, result = %q, expect = %q }"):format(source, result, expect))
+  assert(root:check "chunk")
+  assert(root.category == "block")
 end
 
 test_parse([[

@@ -311,7 +311,7 @@ function class:parse_stat()
       }
     end
     self:unread()
-    local u = x:new_auxiliary_node():append(self:parse_declaration(x.kind))
+    local u = x:new_statement_node():append(self:parse_declaration(x.kind))
     if self:peek():check "=" then
       self:read()
       u:append(self:parse_explist())
