@@ -158,10 +158,7 @@ end
 ---@param rbp integer
 ---@return dromozoa.node
 function class:led_left(u, x, rbp)
-  return x:new_expression_node():extend {
-    u,
-    self:parse_exp(rbp),
-  }
+  return x:new_expression_node():extend { u, self:parse_exp(rbp) }
 end
 
 ---@param u dromozoa.node
@@ -169,10 +166,7 @@ end
 ---@param rbp integer
 ---@return dromozoa.node
 function class:led_right(u, x, rbp)
-  return x:new_expression_node():extend {
-    u,
-    self:parse_exp(rbp - 1),
-  }
+  return x:new_expression_node():extend { u, self:parse_exp(rbp - 1) }
 end
 
 ---@param u dromozoa.node
@@ -190,7 +184,7 @@ end
 function class:led_member(u, x)
   return x:new_expression_node "member":extend {
     u,
-    self:read():require "Name":new_expression_node(),
+    self:read():require "Name":new_auxiliary_node(),
   }
 end
 
@@ -210,7 +204,7 @@ end
 function class:led_self(u, x)
   return x:new_expression_node "self":extend {
     u,
-    self:read():require "Name":new_expression_node(),
+    self:read():require "Name":new_auxiliary_node(),
     self:parse_args(self:read()),
   }
 end
@@ -249,9 +243,10 @@ end
 
 --=========================================================================
 
+---@param kind string?
 ---@return dromozoa.node
-function class:parse_block()
-  local u = new_block_node "block"
+function class:parse_block(kind)
+  local u = new_block_node(kind or "block")
   while true do
     local x = self:read()
     if x:check "return" then
@@ -485,13 +480,13 @@ function class:parse_funcname()
     if x:check "." then
       u = x:new_expression_node "member":extend {
         u,
-        self:read():require "Name":new_expression_node(),
+        self:read():require "Name":new_auxiliary_node(),
       }
     else
       if x:check ":" then
         u = x:new_expression_node "method":extend {
           u,
-          self:read():require "Name":new_expression_node(),
+          self:read():require "Name":new_auxiliary_node(),
         }
         x = self:read()
       end
@@ -539,7 +534,7 @@ end
 ---@return dromozoa.node
 function class:parse_args(x)
   if x:check "(" then
-    local u = x:new_auxiliary_node "arguments"
+    local u = x:new_auxiliary_node "expressions"
     if self:read():check ")" then
       return u
     end
@@ -554,10 +549,10 @@ function class:parse_args(x)
       u:append(self:parse_exp())
     end
   elseif x:check "{" then
-    return new_auxiliary_node "arguments":append(self:parse_tableconstructor(x))
+    return new_auxiliary_node "expressions":append(self:parse_tableconstructor(x))
   else
     x:require "String"
-    return new_auxiliary_node "arguments":append(x:new_auxiliary_node())
+    return new_auxiliary_node "expressions":append(x:new_auxiliary_node())
   end
 end
 
@@ -645,10 +640,13 @@ end
 --=========================================================================
 
 ---@param tokens dromozoa.token[]
+---@return dromozoa.node
 function class:parse(tokens)
   self.tokens = tokens
   self.index = 1
-  return new_block_node "chunk":append(self:parse_block())
+  local u = self:parse_block "chunk"
+  self:peek():require "EOF"
+  return u
 end
 
 --=========================================================================

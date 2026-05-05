@@ -106,7 +106,7 @@ end
 ---@param source string
 ---@param expect string
 ---@param fn fun(p: dromozoa.parser): dromozoa.node
-local function test_parse(source, expect, fn)
+local function test_parse_impl(source, expect, fn)
   local p = parser.new()
   p.tokens = lexer.new():lex(source, "=(test)")
   p.index = 1
@@ -119,7 +119,7 @@ end
 
 ---@param source string
 ---@param fn fun(p: dromozoa.parser): dromozoa.node
-local function test_parse_error(source, fn)
+local function test_parse_error_impl(source, fn)
   local p = parser.new()
   p.tokens = lexer.new():lex(source, "=(test)")
   p.index = 1
@@ -138,7 +138,7 @@ end
 ---@param source string
 ---@param expect string
 local function test_parse_exp(source, expect)
-  test_parse(source, expect, function(p)
+  test_parse_impl(source, expect, function(p)
     return p:parse_exp()
   end)
 end
@@ -171,20 +171,20 @@ test_parse_exp("{1,2,3,}", "(table (list_field 1) (list_field 2) (list_field 3))
 test_parse_exp("{a=b,c}", "(table (member_field a b) (list_field c))")
 test_parse_exp("{[a]=b,c}", "(table (index_field a b) (list_field c))")
 
-test_parse_exp("f()", "(call f (arguments))")
-test_parse_exp("f(a)", "(call f (arguments a))")
-test_parse_exp("f(a,b)", "(call f (arguments a b))")
-test_parse_exp("f{}", "(call f (arguments (table)))")
-test_parse_exp("f{a}", "(call f (arguments (table (list_field a))))")
-test_parse_exp("f{a,b}", "(call f (arguments (table (list_field a) (list_field b))))")
-test_parse_exp("f[[a]]", "(call f (arguments String))")
+test_parse_exp("f()", "(call f (expressions))")
+test_parse_exp("f(a)", "(call f (expressions a))")
+test_parse_exp("f(a,b)", "(call f (expressions a b))")
+test_parse_exp("f{}", "(call f (expressions (table)))")
+test_parse_exp("f{a}", "(call f (expressions (table (list_field a))))")
+test_parse_exp("f{a,b}", "(call f (expressions (table (list_field a) (list_field b))))")
+test_parse_exp("f[[a]]", "(call f (expressions String))")
 
-test_parse_exp("x:f()", "(self x f (arguments))")
-test_parse_exp("x:f(a)", "(self x f (arguments a))")
-test_parse_exp("x:f(a,b)", "(self x f (arguments a b))")
+test_parse_exp("x:f()", "(self x f (expressions))")
+test_parse_exp("x:f(a)", "(self x f (expressions a))")
+test_parse_exp("x:f(a,b)", "(self x f (expressions a b))")
 
-test_parse_exp("x.y.f(1,2,3)", "(call (member (member x y) f) (arguments 1 2 3))")
-test_parse_exp("x.y:f(1,2,3)", "(self (member x y) f (arguments 1 2 3))")
+test_parse_exp("x.y.f(1,2,3)", "(call (member (member x y) f) (expressions 1 2 3))")
+test_parse_exp("x.y:f(1,2,3)", "(self (member x y) f (expressions 1 2 3))")
 
 test_parse_exp("1 + - - 2", "(+ 1 (- (- 2)))")
 test_parse_exp("- - 1 + 2", "(+ (- (- 1)) 2)")
@@ -214,13 +214,13 @@ test_parse_exp(
 
 test_parse_exp(
   "f()(1)[2][3] * 4",
-  "(* (index (index (call (call f (arguments)) (arguments 1)) 2) 3) 4)")
+  "(* (index (index (call (call f (expressions)) (expressions 1)) 2) 3) 4)")
 
 test_parse_exp("4.25", "4.25")
 
 ---@param source string
 local function test_parse_exp_error(source)
-  test_parse_error(source, function(p)
+  test_parse_error_impl(source, function(p)
     return p:parse_exp(0)
   end)
 end
@@ -235,13 +235,13 @@ test_parse_exp_error "x:f 42"
 ---@param source string
 ---@param expect string
 local function test_parse_stat(source, expect)
-  test_parse(source, expect, function(p)
+  test_parse_impl(source, expect, function(p)
     return p:parse_stat()
   end)
 end
 
-test_parse_stat("f()", "(call (call f (arguments)))")
-test_parse_stat("x:f()", "(call (self x f (arguments)))")
+test_parse_stat("f()", "(call (call f (expressions)))")
+test_parse_stat("x:f()", "(call (self x f (expressions)))")
 
 test_parse_stat("a.b = 42", [[
   (assignment
@@ -251,7 +251,7 @@ test_parse_stat("a.b = 42", [[
 ]])
 test_parse_stat("a.b, c[d + e], f().g = 42, 69", [[
   (assignment
-    (variables (member a b) (index c (+ d e)) (member (call f (arguments)) g))
+    (variables (member a b) (index c (+ d e)) (member (call f (expressions)) g))
     (expressions 42 69)
   )
 ]])
@@ -272,45 +272,45 @@ test_parse_stat("do a = 1 b = 2 end", [[
 
 test_parse_stat("while true do print(42) end", [[
   (while true
-    (block (call (call print (arguments 42))))
+    (block (call (call print (expressions 42))))
   )
 ]])
 
 test_parse_stat("repeat print(42) until false", [[
   (repeat
-    (block (call (call print (arguments 42))))
+    (block (call (call print (expressions 42))))
     false
   )
 ]])
 
 test_parse_stat("if x then print(1) end", [[
   (if x
-    (block (call (call print (arguments 1))))
+    (block (call (call print (expressions 1))))
   )
 ]])
 test_parse_stat("if x then print(1) else print(2) end", [[
   (if x
-    (block (call (call print (arguments 1))))
-    (block (call (call print (arguments 2))))
+    (block (call (call print (expressions 1))))
+    (block (call (call print (expressions 2))))
   )
 ]])
 test_parse_stat("if x then print(1) elseif y then print(2) end", [[
   (if x
-    (block (call (call print (arguments 1))))
+    (block (call (call print (expressions 1))))
     (block
       (if y
-        (block (call (call print (arguments 2))))
+        (block (call (call print (expressions 2))))
       )
     )
   )
 ]])
 test_parse_stat("if x then print(1) elseif y then print(2) else print(3) end", [[
   (if x
-    (block (call (call print (arguments 1))))
+    (block (call (call print (expressions 1))))
     (block
       (if y
-        (block (call (call print (arguments 2))))
-        (block (call (call print (arguments 3))))
+        (block (call (call print (expressions 2))))
+        (block (call (call print (expressions 3))))
       )
     )
   )
@@ -319,29 +319,29 @@ test_parse_stat("if x then print(1) elseif y then print(2) else print(3) end", [
 test_parse_stat("for i = 1, 10 do print(i) end", [[
   (numeric_for i (expressions 1 10)
     (block
-      (call (call print (arguments i)))
+      (call (call print (expressions i)))
     )
   )
 ]])
 test_parse_stat("for i = 10, 1, -1 do print(i) end", [[
   (numeric_for i (expressions 10 1 (- 1))
     (block
-      (call (call print (arguments i)))
+      (call (call print (expressions i)))
     )
   )
 ]])
 
 test_parse_stat("for k, v in pairs(t) do print(k, v) end", [[
-  (generic_for (names k v) (expressions (call pairs (arguments t)))
+  (generic_for (names k v) (expressions (call pairs (expressions t)))
     (block
-      (call (call print (arguments k v)))
+      (call (call print (expressions k v)))
     )
   )
 ]])
 test_parse_stat("for k, v in next, t, nil do print(k, v) end", [[
   (generic_for (names k v) (expressions next t nil)
     (block
-      (call (call print (arguments k v)))
+      (call (call print (expressions k v)))
     )
   )
 ]])
@@ -368,7 +368,7 @@ test_parse_stat("local function f(x) if x > 0 then return f(x - 1) end end", [[
       (block
         (if (> x 0)
           (block
-            (return (expressions (call f (arguments (- x 1)))))
+            (return (expressions (call f (expressions (- x 1)))))
           )
         )
       )
@@ -405,7 +405,7 @@ test_parse_stat("global function f(x) if x > 0 then return f(x - 1) end end", [[
       (block
         (if (> x 0)
           (block
-            (return (expressions (call f (arguments (- x 1)))))
+            (return (expressions (call f (expressions (- x 1)))))
           )
         )
       )
@@ -441,7 +441,7 @@ test_parse_stat("global <const> *", "(global (any <const>))")
 
 ---@param source string
 local function test_parse_stat_error(source)
-  test_parse_error(source, function(p)
+  test_parse_error_impl(source, function(p)
     return p:parse_stat()
   end)
 end
@@ -457,7 +457,7 @@ test_parse_stat_error "local <const> *"
 ---@param source string
 ---@param expect string
 local function test_parse_block(source, expect)
-  test_parse(source, expect, function(p)
+  test_parse_impl(source, expect, function(p)
     return p:parse_block()
   end)
 end
@@ -473,9 +473,58 @@ test_parse_block(";return 1,2;", "(block (empty) (return (expressions 1 2)))")
 
 ---@param source string
 local function test_parse_block_error(source)
-  test_parse_error(source, function(p)
+  test_parse_error_impl(source, function(p)
     return p:parse_block()
   end)
 end
 
 test_parse_block_error "return 42;;"
+
+---@param source string
+---@param expect string
+local function test_parse(source, expect)
+  local root = parser.new():parse(lexer.new():lex(source, "=(test)"))
+  local result = dump(root)
+  local expect = normalize(expect)
+  assert(result == expect, ("{ source = %q, result = %q, expect = %q }"):format(source, result, expect))
+end
+
+test_parse([[
+local class = {}
+
+function class.read_file(filename)
+  local handle<close> = assert(io.open(filename, "rb"))
+  return handle:read "a"
+end
+
+io.write(read_file((...)))
+]], [[
+(chunk
+  (local (names class) (expressions (table)))
+
+  (function (member class read_file)
+    (body (parameters filename)
+      (block
+        (local (names (handle <close>))
+          (expressions
+            (call assert
+              (expressions
+                (call (member io open) (expressions filename String))
+              )
+            )
+          )
+        )
+        (return (expressions (self handle read (expressions String))))
+      )
+    )
+  )
+
+  (call
+    (call (member io write)
+      (expressions
+        (call read_file (expressions (group (...))))
+      )
+    )
+  )
+)
+]])
