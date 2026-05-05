@@ -60,14 +60,14 @@ assert(p:read().kind == "EOF")
 
 ---@param u dromozoa.node
 ---@param buffer string[]
-local function dump(u, buffer)
-  local n = #u.nodes
-  if u.attribute then
-    n = n + 1
-  end
-  if n > 0 then
+local function dump_impl(u, buffer)
+  local enclose = #u.nodes > 0
+      or u.attribute
+      or not u:check("nil", "false", "true", "Float", "Integer", "String", "Name")
+  if enclose then
     table.insert(buffer, "(")
   end
+
   if u.kind == "Integer" or u.kind == "Name" then
     table.insert(buffer, tostring(u.token.value))
   else
@@ -80,12 +80,31 @@ local function dump(u, buffer)
   end
   for _, v in ipairs(u.nodes) do
     table.insert(buffer, " ")
-    dump(v, buffer)
+    dump_impl(v, buffer)
   end
-  if n > 0 then
+
+  if enclose then
     table.insert(buffer, ")")
   end
-  return buffer
+end
+
+---@param u dromozoa.node
+---@return string
+local function dump(u)
+  local buffer = {}
+  dump_impl(u, buffer)
+  return table.concat(buffer)
+end
+
+---@param source string
+---@return string
+local function normalize(source)
+  return (source
+    :gsub("^%s+%(", "(")
+    :gsub("%)%s+$", ")")
+    :gsub("%s+%(", " (")
+    :gsub("%s+%)", ")")
+  )
 end
 
 ---@param source string
@@ -97,7 +116,8 @@ local function test_parse(source, expect, fn)
   p.index = 1
   local root = fn(p)
   p:peek():require "EOF"
-  local result = table.concat(dump(root, {}))
+  local result = dump(root)
+  local expect = normalize(expect)
   assert(result == expect, ("{ source = %q, result = %q, expect = %q }"):format(source, result, expect))
 end
 
@@ -144,7 +164,7 @@ test_parse_exp("a[1 + 2]", "(index a (+ 1 2))")
 test_parse_exp("a.b", "(member a b)")
 test_parse_exp("a.b.c", "(member (member a b) c)")
 
-test_parse_exp("{}", "table")
+test_parse_exp("{}", "(table)")
 test_parse_exp("{1}", "(table (list_field 1))")
 test_parse_exp("{1,}", "(table (list_field 1))")
 test_parse_exp("{1,2}", "(table (list_field 1) (list_field 2))")
@@ -153,15 +173,15 @@ test_parse_exp("{1,2,3}", "(table (list_field 1) (list_field 2) (list_field 3))"
 test_parse_exp("{1,2,3,}", "(table (list_field 1) (list_field 2) (list_field 3))")
 test_parse_exp("{a=b,c}", "(table (member_field a b) (list_field c))")
 
-test_parse_exp("f()", "(call f arguments)")
+test_parse_exp("f()", "(call f (arguments))")
 test_parse_exp("f(a)", "(call f (arguments a))")
 test_parse_exp("f(a,b)", "(call f (arguments a b))")
-test_parse_exp("f{}", "(call f (arguments table))")
+test_parse_exp("f{}", "(call f (arguments (table)))")
 test_parse_exp("f{a}", "(call f (arguments (table (list_field a))))")
 test_parse_exp("f{a,b}", "(call f (arguments (table (list_field a) (list_field b))))")
 test_parse_exp("f[[a]]", "(call f (arguments String))")
 
-test_parse_exp("x:f()", "(self x f arguments)")
+test_parse_exp("x:f()", "(self x f (arguments))")
 test_parse_exp("x:f(a)", "(self x f (arguments a))")
 test_parse_exp("x:f(a,b)", "(self x f (arguments a b))")
 
@@ -174,29 +194,29 @@ test_parse_exp("1 + - 2 ^ 3", "(+ 1 (- (^ 2 3)))")
 
 test_parse_exp(
   "function () end",
-  "(function (body parameters block))")
+  "(function (body (parameters) (block)))")
 test_parse_exp(
   "function (a) end",
-  "(function (body (parameters a) block))")
+  "(function (body (parameters a) (block)))")
 test_parse_exp(
   "function (a, b) end",
-  "(function (body (parameters a b) block))")
+  "(function (body (parameters a b) (block)))")
 test_parse_exp(
   "function (a, b, ...) end",
-  "(function (body (parameters a b ...) block))")
+  "(function (body (parameters a b (...)) (block)))")
 test_parse_exp(
   "function (a, b, ...t) end",
-  "(function (body (parameters a b (... t)) block))")
+  "(function (body (parameters a b (... t)) (block)))")
 test_parse_exp(
   "function (...) end",
-  "(function (body (parameters ...) block))")
+  "(function (body (parameters (...)) (block)))")
 test_parse_exp(
   "function (...t) end",
-  "(function (body (parameters (... t)) block))")
+  "(function (body (parameters (... t)) (block)))")
 
 test_parse_exp(
   "f()(1)[2][3] * 4",
-  "(* (index (index (call (call f arguments) (arguments 1)) 2) 3) 4)")
+  "(* (index (index (call (call f (arguments)) (arguments 1)) 2) 3) 4)")
 
 ---@param source string
 local function test_parse_exp_error(source)
@@ -220,12 +240,12 @@ local function test_parse_stat(source, expect)
   end)
 end
 
-test_parse_stat(";", "empty")
-test_parse_stat("break", "break")
+test_parse_stat(";", "(empty)")
+test_parse_stat("break", "(break)")
 test_parse_stat("::L123::", "(label L123)")
 test_parse_stat("goto L123", "(goto L123)")
-test_parse_stat("f()", "(call (call f arguments))")
-test_parse_stat("x:f()", "(call (self x f arguments))")
+test_parse_stat("f()", "(call (call f (arguments)))")
+test_parse_stat("x:f()", "(call (self x f (arguments)))")
 test_parse_stat("a.b = 42", "(assignment (variables (member a b)) (expressions 42))")
 test_parse_stat(
   "do a = 1 b = 2 end",
@@ -236,21 +256,22 @@ test_parse_stat(
 test_parse_stat(
   "repeat print(42) until false",
   "(repeat (block (call (call print (arguments 42)))) false)")
-test_parse_stat("if 1 then end", "(if 1 block)")
-test_parse_stat("if 1 then ; end", "(if 1 (block empty))")
+test_parse_stat("if 1 then end", "(if 1 (block))")
+test_parse_stat("if 1 then ; end", "(if 1 (block (empty)))")
 test_parse_stat(
   "if 1 then ::L1:: else ::L2:: end",
   "(if 1 (block (label L1)) (block (label L2)))")
 test_parse_stat(
   "if 1 then ::L1:: elseif 2 then ::L2:: end",
-  "\z
-    (if 1 \z
-      (block (label L1)) \z
-      (if 2 \z
-        (block (label L2))\z
-      )\z
-    )\z
-  ")
+  [[
+    (if 1
+      (block (label L1))
+      (if 2
+        (block (label L2))
+      )
+    )
+  ]])
+
 test_parse_stat(
   "if 1 then ::L1:: elseif 2 then ::L2:: else ::L3:: end",
   "\z
@@ -301,19 +322,19 @@ test_parse_stat(
 
 test_parse_stat(
   "function f() end",
-  "(function f (body parameters block))")
+  "(function f (body (parameters) (block)))")
 test_parse_stat(
   "function x.f() end",
-  "(function (member x f) (body parameters block))")
+  "(function (member x f) (body (parameters) (block)))")
 test_parse_stat(
   "function x:f() end",
-  "(function (method x f) (body parameters block))")
+  "(function (method x f) (body (parameters) (block)))")
 test_parse_stat(
   "function x.y.f() end",
-  "(function (member (member x y) f) (body parameters block))")
+  "(function (member (member x y) f) (body (parameters) (block)))")
 test_parse_stat(
   "function x.y:f() end",
-  "(function (method (member x y) f) (body parameters block))")
+  "(function (method (member x y) f) (body (parameters) (block)))")
 
 test_parse_stat(
   "local x",
@@ -353,7 +374,7 @@ test_parse_stat(
   "global <const> x <const>, y <close>",
   "(global (names <const> (x <const>) (y <close>)))")
 
-test_parse_stat("global *", "(global any)")
+test_parse_stat("global *", "(global (any))")
 test_parse_stat("global <const> *", "(global (any <const>))")
 
 ---@param source string
@@ -381,12 +402,12 @@ end
 
 test_parse_block("::L1::", "(block (label L1))")
 test_parse_block("::L1::::L2::", "(block (label L1) (label L2))")
-test_parse_block(";return", "(block empty return)")
-test_parse_block(";return;", "(block empty return)")
-test_parse_block(";return 1", "(block empty (return 1))")
-test_parse_block(";return 1;", "(block empty (return 1))")
-test_parse_block(";return 1,2", "(block empty (return 1 2))")
-test_parse_block(";return 1,2;", "(block empty (return 1 2))")
+test_parse_block(";return", "(block (empty) (return))")
+test_parse_block(";return;", "(block (empty) (return))")
+test_parse_block(";return 1", "(block (empty) (return 1))")
+test_parse_block(";return 1;", "(block (empty) (return 1))")
+test_parse_block(";return 1,2", "(block (empty) (return 1 2))")
+test_parse_block(";return 1,2;", "(block (empty) (return 1 2))")
 
 ---@param source string
 local function test_parse_block_error(source)
