@@ -27,12 +27,6 @@ end
 
 ---@param kind string
 ---@return dromozoa.node
-local function new_statement_node(kind)
-  return node.new("statement", kind)
-end
-
----@param kind string
----@return dromozoa.node
 local function new_auxiliary_node(kind)
   return node.new("auxiliary", kind)
 end
@@ -327,7 +321,7 @@ function class:parse_stat()
     self:unread()
     local u = self:parse_prefixexp()
     if u:check("call", "self") then
-      return new_statement_node "call":append(u)
+      return u.token:new_statement_node "call":append(u)
     else
       return self:parse_assignment(u)
     end

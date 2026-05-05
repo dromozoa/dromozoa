@@ -17,6 +17,7 @@
 
 local lexer = require "dromozoa.lexer"
 local parser = require "dromozoa.parser"
+local source_location = require "dromozoa.source_location"
 
 local verbose = os.getenv "VERBOSE"
 
@@ -98,6 +99,15 @@ local function check(u, ...)
     assert(not u.token)
   end
 
+  if u.category == "statement" then
+    assert(u.token, ("{ kind = %q, srcloc = %q }"):format(u.kind, source_location.to_string(u:srcloc())))
+  end
+
+  if u:check("chunk", "block") then
+    assert(u.category == "block")
+    assert(not u.token)
+  end
+
   if u:check("variables", "names", "expressions", "parameters") then
     assert(u.category == "auxiliary")
     assert(not u.token)
@@ -106,6 +116,9 @@ local function check(u, ...)
   for _, v in ipairs(u.nodes) do
     if u.category == "block" then
       assert(v.category == "statement")
+    end
+    if v.category == "statement" then
+      assert(u.category == "block")
     end
     check(v, u, ...)
   end
