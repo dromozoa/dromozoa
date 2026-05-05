@@ -247,17 +247,22 @@ end
 ---@return dromozoa.node
 function class:parse_block(kind)
   local u = new_block_node(kind or "block")
+  local x
   while true do
-    local x = self:read()
+    x = self:read()
     if x:check "return" then
-      return u:append(self:parse_retstat(x))
+      u:append(self:parse_retstat(x))
+      x = self:read()
+      break
     elseif x:check(is_stat_terminal()) then
-      self:unread()
-      return u
+      break
     end
     self:unread()
     u:append(self:parse_stat())
   end
+  x:require(is_stat_terminal())
+  self:unread()
+  return u
 end
 
 ---@return dromozoa.node
