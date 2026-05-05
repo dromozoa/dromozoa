@@ -342,7 +342,7 @@ function class:parse_if(x)
   u:append(self:parse_block())
   local x = self:read()
   if x:check "elseif" then
-    return u:append(self:parse_if(x))
+    return u:append(new_block_node "block":append(self:parse_if(x)))
   elseif x:check "else" then
     return u:append(self:parse_block())
   end

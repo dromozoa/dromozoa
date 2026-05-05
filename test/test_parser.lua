@@ -98,6 +98,7 @@ local function normalize(source)
     :gsub("^%s+%(", "(")
     :gsub("%)%s+$", ")")
     :gsub("%s+%(", " (")
+    :gsub("%)%s+", ") ")
     :gsub("%s+%)", ")")
   )
 end
@@ -146,11 +147,11 @@ test_parse_exp("1 and 2 or 3", "(or (and 1 2) 3)")
 test_parse_exp("1 or 2 and 3", "(or 1 (and 2 3))")
 test_parse_exp("1 + 2 + 3", "(+ (+ 1 2) 3)")
 test_parse_exp("1 ^ 2 ^ 3", "(^ 1 (^ 2 3))")
+test_parse_exp("a .. b .. c", "(.. a (.. b c))")
 
 test_parse_exp("- 1 + 2 - 3", "(- (+ (- 1) 2) 3)")
 test_parse_exp("- 1 ^ 2 ^ 3", "(- (^ 1 (^ 2 3)))")
 test_parse_exp("not a or b", "(or (not a) b)")
-test_parse_exp("a .. b .. c", "(.. a (.. b c))")
 
 test_parse_exp("1 + 2 * 3", "(+ 1 (* 2 3))")
 test_parse_exp("(1 + 2) * 3", "(* (group (+ 1 2)) 3)")
@@ -168,6 +169,7 @@ test_parse_exp("{1,2,}", "(table (list_field 1) (list_field 2))")
 test_parse_exp("{1,2,3}", "(table (list_field 1) (list_field 2) (list_field 3))")
 test_parse_exp("{1,2,3,}", "(table (list_field 1) (list_field 2) (list_field 3))")
 test_parse_exp("{a=b,c}", "(table (member_field a b) (list_field c))")
+test_parse_exp("{[a]=b,c}", "(table (index_field a b) (list_field c))")
 
 test_parse_exp("f()", "(call f (arguments))")
 test_parse_exp("f(a)", "(call f (arguments a))")
@@ -238,85 +240,111 @@ local function test_parse_stat(source, expect)
   end)
 end
 
-test_parse_stat(";", "(empty)")
-test_parse_stat("break", "(break)")
-test_parse_stat("::L123::", "(label L123)")
-test_parse_stat("goto L123", "(goto L123)")
 test_parse_stat("f()", "(call (call f (arguments)))")
 test_parse_stat("x:f()", "(call (self x f (arguments)))")
-test_parse_stat("a.b = 42", "(assignment (variables (member a b)) (expressions 42))")
-test_parse_stat(
-  "do a = 1 b = 2 end",
-  "(do (block (assignment (variables a) (expressions 1)) (assignment (variables b) (expressions 2))))")
-test_parse_stat(
-  "while true do print(42) end",
-  "(while true (block (call (call print (arguments 42)))))")
-test_parse_stat(
-  "repeat print(42) until false",
-  "(repeat (block (call (call print (arguments 42)))) false)")
-test_parse_stat("if 1 then end", "(if 1 (block))")
-test_parse_stat("if 1 then ; end", "(if 1 (block (empty)))")
-test_parse_stat(
-  "if 1 then ::L1:: else ::L2:: end",
-  "(if 1 (block (label L1)) (block (label L2)))")
-test_parse_stat(
-  "if 1 then ::L1:: elseif 2 then ::L2:: end",
-  [[
-    (if 1
-      (block (label L1))
-      (if 2
-        (block (label L2))
+
+test_parse_stat("a.b = 42", [[
+  (assignment
+    (variables (member a b))
+    (expressions 42)
+  )
+]])
+test_parse_stat("a.b, c[d + e], f().g = 42, 69", [[
+  (assignment
+    (variables (member a b) (index c (+ d e)) (member (call f (arguments)) g))
+    (expressions 42 69)
+  )
+]])
+
+test_parse_stat(";", "(empty)")
+test_parse_stat("::L123::", "(label L123)")
+test_parse_stat("break", "(break)")
+test_parse_stat("goto L123", "(goto L123)")
+
+test_parse_stat("do a = 1 b = 2 end", [[
+  (do
+    (block
+      (assignment (variables a) (expressions 1))
+      (assignment (variables b) (expressions 2))
+    )
+  )
+]])
+
+test_parse_stat("while true do print(42) end", [[
+  (while true
+    (block (call (call print (arguments 42))))
+  )
+]])
+
+test_parse_stat("repeat print(42) until false", [[
+  (repeat
+    (block (call (call print (arguments 42))))
+    false
+  )
+]])
+
+test_parse_stat("if x then print(1) end", [[
+  (if x
+    (block (call (call print (arguments 1))))
+  )
+]])
+test_parse_stat("if x then print(1) else print(2) end", [[
+  (if x
+    (block (call (call print (arguments 1))))
+    (block (call (call print (arguments 2))))
+  )
+]])
+test_parse_stat("if x then print(1) elseif y then print(2) end", [[
+  (if x
+    (block (call (call print (arguments 1))))
+    (block
+      (if y
+        (block (call (call print (arguments 2))))
       )
     )
-  ]])
+  )
+]])
+test_parse_stat("if x then print(1) elseif y then print(2) else print(3) end", [[
+  (if x
+    (block (call (call print (arguments 1))))
+    (block
+      (if y
+        (block (call (call print (arguments 2))))
+        (block (call (call print (arguments 3))))
+      )
+    )
+  )
+]])
 
-test_parse_stat(
-  "if 1 then ::L1:: elseif 2 then ::L2:: else ::L3:: end",
-  "\z
-    (if 1 \z
-      (block (label L1)) \z
-      (if 2 \z
-        (block (label L2)) \z
-        (block (label L3))\z
-      )\z
-    )\z
-  ")
-test_parse_stat(
-  "for i = 1, 10 do print(i) end",
-  "\z
-    (numeric_for i (expressions 1 10) \z
-      (block \z
-        (call (call print (arguments i)))\z
-      )\z
-    )\z
-  ")
-test_parse_stat(
-  "for i = 10, 1, -1 do print(i) end",
-  "\z
-    (numeric_for i (expressions 10 1 (- 1)) \z
-      (block \z
-        (call (call print (arguments i)))\z
-      )\z
-    )\z
-  ")
-test_parse_stat(
-  "for k, v in pairs(t) do print(k, v) end",
-  "\z
-    (generic_for (names k v) (expressions (call pairs (arguments t))) \z
-      (block \z
-        (call (call print (arguments k v)))\z
-      )\z
-    )\z
-  ")
-test_parse_stat(
-  "for k, v in next, t, nil do print(k, v) end",
-  "\z
-    (generic_for (names k v) (expressions next t nil) \z
-      (block \z
-        (call (call print (arguments k v)))\z
-      )\z
-    )\z
-  ")
+test_parse_stat("for i = 1, 10 do print(i) end", [[
+  (numeric_for i (expressions 1 10)
+    (block
+      (call (call print (arguments i)))
+    )
+  )
+]])
+test_parse_stat("for i = 10, 1, -1 do print(i) end", [[
+  (numeric_for i (expressions 10 1 (- 1))
+    (block
+      (call (call print (arguments i)))
+    )
+  )
+]])
+
+test_parse_stat("for k, v in pairs(t) do print(k, v) end", [[
+  (generic_for (names k v) (expressions (call pairs (arguments t)))
+    (block
+      (call (call print (arguments k v)))
+    )
+  )
+]])
+test_parse_stat("for k, v in next, t, nil do print(k, v) end", [[
+  (generic_for (names k v) (expressions next t nil)
+    (block
+      (call (call print (arguments k v)))
+    )
+  )
+]])
 
 test_parse_stat(
   "function f() end",
@@ -333,6 +361,20 @@ test_parse_stat(
 test_parse_stat(
   "function x.y:f() end",
   "(function (method (member x y) f) (body (parameters) (block)))")
+
+test_parse_stat("local function f(x) if x > 0 then return f(x - 1) end end", [[
+  (local_function f
+    (body (parameters x)
+      (block
+        (if (> x 0)
+          (block
+            (return (expressions (call f (arguments (- x 1)))))
+          )
+        )
+      )
+    )
+  )
+]])
 
 test_parse_stat(
   "local x",
@@ -354,6 +396,24 @@ test_parse_stat(
   "(local (names <const> (x <const>) (y <close>)))")
 
 test_parse_stat(
+  "local x, y, z = true, 42, 'foo'",
+  "(local (names x y z) (expressions true 42 String))")
+
+test_parse_stat("global function f(x) if x > 0 then return f(x - 1) end end", [[
+  (global_function f
+    (body (parameters x)
+      (block
+        (if (> x 0)
+          (block
+            (return (expressions (call f (arguments (- x 1)))))
+          )
+        )
+      )
+    )
+  )
+]])
+
+test_parse_stat(
   "global x",
   "(global (names x))")
 test_parse_stat(
@@ -371,6 +431,10 @@ test_parse_stat(
 test_parse_stat(
   "global <const> x <const>, y <close>",
   "(global (names <const> (x <const>) (y <close>)))")
+
+test_parse_stat(
+  "global x, y, z = true, 42, 'foo'",
+  "(global (names x y z) (expressions true 42 String))")
 
 test_parse_stat("global *", "(global (any))")
 test_parse_stat("global <const> *", "(global (any <const>))")
