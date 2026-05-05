@@ -407,12 +407,12 @@ end
 
 test_parse_block("::L1::", "(block (label L1))")
 test_parse_block("::L1::::L2::", "(block (label L1) (label L2))")
-test_parse_block(";return", "(block (empty) (return))")
-test_parse_block(";return;", "(block (empty) (return))")
-test_parse_block(";return 1", "(block (empty) (return 1))")
-test_parse_block(";return 1;", "(block (empty) (return 1))")
-test_parse_block(";return 1,2", "(block (empty) (return 1 2))")
-test_parse_block(";return 1,2;", "(block (empty) (return 1 2))")
+test_parse_block(";return", "(block (empty) (return (expressions)))")
+test_parse_block(";return;", "(block (empty) (return (expressions)))")
+test_parse_block(";return 1", "(block (empty) (return (expressions 1)))")
+test_parse_block(";return 1;", "(block (empty) (return (expressions 1)))")
+test_parse_block(";return 1,2", "(block (empty) (return (expressions 1 2)))")
+test_parse_block(";return 1,2;", "(block (empty) (return (expressions 1 2)))")
 
 ---@param source string
 local function test_parse_block_error(source)
