@@ -557,8 +557,9 @@ end
 
 ---@return dromozoa.node
 function class:parse_funcbody()
-  local u = self:read():require "(":new_auxiliary_node "parameters"
+  local u = new_auxiliary_node "parameters"
 
+  self:read():require "("
   local x = self:read()
   if not x:check("...", ")") then
     while true do

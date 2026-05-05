@@ -91,6 +91,26 @@ local function dump(u)
   return table.concat(buffer)
 end
 
+---@param u dromozoa.node
+local function check(u, ...)
+  if u.category == "block" then
+    assert(u:check("chunk", "block"))
+    assert(not u.token)
+  end
+
+  if u:check("variables", "names", "expressions", "parameters") then
+    assert(u.category == "auxiliary")
+    assert(not u.token)
+  end
+
+  for _, v in ipairs(u.nodes) do
+    if u.category == "block" then
+      assert(v.category == "statement")
+    end
+    check(v, u, ...)
+  end
+end
+
 ---@param source string
 ---@return string
 local function normalize(source)
@@ -115,6 +135,7 @@ local function test_parse_impl(source, expect, fn)
   local result = dump(root)
   local expect = normalize(expect)
   assert(result == expect, ("{ source = %q, result = %q, expect = %q }"):format(source, result, expect))
+  check(root)
 end
 
 ---@param source string
