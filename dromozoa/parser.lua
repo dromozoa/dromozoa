@@ -534,20 +534,14 @@ end
 ---@return dromozoa.node
 function class:parse_args(x)
   if x:check "(" then
-    local u = x:new_auxiliary_node "expressions"
-    if self:read():check ")" then
-      return u
+    local u
+    if self:peek():check ")" then
+      u = new_auxiliary_node "expressions"
+    else
+      u = self:parse_explist()
     end
-    self:unread()
-    u:append(self:parse_exp())
-    while true do
-      local x = self:read()
-      if x:check ")" then
-        return u
-      end
-      x:require ","
-      u:append(self:parse_exp())
-    end
+    self:read():require ")"
+    return u
   elseif x:check "{" then
     return new_auxiliary_node "expressions":append(self:parse_tableconstructor(x))
   else
