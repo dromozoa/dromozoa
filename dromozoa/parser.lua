@@ -670,6 +670,7 @@ exp_nud_table = {
   ["nil"]      = class.nud_token,
   ["false"]    = class.nud_token,
   ["true"]     = class.nud_token,
+  ["Float"]    = class.nud_token,
   ["Integer"]  = class.nud_token,
   ["String"]   = class.nud_token,
   ["..."]      = class.nud_token,

@@ -68,7 +68,9 @@ local function dump_impl(u, buffer)
     table.insert(buffer, "(")
   end
 
-  if u.kind == "Integer" or u.kind == "Name" then
+  -- https://www.lua.org/manual/5.5/readme.html#changes
+  -- 浮動小数点数が、読み戻しに十分な桁数の文字列で表現されるようになった。
+  if u:check("Float", "Integer", "Name") then
     table.insert(buffer, tostring(u.token.value))
   else
     table.insert(buffer, u.kind)
@@ -217,6 +219,8 @@ test_parse_exp(
 test_parse_exp(
   "f()(1)[2][3] * 4",
   "(* (index (index (call (call f (arguments)) (arguments 1)) 2) 3) 4)")
+
+test_parse_exp("4.25", "4.25")
 
 ---@param source string
 local function test_parse_exp_error(source)
