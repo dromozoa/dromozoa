@@ -89,3 +89,69 @@ print(y:to_hex_string(), y:to_string())
 -- my_u32がmy_i32にアップキャストされて演算子が解決されるらしい。
 local z = y + x
 print(z:to_string())
+
+---@class my_optional_integer
+---@field private valid boolean
+---@field private value integer
+local class = {}
+local metatable = { __index = class }
+
+local function new_invalid_optional_integer()
+  return setmetatable({ valid = false, value = 0 }, metatable)
+end
+
+---@param value integer
+---@return my_optional_integer
+local function new_optional_integer(value)
+  return setmetatable({ valid = true, value = value }, metatable)
+end
+
+---@return boolean
+function class:is_valid()
+  return self.valid
+end
+
+---@return integer
+function class:get_value()
+  assert(self:is_valid())
+  return self.value
+end
+
+local my_optional_integer = class
+
+---@class my_optional_boolean
+---@field private value integer
+local class = {}
+local metatable = { __index = class }
+
+local function new_invalid_optional_boolean()
+  return setmetatable({ value = -1 }, metatable)
+end
+
+---@param value boolean
+---@return my_optional_boolean
+local function new_optional_boolean(value)
+  return setmetatable({ value = value and 1 or 0 }, metatable)
+end
+
+---@return boolean
+function class:is_valid()
+  return self.value ~= -1
+end
+
+---@return boolean
+function class:get_value()
+  assert(self:is_valid())
+  return self.value > 0
+end
+
+local my_optional_boolean = class
+
+local a = new_invalid_optional_integer()
+local b = new_invalid_optional_boolean()
+local c = new_optional_integer(42)
+local d = new_optional_boolean(false)
+
+print(a:is_valid(), b:is_valid(), c:is_valid(), d:is_valid())
+print(my_optional_integer)
+print(my_optional_boolean)
