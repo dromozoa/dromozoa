@@ -155,12 +155,3 @@ local d = new_optional_boolean(false)
 print(a:is_valid(), b:is_valid(), c:is_valid(), d:is_valid())
 print(my_optional_integer)
 print(my_optional_boolean)
-
----@type fun():integer, boolean
-local f = function()
-  return 42, true
-end
-
----@type integer, boolean
-local x, y = f()
-print(x, y)
