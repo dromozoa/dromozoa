@@ -9,19 +9,61 @@
     {
         "defines": [
             {
-                "async": false,
-                "deprecated": false,
-                "file": "dromozoa/lua_lexer.lua",
+                "file": "dromozoa/parser.lua",
                 "finish": [
-                    137,
-                    28
+                    47,
+                    66
                 ],
                 "start": [
-                    137,
+                    47,
+                    10
+                ],
+                "type": "doc.alias",
+                "view": "{ lbp: integer, fn: fun(parser: dromozoa.parser, u: dromozoa.node, x: dromozoa.token, rbp: integer):dromozoa.node }"
+            }
+        ],
+        "fields": [],
+        "name": "dromozoa.led",
+        "type": "type",
+        "view": "dromozoa.led"
+    },
+    {
+        "defines": [
+            {
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    46,
+                    126
+                ],
+                "start": [
+                    46,
+                    10
+                ],
+                "type": "doc.alias",
+                "view": "fun(parser: dromozoa.parser, u: dromozoa.node, x: dromozoa.token, rbp: integer):dromozoa.node"
+            }
+        ],
+        "fields": [],
+        "name": "dromozoa.led_function",
+        "type": "type",
+        "view": "dromozoa.led_function"
+    },
+    {
+        "defines": [
+            {
+                "async": false,
+                "deprecated": false,
+                "file": "dromozoa/lexer.lua",
+                "finish": [
+                    129,
+                    24
+                ],
+                "start": [
+                    129,
                     10
                 ],
                 "type": "doc.class",
-                "view": "dromozoa.lua_lexer",
+                "view": "dromozoa.lexer",
                 "visible": "public"
             }
         ],
@@ -30,15 +72,222 @@
                 "async": false,
                 "deprecated": false,
                 "extends": {
+                    "finish": [
+                        157,
+                        18
+                    ],
+                    "start": [
+                        157,
+                        14
+                    ],
+                    "type": "getlocal",
+                    "view": "string"
+                },
+                "file": "dromozoa/lexer.lua",
+                "finish": [
+                    157,
+                    11
+                ],
+                "name": "_0",
+                "start": [
+                    157,
+                    4
+                ],
+                "type": "setfield",
+                "view": "string",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "finish": [
+                        161,
+                        15
+                    ],
+                    "start": [
+                        161,
+                        12
+                    ],
+                    "type": "nil",
+                    "view": "nil"
+                },
+                "file": "dromozoa/lexer.lua",
+                "finish": [
+                    161,
+                    9
+                ],
+                "name": "_0",
+                "start": [
+                    161,
+                    2
+                ],
+                "type": "setfield",
+                "view": "string",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "finish": [
+                        132,
+                        20
+                    ],
+                    "start": [
+                        132,
+                        13
+                    ],
+                    "type": "doc.type",
+                    "types": [
+                        {
+                            "finish": [
+                                132,
+                                19
+                            ],
+                            "start": [
+                                132,
+                                13
+                            ],
+                            "type": "doc.type.name",
+                            "view": "string"
+                        }
+                    ],
+                    "view": "string?"
+                },
+                "file": "dromozoa/lexer.lua",
+                "finish": [
+                    132,
+                    20
+                ],
+                "name": "_1",
+                "start": [
+                    132,
+                    10
+                ],
+                "type": "doc.field",
+                "view": "string?",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "finish": [
+                        133,
+                        20
+                    ],
+                    "start": [
+                        133,
+                        13
+                    ],
+                    "type": "doc.type",
+                    "types": [
+                        {
+                            "finish": [
+                                133,
+                                19
+                            ],
+                            "start": [
+                                133,
+                                13
+                            ],
+                            "type": "doc.type.name",
+                            "view": "string"
+                        }
+                    ],
+                    "view": "string?"
+                },
+                "file": "dromozoa/lexer.lua",
+                "finish": [
+                    133,
+                    20
+                ],
+                "name": "_2",
+                "start": [
+                    133,
+                    10
+                ],
+                "type": "doc.field",
+                "view": "string?",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
                     "args": [
                         {
                             "finish": [
-                                143,
+                                167,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                167,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.lexer"
+                        }
+                    ],
+                    "finish": [
+                        169,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "boolean"
+                        }
+                    ],
+                    "start": [
+                        167,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.lexer:eof()\n  -> boolean"
+                },
+                "file": "dromozoa/lexer.lua",
+                "finish": [
+                    167,
+                    18
+                ],
+                "name": "eof",
+                "start": [
+                    167,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                184,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                184,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.lexer"
+                        },
+                        {
+                            "finish": [
+                                184,
                                 25
                             ],
                             "name": "source",
                             "start": [
-                                143,
+                                184,
                                 19
                             ],
                             "type": "local",
@@ -46,12 +295,12 @@
                         },
                         {
                             "finish": [
-                                143,
+                                184,
                                 35
                             ],
                             "name": "filename",
                             "start": [
-                                143,
+                                184,
                                 27
                             ],
                             "type": "local",
@@ -59,7 +308,7 @@
                         }
                     ],
                     "finish": [
-                        250,
+                        293,
                         3
                     ],
                     "returns": [
@@ -69,241 +318,25 @@
                         }
                     ],
                     "start": [
-                        143,
+                        184,
                         0
                     ],
                     "type": "function",
-                    "view": "function dromozoa.lua_lexer.lex(source: string, filename: string)\n  -> dromozoa.token[]"
+                    "view": "(method) dromozoa.lexer:lex(source: string, filename: string)\n  -> dromozoa.token[]"
                 },
-                "file": "dromozoa/lua_lexer.lua",
+                "file": "dromozoa/lexer.lua",
                 "finish": [
-                    143,
+                    184,
                     18
                 ],
                 "name": "lex",
                 "start": [
-                    143,
-                    9
-                ],
-                "type": "setfield",
-                "view": "function",
-                "visible": "public"
-            }
-        ],
-        "name": "dromozoa.lua_lexer",
-        "type": "type",
-        "view": "dromozoa.lua_lexer"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "file": "dromozoa/lua_parser.lua",
-                "finish": [
-                    17,
-                    29
-                ],
-                "start": [
-                    17,
-                    10
-                ],
-                "type": "doc.class",
-                "view": "dromozoa.lua_parser",
-                "visible": "public"
-            }
-        ],
-        "fields": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "args": [],
-                    "finish": [
-                        28,
-                        3
-                    ],
-                    "returns": [
-                        {
-                            "type": "function.return",
-                            "view": "dromozoa.lua_parser"
-                        }
-                    ],
-                    "start": [
-                        25,
-                        0
-                    ],
-                    "type": "function",
-                    "view": "function dromozoa.lua_parser.new()\n  -> dromozoa.lua_parser"
-                },
-                "file": "dromozoa/lua_parser.lua",
-                "finish": [
-                    25,
-                    18
-                ],
-                "name": "new",
-                "start": [
-                    25,
-                    9
-                ],
-                "type": "setfield",
-                "view": "function",
-                "visible": "public"
-            },
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "args": [
-                        {
-                            "finish": [
-                                30,
-                                8
-                            ],
-                            "name": "self",
-                            "start": [
-                                30,
-                                8
-                            ],
-                            "type": "self",
-                            "view": "dromozoa.lua_parser"
-                        }
-                    ],
-                    "finish": [
-                        31,
-                        3
-                    ],
-                    "start": [
-                        30,
-                        0
-                    ],
-                    "type": "function",
-                    "view": "(method) dromozoa.lua_parser:parse()"
-                },
-                "file": "dromozoa/lua_parser.lua",
-                "finish": [
-                    30,
-                    20
-                ],
-                "name": "parse",
-                "start": [
-                    30,
+                    184,
                     9
                 ],
                 "type": "setmethod",
                 "view": "function",
                 "visible": "public"
-            }
-        ],
-        "name": "dromozoa.lua_parser",
-        "type": "type",
-        "view": "dromozoa.lua_parser"
-    },
-    {
-        "defines": [
-            {
-                "async": false,
-                "deprecated": false,
-                "file": "dromozoa/matcher.lua",
-                "finish": [
-                    19,
-                    26
-                ],
-                "start": [
-                    19,
-                    10
-                ],
-                "type": "doc.class",
-                "view": "dromozoa.matcher",
-                "visible": "public"
-            }
-        ],
-        "fields": [
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "finish": [
-                        22,
-                        20
-                    ],
-                    "start": [
-                        22,
-                        13
-                    ],
-                    "type": "doc.type",
-                    "types": [
-                        {
-                            "finish": [
-                                22,
-                                19
-                            ],
-                            "start": [
-                                22,
-                                13
-                            ],
-                            "type": "doc.type.name",
-                            "view": "string"
-                        }
-                    ],
-                    "view": "string?"
-                },
-                "file": "dromozoa/matcher.lua",
-                "finish": [
-                    22,
-                    20
-                ],
-                "name": "_0",
-                "start": [
-                    22,
-                    10
-                ],
-                "type": "doc.field",
-                "view": "string?",
-                "visible": "public"
-            },
-            {
-                "async": false,
-                "deprecated": false,
-                "extends": {
-                    "finish": [
-                        23,
-                        20
-                    ],
-                    "start": [
-                        23,
-                        13
-                    ],
-                    "type": "doc.type",
-                    "types": [
-                        {
-                            "finish": [
-                                23,
-                                19
-                            ],
-                            "start": [
-                                23,
-                                13
-                            ],
-                            "type": "doc.type.name",
-                            "view": "string"
-                        }
-                    ],
-                    "view": "string?"
-                },
-                "file": "dromozoa/matcher.lua",
-                "finish": [
-                    23,
-                    20
-                ],
-                "name": "_1",
-                "start": [
-                    23,
-                    10
-                ],
-                "type": "doc.field",
-                "view": "string?",
-                "visible": "public"
             },
             {
                 "async": false,
@@ -312,20 +345,20 @@
                     "args": [
                         {
                             "finish": [
-                                59,
+                                172,
                                 8
                             ],
                             "name": "self",
                             "start": [
-                                59,
+                                172,
                                 8
                             ],
                             "type": "self",
-                            "view": "dromozoa.matcher"
+                            "view": "dromozoa.lexer"
                         }
                     ],
                     "finish": [
-                        61,
+                        179,
                         3
                     ],
                     "returns": [
@@ -335,20 +368,20 @@
                         }
                     ],
                     "start": [
-                        59,
+                        172,
                         0
                     ],
                     "type": "function",
-                    "view": "(method) dromozoa.matcher:eof()\n  -> boolean"
+                    "view": "(method) dromozoa.lexer:lex_punctuator()\n  -> boolean"
                 },
-                "file": "dromozoa/matcher.lua",
+                "file": "dromozoa/lexer.lua",
                 "finish": [
-                    59,
-                    18
+                    172,
+                    29
                 ],
-                "name": "eof",
+                "name": "lex_punctuator",
                 "start": [
-                    59,
+                    172,
                     9
                 ],
                 "type": "setmethod",
@@ -362,25 +395,25 @@
                     "args": [
                         {
                             "finish": [
-                                44,
+                                152,
                                 8
                             ],
                             "name": "self",
                             "start": [
-                                44,
+                                152,
                                 8
                             ],
                             "type": "self",
-                            "view": "dromozoa.matcher"
+                            "view": "dromozoa.lexer"
                         },
                         {
                             "finish": [
-                                44,
+                                152,
                                 28
                             ],
                             "name": "pattern",
                             "start": [
-                                44,
+                                152,
                                 21
                             ],
                             "type": "local",
@@ -388,7 +421,7 @@
                         }
                     ],
                     "finish": [
-                        56,
+                        164,
                         3
                     ],
                     "returns": [
@@ -398,20 +431,20 @@
                         }
                     ],
                     "start": [
-                        44,
+                        152,
                         0
                     ],
                     "type": "function",
-                    "view": "(method) dromozoa.matcher:match(pattern: string)\n  -> boolean"
+                    "view": "(method) dromozoa.lexer:match(pattern: string)\n  -> boolean"
                 },
-                "file": "dromozoa/matcher.lua",
+                "file": "dromozoa/lexer.lua",
                 "finish": [
-                    44,
+                    152,
                     20
                 ],
                 "name": "match",
                 "start": [
-                    44,
+                    152,
                     9
                 ],
                 "type": "setmethod",
@@ -422,59 +455,32 @@
                 "async": false,
                 "deprecated": false,
                 "extends": {
-                    "args": [
-                        {
-                            "finish": [
-                                33,
-                                25
-                            ],
-                            "name": "source",
-                            "start": [
-                                33,
-                                19
-                            ],
-                            "type": "local",
-                            "view": "string"
-                        },
-                        {
-                            "finish": [
-                                33,
-                                35
-                            ],
-                            "name": "filename",
-                            "start": [
-                                33,
-                                27
-                            ],
-                            "type": "local",
-                            "view": "string"
-                        }
-                    ],
+                    "args": [],
                     "finish": [
-                        40,
+                        148,
                         3
                     ],
                     "returns": [
                         {
                             "type": "function.return",
-                            "view": "dromozoa.matcher"
+                            "view": "dromozoa.lexer"
                         }
                     ],
                     "start": [
-                        33,
+                        141,
                         0
                     ],
                     "type": "function",
-                    "view": "function dromozoa.matcher.new(source: string, filename: string)\n  -> dromozoa.matcher"
+                    "view": "function dromozoa.lexer.new()\n  -> dromozoa.lexer"
                 },
-                "file": "dromozoa/matcher.lua",
+                "file": "dromozoa/lexer.lua",
                 "finish": [
-                    33,
+                    141,
                     18
                 ],
                 "name": "new",
                 "start": [
-                    33,
+                    141,
                     9
                 ],
                 "type": "setfield",
@@ -486,42 +492,42 @@
                 "deprecated": false,
                 "extends": {
                     "finish": [
-                        20,
-                        23
+                        130,
+                        24
                     ],
                     "start": [
-                        20,
+                        130,
                         17
                     ],
                     "type": "doc.type",
                     "types": [
                         {
                             "finish": [
-                                20,
+                                130,
                                 23
                             ],
                             "start": [
-                                20,
+                                130,
                                 17
                             ],
                             "type": "doc.type.name",
                             "view": "string"
                         }
                     ],
-                    "view": "string"
+                    "view": "string?"
                 },
-                "file": "dromozoa/matcher.lua",
+                "file": "dromozoa/lexer.lua",
                 "finish": [
-                    20,
-                    23
+                    130,
+                    24
                 ],
                 "name": "source",
                 "start": [
-                    20,
+                    130,
                     10
                 ],
                 "type": "doc.field",
-                "view": "string",
+                "view": "string?",
                 "visible": "public"
             },
             {
@@ -529,48 +535,48 @@
                 "deprecated": false,
                 "extends": {
                     "finish": [
-                        21,
-                        41
+                        131,
+                        42
                     ],
                     "start": [
-                        21,
+                        131,
                         17
                     ],
                     "type": "doc.type",
                     "types": [
                         {
                             "finish": [
-                                21,
+                                131,
                                 41
                             ],
                             "start": [
-                                21,
+                                131,
                                 17
                             ],
                             "type": "doc.type.name",
                             "view": "dromozoa.source_location"
                         }
                     ],
-                    "view": "dromozoa.source_location"
+                    "view": "(dromozoa.source_location)?"
                 },
-                "file": "dromozoa/matcher.lua",
+                "file": "dromozoa/lexer.lua",
                 "finish": [
-                    21,
-                    41
+                    131,
+                    42
                 ],
                 "name": "srcloc",
                 "start": [
-                    21,
+                    131,
                     10
                 ],
                 "type": "doc.field",
-                "view": "dromozoa.source_location",
+                "view": "(dromozoa.source_location)?",
                 "visible": "public"
             }
         ],
-        "name": "dromozoa.matcher",
+        "name": "dromozoa.lexer",
         "type": "type",
-        "view": "dromozoa.matcher"
+        "view": "dromozoa.lexer"
     },
     {
         "defines": [
@@ -579,11 +585,11 @@
                 "deprecated": false,
                 "file": "dromozoa/node.lua",
                 "finish": [
-                    17,
+                    21,
                     23
                 ],
                 "start": [
-                    17,
+                    21,
                     10
                 ],
                 "type": "doc.class",
@@ -596,9 +602,36 @@
                 "async": false,
                 "deprecated": false,
                 "extends": {
-                    "args": [],
+                    "args": [
+                        {
+                            "finish": [
+                                49,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                49,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.node"
+                        },
+                        {
+                            "finish": [
+                                49,
+                                26
+                            ],
+                            "name": "node",
+                            "start": [
+                                49,
+                                22
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.node"
+                        }
+                    ],
                     "finish": [
-                        28,
+                        52,
                         3
                     ],
                     "returns": [
@@ -608,30 +641,2905 @@
                         }
                     ],
                     "start": [
-                        25,
+                        49,
                         0
                     ],
                     "type": "function",
-                    "view": "function dromozoa.node.new()\n  -> dromozoa.node"
+                    "view": "(method) dromozoa.node:append(node: dromozoa.node)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/node.lua",
+                "finish": [
+                    49,
+                    21
+                ],
+                "name": "append",
+                "start": [
+                    49,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "finish": [
+                        25,
+                        35
+                    ],
+                    "start": [
+                        25,
+                        20
+                    ],
+                    "type": "doc.type",
+                    "types": [
+                        {
+                            "finish": [
+                                25,
+                                34
+                            ],
+                            "start": [
+                                25,
+                                20
+                            ],
+                            "type": "doc.type.name",
+                            "view": "dromozoa.token"
+                        }
+                    ],
+                    "view": "(dromozoa.token)?"
                 },
                 "file": "dromozoa/node.lua",
                 "finish": [
                     25,
+                    35
+                ],
+                "name": "attribute",
+                "start": [
+                    25,
+                    10
+                ],
+                "type": "doc.field",
+                "view": "(dromozoa.token)?",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "finish": [
+                        22,
+                        41
+                    ],
+                    "start": [
+                        22,
+                        19
+                    ],
+                    "type": "doc.type",
+                    "types": [
+                        {
+                            "finish": [
+                                22,
+                                41
+                            ],
+                            "start": [
+                                22,
+                                19
+                            ],
+                            "type": "doc.type.name",
+                            "view": "\"auxiliary\"|\"block\"|\"expression\"|\"statement\""
+                        }
+                    ],
+                    "view": "\"auxiliary\"|\"block\"|\"expression\"|\"statement\""
+                },
+                "file": "dromozoa/node.lua",
+                "finish": [
+                    22,
+                    41
+                ],
+                "name": "category",
+                "start": [
+                    22,
+                    10
+                ],
+                "type": "doc.field",
+                "view": "\"auxiliary\"|\"block\"|\"expression\"|\"statement\"",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                76,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                76,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.node"
+                        },
+                        {
+                            "finish": [
+                                76,
+                                29
+                            ],
+                            "name": {
+                                "finish": [
+                                    76,
+                                    29
+                                ],
+                                "name": "kinds",
+                                "start": [
+                                    76,
+                                    24
+                                ],
+                                "type": "local",
+                                "view": "table"
+                            },
+                            "start": [
+                                76,
+                                21
+                            ],
+                            "type": "...",
+                            "view": "string"
+                        }
+                    ],
+                    "finish": [
+                        83,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "boolean"
+                        }
+                    ],
+                    "start": [
+                        76,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.node:check(...kinds: string)\n  -> boolean"
+                },
+                "file": "dromozoa/node.lua",
+                "finish": [
+                    76,
+                    20
+                ],
+                "name": "check",
+                "start": [
+                    76,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                56,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                56,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.node"
+                        },
+                        {
+                            "finish": [
+                                56,
+                                27
+                            ],
+                            "name": "nodes",
+                            "start": [
+                                56,
+                                22
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.node[]"
+                        }
+                    ],
+                    "finish": [
+                        61,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        56,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.node:extend(nodes: dromozoa.node[])\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/node.lua",
+                "finish": [
+                    56,
+                    21
+                ],
+                "name": "extend",
+                "start": [
+                    56,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "finish": [
+                        23,
+                        21
+                    ],
+                    "start": [
+                        23,
+                        15
+                    ],
+                    "type": "doc.type",
+                    "types": [
+                        {
+                            "finish": [
+                                23,
+                                21
+                            ],
+                            "start": [
+                                23,
+                                15
+                            ],
+                            "type": "doc.type.name",
+                            "view": "string"
+                        }
+                    ],
+                    "view": "string"
+                },
+                "file": "dromozoa/node.lua",
+                "finish": [
+                    23,
+                    21
+                ],
+                "name": "kind",
+                "start": [
+                    23,
+                    10
+                ],
+                "type": "doc.field",
+                "view": "string",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "desc": "```lua\ncategory:\n    | \"block\"\n    | \"statement\"\n    | \"expression\"\n    | \"auxiliary\"\n```",
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                37,
+                                27
+                            ],
+                            "name": "category",
+                            "start": [
+                                37,
+                                19
+                            ],
+                            "type": "local",
+                            "view": "\"auxiliary\"|\"block\"|\"expression\"|\"statement\""
+                        },
+                        {
+                            "finish": [
+                                37,
+                                33
+                            ],
+                            "name": "kind",
+                            "start": [
+                                37,
+                                29
+                            ],
+                            "type": "local",
+                            "view": "string"
+                        },
+                        {
+                            "finish": [
+                                37,
+                                40
+                            ],
+                            "name": "token",
+                            "start": [
+                                37,
+                                35
+                            ],
+                            "type": "local",
+                            "view": "(dromozoa.token)?"
+                        }
+                    ],
+                    "desc": "```lua\ncategory:\n    | \"block\"\n    | \"statement\"\n    | \"expression\"\n    | \"auxiliary\"\n```",
+                    "finish": [
+                        45,
+                        3
+                    ],
+                    "rawdesc": "```lua\ncategory:\n    | \"block\"\n    | \"statement\"\n    | \"expression\"\n    | \"auxiliary\"\n```",
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        37,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "function dromozoa.node.new(category: \"auxiliary\"|\"block\"|\"expression\"|\"statement\", kind: string, token?: dromozoa.token)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/node.lua",
+                "finish": [
+                    37,
                     18
                 ],
                 "name": "new",
+                "rawdesc": "```lua\ncategory:\n    | \"block\"\n    | \"statement\"\n    | \"expression\"\n    | \"auxiliary\"\n```",
                 "start": [
-                    25,
+                    37,
                     9
                 ],
                 "type": "setfield",
                 "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "finish": [
+                        26,
+                        31
+                    ],
+                    "start": [
+                        26,
+                        16
+                    ],
+                    "type": "doc.type",
+                    "types": [
+                        {
+                            "finish": [
+                                26,
+                                31
+                            ],
+                            "start": [
+                                26,
+                                16
+                            ],
+                            "type": "doc.type.array",
+                            "view": "dromozoa.node[]"
+                        }
+                    ],
+                    "view": "dromozoa.node[]"
+                },
+                "file": "dromozoa/node.lua",
+                "finish": [
+                    26,
+                    31
+                ],
+                "name": "nodes",
+                "start": [
+                    26,
+                    10
+                ],
+                "type": "doc.field",
+                "view": "dromozoa.node[]",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                87,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                87,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.node"
+                        },
+                        {
+                            "finish": [
+                                87,
+                                26
+                            ],
+                            "start": [
+                                87,
+                                23
+                            ],
+                            "type": "...",
+                            "view": "string"
+                        }
+                    ],
+                    "finish": [
+                        92,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        87,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.node:require(...string)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/node.lua",
+                "finish": [
+                    87,
+                    22
+                ],
+                "name": "require",
+                "start": [
+                    87,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                64,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                64,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "finish": [
+                        72,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "(dromozoa.source_location)?"
+                        }
+                    ],
+                    "start": [
+                        64,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.node:srcloc()\n  -> (dromozoa.source_location)?"
+                },
+                "file": "dromozoa/node.lua",
+                "finish": [
+                    64,
+                    21
+                ],
+                "name": "srcloc",
+                "start": [
+                    64,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "finish": [
+                        24,
+                        31
+                    ],
+                    "start": [
+                        24,
+                        16
+                    ],
+                    "type": "doc.type",
+                    "types": [
+                        {
+                            "finish": [
+                                24,
+                                30
+                            ],
+                            "start": [
+                                24,
+                                16
+                            ],
+                            "type": "doc.type.name",
+                            "view": "dromozoa.token"
+                        }
+                    ],
+                    "view": "(dromozoa.token)?"
+                },
+                "file": "dromozoa/node.lua",
+                "finish": [
+                    24,
+                    31
+                ],
+                "name": "token",
+                "start": [
+                    24,
+                    10
+                ],
+                "type": "doc.field",
+                "view": "(dromozoa.token)?",
                 "visible": "public"
             }
         ],
         "name": "dromozoa.node",
         "type": "type",
         "view": "dromozoa.node"
+    },
+    {
+        "defines": [
+            {
+                "desc": "```lua\ndromozoa.node.category:\n    | \"block\"\n    | \"statement\"\n    | \"expression\"\n    | \"auxiliary\"\n```",
+                "file": "dromozoa/node.lua",
+                "finish": [
+                    19,
+                    83
+                ],
+                "rawdesc": "```lua\ndromozoa.node.category:\n    | \"block\"\n    | \"statement\"\n    | \"expression\"\n    | \"auxiliary\"\n```",
+                "start": [
+                    19,
+                    10
+                ],
+                "type": "doc.alias",
+                "view": "\"auxiliary\"|\"block\"|\"expression\"|\"statement\""
+            }
+        ],
+        "fields": [],
+        "name": "dromozoa.node.category",
+        "type": "type",
+        "view": "dromozoa.node.category"
+    },
+    {
+        "defines": [
+            {
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    45,
+                    85
+                ],
+                "start": [
+                    45,
+                    10
+                ],
+                "type": "doc.alias",
+                "view": "fun(parser: dromozoa.parser, x: dromozoa.token):dromozoa.node"
+            }
+        ],
+        "fields": [],
+        "name": "dromozoa.nud",
+        "type": "type",
+        "view": "dromozoa.nud"
+    },
+    {
+        "defines": [
+            {
+                "async": false,
+                "deprecated": false,
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    63,
+                    25
+                ],
+                "start": [
+                    63,
+                    10
+                ],
+                "type": "doc.class",
+                "view": "dromozoa.parser",
+                "visible": "public"
+            }
+        ],
+        "fields": [
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "finish": [
+                        65,
+                        23
+                    ],
+                    "start": [
+                        65,
+                        16
+                    ],
+                    "type": "doc.type",
+                    "types": [
+                        {
+                            "finish": [
+                                65,
+                                23
+                            ],
+                            "start": [
+                                65,
+                                16
+                            ],
+                            "type": "doc.type.name",
+                            "view": "integer"
+                        }
+                    ],
+                    "view": "integer"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    65,
+                    23
+                ],
+                "name": "index",
+                "start": [
+                    65,
+                    10
+                ],
+                "type": "doc.field",
+                "view": "integer",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                185,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                185,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                185,
+                                25
+                            ],
+                            "name": "u",
+                            "start": [
+                                185,
+                                24
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.node"
+                        },
+                        {
+                            "finish": [
+                                185,
+                                28
+                            ],
+                            "name": "x",
+                            "start": [
+                                185,
+                                27
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.token"
+                        }
+                    ],
+                    "finish": [
+                        187,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        185,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:led_call(u: dromozoa.node, x: dromozoa.token)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    185,
+                    23
+                ],
+                "name": "led_call",
+                "start": [
+                    185,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                166,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                166,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                166,
+                                26
+                            ],
+                            "name": "u",
+                            "start": [
+                                166,
+                                25
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.node"
+                        },
+                        {
+                            "finish": [
+                                166,
+                                29
+                            ],
+                            "name": "x",
+                            "start": [
+                                166,
+                                28
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.token"
+                        }
+                    ],
+                    "finish": [
+                        170,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        166,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:led_index(u: dromozoa.node, x: dromozoa.token)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    166,
+                    24
+                ],
+                "name": "led_index",
+                "start": [
+                    166,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                151,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                151,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                151,
+                                25
+                            ],
+                            "name": "u",
+                            "start": [
+                                151,
+                                24
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.node"
+                        },
+                        {
+                            "finish": [
+                                151,
+                                28
+                            ],
+                            "name": "x",
+                            "start": [
+                                151,
+                                27
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.token"
+                        },
+                        {
+                            "finish": [
+                                151,
+                                33
+                            ],
+                            "name": "rbp",
+                            "start": [
+                                151,
+                                30
+                            ],
+                            "type": "local",
+                            "view": "integer"
+                        }
+                    ],
+                    "finish": [
+                        153,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        151,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:led_left(u: dromozoa.node, x: dromozoa.token, rbp: integer)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    151,
+                    23
+                ],
+                "name": "led_left",
+                "start": [
+                    151,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                175,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                175,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                175,
+                                27
+                            ],
+                            "name": "u",
+                            "start": [
+                                175,
+                                26
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.node"
+                        },
+                        {
+                            "finish": [
+                                175,
+                                30
+                            ],
+                            "name": "x",
+                            "start": [
+                                175,
+                                29
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.token"
+                        }
+                    ],
+                    "finish": [
+                        180,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        175,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:led_member(u: dromozoa.node, x: dromozoa.token)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    175,
+                    25
+                ],
+                "name": "led_member",
+                "start": [
+                    175,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                159,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                159,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                159,
+                                26
+                            ],
+                            "name": "u",
+                            "start": [
+                                159,
+                                25
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.node"
+                        },
+                        {
+                            "finish": [
+                                159,
+                                29
+                            ],
+                            "name": "x",
+                            "start": [
+                                159,
+                                28
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.token"
+                        },
+                        {
+                            "finish": [
+                                159,
+                                34
+                            ],
+                            "name": "rbp",
+                            "start": [
+                                159,
+                                31
+                            ],
+                            "type": "local",
+                            "view": "integer"
+                        }
+                    ],
+                    "finish": [
+                        161,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        159,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:led_right(u: dromozoa.node, x: dromozoa.token, rbp: integer)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    159,
+                    24
+                ],
+                "name": "led_right",
+                "start": [
+                    159,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                192,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                192,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                192,
+                                25
+                            ],
+                            "name": "u",
+                            "start": [
+                                192,
+                                24
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.node"
+                        },
+                        {
+                            "finish": [
+                                192,
+                                28
+                            ],
+                            "name": "x",
+                            "start": [
+                                192,
+                                27
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.token"
+                        }
+                    ],
+                    "finish": [
+                        198,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        192,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:led_self(u: dromozoa.node, x: dromozoa.token)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    192,
+                    23
+                ],
+                "name": "led_self",
+                "start": [
+                    192,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [],
+                    "finish": [
+                        78,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.parser"
+                        }
+                    ],
+                    "start": [
+                        73,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "function dromozoa.parser.new()\n  -> dromozoa.parser"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    73,
+                    18
+                ],
+                "name": "new",
+                "start": [
+                    73,
+                    9
+                ],
+                "type": "setfield",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                121,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                121,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                121,
+                                29
+                            ],
+                            "name": "x",
+                            "start": [
+                                121,
+                                28
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.token"
+                        }
+                    ],
+                    "finish": [
+                        123,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        121,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:nud_function(x: dromozoa.token)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    121,
+                    27
+                ],
+                "name": "nud_function",
+                "start": [
+                    121,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                139,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                139,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                139,
+                                26
+                            ],
+                            "name": "x",
+                            "start": [
+                                139,
+                                25
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.token"
+                        }
+                    ],
+                    "finish": [
+                        143,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        139,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:nud_group(x: dromozoa.token)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    139,
+                    24
+                ],
+                "name": "nud_group",
+                "start": [
+                    139,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                133,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                133,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                133,
+                                27
+                            ],
+                            "name": "x",
+                            "start": [
+                                133,
+                                26
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.token"
+                        }
+                    ],
+                    "finish": [
+                        135,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        133,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:nud_prefix(x: dromozoa.token)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    133,
+                    25
+                ],
+                "name": "nud_prefix",
+                "start": [
+                    133,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                127,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                127,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                127,
+                                26
+                            ],
+                            "name": "x",
+                            "start": [
+                                127,
+                                25
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.token"
+                        }
+                    ],
+                    "finish": [
+                        129,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        127,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:nud_table(x: dromozoa.token)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    127,
+                    24
+                ],
+                "name": "nud_table",
+                "start": [
+                    127,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                115,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                115,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                115,
+                                26
+                            ],
+                            "name": "x",
+                            "start": [
+                                115,
+                                25
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.token"
+                        }
+                    ],
+                    "finish": [
+                        117,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        115,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:nud_token(x: dromozoa.token)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    115,
+                    24
+                ],
+                "name": "nud_token",
+                "start": [
+                    115,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                631,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                631,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                631,
+                                27
+                            ],
+                            "name": "tokens",
+                            "start": [
+                                631,
+                                21
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.token[]"
+                        }
+                    ],
+                    "finish": [
+                        637,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        631,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:parse(tokens: dromozoa.token[])\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    631,
+                    20
+                ],
+                "name": "parse",
+                "start": [
+                    631,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                529,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                529,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                529,
+                                27
+                            ],
+                            "name": "x",
+                            "start": [
+                                529,
+                                26
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.token"
+                        }
+                    ],
+                    "finish": [
+                        545,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        529,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:parse_args(x: dromozoa.token)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    529,
+                    25
+                ],
+                "name": "parse_args",
+                "start": [
+                    529,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                434,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                434,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                434,
+                                33
+                            ],
+                            "name": "u",
+                            "start": [
+                                434,
+                                32
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "finish": [
+                        449,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        434,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:parse_assignment(u: dromozoa.node)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    434,
+                    31
+                ],
+                "name": "parse_assignment",
+                "start": [
+                    434,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                236,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                236,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                236,
+                                31
+                            ],
+                            "name": "kind",
+                            "start": [
+                                236,
+                                27
+                            ],
+                            "type": "local",
+                            "view": "string?"
+                        }
+                    ],
+                    "finish": [
+                        254,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        236,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:parse_block(kind?: string)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    236,
+                    26
+                ],
+                "name": "parse_block",
+                "start": [
+                    236,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "desc": "```lua\nkind:\n    | \"global\"\n    | \"local\"\n```",
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                396,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                396,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                396,
+                                37
+                            ],
+                            "name": "kind",
+                            "start": [
+                                396,
+                                33
+                            ],
+                            "type": "local",
+                            "view": "\"global\"|\"local\""
+                        }
+                    ],
+                    "desc": "```lua\nkind:\n    | \"global\"\n    | \"local\"\n```",
+                    "finish": [
+                        430,
+                        3
+                    ],
+                    "rawdesc": "```lua\nkind:\n    | \"global\"\n    | \"local\"\n```",
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        396,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:parse_declaration(kind: \"global\"|\"local\")\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    396,
+                    32
+                ],
+                "name": "parse_declaration",
+                "rawdesc": "```lua\nkind:\n    | \"global\"\n    | \"local\"\n```",
+                "start": [
+                    396,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                510,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                510,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                510,
+                                28
+                            ],
+                            "name": "rbp",
+                            "start": [
+                                510,
+                                25
+                            ],
+                            "type": "local",
+                            "view": "integer?"
+                        }
+                    ],
+                    "finish": [
+                        518,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        510,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:parse_exp(rbp?: integer)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    510,
+                    24
+                ],
+                "name": "parse_exp",
+                "start": [
+                    510,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                496,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                496,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        }
+                    ],
+                    "finish": [
+                        506,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        496,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:parse_explist()\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    496,
+                    28
+                ],
+                "name": "parse_explist",
+                "start": [
+                    496,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                608,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                608,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                608,
+                                28
+                            ],
+                            "name": "x",
+                            "start": [
+                                608,
+                                27
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.token"
+                        }
+                    ],
+                    "finish": [
+                        625,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        608,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:parse_field(x: dromozoa.token)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    608,
+                    26
+                ],
+                "name": "parse_field",
+                "start": [
+                    608,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                548,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                548,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        }
+                    ],
+                    "finish": [
+                        584,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        548,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:parse_funcbody()\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    548,
+                    29
+                ],
+                "name": "parse_funcbody",
+                "start": [
+                    548,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                469,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                469,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        }
+                    ],
+                    "finish": [
+                        493,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        469,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:parse_funcname()\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    469,
+                    29
+                ],
+                "name": "parse_funcname",
+                "start": [
+                    469,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                372,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                372,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                372,
+                                34
+                            ],
+                            "name": "x",
+                            "start": [
+                                372,
+                                33
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.token"
+                        },
+                        {
+                            "finish": [
+                                372,
+                                37
+                            ],
+                            "name": "y",
+                            "start": [
+                                372,
+                                36
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.token"
+                        }
+                    ],
+                    "finish": [
+                        392,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        372,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:parse_generic_for(x: dromozoa.token, y: dromozoa.token)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    372,
+                    32
+                ],
+                "name": "parse_generic_for",
+                "start": [
+                    372,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                328,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                328,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                328,
+                                25
+                            ],
+                            "name": "x",
+                            "start": [
+                                328,
+                                24
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.token"
+                        }
+                    ],
+                    "finish": [
+                        342,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        328,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:parse_if(x: dromozoa.token)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    328,
+                    23
+                ],
+                "name": "parse_if",
+                "start": [
+                    328,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                219,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                219,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                219,
+                                26
+                            ],
+                            "name": "u",
+                            "start": [
+                                219,
+                                25
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.node"
+                        },
+                        {
+                            "finish": [
+                                219,
+                                31
+                            ],
+                            "name": "rbp",
+                            "start": [
+                                219,
+                                28
+                            ],
+                            "type": "local",
+                            "view": "integer"
+                        },
+                        {
+                            "finish": [
+                                219,
+                                42
+                            ],
+                            "name": "led_table",
+                            "start": [
+                                219,
+                                33
+                            ],
+                            "type": "local",
+                            "view": "table<string, { lbp: integer, fn: fun(parser: dromozoa.parser, u: dromozoa.node, x: dromozoa.token, rbp: integer):dromozoa.node }>"
+                        }
+                    ],
+                    "finish": [
+                        230,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        219,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:parse_led(u: dromozoa.node, rbp: integer, led_table: table<string, { lbp: integer, fn: fun(parser: dromozoa.parser, u: dromozoa.node, x: dromozoa.token, rbp: integer):dromozoa.node }>)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    219,
+                    24
+                ],
+                "name": "parse_led",
+                "start": [
+                    219,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                205,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                205,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                205,
+                                34
+                            ],
+                            "name": "nud_table",
+                            "start": [
+                                205,
+                                25
+                            ],
+                            "type": "local",
+                            "view": "table<string, fun(parser: dromozoa.parser, x: dromozoa.token):dromozoa.node>"
+                        }
+                    ],
+                    "finish": [
+                        213,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "(dromozoa.node)?"
+                        },
+                        {
+                            "type": "function.return",
+                            "view": "string?"
+                        }
+                    ],
+                    "start": [
+                        205,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:parse_nud(nud_table: table<string, fun(parser: dromozoa.parser, x: dromozoa.token):dromozoa.node>)\n  -> (dromozoa.node)?\n  2. string?"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    205,
+                    24
+                ],
+                "name": "parse_nud",
+                "start": [
+                    205,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                347,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                347,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                347,
+                                34
+                            ],
+                            "name": "x",
+                            "start": [
+                                347,
+                                33
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.token"
+                        },
+                        {
+                            "finish": [
+                                347,
+                                37
+                            ],
+                            "name": "y",
+                            "start": [
+                                347,
+                                36
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.token"
+                        }
+                    ],
+                    "finish": [
+                        367,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        347,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:parse_numeric_for(x: dromozoa.token, y: dromozoa.token)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    347,
+                    32
+                ],
+                "name": "parse_numeric_for",
+                "start": [
+                    347,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                522,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                522,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                522,
+                                34
+                            ],
+                            "name": "rbp",
+                            "start": [
+                                522,
+                                31
+                            ],
+                            "type": "local",
+                            "view": "integer?"
+                        }
+                    ],
+                    "finish": [
+                        525,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        522,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:parse_prefixexp(rbp?: integer)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    522,
+                    30
+                ],
+                "name": "parse_prefixexp",
+                "start": [
+                    522,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                452,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                452,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        }
+                    ],
+                    "finish": [
+                        466,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        452,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:parse_retstat()\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    452,
+                    28
+                ],
+                "name": "parse_retstat",
+                "start": [
+                    452,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                257,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                257,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        }
+                    ],
+                    "finish": [
+                        324,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        257,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:parse_stat()\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    257,
+                    25
+                ],
+                "name": "parse_stat",
+                "start": [
+                    257,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                588,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                588,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        },
+                        {
+                            "finish": [
+                                588,
+                                39
+                            ],
+                            "name": "x",
+                            "start": [
+                                588,
+                                38
+                            ],
+                            "type": "local",
+                            "view": "dromozoa.token"
+                        }
+                    ],
+                    "finish": [
+                        604,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        588,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:parse_tableconstructor(x: dromozoa.token)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    588,
+                    37
+                ],
+                "name": "parse_tableconstructor",
+                "start": [
+                    588,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                81,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                81,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        }
+                    ],
+                    "finish": [
+                        90,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.token"
+                        }
+                    ],
+                    "start": [
+                        81,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:peek()\n  -> dromozoa.token"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    81,
+                    19
+                ],
+                "name": "peek",
+                "start": [
+                    81,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                93,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                93,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        }
+                    ],
+                    "finish": [
+                        97,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.token"
+                        }
+                    ],
+                    "start": [
+                        93,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:read()\n  -> dromozoa.token"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    93,
+                    19
+                ],
+                "name": "read",
+                "start": [
+                    93,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "finish": [
+                        64,
+                        33
+                    ],
+                    "start": [
+                        64,
+                        17
+                    ],
+                    "type": "doc.type",
+                    "types": [
+                        {
+                            "finish": [
+                                64,
+                                33
+                            ],
+                            "start": [
+                                64,
+                                17
+                            ],
+                            "type": "doc.type.array",
+                            "view": "dromozoa.token[]"
+                        }
+                    ],
+                    "view": "dromozoa.token[]"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    64,
+                    33
+                ],
+                "name": "tokens",
+                "start": [
+                    64,
+                    10
+                ],
+                "type": "doc.field",
+                "view": "dromozoa.token[]",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                100,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                100,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.parser"
+                        }
+                    ],
+                    "finish": [
+                        109,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.token"
+                        }
+                    ],
+                    "start": [
+                        100,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.parser:unread()\n  -> dromozoa.token"
+                },
+                "file": "dromozoa/parser.lua",
+                "finish": [
+                    100,
+                    21
+                ],
+                "name": "unread",
+                "start": [
+                    100,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            }
+        ],
+        "name": "dromozoa.parser",
+        "type": "type",
+        "view": "dromozoa.parser"
     },
     {
         "defines": [
@@ -932,20 +3840,20 @@
                     "args": [
                         {
                             "finish": [
-                                66,
-                                8
+                                67,
+                                29
                             ],
                             "name": "self",
                             "start": [
-                                66,
-                                8
+                                67,
+                                25
                             ],
-                            "type": "self",
-                            "view": "dromozoa.source_location"
+                            "type": "local",
+                            "view": "(dromozoa.source_location)?"
                         }
                     ],
                     "finish": [
-                        68,
+                        73,
                         3
                     ],
                     "returns": [
@@ -955,23 +3863,23 @@
                         }
                     ],
                     "start": [
-                        66,
+                        67,
                         0
                     ],
                     "type": "function",
-                    "view": "(method) dromozoa.source_location:to_string()\n  -> string"
+                    "view": "function dromozoa.source_location.to_string(self?: dromozoa.source_location)\n  -> string"
                 },
                 "file": "dromozoa/source_location.lua",
                 "finish": [
-                    66,
+                    67,
                     24
                 ],
                 "name": "to_string",
                 "start": [
-                    66,
+                    67,
                     9
                 ],
-                "type": "setmethod",
+                "type": "setfield",
                 "view": "function",
                 "visible": "public"
             },
@@ -1044,11 +3952,11 @@
                 "deprecated": false,
                 "file": "dromozoa/token.lua",
                 "finish": [
-                    17,
+                    19,
                     24
                 ],
                 "start": [
-                    17,
+                    19,
                     10
                 ],
                 "type": "doc.class",
@@ -1061,23 +3969,98 @@
                 "async": false,
                 "deprecated": false,
                 "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                49,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                49,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.token"
+                        },
+                        {
+                            "finish": [
+                                49,
+                                29
+                            ],
+                            "name": {
+                                "finish": [
+                                    49,
+                                    29
+                                ],
+                                "name": "kinds",
+                                "start": [
+                                    49,
+                                    24
+                                ],
+                                "type": "local",
+                                "view": "table"
+                            },
+                            "start": [
+                                49,
+                                21
+                            ],
+                            "type": "...",
+                            "view": "string"
+                        }
+                    ],
                     "finish": [
-                        18,
+                        56,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "boolean"
+                        }
+                    ],
+                    "start": [
+                        49,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.token:check(...kinds: string)\n  -> boolean"
+                },
+                "file": "dromozoa/token.lua",
+                "finish": [
+                    49,
+                    20
+                ],
+                "name": "check",
+                "start": [
+                    49,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "finish": [
+                        20,
                         21
                     ],
                     "start": [
-                        18,
+                        20,
                         15
                     ],
                     "type": "doc.type",
                     "types": [
                         {
                             "finish": [
-                                18,
+                                20,
                                 21
                             ],
                             "start": [
-                                18,
+                                20,
                                 15
                             ],
                             "type": "doc.type.name",
@@ -1088,12 +4071,12 @@
                 },
                 "file": "dromozoa/token.lua",
                 "finish": [
-                    18,
+                    20,
                     21
                 ],
                 "name": "kind",
                 "start": [
-                    18,
+                    20,
                     10
                 ],
                 "type": "doc.field",
@@ -1107,12 +4090,12 @@
                     "args": [
                         {
                             "finish": [
-                                35,
+                                37,
                                 23
                             ],
                             "name": "kind",
                             "start": [
-                                35,
+                                37,
                                 19
                             ],
                             "type": "local",
@@ -1120,12 +4103,12 @@
                         },
                         {
                             "finish": [
-                                35,
+                                37,
                                 32
                             ],
                             "name": "subkind",
                             "start": [
-                                35,
+                                37,
                                 25
                             ],
                             "type": "local",
@@ -1133,12 +4116,12 @@
                         },
                         {
                             "finish": [
-                                35,
+                                37,
                                 38
                             ],
                             "name": "text",
                             "start": [
-                                35,
+                                37,
                                 34
                             ],
                             "type": "local",
@@ -1146,12 +4129,12 @@
                         },
                         {
                             "finish": [
-                                35,
+                                37,
                                 45
                             ],
                             "name": "value",
                             "start": [
-                                35,
+                                37,
                                 40
                             ],
                             "type": "local",
@@ -1159,12 +4142,12 @@
                         },
                         {
                             "finish": [
-                                35,
+                                37,
                                 53
                             ],
                             "name": "srcloc",
                             "start": [
-                                35,
+                                37,
                                 47
                             ],
                             "type": "local",
@@ -1172,7 +4155,7 @@
                         }
                     ],
                     "finish": [
-                        43,
+                        45,
                         3
                     ],
                     "returns": [
@@ -1182,7 +4165,7 @@
                         }
                     ],
                     "start": [
-                        35,
+                        37,
                         0
                     ],
                     "type": "function",
@@ -1190,12 +4173,12 @@
                 },
                 "file": "dromozoa/token.lua",
                 "finish": [
-                    35,
+                    37,
                     18
                 ],
                 "name": "new",
                 "start": [
-                    35,
+                    37,
                     9
                 ],
                 "type": "setfield",
@@ -1206,23 +4189,274 @@
                 "async": false,
                 "deprecated": false,
                 "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                81,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                81,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.token"
+                        },
+                        {
+                            "finish": [
+                                81,
+                                38
+                            ],
+                            "name": "kind",
+                            "start": [
+                                81,
+                                34
+                            ],
+                            "type": "local",
+                            "view": "string?"
+                        }
+                    ],
                     "finish": [
-                        22,
+                        83,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        81,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.token:new_auxiliary_node(kind?: string)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/token.lua",
+                "finish": [
+                    81,
+                    33
+                ],
+                "name": "new_auxiliary_node",
+                "start": [
+                    81,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                75,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                75,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.token"
+                        },
+                        {
+                            "finish": [
+                                75,
+                                39
+                            ],
+                            "name": "kind",
+                            "start": [
+                                75,
+                                35
+                            ],
+                            "type": "local",
+                            "view": "string?"
+                        }
+                    ],
+                    "finish": [
+                        77,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        75,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.token:new_expression_node(kind?: string)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/token.lua",
+                "finish": [
+                    75,
+                    34
+                ],
+                "name": "new_expression_node",
+                "start": [
+                    75,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                69,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                69,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.token"
+                        },
+                        {
+                            "finish": [
+                                69,
+                                38
+                            ],
+                            "name": "kind",
+                            "start": [
+                                69,
+                                34
+                            ],
+                            "type": "local",
+                            "view": "string?"
+                        }
+                    ],
+                    "finish": [
+                        71,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.node"
+                        }
+                    ],
+                    "start": [
+                        69,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.token:new_statement_node(kind?: string)\n  -> dromozoa.node"
+                },
+                "file": "dromozoa/token.lua",
+                "finish": [
+                    69,
+                    33
+                ],
+                "name": "new_statement_node",
+                "start": [
+                    69,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "args": [
+                        {
+                            "finish": [
+                                60,
+                                8
+                            ],
+                            "name": "self",
+                            "start": [
+                                60,
+                                8
+                            ],
+                            "type": "self",
+                            "view": "dromozoa.token"
+                        },
+                        {
+                            "finish": [
+                                60,
+                                26
+                            ],
+                            "start": [
+                                60,
+                                23
+                            ],
+                            "type": "...",
+                            "view": "string"
+                        }
+                    ],
+                    "finish": [
+                        65,
+                        3
+                    ],
+                    "returns": [
+                        {
+                            "type": "function.return",
+                            "view": "dromozoa.token"
+                        }
+                    ],
+                    "start": [
+                        60,
+                        0
+                    ],
+                    "type": "function",
+                    "view": "(method) dromozoa.token:require(...string)\n  -> dromozoa.token"
+                },
+                "file": "dromozoa/token.lua",
+                "finish": [
+                    60,
+                    22
+                ],
+                "name": "require",
+                "start": [
+                    60,
+                    9
+                ],
+                "type": "setmethod",
+                "view": "function",
+                "visible": "public"
+            },
+            {
+                "async": false,
+                "deprecated": false,
+                "extends": {
+                    "finish": [
+                        24,
                         41
                     ],
                     "start": [
-                        22,
+                        24,
                         17
                     ],
                     "type": "doc.type",
                     "types": [
                         {
                             "finish": [
-                                22,
+                                24,
                                 41
                             ],
                             "start": [
-                                22,
+                                24,
                                 17
                             ],
                             "type": "doc.type.name",
@@ -1233,12 +4467,12 @@
                 },
                 "file": "dromozoa/token.lua",
                 "finish": [
-                    22,
+                    24,
                     41
                 ],
                 "name": "srcloc",
                 "start": [
-                    22,
+                    24,
                     10
                 ],
                 "type": "doc.field",
@@ -1250,22 +4484,22 @@
                 "deprecated": false,
                 "extends": {
                     "finish": [
-                        19,
+                        21,
                         25
                     ],
                     "start": [
-                        19,
+                        21,
                         18
                     ],
                     "type": "doc.type",
                     "types": [
                         {
                             "finish": [
-                                19,
+                                21,
                                 24
                             ],
                             "start": [
-                                19,
+                                21,
                                 18
                             ],
                             "type": "doc.type.name",
@@ -1276,12 +4510,12 @@
                 },
                 "file": "dromozoa/token.lua",
                 "finish": [
-                    19,
+                    21,
                     25
                 ],
                 "name": "subkind",
                 "start": [
-                    19,
+                    21,
                     10
                 ],
                 "type": "doc.field",
@@ -1293,22 +4527,22 @@
                 "deprecated": false,
                 "extends": {
                     "finish": [
-                        20,
+                        22,
                         21
                     ],
                     "start": [
-                        20,
+                        22,
                         15
                     ],
                     "type": "doc.type",
                     "types": [
                         {
                             "finish": [
-                                20,
+                                22,
                                 21
                             ],
                             "start": [
-                                20,
+                                22,
                                 15
                             ],
                             "type": "doc.type.name",
@@ -1319,12 +4553,12 @@
                 },
                 "file": "dromozoa/token.lua",
                 "finish": [
-                    20,
+                    22,
                     21
                 ],
                 "name": "text",
                 "start": [
-                    20,
+                    22,
                     10
                 ],
                 "type": "doc.field",
@@ -1336,22 +4570,22 @@
                 "deprecated": false,
                 "extends": {
                     "finish": [
-                        21,
+                        23,
                         29
                     ],
                     "start": [
-                        21,
+                        23,
                         16
                     ],
                     "type": "doc.type",
                     "types": [
                         {
                             "finish": [
-                                21,
+                                23,
                                 22
                             ],
                             "start": [
-                                21,
+                                23,
                                 16
                             ],
                             "type": "doc.type.name",
@@ -1359,11 +4593,11 @@
                         },
                         {
                             "finish": [
-                                21,
+                                23,
                                 29
                             ],
                             "start": [
-                                21,
+                                23,
                                 23
                             ],
                             "type": "doc.type.name",
@@ -1374,12 +4608,12 @@
                 },
                 "file": "dromozoa/token.lua",
                 "finish": [
-                    21,
+                    23,
                     29
                 ],
                 "name": "value",
                 "start": [
-                    21,
+                    23,
                     10
                 ],
                 "type": "doc.field",
@@ -1418,12 +4652,12 @@
                     "args": [
                         {
                             "finish": [
-                                37,
+                                35,
                                 27
                             ],
                             "name": "source",
                             "start": [
-                                37,
+                                35,
                                 21
                             ],
                             "type": "local",
@@ -1431,7 +4665,7 @@
                         }
                     ],
                     "finish": [
-                        51,
+                        49,
                         3
                     ],
                     "returns": [
@@ -1441,7 +4675,7 @@
                         }
                     ],
                     "start": [
-                        37,
+                        35,
                         0
                     ],
                     "type": "function",
@@ -1449,12 +4683,12 @@
                 },
                 "file": "dromozoa/util.lua",
                 "finish": [
-                    37,
+                    35,
                     20
                 ],
                 "name": "clone",
                 "start": [
-                    37,
+                    35,
                     9
                 ],
                 "type": "setfield",
@@ -1531,7 +4765,7 @@
                         }
                     ],
                     "finish": [
-                        33,
+                        31,
                         3
                     ],
                     "returns": [
