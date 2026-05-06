@@ -34,12 +34,53 @@ for i, annotation in ipairs(annotations) do
   annotation_patterns[i] = annotation:gsub("%W", "%%%0")
 end
 
+-- https://github.com/LuaLS/lua-language-server/blob/master/script/parser/luadoc.lua
+---@type string[]
+local punctuators = {
+  ":",
+  "|",
+  ",",
+  ";",
+  "<",
+  ">",
+  "(",
+  ")",
+  "?",
+  "+", -- @castの型追加
+  "{",
+  "}",
+  "*",
+  "[]",
+  "...",
+  "[",
+  "]",
+  "-", -- @castの型除去
+  ".",
+}
+
+-- 最長一致させるために文字列長の降順で並びかえる。
+table.sort(punctuators, function(a, b)
+  if #a == #b then
+    return a < b
+  else
+    return #a > #b
+  end
+end)
+
+---@type string[]
+local punctuator_patterns = {}
+for i, punctuator in ipairs(punctuators) do
+  punctuator_patterns[i] = punctuator:gsub("%W", "%%%0")
+end
+
 ---@class dromozoa.annotation_lexer
 ---@field source string
 ---@field srcloc dromozoa.source_location
 ---@field offset integer
 ---@field _0 string?
 ---@field _1 string?
+---@field tokens dromozoa.token[]
+---@field index integer
 local class = {}
 local metatable = {
   __index = class,
@@ -56,6 +97,8 @@ function class.new(comment_token)
     offset = srcloc.position - 1,
     _0 = nil,
     _1 = nil,
+    tokens = {},
+    index = 1,
   }, metatable)
 
   assert(comment_token:check "Comment")
@@ -85,10 +128,6 @@ function class:match(pattern)
 end
 
 ---@return boolean
-function class:eof()
-  return self.srcloc.position > #self.source
-end
-
 function class:lex_annotation()
   for _, pattern in ipairs(annotation_patterns) do
     if self:match(pattern) then
@@ -98,12 +137,19 @@ function class:lex_annotation()
   return false
 end
 
+---@return boolean
+function class:lex_punctuator()
+  for _, pattern in ipairs(punctuator_patterns) do
+    if self:match(pattern) then
+      return true
+    end
+  end
+  return false
+end
+
+---@return dromozoa.token
 function class:lex()
   local srcloc = self.srcloc:clone()
-
-  if self:eof() then
-    return token.new("EOF", nil, "", "", srcloc)
-  end
 
   ---@type string?
   local kind
@@ -116,9 +162,15 @@ function class:lex()
     kind = "Space"
     value = self._0
   elseif self:match "[%a_\x80-\xFF][%w_.*%-\x80-\xFF]*" then
-    kind = "TypeName"
+    kind = "Name"
     value = self._0
+  elseif self:match "#([^\n]*)" then
+    kind = "Comment"
+    value = self._1
   elseif self:lex_annotation() then
+    kind = self._0
+    value = self._0
+  elseif self:lex_punctuator() then
     kind = self._0
     value = self._0
   end
@@ -129,6 +181,51 @@ function class:lex()
 
   local text = self.source:sub(srcloc.position, self.srcloc.position - 1)
   return token.new(kind, subkind, text, assert(value), srcloc)
+end
+
+---@return dromozoa.token
+function class:peek()
+  local n = #self.tokens
+
+  for i = self.index, n do
+    local token = self.tokens[i]
+    if not token:check("Space", "Comment") then
+      self.index = i
+      return token
+    end
+  end
+
+  if n > 0 and self.tokens[n]:check "EOF" then
+    error "failed to peek"
+  end
+
+  local i = n + 1
+  while true do
+    local token = self:lex()
+    self.tokens[i] = token
+    if not token:check("Space", "Comment") then
+      self.index = i
+      return token
+    end
+    i = i + 1
+  end
+end
+
+---@return dromozoa.token
+function class:read()
+  local token = self:peek()
+  self.index = self.index + 1
+  return token
+end
+
+function class:unread()
+  for i = self.index - 1, 1, -1 do
+    if not self.tokens[i]:check("Space", "Comment") then
+      self.index = i
+      return
+    end
+  end
+  error "failed to unread"
 end
 
 return class

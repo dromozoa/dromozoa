@@ -97,13 +97,12 @@ function class:read()
   return token
 end
 
----@return dromozoa.token
 function class:unread()
   for i = self.index - 1, 1, -1 do
     local token = self.tokens[i]
     if not token:check("Space", "Comment") then
       self.index = i
-      return token
+      return
     end
   end
   error "failed to unread"

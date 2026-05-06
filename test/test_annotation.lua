@@ -32,11 +32,21 @@ end
 
 local lexer = annotation_lexer.new(comment_token[[
 do
-  ---@type integer
-  local x
+  ---@type fun(x: integer):boolean, string? # comment
+  local f
 end
 ]])
 
-local token = lexer:lex()
-print(token.kind, token.srcloc:to_string())
-
+lexer:read():require "@type"
+lexer:read():require "Name"
+lexer:read():require "("
+lexer:read():require "Name"
+lexer:read():require ":"
+lexer:read():require "Name"
+lexer:read():require ")"
+lexer:read():require ":"
+lexer:read():require "Name"
+lexer:read():require ","
+lexer:read():require "Name"
+lexer:read():require "?"
+lexer:read():require "EOF"
