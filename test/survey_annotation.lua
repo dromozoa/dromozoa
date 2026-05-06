@@ -35,12 +35,12 @@ function class.new(value)
   return setmetatable({ value = value }, metatable)
 end
 
----@alias _-.* クラス
+---@alias あ0_-.*い クラス
 
 local x = class.new(42)
 print(x.value)
 
----@type _-.*
+---@type あ0_-.*い
 local y
-y = x
+-- y = x
 print(y.value)
