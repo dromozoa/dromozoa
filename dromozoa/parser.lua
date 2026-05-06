@@ -62,7 +62,7 @@ local prefixexp_led_table
 --=========================================================================
 
 ---@class dromozoa.parser
----@field tokens dromozoa.token[]?
+---@field tokens dromozoa.token[]
 ---@field index integer
 local class = {}
 local metatable = {
@@ -73,7 +73,7 @@ local metatable = {
 ---@return dromozoa.parser
 function class.new()
   return setmetatable({
-    tokens = nil,
+    tokens = {},
     index = 1,
   }, metatable)
 end
@@ -87,8 +87,7 @@ function class:peek()
       return token
     end
   end
-  self.index = #self.tokens
-  return self.tokens[self.index]
+  error "failed to peek"
 end
 
 ---@return dromozoa.token
@@ -107,8 +106,7 @@ function class:unread()
       return token
     end
   end
-  self.index = 1
-  return self.tokens[self.index]
+  error "failed to unread"
 end
 
 --=========================================================================
@@ -167,9 +165,9 @@ end
 ---@param x dromozoa.token
 ---@return dromozoa.node
 function class:led_index(u, x)
-  local v = self:parse_exp()
+  local u = x:new_expression_node "index":extend { u, self:parse_exp() }
   self:read():require "]"
-  return x:new_expression_node "index":extend { u, v }
+  return u
 end
 
 ---@param u dromozoa.node
@@ -186,10 +184,7 @@ end
 ---@param x dromozoa.token
 ---@return dromozoa.node
 function class:led_call(u, x)
-  return x:new_expression_node "call":extend {
-    u,
-    self:parse_args(x),
-  }
+  return x:new_expression_node "call":extend { u, self:parse_args(x) }
 end
 
 ---@param u dromozoa.node

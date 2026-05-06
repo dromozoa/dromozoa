@@ -50,7 +50,6 @@ assert(p:read().kind == "Name")
 assert(p:read().kind == "=")
 assert(p:read().kind == "Integer")
 assert(p:read().kind == "EOF")
-assert(p:read().kind == "EOF")
 
 ---@param u dromozoa.node
 ---@param buffer string[]
