@@ -42,5 +42,29 @@ print(x.value)
 
 ---@type あ0_-.*い
 local y
--- y = x
+y = x
 print(y.value)
+
+---@alias public あ0_-.*い
+---@type public
+local x
+print(x)
+
+-- 引数が3個以上で、第1引数がprivate, protected, public, packageのどれかならば、第1引数がscopeを指示する
+---@class クラス2: クラス
+---@field public public public
+local class2 = {}
+
+---@return クラス2
+local function new_class2()
+  return { public = class.new(-1) }
+end
+
+local y = new_class2()
+local p = y.public
+local v = p.value
+print(v)
+
+---@type (fun(仮*引*数: integer):integer, boolean), string
+local f, x = function (p) return p, true end, "foo"
+print(f, x)

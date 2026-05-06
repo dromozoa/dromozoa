@@ -46,7 +46,7 @@ local keywords = {
   "while",
 }
 
----@type table<string, boolean>
+---@type { [string]: boolean }
 local keyword_set = {}
 for _, keyword in ipairs(keywords) do
   keyword_set[keyword] = true
@@ -130,8 +130,8 @@ escape_sequence_pattern = escape_sequence_pattern .. "])"
 ---@class dromozoa.lexer
 ---@field source string?
 ---@field srcloc dromozoa.source_location?
+---@field _0 string?
 ---@field _1 string?
----@field _2 string?
 local class = {}
 local metatable = {
   __index = class,
@@ -143,8 +143,8 @@ function class.new()
   return setmetatable({
     source = nil,
     srcloc = nil,
+    _0 = nil,
     _1 = nil,
-    _2 = nil,
   }, metatable)
 end
 
@@ -185,8 +185,8 @@ end
 function class:lex(source, filename)
   self.source = source
   self.srcloc = source_location.new(filename)
+  self._0 = nil
   self._1 = nil
-  self._2 = nil
 
   local srcloc = self.srcloc:clone()
   local result = {}
@@ -281,12 +281,14 @@ function class:lex(source, filename)
     elseif self:lex_punctuator() then
       kind = self._0
       value = self._0
-    elseif not kind then
+    end
+
+    if not kind then
       error("unexpected symbol at " .. srcloc:to_string())
     end
 
     local text = self.source:sub(srcloc.position, self.srcloc.position - 1)
-    table.insert(result, token.new(assert(kind), subkind, text, assert(value), srcloc))
+    table.insert(result, token.new(kind, subkind, text, assert(value), srcloc))
   end
 
   table.insert(result, token.new("EOF", nil, "", "", self.srcloc:clone()))
