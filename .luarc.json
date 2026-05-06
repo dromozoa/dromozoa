@@ -2,6 +2,7 @@
   "workspace.ignoreDir": [
     "boot2",
     "boot3",
-    "boot4"
+    "boot4",
+    "test"
   ]
 }
