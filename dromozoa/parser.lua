@@ -240,7 +240,7 @@ function class:parse_block(kind)
   while true do
     x = self:read()
     if x:check "return" then
-      u:append(self:parse_retstat(x))
+      u:append(x:new_statement_node():append(self:parse_retstat()))
       x = self:read()
       break
     elseif x:check(is_stat_terminal()) then
@@ -299,19 +299,20 @@ function class:parse_stat()
       self:parse_funcbody(),
     }
   elseif x:check "local" or x:check "global" then
-    if self:read():check "function" then
+    if self:peek():check "function" then
+      self:read()
       return x:new_statement_node(x.kind .. "_function"):extend {
         self:read():require "Name":new_auxiliary_node(),
         self:parse_funcbody(),
       }
+    else
+      local u = x:new_statement_node():append(self:parse_declaration(x.kind))
+      if self:peek():check "=" then
+        self:read()
+        u:append(self:parse_explist())
+      end
+      return u
     end
-    self:unread()
-    local u = x:new_statement_node():append(self:parse_declaration(x.kind))
-    if self:peek():check "=" then
-      self:read()
-      u:append(self:parse_explist())
-    end
-    return u
   else
     self:unread()
     local u = self:parse_prefixexp()
@@ -329,12 +330,14 @@ function class:parse_if(x)
   local u = x:new_statement_node "if":append(self:parse_exp())
   self:read():require "then"
   u:append(self:parse_block())
+
   local x = self:read()
   if x:check "elseif" then
     return u:append(new_block_node "block":append(self:parse_if(x)))
   elseif x:check "else" then
     return u:append(self:parse_block())
   end
+  x:require "end"
   self:unread()
   return u
 end
@@ -354,6 +357,7 @@ function class:parse_numeric_for(x, y)
     z = self:read()
   end
   z:require "do"
+
   local u = x:new_statement_node "numeric_for":extend {
     y:new_auxiliary_node(),
     u,
@@ -378,6 +382,7 @@ function class:parse_generic_for(x, y)
   end
   local v = self:parse_explist()
   self:read():require "do"
+
   local u = x:new_statement_node "generic_for":extend {
     u,
     v,
@@ -441,20 +446,16 @@ function class:parse_assignment(u)
   end
   x:require "="
 
-  return x:new_statement_node "assignment":extend {
-    u,
-    self:parse_explist(),
-  }
+  return x:new_statement_node "assignment":extend { u, self:parse_explist() }
 end
 
----@param x dromozoa.token
 ---@return dromozoa.node
-function class:parse_retstat(x)
-  local u = x:require "return":new_statement_node()
+function class:parse_retstat()
+  local u
   if self:peek():check(";", is_stat_terminal()) then
-    u:append(new_auxiliary_node "expressions")
+    u = new_auxiliary_node "expressions"
   else
-    u:append(self:parse_explist())
+    u = self:parse_explist()
   end
   local x = self:read()
   if x:check ";" then
@@ -471,21 +472,21 @@ function class:parse_funcname()
   local x
   while true do
     x = self:read()
-    if x:check "." then
-      u = x:new_expression_node "member":extend {
+    if x:check "(" then
+      break
+    elseif x:check ":" then
+      u = x:new_expression_node "method":extend {
         u,
         self:read():require "Name":new_auxiliary_node(),
       }
-    else
-      if x:check ":" then
-        u = x:new_expression_node "method":extend {
-          u,
-          self:read():require "Name":new_auxiliary_node(),
-        }
-        x = self:read()
-      end
+      x = self:read()
       break
     end
+    x:require "."
+    u = x:new_expression_node "member":extend {
+      u,
+      self:read():require "Name":new_auxiliary_node(),
+    }
   end
   x:require "("
   self:unread()
@@ -540,7 +541,7 @@ function class:parse_args(x)
     return new_auxiliary_node "expressions":append(self:parse_tableconstructor(x))
   else
     x:require "String"
-    return new_auxiliary_node "expressions":append(x:new_auxiliary_node())
+    return new_auxiliary_node "expressions":append(x:new_expression_node())
   end
 end
 
@@ -566,12 +567,12 @@ function class:parse_funcbody()
   end
   if x:check "..." then
     local v = x:new_auxiliary_node()
+    u:append(v)
     x = self:read()
     if x:check "Name" then
       v:append(x:new_auxiliary_node())
       x = self:read()
     end
-    u:append(v)
   end
   x:require ")"
 
@@ -609,14 +610,12 @@ function class:parse_field(x)
   if x:check "[" then
     local u = self:parse_exp()
     self:read():require "]"
-    self:read():require "="
-    return x:new_auxiliary_node "index_field":extend {
+    return self:read():require "=":new_auxiliary_node "index_field":extend {
       u,
       self:parse_exp(),
     }
   elseif x:check "Name" and self:peek():check "=" then
-    self:read()
-    return x:new_auxiliary_node "member_field":extend {
+    return self:read():new_auxiliary_node "member_field":extend {
       x:new_auxiliary_node(),
       self:parse_exp(),
     }
