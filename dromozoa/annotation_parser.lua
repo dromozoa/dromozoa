@@ -15,3 +15,34 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
+---@class dromozoa.annotation_parser
+---@field lexer dromozoa.annotation_lexer
+local class = {}
+local metatable = {
+  __index = class,
+  __name = "dromozoa.annotation_parser",
+}
+
+---@param lexer dromozoa.annotation_lexer
+---@return dromozoa.annotation_parser
+function class.new(lexer)
+  return setmetatable({
+    lexer = lexer,
+  }, metatable)
+end
+
+---@return dromozoa.token
+function class:peek()
+  return self.lexer:peek()
+end
+
+---@return dromozoa.token
+function class:read()
+  return self.lexer:read()
+end
+
+function class:unread()
+  self.lexer:unread()
+end
+
+return class
