@@ -46,7 +46,7 @@ local keywords = {
   "while",
 }
 
----@type { [string]: boolean }
+---@type table<string, boolean>
 local keyword_set = {}
 for _, keyword in ipairs(keywords) do
   keyword_set[keyword] = true

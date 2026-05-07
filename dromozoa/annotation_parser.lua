@@ -19,14 +19,14 @@
 
 ---@alias dromozoa.annotation_parser.nud fun(parser: dromozoa.annotation_parser, x: dromozoa.token): dromozoa.node
 ---@alias dromozoa.annotation_parser.led_function fun(parser: dromozoa.annotation_parser, u: dromozoa.node, x: dromozoa.token, rbp: integer): dromozoa.node
----@alias dromozoa.annotation_parser.led { lbp: integer, fn: dromozoa.parser.led_function }
+---@alias dromozoa.annotation_parser.led { lbp: integer, fn: dromozoa.annotation_parser.led_function }
 
 ---@type table<string, dromozoa.annotation_parser.nud>
 local nud_table
 ---@type table<string, dromozoa.annotation_parser.led>
 local led_table
----@type integer
-local prefix_lbp
+-- ---@type integer
+-- local prefix_lbp
 
 --=========================================================================
 
@@ -59,5 +59,54 @@ end
 function class:unread()
   self.lexer:unread()
 end
+
+--=========================================================================
+
+function class:nud_token(x)
+  return x:new_expression_node()
+end
+
+--=========================================================================
+
+function class:led_left(u, x, rbp)
+  return x:new_expression_node():extend { u, self:parse_expression(rbp) }
+end
+
+function class:led_suffix(u, x)
+  return x:new_expression_node():append(u)
+end
+
+--=========================================================================
+
+function class:parse_expression(rbp)
+  local x = self:read()
+  local nud = nud_table[x.kind]
+  if not nud then
+    self:unread()
+    error("syntax error at " .. x.srcloc:to_string())
+  end
+  local u = nud(self, x)
+  while true do
+    local x = self:read()
+    local led = led_table[x.kind]
+    if not led or led.lbp <= rbp then
+      self:unread()
+      break
+    end
+    u = led.fn(self, u, x, led.lbp)
+  end
+  return u
+end
+
+--=========================================================================
+
+nud_table = {
+  ["Name"] = class.nud_token,
+}
+
+led_table = {
+  ["|"] = { lbp = 100, fn = class.led_left },
+  ["?"] = { lbp = 110, fn = class.led_suffix },
+}
 
 return class
