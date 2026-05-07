@@ -19,6 +19,8 @@ local annotation_lexer = require "dromozoa.annotation_lexer"
 local annotation_parser = require "dromozoa.annotation_parser"
 local lexer = require "dromozoa.lexer"
 
+---@param u dromozoa.node
+---@param buffer string[]
 local function dump_impl(u, buffer)
   local enclose = #u.nodes > 0 or not u:check "Name"
   if enclose then
@@ -40,6 +42,8 @@ local function dump_impl(u, buffer)
   end
 end
 
+---@param u dromozoa.node
+---@return string
 local function dump(u)
   local buffer = {}
   dump_impl(u, buffer)
@@ -47,11 +51,28 @@ local function dump(u)
 end
 
 ---@param source string
-local function test_expression(source)
+---@return string
+local function normalize(source)
+  return (source
+    :gsub("^%s+%(", "(")
+    :gsub("%)%s+$", ")")
+    :gsub("%s+%(", " (")
+    :gsub("%)%s+", ") ")
+    :gsub("%s+%)", ")")
+  )
+end
+
+---@param source string
+---@param expect string
+local function test_expression(source, expect)
   local token = lexer.new():lex(source, "=(test)")[1]:require "Comment"
   local p = annotation_parser.new(annotation_lexer.new(token))
   local root = p:parse_expression(0)
-  print(dump(root))
+  local result = dump(root)
+  local expect = normalize(expect)
+  assert(result == expect, ("{ source = %q, result = %q, expect = %q }"):format(source, result, expect))
 end
 
-test_expression "--- boolean | string? | integer"
+test_expression(
+  "--- boolean | string? | integer",
+  "(| (| boolean (? string)) integer)")
