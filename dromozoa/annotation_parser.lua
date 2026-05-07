@@ -105,8 +105,9 @@ nud_table = {
 }
 
 led_table = {
-  ["|"] = { lbp = 100, fn = class.led_left },
-  ["?"] = { lbp = 110, fn = class.led_suffix },
+  ["|"]  = { lbp = 100, fn = class.led_left },
+  ["?"]  = { lbp = 110, fn = class.led_suffix },
+  ["[]"] = { lbp = 110, fn = class.led_suffix },
 }
 
 return class

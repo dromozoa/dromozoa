@@ -74,5 +74,5 @@ local function test_expression(source, expect)
 end
 
 test_expression(
-  "--- boolean | string? | integer",
-  "(| (| boolean (? string)) integer)")
+  "--- boolean | string? | integer[]",
+  "(| (| boolean (? string)) ([] integer))")

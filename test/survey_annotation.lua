@@ -78,3 +78,7 @@ local p
 ---@type table<string>
 local k
 print(t, d, p, k)
+
+---@alias 整数 integer
+---@alias 文_.字*-列 string
+

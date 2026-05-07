@@ -40,22 +40,23 @@ local punctuators = {
   ":",
   "|",
   ",",
-  ";",
+  ";", -- 未使用
   "<",
   ">",
   "(",
   ")",
   "?",
   "+", -- @castの型追加
+  "#", -- コメント開始
   "{",
   "}",
-  "*",
+  "*", -- 未使用
   "[]",
   "...",
   "[",
   "]",
   "-", -- @castの型除去
-  ".",
+  ".", -- @versionの小数点
 }
 
 -- 最長一致させるために文字列長の降順で並びかえる。
@@ -164,9 +165,6 @@ function class:lex()
   elseif self:match "[%a_\x80-\xFF][%w_.*%-\x80-\xFF]*" then
     kind = "Name"
     value = self._0
-  elseif self:match "#([^\n]*)" then
-    kind = "Comment"
-    value = self._1
   elseif self:lex_annotation() then
     kind = self._0
     value = self._0
@@ -226,6 +224,16 @@ function class:unread()
     end
   end
   error "failed to unread"
+end
+
+---@return integer
+function class:tell()
+  return self.index
+end
+
+---@param index integer
+function class:seek(index)
+  self.index = index
 end
 
 return class

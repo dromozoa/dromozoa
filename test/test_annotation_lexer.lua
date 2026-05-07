@@ -32,7 +32,7 @@ end
 
 local lexer = annotation_lexer.new(comment_token [[
 do
-  ---@type fun(x: integer):boolean, string? # comment
+  ---@type fun(x: integer):boolean, string?
   local f
 end
 ]])
