@@ -15,6 +15,21 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
+--=========================================================================
+
+---@alias dromozoa.annotation_parser.nud fun(parser: dromozoa.annotation_parser, x: dromozoa.token): dromozoa.node
+---@alias dromozoa.annotation_parser.led_function fun(parser: dromozoa.annotation_parser, u: dromozoa.node, x: dromozoa.token, rbp: integer): dromozoa.node
+---@alias dromozoa.annotation_parser.led { lbp: integer, fn: dromozoa.parser.led_function }
+
+---@type table<string, dromozoa.annotation_parser.nud>
+local nud_table
+---@type table<string, dromozoa.annotation_parser.led>
+local led_table
+---@type integer
+local prefix_lbp
+
+--=========================================================================
+
 ---@class dromozoa.annotation_parser
 ---@field lexer dromozoa.annotation_lexer
 local class = {}

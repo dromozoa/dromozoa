@@ -68,3 +68,13 @@ print(v)
 ---@type (fun(仮*引*数: integer):integer, boolean), string
 local f, x = function (p) return p, true end, "foo"
 print(f, x)
+
+---@type table<string, integer>
+local t
+---@type { [string]: integer }
+local d
+---@type { x: number, y: number, [string]: integer, [integer]: string }
+local p
+---@type table<string>
+local k
+print(t, d, p, k)
