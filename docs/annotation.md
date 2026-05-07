@@ -14,32 +14,32 @@
 
 | アノテーション | 方針 |
 |----------------|------|
-| @alias         |      |
-| @as            |      |
-| @async         |      |
-| @cast          |      |
-| @class         |      |
-| @deprecated    |      |
-| @diagnostic    |      |
-| @enum          |      |
-| @field         |      |
-| @generic       |      |
-| @meta          |      |
-| @module        |      |
-| @nodiscard     |      |
-| @operator      |      |
-| @overload      |      |
-| @package       |      |
-| @param         |      |
-| @private       |      |
-| @protected     |      |
-| @public        |      |
-| @return        |      |
-| @see           |      |
-| @source        |      |
-| @type          |      |
-| @vararg        |      |
-| @version       |      |
+| `@alias`       | 実装 |
+| `@as`          | 検討 |
+| `@async`       | 無視 |
+| `@cast`        | 検討 |
+| `@class`       | 実装 |
+| `@deprecated`  | 無視 |
+| `@diagnostic`  | 無視 |
+| `@enum`        | 検討 |
+| `@field`       | 実装 |
+| `@generic`     | 実装 |
+| `@meta`        | 無視 |
+| `@module`      | 実装 |
+| `@nodiscard`   | 無視 |
+| `@operator`    | 実装 |
+| `@overload`    | 実装 |
+| `@package`     | 実装 |
+| `@param`       | 実装 |
+| `@private`     | 実装 |
+| `@protected`   | 実装 |
+| `@public`      | 実装 |
+| `@return`      | 実装 |
+| `@see`         | 無視 |
+| `@source`      | 無視 |
+| `@type`        | 実装 |
+| `@vararg`      | 無視 |
+| `@version`     | 無視 |
 
 ## 字句解析
 
