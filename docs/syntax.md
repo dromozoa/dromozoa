@@ -3,7 +3,7 @@
 ## Lua 5.5のEBNF
 
 - https://www.lua.org/manual/5.5/manual.html#9
-- EBNFにはglobal変数宣言の初期化の記載が漏れているので注意。
+- global変数宣言の初期化の記載が漏れているので注意。
 
 ```
 chunk ::= block
@@ -101,7 +101,7 @@ unary operators (not   #     -     ~)
 
 ## prefixexp
 
-- `prefixexp`は左再帰が循環して扱いにくいので演算子で整理する。
+- `prefixexp`は左再帰が扱いにくいので演算子で整理する。
 - `prefixexp`は`Name`か`'(' exp ')'`で開始する。
 - どの演算子も左結合で同じ優先順位を持つ。
 - 文が期待される場所に出現する`prefixexp`は`var`か`functioncall`である。
@@ -127,5 +127,8 @@ unary operators (not   #     -     ~)
 - `{stat}`はこれに加えて`return`によっても終端される。
 
 ## 文法規則のDFA
+
+- 解析器を手書きする際の参考用。
+- RagelとGraphvizで作成。
 
 ![文法規則のDFA](syntax.svg)
