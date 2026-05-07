@@ -43,20 +43,20 @@ end
 
 --=========================================================================
 
----@alias dromozoa.nud fun(parser: dromozoa.parser, x: dromozoa.token): dromozoa.node
----@alias dromozoa.led_function fun(parser: dromozoa.parser, u: dromozoa.node, x: dromozoa.token, rbp: integer): dromozoa.node
----@alias dromozoa.led { lbp: integer, fn: dromozoa.led_function }
+---@alias dromozoa.parser.nud fun(parser: dromozoa.parser, x: dromozoa.token): dromozoa.node
+---@alias dromozoa.parser.led_function fun(parser: dromozoa.parser, u: dromozoa.node, x: dromozoa.token, rbp: integer): dromozoa.node
+---@alias dromozoa.parser.led { lbp: integer, fn: dromozoa.parser.led_function }
 
----@type table<string, dromozoa.nud>
+---@type table<string, dromozoa.parser.nud>
 local exp_nud_table
----@type table<string, dromozoa.led>
+---@type table<string, dromozoa.parser.led>
 local exp_led_table
 ---@type integer
 local prefix_lbp
 
----@type table<string, dromozoa.nud>
+---@type table<string, dromozoa.parser.nud>
 local prefixexp_nud_table
----@type table<string, dromozoa.led>
+---@type table<string, dromozoa.parser.led>
 local prefixexp_led_table
 
 --=========================================================================
@@ -199,7 +199,7 @@ end
 
 --=========================================================================
 
----@param nud_table table<string, dromozoa.nud>
+---@param nud_table table<string, dromozoa.parser.nud>
 ---@return dromozoa.node?
 ---@return string?
 function class:parse_nud(nud_table)
@@ -214,7 +214,7 @@ end
 
 ---@param u dromozoa.node
 ---@param rbp integer
----@param led_table table<string, dromozoa.led>
+---@param led_table table<string, dromozoa.parser.led>
 ---@return dromozoa.node
 function class:parse_led(u, rbp, led_table)
   while true do
