@@ -30,23 +30,24 @@ local function comment_token(source)
   error "token not found"
 end
 
-local lexer = annotation_lexer.new(comment_token[[
+local lexer = annotation_lexer.new(comment_token [[
 do
   ---@type fun(x: integer):boolean, string? # comment
   local f
 end
 ]])
 
-lexer:read():require "@type"
-lexer:read():require "Name"
-lexer:read():require "("
-lexer:read():require "Name"
-lexer:read():require ":"
-lexer:read():require "Name"
-lexer:read():require ")"
-lexer:read():require ":"
-lexer:read():require "Name"
-lexer:read():require ","
-lexer:read():require "Name"
-lexer:read():require "?"
-lexer:read():require "EOF"
+local token
+token = lexer:read():require "@type"; assert(token.srcloc.line == 2 and token.srcloc.column)
+token = lexer:read():require "Name"
+token = lexer:read():require "("
+token = lexer:read():require "Name"
+token = lexer:read():require ":"
+token = lexer:read():require "Name"
+token = lexer:read():require ")"
+token = lexer:read():require ":"
+token = lexer:read():require "Name"
+token = lexer:read():require ","
+token = lexer:read():require "Name"
+token = lexer:read():require "?"
+token = lexer:read():require "EOF"
