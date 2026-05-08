@@ -12,39 +12,53 @@
 
 ## アノテーション
 
-| アノテーション | 方針 |
-|----------------|------|
-| `@alias`       | 実装 |
-| `@as`          | 検討 |
-| `@async`       | 無視 |
-| `@cast`        | 検討 |
-| `@class`       | 実装 |
-| `@deprecated`  | 無視 |
-| `@diagnostic`  | 無視 |
-| `@enum`        | 検討 |
-| `@field`       | 実装 |
-| `@generic`     | 実装 |
-| `@meta`        | 無視 |
-| `@module`      | 実装 |
-| `@nodiscard`   | 無視 |
-| `@operator`    | 実装 |
-| `@overload`    | 実装 |
-| `@package`     | 実装 |
-| `@param`       | 実装 |
-| `@private`     | 実装 |
-| `@protected`   | 実装 |
-| `@public`      | 実装 |
-| `@return`      | 実装 |
-| `@see`         | 無視 |
-| `@source`      | 無視 |
-| `@type`        | 実装 |
-| `@vararg`      | 無視 |
-| `@version`     | 無視 |
-
-- 継続行の`---|`も検討とする
+| アノテーション |
+|----------------|
+| `@alias`       |
+| `@as`          |
+| `@async`       |
+| `@cast`        |
+| `@class`       |
+| `@deprecated`  |
+| `@diagnostic`  |
+| `@enum`        |
+| `@field`       |
+| `@generic`     |
+| `@meta`        |
+| `@module`      |
+| `@nodiscard`   |
+| `@operator`    |
+| `@overload`    |
+| `@package`     |
+| `@param`       |
+| `@private`     |
+| `@protected`   |
+| `@public`      |
+| `@return`      |
+| `@see`         |
+| `@source`      |
+| `@type`        |
+| `@vararg`      |
+| `@version`     |
 
 ## 字句解析
 
 - `Name`の範囲が広い
     - Luaのパターンで表現すると`[%a_\x80-\xFF][%w_.*%-\x80-\xFF]*`
 - キーワードは文脈依存なので構文解析側で処理する
+
+## 構文解析
+
+```
+types ::= type (',' type)*
+type ::= Name |
+    type suffix_op
+```
+
+### 演算子と優先順位
+
+| 演算子    | 結合   |
+|-----------|--------|
+| `|`       | 左結合 |
+| `?`, `[]` | 後置   |
+

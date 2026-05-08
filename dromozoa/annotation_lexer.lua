@@ -20,12 +20,31 @@ local token = require "dromozoa.token"
 ---@type string[]
 local annotations = {
   "@alias",
+  "@as",
+  "@async",
+  "@cast",
   "@class",
+  "@deprecated",
+  "@diagnostic",
+  "@enum",
   "@field",
+  "@generic",
+  "@meta",
+  "@module",
+  "@nodiscard",
+  "@operator",
+  "@overload",
+  "@package",
   "@param",
+  "@private",
+  "@protected",
+  "@public",
   "@return",
+  "@see",
   "@source",
   "@type",
+  "@vararg",
+  "@version",
 }
 
 ---@type string[]
@@ -162,6 +181,9 @@ function class:lex()
   if self:match "%s+" then
     kind = "Space"
     value = self._0
+  elseif self:match "`([^`]*)`" then
+    kind = "Code"
+    value = self._1
   elseif self:match "[%a_\x80-\xFF][%w_.*%-\x80-\xFF]*" then
     kind = "Name"
     value = self._0

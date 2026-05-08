@@ -82,3 +82,9 @@ print(t, d, p, k)
 ---@alias 整数 integer
 ---@alias 文_.字*-列 string
 
+---@type "r" | "w\t\"abc\\def" | "x"
+local mode
+print(mode)
+
+
+
