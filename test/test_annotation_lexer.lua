@@ -18,38 +18,28 @@
 local annotation_lexer = require "dromozoa.annotation_lexer"
 local lexer = require "dromozoa.lexer"
 local matcher = require "dromozoa.matcher"
+local source_location = require "dromozoa.source_location"
 local token_stream = require "dromozoa.token_stream"
 
 ---@param source string
 ---@return dromozoa.token_stream
 local function new_annotation_lexer(source)
-  local tokens = lexer.new():lex(source, "=(test)")
-  for _, token in ipairs(tokens) do
-    if token:check "Comment" then
-      local matcher = matcher.new(token.text, token.srcloc)
-      if token.subkind == "Short" then
-        assert(matcher:match "%-%-%-")
-      elseif token.subkind == "Long" then
-        assert(matcher:match "%-%-%[=*%[")
-      end
-      return token_stream.new(function()
-        return annotation_lexer.lex(matcher)
-      end)
-    end
-  end
-  error "token not found"
+  local srcloc = source_location.new "=(test)"
+  srcloc.line = 2
+  srcloc.column = 4
+  local matcher = matcher.new(source, srcloc)
+  return token_stream.new(function()
+    return annotation_lexer.lex(matcher)
+  end)
 end
 
-local lexer = new_annotation_lexer([[
-do
-  ---@type fun(x: integer):boolean, string?
-  local f
-end
-]])
+local lexer = new_annotation_lexer "@type fun(x: integer):boolean, string?"
 
 local token
-token = lexer:read():require "@type"; assert(token.srcloc.line == 2 and token.srcloc.column)
+token = lexer:read():require "@type"
+assert(token.srcloc.line == 2 and token.srcloc.column == 4)
 token = lexer:read():require "Name"
+assert(token.srcloc.line == 2 and token.srcloc.column == 10)
 token = lexer:read():require "("
 token = lexer:read():require "Name"
 token = lexer:read():require ":"
