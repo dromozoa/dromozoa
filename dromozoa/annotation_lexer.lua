@@ -103,6 +103,8 @@ local metatable = {
   __name = "dromozoa.annotation_lexer",
 }
 
+---@param matcher dromozoa.matcher
+---@return dromozoa.annotation_lexer
 function class.new(matcher)
   local self = setmetatable({
     matcher = matcher,
@@ -113,35 +115,31 @@ function class.new(matcher)
   return self
 end
 
----@param pattern string
+---@param that dromozoa.matcher
 ---@return boolean
-function class:match(pattern)
-  return self.matcher:match(pattern)
-end
-
----@return boolean
-function class:lex_annotation()
+local function lex_annotation(that)
   for _, pattern in ipairs(annotation_patterns) do
-    if self:match(pattern) then
+    if that:match(pattern) then
       return true
     end
   end
   return false
 end
 
+---@param that dromozoa.matcher
 ---@return boolean
-function class:lex_punctuator()
+local function lex_punctuator(that)
   for _, pattern in ipairs(punctuator_patterns) do
-    if self:match(pattern) then
+    if that:match(pattern) then
       return true
     end
   end
   return false
 end
 
+---@param that dromozoa.matcher
 ---@return dromozoa.token
-function class:lex()
-  local that = self.matcher
+local function lex(that)
   local srcloc = that.srcloc:clone()
 
   ---@type string?
@@ -151,19 +149,19 @@ function class:lex()
   ---@type string?
   local value
 
-  if self:match "%s+" then
+  if that:match "%s+" then
     kind = "Space"
     value = that._0
-  elseif self:match "`([^`]*)`" then
+  elseif that:match "`([^`]*)`" then
     kind = "Code"
     value = that._1
-  elseif self:match "[%a_\x80-\xFF][%w_.*%-\x80-\xFF]*" then
+  elseif that:match "[%a_\x80-\xFF][%w_.*%-\x80-\xFF]*" then
     kind = "Name"
     value = that._0
-  elseif self:lex_annotation() then
+  elseif lex_annotation(that) then
     kind = that._0
     value = that._0
-  elseif self:lex_punctuator() then
+  elseif lex_punctuator(that) then
     kind = that._0
     value = that._0
   end
@@ -174,6 +172,11 @@ function class:lex()
 
   local text = that.source:sub(srcloc.position, that.srcloc.position - 1)
   return token.new(kind, subkind, text, assert(value), srcloc)
+end
+
+---@return dromozoa.token
+function class:lex()
+  return lex(self.matcher)
 end
 
 ---@return dromozoa.token
