@@ -31,7 +31,6 @@ local metatable = {
 ---@param srcloc dromozoa.source_location
 ---@return dromozoa.matcher
 function class.new(source, srcloc)
-  local srcloc = srcloc:clone()
   return setmetatable({
     source = source,
     srcloc = srcloc,
