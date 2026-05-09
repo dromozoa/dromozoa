@@ -51,9 +51,6 @@ for _, keyword in ipairs(keywords) do
   keyword_set[keyword] = true
 end
 
----@class dromozoa.lexer
-local class = {}
-
 -- https://www.lua.org/manual/5.5/manual.html#3.1
 ---@type string[]
 local punctuators = {
@@ -114,7 +111,7 @@ end
 
 ---@param that dromozoa.matcher
 ---@return dromozoa.token
-function class.lex(that)
+return function(that)
   local srcloc = that.srcloc:clone()
 
   if that:is_at_start() and that:match "#([^\n]*)" then
@@ -195,5 +192,3 @@ function class.lex(that)
 
   return token.new(kind, subkind, that:substring(srcloc), value, srcloc)
 end
-
-return class

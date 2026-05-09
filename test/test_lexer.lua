@@ -119,7 +119,7 @@ local verbose = os.getenv "VERBOSE"
 ---@param filename string
 ---@return dromozoa.token_stream
 local function new_lexer(source, filename)
-  return token_stream.new(lua_lex.lex, matcher.new(source, source_location.new(filename)))
+  return token_stream.new(lua_lex, matcher.new(source, source_location.new(filename)))
 end
 
 local filename = arg[0]
