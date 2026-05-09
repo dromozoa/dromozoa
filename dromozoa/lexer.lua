@@ -51,6 +51,9 @@ for _, keyword in ipairs(keywords) do
   keyword_set[keyword] = true
 end
 
+---@class dromozoa.lexer
+local class = {}
+
 -- https://www.lua.org/manual/5.5/manual.html#3.1
 ---@type string[]
 local punctuators = {
@@ -98,20 +101,11 @@ table.sort(punctuators, function(a, b)
   end
 end)
 
----@type string[]
-local punctuator_patterns = {}
-for i, punctuator in ipairs(punctuators) do
-  punctuator_patterns[i] = punctuator:gsub("%W", "%%%0")
-end
-
----@class dromozoa.lexer
-local class = {}
-
 ---@param that dromozoa.matcher
 ---@return boolean
 local function lex_punctuator(that)
-  for _, pattern in ipairs(punctuator_patterns) do
-    if that:match(pattern) then
+  for _, punctuator in ipairs(punctuators) do
+    if that:match(that.escape(punctuator)) then
       return true
     end
   end
@@ -173,7 +167,7 @@ function class.lex(that)
     value = that._0
   elseif that:match "%-%-%[(=*)%[" then
     if not that:match("(.-)%]" .. that._1 .. "%]") then
-      error("unfinished long comment at " .. srcloc:to_string())
+      error("unfinished long comment at " .. that.srcloc:to_string())
     end
     kind = "Comment"
     subkind = "Long"
@@ -195,11 +189,11 @@ function class.lex(that)
     value = that._0
   end
 
-  if not kind then
+  if not kind or not value then
     error("unexpected symbol at " .. srcloc:to_string())
   end
 
-  return token.new(kind, subkind, that:substring(srcloc), assert(value), srcloc)
+  return token.new(kind, subkind, that:substring(srcloc), value, srcloc)
 end
 
 return class

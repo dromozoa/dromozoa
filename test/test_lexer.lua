@@ -187,7 +187,8 @@ end
 assert(table.concat(buffer) == source)
 
 ---@param source string
-local function test_lex_error(source)
+---@param column integer
+local function test_lex_error(source, column)
   local result, message = pcall(function()
     local lexer = new_lexer(source, "=(test)")
     repeat
@@ -202,13 +203,13 @@ local function test_lex_error(source)
     assert(not result)
     print(message)
   end
-  assert(tostring(message):find "=%(test%):1:", ("{ message = %q }"):format(message))
+  assert(tostring(message):find("=%(test%):1:" .. column .. "$"), ("{ message = %q }"):format(message))
 end
 
-test_lex_error "print(--[["
-test_lex_error [[print "\y"]]
-test_lex_error "print([["
-test_lex_error "!"
+test_lex_error("print(--[[abc", 11)
+test_lex_error([[print "\n\y"]], 10)
+test_lex_error("print([[abc", 9)
+test_lex_error("abc!", 4)
 
 local lexer = new_lexer("", "=(test)")
 lexer:read():require "EOF"
