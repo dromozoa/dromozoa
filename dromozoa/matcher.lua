@@ -15,6 +15,28 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
+-- https://www.lua.org/manual/5.5/manual.html#3.1
+---@type table<string, string>
+local escape_sequences = {
+  ["a"] = "\a",
+  ["b"] = "\b",
+  ["f"] = "\f",
+  ["n"] = "\n",
+  ["r"] = "\r",
+  ["t"] = "\t",
+  ["v"] = "\v",
+  ["\\"] = "\\",
+  ["\""] = "\"",
+  ["\'"] = "\'",
+  ["\n"] = "\n",
+}
+
+local escape_sequence_pattern = "\\(["
+for char in pairs(escape_sequences) do
+  escape_sequence_pattern = escape_sequence_pattern .. char:gsub("%W", "%%%0")
+end
+escape_sequence_pattern = escape_sequence_pattern .. "])"
+
 ---@class dromozoa.matcher
 ---@field source string
 ---@field srcloc dromozoa.source_location
@@ -54,6 +76,53 @@ function class:match(pattern)
   else
     self._0 = nil
     self._1 = nil
+    return false
+  end
+end
+
+---@return boolean
+function class:match_long_string()
+  if self:match "%[(=*)%[" then
+    local text = self._0
+    if not self:match("\n?(.-)%]" .. self._1 .. "%]") then
+      error("unfinished long string at " .. self.srcloc:to_string())
+    end
+    self._0 = text .. self._0
+    return true
+  else
+    return false
+  end
+end
+
+function class:match_short_string()
+  if self:match "['\"]" then
+    local quote = assert(self._0)
+    local unescaped = "[^\\" .. quote .. "]+"
+    local text = { self._0 }
+    local value = {}
+    while not self:match(quote) do
+      if self:match(unescaped) then
+        table.insert(value, self._0)
+      elseif self:match(escape_sequence_pattern) then
+        table.insert(value, escape_sequences[self._1])
+      elseif self:match "\\z%s*" then
+        -- skip
+      elseif self:match "\\x(%x%x)" then
+        table.insert(value, string.char(tonumber(self._1, 16)))
+      elseif self:match "\\(%d%d?%d?)" then
+        table.insert(value, string.char(tonumber(self._1, 10)))
+      elseif self:match "\\u{(%x+)}" then
+        table.insert(value, utf8.char(tonumber(self._1, 16)))
+      else
+        error("invalid escape sequence at " .. self.srcloc:to_string())
+      end
+      table.insert(text, self._0)
+    end
+    table.insert(text, self._0)
+    self._0 = table.concat(text)
+    self._1 = table.concat(value)
+    return true
+  else
     return false
   end
 end

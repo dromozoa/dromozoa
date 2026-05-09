@@ -104,28 +104,6 @@ for i, punctuator in ipairs(punctuators) do
   punctuator_patterns[i] = punctuator:gsub("%W", "%%%0")
 end
 
--- https://www.lua.org/manual/5.5/manual.html#3.1
----@type table<string, string>
-local escape_sequences = {
-  ["a"] = "\a",
-  ["b"] = "\b",
-  ["f"] = "\f",
-  ["n"] = "\n",
-  ["r"] = "\r",
-  ["t"] = "\t",
-  ["v"] = "\v",
-  ["\\"] = "\\",
-  ["\""] = "\"",
-  ["\'"] = "\'",
-  ["\n"] = "\n",
-}
-
-local escape_sequence_pattern = "\\(["
-for char in pairs(escape_sequences) do
-  escape_sequence_pattern = escape_sequence_pattern .. char:gsub("%W", "%%%0")
-end
-escape_sequence_pattern = escape_sequence_pattern .. "])"
-
 ---@class dromozoa.lexer
 local class = {}
 
@@ -204,36 +182,14 @@ function class.lex(that)
     kind = "Comment"
     subkind = "Short"
     value = that._1
-  elseif that:match "%[(=*)%[" then
-    if not that:match("\n?(.-)%]" .. that._1 .. "%]") then
-      error("unfinished long string at " .. srcloc:to_string())
-    end
+  elseif that:match_long_string() then
     kind = "String"
     subkind = "Long"
     value = that._1
-  elseif that:match "['\"]" then
-    local quote = assert(that._0)
-    local unescaped = "[^\\" .. quote .. "]+"
+  elseif that:match_short_string() then
     kind = "String"
     subkind = "Short"
-    value = ""
-    while not that:match(quote) do
-      if that:match(unescaped) then
-        value = value .. that._0
-      elseif that:match(escape_sequence_pattern) then
-        value = value .. escape_sequences[that._1]
-      elseif that:match "\\z%s*" then
-        -- skip
-      elseif that:match "\\x(%x%x)" then
-        value = value .. string.char(tonumber(that._1, 16))
-      elseif that:match "\\(%d%d?%d?)" then
-        value = value .. string.char(tonumber(that._1, 10))
-      elseif that:match "\\u{(%x+)}" then
-        value = value .. utf8.char(tonumber(that._1, 16))
-      else
-        error("invalid escape sequence at " .. srcloc:to_string())
-      end
-    end
+    value = that._1
   elseif lex_punctuator(that) then
     kind = that._0
     value = that._0
@@ -243,6 +199,7 @@ function class.lex(that)
     error("unexpected symbol at " .. srcloc:to_string())
   end
 
+  -- TODO 修正 offsetが導入されたので範囲指定が正しくない
   local text = that.source:sub(srcloc.position, that.srcloc.position - 1)
   return token.new(kind, subkind, text, assert(value), srcloc)
 end
