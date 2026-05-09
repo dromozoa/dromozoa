@@ -43,34 +43,34 @@ end
 
 --=========================================================================
 
----@alias dromozoa.parser.nud fun(parser: dromozoa.parser, x: dromozoa.token): dromozoa.node
----@alias dromozoa.parser.led_function fun(parser: dromozoa.parser, u: dromozoa.node, x: dromozoa.token, rbp: integer): dromozoa.node
----@alias dromozoa.parser.led { lbp: integer, fn: dromozoa.parser.led_function }
+---@alias dromozoa.lua_parser.nud fun(parser: dromozoa.lua_parser, x: dromozoa.token): dromozoa.node
+---@alias dromozoa.lua_parser.led_function fun(parser: dromozoa.lua_parser, u: dromozoa.node, x: dromozoa.token, rbp: integer): dromozoa.node
+---@alias dromozoa.lua_parser.led { lbp: integer, fn: dromozoa.lua_parser.led_function }
 
----@type table<string, dromozoa.parser.nud>
+---@type table<string, dromozoa.lua_parser.nud>
 local exp_nud_table
----@type table<string, dromozoa.parser.led>
+---@type table<string, dromozoa.lua_parser.led>
 local exp_led_table
 ---@type integer
 local prefix_lbp
 
----@type table<string, dromozoa.parser.nud>
+---@type table<string, dromozoa.lua_parser.nud>
 local prefixexp_nud_table
----@type table<string, dromozoa.parser.led>
+---@type table<string, dromozoa.lua_parser.led>
 local prefixexp_led_table
 
 --=========================================================================
 
----@class dromozoa.parser
+---@class dromozoa.lua_parser
 ---@field lexer dromozoa.token_stream
 local class = {}
 local metatable = {
   __index = class,
-  __name = "dromozoa.parser",
+  __name = "dromozoa.lua_parser",
 }
 
 ---@param lexer dromozoa.token_stream
----@return dromozoa.parser
+---@return dromozoa.lua_parser
 function class.new(lexer)
   return setmetatable({
     lexer = lexer,
@@ -182,7 +182,7 @@ end
 
 --=========================================================================
 
----@param nud_table table<string, dromozoa.parser.nud>
+---@param nud_table table<string, dromozoa.lua_parser.nud>
 ---@return dromozoa.node?
 ---@return string?
 function class:parse_nud(nud_table)
@@ -197,7 +197,7 @@ end
 
 ---@param u dromozoa.node
 ---@param rbp integer
----@param led_table table<string, dromozoa.parser.led>
+---@param led_table table<string, dromozoa.lua_parser.led>
 ---@return dromozoa.node
 function class:parse_led(u, rbp, led_table)
   while true do

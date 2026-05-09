@@ -16,8 +16,8 @@
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
 local lua_lex = require "dromozoa.lua_lex"
+local lua_parser = require "dromozoa.lua_parser"
 local matcher = require "dromozoa.matcher"
-local parser = require "dromozoa.parser"
 local source_location = require "dromozoa.source_location"
 local token_stream = require "dromozoa.token_stream"
 
@@ -25,9 +25,9 @@ local verbose = os.getenv "VERBOSE"
 
 ---@param source string
 ---@param filename string
----@return dromozoa.parser
+---@return dromozoa.lua_parser
 local function new_parser(source, filename)
-  return parser.new(token_stream.new(lua_lex, matcher.new(source, source_location.new(filename))))
+  return lua_parser.new(token_stream.new(lua_lex, matcher.new(source, source_location.new(filename))))
 end
 
 ---@param u dromozoa.node
@@ -123,7 +123,7 @@ end
 
 ---@param source string
 ---@param expect string
----@param fn fun(p: dromozoa.parser): dromozoa.node
+---@param fn fun(p: dromozoa.lua_parser): dromozoa.node
 ---@return dromozoa.node
 local function test_parse_impl(source, expect, fn)
   local p = new_parser(source, "=(test)")
@@ -137,7 +137,7 @@ local function test_parse_impl(source, expect, fn)
 end
 
 ---@param source string
----@param fn fun(p: dromozoa.parser): dromozoa.node
+---@param fn fun(p: dromozoa.lua_parser): dromozoa.node
 local function test_parse_error_impl(source, fn)
   local p = new_parser(source, "=(test)")
   local result, message = pcall(fn, p)
