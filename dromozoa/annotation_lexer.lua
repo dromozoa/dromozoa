@@ -16,7 +16,6 @@
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
 local token = require "dromozoa.token"
-local token_stream = require "dromozoa.token_stream"
 
 ---@type string[]
 local annotations = {
