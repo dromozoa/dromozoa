@@ -18,6 +18,7 @@
 local annotation_lexer = require "dromozoa.annotation_lexer"
 local annotation_parser = require "dromozoa.annotation_parser"
 local lexer = require "dromozoa.lexer"
+local matcher = require "dromozoa.matcher"
 
 ---@param u dromozoa.node
 ---@param buffer string[]
@@ -66,7 +67,10 @@ end
 ---@param expect string
 local function test_expression(source, expect)
   local token = lexer.new():lex(source, "=(test)")[1]:require "Comment"
-  local p = annotation_parser.new(annotation_lexer.new(token))
+  assert(token.subkind == "Short")
+  local matcher = matcher.new(token.text, token.srcloc)
+  matcher:match "%-%-%-"
+  local p = annotation_parser.new(annotation_lexer.new(matcher))
   local root = p:parse_expression(0)
   local result = dump(root)
   local expect = normalize(expect)

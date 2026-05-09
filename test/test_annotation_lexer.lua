@@ -17,6 +17,7 @@
 
 local annotation_lexer = require "dromozoa.annotation_lexer"
 local lexer = require "dromozoa.lexer"
+local matcher = require "dromozoa.matcher"
 
 ---@param source string
 ---@return dromozoa.annotation_lexer
@@ -24,7 +25,13 @@ local function new_annotation_lexer(source)
   local tokens = lexer.new():lex(source, "=(test)")
   for _, token in ipairs(tokens) do
     if token:check "Comment" then
-      return annotation_lexer.new(token)
+      local matcher = matcher.new(token.text, token.srcloc)
+      if token.subkind == "Short" then
+        assert(matcher:match "%-%-%-")
+      elseif token.subkind == "Long" then
+        assert(matcher:match "%-%-%[=*%[")
+      end
+      return annotation_lexer.new(matcher)
     end
   end
   error "token not found"
