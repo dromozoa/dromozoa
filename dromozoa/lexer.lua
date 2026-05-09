@@ -315,6 +315,10 @@ function class.lex2(that)
     return token.new("Comment", "Shebang", that._0, that._1, srcloc)
   end
 
+  if that:is_at_end() then
+    return token.new("EOF", nil, "", "", srcloc)
+  end
+
   ---@type string?
   local kind
   ---@type string?
@@ -402,7 +406,7 @@ function class.lex2(that)
   end
 
   if not kind then
-    return token.new("EOF", nil, "", "", srcloc)
+    error("unexpected symbol at " .. srcloc:to_string())
   end
 
   local text = that.source:sub(srcloc.position, that.srcloc.position - 1)

@@ -22,7 +22,8 @@
 --[[
 foo
 bar
-baz]] ::SRCLOC_811_25_9::
+baz]]
+::SRCLOC_811_25_9::
 
 local expect = {
   3,
@@ -117,8 +118,8 @@ local verbose = os.getenv "VERBOSE"
 ---@param filename string
 ---@return dromozoa.token_stream
 local function new_lexer(source, filename)
-  local matcher = matcher.new(source, source_location.new (filename))
-  return token_stream.new(function ()
+  local matcher = matcher.new(source, source_location.new(filename))
+  return token_stream.new(function()
     return lexer.lex2(matcher)
   end)
 end
@@ -177,24 +178,23 @@ while true do
   end
   y = x
 end
+assert(i == #expect)
+assert(state == 3)
 
 local buffer = {}
 for _, x in ipairs(stream.tokens) do
   table.insert(buffer, x.text)
 end
-
-assert(i == #expect)
-assert(state == 3)
 assert(table.concat(buffer) == source)
 
 ---@param source string
 local function test_lex_error(source)
-  -- local matcher = matcher.new(source, source_location.new "=(test)")
-  -- local lexer = token_stream.new(function ()
-  --   return lexer.lex2(matcher)
-  -- end)
-
-  local result, message = pcall(function() lexer.new():lex(source, "=(test)") end)
+  local result, message = pcall(function()
+    local lexer = new_lexer(source, "=(test)")
+    repeat
+      local token = lexer:read()
+    until token:check "EOF"
+  end)
   assert(not result)
   if verbose then
     print(("="):rep(80))
@@ -211,29 +211,32 @@ test_lex_error [[print "\y"]]
 test_lex_error "print([["
 test_lex_error "!"
 
-local tokens = lexer.new():lex("", "=(test)")
-assert(#tokens == 1)
-local token = tokens[1]
-assert(token.kind == "EOF")
+local lexer = new_lexer("", "=(test)")
+lexer:read():require "EOF"
+assert(#lexer.tokens == 1)
 
-local tokens = lexer.new():lex("#! /usr/bin/env lua", "=(test)")
-assert(#tokens == 2)
-local token = tokens[1]
-assert(token.kind == "Comment")
+local lexer = new_lexer("#! /usr/bin/env lua", "=(test)")
+lexer:read():require "EOF"
+assert(#lexer.tokens == 2)
+local token = lexer.tokens[1]
+assert(token:require "Comment")
 assert(token.subkind == "Shebang")
 assert(token.text == "#! /usr/bin/env lua")
 assert(token.value == "! /usr/bin/env lua")
 
-local tokens = lexer.new():lex("#! /usr/bin/env lua\n", "=(test)")
-assert(#tokens == 3)
-local token = tokens[1]
-assert(token.kind == "Comment")
+local lexer = new_lexer("#! /usr/bin/env lua\n", "=(test)")
+lexer:read():require "EOF"
+assert(#lexer.tokens == 3)
+local token = lexer.tokens[1]
+assert(token:require "Comment")
 assert(token.subkind == "Shebang")
 assert(token.text == "#! /usr/bin/env lua")
 assert(token.value == "! /usr/bin/env lua")
 
-local tokens = lexer.new():lex("---@alias x integer", "=(test)")
-assert(#tokens == 2)
+local lexer = new_lexer("---@alias x integer", "=(test)")
+lexer:read():require "EOF"
+assert(#lexer.tokens == 2)
 
-local tokens = lexer.new():lex("---@alias x integer\n", "=(test)")
-assert(#tokens == 3)
+local lexer = new_lexer("---@alias x integer\n", "=(test)")
+lexer:read():require "EOF"
+assert(#lexer.tokens == 3)
