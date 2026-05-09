@@ -19,18 +19,18 @@ local annotation_lexer = require "dromozoa.annotation_lexer"
 local lexer = require "dromozoa.lexer"
 
 ---@param source string
----@return dromozoa.token
-local function comment_token(source)
+---@return dromozoa.annotation_lexer
+local function new_annotation_lexer(source)
   local tokens = lexer.new():lex(source, "=(test)")
   for _, token in ipairs(tokens) do
     if token:check "Comment" then
-      return token
+      return annotation_lexer.new(token)
     end
   end
   error "token not found"
 end
 
-local lexer = annotation_lexer.new(comment_token [[
+local lexer = new_annotation_lexer([[
 do
   ---@type fun(x: integer):boolean, string?
   local f
