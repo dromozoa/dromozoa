@@ -17,8 +17,8 @@
 
 local annotation_lexer = require "dromozoa.annotation_lexer"
 local annotation_parser = require "dromozoa.annotation_parser"
-local lexer = require "dromozoa.lexer"
 local matcher = require "dromozoa.matcher"
+local source_location= require "dromozoa.source_location"
 local token_stream = require "dromozoa.token_stream"
 
 ---@param u dromozoa.node
@@ -65,15 +65,18 @@ local function normalize(source)
 end
 
 ---@param source string
+---@return dromozoa.token_stream
+local function new_annotation_lexer(source)
+  local matcher = matcher.new(source, source_location.new "=(test)")
+  return token_stream.new(function()
+    return annotation_lexer.lex(matcher)
+  end)
+end
+
+---@param source string
 ---@param expect string
 local function test_expression(source, expect)
-  local token = lexer.new():lex(source, "=(test)")[1]:require "Comment"
-  assert(token.subkind == "Short")
-  local matcher = matcher.new(token.text, token.srcloc)
-  matcher:match "%-%-%-"
-  local p = annotation_parser.new(token_stream.new(function()
-    return annotation_lexer.lex(matcher)
-  end))
+  local p = annotation_parser.new(new_annotation_lexer(source))
   local root = p:parse_expression(0)
   local result = dump(root)
   local expect = normalize(expect)
@@ -81,5 +84,5 @@ local function test_expression(source, expect)
 end
 
 test_expression(
-  "--- boolean | string? | integer[]",
+  "boolean | string? | integer[]",
   "(| (| boolean (? string)) ([] integer))")
