@@ -151,7 +151,7 @@ function class.lex(that)
     return token.new("EOF", nil, "", "", srcloc)
   end
 
-  return token.new(kind, subkind, that:sub(srcloc), assert(value), srcloc)
+  return token.new(kind, subkind, that:substring(srcloc), assert(value), srcloc)
 end
 
 return class

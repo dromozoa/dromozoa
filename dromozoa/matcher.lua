@@ -15,28 +15,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
--- https://www.lua.org/manual/5.5/manual.html#3.1
----@type table<string, string>
-local escape_sequences = {
-  ["a"] = "\a",
-  ["b"] = "\b",
-  ["f"] = "\f",
-  ["n"] = "\n",
-  ["r"] = "\r",
-  ["t"] = "\t",
-  ["v"] = "\v",
-  ["\\"] = "\\",
-  ["\""] = "\"",
-  ["\'"] = "\'",
-  ["\n"] = "\n",
-}
-
-local escape_sequence_pattern = "\\(["
-for char in pairs(escape_sequences) do
-  escape_sequence_pattern = escape_sequence_pattern .. char:gsub("%W", "%%%0")
-end
-escape_sequence_pattern = escape_sequence_pattern .. "])"
-
 ---@class dromozoa.matcher
 ---@field source string
 ---@field srcloc dromozoa.source_location
@@ -63,6 +41,28 @@ function class.new(source, srcloc)
   }, metatable)
 end
 
+---@param source string
+---@return string
+function class.escape(source)
+  return (source:gsub("%W", "%%%0"))
+end
+
+---@return boolean
+function class:is_at_start()
+  return self.srcloc.position - self.offset == 1
+end
+
+---@return boolean
+function class:is_at_end()
+  return self.srcloc.position - self.offset > #self.source
+end
+
+---@param srcloc dromozoa.source_location
+---@return string
+function class:substring(srcloc)
+  return self.source:sub(srcloc.position - self.offset, self.srcloc.position - self.offset - 1)
+end
+
 ---@param pattern string
 ---@return boolean
 function class:match(pattern)
@@ -87,17 +87,51 @@ function class:match_long_string()
     if not self:match("\n?(.-)%]" .. self._1 .. "%]") then
       error("unfinished long string at " .. self.srcloc:to_string())
     end
-    self._0 = self:sub(srcloc)
+    self._0 = self:substring(srcloc)
     return true
   else
     return false
   end
 end
 
+---@type table<string, string>
+local escape_sequences = {}
+
+---@type string
+local escape_sequence_pattern
+
+do
+  -- https://www.lua.org/manual/5.5/manual.html#3.1
+  ---@type [string, string][]
+  local rules = {
+    { "a",  "\a" },
+    { "b",  "\b" },
+    { "f",  "\f" },
+    { "n",  "\n" },
+    { "r",  "\r" },
+    { "t",  "\t" },
+    { "v",  "\v" },
+    { "\\", "\\" },
+    { "\"", "\"" },
+    { "\'", "\'" },
+    { "\n", "\n" },
+  }
+
+  ---@type string[]
+  local patterns = {}
+  for _, rule in ipairs(rules) do
+    local u, v = table.unpack(rule)
+    escape_sequences[u] = v
+    table.insert(patterns, class.escape(u))
+  end
+  escape_sequence_pattern = "\\([" .. table.concat(patterns) .. "])"
+end
+
+---@return boolean
 function class:match_short_string()
   local srcloc = self.srcloc:clone()
   if self:match "['\"]" then
-    local quote = assert(self._0)
+    local quote = self._0 --[[@as string]]
     local unescaped = "[^\\" .. quote .. "]+"
     local value = {}
     while not self:match(quote) do
@@ -117,34 +151,12 @@ function class:match_short_string()
         error("invalid escape sequence at " .. self.srcloc:to_string())
       end
     end
-    self._0 = self:sub(srcloc)
+    self._0 = self:substring(srcloc)
     self._1 = table.concat(value)
     return true
   else
     return false
   end
-end
-
----@return boolean
-function class:is_at_start()
-  return self.srcloc.position - self.offset == 1
-end
-
----@return boolean
-function class:is_at_end()
-  return self.srcloc.position - self.offset > #self.source
-end
-
----@param srcloc dromozoa.source_location
----@return string
-function class:sub(srcloc)
-  return self.source:sub(srcloc.position - self.offset, self.srcloc.position - self.offset - 1)
-end
-
----@param source string
----@return string
-function class.escape(source)
-  return (source:gsub("%W", "%%%0"))
 end
 
 return class
