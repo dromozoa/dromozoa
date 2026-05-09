@@ -15,15 +15,16 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
+---@diagnostic disable: unused-label
 ::BEGIN::
 
-::SRCLOC_750_20_3::
-; ::SRCLOC_772_21_5::
+::SRCLOC_787_21_3::
+; ::SRCLOC_809_22_5::
 --[[
 foo
 bar
 baz]]
-::SRCLOC_811_25_9::
+assert(type(type)); ::SRCLOC_868_27_23::
 
 local expect = {
   3,
@@ -124,48 +125,50 @@ local function new_lexer(source, filename)
   end)
 end
 
-local source = util.read_file(arg[0])
-local stream = new_lexer(source, arg[0])
+local filename = arg[0]
+local source = util.read_file(filename)
+local lexer = new_lexer(source, filename)
 
 local i = 0
 local state = 1
-local y
+local is_preceeded_by_label = false
 while true do
-  local x = stream:read()
-  local u = x.value
+  local token = lexer:read()
+  local u = token.value
   if state == 1 then
-    if y and y:check "::" and x:check "Name" and u == "BEGIN" then
+    if is_preceeded_by_label and token:check "Name" and u == "BEGIN" then
       state = 2
     end
   elseif state == 2 then
-    if y and y:check "::" and x:check "Name" then
+    if is_preceeded_by_label and token:check "Name" then
       if u == "END" then
         state = 3
       else
         local position, line, column = u:match "^SRCLOC_(%d+)_(%d+)_(%d+)$"
         if position then
-          assert(x.srcloc.position == tonumber(position))
-          assert(x.srcloc.line == tonumber(line))
-          assert(x.srcloc.column == tonumber(column))
+          local srcloc = token.srcloc
+          assert(srcloc.position == tonumber(position))
+          assert(srcloc.line == tonumber(line))
+          assert(srcloc.column == tonumber(column))
         end
       end
     else
       i = i + 1
       local v = expect[i]
-      if x.kind == "Integer" then
+      if token.kind == "Integer" then
         assert(math.type(u) == "integer")
         assert(math.type(v) == "integer")
         assert(u == v)
-      elseif x.kind == "Float" then
+      elseif token.kind == "Float" then
         assert(math.type(u) == "float")
         assert(math.type(v) == "float")
         assert(u == v)
-      elseif x.kind == "String" then
+      elseif token.kind == "String" then
         assert(u == v)
-      elseif x.kind == "true" then
+      elseif token.kind == "true" then
         assert(u == "true")
         assert(v == true)
-      elseif x.kind == "false" then
+      elseif token.kind == "false" then
         assert(u == "false")
         assert(v == false)
       else
@@ -173,16 +176,16 @@ while true do
       end
     end
   end
-  if x:check "EOF" then
+  if token:check "EOF" then
     break
   end
-  y = x
+  is_preceeded_by_label = token:check "::"
 end
 assert(i == #expect)
 assert(state == 3)
 
 local buffer = {}
-for _, x in ipairs(stream.tokens) do
+for _, x in ipairs(lexer.tokens) do
   table.insert(buffer, x.text)
 end
 assert(table.concat(buffer) == source)
