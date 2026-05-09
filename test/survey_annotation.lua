@@ -86,5 +86,36 @@ print(t, d, p, k)
 local mode
 print(mode)
 
+-- @typeは次の行のlocal xに付く
+do goto Label ---@type integer
+  ; ::Label::; print(mode); --[[foo]] local x; local y
+  print(x, y)
+end
 
+---@param x any
+---@return any
+local function identity(x) return x end
 
+local t = {
+  ---@type integer
+  x = identity(mode),
+  ---@type boolean
+  [1] = identity(42),
+}
+local y = t[1]
+local z
+---@type string
+z = identity(true)
+print(t.x, y, z)
+
+--[[
+-- アノテーションが付くノードはステートメントに限らない
+-- luadoc.lua:2202
+local bindDocAccept = {
+    'local'     , 'setlocal'  , 'setglobal',
+    'setfield'  , 'setmethod' , 'setindex' ,
+    'tablefield', 'tableindex', 'self'     ,
+    'function'  , 'return'     , '...'      ,
+    'call',
+}
+]]
