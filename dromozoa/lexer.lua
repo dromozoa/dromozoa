@@ -199,9 +199,7 @@ function class.lex(that)
     error("unexpected symbol at " .. srcloc:to_string())
   end
 
-  -- TODO 修正 offsetが導入されたので範囲指定が正しくない
-  local text = that.source:sub(srcloc.position, that.srcloc.position - 1)
-  return token.new(kind, subkind, text, assert(value), srcloc)
+  return token.new(kind, subkind, that:sub(srcloc), assert(value), srcloc)
 end
 
 return class

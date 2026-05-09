@@ -239,3 +239,15 @@ assert(#lexer.tokens == 2)
 local lexer = new_lexer("---@alias x integer\n", "=(test)")
 lexer:read():require "EOF"
 assert(#lexer.tokens == 3)
+
+-- matcherのoffsetの扱いをテストする
+local source = "xyz"
+local srcloc = source_location.new "=(test)"
+srcloc.position = 2
+srcloc.line = 1
+srcloc.column = 2
+local lexer = token_stream.new(lexer.lex, matcher.new(source, srcloc))
+lexer:read():require "Name"
+lexer:read():require "EOF"
+assert(#lexer.tokens == 2)
+assert(lexer.tokens[1].text == source)

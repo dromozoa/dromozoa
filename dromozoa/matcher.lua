@@ -137,6 +137,12 @@ function class:is_at_end()
   return self.srcloc.position - self.offset > #self.source
 end
 
+---@param srcloc dromozoa.source_location
+---@return string
+function class:sub(srcloc)
+  return self.source:sub(srcloc.position - self.offset, self.srcloc.position - self.offset - 1)
+end
+
 ---@param source string
 ---@return string
 function class.escape(source)
