@@ -121,7 +121,7 @@ local verbose = os.getenv "VERBOSE"
 local function new_lexer(source, filename)
   local matcher = matcher.new(source, source_location.new(filename))
   return token_stream.new(function()
-    return lexer.lex2(matcher)
+    return lexer.lex(matcher)
   end)
 end
 

@@ -29,7 +29,7 @@ local verbose = os.getenv "VERBOSE"
 local function new_parser(source, filename)
   local that = matcher.new(source, source_location.new(filename))
   return parser.new(token_stream.new(function()
-    return lexer.lex2(that)
+    return lexer.lex(that)
   end))
 end
 
