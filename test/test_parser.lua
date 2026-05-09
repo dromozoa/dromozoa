@@ -130,8 +130,6 @@ end
 ---@return dromozoa.node
 local function test_parse_impl(source, expect, fn)
   local p = new_parser(source, "=(test)")
-  p.tokens = lexer.new():lex(source, "=(test)")
-  p.index = 1
   local root = fn(p)
   p:peek():require "EOF"
   local result = dump(root)
@@ -145,8 +143,6 @@ end
 ---@param fn fun(p: dromozoa.parser): dromozoa.node
 local function test_parse_error_impl(source, fn)
   local p = new_parser(source, "=(test)")
-  p.tokens = lexer.new():lex(source, "=(test)")
-  p.index = 1
   local result, message = pcall(fn, p)
   assert(not result)
   if verbose then
@@ -510,7 +506,7 @@ test_parse_block_error "return 42;;"
 ---@param expect string
 local function test_parse(source, expect)
   local p = new_parser(source, "=(test)")
-  local root = p:parse(lexer.new():lex(source, "=(test)"))
+  local root = p:parse()
   local result = dump(root)
   local expect = normalize(expect)
   assert(result == expect, ("{ source = %q, result = %q, expect = %q }"):format(source, result, expect))

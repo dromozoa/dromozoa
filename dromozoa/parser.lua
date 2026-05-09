@@ -63,8 +63,6 @@ local prefixexp_led_table
 
 ---@class dromozoa.parser
 ---@field lexer dromozoa.token_stream
----@field tokens dromozoa.token[]
----@field index integer
 local class = {}
 local metatable = {
   __index = class,
@@ -76,39 +74,21 @@ local metatable = {
 function class.new(lexer)
   return setmetatable({
     lexer = lexer,
-    tokens = {},
-    index = 1,
   }, metatable)
 end
 
 ---@return dromozoa.token
 function class:peek()
-  for i = self.index, #self.tokens do
-    local token = self.tokens[i]
-    if not token:check("Space", "Comment") then
-      self.index = i
-      return token
-    end
-  end
-  error "failed to peek"
+  return self.lexer:peek()
 end
 
 ---@return dromozoa.token
 function class:read()
-  local token = self:peek()
-  self.index = self.index + 1
-  return token
+  return self.lexer:read()
 end
 
 function class:unread()
-  for i = self.index - 1, 1, -1 do
-    local token = self.tokens[i]
-    if not token:check("Space", "Comment") then
-      self.index = i
-      return
-    end
-  end
-  error "failed to unread"
+  self.lexer:unread()
 end
 
 --=========================================================================
@@ -629,11 +609,8 @@ end
 
 --=========================================================================
 
----@param tokens dromozoa.token[]
 ---@return dromozoa.node
-function class:parse(tokens)
-  self.tokens = tokens
-  self.index = 1
+function class:parse()
   local u = self:parse_block "chunk"
   self:peek():require "EOF"
   return u
