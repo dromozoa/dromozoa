@@ -21,6 +21,20 @@ local source_location = require "dromozoa.source_location"
 
 local verbose = os.getenv "VERBOSE"
 
+-- ---@param source string
+-- ---@param filename string
+-- ---@return dromozoa.parser
+-- local function new_parser(source, filename)
+--   local that = matcher.new(source, source_location.new(filename))
+--   return parser.new(token_stream.new(function()
+--     return lexer.lex2(that)
+--   end))
+-- end
+
+
+
+
+
 local p = parser.new()
 p.tokens = lexer.new():lex([=[
 --[[1]]local--[[3]]--[[4]]x--[[6]]--[[7]]=--[[9]]--[[10]]1--[[12]]
