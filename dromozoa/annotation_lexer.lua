@@ -94,27 +94,6 @@ for i, punctuator in ipairs(punctuators) do
   punctuator_patterns[i] = punctuator:gsub("%W", "%%%0")
 end
 
----@class dromozoa.annotation_lexer
----@field matcher dromozoa.matcher
----@field token_stream dromozoa.token_stream
-local class = {}
-local metatable = {
-  __index = class,
-  __name = "dromozoa.annotation_lexer",
-}
-
----@param matcher dromozoa.matcher
----@return dromozoa.annotation_lexer
-function class.new(matcher)
-  local self = setmetatable({
-    matcher = matcher,
-  }, metatable)
-  self.token_stream = token_stream.new(function()
-    return self:lex()
-  end)
-  return self
-end
-
 ---@param that dromozoa.matcher
 ---@return boolean
 local function lex_annotation(that)
@@ -174,9 +153,22 @@ local function lex(that)
   return token.new(kind, subkind, text, assert(value), srcloc)
 end
 
----@return dromozoa.token
-function class:lex()
-  return lex(self.matcher)
+---@class dromozoa.annotation_lexer
+---@field token_stream dromozoa.token_stream
+local class = {}
+local metatable = {
+  __index = class,
+  __name = "dromozoa.annotation_lexer",
+}
+
+---@param matcher dromozoa.matcher
+---@return dromozoa.annotation_lexer
+function class.new(matcher)
+  return setmetatable({
+    token_stream = token_stream.new(function()
+      return lex(matcher)
+    end),
+  }, metatable)
 end
 
 ---@return dromozoa.token
