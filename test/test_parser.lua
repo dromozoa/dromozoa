@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-local lexer = require "dromozoa.lexer"
+local lua_lex = require "dromozoa.lua_lex"
 local matcher = require "dromozoa.matcher"
 local parser = require "dromozoa.parser"
 local source_location = require "dromozoa.source_location"
@@ -27,7 +27,7 @@ local verbose = os.getenv "VERBOSE"
 ---@param filename string
 ---@return dromozoa.parser
 local function new_parser(source, filename)
-  return parser.new(token_stream.new(lexer.lex, matcher.new(source, source_location.new(filename))))
+  return parser.new(token_stream.new(lua_lex.lex, matcher.new(source, source_location.new(filename))))
 end
 
 ---@param u dromozoa.node
