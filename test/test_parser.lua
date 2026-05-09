@@ -27,10 +27,7 @@ local verbose = os.getenv "VERBOSE"
 ---@param filename string
 ---@return dromozoa.parser
 local function new_parser(source, filename)
-  local that = matcher.new(source, source_location.new(filename))
-  return parser.new(token_stream.new(function()
-    return lexer.lex(that)
-  end))
+  return parser.new(token_stream.new(lexer.lex, matcher.new(source, source_location.new(filename))))
 end
 
 ---@param u dromozoa.node

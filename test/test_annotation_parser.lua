@@ -18,7 +18,7 @@
 local annotation_lexer = require "dromozoa.annotation_lexer"
 local annotation_parser = require "dromozoa.annotation_parser"
 local matcher = require "dromozoa.matcher"
-local source_location= require "dromozoa.source_location"
+local source_location = require "dromozoa.source_location"
 local token_stream = require "dromozoa.token_stream"
 
 ---@param u dromozoa.node
@@ -67,10 +67,7 @@ end
 ---@param source string
 ---@return dromozoa.token_stream
 local function new_annotation_lexer(source)
-  local matcher = matcher.new(source, source_location.new "=(test)")
-  return token_stream.new(function()
-    return annotation_lexer.lex(matcher)
-  end)
+  return token_stream.new(annotation_lexer.lex, matcher.new(source, source_location.new "=(test)"))
 end
 
 ---@param source string

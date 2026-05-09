@@ -16,7 +16,6 @@
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
 local annotation_lexer = require "dromozoa.annotation_lexer"
-local lexer = require "dromozoa.lexer"
 local matcher = require "dromozoa.matcher"
 local source_location = require "dromozoa.source_location"
 local token_stream = require "dromozoa.token_stream"
@@ -27,10 +26,7 @@ local function new_annotation_lexer(source)
   local srcloc = source_location.new "=(test)"
   srcloc.line = 2
   srcloc.column = 4
-  local matcher = matcher.new(source, srcloc)
-  return token_stream.new(function()
-    return annotation_lexer.lex(matcher)
-  end)
+  return token_stream.new(annotation_lexer.lex, matcher.new(source, srcloc))
 end
 
 local lexer = new_annotation_lexer "@type fun(x: integer):boolean, string?"

@@ -15,10 +15,11 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
----@alias dromozoa.token_stream.lex fun(): dromozoa.token
+---@alias dromozoa.token_stream.lex fun(matcher: dromozoa.matcher): dromozoa.token
 
 ---@class dromozoa.token_stream
 ---@field lex dromozoa.token_stream.lex
+---@field matcher dromozoa.matcher
 ---@field tokens dromozoa.token[]
 ---@field index integer
 local class = {}
@@ -28,10 +29,12 @@ local metatable = {
 }
 
 ---@param lex dromozoa.token_stream.lex
+---@param matcher dromozoa.matcher
 ---@return dromozoa.token_stream
-function class.new(lex)
+function class.new(lex, matcher)
   return setmetatable({
     lex = lex,
+    matcher = matcher,
     tokens = {},
     index = 1,
   }, metatable)
@@ -55,7 +58,7 @@ function class:peek()
 
   local i = n + 1
   while true do
-    local token = self.lex()
+    local token = self.lex(self.matcher)
     self.tokens[i] = token
     if not token:check("Space", "Comment") then
       self.index = i
