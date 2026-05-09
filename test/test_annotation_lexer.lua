@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-local annotation_lexer = require "dromozoa.annotation_lexer"
+local annotation_lex = require "dromozoa.annotation_lex"
 local matcher = require "dromozoa.matcher"
 local source_location = require "dromozoa.source_location"
 local token_stream = require "dromozoa.token_stream"
@@ -26,7 +26,7 @@ local function new_annotation_lexer(source)
   local srcloc = source_location.new "=(test)"
   srcloc.line = 2
   srcloc.column = 4
-  return token_stream.new(annotation_lexer, matcher.new(source, srcloc))
+  return token_stream.new(annotation_lex, matcher.new(source, srcloc))
 end
 
 local lexer = new_annotation_lexer "@type fun(x: integer):boolean, string?"
