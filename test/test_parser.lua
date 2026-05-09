@@ -16,54 +16,22 @@
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
 local lexer = require "dromozoa.lexer"
+local matcher = require "dromozoa.matcher"
 local parser = require "dromozoa.parser"
 local source_location = require "dromozoa.source_location"
+local token_stream = require "dromozoa.token_stream"
 
 local verbose = os.getenv "VERBOSE"
 
--- ---@param source string
--- ---@param filename string
--- ---@return dromozoa.parser
--- local function new_parser(source, filename)
---   local that = matcher.new(source, source_location.new(filename))
---   return parser.new(token_stream.new(function()
---     return lexer.lex2(that)
---   end))
--- end
-
-
-
-
-
-local p = parser.new()
-p.tokens = lexer.new():lex([=[
---[[1]]local--[[3]]--[[4]]x--[[6]]--[[7]]=--[[9]]--[[10]]1--[[12]]
-]=], "=(test)")
-p.index = 1
-assert(#p.tokens == 14)
-
-assert(p:peek().kind == "local")
-assert(p:read().kind == "local")
-assert(p:peek().kind == "Name")
-assert(p:read().kind == "Name")
-p:unread()
-assert(p:peek().kind == "Name")
-assert(p:read().kind == "Name")
-p:unread()
-p:unread()
-assert(p:peek().kind == "local")
-assert(p:peek().kind == "local")
-assert(p:read().kind == "local")
-assert(p:read().kind == "Name")
-assert(p:peek().kind == "=")
-p:unread()
-p:unread()
-assert(p:peek().kind == "local")
-assert(p:read().kind == "local")
-assert(p:read().kind == "Name")
-assert(p:read().kind == "=")
-assert(p:read().kind == "Integer")
-assert(p:read().kind == "EOF")
+---@param source string
+---@param filename string
+---@return dromozoa.parser
+local function new_parser(source, filename)
+  local that = matcher.new(source, source_location.new(filename))
+  return parser.new(token_stream.new(function()
+    return lexer.lex2(that)
+  end))
+end
 
 ---@param u dromozoa.node
 ---@param buffer string[]
@@ -161,7 +129,7 @@ end
 ---@param fn fun(p: dromozoa.parser): dromozoa.node
 ---@return dromozoa.node
 local function test_parse_impl(source, expect, fn)
-  local p = parser.new()
+  local p = new_parser(source, "=(test)")
   p.tokens = lexer.new():lex(source, "=(test)")
   p.index = 1
   local root = fn(p)
@@ -176,7 +144,7 @@ end
 ---@param source string
 ---@param fn fun(p: dromozoa.parser): dromozoa.node
 local function test_parse_error_impl(source, fn)
-  local p = parser.new()
+  local p = new_parser(source, "=(test)")
   p.tokens = lexer.new():lex(source, "=(test)")
   p.index = 1
   local result, message = pcall(fn, p)
@@ -541,7 +509,8 @@ test_parse_block_error "return 42;;"
 ---@param source string
 ---@param expect string
 local function test_parse(source, expect)
-  local root = parser.new():parse(lexer.new():lex(source, "=(test)"))
+  local p = new_parser(source, "=(test)")
+  local root = p:parse(lexer.new():lex(source, "=(test)"))
   local result = dump(root)
   local expect = normalize(expect)
   assert(result == expect, ("{ source = %q, result = %q, expect = %q }"):format(source, result, expect))

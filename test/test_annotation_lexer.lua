@@ -32,7 +32,7 @@ local function new_annotation_lexer(source)
       elseif token.subkind == "Long" then
         assert(matcher:match "%-%-%[=*%[")
       end
-      return token_stream.new(function ()
+      return token_stream.new(function()
         return annotation_lexer.lex(matcher)
       end)
     end

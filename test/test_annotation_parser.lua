@@ -71,7 +71,7 @@ local function test_expression(source, expect)
   assert(token.subkind == "Short")
   local matcher = matcher.new(token.text, token.srcloc)
   matcher:match "%-%-%-"
-  local p = annotation_parser.new(token_stream.new(function ()
+  local p = annotation_parser.new(token_stream.new(function()
     return annotation_lexer.lex(matcher)
   end))
   local root = p:parse_expression(0)
