@@ -156,10 +156,4 @@ function class.lex(that)
   return token.new(kind, subkind, text, assert(value), srcloc)
 end
 
----@param matcher dromozoa.matcher
----@return dromozoa.token_stream
-function class.new(matcher)
-  return token_stream.new(class.lex, matcher)
-end
-
 return class
