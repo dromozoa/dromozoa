@@ -20,7 +20,7 @@ local lexer = require "dromozoa.lexer"
 local matcher = require "dromozoa.matcher"
 
 ---@param source string
----@return dromozoa.annotation_lexer
+---@return dromozoa.token_stream
 local function new_annotation_lexer(source)
   local tokens = lexer.new():lex(source, "=(test)")
   for _, token in ipairs(tokens) do

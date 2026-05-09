@@ -31,14 +31,14 @@ local led_table
 --=========================================================================
 
 ---@class dromozoa.annotation_parser
----@field lexer dromozoa.annotation_lexer
+---@field lexer dromozoa.token_stream
 local class = {}
 local metatable = {
   __index = class,
   __name = "dromozoa.annotation_parser",
 }
 
----@param lexer dromozoa.annotation_lexer
+---@param lexer dromozoa.token_stream
 ---@return dromozoa.annotation_parser
 function class.new(lexer)
   return setmetatable({

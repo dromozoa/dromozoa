@@ -154,45 +154,12 @@ local function lex(that)
 end
 
 ---@class dromozoa.annotation_lexer
----@field token_stream dromozoa.token_stream
 local class = {}
-local metatable = {
-  __index = class,
-  __name = "dromozoa.annotation_lexer",
-}
 
----@param matcher dromozoa.matcher
----@return dromozoa.annotation_lexer
-function class.new(matcher)
-  return setmetatable({
-    token_stream = token_stream.new(function()
-      return lex(matcher)
-    end),
-  }, metatable)
-end
-
----@return dromozoa.token
-function class:peek()
-  return self.token_stream:peek()
-end
-
----@return dromozoa.token
-function class:read()
-  return self.token_stream:read()
-end
-
-function class:unread()
-  self.token_stream:unread()
-end
-
----@return integer
-function class:tell()
-  return self.token_stream:tell()
-end
-
----@param index integer
-function class:seek(index)
-  self.token_stream:seek(index)
+---@param that dromozoa.matcher
+---@return dromozoa.token_stream
+function class.new(that)
+  return token_stream.new(function() return lex(that) end)
 end
 
 return class
