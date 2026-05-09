@@ -18,6 +18,7 @@
 local annotation_lexer = require "dromozoa.annotation_lexer"
 local lexer = require "dromozoa.lexer"
 local matcher = require "dromozoa.matcher"
+local token_stream = require "dromozoa.token_stream"
 
 ---@param source string
 ---@return dromozoa.token_stream
@@ -31,7 +32,7 @@ local function new_annotation_lexer(source)
       elseif token.subkind == "Long" then
         assert(matcher:match "%-%-%[=*%[")
       end
-      return annotation_lexer.new(matcher)
+      return token_stream.new(annotation_lexer.lex, matcher)
     end
   end
   error "token not found"
