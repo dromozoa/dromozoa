@@ -179,6 +179,17 @@ function class:lex_punctuator()
   return false
 end
 
+---@param that dromozoa.matcher
+---@return boolean
+local function lex_punctuator(that)
+  for _, pattern in ipairs(punctuator_patterns) do
+    if that:match(pattern) then
+      return true
+    end
+  end
+  return false
+end
+
 ---@param source string
 ---@param filename string
 ---@return dromozoa.token[]
@@ -293,6 +304,109 @@ function class:lex(source, filename)
 
   table.insert(result, token.new("EOF", nil, "", "", self.srcloc:clone()))
   return result
+end
+
+---@param that dromozoa.matcher
+---@return dromozoa.token
+function class.lex2(that)
+  local srcloc = that.srcloc:clone()
+
+  if that:is_at_start() and that:match "#([^\n]*)" then
+    return token.new("Comment", "Shebang", that._0, that._1, srcloc)
+  end
+
+  ---@type string?
+  local kind
+  ---@type string?
+  local subkind
+  ---@type (string|number)?
+  local value
+
+  if that:match "%s+" then
+    kind = "Space"
+    value = that._0
+  elseif that:match "0[xX]%x*%.%x+" or that:match "0[xX]%x+%." then
+    local v = that._0
+    if that:match "[pP][+%-]?%d+" then
+      v = v .. that._0
+    end
+    kind = "Float"
+    value = tonumber(v)
+  elseif that:match "0[xX]%x+[pP][+%-]?%d+" then
+    kind = "Float"
+    value = tonumber(that._0)
+  elseif that:match "%d*%.%d+" or that:match "%d+%." then
+    local v = that._0
+    if that:match "[eE][+%-]?%d+" then
+      v = v .. that._0
+    end
+    kind = "Float"
+    value = tonumber(v)
+  elseif that:match "%d+[eE][+%-]?%d+" then
+    kind = "Float"
+    value = tonumber(that._0)
+  elseif that:match "0[xX]%x+" or that:match "%d+" then
+    kind = "Integer"
+    value = tonumber(that._0)
+  elseif that:match "[%a_][%w_]*" then
+    if keyword_set[that._0] then
+      kind = that._0
+    else
+      kind = "Name"
+    end
+    value = that._0
+  elseif that:match "%-%-%[(=*)%[" then
+    if not that:match("(.-)%]" .. that._1 .. "%]") then
+      error("unfinished long comment at " .. srcloc:to_string())
+    end
+    kind = "Comment"
+    subkind = "Long"
+    value = that._1
+  elseif that:match "%-%-([^\n]*)" then
+    kind = "Comment"
+    subkind = "Short"
+    value = that._1
+  elseif that:match "%[(=*)%[" then
+    if not that:match("\n?(.-)%]" .. that._1 .. "%]") then
+      error("unfinished long string at " .. srcloc:to_string())
+    end
+    kind = "String"
+    subkind = "Long"
+    value = that._1
+  elseif that:match "['\"]" then
+    local quote = assert(that._0)
+    local unescaped = "[^\\" .. quote .. "]+"
+    kind = "String"
+    subkind = "Short"
+    value = ""
+    while not that:match(quote) do
+      if that:match(unescaped) then
+        value = value .. that._0
+      elseif that:match(escape_sequence_pattern) then
+        value = value .. escape_sequences[that._1]
+      elseif that:match "\\z%s*" then
+        -- skip
+      elseif that:match "\\x(%x%x)" then
+        value = value .. string.char(tonumber(that._1, 16))
+      elseif that:match "\\(%d%d?%d?)" then
+        value = value .. string.char(tonumber(that._1, 10))
+      elseif that:match "\\u{(%x+)}" then
+        value = value .. utf8.char(tonumber(that._1, 16))
+      else
+        error("invalid escape sequence at " .. srcloc:to_string())
+      end
+    end
+  elseif lex_punctuator(that) then
+    kind = that._0
+    value = that._0
+  end
+
+  if not kind then
+    return token.new("EOF", nil, "", "", srcloc)
+  end
+
+  local text = that.source:sub(srcloc.position, that.srcloc.position - 1)
+  return token.new(kind, subkind, text, assert(value), srcloc)
 end
 
 return class

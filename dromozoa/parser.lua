@@ -62,6 +62,7 @@ local prefixexp_led_table
 --=========================================================================
 
 ---@class dromozoa.parser
+---@field lexer dromozoa.token_stream
 ---@field tokens dromozoa.token[]
 ---@field index integer
 local class = {}
@@ -70,9 +71,11 @@ local metatable = {
   __name = "dromozoa.parser",
 }
 
+---@param lexer dromozoa.token_stream
 ---@return dromozoa.parser
-function class.new()
+function class.new(lexer)
   return setmetatable({
+    lexer = lexer,
     tokens = {},
     index = 1,
   }, metatable)

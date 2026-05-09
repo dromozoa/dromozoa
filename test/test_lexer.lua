@@ -15,14 +15,14 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
---BEGIN--
+::BEGIN::
 
---SRCLOC:748,20,1--
-; --SRCLOC:770,21,3--
+::SRCLOC_750_20_3::
+; ::SRCLOC_772_21_5::
 --[[
 foo
 bar
-baz]] --SRCLOC:809,25,7--
+baz]] ::SRCLOC_811_25_9::
 
 local expect = {
   3,
@@ -103,54 +103,68 @@ bar
   false,
 }
 
---END--
+::END::
 
 local lexer = require "dromozoa.lexer"
+local matcher = require "dromozoa.matcher"
+local source_location = require "dromozoa.source_location"
+local token_stream = require "dromozoa.token_stream"
 local util = require "dromozoa.util"
 
 local verbose = os.getenv "VERBOSE"
 
+---@param source string
+---@param filename string
+---@return dromozoa.token_stream
+local function new_lexer(source, filename)
+  local matcher = matcher.new(source, source_location.new (filename))
+  return token_stream.new(function ()
+    return lexer.lex2(matcher)
+  end)
+end
+
 local source = util.read_file(arg[0])
-local tokens = lexer.new():lex(source, arg[0])
+local stream = new_lexer(source, arg[0])
 
 local i = 0
 local state = 1
-local buffer = {}
-for _, token in ipairs(tokens) do
-  local u = token.value
+local y
+while true do
+  local x = stream:read()
+  local u = x.value
   if state == 1 then
-    if token.kind == "Comment" and u == "BEGIN--" then
+    if y and y:check "::" and x:check "Name" and u == "BEGIN" then
       state = 2
     end
   elseif state == 2 then
-    if token.kind == "Comment" then
-      if u == "END--" then
+    if y and y:check "::" and x:check "Name" then
+      if u == "END" then
         state = 3
       else
-        local position, line, column = u:match "^SRCLOC:(%d+),(%d+),(%d+)%-%-$"
+        local position, line, column = u:match "^SRCLOC_(%d+)_(%d+)_(%d+)$"
         if position then
-          assert(token.srcloc.position == tonumber(position))
-          assert(token.srcloc.line == tonumber(line))
-          assert(token.srcloc.column == tonumber(column))
+          assert(x.srcloc.position == tonumber(position))
+          assert(x.srcloc.line == tonumber(line))
+          assert(x.srcloc.column == tonumber(column))
         end
       end
     else
       i = i + 1
       local v = expect[i]
-      if token.kind == "Integer" then
+      if x.kind == "Integer" then
         assert(math.type(u) == "integer")
         assert(math.type(v) == "integer")
         assert(u == v)
-      elseif token.kind == "Float" then
+      elseif x.kind == "Float" then
         assert(math.type(u) == "float")
         assert(math.type(v) == "float")
         assert(u == v)
-      elseif token.kind == "String" then
+      elseif x.kind == "String" then
         assert(u == v)
-      elseif token.kind == "true" then
+      elseif x.kind == "true" then
         assert(u == "true")
         assert(v == true)
-      elseif token.kind == "false" then
+      elseif x.kind == "false" then
         assert(u == "false")
         assert(v == false)
       else
@@ -158,7 +172,15 @@ for _, token in ipairs(tokens) do
       end
     end
   end
-  table.insert(buffer, token.text)
+  if x:check "EOF" then
+    break
+  end
+  y = x
+end
+
+local buffer = {}
+for _, x in ipairs(stream.tokens) do
+  table.insert(buffer, x.text)
 end
 
 assert(i == #expect)
@@ -167,6 +189,11 @@ assert(table.concat(buffer) == source)
 
 ---@param source string
 local function test_lex_error(source)
+  -- local matcher = matcher.new(source, source_location.new "=(test)")
+  -- local lexer = token_stream.new(function ()
+  --   return lexer.lex2(matcher)
+  -- end)
+
   local result, message = pcall(function() lexer.new():lex(source, "=(test)") end)
   assert(not result)
   if verbose then

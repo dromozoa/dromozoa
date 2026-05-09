@@ -59,7 +59,12 @@ function class:match(pattern)
 end
 
 ---@return boolean
-function class:eof()
+function class:is_at_start()
+  return self.srcloc.position - self.offset == 1
+end
+
+---@return boolean
+function class:is_at_end()
   return self.srcloc.position - self.offset > #self.source
 end
 
