@@ -67,7 +67,7 @@ end
 ---@param source string
 ---@return dromozoa.token_stream
 local function new_annotation_lexer(source)
-  return token_stream.new(annotation_lexer.lex, matcher.new(source, source_location.new "=(test)"))
+  return token_stream.new(annotation_lexer, matcher.new(source, source_location.new "=(test)"))
 end
 
 ---@param source string

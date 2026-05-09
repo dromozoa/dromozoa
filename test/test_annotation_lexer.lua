@@ -26,7 +26,7 @@ local function new_annotation_lexer(source)
   local srcloc = source_location.new "=(test)"
   srcloc.line = 2
   srcloc.column = 4
-  return token_stream.new(annotation_lexer.lex, matcher.new(source, srcloc))
+  return token_stream.new(annotation_lexer, matcher.new(source, srcloc))
 end
 
 local lexer = new_annotation_lexer "@type fun(x: integer):boolean, string?"

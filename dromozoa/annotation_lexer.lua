@@ -115,12 +115,9 @@ local function lex_punctuator(that)
   return false
 end
 
----@class dromozoa.annotation_lexer
-local class = {}
-
 ---@param that dromozoa.matcher
 ---@return dromozoa.token
-function class.lex(that)
+return function (that)
   local srcloc = that.srcloc:clone()
 
   ---@type string?
@@ -153,5 +150,3 @@ function class.lex(that)
 
   return token.new(kind, subkind, that:substring(srcloc), assert(value), srcloc)
 end
-
-return class
