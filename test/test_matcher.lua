@@ -48,3 +48,18 @@ assert(that._0 == "bazqux\n")
 assert(that._1 == "azqu")
 assert(not that:is_at_start())
 assert(that:is_at_end())
+
+local source1 = [[
+"foo \" bar \z
+  baz\n"]]
+local source2 = [=[
+[====[
+qux
+]====]]=]
+local that = matcher.new(source1 .. source2, source_location.new "=(test)")
+assert(that:match_short_string())
+assert(that._0 == source1)
+assert(that._1 == "foo \" bar baz\n")
+assert(that:match_long_string())
+assert(that._0 == source2)
+assert(that._1 == "qux\n")

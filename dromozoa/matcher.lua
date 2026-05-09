@@ -82,12 +82,12 @@ end
 
 ---@return boolean
 function class:match_long_string()
+  local srcloc = self.srcloc:clone()
   if self:match "%[(=*)%[" then
-    local text = self._0
     if not self:match("\n?(.-)%]" .. self._1 .. "%]") then
       error("unfinished long string at " .. self.srcloc:to_string())
     end
-    self._0 = text .. self._0
+    self._0 = self:sub(srcloc)
     return true
   else
     return false
@@ -95,10 +95,10 @@ function class:match_long_string()
 end
 
 function class:match_short_string()
+  local srcloc = self.srcloc:clone()
   if self:match "['\"]" then
     local quote = assert(self._0)
     local unescaped = "[^\\" .. quote .. "]+"
-    local text = { self._0 }
     local value = {}
     while not self:match(quote) do
       if self:match(unescaped) then
@@ -116,10 +116,8 @@ function class:match_short_string()
       else
         error("invalid escape sequence at " .. self.srcloc:to_string())
       end
-      table.insert(text, self._0)
     end
-    table.insert(text, self._0)
-    self._0 = table.concat(text)
+    self._0 = self:sub(srcloc)
     self._1 = table.concat(value)
     return true
   else
