@@ -47,10 +47,15 @@ local annotations = {
   "@version",
 }
 
----@type string[]
-local annotation_patterns = {}
-for i, annotation in ipairs(annotations) do
-  annotation_patterns[i] = annotation:gsub("%W", "%%%0")
+---@param that dromozoa.matcher
+---@return boolean
+local function lex_annotation(that)
+  for _, annotation in ipairs(annotations) do
+    if that:match(that.escape(annotation)) then
+      return true
+    end
+  end
+  return false
 end
 
 -- https://github.com/LuaLS/lua-language-server/blob/master/script/parser/luadoc.lua
@@ -87,28 +92,11 @@ table.sort(punctuators, function(a, b)
   end
 end)
 
----@type string[]
-local punctuator_patterns = {}
-for i, punctuator in ipairs(punctuators) do
-  punctuator_patterns[i] = punctuator:gsub("%W", "%%%0")
-end
-
----@param that dromozoa.matcher
----@return boolean
-local function lex_annotation(that)
-  for _, pattern in ipairs(annotation_patterns) do
-    if that:match(pattern) then
-      return true
-    end
-  end
-  return false
-end
-
 ---@param that dromozoa.matcher
 ---@return boolean
 local function lex_punctuator(that)
-  for _, pattern in ipairs(punctuator_patterns) do
-    if that:match(pattern) then
+  for _, punctuator in ipairs(punctuators) do
+    if that:match(that.escape(punctuator)) then
       return true
     end
   end
@@ -120,33 +108,51 @@ end
 return function (that)
   local srcloc = that.srcloc:clone()
 
+  if that:is_at_end() then
+    return token.new("EOF", nil, "", "", srcloc)
+  end
+
   ---@type string?
   local kind
   ---@type string?
   local subkind
-  ---@type string?
+  ---@type (string|number)?
   local value
 
-  if that:match "%s+" then
+  if lex_annotation(that) then
+    kind = that._0
+    value = that._0
+  elseif that:match "%s+" then
     kind = "Space"
     value = that._0
+  elseif that:match "%d+%.[%w_.*%-\x80-\xFF]*" then
+    kind = "Name"
+    value = that._0
+  elseif that:match "%-?%d+" then
+    kind = "Integer"
+    value = tonumber(that._0)
+  elseif that:match "[%w_\x80-\xFF][%w_.*%-\x80-\xFF]*" then
+    kind = "Name"
+    value = that._0
+  elseif that:match_long_string() then
+    kind = "String"
+    subkind = "Long"
+    value = that._1
+  elseif that:match_short_string() then
+    kind = "String"
+    subkind = "Short"
+    value = that._1
   elseif that:match "`([^`]*)`" then
     kind = "Code"
     value = that._1
-  elseif that:match "[%a_\x80-\xFF][%w_.*%-\x80-\xFF]*" then
-    kind = "Name"
-    value = that._0
-  elseif lex_annotation(that) then
-    kind = that._0
-    value = that._0
   elseif lex_punctuator(that) then
     kind = that._0
     value = that._0
   end
 
-  if not kind then
+  if not kind or not value then
     return token.new("EOF", nil, "", "", srcloc)
   end
 
-  return token.new(kind, subkind, that:substring(srcloc), assert(value), srcloc)
+  return token.new(kind, subkind, that:substring(srcloc), value, srcloc)
 end
