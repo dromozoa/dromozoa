@@ -119,3 +119,9 @@ local bindDocAccept = {
     'call',
 }
 ]]
+
+---@alias 2.3 string
+---@alias tuple {[1]:boolean, [2]:string?}
+---@type 0|1|2.3|tuple
+local testint
+print(testint)
