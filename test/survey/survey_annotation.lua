@@ -15,14 +15,15 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
+---@diagnostic disable: unused-function, unused-local
+
 ---@type fun():integer, boolean
 local f = function()
   return 42, true
 end
 
 ---@type integer, boolean
-local x, y = f()
-print(x, y)
+local x, y
 
 ---@class クラス
 ---@field value integer
@@ -38,36 +39,27 @@ end
 ---@alias あ0_-.*い クラス
 
 local x = class.new(42)
-print(x.value)
 
 ---@type あ0_-.*い
 local y
 y = x
-print(y.value)
 
 ---@alias public あ0_-.*い
 ---@type public
 local x
-print(x)
 
 -- 引数が3個以上で、第1引数がprivate, protected, public, packageのどれかならば、第1引数がscopeを指示する
 ---@class クラス2: クラス
 ---@field public public public
 local class2 = {}
 
----@return クラス2
-local function new_class2()
-  return { public = class.new(-1) }
-end
-
-local y = new_class2()
+---@type クラス2
+local y
 local p = y.public
 local v = p.value
-print(v)
 
 ---@type (fun(仮*引*数: integer):integer, boolean), string
 local f, x = function (p) return p, true end, "foo"
-print(f, x)
 
 ---@type table<string, integer>
 local t
@@ -77,24 +69,21 @@ local d
 local p
 ---@type table<string>
 local k
-print(t, d, p, k)
 
 ---@alias 整数 integer
 ---@alias 文_.字*-列 string
 
 ---@type "r" | "w\t\"abc\\def" | "x"
 local mode
-print(mode)
-
--- @typeは次の行のlocal xに付く
-do goto Label ---@type integer
-  ; ::Label::; print(mode); --[[foo]] local x; local y
-  print(x, y)
-end
 
 ---@param x any
 ---@return any
 local function identity(x) return x end
+
+-- @typeは次の行の名前束縛っぽい文に付く
+do goto Label ---@type integer
+  ; ::Label::; identity(mode); --[[foo]] local x; local y
+end
 
 local t = {
   ---@type integer
@@ -106,7 +95,6 @@ local y = t[1]
 local z
 ---@type string
 z = identity(true)
-print(t.x, y, z)
 
 --[[
 -- アノテーションが付くノードはステートメントに限らない
@@ -123,5 +111,16 @@ local bindDocAccept = {
 ---@alias 2.3 string
 ---@alias tuple {[1]:boolean, [2]:string?}
 ---@type 0|1|2.3|tuple
-local testint
-print(testint)
+local x
+
+-- フィールドセパレーター
+---@alias table_literal { foo: string; bar: string; }
+
+---@type 0|-1|--comment
+local x
+
+---@type 0@comment
+local x
+
+---@type 1#comment
+local x
