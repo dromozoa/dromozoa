@@ -73,10 +73,19 @@ barbaz]]
 ]=]
 local token
 token = lexer:read():require "String"
-assert(token.subkind == "Short" and token.value == "foo\nbarbaz")
+assert(token.subkind == "Short")
+assert(token.value == "foo\nbarbaz")
+assert(token.srcloc.line == 2 and token.srcloc.column == 4)
+
 token = lexer:read():require "String"
-assert(token.subkind == "Long" and token.value == "foo\nbarbaz")
+assert(token.subkind == "Long")
+assert(token.value == "foo\nbarbaz")
+assert(token.srcloc.line == 4 and token.srcloc.column == 6)
+
 token = lexer:read():require "Code"
 assert(token.value == "")
+assert(token.srcloc.line == 7 and token.srcloc.column == 1)
+
 token = lexer:read():require "Code"
 assert(token.value == "T")
+assert(token.srcloc.line == 7 and token.srcloc.column == 4)
