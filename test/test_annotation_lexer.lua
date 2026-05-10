@@ -89,3 +89,18 @@ assert(token.srcloc.line == 7 and token.srcloc.column == 1)
 token = lexer:read():require "Code"
 assert(token.value == "T")
 assert(token.srcloc.line == 7 and token.srcloc.column == 4)
+
+local lexer = new_annotation_lexer "@comment"
+lexer:read():require "EOF"
+assert(#lexer.tokens == 2)
+local token = lexer.tokens[1]
+assert(token.subkind == "@")
+assert(token.value == "comment")
+
+local lexer = new_annotation_lexer "@private @comment"
+lexer:read():require "@private"
+lexer:read():require "EOF"
+assert(#lexer.tokens == 4)
+local token = lexer.tokens[3]
+assert(token.subkind == "@")
+assert(token.value == "comment")

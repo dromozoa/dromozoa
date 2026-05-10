@@ -63,23 +63,20 @@ local punctuators = {
   ":",
   "|",
   ",",
-  ";", -- 未使用
+  ";",
   "<",
   ">",
   "(",
   ")",
   "?",
-  "+", -- @castの型追加
-  "#", -- コメント開始
+  "+",
   "{",
   "}",
-  "*", -- 未使用
   "[]",
   "...",
   "[",
   "]",
-  "-", -- @castの型除去
-  ".",
+  "-",
 }
 
 -- 最長一致させるために文字列長の降順で並びかえる。
@@ -141,6 +138,14 @@ return function(that)
     value = that._1
   elseif that:match "`([^`]*)`" then
     kind = "Code"
+    value = that._1
+  elseif that:match "([@#])(.*)" then
+    kind = "Comment"
+    subkind = that._1
+    value = that._2
+  elseif that:match "%-%-(.*)" then
+    kind = "Comment"
+    subkind = "--"
     value = that._1
   elseif lex_punctuator(that) then
     kind = that._0

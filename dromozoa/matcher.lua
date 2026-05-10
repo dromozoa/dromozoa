@@ -21,6 +21,7 @@
 ---@field offset integer
 ---@field _0 string?
 ---@field _1 string?
+---@field _2 string?
 local class = {}
 local metatable = {
   __index = class,
@@ -37,6 +38,7 @@ function class.new(source, srcloc)
     offset = srcloc.position - 1,
     _0 = nil,
     _1 = nil,
+    _2 = nil,
   }, metatable)
 end
 
@@ -65,16 +67,18 @@ end
 ---@param pattern string
 ---@return boolean
 function class:match(pattern)
-  local i, j, value = self.source:find("^" .. pattern, self.srcloc.position - self.offset)
+  local i, j, u, v = self.source:find("^" .. pattern, self.srcloc.position - self.offset)
   if i then
     local text = self.source:sub(i, j)
     self.srcloc:update(text)
     self._0 = text
-    self._1 = value
+    self._1 = u
+    self._2 = v
     return true
   else
     self._0 = nil
     self._1 = nil
+    self._2 = nil
     return false
   end
 end
@@ -152,6 +156,7 @@ function class:match_short_string()
     end
     self._0 = self:substring(srcloc)
     self._1 = table.concat(value)
+    self._2 = nil
     return true
   else
     return false
