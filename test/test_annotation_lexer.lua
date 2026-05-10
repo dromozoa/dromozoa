@@ -30,7 +30,6 @@ local function new_annotation_lexer(source)
 end
 
 local lexer = new_annotation_lexer "@type fun(x: integer):boolean, string?"
-
 local token
 token = lexer:read():require "@type"
 assert(token.srcloc.line == 2 and token.srcloc.column == 4)
@@ -47,3 +46,37 @@ token = lexer:read():require ","
 token = lexer:read():require "Name"
 token = lexer:read():require "?"
 token = lexer:read():require "EOF"
+
+local lexer = new_annotation_lexer "-1 2a 3. 4.5 6.7.8"
+local token
+token = lexer:read():require "Integer"
+assert(token.value == -1)
+token = lexer:read():require "Integer"
+assert(token.value == 2)
+token = lexer:read():require "Name"
+assert(token.value == "a")
+token = lexer:read():require "Name"
+assert(token.value == "3.")
+token = lexer:read():require "Name"
+assert(token.value == "4.5")
+token = lexer:read():require "Name"
+assert(token.value == "6.7.8")
+
+-- string, code
+local lexer = new_annotation_lexer [=[
+"foo\
+bar\z
+baz" [[
+foo
+barbaz]]
+`` `T`
+]=]
+local token
+token = lexer:read():require "String"
+assert(token.subkind == "Short" and token.value == "foo\nbarbaz")
+token = lexer:read():require "String"
+assert(token.subkind == "Long" and token.value == "foo\nbarbaz")
+token = lexer:read():require "Code"
+assert(token.value == "")
+token = lexer:read():require "Code"
+assert(token.value == "T")
