@@ -51,7 +51,7 @@
 - `Integer`
     - 十進整数の即値
     - Luaのパターン: `%-?%d+`
-    - 使用例:
+    - 例:
         - `0|1|string`
         - `{ [1]: boolean, [2]: string? }`
 - `String`
