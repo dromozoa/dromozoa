@@ -113,15 +113,6 @@ end
 ---@return dromozoa.token
 return function(that)
   local srcloc = that.srcloc:clone()
-
-  if that:is_at_start() and that:match "#([^\n]*)" then
-    return token.new("Comment", "Shebang", that._0, that._1, srcloc)
-  end
-
-  if that:is_at_end() then
-    return token.new("EOF", nil, "", "", srcloc)
-  end
-
   ---@type string?
   local kind
   ---@type string?
@@ -129,7 +120,14 @@ return function(that)
   ---@type (string|number)?
   local value
 
-  if that:match "%s+" then
+  if that:is_at_start() and that:match "#([^\n]*)" then
+    kind = "Comment"
+    subkind = "Shebang"
+    value = that._1
+  elseif that:is_at_end() then
+    kind = "EOF"
+    value = ""
+  elseif that:match "%s+" then
     kind = "Space"
     value = that._0
   elseif that:match "0[xX]%x*%.%x+" or that:match "0[xX]%x+%." then

@@ -58,7 +58,6 @@ local function lex_annotation(that)
   return false
 end
 
--- https://github.com/LuaLS/lua-language-server/blob/master/script/parser/luadoc.lua
 ---@type string[]
 local punctuators = {
   ":",
@@ -105,13 +104,8 @@ end
 
 ---@param that dromozoa.matcher
 ---@return dromozoa.token
-return function (that)
+return function(that)
   local srcloc = that.srcloc:clone()
-
-  if that:is_at_end() then
-    return token.new("EOF", nil, "", "", srcloc)
-  end
-
   ---@type string?
   local kind
   ---@type string?
@@ -119,9 +113,12 @@ return function (that)
   ---@type (string|number)?
   local value
 
-  if lex_annotation(that) then
+  if that:is_at_start() and lex_annotation(that) then
     kind = that._0
     value = that._0
+  elseif that:is_at_end() then
+    kind = "EOF"
+    value = ""
   elseif that:match "%s+" then
     kind = "Space"
     value = that._0
@@ -151,7 +148,8 @@ return function (that)
   end
 
   if not kind or not value then
-    return token.new("EOF", nil, "", "", srcloc)
+    kind = "EOF"
+    value = ""
   end
 
   return token.new(kind, subkind, that:substring(srcloc), value, srcloc)

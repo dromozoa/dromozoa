@@ -224,9 +224,10 @@ assert(token.subkind == "Shebang")
 assert(token.text == "#! /usr/bin/env lua")
 assert(token.value == "! /usr/bin/env lua")
 
-local lexer = new_lexer("#! /usr/bin/env lua\n", "=(test)")
+local lexer = new_lexer("#! /usr/bin/env lua\n#", "=(test)")
+lexer:read():require "#"
 lexer:read():require "EOF"
-assert(#lexer.tokens == 3)
+assert(#lexer.tokens == 4)
 local token = lexer.tokens[1]
 assert(token:require "Comment")
 assert(token.subkind == "Shebang")
