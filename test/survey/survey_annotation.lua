@@ -156,7 +156,6 @@ local y = (a |  b) --[[@as integer?]]  -- y: integer?
 local z =  a | (b  --[[@as integer?]]) -- z: unknown
 
 -- 左結合の場合を考えてみる
-
 local x = a .. b .. (c --[[@as integer?]])
 local y = a .. (b .. c --[[@as integer?]])
 local z = (a .. b .. c) --[[@as integer?]]
@@ -176,4 +175,7 @@ local x = a --[[
 local x = a
 --[[@as integer]]
 
+-- 改行がない場合とおなじ
+local x = a |
+b --[[@as integer]]
 
