@@ -166,3 +166,14 @@ local z = (a .. b .. c) --[[@as integer?]]
 ---@field u integer
 ---@field v string
 ; print "foo"; local x -- x: my.awesome.class
+
+-- これはくっつく
+local x = a --[[
+  @as integer
+]]
+
+-- これはくっつかない
+local x = a
+--[[@as integer]]
+
+

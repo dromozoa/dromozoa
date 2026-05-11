@@ -12,34 +12,34 @@
 
 ## アノテーション
 
-| アノテーション | 対象               |
-|----------------|--------------------|
-| `@alias`       |                    |
-| `@as`          | expression         |
-| `@async`       | function?          |
-| `@cast`        | variable           |
-| `@class`       | variable           |
-| `@deprecated`  | function           |
-| `@diagnostic`  |                    |
-| `@enum`        | table              |
-| `@field`       | `@class`           |
-| `@generic`     |                    |
-| `@meta`        |                    |
-| `@module`      |                    |
-| `@nodiscard`   |                    |
-| `@operator`    |                    |
-| `@overload`    |                    |
-| `@package`     |                    |
-| `@param`       |                    |
-| `@private`     |                    |
-| `@protected`   |                    |
-| `@public`      |                    |
-| `@return`      |                    |
-| `@see`         |                    |
-| `@source`      |                    |
-| `@type`        |                    |
-| `@vararg`      |                    |
-| `@version`     | function, `@class` |
+| アノテーション |
+|----------------|
+| `@alias`       |
+| `@as`          |
+| `@async`       |
+| `@cast`        |
+| `@class`       |
+| `@deprecated`  |
+| `@diagnostic`  |
+| `@enum`        |
+| `@field`       |
+| `@generic`     |
+| `@meta`        |
+| `@module`      |
+| `@nodiscard`   |
+| `@operator`    |
+| `@overload`    |
+| `@package`     |
+| `@param`       |
+| `@private`     |
+| `@protected`   |
+| `@public`      |
+| `@return`      |
+| `@see`         |
+| `@source`      |
+| `@type`        |
+| `@vararg`      |
+| `@version`     |
 
 ## 字句解析
 
