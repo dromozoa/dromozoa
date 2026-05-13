@@ -15,10 +15,11 @@
 - 代表トークンとソース位置を分離する
     - ~~終端ノード以外は~~開始位置と終了位置を持つ必要がある
         - 複数行文字列を考慮するとトークンも開始位置と終了位置が必要
-        - matcherにsource_location:updateを移すことを検討
-        - source_location:to_stringでなくsource_location:make_error_stringを作る
-        - source_locationをcloneするタイミングをよくかんがえる
-            - むしろimmutableにしたほうがよいかも
+        - [x] matcherにsource_location:updateを移すことを検討
+        - source_location:to_stringでなくsource_location:make_error_stringを作る？
+        - [x] source_locationをcloneするタイミングをよくかんがえる
+            - immutableにしたほうがよいかも: Lua的にはmetatableで制御するくらいしかない
+                - 静的解析をそのうち実装するのがかっこいいかも
     - LuaLSのアノテーションのくっつきかたを真似するために行番号が必要
     - 行アノテーション: 次の行かどうかを調べたい
     - 式アノテーション: 式の最右ノードが同じ行にあるかどうかを調べたい
