@@ -17,31 +17,12 @@
 
 local source_location = require "dromozoa.source_location"
 
-local srcloc = source_location.new ""
+local srcloc = source_location.new "=(test)"
 
+assert(srcloc.filename == "=(test)")
 assert(srcloc.position == 1)
 assert(srcloc.line == 1)
 assert(srcloc.column == 1)
 
-srcloc:update "foo"
-
-assert(srcloc.position == 4)
-assert(srcloc.line == 1)
-assert(srcloc.column == 4)
-
-local srcloc2 = srcloc:clone()
-srcloc:update "bar\n"
-
-assert(srcloc.position == 8)
-assert(srcloc.line == 2)
-assert(srcloc.column == 1)
-
-assert(srcloc2.position == 4)
-assert(srcloc2.line == 1)
-assert(srcloc2.column == 4)
-
-srcloc:update "baz\nqux"
-
-assert(srcloc.position == 15)
-assert(srcloc.line == 3)
-assert(srcloc.column == 4)
+assert(srcloc:to_string() == "=(test):1:1")
+assert(source_location.to_string(nil) == "=(unknown):0:0")
