@@ -23,7 +23,7 @@ foobar
   bazqux
 ]], source_location.new "=(test)")
 
-local srcloc = that:get_start_srcloc()
+local srcloc = that.start_srcloc
 assert(srcloc.position == 1)
 assert(srcloc.line == 1)
 assert(srcloc.column == 1)
@@ -34,7 +34,7 @@ assert(not that:is_at_end())
 
 assert(that:match "%a-%s+")
 
-local srcloc = that:get_start_srcloc()
+local srcloc = that.start_srcloc
 assert(srcloc.position == 10)
 assert(srcloc.line == 2)
 assert(srcloc.column == 3)
@@ -45,7 +45,7 @@ assert(not that:is_at_end())
 
 assert(that:match "%a(%a-)%a%s+")
 
-local srcloc = that:get_start_srcloc()
+local srcloc = that.start_srcloc
 assert(srcloc.position == 17)
 assert(srcloc.line == 3)
 assert(srcloc.column == 1)

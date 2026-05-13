@@ -102,7 +102,7 @@ end
 ---@param that dromozoa.matcher
 ---@return dromozoa.token
 return function(that)
-  local srcloc = that:get_start_srcloc()
+  local srcloc = that.start_srcloc
   ---@type string?
   local kind
   ---@type string?

@@ -62,11 +62,6 @@ function class:is_at_end()
   return self.start_srcloc.position - self.start_offset > #self.source
 end
 
----@return dromozoa.source_location
-function class:get_start_srcloc()
-  return self.start_srcloc:clone()
-end
-
 ---@param start_srcloc dromozoa.source_location
 ---@return string
 function class:substring(start_srcloc)
@@ -131,7 +126,7 @@ end
 
 ---@return boolean
 function class:match_long_string()
-  local start_srcloc = self:get_start_srcloc()
+  local start_srcloc = self.start_srcloc
   if self:match "%[(=*)%[" then
     if not self:match("\n?(.-)%]" .. self._1 .. "%]") then
       error("unfinished long string at " .. self.start_srcloc:to_string())
@@ -178,7 +173,7 @@ end
 
 ---@return boolean
 function class:match_short_string()
-  local start_srcloc = self:get_start_srcloc()
+  local start_srcloc = self.start_srcloc
   if self:match "['\"]" then
     local quote = self._0 --[[@as string]]
     local unescaped = "[^\\" .. quote .. "]+"
