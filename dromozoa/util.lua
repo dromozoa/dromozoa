@@ -31,22 +31,4 @@ function class.read_file(filename)
   return handle:read "a"
 end
 
----@param source table
----@return table
-function class.clone(source)
-  local result = {}
-  for index, value in next, source, nil do
-    local index = index
-    if type(index) == "table" then
-      index = class.clone(index)
-    end
-    local value = value
-    if type(value) == "table" then
-      value = class.clone(value)
-    end
-    rawset(result, index, value)
-  end
-  return setmetatable(result, getmetatable(source))
-end
-
 return class

@@ -42,30 +42,6 @@ function class.new(filename, position, line, column)
   }, metatable)
 end
 
----@return dromozoa.source_location
-function class:clone()
-  return util.clone(self)
-end
-
----@param text string
-function class:update(text)
-  local n = #text
-  local p = 1
-
-  while true do
-    local i, j = text:find("\n", p, true)
-    if not i then
-      break
-    end
-    p = j + 1
-    self.line = self.line + 1
-    self.column = 1
-  end
-
-  self.position = self.position + n
-  self.column = self.column + n - p + 1
-end
-
 ---@param self dromozoa.source_location?
 ---@return string
 function class.to_string(self)

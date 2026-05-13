@@ -24,12 +24,3 @@ assert(util.normalize_eol "foo\n\r\n\r\n\rbar\n\r" == "foo\n\n\nbar\n")
 
 util.read_file(arg[0])
 assert(not pcall(util.read_file, "no-such-file.txt"))
-
-local metatable = {}
-local x = setmetatable({ foo = { bar = "baz" } }, metatable)
-local y = util.clone(x)
-assert(x ~= y)
-assert(x.foo ~= y.foo)
-assert(x.foo.bar == y.foo.bar)
-assert(getmetatable(x) == metatable)
-assert(getmetatable(y) == metatable)
