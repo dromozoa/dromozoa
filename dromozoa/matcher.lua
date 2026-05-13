@@ -58,6 +58,11 @@ function class:is_at_end()
   return self.srcloc.position - self.offset > #self.source
 end
 
+---@return dromozoa.source_location
+function class:get_start_srcloc()
+  return self.srcloc:clone()
+end
+
 ---@param srcloc dromozoa.source_location
 ---@return string
 function class:substring(srcloc)

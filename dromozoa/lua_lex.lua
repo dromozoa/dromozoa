@@ -112,7 +112,7 @@ end
 ---@param that dromozoa.matcher
 ---@return dromozoa.token
 return function(that)
-  local srcloc = that.srcloc:clone()
+  local srcloc = that:get_start_srcloc()
   ---@type string?
   local kind
   ---@type string?
@@ -162,7 +162,7 @@ return function(that)
     value = that._0
   elseif that:match "%-%-%[(=*)%[" then
     if not that:match("(.-)%]" .. that._1 .. "%]") then
-      error("unfinished long comment at " .. that.srcloc:to_string())
+      error("unfinished long comment at " .. that:get_start_srcloc():to_string())
     end
     kind = "Comment"
     subkind = "Long"
