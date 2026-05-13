@@ -29,13 +29,16 @@ local metatable = {
 }
 
 ---@param filename string
+---@param position integer?
+---@param line integer?
+---@param column integer?
 ---@return dromozoa.source_location
-function class.new(filename)
+function class.new(filename, position, line, column)
   return setmetatable({
     filename = filename,
-    position = 1,
-    line = 1,
-    column = 1,
+    position = position or 1,
+    line = line or 1,
+    column = column or 1,
   }, metatable)
 end
 

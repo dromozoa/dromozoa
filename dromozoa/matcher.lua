@@ -15,11 +15,13 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
+local source_location = require "dromozoa.source_location"
+
 ---@class dromozoa.matcher
 ---@field source string
 ---@field start_offset integer
 ---@field start_srcloc dromozoa.source_location
----@field last_srcloc dromozoa.source_location
+---@field last_srcloc dromozoa.source_location?
 ---@field _0 string?
 ---@field _1 string?
 ---@field _2 string?
@@ -37,7 +39,7 @@ function class.new(source, start_srcloc)
     source = source,
     start_offset = start_srcloc.position - 1,
     start_srcloc = start_srcloc,
-    last_srcloc = start_srcloc,
+    last_srcloc = nil,
     _0 = nil,
     _1 = nil,
     _2 = nil,
@@ -71,13 +73,50 @@ function class:substring(start_srcloc)
   return self.source:sub(start_srcloc.position - self.start_offset, self.start_srcloc.position - self.start_offset - 1)
 end
 
+---@param text string
+function class:update_srcloc(text)
+  local n = #text
+  local p = 1
+
+  local start_line = self.start_srcloc.line
+  local start_column = self.start_srcloc.column
+  local last_line
+  local last_column
+
+  while true do
+    local i = text:find("\n", p, true)
+    if not i then
+      break
+    end
+
+    last_line = start_line
+    last_column = start_column + i - p
+
+    p = i + 1
+    start_line = start_line + 1
+    start_column = 1
+  end
+
+  start_column = start_column + n - p + 1
+  if start_column > 1 then
+    last_line = start_line
+    last_column = start_column - 1
+  end
+
+  local filename = self.start_srcloc.filename
+  local position = self.start_srcloc.position + n
+
+  self.start_srcloc = source_location.new(filename, position, start_line, start_column)
+  self.last_srcloc = source_location.new(filename, position - 1, last_line, last_column)
+end
+
 ---@param pattern string
 ---@return boolean
 function class:match(pattern)
   local i, j, u, v = self.source:find("^" .. pattern, self.start_srcloc.position - self.start_offset)
   if i then
     local text = self.source:sub(i, j)
-    self.start_srcloc:update(text)
+    self:update_srcloc(text)
     self._0 = text
     self._1 = u
     self._2 = v
