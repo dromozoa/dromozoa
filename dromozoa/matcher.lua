@@ -17,8 +17,9 @@
 
 ---@class dromozoa.matcher
 ---@field source string
----@field srcloc dromozoa.source_location
----@field offset integer
+---@field start_offset integer
+---@field start_srcloc dromozoa.source_location
+---@field last_srcloc dromozoa.source_location
 ---@field _0 string?
 ---@field _1 string?
 ---@field _2 string?
@@ -29,13 +30,14 @@ local metatable = {
 }
 
 ---@param source string
----@param srcloc dromozoa.source_location
+---@param start_srcloc dromozoa.source_location
 ---@return dromozoa.matcher
-function class.new(source, srcloc)
+function class.new(source, start_srcloc)
   return setmetatable({
     source = source,
-    srcloc = srcloc,
-    offset = srcloc.position - 1,
+    start_offset = start_srcloc.position - 1,
+    start_srcloc = start_srcloc,
+    last_srcloc = start_srcloc,
     _0 = nil,
     _1 = nil,
     _2 = nil,
@@ -50,32 +52,32 @@ end
 
 ---@return boolean
 function class:is_at_start()
-  return self.srcloc.position - self.offset == 1
+  return self.start_srcloc.position - self.start_offset == 1
 end
 
 ---@return boolean
 function class:is_at_end()
-  return self.srcloc.position - self.offset > #self.source
+  return self.start_srcloc.position - self.start_offset > #self.source
 end
 
 ---@return dromozoa.source_location
 function class:get_start_srcloc()
-  return self.srcloc:clone()
+  return self.start_srcloc:clone()
 end
 
----@param srcloc dromozoa.source_location
+---@param start_srcloc dromozoa.source_location
 ---@return string
-function class:substring(srcloc)
-  return self.source:sub(srcloc.position - self.offset, self.srcloc.position - self.offset - 1)
+function class:substring(start_srcloc)
+  return self.source:sub(start_srcloc.position - self.start_offset, self.start_srcloc.position - self.start_offset - 1)
 end
 
 ---@param pattern string
 ---@return boolean
 function class:match(pattern)
-  local i, j, u, v = self.source:find("^" .. pattern, self.srcloc.position - self.offset)
+  local i, j, u, v = self.source:find("^" .. pattern, self.start_srcloc.position - self.start_offset)
   if i then
     local text = self.source:sub(i, j)
-    self.srcloc:update(text)
+    self.start_srcloc:update(text)
     self._0 = text
     self._1 = u
     self._2 = v
@@ -90,12 +92,12 @@ end
 
 ---@return boolean
 function class:match_long_string()
-  local srcloc = self.srcloc:clone()
+  local start_srcloc = self:get_start_srcloc()
   if self:match "%[(=*)%[" then
     if not self:match("\n?(.-)%]" .. self._1 .. "%]") then
-      error("unfinished long string at " .. self.srcloc:to_string())
+      error("unfinished long string at " .. self.start_srcloc:to_string())
     end
-    self._0 = self:substring(srcloc)
+    self._0 = self:substring(start_srcloc)
     return true
   else
     return false
@@ -137,7 +139,7 @@ end
 
 ---@return boolean
 function class:match_short_string()
-  local srcloc = self.srcloc:clone()
+  local start_srcloc = self:get_start_srcloc()
   if self:match "['\"]" then
     local quote = self._0 --[[@as string]]
     local unescaped = "[^\\" .. quote .. "]+"
@@ -156,10 +158,10 @@ function class:match_short_string()
       elseif self:match "\\u{(%x+)}" then
         table.insert(value, utf8.char(tonumber(self._1, 16)))
       else
-        error("invalid escape sequence at " .. self.srcloc:to_string())
+        error("invalid escape sequence at " .. self.start_srcloc:to_string())
       end
     end
-    self._0 = self:substring(srcloc)
+    self._0 = self:substring(start_srcloc)
     self._1 = table.concat(value)
     self._2 = nil
     return true
