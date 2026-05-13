@@ -102,7 +102,7 @@ end
 ---@param that dromozoa.matcher
 ---@return dromozoa.token
 return function(that)
-  local srcloc = that.start_srcloc
+  local start_srcloc = that.start_srcloc
   ---@type string?
   local kind
   ---@type string?
@@ -157,5 +157,5 @@ return function(that)
     value = ""
   end
 
-  return token.new(kind, subkind, that:substring(srcloc), value, srcloc)
+  return token.new(kind, subkind, that:substring(start_srcloc), value, start_srcloc, that.last_srcloc)
 end
