@@ -32,9 +32,9 @@ end
 local lexer = new_annotation_lexer "@type fun(x: integer):boolean, string?"
 local token
 token = lexer:read():require "@type"
-assert(token.start_srcloc.line == 2 and token.start_srcloc.column == 4)
+assert(token.first_srcloc.line == 2 and token.first_srcloc.column == 4)
 token = lexer:read():require "Name"
-assert(token.start_srcloc.line == 2 and token.start_srcloc.column == 10)
+assert(token.first_srcloc.line == 2 and token.first_srcloc.column == 10)
 token = lexer:read():require "("
 token = lexer:read():require "Name"
 token = lexer:read():require ":"
@@ -75,20 +75,20 @@ local token
 token = lexer:read():require "String"
 assert(token.subkind == "Short")
 assert(token.value == "foo\nbarbaz")
-assert(token.start_srcloc.line == 2 and token.start_srcloc.column == 4)
+assert(token.first_srcloc.line == 2 and token.first_srcloc.column == 4)
 
 token = lexer:read():require "String"
 assert(token.subkind == "Long")
 assert(token.value == "foo\nbarbaz")
-assert(token.start_srcloc.line == 4 and token.start_srcloc.column == 6)
+assert(token.first_srcloc.line == 4 and token.first_srcloc.column == 6)
 
 token = lexer:read():require "Code"
 assert(token.value == "")
-assert(token.start_srcloc.line == 7 and token.start_srcloc.column == 1)
+assert(token.first_srcloc.line == 7 and token.first_srcloc.column == 1)
 
 token = lexer:read():require "Code"
 assert(token.value == "T")
-assert(token.start_srcloc.line == 7 and token.start_srcloc.column == 4)
+assert(token.first_srcloc.line == 7 and token.first_srcloc.column == 4)
 
 local lexer = new_annotation_lexer "@comment"
 lexer:read():require "EOF"

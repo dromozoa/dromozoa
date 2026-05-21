@@ -64,7 +64,7 @@ end
 ---@return dromozoa.source_location?
 function class:srcloc()
   if self.token then
-    return self.token.start_srcloc
+    return self.token.first_srcloc
   elseif #self.nodes > 0 then
     return self.nodes[1]:srcloc()
   else

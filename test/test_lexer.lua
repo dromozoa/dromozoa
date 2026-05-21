@@ -143,9 +143,9 @@ while true do
       else
         local position, line, column = u:match "^SRCLOC_(%d+)_(%d+)_(%d+)$"
         if position then
-          assert(token.start_srcloc.position == tonumber(position))
-          assert(token.start_srcloc.line == tonumber(line))
-          assert(token.start_srcloc.column == tonumber(column))
+          assert(token.first_srcloc.position == tonumber(position))
+          assert(token.first_srcloc.line == tonumber(line))
+          assert(token.first_srcloc.column == tonumber(column))
         end
       end
     else

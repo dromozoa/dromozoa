@@ -22,8 +22,8 @@ local node = require "dromozoa.node"
 ---@field subkind string?
 ---@field text string
 ---@field value string|number
----@field start_srcloc dromozoa.source_location
----@field last_srcloc dromozoa.source_location
+---@field first_srcloc dromozoa.source_location
+---@field last_srcloc dromozoa.source_location?
 local class = {}
 local metatable = {
   __index = class,
@@ -34,10 +34,10 @@ local metatable = {
 ---@param subkind string?
 ---@param text string
 ---@param value string|number
----@param start_srcloc dromozoa.source_location
+---@param first_srcloc dromozoa.source_location
 ---@param last_srcloc dromozoa.source_location?
 ---@return dromozoa.token
-function class.new(kind, subkind, text, value, start_srcloc, last_srcloc)
+function class.new(kind, subkind, text, value, first_srcloc, last_srcloc)
   -- EOFトークンはテキストが空で終了位置を持たない。
   if kind == "EOF" then
     assert(text == "")
@@ -52,7 +52,7 @@ function class.new(kind, subkind, text, value, start_srcloc, last_srcloc)
     subkind = subkind,
     text = text,
     value = value,
-    start_srcloc = start_srcloc,
+    first_srcloc = first_srcloc,
     last_srcloc = last_srcloc,
   }, metatable)
 end
@@ -74,7 +74,7 @@ function class:require(...)
   if self:check(...) then
     return self
   end
-  error("unexpected symbol at " .. self.start_srcloc:to_string())
+  error("unexpected symbol at " .. self.first_srcloc:to_string())
 end
 
 ---@param kind string?

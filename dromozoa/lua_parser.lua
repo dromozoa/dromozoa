@@ -190,7 +190,7 @@ function class:parse_nud(nud_table)
   local nud = nud_table[x.kind]
   if not nud then
     self:unread()
-    return nil, "syntax error at " .. x.start_srcloc:to_string()
+    return nil, "syntax error at " .. x.first_srcloc:to_string()
   end
   return nud(self, x)
 end
