@@ -38,6 +38,15 @@ local metatable = {
 ---@param last_srcloc dromozoa.source_location?
 ---@return dromozoa.token
 function class.new(kind, subkind, text, value, start_srcloc, last_srcloc)
+  -- EOFトークンはテキストが空で終了位置を持たない。
+  if kind == "EOF" then
+    assert(text == "")
+    last_srcloc = nil
+  else
+    assert(text ~= "")
+    assert(last_srcloc)
+  end
+
   return setmetatable({
     kind = kind,
     subkind = subkind,
