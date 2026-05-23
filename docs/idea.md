@@ -28,3 +28,6 @@
     - 式アノテーション: 式の最右ノードが同じ行にあるかどうかを調べたい
 - annotation_lexerのアノテーションマッチはこのままだと@paramXXX`もマッチしちゃうので注意
     - `@as`をインラインだけにするのを忘れないこと
+- matcher:match_short_stringのエラー時のふるまいとメッセージを確認する
+    - invalid escape sequenceになる場合
+    - quotationで終端しない場合: EOF, 生の改行
