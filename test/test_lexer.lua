@@ -215,6 +215,7 @@ end
 test_lex_error("print(--[[abc", 11, "unfinished long comment")
 test_lex_error([[print "abc]], 11, "unfinished string")
 test_lex_error([[print 'abc]], 11, "unfinished string")
+test_lex_error('print "abc\n"', 11, "unfinished string")
 test_lex_error([[print "abc\y"]], 11, "invalid escape sequence")
 test_lex_error("print([[abc", 9, "unfinished long string")
 test_lex_error("abc!", 4)

@@ -176,7 +176,7 @@ function class:match_short_string()
   local start_srcloc = self.start_srcloc
   if self:match "['\"]" then
     local quote = self._0 --[[@as string]]
-    local unescaped = "[^\\" .. quote .. "]+"
+    local unescaped = "[^\\\n" .. quote .. "]+"
     local value = {}
     while true do
       local start_srcloc = self.start_srcloc
