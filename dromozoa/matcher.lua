@@ -192,7 +192,11 @@ function class:match_short_string()
       elseif self:match "\\u{(%x+)}" then
         table.insert(value, utf8.char(tonumber(self._1, 16)))
       else
-        error("invalid escape sequence at " .. self.start_srcloc:to_string())
+        if self.source:find("^\\", self.start_srcloc.position - self.start_offset) then
+          error("invalid escape sequence at " .. self.start_srcloc:to_string())
+        else
+          error("unfinished string at " .. self.start_srcloc:to_string())
+        end
       end
     end
     self._0 = self:substring(start_srcloc)

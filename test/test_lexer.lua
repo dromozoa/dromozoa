@@ -188,7 +188,8 @@ assert(table.concat(buffer) == source)
 
 ---@param source string
 ---@param column integer
-local function test_lex_error(source, column)
+---@param expect string?
+local function test_lex_error(source, column, expect)
   local result, message = pcall(function()
     local lexer = new_lexer(source, "=(test)")
     repeat
@@ -196,21 +197,26 @@ local function test_lex_error(source, column)
     until token:check "EOF"
   end)
   assert(not result)
+  assert(message)
   if verbose then
     print(("="):rep(80))
     print(message)
     local result, message = load(source)
     assert(not result)
+    assert(message)
     print(message)
   end
-  assert(tostring(message):find("=%(test%):1:" .. column .. "$"), ("{ message = %q }"):format(message))
+  assert(message:find("=%(test%):1:" .. column .. "$"), ("{ message = %q }"):format(message))
+  if expect then
+    assert(message:find(expect, 1, true), ("{ message = %q }"):format(message))
+  end
 end
 
-test_lex_error("print(--[[abc", 11)
-test_lex_error([[print "abc]], 11)
-test_lex_error([[print 'abc]], 11)
-test_lex_error([[print "abc\y"]], 11)
-test_lex_error("print([[abc", 9)
+test_lex_error("print(--[[abc", 11, "unfinished long comment")
+test_lex_error([[print "abc]], 11, "unfinished string")
+test_lex_error([[print 'abc]], 11, "unfinished string")
+test_lex_error([[print "abc\y"]], 11, "invalid escape sequence")
+test_lex_error("print([[abc", 9, "unfinished long string")
 test_lex_error("abc!", 4)
 
 local lexer = new_lexer("", "=(test)")
