@@ -168,7 +168,7 @@ do
     escape_sequences[u] = v
     table.insert(patterns, class.escape(u))
   end
-  escape_sequence_pattern = "\\([" .. table.concat(patterns) .. "])"
+  escape_sequence_pattern = "[" .. table.concat(patterns) .. "]"
 end
 
 ---@return boolean
@@ -178,25 +178,28 @@ function class:match_short_string()
     local quote = self._0 --[[@as string]]
     local unescaped = "[^\\" .. quote .. "]+"
     local value = {}
-    while not self:match(quote) do
-      if self:match(unescaped) then
+    while true do
+      local start_srcloc = self.start_srcloc
+      if self:match(quote) then
+        break
+      elseif self:match(unescaped) then
         table.insert(value, self._0)
-      elseif self:match(escape_sequence_pattern) then
-        table.insert(value, escape_sequences[self._1])
-      elseif self:match "\\z%s*" then
-        -- skip
-      elseif self:match "\\x(%x%x)" then
-        table.insert(value, string.char(tonumber(self._1, 16)))
-      elseif self:match "\\(%d%d?%d?)" then
-        table.insert(value, string.char(tonumber(self._1, 10)))
-      elseif self:match "\\u{(%x+)}" then
-        table.insert(value, utf8.char(tonumber(self._1, 16)))
-      else
-        if self.source:find("^\\", self.start_srcloc.position - self.start_offset) then
-          error("invalid escape sequence at " .. self.start_srcloc:to_string())
+      elseif self:match "\\" then
+        if self:match(escape_sequence_pattern) then
+          table.insert(value, escape_sequences[self._0])
+        elseif self:match "z%s*" then
+          -- skip
+        elseif self:match "x(%x%x)" then
+          table.insert(value, string.char(tonumber(self._1, 16)))
+        elseif self:match "%d%d?%d?" then
+          table.insert(value, string.char(tonumber(self._0, 10)))
+        elseif self:match "u{(%x+)}" then
+          table.insert(value, utf8.char(tonumber(self._1, 16)))
         else
-          error("unfinished string at " .. self.start_srcloc:to_string())
+          error("invalid escape sequence at " .. start_srcloc:to_string())
         end
+      else
+        error("unfinished string at " .. start_srcloc:to_string())
       end
     end
     self._0 = self:substring(start_srcloc)
