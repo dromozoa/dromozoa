@@ -207,7 +207,9 @@ local function test_lex_error(source, column)
 end
 
 test_lex_error("print(--[[abc", 11)
-test_lex_error([[print "\n\y"]], 10)
+test_lex_error([[print "abc]], 11)
+test_lex_error([[print 'abc]], 11)
+test_lex_error([[print "abc\y"]], 11)
 test_lex_error("print([[abc", 9)
 test_lex_error("abc!", 4)
 
