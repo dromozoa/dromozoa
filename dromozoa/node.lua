@@ -44,8 +44,8 @@ function class.new(category, kind, token)
     token = token,
     attribute = nil,
     nodes = {},
-    first_srcloc = nil,
-    last_srcloc = nil,
+    first_srcloc = token and token.first_srcloc,
+    last_srcloc = token and token.last_srcloc,
   }, metatable)
 end
 
@@ -53,7 +53,7 @@ end
 ---@return dromozoa.node
 function class:append(node)
   table.insert(self.nodes, node)
-  return self
+  return self:update_srcloc(node)
 end
 
 ---@param nodes dromozoa.node[]
@@ -63,6 +63,36 @@ function class:extend(nodes)
     self:append(node)
   end
   return self
+end
+
+---@param that dromozoa.node|dromozoa.token
+---@return dromozoa.node
+function class:update_first_srcloc(that)
+  if not that.first_srcloc then
+    -- 空のブロックもしくは式リストだけが開始位置を持たない。
+    assert(#that.nodes == 0 and (that.category == "block" or that.category == "auxiliary" and that.kind == "expressions"))
+  elseif not self.first_srcloc or self.first_srcloc:compare(that.first_srcloc) > 0 then
+    self.first_srcloc = that.first_srcloc
+  end
+  return self
+end
+
+---@param that dromozoa.node|dromozoa.token
+---@return dromozoa.node
+function class:update_last_srcloc(that)
+  if not that.last_srcloc then
+    -- 空のブロックもしくは式リストだけが終了位置を持たない。
+    assert(#that.nodes == 0 and (that.category == "block" or that.category == "auxiliary" and that.kind == "expressions"))
+  elseif not self.last_srcloc or self.last_srcloc:compare(that.last_srcloc) < 0 then
+    self.last_srcloc = that.last_srcloc
+  end
+  return self
+end
+
+---@param that dromozoa.node|dromozoa.token
+---@return dromozoa.node
+function class:update_srcloc(that)
+  return self:update_first_srcloc(that):update_last_srcloc(that)
 end
 
 ---@return dromozoa.source_location?

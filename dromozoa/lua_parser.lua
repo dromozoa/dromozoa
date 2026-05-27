@@ -513,11 +513,11 @@ function class:parse_args(x)
   if x:check "(" then
     local u
     if self:peek():check ")" then
-      u = new_auxiliary_node "expressions"
+      u = new_auxiliary_node "expressions":update_srcloc(x)
     else
       u = self:parse_explist()
     end
-    self:read():require ")"
+    u:update_srcloc(self:read():require ")")
     return u
   elseif x:check "{" then
     return new_auxiliary_node "expressions":append(self:parse_tableconstructor(x))
@@ -531,7 +531,7 @@ end
 function class:parse_funcbody()
   local u = new_auxiliary_node "parameters"
 
-  self:read():require "("
+  u:update_srcloc(self:read():require "(")
   local x = self:read()
   if not x:check("...", ")") then
     while true do
@@ -556,13 +556,13 @@ function class:parse_funcbody()
       x = self:read()
     end
   end
-  x:require ")"
+  u:update_srcloc(x:require ")")
 
   local u = new_auxiliary_node "body":extend {
     u,
     self:parse_block(),
   }
-  self:read():require "end"
+  u:update_srcloc(self:read():require "end")
   return u
 end
 
