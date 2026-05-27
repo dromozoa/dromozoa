@@ -40,6 +40,18 @@ function class.new(filename, position, line, column)
   }, metatable)
 end
 
+---@param that dromozoa.source_location
+---@return integer
+function class:compare(that)
+  if self.filename == that.filename then
+    return self.position - that.position
+  elseif self.filename < that.filename then
+    return -1
+  else
+    return 1
+  end
+end
+
 ---@param self dromozoa.source_location?
 ---@return string
 function class.to_string(self)
