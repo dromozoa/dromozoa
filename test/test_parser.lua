@@ -78,11 +78,11 @@ local function check(u, ...)
   end
 
   if u.category == "statement" then
-    assert(u.token, ("{ kind = %q, srcloc = %q }"):format(u.kind, source_location.to_string(u:srcloc())))
+    assert(u.token, ("{ kind = %q, srcloc = %q }"):format(u.kind, source_location.to_string(u.first_srcloc)))
   end
 
   if u.category == "expression" then
-    assert(u.token, ("{ kind = %q, srcloc = %q }"):format(u.kind, source_location.to_string(u:srcloc())))
+    assert(u.token, ("{ kind = %q, srcloc = %q }"):format(u.kind, source_location.to_string(u.first_srcloc)))
   end
 
   if u:check("chunk", "block") then
