@@ -53,7 +53,7 @@ end
 ---@return dromozoa.node
 function class:append(node)
   table.insert(self.nodes, node)
-  return self:update_srcloc(node)
+  return self:update(node)
 end
 
 ---@param nodes dromozoa.node[]
@@ -67,7 +67,7 @@ end
 
 ---@param that dromozoa.node|dromozoa.token
 ---@return dromozoa.node
-function class:update_srcloc(that)
+function class:update(that)
   -- 空のブロックと式リストはソース位置を持たない。
   if not that.first_srcloc or not that.last_srcloc then
     assert(not that.first_srcloc)

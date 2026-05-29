@@ -124,7 +124,7 @@ end
 function class:nud_group(x)
   return x:new_expression_node "group"
       :append(self:parse_exp())
-      :update_srcloc(self:read():require ")")
+      :update(self:read():require ")")
 end
 
 --=========================================================================
@@ -156,7 +156,7 @@ function class:led_index(u, x)
   return x:new_expression_node "index"
       :append(u)
       :append(self:parse_exp())
-      :update_srcloc(self:read():require "]")
+      :update(self:read():require "]")
 end
 
 ---@param u dromozoa.node
@@ -251,7 +251,7 @@ function class:parse_stat()
   elseif x:check "::" then
     return x:new_statement_node "label"
         :append(self:read():require "Name":new_auxiliary_node())
-        :update_srcloc(self:read():require "::")
+        :update(self:read():require "::")
   elseif x:check "break" then
     return x:new_statement_node()
   elseif x:check "goto" then
@@ -260,20 +260,20 @@ function class:parse_stat()
   elseif x:check "do" then
     return x:new_statement_node()
         :append(self:parse_block())
-        :update_srcloc(self:read():require "end")
+        :update(self:read():require "end")
   elseif x:check "while" then
     return x:new_statement_node():append(self:parse_exp())
-        :update_srcloc(self:read():require "do")
+        :update(self:read():require "do")
         :append(self:parse_block())
-        :update_srcloc(self:read():require "end")
+        :update(self:read():require "end")
   elseif x:check "repeat" then
     return x:new_statement_node()
         :append(self:parse_block())
-        :update_srcloc(self:read():require "until")
+        :update(self:read():require "until")
         :append(self:parse_exp())
   elseif x:check "if" then
     return self:parse_if(x)
-        :update_srcloc(self:read():require "end")
+        :update(self:read():require "end")
   elseif x:check "for" then
     local y = self:read():require "Name"
     if self:peek():check "=" then
@@ -288,13 +288,13 @@ function class:parse_stat()
   elseif x:check "local" or x:check "global" then
     if self:peek():check "function" then
       return x:new_statement_node(x.kind .. "_function")
-          :update_srcloc(self:read())
+          :update(self:read())
           :append(self:read():require "Name":new_auxiliary_node())
           :append(self:parse_funcbody())
     else
       local u = x:new_statement_node():append(self:parse_declaration(x.kind))
       if self:peek():check "=" then
-        u:update_srcloc(self:read()):append(self:parse_explist())
+        u:update(self:read()):append(self:parse_explist())
       end
       return u
     end
@@ -314,7 +314,7 @@ end
 function class:parse_if(x)
   local u = x:new_statement_node "if"
       :append(self:parse_exp())
-      :update_srcloc(self:read():require "then")
+      :update(self:read():require "then")
       :append(self:parse_block())
 
   local x = self:read()
@@ -335,20 +335,20 @@ end
 function class:parse_numeric_for(x, y)
   local u = x:new_statement_node "numeric_for"
       :append(y:new_auxiliary_node())
-      :update_srcloc(self:read():require "=")
+      :update(self:read():require "=")
 
   local v = new_auxiliary_node "expressions"
       :append(self:parse_exp())
-      :update_srcloc(self:read():require ",")
+      :update(self:read():require ",")
       :append(self:parse_exp())
   if self:peek():check "," then
-    v:update_srcloc(self:read()):append(self:parse_exp())
+    v:update(self:read()):append(self:parse_exp())
   end
 
   return u:append(v)
-      :update_srcloc(self:read():require "do")
+      :update(self:read():require "do")
       :append(self:parse_block())
-      :update_srcloc(self:read():require "end")
+      :update(self:read():require "end")
 end
 
 ---@param x dromozoa.token
@@ -360,16 +360,16 @@ function class:parse_generic_for(x, y)
   local v = new_auxiliary_node "names"
       :append(y:new_auxiliary_node())
   while self:peek():check "," do
-    v:update_srcloc(self:read()):append(self:read():require "Name":new_auxiliary_node())
+    v:update(self:read()):append(self:read():require "Name":new_auxiliary_node())
   end
 
   return u
       :append(v)
-      :update_srcloc(self:read():require "in")
+      :update(self:read():require "in")
       :append(self:parse_explist())
-      :update_srcloc(self:read():require "do")
+      :update(self:read():require "do")
       :append(self:parse_block())
-      :update_srcloc(self:read():require "end")
+      :update(self:read():require "end")
 end
 
 ---@param kind "global" | "local"
@@ -511,11 +511,11 @@ function class:parse_args(x)
   if x:check "(" then
     local u
     if self:peek():check ")" then
-      u = new_auxiliary_node "expressions":update_srcloc(x)
+      u = new_auxiliary_node "expressions":update(x)
     else
       u = self:parse_explist()
     end
-    u:update_srcloc(self:read():require ")")
+    u:update(self:read():require ")")
     return u
   elseif x:check "{" then
     return new_auxiliary_node "expressions":append(self:parse_tableconstructor(x))
@@ -529,7 +529,7 @@ end
 function class:parse_funcbody()
   local u = new_auxiliary_node "parameters"
 
-  u:update_srcloc(self:read():require "(")
+  u:update(self:read():require "(")
   local x = self:read()
   if not x:check("...", ")") then
     while true do
@@ -554,13 +554,13 @@ function class:parse_funcbody()
       x = self:read()
     end
   end
-  u:update_srcloc(x:require ")")
+  u:update(x:require ")")
 
   local u = new_auxiliary_node "body":extend {
     u,
     self:parse_block(),
   }
-  u:update_srcloc(self:read():require "end")
+  u:update(self:read():require "end")
   return u
 end
 
