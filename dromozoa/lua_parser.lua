@@ -102,7 +102,8 @@ end
 ---@param x dromozoa.token
 ---@return dromozoa.node
 function class:nud_function(x)
-  return x:new_expression_node():append(self:parse_funcbody())
+  return x:new_expression_node()
+      :append(self:parse_funcbody())
 end
 
 ---@param x dromozoa.token
@@ -114,15 +115,16 @@ end
 ---@param x dromozoa.token
 ---@return dromozoa.node
 function class:nud_prefix(x)
-  return x:new_expression_node():append(self:parse_exp(prefix_lbp))
+  return x:new_expression_node()
+      :append(self:parse_exp(prefix_lbp))
 end
 
 ---@param x dromozoa.token
 ---@return dromozoa.node
 function class:nud_group(x)
-  local u = x:new_expression_node "group":append(self:parse_exp())
-  self:read():require ")"
-  return u
+  return x:new_expression_node "group"
+      :append(self:parse_exp())
+      :update_srcloc(self:read():require ")")
 end
 
 --=========================================================================
@@ -132,7 +134,9 @@ end
 ---@param rbp integer
 ---@return dromozoa.node
 function class:led_left(u, x, rbp)
-  return x:new_expression_node():extend { u, self:parse_exp(rbp) }
+  return x:new_expression_node()
+      :append(u)
+      :append(self:parse_exp(rbp))
 end
 
 ---@param u dromozoa.node
@@ -140,44 +144,47 @@ end
 ---@param rbp integer
 ---@return dromozoa.node
 function class:led_right(u, x, rbp)
-  return x:new_expression_node():extend { u, self:parse_exp(rbp - 1) }
+  return x:new_expression_node()
+      :append(u)
+      :append(self:parse_exp(rbp - 1))
 end
 
 ---@param u dromozoa.node
 ---@param x dromozoa.token
 ---@return dromozoa.node
 function class:led_index(u, x)
-  local u = x:new_expression_node "index":extend { u, self:parse_exp() }
-  self:read():require "]"
-  return u
+  return x:new_expression_node "index"
+      :append(u)
+      :append(self:parse_exp())
+      :update_srcloc(self:read():require "]")
 end
 
 ---@param u dromozoa.node
 ---@param x dromozoa.token
 ---@return dromozoa.node
 function class:led_member(u, x)
-  return x:new_expression_node "member":extend {
-    u,
-    self:read():require "Name":new_auxiliary_node(),
-  }
+  return x:new_expression_node "member"
+      :append(u)
+      :append(self:read():require "Name":new_auxiliary_node())
 end
 
 ---@param u dromozoa.node
 ---@param x dromozoa.token
 ---@return dromozoa.node
 function class:led_call(u, x)
-  return x:new_expression_node "call":extend { u, self:parse_args(x) }
+  return x:new_expression_node "call"
+      :append(u)
+      :append(self:parse_args(x))
 end
 
 ---@param u dromozoa.node
 ---@param x dromozoa.token
 ---@return dromozoa.node
 function class:led_self(u, x)
-  return x:new_expression_node "self":extend {
-    u,
-    self:read():require "Name":new_auxiliary_node(),
-    self:parse_args(self:read()),
-  }
+  return x:new_expression_node "self"
+      :append(u)
+      :append(self:read():require "Name":new_auxiliary_node())
+      :append(self:parse_args(self:read()))
 end
 
 --=========================================================================
@@ -242,32 +249,31 @@ function class:parse_stat()
   if x:check ";" then
     return x:new_statement_node "empty"
   elseif x:check "::" then
-    local u = x:new_statement_node "label":append(self:read():require "Name":new_auxiliary_node())
-    self:read():require "::"
-    return u
+    return x:new_statement_node "label"
+        :append(self:read():require "Name":new_auxiliary_node())
+        :update_srcloc(self:read():require "::")
   elseif x:check "break" then
     return x:new_statement_node()
   elseif x:check "goto" then
-    return x:new_statement_node():append(self:read():require "Name":new_auxiliary_node())
+    return x:new_statement_node()
+        :append(self:read():require "Name":new_auxiliary_node())
   elseif x:check "do" then
-    local u = x:new_statement_node():append(self:parse_block())
-    self:read():require "end"
-    return u
+    return x:new_statement_node()
+        :append(self:parse_block())
+        :update_srcloc(self:read():require "end")
   elseif x:check "while" then
-    local u = x:new_statement_node():append(self:parse_exp())
-    self:read():require "do"
-    u:append(self:parse_block())
-    self:read():require "end"
-    return u
+    return x:new_statement_node():append(self:parse_exp())
+        :update_srcloc(self:read():require "do")
+        :append(self:parse_block())
+        :update_srcloc(self:read():require "end")
   elseif x:check "repeat" then
-    local u = x:new_statement_node():append(self:parse_block())
-    self:read():require "until"
-    u:append(self:parse_exp())
-    return u
+    return x:new_statement_node()
+        :append(self:parse_block())
+        :update_srcloc(self:read():require "until")
+        :append(self:parse_exp())
   elseif x:check "if" then
-    local u = self:parse_if(x)
-    self:read():require "end"
-    return u
+    return self:parse_if(x)
+        :update_srcloc(self:read():require "end")
   elseif x:check "for" then
     local y = self:read():require "Name"
     if self:peek():check "=" then
@@ -276,22 +282,19 @@ function class:parse_stat()
       return self:parse_generic_for(x, y)
     end
   elseif x:check "function" then
-    return x:new_statement_node():extend {
-      self:parse_funcname(),
-      self:parse_funcbody(),
-    }
+    return x:new_statement_node()
+        :append(self:parse_funcname())
+        :append(self:parse_funcbody())
   elseif x:check "local" or x:check "global" then
     if self:peek():check "function" then
-      self:read()
-      return x:new_statement_node(x.kind .. "_function"):extend {
-        self:read():require "Name":new_auxiliary_node(),
-        self:parse_funcbody(),
-      }
+      return x:new_statement_node(x.kind .. "_function")
+          :update_srcloc(self:read())
+          :append(self:read():require "Name":new_auxiliary_node())
+          :append(self:parse_funcbody())
     else
       local u = x:new_statement_node():append(self:parse_declaration(x.kind))
       if self:peek():check "=" then
-        self:read()
-        u:append(self:parse_explist())
+        u:update_srcloc(self:read()):append(self:parse_explist())
       end
       return u
     end
@@ -309,9 +312,10 @@ end
 ---@param x dromozoa.token
 ---@return dromozoa.node
 function class:parse_if(x)
-  local u = x:new_statement_node "if":append(self:parse_exp())
-  self:read():require "then"
-  u:append(self:parse_block())
+  local u = x:new_statement_node "if"
+      :append(self:parse_exp())
+      :update_srcloc(self:read():require "then")
+      :append(self:parse_block())
 
   local x = self:read()
   if x:check "elseif" then
@@ -319,6 +323,7 @@ function class:parse_if(x)
   elseif x:check "else" then
     return u:append(self:parse_block())
   end
+
   x:require "end"
   self:unread()
   return u
@@ -328,50 +333,43 @@ end
 ---@param y dromozoa.token
 ---@return dromozoa.node
 function class:parse_numeric_for(x, y)
-  self:read():require "="
-  local u = new_auxiliary_node "expressions"
-  u:append(self:parse_exp())
-  self:read():require ","
-  u:append(self:parse_exp())
-  local z = self:read()
-  if z:check "," then
-    u:append(self:parse_exp())
-    z = self:read()
-  end
-  z:require "do"
+  local u = x:new_statement_node "numeric_for"
+      :append(y:new_auxiliary_node())
+      :update_srcloc(self:read():require "=")
 
-  local u = x:new_statement_node "numeric_for":extend {
-    y:new_auxiliary_node(),
-    u,
-    self:parse_block(),
-  }
-  self:read():require "end"
-  return u
+  local v = new_auxiliary_node "expressions"
+      :append(self:parse_exp())
+      :update_srcloc(self:read():require ",")
+      :append(self:parse_exp())
+  if self:peek():check "," then
+    v:update_srcloc(self:read()):append(self:parse_exp())
+  end
+
+  return u:append(v)
+      :update_srcloc(self:read():require "do")
+      :append(self:parse_block())
+      :update_srcloc(self:read():require "end")
 end
 
 ---@param x dromozoa.token
 ---@param y dromozoa.token
 ---@return dromozoa.node
 function class:parse_generic_for(x, y)
-  local u = new_auxiliary_node "names":append(y:new_auxiliary_node())
-  while true do
-    local x = self:read()
-    if x:check "in" then
-      break
-    end
-    x:require ","
-    u:append(self:read():require "Name":new_auxiliary_node())
-  end
-  local v = self:parse_explist()
-  self:read():require "do"
+  local u = x:new_statement_node "generic_for"
 
-  local u = x:new_statement_node "generic_for":extend {
-    u,
-    v,
-    self:parse_block(),
-  }
-  self:read():require "end"
+  local v = new_auxiliary_node "names"
+      :append(y:new_auxiliary_node())
+  while self:peek():check "," do
+    v:update_srcloc(self:read()):append(self:read():require "Name":new_auxiliary_node())
+  end
+
   return u
+      :append(v)
+      :update_srcloc(self:read():require "in")
+      :append(self:parse_explist())
+      :update_srcloc(self:read():require "do")
+      :append(self:parse_block())
+      :update_srcloc(self:read():require "end")
 end
 
 ---@param kind "global" | "local"
