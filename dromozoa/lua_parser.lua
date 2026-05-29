@@ -229,7 +229,7 @@ function class:parse_block(kind)
   while true do
     x = self:read()
     if x:check "return" then
-      u:append(x:new_statement_node():append(self:parse_retstat()))
+      u:append(self:parse_retstat(x))
       x = self:read()
       break
     elseif x:check(is_stat_terminal()) then
@@ -429,20 +429,19 @@ function class:parse_assignment(u)
   return x:new_statement_node "assignment":extend { u, self:parse_explist() }
 end
 
+---@param x dromozoa.token
 ---@return dromozoa.node
-function class:parse_retstat()
-  local u
+function class:parse_retstat(x)
+  local u = x:new_statement_node()
   if self:peek():check(";", is_stat_terminal()) then
-    u = new_auxiliary_node "expressions"
+    u:append(new_auxiliary_node "expressions")
   else
-    u = self:parse_explist()
+    u:append(self:parse_explist())
   end
-  local x = self:read()
-  if x:check ";" then
-    x = self:read()
+  if self:peek():check ";" then
+    u:update(self:read())
   end
-  x:require(is_stat_terminal())
-  self:unread()
+  self:peek():require(is_stat_terminal())
   return u
 end
 
