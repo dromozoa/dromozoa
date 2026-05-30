@@ -374,7 +374,6 @@ function class:parse_generic_for(x, y)
       :update(self:read():require "end")
 end
 
-
 ---@param x dromozoa.token
 ---@return dromozoa.node
 function class:parse_attrib(x)
@@ -386,15 +385,6 @@ end
 ---@param kind "global" | "local"
 ---@return dromozoa.node
 function class:parse_declaration(kind)
-  -- 1. attributeノードを作ってsrclocをとる？ => 採用
-  -- 2. declarationのほうのsrclocを更新する？
-  -- 3. nameにくっつく
-  -- 4. 無視する
-
-  -- - new_attribute_node関数を作る
-  --   - lua_parser側で良いと思う
-  -- - attributeの設定とupdateを両方やる
-
   ---@type dromozoa.node?
   local attribute
 
@@ -405,19 +395,15 @@ function class:parse_declaration(kind)
   end
 
   if kind == "global" and x:check "*" then
-    local u = x:new_auxiliary_node "any"
-    u:update_attribute(attribute)
-    return u
+    return x:new_auxiliary_node "any":update_attribute(attribute)
   end
 
-  local u = new_auxiliary_node "names"
-  u:update_attribute(attribute)
+  local u = new_auxiliary_node "names":update_attribute(attribute)
   while true do
     local v = x:require "Name":new_auxiliary_node()
     x = self:read()
     if x:check "<" then
-      local attribute = self:parse_attrib(x)
-      v:update_attribute(attribute)
+      v:update_attribute(self:parse_attrib(x))
       x = self:read()
     end
     u:append(v)
