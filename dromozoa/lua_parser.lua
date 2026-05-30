@@ -295,7 +295,8 @@ function class:parse_stat()
     else
       local u = x:new_statement_node():append(self:parse_declaration(x.kind))
       if self:peek():check "=" then
-        u:update(self:read()):append(self:parse_explist())
+        u:update(self:read())
+            :append(self:parse_explist())
       end
       return u
     end
@@ -376,11 +377,17 @@ end
 ---@param kind "global" | "local"
 ---@return dromozoa.node
 function class:parse_declaration(kind)
+  -- 1. attributeノードを作ってsrclocをとる？
+  -- 2. declarationのほうのsrclocを更新する？
+  -- 3. nameにくっつく
+  -- 4. 無視する
+
+  ---@type dromozoa.node?
   local attribute
 
   local x = self:read()
   if x:check "<" then
-    attribute = self:read():require "Name"
+    attribute = self:read():require "Name":new_auxiliary_node "attribute"
     self:read():require ">"
     x = self:read()
   end
@@ -398,7 +405,7 @@ function class:parse_declaration(kind)
     u:append(v)
     x = self:read()
     if x:check "<" then
-      v.attribute = self:read():require "Name"
+      v.attribute = self:read():require "Name":new_auxiliary_node "attribute"
       self:read():require ">"
       x = self:read()
     end

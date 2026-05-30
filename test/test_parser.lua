@@ -49,7 +49,7 @@ local function dump_impl(u, buffer)
   end
   if u.attribute then
     table.insert(buffer, " <")
-    table.insert(buffer, tostring(u.attribute.value))
+    table.insert(buffer, tostring(u.attribute.token.value))
     table.insert(buffer, ">")
   end
   for _, v in ipairs(u.nodes) do

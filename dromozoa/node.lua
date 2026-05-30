@@ -23,7 +23,7 @@ local source_location = require "dromozoa.source_location"
 ---@field category dromozoa.node.category
 ---@field kind string
 ---@field token dromozoa.token?
----@field attribute dromozoa.token?
+---@field attribute dromozoa.node?
 ---@field nodes dromozoa.node[]
 ---@field first_srcloc dromozoa.source_location?
 ---@field last_srcloc dromozoa.source_location?
