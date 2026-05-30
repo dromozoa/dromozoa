@@ -486,10 +486,12 @@ function class:parse_explist()
   local u = new_auxiliary_node "expressions"
   while true do
     u:append(self:parse_exp())
-    if not self:read():check "," then
+    local x = self:read()
+    if not x:check "," then
       self:unread()
       break
     end
+    u:update(x)
   end
   return u
 end
@@ -519,11 +521,11 @@ function class:parse_args(x)
   if x:check "(" then
     local u
     if self:peek():check ")" then
-      u = new_auxiliary_node "expressions":update(x)
+      u = new_auxiliary_node "expressions"
     else
       u = self:parse_explist()
     end
-    u:update(self:read():require ")")
+    u:update(x):update(self:read():require ")")
     return u
   elseif x:check "{" then
     return new_auxiliary_node "expressions":append(self:parse_tableconstructor(x))
@@ -546,7 +548,7 @@ function class:parse_funcbody()
       if x:check ")" then
         break
       end
-      x:require ","
+      u:update(x:require ",")
       x = self:read()
       if x:check "..." then
         break
@@ -555,21 +557,19 @@ function class:parse_funcbody()
   end
   if x:check "..." then
     local v = x:new_auxiliary_node()
-    u:append(v)
     x = self:read()
     if x:check "Name" then
       v:append(x:new_auxiliary_node())
       x = self:read()
     end
+    u:append(v)
   end
   u:update(x:require ")")
 
-  local u = new_auxiliary_node "body":extend {
-    u,
-    self:parse_block(),
-  }
-  u:update(self:read():require "end")
-  return u
+  return new_auxiliary_node "body"
+      :append(u)
+      :append(self:parse_block())
+      :update(self:read():require "end")
 end
 
 ---@param x dromozoa.token
@@ -586,10 +586,9 @@ function class:parse_tableconstructor(x)
     if x:check "}" then
       break
     end
-    x:require(",", ";")
+    u:update(x:require(",", ";"))
   end
-  x:require "}"
-  return u
+  return u:update(x:require "}")
 end
 
 ---@param x dromozoa.token
