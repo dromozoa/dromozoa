@@ -388,27 +388,37 @@ function class:parse_declaration(kind)
   local x = self:read()
   if x:check "<" then
     attribute = self:read():require "Name":new_auxiliary_node "attribute"
-    self:read():require ">"
+        :update(x)
+        :update(self:read():require ">")
     x = self:read()
   end
 
   if kind == "global" and x:check "*" then
     local u = x:new_auxiliary_node "any"
-    u.attribute = attribute
+    if attribute then
+      u.attribute = attribute
+      u:update(attribute)
+    end
     return u
   end
 
-  local u = new_auxiliary_node("names")
-  u.attribute = attribute
+  local u = new_auxiliary_node "names"
+  if attribute then
+    u.attribute = attribute
+    u:update(attribute)
+  end
   while true do
     local v = x:require "Name":new_auxiliary_node()
-    u:append(v)
     x = self:read()
     if x:check "<" then
-      v.attribute = self:read():require "Name":new_auxiliary_node "attribute"
-      self:read():require ">"
+      local attribute = self:read():require "Name":new_auxiliary_node "attribute"
+          :update(x)
+          :update(self:read():require ">")
+      v.attribute = attribute
+      v:update(attribute)
       x = self:read()
     end
+    u:append(v)
     if not x:check "," then
       self:unread()
       break
