@@ -85,6 +85,16 @@ function class:update(that)
   return self
 end
 
+---@param attribute dromozoa.node?
+---@return dromozoa.node
+function class:update_attribute(attribute)
+  if attribute then
+    self.attribute = attribute
+    self:update(attribute)
+  end
+  return self
+end
+
 ---@param ... string
 ---@return boolean
 function class:check(...kinds)

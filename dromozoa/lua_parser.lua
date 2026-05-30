@@ -374,6 +374,15 @@ function class:parse_generic_for(x, y)
       :update(self:read():require "end")
 end
 
+
+---@param x dromozoa.token
+---@return dromozoa.node
+function class:parse_attrib(x)
+  return self:read():require "Name":new_auxiliary_node "attribute"
+      :update(x)
+      :update(self:read():require ">")
+end
+
 ---@param kind "global" | "local"
 ---@return dromozoa.node
 function class:parse_declaration(kind)
@@ -391,35 +400,24 @@ function class:parse_declaration(kind)
 
   local x = self:read()
   if x:check "<" then
-    attribute = self:read():require "Name":new_auxiliary_node "attribute"
-        :update(x)
-        :update(self:read():require ">")
+    attribute = self:parse_attrib(x)
     x = self:read()
   end
 
   if kind == "global" and x:check "*" then
     local u = x:new_auxiliary_node "any"
-    if attribute then
-      u.attribute = attribute
-      u:update(attribute)
-    end
+    u:update_attribute(attribute)
     return u
   end
 
   local u = new_auxiliary_node "names"
-  if attribute then
-    u.attribute = attribute
-    u:update(attribute)
-  end
+  u:update_attribute(attribute)
   while true do
     local v = x:require "Name":new_auxiliary_node()
     x = self:read()
     if x:check "<" then
-      local attribute = self:read():require "Name":new_auxiliary_node "attribute"
-          :update(x)
-          :update(self:read():require ">")
-      v.attribute = attribute
-      v:update(attribute)
+      local attribute = self:parse_attrib(x)
+      v:update_attribute(attribute)
       x = self:read()
     end
     u:append(v)
