@@ -454,25 +454,24 @@ end
 ---@return dromozoa.node
 function class:parse_funcname()
   local u = self:read():require "Name":new_expression_node()
+
   local x
   while true do
     x = self:read()
     if x:check "(" then
       break
     elseif x:check ":" then
-      u = x:new_expression_node "method":extend {
-        u,
-        self:read():require "Name":new_auxiliary_node(),
-      }
+      u = x:new_expression_node "method"
+          :append(u)
+          :append(self:read():require "Name":new_auxiliary_node())
       x = self:read()
       break
     end
-    x:require "."
-    u = x:new_expression_node "member":extend {
-      u,
-      self:read():require "Name":new_auxiliary_node(),
-    }
+    u = x:require ".":new_expression_node "member"
+        :append(u)
+        :append(self:read():require "Name":new_auxiliary_node())
   end
+
   x:require "("
   self:unread()
   return u
