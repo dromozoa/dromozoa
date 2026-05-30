@@ -377,10 +377,14 @@ end
 ---@param kind "global" | "local"
 ---@return dromozoa.node
 function class:parse_declaration(kind)
-  -- 1. attributeノードを作ってsrclocをとる？
+  -- 1. attributeノードを作ってsrclocをとる？ => 採用
   -- 2. declarationのほうのsrclocを更新する？
   -- 3. nameにくっつく
   -- 4. 無視する
+
+  -- - new_attribute_node関数を作る
+  --   - lua_parser側で良いと思う
+  -- - attributeの設定とupdateを両方やる
 
   ---@type dromozoa.node?
   local attribute
