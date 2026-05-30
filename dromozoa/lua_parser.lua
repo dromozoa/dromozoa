@@ -419,7 +419,7 @@ end
 ---@param u dromozoa.node
 ---@return dromozoa.node
 function class:parse_assignment(u)
-  local u = new_auxiliary_node "variables":append(u:require(is_var()))
+  local v = new_auxiliary_node "variables":append(u:require(is_var()))
 
   local x
   while true do
@@ -427,12 +427,12 @@ function class:parse_assignment(u)
     if x:check "=" then
       break
     end
-    x:require ","
-    u:append(self:parse_prefixexp():require(is_var()))
+    v:update(x:require ","):append(self:parse_prefixexp():require(is_var()))
   end
-  x:require "="
 
-  return x:new_statement_node "assignment":extend { u, self:parse_explist() }
+  return x:require "=":new_statement_node "assignment"
+      :append(v)
+      :append(self:parse_explist())
 end
 
 ---@param x dromozoa.token
