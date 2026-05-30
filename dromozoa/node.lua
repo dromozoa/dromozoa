@@ -36,17 +36,25 @@ local metatable = {
 ---@param category dromozoa.node.category
 ---@param kind string
 ---@param token dromozoa.token?
+---@param attribute dromozoa.node?
 ---@return dromozoa.node
-function class.new(category, kind, token)
-  return setmetatable({
+function class.new(category, kind, token, attribute)
+  local self = setmetatable({
     category = category,
     kind = kind,
     token = token,
-    attribute = nil,
+    attribute = attribute,
     nodes = {},
-    first_srcloc = token and token.first_srcloc,
-    last_srcloc = token and token.last_srcloc,
+    first_srcloc = nil,
+    last_srcloc = nil,
   }, metatable)
+  if token then
+    self:update(token)
+  end
+  if attribute then
+    self:update(attribute)
+  end
+  return self
 end
 
 ---@param node dromozoa.node
@@ -81,16 +89,6 @@ function class:update(that)
     if not self.last_srcloc or self.last_srcloc:compare(that.last_srcloc) < 0 then
       self.last_srcloc = that.last_srcloc
     end
-  end
-  return self
-end
-
----@param attribute dromozoa.node?
----@return dromozoa.node
-function class:update_attribute(attribute)
-  if attribute then
-    self.attribute = attribute
-    self:update(attribute)
   end
   return self
 end

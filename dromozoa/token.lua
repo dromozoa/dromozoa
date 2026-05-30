@@ -90,9 +90,10 @@ function class:new_expression_node(kind)
 end
 
 ---@param kind string?
+---@param attribute dromozoa.node?
 ---@return dromozoa.node
-function class:new_auxiliary_node(kind)
-  return node.new("auxiliary", kind or self.kind, self)
+function class:new_auxiliary_node(kind, attribute)
+  return node.new("auxiliary", kind or self.kind, self, attribute)
 end
 
 return class

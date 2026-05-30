@@ -26,9 +26,10 @@ local function new_block_node(kind)
 end
 
 ---@param kind string
+---@param attribute dromozoa.node?
 ---@return dromozoa.node
-local function new_auxiliary_node(kind)
-  return node.new("auxiliary", kind)
+local function new_auxiliary_node(kind, attribute)
+  return node.new("auxiliary", kind, nil, attribute)
 end
 
 ---@return string ...
@@ -395,22 +396,25 @@ function class:parse_declaration(kind)
   end
 
   if kind == "global" and x:check "*" then
-    return x:new_auxiliary_node "any":update_attribute(attribute)
+    return x:new_auxiliary_node("any", attribute)
   end
 
-  local u = new_auxiliary_node "names":update_attribute(attribute)
+  local u = new_auxiliary_node("names", attribute)
   while true do
-    local v = x:require "Name":new_auxiliary_node()
-    x = self:read()
-    if x:check "<" then
-      v:update_attribute(self:parse_attrib(x))
-      x = self:read()
+    local attribute
+
+    local y = self:read()
+    if y:check "<" then
+      attribute = self:parse_attrib(y)
+      y = self:read()
     end
-    u:append(v)
-    if not x:check "," then
+    u:append(x:require "Name":new_auxiliary_node(nil, attribute))
+
+    if not y:check "," then
       self:unread()
       break
     end
+    u:update(y)
     x = self:read()
   end
   return u
