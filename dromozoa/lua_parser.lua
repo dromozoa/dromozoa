@@ -596,16 +596,15 @@ end
 function class:parse_field(x)
   if x:check "[" then
     local u = self:parse_exp()
-    self:read():require "]"
-    return self:read():require "=":new_auxiliary_node "index_field":extend {
-      u,
-      self:parse_exp(),
-    }
+        :update(x)
+        :update(self:read():require "]")
+    return self:read():require "=":new_auxiliary_node "index_field"
+        :append(u)
+        :append(self:parse_exp())
   elseif x:check "Name" and self:peek():check "=" then
-    return self:read():new_auxiliary_node "member_field":extend {
-      x:new_auxiliary_node(),
-      self:parse_exp(),
-    }
+    return self:read():new_auxiliary_node "member_field"
+        :append(x:new_auxiliary_node())
+        :append(self:parse_exp())
   else
     self:unread()
     return new_auxiliary_node "list_field":append(self:parse_exp())
