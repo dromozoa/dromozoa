@@ -104,3 +104,17 @@ assert(#lexer.tokens == 4)
 local token = lexer.tokens[3]
 assert(token.subkind == "@")
 assert(token.value == "comment")
+
+local lexer = new_annotation_lexer "@returnXXX"
+lexer:read():require "EOF"
+assert(#lexer.tokens == 2)
+local token = lexer.tokens[1]
+assert(token.subkind == "@")
+assert(token.value == "returnXXX")
+
+local lexer = new_annotation_lexer "@returnXXX YYY"
+lexer:read():require "EOF"
+assert(#lexer.tokens == 2)
+local token = lexer.tokens[1]
+assert(token.subkind == "@")
+assert(token.value == "returnXXX YYY")

@@ -47,15 +47,10 @@ local annotations = {
   "@version",
 }
 
----@param that dromozoa.matcher
----@return boolean
-local function lex_annotation(that)
-  for _, annotation in ipairs(annotations) do
-    if that:match(that.escape(annotation)) then
-      return true
-    end
-  end
-  return false
+---@type table<string, boolean>
+local annotation_set = {}
+for _, annotation in ipairs(annotations) do
+  annotation_set[annotation] = true
 end
 
 ---@type string[]
@@ -110,9 +105,19 @@ return function(that)
   ---@type (string|number)?
   local value
 
-  if that:is_at_start() and lex_annotation(that) then
-    kind = that._0
-    value = that._0
+  if that:is_at_start() and that:match "@([%w_\x80-\xFF][%w_.*%-\x80-\xFF]*)" then
+    if annotation_set[that._0] then
+      kind = that._0
+      value = that._0
+    else
+      local v = that._1
+      if that:match ".+" then
+        v = v .. that._0
+      end
+      kind = "Comment"
+      subkind = "@"
+      value = v
+    end
   elseif that:is_at_end() then
     kind = "EOF"
     value = ""
