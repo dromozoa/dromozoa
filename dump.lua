@@ -33,7 +33,7 @@ local escape_table = {
 for byte = 0x00, 0x7F do
   local char = string.char(byte)
   if not escape_table[char] then
-    escape_table[char] = ("&#x%X;"):format(byte)
+    escape_table[char] = string.format('<char byte="0x%02X"/>', byte)
   end
 end
 

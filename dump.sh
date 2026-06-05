@@ -17,4 +17,17 @@
 # You should have received a copy of the GNU General Public License
 # along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-exec lua dump.lua "$@"
+here=`dirname "$0"`
+
+out=$1
+case X$out in
+  X) exit 1;;
+esac
+shift
+
+echo "<dump>" >"$out"
+for i in "$@"
+do
+  lua "$here/dump.lua" "$i" >>"$out"
+done
+echo "</dump>" >>"$out"
