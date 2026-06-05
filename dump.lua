@@ -30,17 +30,11 @@ local escape_table = {
   ["\'"] = "&apos;",
 }
 
-for byte = 0x00, 0x7F do
-  local char = string.char(byte)
-  if not escape_table[char] then
-    escape_table[char] = string.format('<char byte="0x%02X"/>', byte)
-  end
-end
-
 ---@param s string
 ---@return string
 local function escape(s)
-  return (s:gsub("[\x00-\x08\x0B\x0C\x0E-\x1F\x7F&<>\"']", escape_table))
+  -- 制御文字などの非XML文字はxmllintでチェックする。
+  return (s:gsub("[&<>\"']", escape_table))
 end
 
 ---@param u dromozoa.token
@@ -52,7 +46,7 @@ local function dump_token(u, depth)
       u.subkind and string.format(' subkind="%s"', escape(u.subkind)) or "",
       escape(u.first_srcloc:to_string()),
       escape(u.last_srcloc:to_string()),
-      escape(tostring(u.value))))
+      escape(tostring(u.text))))
 end
 
 ---@param u dromozoa.node

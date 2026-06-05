@@ -19,15 +19,9 @@
 
 here=`dirname "$0"`
 
-out=$1
-case X$out in
-  X) exit 1;;
-esac
-shift
-
-echo "<dump>" >"$out"
+echo "<dump>"
 for i in "$@"
 do
-  lua "$here/dump.lua" "$i" >>"$out"
+  lua "$here/dump.lua" "$i"
 done
-echo "</dump>" >>"$out"
+echo "</dump>"
