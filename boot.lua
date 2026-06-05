@@ -37,25 +37,22 @@ for byte = 0x00, 0x7F do
   end
 end
 
----@param source string
+---@param s string
 ---@return string
-local function escape(source)
-  return (source:gsub("[\x00-\x08\x0B\x0C\x0E-\x1F\x7F&<>\"']", escape_table))
+local function escape(s)
+  return (s:gsub("[\x00-\x08\x0B\x0C\x0E-\x1F\x7F&<>\"']", escape_table))
 end
 
----@param token dromozoa.token
+---@param u dromozoa.token
 ---@param depth integer
-local function dump_token(token, depth)
-  local indent = ("  "):rep(depth)
-  io.write(indent, ('<token kind="%s"'):format(escape(token.kind)))
-  if token.subkind then
-    io.write((' subkind="%s"'):format(escape(token.subkind)))
-  end
-  io.write((' first_srcloc="%s"'):format(escape(token.first_srcloc:to_string())))
-  io.write((' last_srcloc="%s"'):format(escape(token.last_srcloc:to_string())))
-  io.write ">"
-  io.write(escape(tostring(token.value)))
-  io.write "</token>\n"
+local function dump_token(u, depth)
+  io.write(string.rep("  ", depth),
+    string.format('<token kind="%s"%s first_srcloc="%s" last_srcloc="%s">%s</token>\n',
+      escape(u.kind),
+      u.subkind and string.format(' subkind="%s"', escape(u.subkind)) or "",
+      escape(u.first_srcloc:to_string()),
+      escape(u.last_srcloc:to_string()),
+      escape(tostring(u.value))))
 end
 
 ---@param u dromozoa.node
@@ -64,14 +61,12 @@ local function dump_node(u, depth)
   local indent = ("  "):rep(depth)
   depth = depth + 1
 
-  io.write(indent, ('<node category="%s" kind="%s"'):format(escape(u.category), escape(u.kind)))
-  if u.first_srcloc then
-    io.write((' first_srcloc="%s"'):format(escape(u.first_srcloc:to_string())))
-  end
-  if u.last_srcloc then
-    io.write((' last_srcloc="%s"'):format(escape(u.last_srcloc:to_string())))
-  end
-  io.write ">\n"
+  io.write(indent,
+    string.format('<node category="%s" kind="%s"%s%s>\n',
+      escape(u.category),
+      escape(u.kind),
+      u.first_srcloc and string.format(' first_srcloc="%s"', escape(u.first_srcloc:to_string())) or "",
+      u.last_srcloc and string.format(' last_srcloc="%s"', escape(u.last_srcloc:to_string())) or ""))
 
   if u.token then
     dump_token(u.token, depth)
