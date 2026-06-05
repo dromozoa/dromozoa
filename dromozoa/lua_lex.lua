@@ -15,6 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
+local matcher = require "dromozoa.matcher"
 local token = require "dromozoa.token"
 
 -- https://www.lua.org/manual/5.5/manual.html#3.1
@@ -90,13 +91,7 @@ local punctuators = {
 }
 
 -- 最長一致させるために文字列長の降順で並びかえる。
-table.sort(punctuators, function(a, b)
-  if #a == #b then
-    return a < b
-  else
-    return #a > #b
-  end
-end)
+table.sort(punctuators, matcher.longer_first)
 
 ---@param that dromozoa.matcher
 ---@return boolean

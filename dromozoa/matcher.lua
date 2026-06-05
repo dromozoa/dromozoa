@@ -52,6 +52,17 @@ function class.escape(source)
   return (source:gsub("%W", "%%%0"))
 end
 
+---@param a string
+---@param b string
+---@return boolean
+function class.longer_first(a, b)
+  if #a == #b then
+    return a < b
+  else
+    return #a > #b
+  end
+end
+
 ---@return boolean
 function class:is_at_start()
   return self.start_srcloc.position - self.start_offset == 1
