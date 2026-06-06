@@ -289,15 +289,15 @@ function class:parse_stat()
         :append(self:parse_funcbody())
   elseif x:check "local" or x:check "global" then
     if self:peek():check "function" then
+      self:read()
       return x:new_statement_node(x.kind .. "_function")
-          :update(self:read())
           :append(self:read():require "Name":new_auxiliary_node())
           :append(self:parse_funcbody())
     else
       local u = x:new_statement_node():append(self:parse_declaration(x.kind))
       if self:peek():check "=" then
-        u:update(self:read())
-            :append(self:parse_explist())
+        self:read()
+        u:append(self:parse_explist())
       end
       return u
     end
@@ -338,14 +338,16 @@ end
 function class:parse_numeric_for(x, y)
   local u = x:new_statement_node "numeric_for"
       :append(y:new_auxiliary_node())
-      :update(self:read():require "=")
+
+  self:read():require "="
 
   local v = new_auxiliary_node "expressions"
       :append(self:parse_exp())
       :update(self:read():require ",")
       :append(self:parse_exp())
   if self:peek():check "," then
-    v:update(self:read()):append(self:parse_exp())
+    self:read()
+    v:append(self:parse_exp())
   end
 
   return u:append(v)
