@@ -20,6 +20,7 @@
 - matcherの関数をどこかに移してもよいかも（utilに移すと依存関係がややこしい？）
 - parserを作成するお役立ち関数を作ってもよいかも
 - updateはupdate_srclocに戻したほうがわかりやすい？
+- annotationをdocにするか……
 
 ## ごみ箱
 
