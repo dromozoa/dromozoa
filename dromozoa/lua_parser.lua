@@ -486,12 +486,10 @@ function class:parse_explist()
   local u = new_auxiliary_node "expressions"
   while true do
     u:append(self:parse_exp())
-    local x = self:read()
-    if not x:check "," then
+    if not self:read():check "," then
       self:unread()
       break
     end
-    u:update(x)
   end
   return u
 end
@@ -548,7 +546,7 @@ function class:parse_funcbody()
       if x:check ")" then
         break
       end
-      u:update(x:require ",")
+      x:require ","
       x = self:read()
       if x:check "..." then
         break
@@ -586,7 +584,7 @@ function class:parse_tableconstructor(x)
     if x:check "}" then
       break
     end
-    u:update(x:require(",", ";"))
+    x:require(",", ";")
   end
   return u:update(x:require "}")
 end
