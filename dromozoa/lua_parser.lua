@@ -336,21 +336,19 @@ end
 ---@param y dromozoa.token
 ---@return dromozoa.node
 function class:parse_numeric_for(x, y)
-  local u = x:new_statement_node "numeric_for"
-      :append(y:new_auxiliary_node())
-
   self:read():require "="
-
-  local v = new_auxiliary_node "expressions"
+  local u = new_auxiliary_node "expressions"
       :append(self:parse_exp())
       :update(self:read():require ",")
       :append(self:parse_exp())
   if self:peek():check "," then
     self:read()
-    v:append(self:parse_exp())
+    u:append(self:parse_exp())
   end
 
-  return u:append(v)
+  return x:new_statement_node "numeric_for"
+      :append(y:new_auxiliary_node())
+      :append(u)
       :update(self:read():require "do")
       :append(self:parse_block())
       :update(self:read():require "end")
@@ -360,16 +358,15 @@ end
 ---@param y dromozoa.token
 ---@return dromozoa.node
 function class:parse_generic_for(x, y)
-  local u = x:new_statement_node "generic_for"
-
-  local v = new_auxiliary_node "names"
+  local u = new_auxiliary_node "names"
       :append(y:new_auxiliary_node())
   while self:peek():check "," do
-    v:update(self:read()):append(self:read():require "Name":new_auxiliary_node())
+    self:read()
+    u:append(self:read():require "Name":new_auxiliary_node())
   end
 
-  return u
-      :append(v)
+  return x:new_statement_node "generic_for"
+      :append(u)
       :update(self:read():require "in")
       :append(self:parse_explist())
       :update(self:read():require "do")
