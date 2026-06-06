@@ -413,7 +413,7 @@ function class:parse_declaration(kind)
       self:unread()
       break
     end
-    u:update(y)
+
     x = self:read()
   end
   return u
@@ -430,7 +430,8 @@ function class:parse_assignment(u)
     if x:check "=" then
       break
     end
-    v:update(x:require ","):append(self:parse_prefixexp():require(is_var()))
+    x:require ","
+    v:append(self:parse_prefixexp():require(is_var()))
   end
 
   return x:require "=":new_statement_node "assignment"
