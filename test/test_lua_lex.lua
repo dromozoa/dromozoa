@@ -107,7 +107,7 @@ bar
 
 ::END::
 
-local lua_lex = require "dromozoa.lua_lex"
+local lua_lexer = require "dromozoa.lua_lex"
 local matcher = require "dromozoa.matcher"
 local source_location = require "dromozoa.source_location"
 local token_stream = require "dromozoa.token_stream"
@@ -119,7 +119,7 @@ local verbose = os.getenv "VERBOSE"
 ---@param filename string
 ---@return dromozoa.token_stream
 local function new_lexer(source, filename)
-  return token_stream.new(lua_lex, matcher.new(source, source_location.new(filename)))
+  return token_stream.new(lua_lexer.lex, matcher.new(source, source_location.new(filename)))
 end
 
 local filename = arg[0]
