@@ -15,8 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-local annotation_lex = require "dromozoa.annotation_lex"
-local annotation_parser = require "dromozoa.annotation_parser"
+local annotation_lex = require "dromozoa.doc_lex"
+local annotation_parser = require "dromozoa.doc_parser"
 local matcher = require "dromozoa.matcher"
 local source_location = require "dromozoa.source_location"
 local token_stream = require "dromozoa.token_stream"
