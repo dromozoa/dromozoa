@@ -90,8 +90,9 @@ local function lex_punctuator(that)
 end
 
 ---@param that dromozoa.matcher
+---@param annotation_set table<string, boolean>
 ---@return dromozoa.token
-local function lex_impl(that)
+local function lex(that, annotation_set)
   local start_srcloc = that.start_srcloc
   ---@type string?
   local kind
@@ -166,7 +167,7 @@ local class = {}
 ---@param that dromozoa.matcher
 ---@return dromozoa.token
 function class.lex(that)
-  return lex_impl(that)
+  return lex(that, annotation_set)
 end
 
 return class
