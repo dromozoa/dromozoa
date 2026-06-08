@@ -21,7 +21,10 @@
 - parserを作成するお役立ち関数を作ってもよいかも
 - updateはupdate_srclocに戻したほうがわかりやすい？
 - annotationをdocにするか……
+    - テスト名も変える
+
 - @asを正しく扱うために、コメント開始部分からアノテーションレキサに移譲する
+- もしくは、lex関数をふたつ用意する: lex_expression, lex_line
 
 ## ごみ箱
 
