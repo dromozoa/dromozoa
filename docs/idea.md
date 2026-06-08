@@ -19,7 +19,6 @@
 - 変数宣言と定義の構文木上の順序入れ替え
 - matcherの関数をどこかに移してもよいかも（utilに移すと依存関係がややこしい？）
 - parserを作成するお役立ち関数を作ってもよいかも
-- updateはupdate_srclocに戻したほうがわかりやすい？
 
 
 
@@ -32,6 +31,7 @@
 - @asを正しく扱うために、コメント開始部分からアノテーションレキサに移譲する
 - もしくは、lex関数をふたつ用意する: lex_expression, lex_line
     - doc_lexer.lex, doc_lexer.lex_expression
+- ~~updateはupdate_srclocに戻したほうがわかりやすい？~~
 
 ### 2026/06/05
 
