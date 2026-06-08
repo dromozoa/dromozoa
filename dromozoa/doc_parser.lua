@@ -17,29 +17,29 @@
 
 --=========================================================================
 
----@alias dromozoa.annotation_parser.nud fun(parser: dromozoa.annotation_parser, x: dromozoa.token): dromozoa.node
----@alias dromozoa.annotation_parser.led_function fun(parser: dromozoa.annotation_parser, u: dromozoa.node, x: dromozoa.token, rbp: integer): dromozoa.node
----@alias dromozoa.annotation_parser.led { lbp: integer, fn: dromozoa.annotation_parser.led_function }
+---@alias dromozoa.doc_parser.nud fun(parser: dromozoa.doc_parser, x: dromozoa.token): dromozoa.node
+---@alias dromozoa.doc_parser.led_function fun(parser: dromozoa.doc_parser, u: dromozoa.node, x: dromozoa.token, rbp: integer): dromozoa.node
+---@alias dromozoa.doc_parser.led { lbp: integer, fn: dromozoa.doc_parser.led_function }
 
----@type table<string, dromozoa.annotation_parser.nud>
+---@type table<string, dromozoa.doc_parser.nud>
 local nud_table
----@type table<string, dromozoa.annotation_parser.led>
+---@type table<string, dromozoa.doc_parser.led>
 local led_table
 -- ---@type integer
 -- local prefix_lbp
 
 --=========================================================================
 
----@class dromozoa.annotation_parser
+---@class dromozoa.doc_parser
 ---@field lexer dromozoa.token_stream
 local class = {}
 local metatable = {
   __index = class,
-  __name = "dromozoa.annotation_parser",
+  __name = "dromozoa.doc_parser",
 }
 
 ---@param lexer dromozoa.token_stream
----@return dromozoa.annotation_parser
+---@return dromozoa.doc_parser
 function class.new(lexer)
   return setmetatable({
     lexer = lexer,
