@@ -18,42 +18,39 @@
 local matcher = require "dromozoa.matcher"
 local token = require "dromozoa.token"
 
----@type string[]
+---@type table<string, boolean>
 local annotations = {
-  "@alias",
-  "@async",
-  "@cast",
-  "@class",
-  "@deprecated",
-  "@diagnostic",
-  "@enum",
-  "@field",
-  "@generic",
-  "@meta",
-  "@module",
-  "@nodiscard",
-  "@operator",
-  "@overload",
-  "@package",
-  "@param",
-  "@private",
-  "@protected",
-  "@public",
-  "@return",
-  "@see",
-  "@source",
-  "@type",
-  "@vararg",
-  "@version",
+  ["@alias"]      = true,
+  ["@async"]      = true,
+  ["@cast"]       = true,
+  ["@class"]      = true,
+  ["@deprecated"] = true,
+  ["@diagnostic"] = true,
+  ["@enum"]       = true,
+  ["@field"]      = true,
+  ["@generic"]    = true,
+  ["@meta"]       = true,
+  ["@module"]     = true,
+  ["@nodiscard"]  = true,
+  ["@operator"]   = true,
+  ["@overload"]   = true,
+  ["@package"]    = true,
+  ["@param"]      = true,
+  ["@private"]    = true,
+  ["@protected"]  = true,
+  ["@public"]     = true,
+  ["@return"]     = true,
+  ["@see"]        = true,
+  ["@source"]     = true,
+  ["@type"]       = true,
+  ["@vararg"]     = true,
+  ["@version"]    = true,
 }
 
 ---@type table<string, boolean>
-local annotation_set = {}
-for _, annotation in ipairs(annotations) do
-  annotation_set[annotation] = true
-end
-
-local expression_annotation_set = { ["@as"] = true }
+local expression_annotations = {
+  ["@as"] = true,
+}
 
 ---@type string[]
 local punctuators = {
@@ -91,9 +88,9 @@ local function lex_punctuator(that)
 end
 
 ---@param that dromozoa.matcher
----@param annotation_set table<string, boolean>
+---@param annotations table<string, boolean>
 ---@return dromozoa.token
-local function lex(that, annotation_set)
+local function lex(that, annotations)
   local start_srcloc = that.start_srcloc
   ---@type string?
   local kind
@@ -103,7 +100,7 @@ local function lex(that, annotation_set)
   local value
 
   if that:is_at_start() and that:match "@([%w_\x80-\xFF][%w_.*%-\x80-\xFF]*)" then
-    if annotation_set[that._0] then
+    if annotations[that._0] then
       kind = that._0
       value = that._0
     else
@@ -168,13 +165,13 @@ local class = {}
 ---@param that dromozoa.matcher
 ---@return dromozoa.token
 function class.lex(that)
-  return lex(that, annotation_set)
+  return lex(that, annotations)
 end
 
 ---@param that dromozoa.matcher
 ---@return dromozoa.token
 function class.lex_expression(that)
-  return lex(that, expression_annotation_set)
+  return lex(that, expression_annotations)
 end
 
 return class
