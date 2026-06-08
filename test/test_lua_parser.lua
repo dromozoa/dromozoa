@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-local lua_lexer = require "dromozoa.lua_lex"
+local lua_lexer = require "dromozoa.lua_lexer"
 local lua_parser = require "dromozoa.lua_parser"
 local matcher = require "dromozoa.matcher"
 local source_location = require "dromozoa.source_location"

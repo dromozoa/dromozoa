@@ -107,7 +107,7 @@ bar
 
 ::END::
 
-local lua_lexer = require "dromozoa.lua_lex"
+local lua_lexer = require "dromozoa.lua_lexer"
 local matcher = require "dromozoa.matcher"
 local source_location = require "dromozoa.source_location"
 local token_stream = require "dromozoa.token_stream"
