@@ -15,8 +15,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-local annotation_lex = require "dromozoa.doc_lex"
-local annotation_parser = require "dromozoa.doc_parser"
+local doc_lexer = require "dromozoa.doc_lexer"
+local doc_parser = require "dromozoa.doc_parser"
 local matcher = require "dromozoa.matcher"
 local source_location = require "dromozoa.source_location"
 local token_stream = require "dromozoa.token_stream"
@@ -67,13 +67,13 @@ end
 ---@param source string
 ---@return dromozoa.token_stream
 local function new_annotation_lexer(source)
-  return token_stream.new(annotation_lex, matcher.new(source, source_location.new "=(test)"))
+  return token_stream.new(doc_lexer.lex, matcher.new(source, source_location.new "=(test)"))
 end
 
 ---@param source string
 ---@param expect string
 local function test_expression(source, expect)
-  local p = annotation_parser.new(new_annotation_lexer(source))
+  local p = doc_parser.new(new_annotation_lexer(source))
   local root = p:parse_expression(0)
   local result = dump(root)
   local expect = normalize(expect)
