@@ -98,9 +98,12 @@ local function lex_punctuator(that)
   return false
 end
 
+---@class dromozoa.lua_lexer
+local class = {}
+
 ---@param that dromozoa.matcher
 ---@return dromozoa.token
-local function lex(that)
+function class.lex(that)
   local start_srcloc = that.start_srcloc
   ---@type string?
   local kind
@@ -178,15 +181,6 @@ local function lex(that)
   end
 
   return token.new(kind, subkind, that:substring(start_srcloc), value, start_srcloc, that.last_srcloc)
-end
-
----@class dromozoa.lua_lexer
-local class = {}
-
----@param that dromozoa.matcher
----@return dromozoa.token
-function class.lex(that)
-  return lex(that)
 end
 
 return class
