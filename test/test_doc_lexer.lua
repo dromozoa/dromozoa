@@ -22,14 +22,14 @@ local token_stream = require "dromozoa.token_stream"
 
 ---@param source string
 ---@return dromozoa.token_stream
-local function new_lexer(source)
+local function new_doc_lexer(source)
   local srcloc = source_location.new "=(test)"
   srcloc.line = 2
   srcloc.column = 4
   return token_stream.new(doc_lexer.lex, matcher.new(source, srcloc))
 end
 
-local lexer = new_lexer "@type fun(x: integer):boolean, string?"
+local lexer = new_doc_lexer "@type fun(x: integer):boolean, string?"
 local token
 token = lexer:read():require "@type"
 assert(token.first_srcloc.line == 2 and token.first_srcloc.column == 4)
@@ -47,7 +47,7 @@ token = lexer:read():require "Name"
 token = lexer:read():require "?"
 token = lexer:read():require "EOF"
 
-local lexer = new_lexer "-1 2a 3. 4.5 6.7.8"
+local lexer = new_doc_lexer "-1 2a 3. 4.5 6.7.8"
 local token
 token = lexer:read():require "Integer"
 assert(token.value == -1)
@@ -63,7 +63,7 @@ token = lexer:read():require "Name"
 assert(token.value == "6.7.8")
 
 -- string, code
-local lexer = new_lexer [=[
+local lexer = new_doc_lexer [=[
 "foo\
 bar\z
 baz" [[
@@ -90,14 +90,14 @@ token = lexer:read():require "Code"
 assert(token.value == "T")
 assert(token.first_srcloc.line == 7 and token.first_srcloc.column == 4)
 
-local lexer = new_lexer "@comment"
+local lexer = new_doc_lexer "@comment"
 lexer:read():require "EOF"
 assert(#lexer.tokens == 2)
 local token = lexer.tokens[1]
 assert(token.subkind == "@")
 assert(token.value == "comment")
 
-local lexer = new_lexer "@private @comment"
+local lexer = new_doc_lexer "@private @comment"
 lexer:read():require "@private"
 lexer:read():require "EOF"
 assert(#lexer.tokens == 4)
@@ -105,16 +105,39 @@ local token = lexer.tokens[3]
 assert(token.subkind == "@")
 assert(token.value == "comment")
 
-local lexer = new_lexer "@returnXXX"
+local lexer = new_doc_lexer "@returnXXX"
 lexer:read():require "EOF"
 assert(#lexer.tokens == 2)
 local token = lexer.tokens[1]
 assert(token.subkind == "@")
 assert(token.value == "returnXXX")
 
-local lexer = new_lexer "@returnXXX YYY"
+local lexer = new_doc_lexer "@returnXXX YYY"
 lexer:read():require "EOF"
 assert(#lexer.tokens == 2)
 local token = lexer.tokens[1]
 assert(token.subkind == "@")
 assert(token.value == "returnXXX YYY")
+
+-- 行アノテーションレキサは@asをコメント扱いする
+local lexer = new_doc_lexer "@as integer"
+lexer:read():require "EOF"
+assert(#lexer.tokens == 2)
+local token = lexer.tokens[1]
+assert(token.subkind == "@")
+assert(token.value == "as integer")
+
+---@param source string
+---@return dromozoa.token_stream
+local function new_doc_expression_lexer(source)
+  return token_stream.new(doc_lexer.lex_expression, matcher.new(source, source_location.new "=(test)"))
+end
+
+local lexer = new_doc_expression_lexer "@as\n    integer\n  "
+local token
+token = lexer:read():require "@as"
+assert(token.first_srcloc.line == 1 and token.first_srcloc.column == 1)
+token = lexer:read():require "Name"
+assert(token.first_srcloc.line == 2 and token.first_srcloc.column == 5)
+token = lexer:read():require "EOF"
+assert(token.first_srcloc.line == 3 and token.first_srcloc.column == 3)
