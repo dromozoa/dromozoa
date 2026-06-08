@@ -21,7 +21,6 @@ local token = require "dromozoa.token"
 ---@type string[]
 local annotations = {
   "@alias",
-  "@as",
   "@async",
   "@cast",
   "@class",
@@ -53,6 +52,8 @@ local annotation_set = {}
 for _, annotation in ipairs(annotations) do
   annotation_set[annotation] = true
 end
+
+local expression_annotation_set = { ["@as"] = true }
 
 ---@type string[]
 local punctuators = {
@@ -168,6 +169,12 @@ local class = {}
 ---@return dromozoa.token
 function class.lex(that)
   return lex(that, annotation_set)
+end
+
+---@param that dromozoa.matcher
+---@return dromozoa.token
+function class.lex_expression(that)
+  return lex(that, expression_annotation_set)
 end
 
 return class
