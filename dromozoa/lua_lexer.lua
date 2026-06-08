@@ -19,38 +19,32 @@ local matcher = require "dromozoa.matcher"
 local token = require "dromozoa.token"
 
 -- https://www.lua.org/manual/5.5/manual.html#3.1
----@type string[]
-local keywords = {
-  "and",
-  "break",
-  "do",
-  "else",
-  "elseif",
-  "end",
-  "false",
-  "for",
-  "function",
-  "global",
-  "goto",
-  "if",
-  "in",
-  "local",
-  "nil",
-  "not",
-  "or",
-  "repeat",
-  "return",
-  "then",
-  "true",
-  "until",
-  "while",
-}
-
 ---@type table<string, boolean>
-local keyword_set = {}
-for _, keyword in ipairs(keywords) do
-  keyword_set[keyword] = true
-end
+local keyword_set = {
+  ["and"]      = true,
+  ["break"]    = true,
+  ["do"]       = true,
+  ["else"]     = true,
+  ["elseif"]   = true,
+  ["end"]      = true,
+  ["false"]    = true,
+  ["for"]      = true,
+  ["function"] = true,
+  ["global"]   = true,
+  ["goto"]     = true,
+  ["if"]       = true,
+  ["in"]       = true,
+  ["local"]    = true,
+  ["nil"]      = true,
+  ["not"]      = true,
+  ["or"]       = true,
+  ["repeat"]   = true,
+  ["return"]   = true,
+  ["then"]     = true,
+  ["true"]     = true,
+  ["until"]    = true,
+  ["while"]    = true,
+}
 
 -- https://www.lua.org/manual/5.5/manual.html#3.1
 ---@type string[]
