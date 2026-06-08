@@ -25,6 +25,8 @@
 
 - @asを正しく扱うために、コメント開始部分からアノテーションレキサに移譲する
 - もしくは、lex関数をふたつ用意する: lex_expression, lex_line
+    - doc_lexer.lex, doc_lexer.lex_expression
+
 
 ## ごみ箱
 
