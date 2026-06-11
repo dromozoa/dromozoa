@@ -22,9 +22,7 @@
 - nodeのkindに追加を検討する
     - field: 名前の束縛だとannotationがくっつける
         - むしろbindとかそういうのが欲しい？
-
     - clause: とりあえずif用
-
 - 参考文献: https://blog.miz-ar.info/2025/09/surface-syntax/
 
 

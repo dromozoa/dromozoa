@@ -46,6 +46,21 @@ end
 
 x = y
 
+---@type fun(a:integer, b:boolean, ...:string):a:integer, ...:string
+local x
+
+---@param a integer
+---@param b boolean
+---@param ... string
+---@param t string[]
+---@return integer a
+---@return string ...
+local function y(a, b, ...t)
+  return 42, ...
+end
+
+x = y
+
 ---@type fun(a.b.c:integer):a:integer, x.y.z:integer, あいうえお:integer
 local x
 
@@ -58,3 +73,16 @@ local function y(abc)
 end
 
 x = y
+
+---@alias あ.い.う.え.お string
+---@type table<あ.い.う.え.お, fun(a.b.c:integer):x:integer,...>
+local x
+
+---@param abc integer
+---@return integer x
+---@return ...
+local function y(abc)
+  return 0, 1, 2, 3
+end
+
+

@@ -100,20 +100,27 @@
 - 空のタプルは許容されなかった
     - タプルは名前付きの型を持てない
 
-- 空のテーブルは許容されたが、意味は`table`になった。
+- 空のテーブルは許容されたが、意味は`table`になった
 - 仮引数の名前は省略できない
     - `@param`の名前は仮引数の名前に一致するはずなので、自明にLuaの名前規則に従う
     - 一方、`fun`の仮引数の名前は`Name`が許容される
 
 - 返り値の型は名前を付けられる
     - `@return`も`fun`の返り値も`Name`が許容される
+    - `fun`の返り値の`...`は曖昧に見える
+        - `fun():...:T`は型`T`の可変長返り値
+        - `@return ...`と`fun():...`が受容され、意味は`...unknown`になった
+        - `...`が特殊な名前だとして、それ自体も型として扱えば良いのかもしれない
+- Lua 5.5の名前付き可変長引数は`fun`では書けない
+    - 型の定義としては不要なので問題なさそう
 
 
 ```
-type ::= Name |
+type ::= Name | Integer | String | Code |
     tuple_type |
     table_type |
     function_type |
+    generics_type |
     type binary_operator type |
     type suffix_operator |
     '(' type ')'
@@ -132,6 +139,8 @@ field_seprator ::= ',' | ';'
 function_type ::= 'fun' '(' [named_types] ')' [':' result_types]
 result_type ::= type | named_type
 result_types ::= result_type {',' result_type}
+
+generics_type ::= type '<' types '>'
 
 binary_operator ::= '|'
 suffix_operator ::= '?' | '[]'
