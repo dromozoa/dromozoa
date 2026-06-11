@@ -24,6 +24,7 @@
         - むしろbindとかそういうのが欲しい？
     - clause: とりあえずif用
 - 参考文献: https://blog.miz-ar.info/2025/09/surface-syntax/
+- operatorとかautoloadの構文をチェックする
 
 
 
