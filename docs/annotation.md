@@ -72,7 +72,7 @@
 
 | 記号                | 否定先読み (PCRE) | 備考                       |
 | ------------------- | ----------------- | -------------------------- |
-| `:`                 |                   | 型指定の二項演算子         |
+| `:`                 |                   | 型指定                     |
 | <code>&#x7C;</code> |                   |                            |
 | `,`                 |                   |                            |
 | `;`                 |                   | フィールドセパレーター     |
@@ -87,7 +87,7 @@
 | `}`                 |                   |                            |
 | `*`                 |                   | `Name`内にしか出現しない？ |
 | `[]`                |                   |                            |
-| `...`               |                   |                            |
+| `...`               |                   | 特殊な`Name`扱いでよさそう |
 | `[`                 |                   |                            |
 | `]`                 |                   |                            |
 | `-`                 | `-(?!-)`          | `@cast`の型除去            |
@@ -97,8 +97,17 @@
 
 ## 構文解析
 
-- 空のタプルは許可されなかった
-- 空のテーブルは許可されたが、意味は`table`になった。
+- 空のタプルは許容されなかった
+    - タプルは名前付きの型を持てない
+
+- 空のテーブルは許容されたが、意味は`table`になった。
+- 仮引数の名前は省略できない
+    - `@param`の名前は仮引数の名前に一致するはずなので、自明にLuaの名前規則に従う
+    - 一方、`fun`の仮引数の名前は`Name`が許容される
+
+- 返り値の型は名前を付けられる
+    - `@return`も`fun`の返り値も`Name`が許容される
+
 
 ```
 type ::= Name |
@@ -106,18 +115,23 @@ type ::= Name |
     table_type |
     function_type |
     type binary_operator type |
-    type suffix_operator
+    type suffix_operator |
+    '(' type ')'
+types ::= type {',' type}
+
+named_type ::= Name ':' type
+named_types ::= named_type {',' named_type}
 
 tuple_type ::= '[' types ']'
-types ::= type {',' type}
 
 table_type ::= '{' [fields] '}'
 fields ::= field {field_separtor field} [field_separator]
-field ::= '[' type ']' ':' type | Name ':' type
+field ::= '[' type ']' ':' type | named_type
 field_seprator ::= ',' | ';'
 
-function_type ::= 'fun' '(' [params] ')' [':' type]
-params ::= Name ':' type {',' Name ':' type}
+function_type ::= 'fun' '(' [named_types] ')' [':' result_types]
+result_type ::= type | named_type
+result_types ::= result_type {',' result_type}
 
 binary_operator ::= '|'
 suffix_operator ::= '?' | '[]'

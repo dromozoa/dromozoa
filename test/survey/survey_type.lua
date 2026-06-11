@@ -31,3 +31,30 @@ local x
 
 ---@type {a:number,[integer]:string, b : boolean , [ string ] : integer; }
 local x
+
+---@type fun(a:integer, b:boolean, ...:string):a:integer, ...:string
+local x
+
+---@param a integer
+---@param b boolean
+---@param ... string
+---@return integer a
+---@return string ...
+local function y(a, b, ...)
+  return 42, ...
+end
+
+x = y
+
+---@type fun(a.b.c:integer):a:integer, x.y.z:integer, あいうえお:integer
+local x
+
+---@param abc integer
+---@return integer a
+---@return integer x.y.z
+---@return integer あいうえお
+local function y(abc)
+  return 1, 2, 3
+end
+
+x = y
