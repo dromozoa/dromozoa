@@ -71,13 +71,13 @@
 ### 記号表
 
 | 記号                | 否定先読み (PCRE) | 備考                       |
-|---------------------|-------------------|----------------------------|
-| `:`                 |                   |                            |
+| ------------------- | ----------------- | -------------------------- |
+| `:`                 |                   | 型指定の二項演算子         |
 | <code>&#x7C;</code> |                   |                            |
 | `,`                 |                   |                            |
 | `;`                 |                   | フィールドセパレーター     |
-| `<`                 |                   |                            |
-| `>`                 |                   |                            |
+| `<`                 |                   | ジェネリクス               |
+| `>`                 |                   | ジェネリクス               |
 | `(`                 |                   |                            |
 | `)`                 |                   |                            |
 | `?`                 |                   |                            |
@@ -97,10 +97,30 @@
 
 ## 構文解析
 
+- 空のタプルは許可されなかった
+- 空のテーブルは許可されたが、意味は`table`になった。
+
 ```
-types ::= type (',' type)*
 type ::= Name |
-    type suffix_op
+    tuple_type |
+    table_type |
+    function_type |
+    type binary_operator type |
+    type suffix_operator
+
+tuple_type ::= '[' types ']'
+types ::= type {',' type}
+
+table_type ::= '{' [fields] '}'
+fields ::= field {field_separtor field} [field_separator]
+field ::= '[' type ']' ':' type | Name ':' type
+field_seprator ::= ',' | ';'
+
+function_type ::= 'fun' '(' [params] ')' [':' type]
+params ::= Name ':' type {',' Name ':' type}
+
+binary_operator ::= '|'
+suffix_operator ::= '?' | '[]'
 ```
 
 ### 演算子と優先順位
