@@ -25,6 +25,11 @@
     - clause: とりあえずif用
 - 参考文献: https://blog.miz-ar.info/2025/09/surface-syntax/
 - operatorとかautoloadの構文をチェックする
+- `type[][]`は可能だろうけど、`type??`は可能なのか？
+- 返り値の型リストは括弧で囲めるか？
+    - 仮引数の型リストと同じなんじゃない？
+    - CPSみたいなかんじ
+
 
 
 
