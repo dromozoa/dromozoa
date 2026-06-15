@@ -85,4 +85,32 @@ local function y(abc)
   return 0, 1, 2, 3
 end
 
+---@type fun():(integer, string, boolean)
+local x
 
+---@type fun():(integer, (string), boolean)
+local x
+
+---@type integer[]
+local x
+
+---@type integer[][]
+local x
+
+---@type integer?
+local x
+
+---@type integer??
+local x
+
+---@type (integer?)?
+local x
+
+---@type integer|string[]
+local x
+
+---@type integer|(string[])
+local x
+
+---@type (integer|string)[]
+local x

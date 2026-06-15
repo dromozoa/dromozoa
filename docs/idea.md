@@ -26,10 +26,15 @@
 - 参考文献: https://blog.miz-ar.info/2025/09/surface-syntax/
 - operatorとかautoloadの構文をチェックする
 - `type[][]`は可能だろうけど、`type??`は可能なのか？
+    - 可能
 - 返り値の型リストは括弧で囲めるか？
+    - やっぱり囲める
+        - `fun ():(integer, string, boolean)`
+        - `fun ():(integer, (string), boolean)`
+            - これも可能だけど、内側の`(string)`は1要素のunionだと思う
     - 仮引数の型リストと同じなんじゃない？
-    - CPSみたいなかんじ
-
+        - 仮引数の場合は変数名が必須
+    - CPSみたいなかんじ？
 
 
 
