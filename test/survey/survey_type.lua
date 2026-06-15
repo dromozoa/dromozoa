@@ -85,6 +85,24 @@ local function y(abc)
   return 0, 1, 2, 3
 end
 
+---@type fun():...
+local x
+
+---@type fun():...:...
+local x
+
+---@type fun():(...:...)
+local x
+
+---@type fun():y:...
+local x
+
+---@type fun(...)
+local x
+
+---@type fun(...:...)
+local x
+
 ---@type fun():(integer, string, boolean)
 local x
 
@@ -113,4 +131,7 @@ local x
 local x
 
 ---@type (integer|string)[]
+local x
+
+---@type ...
 local x
