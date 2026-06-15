@@ -110,23 +110,22 @@
         - `@return ...`と`fun():...`が受容され、意味は`...unknown`になった
         - `fun():...:...`も意味は`...unknown`になった
         - `fun():name:...`の意味は`name:unknown`になった
-        - `...`が特殊な名前だとして、それ自体も型として扱えば良いのかもしれない
-        - そもそも`...`の型は`unknown`になるらしい
+        - `...`が特殊な名前だとして、型としても扱えるようにすれば良いのかもしれない
+        - 型としての`...`は`unknown`になるらしい
+        - `Name`が`...`を含まない場合もありそう
+            - 意味論のほうではじく
 - 返り値の型リストは括弧で囲める
     - `fun ():(T1, T2, T3)`
     - 単一の`(T)`は単に括弧で囲まれているだけと解釈
     - 仮引数のリストと似ているが仮引数は名前が必須
         - CPSみたいなかんじかもしれない
-
     - `fun ():()`はだめ
-
 - Lua 5.5の名前付き可変長引数は`fun`では書けない
     - 型の定義としては不要なので問題なさそう
-- `Name`が`...`を含まない場合もありそうだが、意味論のほうではじいたほうが良いかもしれない
-- 名前付き可変長引数など、独自に正しい構文を定義するのはむしろ正当
 
 ```
-type ::= Name | Integer | String | Code |
+name ::= Name | '...'
+type ::= name | Integer | String | Code |
     tuple_type |
     table_type |
     function_type |
@@ -139,16 +138,14 @@ types = type {',' type}
 tuple_type ::= '[' types ']'
 
 table_type ::= '{' [fields] '}'
-field ::= '[' type ']' ':' type | Name ':' type
+field ::= '[' type ']' ':' type | name ':' type
 field_seprator ::= ',' | ';'
 fields ::= field {field_separtor field} [field_separator]
 
 function_type ::= 'fun' '(' [parameters] ')' [':' return_type]
-parameter_name = Name | '...'
-parameter ::= parameter_name | parameter_name ':' type
+parameter ::= name | name ':' type
 parameters ::= parameter {',' parameter}
-result_name = Name | '...'
-result ::= type | result_name ':' type
+result ::= type | name ':' type
 results ::= result {',' result}
 return_type = results | '(' results ')'
 
