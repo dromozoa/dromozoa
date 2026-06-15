@@ -1,5 +1,10 @@
 # アイディア帳
 
+- [syntax.md](syntax.md)
+- [annotation.md](annotation.md)
+
+
+
 - 木の操作フレームワークを調べる
     - XSL
     - RELAX NG
