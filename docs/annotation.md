@@ -109,6 +109,14 @@
         - `fun():...:T`は型`T`の可変長返り値
         - `@return ...`と`fun():...`が受容され、意味は`...unknown`になった
         - `...`が特殊な名前だとして、それ自体も型として扱えば良いのかもしれない
+- 返り値の型リストは括弧で囲める
+    - `fun ():(T1, T2, T3)`
+    - 単一の`(T)`は単に括弧で囲まれているだけと解釈
+    - 仮引数のリストと似ているが仮引数は名前が必須
+        - CPSみたいなかんじかもしれない
+
+    - `fun ():()`はだめ
+
 - Lua 5.5の名前付き可変長引数は`fun`では書けない
     - 型の定義としては不要なので問題なさそう
 - `Name`が`...`を含まない場合もありそうだが、意味論のほうではじいたほうが良いかもしれない
@@ -123,21 +131,23 @@ type ::= Name | Integer | String | Code |
     type binary_operator type |
     type suffix_operator |
     '(' type ')'
-types ::= type {',' type}
-
-named_type ::= Name ':' type
-named_types ::= named_type {',' named_type}
+types = type {',' type}
 
 tuple_type ::= '[' types ']'
 
 table_type ::= '{' [fields] '}'
-fields ::= field {field_separtor field} [field_separator]
-field ::= '[' type ']' ':' type | named_type
+field ::= '[' type ']' ':' type | Name ':' type
 field_seprator ::= ',' | ';'
+fields ::= field {field_separtor field} [field_separator]
 
-function_type ::= 'fun' '(' [named_types] ')' [':' result_types]
-result_type ::= type | named_type
-result_types ::= result_type {',' result_type}
+function_type ::= 'fun' '(' [parameters] ')' [':' return_type]
+parameter_name = Name | '...'
+parameter ::= parameter_name | parameter_name ':' type
+parameters ::= parameter {',' parameter}
+result_name = Name | '...'
+result ::= type | result_name ':' type
+results ::= result {',' result}
+return_type = results | '(' results ')'
 
 generics_type ::= type '<' types '>'
 
