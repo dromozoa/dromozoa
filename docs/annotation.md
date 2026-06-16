@@ -142,12 +142,12 @@ field ::= '[' type ']' ':' type | name ':' type
 field_seprator ::= ',' | ';'
 fields ::= field {field_separtor field} [field_separator]
 
-function_type ::= 'fun' '(' [parameters] ')' [':' return_type]
-parameter ::= name | name ':' type
-parameters ::= parameter {',' parameter}
-result ::= type | name ':' type
-results ::= result {',' result}
-return_type = results | '(' results ')'
+function_type ::= 'fun' '(' [params] ')' [':' return_type]
+param ::= name | name ':' type
+params ::= param {',' param}
+return ::= type | name ':' type
+returns ::= return {',' return}
+return_type = returns | '(' returns ')'
 
 generics_type ::= type '<' types '>'
 
