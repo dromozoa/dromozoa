@@ -29,11 +29,16 @@
         - むしろbindとかそういうのが欲しい？
     - clause: とりあえずif用
 - 参考文献: https://blog.miz-ar.info/2025/09/surface-syntax/
-- operatorとかautoloadの構文をチェックする
+- classとかgenericなどの継承のことを考える
 
 
 
 ## ごみ箱
+
+### 2026/06/17
+
+- operatorの構文をチェックする
+    - https://github.com/LuaLS/lua-language-server/issues/599#issuecomment-881959977
 
 ### 2026/06/15
 

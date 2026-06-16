@@ -153,6 +153,8 @@ generics_type ::= type '<' types '>'
 
 binary_operator ::= '|'
 suffix_operator ::= '?' | '[]'
+
+operator_type ::= Name {'(' type ')'} ':' type
 ```
 
 ### 演算子と優先順位
