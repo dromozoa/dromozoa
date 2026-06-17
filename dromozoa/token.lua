@@ -59,7 +59,7 @@ end
 
 ---@param ... string
 ---@return boolean
-function class:check_kind(...kinds)
+function class:check(...kinds)
   for _, kind in ipairs(kinds) do
     if self.kind == kind then
       return true
@@ -70,15 +70,15 @@ end
 
 ---@param ... string
 ---@return dromozoa.token
-function class:require_kind(...kinds)
-  return self:require_kinds(kinds)
+function class:require(...kinds)
+  return self:require_kind(kinds)
 end
 
 ---@param kinds string[]
 ---@param message string?
 ---@return dromozoa.token
-function class:require_kinds(kinds, message)
-  if self:check_kind(table.unpack(kinds)) then
+function class:require_kind(kinds, message)
+  if self:check(table.unpack(kinds)) then
     return self
   end
   error((message or "unexpected symbol") .. " at " .. self.first_srcloc:to_string())

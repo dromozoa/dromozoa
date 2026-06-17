@@ -24,12 +24,12 @@ local token_stream = require "dromozoa.token_stream"
 ---@param u dromozoa.node
 ---@param buffer string[]
 local function dump_impl(u, buffer)
-  local enclose = #u.nodes > 0 or not u:check_kind "Name"
+  local enclose = #u.nodes > 0 or not u:check "Name"
   if enclose then
     table.insert(buffer, "(")
   end
 
-  if u:check_kind "Name" then
+  if u:check "Name" then
     table.insert(buffer, tostring(u.token.value))
   else
     table.insert(buffer, u.kind)

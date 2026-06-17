@@ -31,35 +31,35 @@ end
 
 local lexer = new_doc_lexer "@type fun(x: integer):boolean, string?"
 local token
-token = lexer:read():require_kind "@type"
+token = lexer:read():require "@type"
 assert(token.first_srcloc.line == 2 and token.first_srcloc.column == 4)
-token = lexer:read():require_kind "Name"
+token = lexer:read():require "Name"
 assert(token.first_srcloc.line == 2 and token.first_srcloc.column == 10)
-token = lexer:read():require_kind "("
-token = lexer:read():require_kind "Name"
-token = lexer:read():require_kind ":"
-token = lexer:read():require_kind "Name"
-token = lexer:read():require_kind ")"
-token = lexer:read():require_kind ":"
-token = lexer:read():require_kind "Name"
-token = lexer:read():require_kind ","
-token = lexer:read():require_kind "Name"
-token = lexer:read():require_kind "?"
-token = lexer:read():require_kind "EOF"
+token = lexer:read():require "("
+token = lexer:read():require "Name"
+token = lexer:read():require ":"
+token = lexer:read():require "Name"
+token = lexer:read():require ")"
+token = lexer:read():require ":"
+token = lexer:read():require "Name"
+token = lexer:read():require ","
+token = lexer:read():require "Name"
+token = lexer:read():require "?"
+token = lexer:read():require "EOF"
 
 local lexer = new_doc_lexer "-1 2a 3. 4.5 6.7.8"
 local token
-token = lexer:read():require_kind "Integer"
+token = lexer:read():require "Integer"
 assert(token.value == -1)
-token = lexer:read():require_kind "Integer"
+token = lexer:read():require "Integer"
 assert(token.value == 2)
-token = lexer:read():require_kind "Name"
+token = lexer:read():require "Name"
 assert(token.value == "a")
-token = lexer:read():require_kind "Name"
+token = lexer:read():require "Name"
 assert(token.value == "3.")
-token = lexer:read():require_kind "Name"
+token = lexer:read():require "Name"
 assert(token.value == "4.5")
-token = lexer:read():require_kind "Name"
+token = lexer:read():require "Name"
 assert(token.value == "6.7.8")
 
 -- string, code
@@ -72,48 +72,48 @@ barbaz]]
 `` `T`
 ]=]
 local token
-token = lexer:read():require_kind "String"
+token = lexer:read():require "String"
 assert(token.subkind == "Short")
 assert(token.value == "foo\nbarbaz")
 assert(token.first_srcloc.line == 2 and token.first_srcloc.column == 4)
 
-token = lexer:read():require_kind "String"
+token = lexer:read():require "String"
 assert(token.subkind == "Long")
 assert(token.value == "foo\nbarbaz")
 assert(token.first_srcloc.line == 4 and token.first_srcloc.column == 6)
 
-token = lexer:read():require_kind "Code"
+token = lexer:read():require "Code"
 assert(token.value == "")
 assert(token.first_srcloc.line == 7 and token.first_srcloc.column == 1)
 
-token = lexer:read():require_kind "Code"
+token = lexer:read():require "Code"
 assert(token.value == "T")
 assert(token.first_srcloc.line == 7 and token.first_srcloc.column == 4)
 
 local lexer = new_doc_lexer "@comment"
-lexer:read():require_kind "EOF"
+lexer:read():require "EOF"
 assert(#lexer.tokens == 2)
 local token = lexer.tokens[1]
 assert(token.subkind == "@")
 assert(token.value == "comment")
 
 local lexer = new_doc_lexer "@private @comment"
-lexer:read():require_kind "@private"
-lexer:read():require_kind "EOF"
+lexer:read():require "@private"
+lexer:read():require "EOF"
 assert(#lexer.tokens == 4)
 local token = lexer.tokens[3]
 assert(token.subkind == "@")
 assert(token.value == "comment")
 
 local lexer = new_doc_lexer "@returnXXX"
-lexer:read():require_kind "EOF"
+lexer:read():require "EOF"
 assert(#lexer.tokens == 2)
 local token = lexer.tokens[1]
 assert(token.subkind == "@")
 assert(token.value == "returnXXX")
 
 local lexer = new_doc_lexer "@returnXXX YYY"
-lexer:read():require_kind "EOF"
+lexer:read():require "EOF"
 assert(#lexer.tokens == 2)
 local token = lexer.tokens[1]
 assert(token.subkind == "@")
@@ -121,7 +121,7 @@ assert(token.value == "returnXXX YYY")
 
 -- 行アノテーションレキサは@asをコメント扱いする
 local lexer = new_doc_lexer "@as integer"
-lexer:read():require_kind "EOF"
+lexer:read():require "EOF"
 assert(#lexer.tokens == 2)
 local token = lexer.tokens[1]
 assert(token.subkind == "@")
@@ -135,9 +135,9 @@ end
 
 local lexer = new_doc_expression_lexer "@as\n    integer\n  "
 local token
-token = lexer:read():require_kind "@as"
+token = lexer:read():require "@as"
 assert(token.first_srcloc.line == 1 and token.first_srcloc.column == 1)
-token = lexer:read():require_kind "Name"
+token = lexer:read():require "Name"
 assert(token.first_srcloc.line == 2 and token.first_srcloc.column == 5)
-token = lexer:read():require_kind "EOF"
+token = lexer:read():require "EOF"
 assert(token.first_srcloc.line == 3 and token.first_srcloc.column == 3)

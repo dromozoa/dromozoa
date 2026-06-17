@@ -46,13 +46,13 @@ function class:peek()
 
   for i = self.index, n do
     local token = self.tokens[i]
-    if not token:check_kind("Space", "Comment") then
+    if not token:check("Space", "Comment") then
       self.index = i
       return token
     end
   end
 
-  if n > 0 and self.tokens[n]:check_kind "EOF" then
+  if n > 0 and self.tokens[n]:check "EOF" then
     error "cannot read past end of stream"
   end
 
@@ -60,7 +60,7 @@ function class:peek()
   while true do
     local token = self.lex(self.matcher)
     self.tokens[i] = token
-    if not token:check_kind("Space", "Comment") then
+    if not token:check("Space", "Comment") then
       self.index = i
       return token
     end
@@ -77,7 +77,7 @@ end
 
 function class:unread()
   for i = self.index - 1, 1, -1 do
-    if not self.tokens[i]:check_kind("Space", "Comment") then
+    if not self.tokens[i]:check("Space", "Comment") then
       self.index = i
       return
     end

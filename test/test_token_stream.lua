@@ -31,25 +31,25 @@ local p = new_lexer([=[
 --[[1]]local--[[3]]--[[4]]x--[[6]]--[[7]]=--[[9]]--[[10]]1--[[12]]
 ]=], "=(test)")
 
-p:peek():require_kind "local"
-p:read():require_kind "local"
-p:peek():require_kind "Name"
-p:read():require_kind "Name"
+p:peek():require "local"
+p:read():require "local"
+p:peek():require "Name"
+p:read():require "Name"
 p:unread()
-p:peek():require_kind "Name"
-p:read():require_kind "Name"
-p:unread()
-p:unread()
-p:peek():require_kind "local"
-p:peek():require_kind "local"
-p:read():require_kind "local"
-p:read():require_kind "Name"
-p:peek():require_kind "="
+p:peek():require "Name"
+p:read():require "Name"
 p:unread()
 p:unread()
-p:peek():require_kind "local"
-p:read():require_kind "local"
-p:read():require_kind "Name"
-p:read():require_kind "="
-p:read():require_kind "Integer"
-p:read():require_kind "EOF"
+p:peek():require "local"
+p:peek():require "local"
+p:read():require "local"
+p:read():require "Name"
+p:peek():require "="
+p:unread()
+p:unread()
+p:peek():require "local"
+p:read():require "local"
+p:read():require "Name"
+p:read():require "="
+p:read():require "Integer"
+p:read():require "EOF"
