@@ -138,8 +138,18 @@ end
 ---@return boolean
 function class:match_long_string()
   local start_srcloc = self.start_srcloc
-  if self:match "%[(=*)%[" then
-    if not self:match("\n?(.-)%]" .. self._1 .. "%]") then
+  if self:match "%[%[" then
+    if not self:match("\n?(.-)%]%]") then
+      error("unfinished long string at " .. self.start_srcloc:to_string())
+    end
+    self._0 = self:substring(start_srcloc)
+    return true
+  elseif self:match "%[(=+)" then
+    local pattern = "\n?(.-)%]" .. self._1 .. "%]"
+    if not self:match "%[" then
+      error("invalid long string delimiter at " .. self.start_srcloc:to_string())
+    end
+    if not self:match(pattern) then
       error("unfinished long string at " .. self.start_srcloc:to_string())
     end
     self._0 = self:substring(start_srcloc)
