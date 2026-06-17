@@ -32,6 +32,8 @@
     - clause: とりあえずif用
 - 参考文献: https://blog.miz-ar.info/2025/09/surface-syntax/
 - classとかgenericなどの継承のことを考える
+- `'for' Name ('=' | 'in' | ',')`で3個めのトークンをチェックする
+- `Name`をexpectするときって`<name>`な気がするけどどうしようか。
 
 
 
