@@ -220,6 +220,8 @@ test_lex_error('print "abc\n"', 11, "unfinished string")
 test_lex_error([[print "abc\y"]], 11, "invalid escape sequence")
 test_lex_error("print([[abc", 9, "unfinished long string")
 test_lex_error("print([=[abc", 10, "unfinished long string")
+
+-- Luaは規則外の記号も1文字のトークンとして扱うので、レキサではなくパーサが文法エラーを報告する。
 test_lex_error("abc!", 4)
 
 test_lex_error("print[====]", 11, "invalid long string delimiter")
