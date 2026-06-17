@@ -59,7 +59,7 @@ end
 
 ---@param ... string
 ---@return boolean
-function class:check(...kinds)
+function class:check_kind(...kinds)
   for _, kind in ipairs(kinds) do
     if self.kind == kind then
       return true
@@ -70,8 +70,8 @@ end
 
 ---@param ... string
 ---@return dromozoa.token
-function class:require(...)
-  if self:check(...) then
+function class:require_kind(...)
+  if self:check_kind(...) then
     return self
   end
   error("unexpected symbol at " .. self.first_srcloc:to_string())

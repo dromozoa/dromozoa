@@ -125,7 +125,7 @@ end
 function class:nud_group(x)
   return x:new_expression_node "group"
       :append(self:parse_exp())
-      :update(self:read():require ")")
+      :update(self:read():require_kind ")")
 end
 
 --=========================================================================
@@ -157,7 +157,7 @@ function class:led_index(u, x)
   return x:new_expression_node "index"
       :append(u)
       :append(self:parse_exp())
-      :update(self:read():require "]")
+      :update(self:read():require_kind "]")
 end
 
 ---@param u dromozoa.node
@@ -166,7 +166,7 @@ end
 function class:led_member(u, x)
   return x:new_expression_node "member"
       :append(u)
-      :append(self:read():require "Name":new_auxiliary_node())
+      :append(self:read():require_kind "Name":new_auxiliary_node())
 end
 
 ---@param u dromozoa.node
@@ -184,7 +184,7 @@ end
 function class:led_self(u, x)
   return x:new_expression_node "self"
       :append(u)
-      :append(self:read():require "Name":new_auxiliary_node())
+      :append(self:read():require_kind "Name":new_auxiliary_node())
       :append(self:parse_args(self:read()))
 end
 
@@ -229,17 +229,17 @@ function class:parse_block(kind)
   local x
   while true do
     x = self:read()
-    if x:check "return" then
+    if x:check_kind "return" then
       u:append(self:parse_retstat(x))
       x = self:read()
       break
-    elseif x:check(is_stat_terminal()) then
+    elseif x:check_kind(is_stat_terminal()) then
       break
     end
     self:unread()
     u:append(self:parse_stat())
   end
-  x:require(is_stat_terminal())
+  x:require_kind(is_stat_terminal())
   self:unread()
   return u
 end
@@ -247,55 +247,55 @@ end
 ---@return dromozoa.node
 function class:parse_stat()
   local x = self:read()
-  if x:check ";" then
+  if x:check_kind ";" then
     return x:new_statement_node "empty"
-  elseif x:check "::" then
+  elseif x:check_kind "::" then
     return x:new_statement_node "label"
-        :append(self:read():require "Name":new_auxiliary_node())
-        :update(self:read():require "::")
-  elseif x:check "break" then
+        :append(self:read():require_kind "Name":new_auxiliary_node())
+        :update(self:read():require_kind "::")
+  elseif x:check_kind "break" then
     return x:new_statement_node()
-  elseif x:check "goto" then
+  elseif x:check_kind "goto" then
     return x:new_statement_node()
-        :append(self:read():require "Name":new_auxiliary_node())
-  elseif x:check "do" then
+        :append(self:read():require_kind "Name":new_auxiliary_node())
+  elseif x:check_kind "do" then
     return x:new_statement_node()
         :append(self:parse_block())
-        :update(self:read():require "end")
-  elseif x:check "while" then
+        :update(self:read():require_kind "end")
+  elseif x:check_kind "while" then
     return x:new_statement_node()
         :append(self:parse_exp())
-        :update(self:read():require "do")
+        :update(self:read():require_kind "do")
         :append(self:parse_block())
-        :update(self:read():require "end")
-  elseif x:check "repeat" then
+        :update(self:read():require_kind "end")
+  elseif x:check_kind "repeat" then
     return x:new_statement_node()
         :append(self:parse_block())
-        :update(self:read():require "until")
+        :update(self:read():require_kind "until")
         :append(self:parse_exp())
-  elseif x:check "if" then
+  elseif x:check_kind "if" then
     return self:parse_if(x)
-        :update(self:read():require "end")
-  elseif x:check "for" then
-    local y = self:read():require "Name"
-    if self:peek():check "=" then
+        :update(self:read():require_kind "end")
+  elseif x:check_kind "for" then
+    local y = self:read():require_kind "Name"
+    if self:peek():check_kind "=" then
       return self:parse_numeric_for(x, y)
     else
       return self:parse_generic_for(x, y)
     end
-  elseif x:check "function" then
+  elseif x:check_kind "function" then
     return x:new_statement_node()
         :append(self:parse_funcname())
         :append(self:parse_funcbody())
-  elseif x:check "local" or x:check "global" then
-    if self:peek():check "function" then
+  elseif x:check_kind "local" or x:check_kind "global" then
+    if self:peek():check_kind "function" then
       self:read()
       return x:new_statement_node(x.kind .. "_function")
-          :append(self:read():require "Name":new_auxiliary_node())
+          :append(self:read():require_kind "Name":new_auxiliary_node())
           :append(self:parse_funcbody())
     else
       local u = x:new_statement_node():append(self:parse_declaration(x.kind))
-      if self:peek():check "=" then
+      if self:peek():check_kind "=" then
         self:read()
         u:append(self:parse_explist())
       end
@@ -304,7 +304,7 @@ function class:parse_stat()
   else
     self:unread()
     local u = self:parse_prefixexp()
-    if u:check("call", "self") then
+    if u:check_kind("call", "self") then
       return u.token:new_statement_node "call":append(u)
     else
       return self:parse_assignment(u)
@@ -317,17 +317,17 @@ end
 function class:parse_if(x)
   local u = x:new_statement_node "if"
       :append(self:parse_exp())
-      :update(self:read():require "then")
+      :update(self:read():require_kind "then")
       :append(self:parse_block())
 
   local x = self:read()
-  if x:check "elseif" then
+  if x:check_kind "elseif" then
     return u:append(new_block_node "block":append(self:parse_if(x)))
-  elseif x:check "else" then
+  elseif x:check_kind "else" then
     return u:append(self:parse_block())
   end
 
-  x:require "end"
+  x:require_kind "end"
   self:unread()
   return u
 end
@@ -336,12 +336,12 @@ end
 ---@param y dromozoa.token
 ---@return dromozoa.node
 function class:parse_numeric_for(x, y)
-  self:read():require "="
+  self:read():require_kind "="
   local u = new_auxiliary_node "expressions"
       :append(self:parse_exp())
-      :update(self:read():require ",")
+      :update(self:read():require_kind ",")
       :append(self:parse_exp())
-  if self:peek():check "," then
+  if self:peek():check_kind "," then
     self:read()
     u:append(self:parse_exp())
   end
@@ -349,9 +349,9 @@ function class:parse_numeric_for(x, y)
   return x:new_statement_node "numeric_for"
       :append(y:new_auxiliary_node())
       :append(u)
-      :update(self:read():require "do")
+      :update(self:read():require_kind "do")
       :append(self:parse_block())
-      :update(self:read():require "end")
+      :update(self:read():require_kind "end")
 end
 
 ---@param x dromozoa.token
@@ -360,26 +360,26 @@ end
 function class:parse_generic_for(x, y)
   local u = new_auxiliary_node "names"
       :append(y:new_auxiliary_node())
-  while self:peek():check "," do
+  while self:peek():check_kind "," do
     self:read()
-    u:append(self:read():require "Name":new_auxiliary_node())
+    u:append(self:read():require_kind "Name":new_auxiliary_node())
   end
 
   return x:new_statement_node "generic_for"
       :append(u)
-      :update(self:read():require "in")
+      :update(self:read():require_kind "in")
       :append(self:parse_explist())
-      :update(self:read():require "do")
+      :update(self:read():require_kind "do")
       :append(self:parse_block())
-      :update(self:read():require "end")
+      :update(self:read():require_kind "end")
 end
 
 ---@param x dromozoa.token
 ---@return dromozoa.node
 function class:parse_attrib(x)
-  return self:read():require "Name":new_auxiliary_node "attribute"
+  return self:read():require_kind "Name":new_auxiliary_node "attribute"
       :update(x)
-      :update(self:read():require ">")
+      :update(self:read():require_kind ">")
 end
 
 ---@param kind "global" | "local"
@@ -389,12 +389,12 @@ function class:parse_declaration(kind)
   local attribute
 
   local x = self:read()
-  if x:check "<" then
+  if x:check_kind "<" then
     attribute = self:parse_attrib(x)
     x = self:read()
   end
 
-  if kind == "global" and x:check "*" then
+  if kind == "global" and x:check_kind "*" then
     return x:new_auxiliary_node("any", attribute)
   end
 
@@ -403,13 +403,13 @@ function class:parse_declaration(kind)
     local attribute
 
     local y = self:read()
-    if y:check "<" then
+    if y:check_kind "<" then
       attribute = self:parse_attrib(y)
       y = self:read()
     end
-    u:append(x:require "Name":new_auxiliary_node(nil, attribute))
+    u:append(x:require_kind "Name":new_auxiliary_node(nil, attribute))
 
-    if not y:check "," then
+    if not y:check_kind "," then
       self:unread()
       break
     end
@@ -422,19 +422,19 @@ end
 ---@param u dromozoa.node
 ---@return dromozoa.node
 function class:parse_assignment(u)
-  local v = new_auxiliary_node "variables":append(u:require(is_var()))
+  local v = new_auxiliary_node "variables":append(u:require_kind(is_var()))
 
   local x
   while true do
     x = self:read()
-    if x:check "=" then
+    if x:check_kind "=" then
       break
     end
-    x:require ","
-    v:append(self:parse_prefixexp():require(is_var()))
+    x:require_kind ","
+    v:append(self:parse_prefixexp():require_kind(is_var()))
   end
 
-  return x:require "=":new_statement_node "assignment"
+  return x:require_kind "=":new_statement_node "assignment"
       :append(v)
       :append(self:parse_explist())
 end
@@ -443,40 +443,40 @@ end
 ---@return dromozoa.node
 function class:parse_retstat(x)
   local u = x:new_statement_node()
-  if self:peek():check(";", is_stat_terminal()) then
+  if self:peek():check_kind(";", is_stat_terminal()) then
     u:append(new_auxiliary_node "expressions")
   else
     u:append(self:parse_explist())
   end
-  if self:peek():check ";" then
+  if self:peek():check_kind ";" then
     u:update(self:read())
   end
-  self:peek():require(is_stat_terminal())
+  self:peek():require_kind(is_stat_terminal())
   return u
 end
 
 ---@return dromozoa.node
 function class:parse_funcname()
-  local u = self:read():require "Name":new_expression_node()
+  local u = self:read():require_kind "Name":new_expression_node()
 
   local x
   while true do
     x = self:read()
-    if x:check "(" then
+    if x:check_kind "(" then
       break
-    elseif x:check ":" then
+    elseif x:check_kind ":" then
       u = x:new_expression_node "method"
           :append(u)
-          :append(self:read():require "Name":new_auxiliary_node())
+          :append(self:read():require_kind "Name":new_auxiliary_node())
       x = self:read()
       break
     end
-    u = x:require ".":new_expression_node "member"
+    u = x:require_kind ".":new_expression_node "member"
         :append(u)
-        :append(self:read():require "Name":new_auxiliary_node())
+        :append(self:read():require_kind "Name":new_auxiliary_node())
   end
 
-  x:require "("
+  x:require_kind "("
   self:unread()
   return u
 end
@@ -486,7 +486,7 @@ function class:parse_explist()
   local u = new_auxiliary_node "expressions"
   while true do
     u:append(self:parse_exp())
-    if not self:read():check "," then
+    if not self:read():check_kind "," then
       self:unread()
       break
     end
@@ -516,19 +516,19 @@ end
 ---@param x dromozoa.token
 ---@return dromozoa.node
 function class:parse_args(x)
-  if x:check "(" then
+  if x:check_kind "(" then
     local u
-    if self:peek():check ")" then
+    if self:peek():check_kind ")" then
       u = new_auxiliary_node "expressions"
     else
       u = self:parse_explist()
     end
-    u:update(x):update(self:read():require ")")
+    u:update(x):update(self:read():require_kind ")")
     return u
-  elseif x:check "{" then
+  elseif x:check_kind "{" then
     return new_auxiliary_node "expressions":append(self:parse_tableconstructor(x))
   else
-    x:require "String"
+    x:require_kind "String"
     return new_auxiliary_node "expressions":append(x:new_expression_node())
   end
 end
@@ -537,69 +537,69 @@ end
 function class:parse_funcbody()
   local u = new_auxiliary_node "parameters"
 
-  u:update(self:read():require "(")
+  u:update(self:read():require_kind "(")
   local x = self:read()
-  if not x:check("...", ")") then
+  if not x:check_kind("...", ")") then
     while true do
-      u:append(x:require "Name":new_auxiliary_node())
+      u:append(x:require_kind "Name":new_auxiliary_node())
       x = self:read()
-      if x:check ")" then
+      if x:check_kind ")" then
         break
       end
-      x:require ","
+      x:require_kind ","
       x = self:read()
-      if x:check "..." then
+      if x:check_kind "..." then
         break
       end
     end
   end
-  if x:check "..." then
+  if x:check_kind "..." then
     local v = x:new_auxiliary_node()
     x = self:read()
-    if x:check "Name" then
+    if x:check_kind "Name" then
       v:append(x:new_auxiliary_node())
       x = self:read()
     end
     u:append(v)
   end
-  u:update(x:require ")")
+  u:update(x:require_kind ")")
 
   return new_auxiliary_node "body"
       :append(u)
       :append(self:parse_block())
-      :update(self:read():require "end")
+      :update(self:read():require_kind "end")
 end
 
 ---@param x dromozoa.token
 ---@return dromozoa.node
 function class:parse_tableconstructor(x)
-  local u = x:require "{":new_expression_node "table"
+  local u = x:require_kind "{":new_expression_node "table"
   while true do
     x = self:read()
-    if x:check "}" then
+    if x:check_kind "}" then
       break
     end
     u:append(self:parse_field(x))
     x = self:read()
-    if x:check "}" then
+    if x:check_kind "}" then
       break
     end
-    x:require(",", ";")
+    x:require_kind(",", ";")
   end
-  return u:update(x:require "}")
+  return u:update(x:require_kind "}")
 end
 
 ---@param x dromozoa.token
 ---@return dromozoa.node
 function class:parse_field(x)
-  if x:check "[" then
+  if x:check_kind "[" then
     local u = self:parse_exp()
         :update(x)
-        :update(self:read():require "]")
-    return self:read():require "=":new_auxiliary_node "index_field"
+        :update(self:read():require_kind "]")
+    return self:read():require_kind "=":new_auxiliary_node "index_field"
         :append(u)
         :append(self:parse_exp())
-  elseif x:check "Name" and self:peek():check "=" then
+  elseif x:check_kind "Name" and self:peek():check_kind "=" then
     return self:read():new_auxiliary_node "member_field"
         :append(x:new_auxiliary_node())
         :append(self:parse_exp())
@@ -614,7 +614,7 @@ end
 ---@return dromozoa.node
 function class:parse()
   local u = self:parse_block "chunk"
-  self:peek():require "EOF"
+  self:peek():require_kind "EOF"
   return u
 end
 

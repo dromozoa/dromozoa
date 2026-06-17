@@ -133,11 +133,11 @@ while true do
   local token = lexer:read()
   local u = token.value
   if state == 1 then
-    if is_preceeded_by_label and token:check "Name" and u == "BEGIN" then
+    if is_preceeded_by_label and token:check_kind "Name" and u == "BEGIN" then
       state = 2
     end
   elseif state == 2 then
-    if is_preceeded_by_label and token:check "Name" then
+    if is_preceeded_by_label and token:check_kind "Name" then
       if u == "END" then
         state = 3
       else
@@ -172,10 +172,10 @@ while true do
       end
     end
   end
-  if token:check "EOF" then
+  if token:check_kind "EOF" then
     break
   end
-  is_preceeded_by_label = token:check "::"
+  is_preceeded_by_label = token:check_kind "::"
 end
 assert(i == #expect)
 assert(state == 3)
@@ -194,7 +194,7 @@ local function test_lex_error(source, column, expect)
     local lexer = new_lexer(source, "=(test)")
     repeat
       local token = lexer:read()
-    until token:check "EOF"
+    until token:check_kind "EOF"
   end)
   assert(not result)
   assert(message)
@@ -221,34 +221,34 @@ test_lex_error("print([[abc", 9, "unfinished long string")
 test_lex_error("abc!", 4)
 
 local lexer = new_lexer("", "=(test)")
-lexer:read():require "EOF"
+lexer:read():require_kind "EOF"
 assert(#lexer.tokens == 1)
 
 local lexer = new_lexer("#! /usr/bin/env lua", "=(test)")
-lexer:read():require "EOF"
+lexer:read():require_kind "EOF"
 assert(#lexer.tokens == 2)
 local token = lexer.tokens[1]
-assert(token:require "Comment")
+assert(token:require_kind "Comment")
 assert(token.subkind == "Shebang")
 assert(token.text == "#! /usr/bin/env lua")
 assert(token.value == "! /usr/bin/env lua")
 
 local lexer = new_lexer("#! /usr/bin/env lua\n#", "=(test)")
-lexer:read():require "#"
-lexer:read():require "EOF"
+lexer:read():require_kind "#"
+lexer:read():require_kind "EOF"
 assert(#lexer.tokens == 4)
 local token = lexer.tokens[1]
-assert(token:require "Comment")
+assert(token:require_kind "Comment")
 assert(token.subkind == "Shebang")
 assert(token.text == "#! /usr/bin/env lua")
 assert(token.value == "! /usr/bin/env lua")
 
 local lexer = new_lexer("---@alias x integer", "=(test)")
-lexer:read():require "EOF"
+lexer:read():require_kind "EOF"
 assert(#lexer.tokens == 2)
 
 local lexer = new_lexer("---@alias x integer\n", "=(test)")
-lexer:read():require "EOF"
+lexer:read():require_kind "EOF"
 assert(#lexer.tokens == 3)
 
 -- matcherのoffsetの扱いをテストする
@@ -258,7 +258,7 @@ srcloc.position = 2
 srcloc.line = 1
 srcloc.column = 2
 local lexer = token_stream.new(lexer.lex, matcher.new(source, srcloc))
-lexer:read():require "Name"
-lexer:read():require "EOF"
+lexer:read():require_kind "Name"
+lexer:read():require_kind "EOF"
 assert(#lexer.tokens == 2)
 assert(lexer.tokens[1].text == source)

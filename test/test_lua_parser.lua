@@ -35,14 +35,14 @@ end
 local function dump_impl(u, buffer)
   local enclose = #u.nodes > 0
       or u.attribute
-      or not u:check("nil", "false", "true", "Float", "Integer", "String", "Name")
+      or not u:check_kind("nil", "false", "true", "Float", "Integer", "String", "Name")
   if enclose then
     table.insert(buffer, "(")
   end
 
   -- https://www.lua.org/manual/5.5/readme.html#changes
   -- 浮動小数点数が、読み戻しに十分な桁数の文字列で表現されるようになった。
-  if u:check("Float", "Integer", "Name") then
+  if u:check_kind("Float", "Integer", "Name") then
     table.insert(buffer, tostring(u.token.value))
   else
     table.insert(buffer, u.kind)
@@ -73,7 +73,7 @@ end
 ---@param u dromozoa.node
 local function check(u, ...)
   if u.category == "block" then
-    assert(u:check("chunk", "block"))
+    assert(u:check_kind("chunk", "block"))
     assert(not u.token)
   end
 
@@ -85,12 +85,12 @@ local function check(u, ...)
     assert(u.token, ("{ kind = %q, srcloc = %q }"):format(u.kind, source_location.to_string(u.first_srcloc)))
   end
 
-  if u:check("chunk", "block") then
+  if u:check_kind("chunk", "block") then
     assert(u.category == "block")
     assert(not u.token)
   end
 
-  if u:check("variables", "names", "expressions", "parameters") then
+  if u:check_kind("variables", "names", "expressions", "parameters") then
     assert(u.category == "auxiliary")
     assert(not u.token)
   end
@@ -102,7 +102,7 @@ local function check(u, ...)
     if v.category == "statement" then
       assert(u.category == "block")
     end
-    if u:check "expressions" then
+    if u:check_kind "expressions" then
       assert(v.category == "expression")
     end
     check(v, u, ...)
@@ -128,7 +128,7 @@ end
 local function test_parse_impl(source, expect, fn)
   local p = new_parser(source, "=(test)")
   local root = fn(p)
-  p:peek():require "EOF"
+  p:peek():require_kind "EOF"
   local result = dump(root)
   local expect = normalize(expect)
   assert(result == expect, ("{ source = %q, result = %q, expect = %q }"):format(source, result, expect))
@@ -507,7 +507,7 @@ local function test_parse(source, expect)
   local result = dump(root)
   local expect = normalize(expect)
   assert(result == expect, ("{ source = %q, result = %q, expect = %q }"):format(source, result, expect))
-  assert(root:check "chunk")
+  assert(root:check_kind "chunk")
   assert(root.category == "block")
 end
 
