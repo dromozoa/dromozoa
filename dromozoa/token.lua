@@ -70,11 +70,18 @@ end
 
 ---@param ... string
 ---@return dromozoa.token
-function class:require_kind(...)
-  if self:check_kind(...) then
+function class:require_kind(...kinds)
+  return self:require_kinds(kinds)
+end
+
+---@param kinds string[]
+---@param message string?
+---@return dromozoa.token
+function class:require_kinds(kinds, message)
+  if self:check_kind(table.unpack(kinds)) then
     return self
   end
-  error("unexpected symbol at " .. self.first_srcloc:to_string())
+  error((message or "unexpected symbol") .. " at " .. self.first_srcloc:to_string())
 end
 
 ---@param kind string?

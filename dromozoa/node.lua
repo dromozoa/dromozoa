@@ -106,11 +106,18 @@ end
 
 ---@param ... string
 ---@return dromozoa.node
-function class:require_kind(...)
-  if self:check_kind(...) then
+function class:require_kind(...kinds)
+  return self:require_kinds(kinds)
+end
+
+---@param kinds string[]
+---@param message string?
+---@return dromozoa.node
+function class:require_kinds(kinds, message)
+  if self:check_kind(table.unpack(kinds)) then
     return self
   end
-  error("syntax error at " .. source_location.to_string(self.first_srcloc))
+  error((message or "syntex error") .. " at " .. source_location.to_string(self.first_srcloc))
 end
 
 return class
