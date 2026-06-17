@@ -25,8 +25,8 @@ local source_location = require "dromozoa.source_location"
 ---@field token dromozoa.token?
 ---@field attribute dromozoa.node?
 ---@field nodes dromozoa.node[]
----@field first_srcloc dromozoa.source_location?
----@field last_srcloc dromozoa.source_location?
+---@field first_srcloc? dromozoa.source_location
+---@field last_srcloc? dromozoa.source_location
 local class = {}
 local metatable = {
   __index = class,
@@ -78,10 +78,10 @@ end
 function class:update(that)
   -- 空のブロックと式リストはソース位置を持たない。
   if not that.first_srcloc or not that.last_srcloc then
-    assert(not that.first_srcloc)
-    assert(not that.last_srcloc)
     assert(#that.nodes == 0)
     assert(that.category == "block" or that.category == "auxiliary" and that.kind == "expressions")
+    assert(not that.first_srcloc)
+    assert(not that.last_srcloc)
   else
     if not self.first_srcloc or self.first_srcloc:compare(that.first_srcloc) > 0 then
       self.first_srcloc = that.first_srcloc
