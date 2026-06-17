@@ -107,13 +107,13 @@ end
 ---@param ... string
 ---@return dromozoa.node
 function class:require(...kinds)
-  return self:require_kind(kinds)
+  return self:require_or(kinds)
 end
 
 ---@param kinds string[]
 ---@param message string?
 ---@return dromozoa.node
-function class:require_kind(kinds, message)
+function class:require_or(kinds, message)
   if self:check(table.unpack(kinds)) then
     return self
   end
