@@ -91,7 +91,8 @@ e\z
   "\u{2262}\u{0391}\u{002e}",
   "\u{D55C}\u{AD6D}\u{C5B4}",
   "\u{65e5}\u{672c}\u{8a9e}",
-  "\u{FEFF}\u{0233B4}",
+  "\u{FEFF}\u{233B4}\u{0233B4}",
+  "\u{9}",
 
   [[foo
 bar]],
@@ -208,7 +209,7 @@ local function test_lex_error(source, column, expect)
   end
   assert(message:find("=%(test%):1:" .. column .. "$"), ("{ message = %q }"):format(message))
   if expect then
-    assert(message:find(expect, 1, true), ("{ message = %q }"):format(message))
+    assert(message:find(expect .. " at ", 1, true), ("{ message = %q }"):format(message))
   end
 end
 
@@ -221,7 +222,15 @@ test_lex_error("print([[abc", 9, "unfinished long string")
 test_lex_error("print([=[abc", 10, "unfinished long string")
 test_lex_error("abc!", 4)
 
-test_lex_error("print[====]", 11)
+test_lex_error("print[====]", 11, "invalid long string delimiter")
+test_lex_error([[print "\xG"]], 8, "hexadecimal digit expected")
+test_lex_error([[print "\u41"]], 8, "missing '{'")
+test_lex_error([[print "\u{}"]], 8, "hexadecimal digit expected")
+test_lex_error([[print "\u{G}"]], 8, "hexadecimal digit expected")
+test_lex_error([[print "\u{41G"]], 8, "missing '}'")
+test_lex_error([[print "\u{80000000}"]], 8, "UTF-8 value too large")
+test_lex_error([[print "\u{10000000000000000}"]], 8, "UTF-8 value too large")
+test_lex_error([[print "\999"]], 8, "decimal escape too large")
 
 local lexer = new_lexer("", "=(test)")
 lexer:read():require "EOF"

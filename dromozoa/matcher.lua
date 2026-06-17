@@ -210,12 +210,35 @@ function class:match_short_string()
           table.insert(value, escape_sequences[self._0])
         elseif self:match "z%s*" then
           -- skip
-        elseif self:match "x(%x%x)" then
-          table.insert(value, string.char(tonumber(self._1, 16)))
+        elseif self:match "x" then
+          if not self:match "%x%x" then
+            error("hexadecimal digit expected at " .. start_srcloc:to_string())
+          end
+          table.insert(value, string.char(tonumber(self._0, 16)))
         elseif self:match "%d%d?%d?" then
-          table.insert(value, string.char(tonumber(self._0, 10)))
-        elseif self:match "u{(%x+)}" then
-          table.insert(value, utf8.char(tonumber(self._1, 16)))
+          local code = tonumber(self._0, 10)
+          if code > 0xFF then
+            error("decimal escape too large at " .. start_srcloc:to_string())
+          end
+          table.insert(value, string.char(code))
+        elseif self:match "u" then
+          if not self:match "{" then
+            error("missing '{' at " .. start_srcloc:to_string())
+          end
+          if not self:match "%x" then
+            error("hexadecimal digit expected at " .. start_srcloc:to_string())
+          end
+          local code = tonumber(self._0, 16)
+          while self:match "%x" do
+            if code > 0x7FFFFFF then
+              error("UTF-8 value too large at " .. start_srcloc:to_string())
+            end
+            code = code << 4 | tonumber(self._0, 16)
+          end
+          if not self:match "}" then
+            error("missing '}' at " .. start_srcloc:to_string())
+          end
+          table.insert(value, utf8.char(code))
         else
           error("invalid escape sequence at " .. start_srcloc:to_string())
         end
