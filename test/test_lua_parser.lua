@@ -138,10 +138,13 @@ end
 
 ---@param source string
 ---@param fn fun(p: dromozoa.lua_parser): dromozoa.node
-local function test_parse_error_impl(source, fn)
+---@param expect string?
+local function test_parse_error_impl(source, fn, expect)
   local p = new_parser(source, "=(test)")
   local result, message = pcall(fn, p)
   assert(not result)
+  assert(message)
+  local message = tostring(message)
   if verbose then
     print(("="):rep(80))
     print(message)
@@ -149,7 +152,10 @@ local function test_parse_error_impl(source, fn)
     assert(not result)
     print(message)
   end
-  assert(tostring(message):find "=%(test%):1:", ("{ message = %q }"):format(message))
+  assert(message:find "=%(test%):1:", ("{ message = %q }"):format(message))
+  if expect then
+    assert(message:find(expect .. " at ", 1, true), ("{ message = %q }"):format(message))
+  end
 end
 
 ---@param source string
@@ -237,10 +243,11 @@ test_parse_exp(
 test_parse_exp("4.25", "4.25")
 
 ---@param source string
-local function test_parse_exp_error(source)
+---@param expect string?
+local function test_parse_exp_error(source, expect)
   test_parse_error_impl(source, function(p)
     return p:parse_exp(0)
-  end)
+  end, expect)
 end
 
 test_parse_exp_error "()"
@@ -459,10 +466,11 @@ test_parse_stat("global *", "(global (any))")
 test_parse_stat("global <const> *", "(global (any <const>))")
 
 ---@param source string
-local function test_parse_stat_error(source)
+---@param expect string?
+local function test_parse_stat_error(source, expect)
   test_parse_error_impl(source, function(p)
     return p:parse_stat()
-  end)
+  end, expect)
 end
 
 test_parse_stat_error "::1::"
@@ -472,6 +480,8 @@ test_parse_stat_error "for i = 1, 2, 3, 4 do print(i) end"
 test_parse_stat_error "function x:y:f() end"
 test_parse_stat_error "local *"
 test_parse_stat_error "local <const> *"
+
+test_parse_stat_error("function f(42) end", "<name> or '...' expected")
 
 ---@param source string
 ---@param expect string
@@ -491,10 +501,11 @@ test_parse_block(";return 1,2", "(block (empty) (return (expressions 1 2)))")
 test_parse_block(";return 1,2;", "(block (empty) (return (expressions 1 2)))")
 
 ---@param source string
-local function test_parse_block_error(source)
+---@param expect string?
+local function test_parse_block_error(source, expect)
   test_parse_error_impl(source, function(p)
     return p:parse_block()
-  end)
+  end, expect)
 end
 
 test_parse_block_error "return 42;;"

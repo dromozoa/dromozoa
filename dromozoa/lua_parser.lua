@@ -541,7 +541,7 @@ function class:parse_funcbody()
   local x = self:read()
   if not x:check("...", ")") then
     while true do
-      u:append(x:require "Name":new_auxiliary_node())
+      u:append(x:require_or({ "Name" }, "<name> or '...' expected"):new_auxiliary_node())
       x = self:read()
       if x:check ")" then
         break
