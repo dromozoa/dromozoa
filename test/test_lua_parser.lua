@@ -154,7 +154,7 @@ local function test_parse_error_impl(source, fn, expect)
   end
   assert(message:find "=%(test%):1:", ("{ message = %q }"):format(message))
   if expect then
-    assert(message:find(": " .. expect .. " at ", 1, true), ("{ message = %q }"):format(message))
+    assert(message:find(": " .. expect .. " near ", 1, true), ("{ message = %q }"):format(message))
   end
 end
 

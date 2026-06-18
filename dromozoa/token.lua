@@ -60,11 +60,23 @@ end
 ---@param kind string
 ---@return string
 function class.kind_to_string(kind)
-  -- luaX_token2strを参考にエラーメッセージ用の文字列を構築する。
+  -- llex.cのluaX_token2strを参考にエラーメッセージ用の文字列を構築する。
   if kind:find "^%u" then
     return "<" .. kind:lower() .. ">"
   else
     return "'" .. kind .. "'"
+  end
+end
+
+---@return string
+function class:to_string()
+  -- llex.cのtxtTokenを参考にエラーメッセージ用の文字列を構築する。
+  if self:check "String" then
+    return self.text
+  elseif self:check("Name", "Float", "Integer") then
+    return "'" .. self.text .. "'"
+  else
+    return class.kind_to_string(self.kind)
   end
 end
 
@@ -96,7 +108,7 @@ function class:require_or(kinds, message)
   if not message then
     message = class.kind_to_string(kinds[1]) .. " expected"
   end
-  error(message .. " at " .. self.first_srcloc:to_string())
+  error(message .. " near " .. self:to_string() .. " at " .. self.first_srcloc:to_string())
 end
 
 ---@param kind string?
