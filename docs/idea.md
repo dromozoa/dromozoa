@@ -32,12 +32,17 @@
     - clause: とりあえずif用
 - 参考文献: https://blog.miz-ar.info/2025/09/surface-syntax/
 - classとかgenericなどの継承のことを考える
-- `'for' Name ('=' | 'in' | ',')`で3個めのトークンをチェックする
 - `Name`をexpectするときって`<name>`な気がするけどどうしようか。
+- `unexpected symbol`と`syntax error`の区別
+- `near`の実装
 
 
 
 ## ごみ箱
+
+### 2026/06/18
+
+- `'for' Name ('=' | 'in' | ',')`で3個めのトークンをチェックする
 
 ### 2026/06/17
 
