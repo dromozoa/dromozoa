@@ -60,6 +60,7 @@ end
 ---@param kind string
 ---@return string
 function class.kind_to_string(kind)
+  -- luaX_token2strを参考にエラーメッセージ用の文字列を構築する。
   if kind:find "^%u" then
     return "<" .. kind:lower() .. ">"
   else
@@ -91,6 +92,7 @@ function class:require_or(kinds, message)
   if self:check(table.unpack(kinds)) then
     return self
   end
+
   if not message then
     message = class.kind_to_string(kinds[1]) .. " expected"
   end
