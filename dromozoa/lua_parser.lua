@@ -278,7 +278,8 @@ function class:parse_stat()
         :update(self:read():require "end")
   elseif x:check "for" then
     local y = self:read():require "Name"
-    if self:peek():check "=" then
+    local z = self:peek():require_or({ "=", "in", "," }, "'=' or 'in' expected")
+    if z:check "=" then
       return self:parse_numeric_for(x, y)
     else
       return self:parse_generic_for(x, y)
@@ -367,7 +368,7 @@ function class:parse_generic_for(x, y)
 
   return x:new_statement_node "generic_for"
       :append(u)
-      :update(self:read():require "in")
+      :update(self:read():require_or({ "in" }, "'in' expected"))
       :append(self:parse_explist())
       :update(self:read():require "do")
       :append(self:parse_block())
@@ -528,7 +529,7 @@ function class:parse_args(x)
   elseif x:check "{" then
     return new_auxiliary_node "expressions":append(self:parse_tableconstructor(x))
   else
-    x:require "String"
+    x:require_or({ "String" }, "function arguments expected")
     return new_auxiliary_node "expressions":append(x:new_expression_node())
   end
 end

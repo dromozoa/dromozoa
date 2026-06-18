@@ -154,7 +154,7 @@ local function test_parse_error_impl(source, fn, expect)
   end
   assert(message:find "=%(test%):1:", ("{ message = %q }"):format(message))
   if expect then
-    assert(message:find(expect .. " at ", 1, true), ("{ message = %q }"):format(message))
+    assert(message:find(": " .. expect .. " at ", 1, true), ("{ message = %q }"):format(message))
   end
 end
 
@@ -255,7 +255,7 @@ test_parse_exp_error "- +"
 test_parse_exp_error "{,}"
 test_parse_exp_error "{1,,}"
 test_parse_exp_error "f(,)"
-test_parse_exp_error "x:f 42"
+test_parse_exp_error("x:f 42", "function arguments expected")
 
 ---@param source string
 ---@param expect string
@@ -482,6 +482,8 @@ test_parse_stat_error "local *"
 test_parse_stat_error "local <const> *"
 
 test_parse_stat_error("function f(42) end", "<name> or '...' expected")
+test_parse_stat_error("for a +", "'=' or 'in' expected")
+test_parse_stat_error("for a, b +", "'in' expected")
 
 ---@param source string
 ---@param expect string

@@ -209,7 +209,7 @@ local function test_lex_error(source, column, expect)
   end
   assert(message:find("=%(test%):1:" .. column .. "$"), ("{ message = %q }"):format(message))
   if expect then
-    assert(message:find(expect .. " at ", 1, true), ("{ message = %q }"):format(message))
+    assert(message:find(": " .. expect .. " at ", 1, true), ("{ message = %q }"):format(message))
   end
 end
 
