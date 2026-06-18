@@ -201,12 +201,12 @@ function class:match_short_string()
 
   ---@type string
   local quote = self._0
-  local unescaped = "[^" .. quote .. "\\\n]+"
+  local unescaped_pattern = "[^" .. quote .. "\\\n]+"
   local value = {}
 
   while true do
     local start_srcloc = self.start_srcloc
-    if self:match(unescaped) then
+    if self:match(unescaped_pattern) then
       table.insert(value, self._0)
     elseif self:match(quote) then
       break
