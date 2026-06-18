@@ -189,70 +189,71 @@ do
     escape_sequences[u] = v
     table.insert(patterns, class.escape(u))
   end
-  escape_sequence_pattern = "[" .. table.concat(patterns) .. "]"
+  escape_sequence_pattern = "\\([" .. table.concat(patterns) .. "])"
 end
 
 ---@return boolean
 function class:match_short_string()
   local start_srcloc = self.start_srcloc
-  if self:match "['\"]" then
-    local quote = self._0 --[[@as string]]
-    local unescaped = "[^\\\n" .. quote .. "]+"
-    local value = {}
-    while true do
-      local start_srcloc = self.start_srcloc
-      if self:match(quote) then
-        break
-      elseif self:match(unescaped) then
-        table.insert(value, self._0)
-      elseif self:match "\\" then
-        if self:match(escape_sequence_pattern) then
-          table.insert(value, escape_sequences[self._0])
-        elseif self:match "z%s*" then
-          -- skip
-        elseif self:match "x" then
-          if not self:match "%x%x" then
-            error("hexadecimal digit expected at " .. start_srcloc:to_string())
-          end
-          table.insert(value, string.char(tonumber(self._0, 16)))
-        elseif self:match "%d%d?%d?" then
-          local code = tonumber(self._0, 10)
-          if code > 0xFF then
-            error("decimal escape too large at " .. start_srcloc:to_string())
-          end
-          table.insert(value, string.char(code))
-        elseif self:match "u" then
-          if not self:match "{" then
-            error("missing '{' at " .. start_srcloc:to_string())
-          end
-          if not self:match "%x" then
-            error("hexadecimal digit expected at " .. start_srcloc:to_string())
-          end
-          local code = tonumber(self._0, 16)
-          while self:match "%x" do
-            if code > 0x7FFFFFF then
-              error("UTF-8 value too large at " .. start_srcloc:to_string())
-            end
-            code = code << 4 | tonumber(self._0, 16)
-          end
-          if not self:match "}" then
-            error("missing '}' at " .. start_srcloc:to_string())
-          end
-          table.insert(value, utf8.char(code))
-        else
-          error("invalid escape sequence at " .. start_srcloc:to_string())
-        end
-      else
-        error("unfinished string at " .. start_srcloc:to_string())
-      end
-    end
-    self._0 = self:substring(start_srcloc)
-    self._1 = table.concat(value)
-    self._2 = nil
-    return true
-  else
+  if not self:match "['\"]" then
     return false
   end
+
+  ---@type string
+  local quote = self._0
+  local unescaped = "[^" .. quote .. "\\\n]+"
+  local value = {}
+
+  while true do
+    local start_srcloc = self.start_srcloc
+    if self:match(unescaped) then
+      table.insert(value, self._0)
+    elseif self:match(quote) then
+      break
+    elseif self:match(escape_sequence_pattern) then
+      table.insert(value, escape_sequences[self._1])
+    elseif self:match "\\z%s*" then
+      -- skip
+    elseif self:match "\\x" then
+      if not self:match "%x%x" then
+        error("hexadecimal digit expected at " .. start_srcloc:to_string())
+      end
+      table.insert(value, string.char(tonumber(self._0, 16)))
+    elseif self:match "\\(%d%d?%d?)" then
+      local code = tonumber(self._1, 10)
+      if code > 0xFF then
+        error("decimal escape too large at " .. start_srcloc:to_string())
+      end
+      table.insert(value, string.char(code))
+    elseif self:match "\\u" then
+      if not self:match "{" then
+        error("missing '{' at " .. start_srcloc:to_string())
+      end
+      if not self:match "%x" then
+        error("hexadecimal digit expected at " .. start_srcloc:to_string())
+      end
+      local code = tonumber(self._0, 16)
+      while self:match "%x" do
+        if code > 0x7FFFFFF then
+          error("UTF-8 value too large at " .. start_srcloc:to_string())
+        end
+        code = code << 4 | tonumber(self._0, 16)
+      end
+      if not self:match "}" then
+        error("missing '}' at " .. start_srcloc:to_string())
+      end
+      table.insert(value, utf8.char(code))
+    elseif self:match "\\" then
+      error("invalid escape sequence at " .. start_srcloc:to_string())
+    else
+      error("unfinished string at " .. start_srcloc:to_string())
+    end
+  end
+
+  self._0 = self:substring(start_srcloc)
+  self._1 = table.concat(value)
+  self._2 = nil
+  return true
 end
 
 return class
