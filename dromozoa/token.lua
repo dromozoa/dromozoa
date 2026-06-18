@@ -57,6 +57,16 @@ function class.new(kind, subkind, text, value, first_srcloc, last_srcloc)
   }, metatable)
 end
 
+---@param kind string
+---@return string
+function class.kind_to_string(kind)
+  if kind:find "^%u" then
+    return "<" .. kind:lower() .. ">"
+  else
+    return "'" .. kind .. "'"
+  end
+end
+
 ---@param ... string
 ---@return boolean
 function class:check(...kinds)
@@ -81,7 +91,10 @@ function class:require_or(kinds, message)
   if self:check(table.unpack(kinds)) then
     return self
   end
-  error((message or "unexpected symbol") .. " at " .. self.first_srcloc:to_string())
+  if not message then
+    message = class.kind_to_string(kinds[1]) .. " expected"
+  end
+  error(message .. " at " .. self.first_srcloc:to_string())
 end
 
 ---@param kind string?

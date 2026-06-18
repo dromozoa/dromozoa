@@ -32,10 +32,19 @@
     - clause: とりあえずif用
 - 参考文献: https://blog.miz-ar.info/2025/09/surface-syntax/
 - classとかgenericなどの継承のことを考える
-- `Name`をexpectするときって`<name>`な気がするけどどうしようか。
-- `unexpected symbol`と`syntax error`の区別
-- `near`の実装
-- エラーメッセージの構築方法を考える
+- エラー関係
+    - `lparser.c`
+        - `check`
+            - `error_expected`
+                - `"%s expected", luaX_token2str(...)`
+
+            - `check_match`
+
+    - `Name`をexpectするときって`<name>`な気がするけどどうしようか。
+    - `unexpected symbol`と`syntax error`の区別
+    - `near`の実装
+    - エラーメッセージの構築方法を考える
+
 
 
 
