@@ -32,11 +32,7 @@ local function new_auxiliary_node(kind, attribute)
   return node.new("auxiliary", kind, nil, attribute)
 end
 
----@return string ...
-local function is_stat_terminal()
-  return "end", "until", "elseif", "else", "EOF"
-end
-
+local is_stat_terminal = { "end", "until", "elseif", "else", "EOF" }
 local is_var = { "Name", "index", "member" }
 
 --=========================================================================
@@ -230,13 +226,13 @@ function class:parse_block(kind)
       u:append(self:parse_retstat(x))
       x = self:read()
       break
-    elseif x:check(is_stat_terminal()) then
+    elseif x:check(table.unpack(is_stat_terminal)) then
       break
     end
     self:unread()
     u:append(self:parse_stat())
   end
-  x:require(is_stat_terminal())
+  x:require_or(is_stat_terminal)
   self:unread()
   return u
 end
@@ -441,7 +437,7 @@ end
 ---@return dromozoa.node
 function class:parse_retstat(x)
   local u = x:new_statement_node()
-  if self:peek():check(";", is_stat_terminal()) then
+  if self:peek():check(";", table.unpack(is_stat_terminal)) then
     u:append(new_auxiliary_node "expressions")
   else
     u:append(self:parse_explist())
@@ -449,7 +445,7 @@ function class:parse_retstat(x)
   if self:peek():check ";" then
     u:update(self:read())
   end
-  self:peek():require(is_stat_terminal())
+  self:peek():require_or(is_stat_terminal)
   return u
 end
 
