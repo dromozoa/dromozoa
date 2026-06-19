@@ -118,9 +118,8 @@ function class:require_or(kinds, message)
     return self
   end
   if not message then
-    message = "syntax error???"
+    message = "syntax error"
   end
-  -- 引数にnear用のトークンを渡すべき
   error(message .. " at " .. source_location.to_string(self.first_srcloc))
 end
 

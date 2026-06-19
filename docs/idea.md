@@ -49,6 +49,7 @@
         - `node:require_or`は引数に`near`用のトークンを渡すべき
     - エラーメッセージの構築方法を考える
     - tablesepのパースエラーがどうなるかを調べる
+    - is_stat_terminalとis_varをどうするか考える
 
 
 
