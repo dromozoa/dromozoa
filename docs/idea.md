@@ -37,14 +37,17 @@
         - `check`
             - `error_expected`
                 - `"%s expected", luaX_token2str(...)`
-
             - `check_match`
-
     - `Name`をexpectするときって`<name>`な気がするけどどうしようか。
-    - `unexpected symbol`と`syntax error`の区別
+        - `luaX_token2str`を参考に実装
     - `near`の実装
+        - レキサのnearは実装しない
+    - `unexpected symbol`と`syntax error`の区別
+        - `unexpected symbol`が出てくるのは`primaryexp()`
+        - `syntax error`が出てくるのは`exprstat()`と`restassign()`
+        - `node:require_or`は引数に`near`用のトークンを渡すべき
     - エラーメッセージの構築方法を考える
-
+    - tablesepのパースエラーがどうなるかを調べる
 
 
 

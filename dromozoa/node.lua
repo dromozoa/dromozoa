@@ -117,7 +117,11 @@ function class:require_or(kinds, message)
   if self:check(table.unpack(kinds)) then
     return self
   end
-  error((message or "syntex error") .. " at " .. source_location.to_string(self.first_srcloc))
+  if not message then
+    message = "syntax error"
+  end
+  -- 引数にnear用のトークンを渡すべき
+  error(message .. " at " .. source_location.to_string(self.first_srcloc))
 end
 
 return class
