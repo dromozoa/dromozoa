@@ -269,6 +269,7 @@ end
 test_parse_exp_error "()"
 test_parse_exp_error "- +"
 test_parse_exp_error "{,}"
+test_parse_exp_error "{;}"
 test_parse_exp_error "{1,,}"
 test_parse_exp_error "f(,)"
 test_parse_exp_error "x:f 42"
