@@ -500,6 +500,7 @@ test_parse_stat_error "local <const> *"
 test_parse_stat_error "function f(42) end"
 test_parse_stat_error "for a +"
 test_parse_stat_error "for a, b +"
+test_parse_stat_error "(foo) = 42"
 
 ---@param source string
 ---@param expect string
