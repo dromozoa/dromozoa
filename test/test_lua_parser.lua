@@ -142,19 +142,55 @@ end
 local function test_parse_error_impl(source, fn, expect)
   local p = new_parser(source, "=(test)")
   local result, message = pcall(fn, p)
-  assert(not result)
-  assert(message)
-  local message = tostring(message)
+  local load_result, load_message = load(source)
+
   if verbose then
     print(("="):rep(80))
-    print(message)
-    local result, message = load(source)
-    assert(not result)
-    print(message)
+    print(result, message)
+    print(load_result, load_message)
   end
-  assert(message:find "=%(test%):1:", ("{ message = %q }"):format(message))
+
+  assert(not result)
+  assert(message)
+
+  local message, near = assert(tostring(message):match "^.-%.lua:%d+: (.-) near (.-) at =%(test%):1:")
+  if verbose then
+    print("message", message)
+    print("near", near)
+  end
+
+  assert(not load_result)
+  assert(load_message)
+
+  local lua_message, lua_near = assert(load_message:match "^%[.-%]:1: (.-) near (.*)$")
+  if verbose then
+    print("lua_message", lua_message)
+    print("lua_near", lua_near)
+  end
+
+  assert(message == lua_message, ("{ message = [%q,%q] }"):format(message, lua_message))
+  if verbose then
+    if near ~= lua_near then
+      print "[near is not same]"
+    end
+  end
+
+
+  -- assert(message == lua_message)
+
+  -- assert(message:find(expect_, 1, true), ("{ message = %q }"):format(message))
+
+  -- if verbose then
+  --   print(("="):rep(80))
+  --   print(message)
+  --   local result, message = load(source)
+  --   assert(not result)
+  --   print(message)
+  -- end
+  -- assert(message:find "=%(test%):1:", ("{ message = %q }"):format(message))
   if expect then
-    assert(message:find(": " .. expect .. " near ", 1, true), ("{ message = %q }"):format(message))
+    assert(message == expect , ("{ message = %q }"):format(message))
+    -- assert(message:find(expect, 1, true), ("{ message = %q }"):format(message))
   end
 end
 

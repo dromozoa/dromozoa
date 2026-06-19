@@ -445,7 +445,7 @@ function class:parse_retstat(x)
   if self:peek():check ";" then
     u:update(self:read())
   end
-  self:peek():require_or(is_stat_terminal)
+  self:peek():require_or(is_stat_terminal, "<eof> expected")
   return u
 end
 
