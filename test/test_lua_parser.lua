@@ -175,22 +175,8 @@ local function test_parse_error_impl(source, fn, expect)
     end
   end
 
-
-  -- assert(message == lua_message)
-
-  -- assert(message:find(expect_, 1, true), ("{ message = %q }"):format(message))
-
-  -- if verbose then
-  --   print(("="):rep(80))
-  --   print(message)
-  --   local result, message = load(source)
-  --   assert(not result)
-  --   print(message)
-  -- end
-  -- assert(message:find "=%(test%):1:", ("{ message = %q }"):format(message))
   if expect then
     assert(message == expect , ("{ message = %q }"):format(message))
-    -- assert(message:find(expect, 1, true), ("{ message = %q }"):format(message))
   end
 end
 
