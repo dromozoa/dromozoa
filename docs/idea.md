@@ -27,7 +27,7 @@
 - classとかgenericなどの継承のことを考える
 - エラー関係
     - エラーメッセージの構築方法を考える
-        - to_stringじゃなくてmake_error_stringにする
+        - to_stringじゃなくてmake_error_stringにするとか
     - テストの出力を洗練する
     - 網羅性について考える
         - 文法エラーのパターンをどれくらい考えるべきか
