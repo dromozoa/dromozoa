@@ -153,6 +153,7 @@ local function test_parse_error_impl(source, fn)
   assert(message)
 
   local message, near = assert(tostring(message):match "^.-%.lua:%d+: (.-) near (.-) at =%(test%):1:")
+  assert(not near:find "%w+%s*$")
   if verbose then
     print("message", message)
     print("near", near)
@@ -500,6 +501,7 @@ test_parse_stat_error "local <const> *"
 test_parse_stat_error "function f(42) end"
 test_parse_stat_error "for a +"
 test_parse_stat_error "for a, b +"
+test_parse_stat_error "(foo)"
 test_parse_stat_error "(foo) = 42"
 
 ---@param source string

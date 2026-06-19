@@ -123,7 +123,7 @@ function class:require_or(kinds, message)
   if self.token then
     message = message .. self.token:make_near_string()
   end
-  error(message .. " at " .. source_location.to_string(self.first_srcloc))
+  error(message .. source_location.make_at_string(self.first_srcloc))
 end
 
 return class

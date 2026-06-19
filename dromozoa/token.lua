@@ -69,15 +69,19 @@ end
 ---@return string
 function class:make_near_string()
   -- https://github.com/lua/lua/blob/v5.5.0/llex.c#L104
-  if self:check "String" then
-    -- Luaの実装は文字列リテラルの解釈結果を出力するので、制御文字や不正なUTF-8
-    -- バイト列を含む可能性がある。本実装は文字列リテラルのソーステキストを出力
-    -- する。
-    return " near " .. self.text
-  elseif self:check("Name", "Float", "Integer") then
-    return " near '" .. self.text .. "'"
+  if self then
+    if self:check "String" then
+      -- Luaの実装は文字列リテラルの解釈結果を出力するので、制御文字や不正なUTF-8
+      -- バイト列を含む可能性がある。本実装は文字列リテラルのソーステキストを出力
+      -- する。
+      return " near " .. self.text
+    elseif self:check("Name", "Float", "Integer") then
+      return " near '" .. self.text .. "'"
+    else
+      return " near " .. kind_to_string(self.kind)
+    end
   else
-    return " near " .. kind_to_string(self.kind)
+    return ""
   end
 end
 
