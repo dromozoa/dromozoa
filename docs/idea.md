@@ -36,6 +36,8 @@
         - 文法エラーのパターンをどれくらい考えるべきか
         - Luaがバージョンアップしたらどうする？
     - ~~token:make_near_stringもnil可能にする？~~
+    - source_location:to_stringは戻しても良い気がする
+        - もしくはencode/decode, stringify/parse
 
 
 
