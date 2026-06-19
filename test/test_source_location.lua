@@ -24,8 +24,8 @@ assert(srcloc1.position == 1)
 assert(srcloc1.line == 1)
 assert(srcloc1.column == 1)
 
-assert(srcloc1:to_string() == "=(test):1:1")
-assert(source_location.to_string(nil) == "=(unknown):0:0")
+assert(srcloc1:make_at_string() == " at =(test):1:1")
+assert(source_location.make_at_string(nil) == " at =(unknown):0:0")
 
 local srcloc2 = source_location.new("=(test)", 2, 1, 2)
 local srcloc3 = source_location.new "=(zzzz)"

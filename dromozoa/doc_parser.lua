@@ -83,7 +83,7 @@ function class:parse_expression(rbp)
   local nud = nud_table[x.kind]
   if not nud then
     self:unread()
-    error("syntax error at " .. x.first_srcloc:to_string())
+    error("syntax error" .. x.first_srcloc:make_at_string())
   end
   local u = nud(self, x)
   while true do

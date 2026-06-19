@@ -15,7 +15,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with dromozoa.  If not, see <https://www.gnu.org/licenses/>.
 
-local lua_lex = require "dromozoa.lua_lex"
+local lua_lexer = require "dromozoa.lua_lexer"
 local lua_parser = require "dromozoa.lua_parser"
 local matcher = require "dromozoa.matcher"
 local source_location = require "dromozoa.source_location"
@@ -37,6 +37,12 @@ local function escape(s)
   return (s:gsub("[&<>\"']", escape_table))
 end
 
+---@param srcloc dromozoa.source_location
+---@return string
+local function make_srcloc_string(srcloc)
+  return srcloc.filename .. ":" .. srcloc.line .. ":" .. srcloc.column
+end
+
 ---@param u dromozoa.token
 ---@param depth integer
 local function dump_token(u, depth)
@@ -44,8 +50,8 @@ local function dump_token(u, depth)
     string.format('<token kind="%s"%s first_srcloc="%s" last_srcloc="%s">%s</token>\n',
       escape(u.kind),
       u.subkind and string.format(' subkind="%s"', escape(u.subkind)) or "",
-      escape(u.first_srcloc:to_string()),
-      escape(u.last_srcloc:to_string()),
+      escape(make_srcloc_string(u.first_srcloc)),
+      escape(make_srcloc_string(u.last_srcloc)),
       escape(tostring(u.text))))
 end
 
@@ -59,8 +65,8 @@ local function dump_node(u, depth)
     string.format('<node category="%s" kind="%s"%s%s>\n',
       escape(u.category),
       escape(u.kind),
-      u.first_srcloc and string.format(' first_srcloc="%s"', escape(u.first_srcloc:to_string())) or "",
-      u.last_srcloc and string.format(' last_srcloc="%s"', escape(u.last_srcloc:to_string())) or ""))
+      u.first_srcloc and string.format(' first_srcloc="%s"', escape(make_srcloc_string(u.first_srcloc))) or "",
+      u.last_srcloc and string.format(' last_srcloc="%s"', escape(make_srcloc_string(u.last_srcloc))) or ""))
 
   if u.token then
     dump_token(u.token, depth)
@@ -81,5 +87,5 @@ end
 
 local filename = ...
 local source = util.normalize_eol(util.read_file(filename))
-local chunk = lua_parser.new(token_stream.new(lua_lex, matcher.new(source, source_location.new(filename)))):parse()
+local chunk = lua_parser.new(token_stream.new(lua_lexer.lex, matcher.new(source, source_location.new(filename)))):parse()
 dump_node(chunk, 0)
