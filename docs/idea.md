@@ -33,6 +33,19 @@
 - 参考文献: https://blog.miz-ar.info/2025/09/surface-syntax/
 - classとかgenericなどの継承のことを考える
 - エラー関係
+    - エラーメッセージの構築方法を考える
+    - テストの出力を洗練する
+    - 網羅性について考える
+        - 文法エラーのパターンをどれくらい考えるべきか
+        - Luaがバージョンアップしたらどうする？
+
+
+
+## ごみ箱
+
+### 2026/06/19
+
+- エラー関係
     - `lparser.c`
         - `check`
             - `error_expected`
@@ -47,13 +60,8 @@
             - `primaryexp -> NAME | '(' expr ')'`
         - `syntax error`が出てくるのは`exprstat()`と`restassign()`
         - `node:require_or`は引数に`near`用のトークンを渡すべき
-    - エラーメッセージの構築方法を考える
     - tablesepのパースエラーがどうなるかを調べる
     - is_stat_terminalとis_varをどうするか考える
-
-
-
-## ごみ箱
 
 ### 2026/06/18
 
