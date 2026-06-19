@@ -191,7 +191,7 @@ function class:parse_nud(nud_table)
   local nud = nud_table[x.kind]
   if not nud then
     self:unread()
-    return nil, "unexpected symbol near " .. x:to_string() .. " at " .. x.first_srcloc:to_string()
+    return nil, x:make_error_string "unexpected symbol"
   end
   return nud(self, x)
 end

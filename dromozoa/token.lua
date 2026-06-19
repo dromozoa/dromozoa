@@ -69,15 +69,20 @@ function class.kind_to_string(kind)
 end
 
 ---@return string
-function class:to_string()
+function class:make_near_string()
   -- llex.cのtxtTokenを参考にエラーメッセージ用の文字列を構築する。
   if self:check "String" then
-    return self.text
+    return " near " .. self.text
   elseif self:check("Name", "Float", "Integer") then
-    return "'" .. self.text .. "'"
+    return " near '" .. self.text .. "'"
   else
-    return class.kind_to_string(self.kind)
+    return " near " .. class.kind_to_string(self.kind)
   end
+end
+
+---@return string
+function class:make_error_string(message)
+  return message .. self:make_near_string() .. self.first_srcloc:make_at_string()
 end
 
 ---@param ... string
@@ -104,11 +109,10 @@ function class:require_or(kinds, message)
   if self:check(table.unpack(kinds)) then
     return self
   end
-
   if not message then
     message = class.kind_to_string(kinds[1]) .. " expected"
   end
-  error(message .. " near " .. self:to_string() .. " at " .. self.first_srcloc:to_string())
+  error(self:make_error_string(message))
 end
 
 ---@param kind string?

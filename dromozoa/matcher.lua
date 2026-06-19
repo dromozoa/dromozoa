@@ -64,10 +64,10 @@ function class.longer_first(a, b)
 end
 
 ---@param message string
----@param srcloc dromozoa.source_location
+---@param start_srcloc dromozoa.source_location
 ---@return string
-function class.make_error_string(message, srcloc)
-  return message .. source_location.make_at_string(srcloc)
+function class.make_error_string(message, start_srcloc)
+  return message .. start_srcloc:make_at_string()
 end
 
 ---@return boolean

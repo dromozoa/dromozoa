@@ -121,7 +121,7 @@ function class:require_or(kinds, message)
     message = "syntax error"
   end
   if self.token then
-    message = message .. " near " .. self.token:to_string()
+    message = message .. self.token:make_near_string()
   end
   error(message .. " at " .. source_location.to_string(self.first_srcloc))
 end
