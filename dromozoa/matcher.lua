@@ -17,13 +17,6 @@
 
 local source_location = require "dromozoa.source_location"
 
----@param message string
----@param srcloc dromozoa.source_location
----@return string
-local function make_error_string(message, srcloc)
-  return message .. srcloc:make_at_string()
-end
-
 ---@class dromozoa.matcher
 ---@field source string
 ---@field start_offset integer
@@ -68,6 +61,13 @@ function class.longer_first(a, b)
   else
     return #a > #b
   end
+end
+
+---@param message string
+---@param srcloc dromozoa.source_location
+---@return string
+function class.make_error_string(message, srcloc)
+  return message .. source_location.make_at_string(srcloc)
 end
 
 ---@return boolean
@@ -147,17 +147,17 @@ function class:match_long_string()
   local start_srcloc = self.start_srcloc
   if self:match "%[%[" then
     if not self:match("\n?(.-)%]%]") then
-      error(make_error_string("unfinished long string", self.start_srcloc))
+      error(class.make_error_string("unfinished long string", self.start_srcloc))
     end
     self._0 = self:substring(start_srcloc)
     return true
   elseif self:match "%[(=+)" then
     local pattern = "\n?(.-)%]" .. self._1 .. "%]"
     if not self:match "%[" then
-      error(make_error_string("invalid long string delimiter", self.start_srcloc))
+      error(class.make_error_string("invalid long string delimiter", self.start_srcloc))
     end
     if not self:match(pattern) then
-      error(make_error_string("unfinished long string", self.start_srcloc))
+      error(class.make_error_string("unfinished long string", self.start_srcloc))
     end
     self._0 = self:substring(start_srcloc)
     return true
@@ -223,37 +223,37 @@ function class:match_short_string()
       -- skip
     elseif self:match "\\x" then
       if not self:match "%x%x" then
-        error(make_error_string("hexadecimal digit expected", start_srcloc))
+        error(class.make_error_string("hexadecimal digit expected", start_srcloc))
       end
       table.insert(value, string.char(tonumber(self._0, 16)))
     elseif self:match "\\(%d%d?%d?)" then
       local code = tonumber(self._1, 10)
       if code > 0xFF then
-        error(make_error_string("decimal escape too large", start_srcloc))
+        error(class.make_error_string("decimal escape too large", start_srcloc))
       end
       table.insert(value, string.char(code))
     elseif self:match "\\u" then
       if not self:match "{" then
-        error(make_error_string("missing '{'", start_srcloc))
+        error(class.make_error_string("missing '{'", start_srcloc))
       end
       if not self:match "%x" then
-        error(make_error_string("hexadecimal digit expected", start_srcloc))
+        error(class.make_error_string("hexadecimal digit expected", start_srcloc))
       end
       local code = tonumber(self._0, 16)
       while self:match "%x" do
         if code > 0x7FFFFFF then
-          error(make_error_string("UTF-8 value too large", start_srcloc))
+          error(class.make_error_string("UTF-8 value too large", start_srcloc))
         end
         code = code << 4 | tonumber(self._0, 16)
       end
       if not self:match "}" then
-        error(make_error_string("missing '}'", start_srcloc))
+        error(class.make_error_string("missing '}'", start_srcloc))
       end
       table.insert(value, utf8.char(code))
     elseif self:match "\\" then
-      error(make_error_string("invalid escape sequence", start_srcloc))
+      error(class.make_error_string("invalid escape sequence", start_srcloc))
     else
-      error(make_error_string("unfinished string", start_srcloc))
+      error(class.make_error_string("unfinished string", start_srcloc))
     end
   end
 

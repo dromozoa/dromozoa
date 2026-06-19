@@ -154,7 +154,7 @@ function class.lex(that)
     value = that._0
   elseif that:match "%-%-%[(=*)%[" then
     if not that:match("(.-)%]" .. that._1 .. "%]") then
-      error("unfinished long comment at " .. that.start_srcloc:to_string())
+      error(matcher.make_error_string("unfinished long comment", that.start_srcloc))
     end
     kind = "Comment"
     subkind = "Long"
@@ -177,7 +177,7 @@ function class.lex(that)
   end
 
   if not kind or not value then
-    error("unexpected symbol at " .. start_srcloc:to_string())
+    error(matcher.make_error_string("unexpected symbol", that.start_srcloc))
   end
 
   return token.new(kind, subkind, that:substring(start_srcloc), value, start_srcloc, that.last_srcloc)
