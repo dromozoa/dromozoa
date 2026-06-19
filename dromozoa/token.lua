@@ -17,13 +17,22 @@
 
 local node = require "dromozoa.node"
 
+local function kind_to_string(kind)
+  -- https://github.com/lua/lua/blob/v5.5.0/llex.c#L87
+  if kind:find "^%u" then
+    return "<" .. kind:lower() .. ">"
+  else
+    return "'" .. kind .. "'"
+  end
+end
+
 ---@class dromozoa.token
 ---@field kind string
 ---@field subkind string?
 ---@field text string
 ---@field value string|number
 ---@field first_srcloc dromozoa.source_location
----@field last_srcloc dromozoa.source_location?
+---@field last_srcloc? dromozoa.source_location
 local class = {}
 local metatable = {
   __index = class,
@@ -57,26 +66,18 @@ function class.new(kind, subkind, text, value, first_srcloc, last_srcloc)
   }, metatable)
 end
 
----@param kind string
----@return string
-function class.kind_to_string(kind)
-  -- llex.cのluaX_token2strを参考にエラーメッセージ用の文字列を構築する。
-  if kind:find "^%u" then
-    return "<" .. kind:lower() .. ">"
-  else
-    return "'" .. kind .. "'"
-  end
-end
-
 ---@return string
 function class:make_near_string()
-  -- llex.cのtxtTokenを参考にエラーメッセージ用の文字列を構築する。
+  -- https://github.com/lua/lua/blob/v5.5.0/llex.c#L104
   if self:check "String" then
+    -- Luaの実装は文字列リテラルの解釈結果を出力するので、制御文字や不正なUTF-8
+    -- バイト列を含む可能性がある。本実装は文字列リテラルのソーステキストを出力
+    -- する。
     return " near " .. self.text
   elseif self:check("Name", "Float", "Integer") then
     return " near '" .. self.text .. "'"
   else
-    return " near " .. class.kind_to_string(self.kind)
+    return " near " .. kind_to_string(self.kind)
   end
 end
 
@@ -110,7 +111,7 @@ function class:require_or(kinds, message)
     return self
   end
   if not message then
-    message = class.kind_to_string(kinds[1]) .. " expected"
+    message = kind_to_string(kinds[1]) .. " expected"
   end
   error(self:make_error_string(message))
 end
