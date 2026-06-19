@@ -37,10 +37,7 @@ local function is_stat_terminal()
   return "end", "until", "elseif", "else", "EOF"
 end
 
----@return string ...
-local function is_var()
-  return "Name", "index", "member"
-end
+local is_var = { "Name", "index", "member" }
 
 --=========================================================================
 
@@ -423,7 +420,7 @@ end
 ---@param u dromozoa.node
 ---@return dromozoa.node
 function class:parse_assignment(u)
-  local v = new_auxiliary_node "variables":append(u:require(is_var()))
+  local v = new_auxiliary_node "variables":append(u:require_or(is_var))
 
   local x
   while true do
@@ -432,7 +429,7 @@ function class:parse_assignment(u)
       break
     end
     x:require ","
-    v:append(self:parse_prefixexp():require(is_var()))
+    v:append(self:parse_prefixexp():require_or(is_var))
   end
 
   return x:require "=":new_statement_node "assignment"
